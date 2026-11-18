@@ -163,14 +163,18 @@ final class RosterPageService
             $end = CarbonImmutable::parse($r->ends_at)->setTimezone((string) $r->timezone);
             $byDay[$start->toDateString()]['asks'][] = ['id' => (string) $r->public_id, 'status' => (string) $r->status, 'branch' => (string) $r->name,
                 'startLabel' => $this->rules->timeLabel($start), 'endLabel' => $this->rules->timeLabel($end), 'nextDay' => $end->toDateString() !== $start->toDateString(),
-                'label' => $r->status === 'asked' ? 'Asked, waiting for HR' : 'Confirmed, roster not approved yet'];
+                'label' => $r->status === 'asked' ? 'Asked, waiting for HR' : 'Confirmed, roster not approved yet',
+                // A short word for the grid cell; the full line is in the day sheet (Daniel).
+                'shortLabel' => $r->status === 'asked' ? 'Asked' : 'Confirmed, not approved'];
         }
 
         $days = [];
         for ($day = $gridStart; $day->lte($gridEnd); $day = $day->addDay()) {
             $date = $day->toDateString();
-            $days[] = ['date' => $date, 'day' => (int) $day->format('j'), 'label' => $this->rules->shortDayLabel($day), 'inMonth' => $day->month === $first->month,
-                'today' => $date === $today, 'shifts' => $byDay[$date]['shifts'] ?? [], 'asks' => $byDay[$date]['asks'] ?? []];
+            $inMonth = $day->month === $first->month;
+            // Days outside the month are muted and carry nothing; they belong to the month next door (Daniel).
+            $days[] = ['date' => $date, 'day' => (int) $day->format('j'), 'label' => $this->rules->shortDayLabel($day), 'inMonth' => $inMonth,
+                'today' => $date === $today, 'shifts' => $inMonth ? ($byDay[$date]['shifts'] ?? []) : [], 'asks' => $inMonth ? ($byDay[$date]['asks'] ?? []) : []];
         }
 
         return ['key' => $first->format('Y-m'), 'label' => $first->format('F Y'), 'previous' => $first->subMonth()->format('Y-m'),

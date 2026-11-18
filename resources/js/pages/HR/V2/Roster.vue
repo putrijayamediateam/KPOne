@@ -8,6 +8,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import MonthCalendar from '@/components/hr/roster/MonthCalendar.vue';
 import ComplianceRulesCards from '@/components/hr-v2/ComplianceRulesCards.vue';
 import RosterChecks from '@/components/hr-v2/RosterChecks.vue';
 import InputError from '@/components/InputError.vue';
@@ -53,6 +54,8 @@ const {
     statusLabel,
     visit,
     changeTab,
+    showMonth,
+    showWeek,
     changeBranch,
     versionLine,
     dialog,
@@ -79,6 +82,14 @@ const {
     minimumsEmpty,
     minimumError,
 } = useRosterPage(props);
+// HR-15f: the month calendar is My roster only.
+const isMonth = computed(
+    () => props.roster.tab === 'my' && props.roster.view === 'month',
+);
+const viewTabs = [
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+];
 
 usePageCrumbs(() => [{ title: 'KPOne HR', href: '/hr' }, { title: 'Roster' }]);
 
@@ -459,8 +470,58 @@ const numberClass =
                         @update:model-value="changeTab"
                     />
 
+                    <!-- HR-15f: Week or Month on My roster, as V2 segments; the choice is in the address. -->
+                    <V2Tabs
+                        v-if="roster.tab === 'my' && roster.my"
+                        :model-value="isMonth ? 'month' : 'week'"
+                        :tabs="viewTabs"
+                        ariaLabel="Show my roster by"
+                        data-test="roster-view-switch"
+                        @update:model-value="
+                            (v: string) =>
+                                v === 'month' ? showMonth() : showWeek()
+                        "
+                    />
+
                     <div
-                        v-if="roster.tab !== 'minimums'"
+                        v-if="isMonth && roster.month"
+                        class="flex flex-wrap items-center gap-2"
+                        data-test="month-switcher"
+                    >
+                        <button
+                            type="button"
+                            :class="button"
+                            @click="showMonth(roster.month.previous)"
+                        >
+                            <span aria-hidden="true">‹</span> Previous<span
+                                class="max-sm:sr-only"
+                                >month</span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            :class="button"
+                            @click="showMonth(roster.month.current)"
+                        >
+                            This month
+                        </button>
+                        <button
+                            type="button"
+                            :class="button"
+                            @click="showMonth(roster.month.next)"
+                        >
+                            Next<span class="max-sm:sr-only">month</span>
+                            <span aria-hidden="true">›</span>
+                        </button>
+                        <span
+                            class="text-sm font-medium"
+                            data-test="month-label"
+                            >{{ roster.month.label }}</span
+                        >
+                    </div>
+
+                    <div
+                        v-else-if="roster.tab !== 'minimums'"
                         class="flex flex-wrap items-center gap-2"
                         data-test="week-switcher"
                     >
@@ -499,7 +560,8 @@ const numberClass =
                     <!-- My roster: one column -->
                     <section
                         v-if="roster.tab === 'my' && roster.my"
-                        class="flex w-full max-w-[40rem] flex-col gap-3"
+                        class="flex w-full flex-col gap-3"
+                        :class="isMonth ? '' : 'max-w-[40rem]'"
                         aria-label="My shifts"
                     >
                         <ul
@@ -516,49 +578,60 @@ const numberClass =
                             </li>
                         </ul>
                         <p class="text-[13px] text-muted-foreground">
-                            Your approved shifts. Times are in each branch's
-                            time.
+                            {{
+                                isMonth
+                                    ? 'Your approved shifts and open shift asks for this month.'
+                                    : 'Your approved shifts.'
+                            }}
+                            Times are in each branch's time.
                         </p>
-                        <p
-                            v-if="roster.my.days.length === 0"
-                            class="rounded-[14px] border bg-card p-6 text-center text-sm text-muted-foreground"
-                        >
-                            No approved shifts this week.
-                        </p>
-                        <V2FormCard
-                            v-for="day in roster.my.days"
-                            :key="day.date"
-                            :title="day.label"
-                        >
-                            <ul class="flex flex-col divide-y">
-                                <li
-                                    v-for="shift in day.shifts"
-                                    :key="shift.id"
-                                    class="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0"
-                                >
-                                    <span class="font-medium tabular-nums">{{
-                                        timeText(shift)
-                                    }}</span>
-                                    <span class="text-sm">{{
-                                        shift.branch
-                                    }}</span>
-                                    <span
-                                        class="text-[13px] text-muted-foreground"
+                        <MonthCalendar
+                            v-if="isMonth && roster.month"
+                            :month="roster.month"
+                        />
+                        <template v-else>
+                            <p
+                                v-if="roster.my.days.length === 0"
+                                class="rounded-[14px] border bg-card p-6 text-center text-sm text-muted-foreground"
+                            >
+                                No approved shifts this week.
+                            </p>
+                            <V2FormCard
+                                v-for="day in roster.my.days"
+                                :key="day.date"
+                                :title="day.label"
+                            >
+                                <ul class="flex flex-col divide-y">
+                                    <li
+                                        v-for="shift in day.shifts"
+                                        :key="shift.id"
+                                        class="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0"
                                     >
-                                        {{ shift.sessionLabel
-                                        }}<template
-                                            v-if="shift.breakMinutes > 0"
+                                        <span
+                                            class="font-medium tabular-nums"
+                                            >{{ timeText(shift) }}</span
                                         >
-                                            · Break
-                                            {{ shift.breakMinutes }}
-                                            min</template
-                                        ><template v-if="shift.roomName">
-                                            · {{ shift.roomName }}</template
+                                        <span class="text-sm">{{
+                                            shift.branch
+                                        }}</span>
+                                        <span
+                                            class="text-[13px] text-muted-foreground"
                                         >
-                                    </span>
-                                </li>
-                            </ul>
-                        </V2FormCard>
+                                            {{ shift.sessionLabel
+                                            }}<template
+                                                v-if="shift.breakMinutes > 0"
+                                            >
+                                                · Break
+                                                {{ shift.breakMinutes }}
+                                                min</template
+                                            ><template v-if="shift.roomName">
+                                                · {{ shift.roomName }}</template
+                                            >
+                                        </span>
+                                    </li>
+                                </ul>
+                            </V2FormCard>
+                        </template>
                     </section>
 
                     <!-- Planner -->
