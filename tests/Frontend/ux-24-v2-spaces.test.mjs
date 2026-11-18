@@ -12,10 +12,10 @@ const menu = read('resources/js/components/UserMenuContent.vue');
 const clock = read('resources/js/composables/useClockShortcut.ts');
 const css = read('resources/css/space-shell-layout.css');
 
-test('UX-24 part 1: Me home and Management are framed by the V2 shell, drawn by the space layout', () => {
+test('UX-24 parts 1 and 2: every space home is framed by the V2 shell, drawn by the space layout', () => {
     assert.match(
         read('resources/js/lib/v2-spaces.ts'),
-        /export const V2_FRAMED_SPACES: readonly string\[\] = \['me', 'management'\];/,
+        /export const V2_FRAMED_SPACES: readonly string\[\] = \[\s*'me',\s*'front_desk',\s*'pharmacy',\s*'consultation',\s*'billing',\s*'panel',\s*'stock',\s*'hr',\s*'management',\s*\];/,
     );
     assert.match(
         layout,
