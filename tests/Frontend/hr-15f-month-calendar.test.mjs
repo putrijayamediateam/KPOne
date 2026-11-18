@@ -83,8 +83,11 @@ test('narrow cells show a count; wide cells show 2 lines (3 from 1280) then "+N 
 
 test('the day sheet and the phone list carry the full lines; hours are approved shifts only', () => {
     assert.match(calendar, /data-test="month-day-sheet"/);
-    assert.match(calendar, /Hours count approved shifts only\.\s+Times are in each/);
+    assert.match(
+        calendar,
+        /Hours count approved shifts only\.\s+Times are in each/,
+    );
     assert.match(calendar, /\{\{ month\.hoursLabel \}\} approved this month/);
     assert.match(calendar, /No shifts this month\./);
-    assert.match(calendar, /\{\{ ask\.label \}\}/);
+    assert.match(calendar, /\{\{\s+ask\.label\s+\}\}/);
 });
