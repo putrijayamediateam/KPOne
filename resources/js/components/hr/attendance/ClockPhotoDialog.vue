@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from 'reka-ui';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import ClockLocationConsent from '@/components/hr/attendance/ClockLocationConsent.vue';
 import ClockPhotoNotice, {
     CLOCK_PHOTO_NOTICE_VERSION,
 } from '@/components/hr/attendance/ClockPhotoNotice.vue';
@@ -20,9 +21,11 @@ import {
     NoticeNeeded,
     PASS_REFUSALS,
     passRefusalNote,
+    readLocation,
     resetClockPhoto,
     sendPress,
     takeToken,
+    WITHOUT_LOCATION,
 } from '@/composables/useClockPhoto';
 
 /**
@@ -51,6 +54,12 @@ const dark = computed(() =>
     ['starting', 'camera', 'review', 'sending', 'failed'].includes(state.step),
 );
 const notice = computed(() => state.step === 'notice');
+// HR-16a on the Me press: the consent step and the one location read come before the camera, on a light sheet.
+const consent = computed(
+    () => state.step === 'consent' && state.location !== null,
+);
+const locating = computed(() => state.step === 'locating');
+const light = computed(() => notice.value || consent.value || locating.value);
 
 const stopStream = () => {
     stream?.getTracks().forEach((track) => track.stop());
@@ -123,12 +132,43 @@ const begin = async () => {
     await startCamera();
 };
 
+// The location is read once, at the press; the result rides along with the photo. A flow closed meanwhile ignores it.
+const checkLocation = async (agreed: boolean) => {
+    const key = state.key;
+    state.step = 'locating';
+    const extra = await readLocation(agreed);
+
+    if (state.key !== key || state.step !== 'locating') {
+        return;
+    }
+
+    state.extra = { ...state.extra, ...extra };
+    state.step = 'starting';
+    await begin();
+};
+
+const withoutLocation = async () => {
+    state.extra = { ...state.extra, ...WITHOUT_LOCATION };
+    facing.value = 'user';
+    state.step = 'starting';
+    await begin();
+};
+
 watch(
     () => state.step,
     (step, before) => {
-        if (step === 'starting' && before === 'idle') {
+        if (before !== 'idle') {
+            return;
+        }
+
+        if (step === 'starting' || step === 'locating') {
             facing.value = 'user';
+        }
+
+        if (step === 'starting') {
             void begin();
+        } else if (step === 'locating') {
+            void checkLocation(false);
         }
     },
 );
@@ -309,7 +349,7 @@ onBeforeUnmount(() => {
                 data-test="clock-photo-dialog"
                 class="fixed inset-0 z-50 flex flex-col overflow-hidden outline-none sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(44rem,calc(100dvh-4rem))] sm:w-[min(40rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:shadow-2xl"
                 :class="
-                    notice
+                    light
                         ? 'bg-background text-foreground'
                         : dark
                           ? 'bg-[#08080a] text-white'
@@ -326,6 +366,28 @@ onBeforeUnmount(() => {
                     @continue="noticeRead"
                     @cancel="close"
                 />
+
+                <!-- HR-16a: consent, once per version, then one location read -->
+                <ClockLocationConsent
+                    v-else-if="consent && state.location"
+                    :kind="state.kind"
+                    :location="state.location"
+                    @agree="checkLocation(true)"
+                    @without="withoutLocation"
+                    @cancel="close"
+                />
+                <div
+                    v-else-if="locating"
+                    class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+                    data-test="clock-location-checking"
+                >
+                    <DialogTitle class="text-xl font-semibold">{{
+                        title
+                    }}</DialogTitle>
+                    <DialogDescription class="text-base" role="status">
+                        Checking your location…
+                    </DialogDescription>
+                </div>
 
                 <!-- Camera and review -->
                 <template v-else-if="dark">

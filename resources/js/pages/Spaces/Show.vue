@@ -230,7 +230,11 @@ type MeHome = {
         state: 'in' | 'out' | 'done';
         canPress: boolean;
         refusal: string | null;
-        needsAttendancePage: boolean;
+        location: {
+            consentNeeded: boolean;
+            consentEn: string | null;
+            consentBm: string | null;
+        } | null;
         serverNow: string;
         timezone: string;
         clockedInAt: string | null;

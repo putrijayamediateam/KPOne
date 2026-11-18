@@ -19,7 +19,11 @@ type Ring = {
     state: 'in' | 'out' | 'done';
     canPress: boolean;
     refusal: string | null;
-    needsAttendancePage: boolean;
+    location: {
+        consentNeeded: boolean;
+        consentEn: string | null;
+        consentBm: string | null;
+    } | null;
     serverNow: string;
     timezone: string;
     clockedInAt: string | null;
@@ -146,7 +150,7 @@ const status = computed(() => {
     };
 });
 
-// The ring never presses. Until HR's photo flow exists it opens the Attendance page (the press and its checks live there).
+// The ring never presses by itself: it opens the shared camera dialog, which also runs the branch's location check.
 const { press } = useClockShortcut();
 const notice = ref(false);
 const tileIcons = {
