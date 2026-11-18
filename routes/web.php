@@ -48,6 +48,7 @@ use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
 use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
+use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OpenShiftsController as HrOpenShiftsController;
@@ -542,6 +543,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{shift}/withdraw', 'withdraw')->whereUuid('shift')->name('hr.open-shifts.withdraw');
             Route::post('asks/{ask}/confirm', 'confirm')->whereUuid('ask')->name('hr.open-shifts.confirm');
             Route::post('asks/{ask}/decline', 'decline')->whereUuid('ask')->name('hr.open-shifts.decline');
+        });
+    });
+
+    // HR-15g locum pay statement (owner, 18 Nov 2026): KPOne works out the statement and records a payment made outside it.
+    Route::prefix('hr/locum-pay')->controller(HrLocumPayController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.locum_pay.view.own,hr.locum_pay.manage.organisation,hr.locum_pay.finance.organisation')->name('hr.locum-pay.index');
+        Route::middleware(['permission:hr.locum_pay.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('locums/{worker}/rates', 'enterRate')->whereUuid('worker')->name('hr.locum-pay.rates.store');
+            Route::post('rates/{rate}/withdraw', 'withdrawRate')->whereUuid('rate')->name('hr.locum-pay.rates.withdraw');
+            Route::post('locums/{worker}/not-worked', 'markNotWorked')->whereUuid('worker')->name('hr.locum-pay.not-worked.store');
+            Route::post('not-worked/{exclusion}/remove', 'removeNotWorked')->whereUuid('exclusion')->name('hr.locum-pay.not-worked.remove');
+            Route::post('locums/{worker}/corrections', 'addCorrection')->whereUuid('worker')->name('hr.locum-pay.corrections.store');
+            Route::post('corrections/{correction}/remove', 'removeCorrection')->whereUuid('correction')->name('hr.locum-pay.corrections.remove');
+        });
+        Route::middleware(['permission:hr.locum_pay.finance.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('rates/{rate}/confirm', 'confirmRate')->whereUuid('rate')->name('hr.locum-pay.rates.confirm');
+            Route::post('rates/{rate}/reject', 'rejectRate')->whereUuid('rate')->name('hr.locum-pay.rates.reject');
+            Route::post('locums/{worker}/paid', 'markPaid')->whereUuid('worker')->name('hr.locum-pay.paid');
         });
     });
 

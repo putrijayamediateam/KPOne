@@ -40,6 +40,7 @@ return [
         'HR/Messages',
         'HR/Credentials',
         'HR/OpenShifts',
+        'HR/LocumPay',
         'HR/Claims',
         'HR/Applications',
         'HR/Dashboard',
