@@ -483,7 +483,8 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                     min-width="880px"
                     :empty="!rowsWithMenu.length"
                     :empty-message="
-                        error || 'No Patients match this operational view.'
+                        error ||
+                        'No patients match. Clear the search, or try another tab.'
                     "
                     :loading="isRefreshing && !rowsWithMenu.length"
                 >

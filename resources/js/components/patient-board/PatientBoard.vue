@@ -536,7 +536,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     >
                         {{
                             emptyMessage ??
-                            'No Patients match this operational view.'
+                            'No patients match. Clear the search, or try another tab.'
                         }}
                     </td>
                 </tr>

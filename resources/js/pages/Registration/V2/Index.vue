@@ -487,7 +487,8 @@ const filterBadge = computed(
                         min-width="880px"
                         :empty="!rows.length"
                         :empty-message="
-                            error || 'No Patients match this operational view.'
+                            error ||
+                            'No patients match. Clear the search, or try another tab.'
                         "
                         :loading="loading && !rows.length"
                     >
