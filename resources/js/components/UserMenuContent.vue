@@ -93,6 +93,7 @@ onMounted(() => {
         <DropdownMenuItem
             v-if="page.props.workspace?.navigation.clinicManagement"
             :as-child="true"
+            class="max-lg:min-h-11"
         >
             <Link class="block w-full cursor-pointer" href="/clinic-management">
                 <Building2 class="mr-2 h-4 w-4" />Clinic management
@@ -126,7 +127,7 @@ onMounted(() => {
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
-    <DropdownMenuItem :as-child="true">
+    <DropdownMenuItem :as-child="true" class="max-lg:min-h-11">
         <Link
             class="block w-full cursor-pointer"
             :href="logout()"
