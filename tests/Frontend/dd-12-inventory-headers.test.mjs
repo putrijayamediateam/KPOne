@@ -23,7 +23,8 @@ test('the Inventory page opens with its header, then one row of task links', () 
             /<ActionLink\s+href="(\/inventory\/[a-z-]+)"\s+variant="outline"/g,
         ),
     ].map((match) => match[1]);
-    // DD-75: the same 16 links, grouped, once for lg and once for the phone disclosures, in the same order.
+    // DD-75: the same 16 links, grouped, once for lg and once for the phone disclosures, in the same order; Stock value
+    // (Director only) closes Reports and checks in both, as in the new layout (owner decision 2026-11-19).
     const grouped = [
         '/inventory/counts',
         '/inventory/writeoffs',
@@ -41,6 +42,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/stock-review',
         '/inventory/stock-health',
         '/inventory/readiness',
+        '/inventory/stock-value',
     ];
     assert.deepEqual(links, [...grouped, ...grouped]);
     assert.doesNotMatch(page, /<a\s/);
@@ -63,7 +65,22 @@ test('DD-75: both link layouts show the controlled register only to its viewers,
         /Count and adjust ·\s+\{\{ canViewControlledRegister \? 6 : 5 \}\}/,
     );
     assert.match(page, /Orders and suppliers · 7/);
-    assert.match(page, /Reports and checks · 3/);
+    assert.match(
+        page,
+        /Reports and checks ·\s+\{\{ referenceData\.canViewStockValue \? 4 : 3 \}\}/,
+    );
+    assert.equal(
+        [
+            ...page.matchAll(
+                /href="\/inventory\/stock-value"\s+variant="outline"\s+v-if="referenceData\.canViewStockValue"/g,
+            ),
+        ].length,
+        2,
+    );
+    assert.equal(
+        [...page.matchAll(/href="\/inventory\/stock-value"/g)].length,
+        2,
+    );
     assert.match(page, /class="hidden w-full gap-6 lg:grid lg:grid-cols-3"/);
     assert.match(page, /class="w-full space-y-2 lg:hidden"/);
 });
