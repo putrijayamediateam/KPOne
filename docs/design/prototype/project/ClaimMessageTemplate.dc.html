@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claim message template</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Rina P." user-role="Panel Officer" user-ini="RP" duty="08:30" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; color: #6b6b73">Panels</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Claim message template</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">One template for the clinic · last saved 3 Nov by Farid</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Settings sections" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{sections}}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 4px">{{g.title}}</span>
+            <sc-for list="{{g.items}}" as="t" hint-placeholder-count="3">
+              <a href="#" style="{{t.style}}"><span style="{{t.ic}}">{{t.k}}</span><span>{{t.label}}</span></a>
+            </sc-for>
+          </div>
+        </sc-for>
+      </nav>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3"><span style="{{tb.style}}">{{tb.label}}</span></sc-for>
+        </div>
+        <section aria-labelledby="h-edit" style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: baseline; gap: 10px"><h1 id="h-edit" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em">Claim message</h1><span style="font-size: 12.5px; color: #8a8a93">Plain text. Staff copy it from a claim page; KPOne sends nothing.</span></div>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #3a3a40">Message</span>
+            <span style="display: block; min-height: 260px; padding: 14px 16px; border-radius: 16px; background: #f4f4f6; white-space: pre-wrap; font-size: 13.5px; line-height: 1.6; box-sizing: border-box"><sc-for list="{{parts}}" as="p" hint-placeholder-count="12"><span style="{{p.style}}">{{p.t}}</span></sc-for><span aria-hidden="true" style="display: inline-block; width: 1.5px; height: 16px; background: #c2185b; vertical-align: -3px; margin-left: 1px"></span></span>
+            <span style="display: flex; justify-content: space-between; font-size: 12px; color: #8a8a93"><span>Unknown fields are refused on save.</span><span>{{count}} / 2,000</span></span>
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 13px; font-weight: 500; color: #3a3a40">Insert smart field <span style="color: #8a8a93; font-weight: 400">· at the end of the message</span></span>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <sc-for list="{{fields}}" as="f" hint-placeholder-count="9"><button type="button" onClick="{{f.add}}" title="{{f.code}}" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; font-size: 13px; font-weight: 500; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">+ {{f.label}}</button></sc-for>
+            </div>
+            <button type="button" onClick="{{reset}}" style="align-self: flex-start; border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; padding: 4px 0; cursor: pointer; text-decoration: underline">Reset to the saved message</button>
+          </div>
+        </section>
+        <section style="background: #ffffff; border-radius: 22px; padding: 14px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); font-size: 12.5px; color: #6b6b73">
+          Not offered on purpose: diagnosis, medication, chit number and MC days (no data, or clinical content kept out of claims), images and rich text.
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-prev" style="flex: 0 0 360px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 id="h-prev" style="margin: 0; font-size: 15px; font-weight: 600">Live preview</h2><span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 2px 9px">Sample claim</span></div>
+          <span style="font-size: 12px; color: #8a8a93">PC-000188 · AIA · made-up data</span>
+          <div style="padding: 14px 16px; border-radius: 18px 18px 18px 6px; background: #e9f8ee; color: #1b3a24; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap">{{preview}}</div>
+          <div sc-if="{{hasNric}}" style="padding: 10px 12px; border-radius: 14px; background: #fff4dc; color: #8a5a00; font-size: 12.5px">IC number fills only for staff allowed to see identity. Others see "(not available)". Each fill is recorded.</div>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column">
+          <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Fields in use</h2>
+          <sc-for list="{{used}}" as="u" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 10px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="font-size: 13px">{{u.label}}</span><code style="font-size: 12px; color: #6b6b73">{{u.code}}</code></div>
+          </sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const F = [
+      ['panel_name', 'Panel name', 'AIA'], ['patient_name', 'Patient name', 'Arif Hakimi'], ['patient_nric', 'Patient IC', '000000-00-6212'],
+      ['staff_id', 'Member reference', 'AIA-55902-01'], ['claim_number', 'Claim number', 'PC-000188'], ['claimed_amount', 'Claimed amount', 'RM 96.00'],
+      ['submission_date', 'Submission date', '4 Sep 2026'], ['claim_link', 'Claim link', 'kpone.example.test/panel-claims/…'], ['clinic_name', 'Clinic name', 'Klinik Putrijaya']
+    ];
+    const byCode = {};
+    F.forEach(f => { byCode[f[0]] = f; });
+    const SAVED = 'Dear {panel_name} team,\n\nPlease find our claim {claim_number} for {patient_name} (member {staff_id}), amount {claimed_amount}, submitted on {submission_date}.\n\nClaim details: {claim_link}\n\nThank you,\n{clinic_name}';
+    const text = st.text === undefined ? SAVED : st.text;
+    const parts = [];
+    const used = [];
+    const re = /\{([a-z_]+)\}/g;
+    let last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parts.push({ t: text.slice(last, m.index), style: '' });
+      parts.push({ t: '{' + m[1] + '}', style: 'background:#fde7ef;color:#a3134c;border-radius:6px;padding:1px 5px;font-weight:500;' });
+      if (byCode[m[1]] && !used.some(u => u.code === '{' + m[1] + '}')) used.push({ label: byCode[m[1]][1], code: '{' + m[1] + '}' });
+      last = re.lastIndex;
+    }
+    if (last < text.length) parts.push({ t: text.slice(last), style: '' });
+    const preview = text.replace(/\{([a-z_]+)\}/g, (all, k) => byCode[k] ? byCode[k][2] : all);
+    const ic = c => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#ffffff;background:' + c + ';';
+    const tab = on => 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;box-shadow:inset 3px 0 0 #c2185b;' : 'color:#3a3a40;');
+    const mk = (label, k, c, on) => ({ label, k, ic: ic(c), style: tab(on) });
+    const pill = on => 'border-radius:999px;padding:8px 14px;font-size:13px;' + (on ? 'background:#ffffff;font-weight:600;box-shadow:0 0 0 1px rgba(17,17,26,0.1);' : 'color:#6b6b73;');
+    return {
+      accent, parts, preview, used,
+      count: text.length.toLocaleString('en-MY'),
+      hasNric: text.indexOf('{patient_nric}') >= 0,
+      fields: F.map(([code, label]) => ({ label, code: '{' + code + '}', add: () => this.setState({ text: (text + ' {' + code + '}').slice(0, 2000) }) })),
+      reset: () => this.setState({ text: SAVED }),
+      tabs: [{ label: 'Panel list', style: pill(false) }, { label: 'Claim message template', style: pill(true) }, { label: 'Self-pay methods', style: pill(false) }],
+      sections: [
+        { title: 'CLINIC', items: [mk('Business details', 'Bz', '#111114'), mk('Registration', 'Rg', '#ff9f0a'), mk('Consultation', 'Cn', '#0a84ff')] },
+        { title: 'MONEY', items: [mk('Payment methods', 'Pm', '#34c759'), mk('Panels', 'Pn', '#bf5af2', true), mk('Approval limits', 'Lm', '#ff375f')] },
+        { title: 'CATALOGUE', items: [mk('Medicines', 'Md', '#ff9f0a'), mk('Services', 'Sv', '#0a84ff'), mk('Prices', 'RM', '#34c759')] }
+      ]
+    };
+  }
+}
+</script>
+
+</body>
+</html>

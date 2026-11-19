@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Panel claims</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="panel" accent="{{accent}}" branch="Cheras" user-name="Rina P." user-role="Panel Officer" user-ini="RP" duty="08:30" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Panel</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Claims · {{statusTitle}}</div>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Search claim, invoice or patient<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Create claim</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <nav aria-label="Claim status" style="background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">STATUS</span>
+          <sc-for list="{{statuses}}" as="s" hint-placeholder-count="6">
+            <button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.row}}"><span style="{{s.dot}}"></span><span style="flex: 1; text-align: left">{{s.label}}</span><span style="{{s.countStyle}}">{{s.count}}</span></button>
+          </sc-for>
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 14px 8px 6px">PANEL</span>
+          <sc-for list="{{panels}}" as="p" hint-placeholder-count="4">
+            <a href="#" style="{{p.row}}"><span>{{p.k}}</span><span style="font-size: 12px; color: #8a8a93">{{p.v}}</span></a>
+          </sc-for>
+        </nav>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{statusTitle}} · AIA</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">{{tickNote}}</span>
+            <span style="margin-left: auto; display: flex; gap: 8px">
+              <span style="font-size: 12.5px; font-weight: 600; background: #f4f4f6; border-radius: 999px; padding: 6px 12px">Claim ticked ({{ticked}})</span>
+              <span style="font-size: 12.5px; font-weight: 600; background: #f4f4f6; border-radius: 999px; padding: 6px 12px">Print pack</span>
+            </span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+            <div style="{{r.row}}">
+              <button type="button" role="checkbox" aria-checked="{{r.checked}}" aria-label="Tick {{r.inv}}" onClick="{{r.tick}}" style="{{r.box}}">{{r.mark}}</button>
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.inv}} · visit {{r.date}} · {{r.doctor}}</span></span>
+              <span style="flex: none; width: 90px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.amount}}</span>
+              <span style="{{r.dueStyle}}">{{r.due}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 12.5px; color: #8a8a93">INV-C-02418 · visit 11 Nov</span><span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 2px 9px">Due in 2 days</span></div>
+          <h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">Raj Kumar</h2>
+          <span style="font-size: 12.5px; color: #6b6b73">AIA · member AIA-55120-08 · Dr. Lim</span>
+          <span style="font-size: 12px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; margin-top: 4px">INVOICE ITEMS</span>
+          <sc-for list="{{items}}" as="i" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 10px; min-height: 36px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #3a3a40">{{i.k}}</span><span style="font-variant-numeric: tabular-nums">{{i.v}}</span></div>
+          </sc-for>
+          <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center"><span style="font-weight: 600">Panel share</span><span style="font-weight: 700; font-size: 17px">RM 85.00</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #6b6b73"><span>Balance not claimed from the Panel</span><span>RM 12.00</span></div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Photos</h2><span style="font-size: 12.5px; font-weight: 600">+ Add</span></div>
+          <div style="display: flex; gap: 8px">
+            <sc-for list="{{photos}}" as="p" hint-placeholder-count="3"><span style="flex: 1; aspect-ratio: 1; border-radius: 14px; background: #f4f4f6; display: flex; align-items: flex-end; padding: 6px; font-size: 11px; color: #6b6b73">{{p}}</span></sc-for>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Logs</h2><span style="font-size: 12.5px; font-weight: 600; background: #f4f4f6; border-radius: 999px; padding: 4px 12px">Copy message</span></div>
+          <sc-for list="{{logs}}" as="l" hint-placeholder-count="3">
+            <div style="display: flex; gap: 10px; font-size: 12.5px"><span style="flex: none; width: 6px; height: 6px; border-radius: 50%; background: #c4c4cc; margin-top: 7px"></span><span style="flex: 1; color: #3a3a40">{{l.k}}<span style="display: block; color: #8a8a93">{{l.v}}</span></span></div>
+          </sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const sel = st.sel || 'pending';
+    const ticks = st.ticks || { 0: true, 2: true };
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const chip = hot => 'font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;' + (hot ? 'background:#fde7ef;color:#c2185b;' : 'background:#f4f4f6;color:#6b6b73;');
+    const S = [['pending', 'Pending', '18', '#ff9f0a', true], ['overdue', 'Overdue', '3', '#ff3b30', true], ['submitted', 'Submitted', '40', '#0a84ff'], ['queried', 'Queried', '2', '#bf5af2'], ['accepted', 'Accepted', '27', '#34c759'], ['paid', 'Paid', '112', '#8a8a93']];
+    const statuses = S.map(([k, label, count, c, hot]) => ({ label, count, pressed: String(sel === k), pick: () => this.setState({ sel: k }), dot: 'flex:none;width:8px;height:8px;border-radius:50%;background:' + c + ';', countStyle: chip(hot), row: 'display:flex;align-items:center;gap:10px;min-height:42px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;' + (sel === k ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;') }));
+    const panels = [['AIA', '11', true], ['PMCare', '4'], ['Etiqa', '2'], ['Direct companies', '1']].map(([k, v, on]) => ({ k, v, row: 'display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;' : 'color:#3a3a40;') }));
+    const due = d => d < 0 ? 'background:#fde7ef;color:#c2185b;' : d <= 3 ? 'background:#fff4dc;color:#8a5a00;' : 'background:#f4f4f6;color:#6b6b73;';
+    const data = [
+      ['Raj Kumar', 'INV-C-02418', '11 Nov', 'Dr. Lim', 'RM 85.00', 2],
+      ['Tan Wei Ming', 'INV-C-02405', '10 Nov', 'Dr. Farah', 'RM 62.50', 1],
+      ['Kevin Ong', 'INV-C-02391', '9 Nov', 'Dr. Farah', 'RM 140.00', 0],
+      ['Nur Izzati', 'INV-C-02377', '8 Nov', 'Dr. Lim', 'RM 48.00', -1],
+      ['Arif Hakimi', 'INV-C-02360', '7 Nov', 'Dr. Lim', 'RM 96.00', -2],
+      ['Mohd Hafiz', 'INV-C-02352', '7 Nov', 'Dr. Farah', 'RM 55.00', 5],
+      ['Chong Li Ying', 'INV-C-02341', '6 Nov', 'Dr. Lim', 'RM 72.00', 6],
+      ['Siti Aisyah', 'INV-C-02333', '6 Nov', 'Dr. Farah', 'RM 38.00', 6],
+      ['Ganesh R.', 'INV-C-02320', '5 Nov', 'Dr. Lim', 'RM 120.00', 7],
+      ['Lee Boon Kiat', 'INV-C-02311', '5 Nov', 'Dr. Farah', 'RM 64.00', 7],
+      ['Farhana Z.', 'INV-C-02302', '4 Nov', 'Dr. Lim', 'RM 58.00', 8]
+    ];
+    const rows = data.map(([name, inv, date, doctor, amount, d], i) => {
+      const on = !!ticks[i];
+      return {
+        name, inv, date, doctor, amount,
+        due: d < 0 ? Math.abs(d) + ' days overdue' : d === 0 ? 'Due today' : 'Due in ' + d + ' days',
+        dueStyle: 'flex:none;width:112px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:4px 0;' + due(d),
+        checked: String(on), mark: on ? '✓' : '',
+        tick: () => this.setState({ ticks: Object.assign({}, ticks, { [i]: !on }) }),
+        box: 'flex:none;width:22px;height:22px;border-radius:7px;border:0;padding:0;font-size:13px;cursor:pointer;' + (on ? 'background:#111114;color:#ffffff;' : 'background:#ffffff;box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;'),
+        row: 'display:flex;align-items:center;gap:14px;padding:6px 10px;min-height:44px;border-radius:14px;' + (i === 0 ? 'background:#f4f4f6;' : '')
+      };
+    });
+    const ticked = Object.values(ticks).filter(Boolean).length;
+    const titles = { pending: 'Pending', overdue: 'Overdue', submitted: 'Submitted', queried: 'Queried', accepted: 'Accepted', paid: 'Paid' };
+    const XPMAP = ['wait', 'over', 'sub', 'qry'];
+    const XPD = {
+      wait: { title: 'Waiting to claim · RM 4,812.00', note: '18 approved Panel shares at Cheras with no claim yet', cols: [['PANEL', 'minmax(140px,1.6fr)'], ['INVOICES', '80px', 'r'], ['OLDEST VISIT', '100px'], ['AMOUNT', '110px', 'r'], ['STATUS', 'minmax(130px,1fr)']], rows: [
+        ['AIA', '11', '4 Nov', 'RM 2,906.50', ['d', '2 overdue']],
+        ['PMCare', '4', '21 Oct', 'RM 1,020.00', ['d', '1 overdue']],
+        ['Etiqa', '2', '9 Nov', 'RM 585.50', ['ok', 'On time']],
+        ['Direct companies', '1', '12 Nov', 'RM 300.00', ['w', 'Due in 3 days']]
+      ], foot: "Each Panel's due rule comes from Checkout settings. Tick invoices of one Panel to claim them together." },
+      over: { title: 'Overdue · 3 invoices', note: "Past the Panel's claim due date", cols: [['PATIENT', 'minmax(130px,1.2fr)'], ['INVOICE', 'minmax(160px,1.4fr)'], ['PANEL', '90px'], ['AMOUNT', '90px', 'r'], ['STATUS', 'minmax(120px,1fr)']], rows: [
+        ['Nur Izzati', 'INV-C-02377 · visit 8 Nov', 'AIA', 'RM 48.00', ['d', '1 day overdue']],
+        ['Arif Hakimi', 'INV-C-02360 · visit 7 Nov', 'AIA', 'RM 96.00', ['d', '2 days overdue']],
+        ['Yusof K.', 'INV-C-02288 · visit 21 Oct', 'PMCare', 'RM 75.00', ['d', '4 days overdue']]
+      ], foot: 'Overdue invoices can still be claimed. Create the claim, then submit it on the Panel portal.' },
+      sub: { title: 'Submitted, unpaid · RM 9,340.00', note: "40 claims waiting for the Panel's decision or payment", cols: [['PANEL', 'minmax(140px,1.6fr)'], ['CLAIMS', '70px', 'r'], ['OLDEST SUBMITTED', '130px'], ['AMOUNT', '110px', 'r'], ['STATUS', 'minmax(150px,1fr)']], rows: [
+        ['AIA', '22', '2 Oct', 'RM 5,120.00', ['i', 'Waiting for decision']],
+        ['PMCare', '9', '8 Oct', 'RM 2,010.00', ['i', 'Waiting for decision']],
+        ['Etiqa', '6', '15 Oct', 'RM 1,480.00', ['w', '2 past follow-up days']],
+        ['Direct companies', '3', '20 Oct', 'RM 730.00', ['i', 'Waiting for decision']]
+      ], foot: "Claims with no new action for their Panel's follow-up days also show in Claims follow-up." },
+      qry: { title: 'Queried by the Panel · 2', note: 'The Panel asked a question before deciding', cols: [['CLAIM', '100px'], ['PATIENT · INVOICE', 'minmax(170px,1.6fr)'], ['PANEL', '80px'], ['AMOUNT', '90px', 'r'], ['STATUS', 'minmax(170px,1fr)']], rows: [
+        ['PC-000201', 'Melati S. · INV-C-02189', 'AIA', 'RM 82.00', ['q', 'Queried: receipt copy']],
+        ['PC-000196', 'Grace L. · INV-C-02176', 'Etiqa', 'RM 66.00', ['q', 'Queried: member reference']]
+      ], foot: 'Answer the query on the Panel portal, then record what you sent on the claim page.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, statuses, panels, rows, ticked: String(ticked),
+      statusTitle: titles[sel],
+      tickNote: 'Tick invoices of one Panel to claim or print them together',
+      strip: xpWrap([stripItem('RM 4,812', 'waiting to claim', true), stripItem('3', 'overdue'), stripItem('RM 9,340', 'submitted, unpaid'), stripItem('2', 'queried by Panel')]),
+      items: [{ k: 'Consultation', v: 'RM 45.00' }, { k: 'Amoxicillin 250 mg × 15', v: 'RM 27.00' }, { k: 'Paracetamol 500 mg × 20', v: 'RM 10.00' }, { k: 'Nebuliser', v: 'RM 15.00' }],
+      photos: ['Photo 1', 'Photo 2', 'Photo 3'],
+      logs: [{ k: 'Invoice finalised', v: '11 Nov, 10:42 · Aina R.' }, { k: 'Panel share approved RM 85.00', v: '11 Nov, 10:44 · Aina R.' }, { k: 'Note added', v: '12 Nov, 09:10 · Rina P.' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

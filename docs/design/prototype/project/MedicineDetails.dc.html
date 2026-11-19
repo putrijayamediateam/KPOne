@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Medicine details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-mid{flex:1 1 100% !important;min-height:520px !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Aminah" user-role="Administrator" user-ini="AM" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; flex-wrap: wrap; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Medicine details</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Shared by every doctor's prescribing pickers</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; padding: 0 8px 8px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Medicine details</h2>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 6px">Inventory and services settings</span>
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="7">
+          <button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.row}}"><span style="flex: 1; font-weight: 500">{{t.label}}</span><span style="font-size: 12px; color: #8a8a93">{{t.count}}</span></button>
+        </sc-for>
+        <div style="margin-top: 12px; padding: 10px 8px 0; border-top: 1px solid #f1f1f4; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding-bottom: 4px">ALSO IN THIS SECTION</span>
+          <a href="#" style="min-height: 36px; display: flex; align-items: center; color: #3a3a40">Suppliers</a>
+          <a href="#" style="min-height: 36px; display: flex; align-items: center; color: #3a3a40">Preset diagnoses</a>
+        </div>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{tab.label}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">{{tab.active}} active · {{tab.archived}} archived</span>
+            <span style="margin-left: auto; display: flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; background: #f4f4f6; color: #8a8a93; font-size: 13px; min-width: 200px">Search {{tab.plural}}</span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 240px">NAME</span><span style="flex: none; width: 120px">STATUS</span><span style="flex: none; width: 60px; text-align: right">ACTIONS</span>
+          </div>
+          <sc-for list="{{opts}}" as="o" hint-placeholder-count="12">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="{{o.nameStyle}}">{{o.name}}</span>
+              <span style="flex: none; width: 120px; display: flex; align-items: center; gap: 8px"><span role="switch" aria-checked="{{o.sw.on}}" aria-label="Archive or restore {{o.name}}" style="{{o.sw.track}}"><span style="{{o.sw.knob}}"></span></span><span style="font-size: 12.5px; color: #6b6b73">{{o.status}}</span></span>
+              <span style="flex: none; width: 60px; display: flex; justify-content: flex-end"><span aria-label="More actions for {{o.name}}" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b6b73; background: #f4f4f6">…</span></span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Add new {{tab.single}}</h2>
+          <label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12.5px; font-weight: 500">One per line</span><span style="min-height: 120px; padding: 10px 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px #e6e6ea; white-space: pre-line; color: #3a3a40">{{tab.draft}}</span></label>
+          <span style="font-size: 12px; color: #8a8a93">A name that already exists, active or archived, is refused.</span>
+          <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 44px">Add new</button>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Good to know</h2>
+          <sc-for list="{{notes}}" as="n" hint-placeholder-count="3">
+            <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; font-size: 13px; color: #3a3a40">{{n}}</div>
+          </sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const chip = (bg, fg) => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + bg + ';color:' + fg + ';';
+    const tone = { green: chip('#e9f8ee', '#1d7a3a'), amber: chip('#fff4dc', '#8a5a00'), red: chip('#fde7ef', '#b0144f'), grey: chip('#f4f4f6', '#6b6b73'), blue: chip('#e8f0fe', '#1a4fa8'), dark: chip('#111114', '#ffffff') };
+    const rowStyle = on => 'display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:44px;padding:6px 10px 6px 13px;border-radius:12px;' + (on ? 'background:#f4f4f6;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.06),inset 3px 0 0 #c2185b;' : 'background:transparent;box-shadow:inset 0 -1px 0 #f6f6f8;');
+    const stripItem = (v, k) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);', kStyle: 'font-size:12.5px;color:#6b6b73;' });
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;border:0;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const cur = st.tab || 'frequency';
+    const D = {
+      medicine_group: ['Drug group', 'drug groups', 'drug group', ['Analgesic', 'Antibiotic', 'Antihistamine', 'Antipyretic', 'Beta-2 agonist', 'NSAID', 'Opioid', 'Penicillin', 'Proton pump inhibitor', 'Steroid (topical)', 'Vitamin', 'Mucolytic'], ['H2 blocker'], 'Antifungal\nAntiemetic'],
+      instruction: ['Instruction', 'instructions', 'instruction', ['After food', 'Before food', 'With plenty of water', 'Swallow whole', 'Shake well before use', 'Apply thinly', 'Dissolve in water', 'At bedtime', 'When needed', 'Finish the course', 'Do not crush', 'Keep in fridge'], ['Empty stomach (old)'], 'Gargle and spit out'],
+      precaution: ['Precaution', 'precautions', 'precaution', ['May cause drowsiness', 'Avoid alcohol', 'Do not drive', 'External use only', 'Avoid sunlight', 'Not for children under 12', 'Stop if rash appears', 'May colour urine', 'Keep away from eyes', 'Avoid in pregnancy', 'Take with food', 'Store below 25°C'], [], 'Avoid dairy within 2 hours'],
+      frequency: ['Frequency', 'frequencies', 'frequency', ['Once a day (OD)', 'Twice a day (BD)', 'Three times a day (TDS)', 'Four times a day (QID)', 'Every 4 hours', 'Every 6 hours', 'Every 8 hours', 'At night (ON)', 'In the morning (OM)', 'When needed (PRN)', 'Once a week', 'Immediately (STAT)'], ['Every 2 hours', 'Five times a day'], 'Every 12 hours\nOnce every 3 days'],
+      duration: ['Duration', 'durations', 'duration', ['1 day', '2 days', '3 days', '5 days', '7 days', '10 days', '14 days', '1 month', 'Until finished', 'Until symptoms go', 'Ongoing', '3 months'], ['6 weeks'], '4 days'],
+      dosage_unit: ['Dosage unit', 'dosage units', 'dosage unit', ['tablet', 'capsule', 'ml', 'mg', 'puff', 'drop', 'sachet', 'application', 'patch', 'suppository', 'g', 'spray'], ['teaspoon'], 'lozenge'],
+      indication: ['Indication', 'indications', 'indication', ['For fever or pain', 'For allergy', 'For cough', 'For gastric pain', 'For wheezing', 'For infection', 'For nausea', 'For diarrhoea', 'For pain and swelling', 'For blocked nose', 'For skin rash', 'For sore throat'], ['For flu (old)'], 'For mouth ulcer']
+    };
+    const order = ['medicine_group', 'instruction', 'precaution', 'frequency', 'duration', 'dosage_unit', 'indication'];
+    const tabs = order.map(k => ({ label: D[k][0], count: String(D[k][3].length + D[k][4].length), pressed: String(cur === k), pick: () => this.setState({ tab: k }), row: rowStyle(cur === k).replace('box-shadow:inset 0 -1px 0 #f6f6f8;', '') }));
+    const d = D[cur];
+    const opts = d[3].map(name => ({ name, status: 'Active', sw: sw(true), nameStyle: 'flex:1 1 240px;min-width:0;font-weight:500;' }))
+      .concat(d[4].map(name => ({ name, status: 'Archived', sw: sw(false), nameStyle: 'flex:1 1 240px;min-width:0;color:#8a8a93;' })));
+    return {
+      accent, tabs, opts,
+      tab: { label: d[0], plural: d[1], single: d[2], active: String(d[3].length), archived: String(d[4].length), draft: d[5] },
+      notes: [
+        'Renaming changes the picker for new prescriptions. Medicines already saved keep the words they were saved with.',
+        'Archive hides an option from the picker. Nothing is deleted, and you can restore it.',
+        'Indication prints on drug labels, so keep it short (up to 72 characters on the label).'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

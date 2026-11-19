@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Panel responsibility</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="panel" accent="{{accent}}" branch="Cheras" user-name="Aina R." user-role="CA Supervisor" user-ini="AR" duty="07:55" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Panel</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Panel responsibility</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Your approval limit at Cheras: RM 150.00 per invoice</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <nav aria-label="Responsibility status" style="flex: 1; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">STATUS</span>
+          <sc-for list="{{statuses}}" as="s" hint-placeholder-count="5">
+            <button type="button" onClick="{{s.pick}}" aria-pressed="{{s.pressed}}" style="{{s.row}}"><span style="{{s.dot}}"></span><span style="flex: 1; text-align: left">{{s.label}}</span><span style="{{s.countStyle}}">{{s.count}}</span></button>
+          </sc-for>
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 14px 8px 6px">KIND</span>
+          <sc-for list="{{kinds}}" as="p" hint-placeholder-count="2">
+            <a href="#" style="{{p.row}}"><span>{{p.k}}</span><span style="font-size: 12px; color: #8a8a93">{{p.v}}</span></a>
+          </sc-for>
+          <span style="margin-top: auto; font-size: 11.5px; color: #8a8a93; padding: 12px 8px 0">Limits are set by the Director in Billing approval limits.</span>
+        </nav>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="x" hint-placeholder-count="4"><sc-if value="{{x.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{x.open}}" aria-controls="xp-panel" onClick="{{x.toggle}}" style="{{x.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{x.v}}</span><span style="{{x.kStyle}}">{{x.k}}</span><span aria-hidden="true" style="{{x.chev}}">⌄</span></button></sc-if><sc-if value="{{x.plain}}" hint-placeholder-val="{{ false }}"><div style="{{x.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{x.v}}</span><span style="{{x.kStyle}}">{{x.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{listTitle}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">oldest first · proposals from Billing</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <button type="button" onClick="{{r.pick}}" style="{{r.row}}">
+              <span style="{{r.ic}}">{{r.k}}</span>
+              <span style="flex: 1 1 200px; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span>
+              <span style="flex: none; width: 92px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.amount}}</span>
+              <span style="{{r.limStyle}}">{{r.lim}}</span>
+              <span style="flex: none; width: 40px; text-align: right; font-size: 12px; color: #8a8a93">{{r.age}}</span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-detail" style="flex: 0 0 360px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 12.5px; color: #8a8a93">{{d.inv}} · {{d.visit}}</span><span style="{{d.limStyle}}">{{d.lim}}</span></div>
+          <h2 id="h-detail" style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">{{d.name}}</h2>
+          <span style="font-size: 12.5px; color: #6b6b73">{{d.panel}} · member {{d.member}} · proposed by {{d.by}}</span>
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right; font-variant-numeric: tabular-nums">{{f.v}}</span></div>
+          </sc-for>
+          <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center"><span style="font-weight: 600">Panel will cover</span><span style="font-weight: 700; font-size: 17px">{{d.amount}}</span></div>
+          <div style="{{d.noteStyle}}">{{d.note}}</div>
+          <span style="font-size: 12px; color: #8a8a93">Approving lowers Due now on the invoice. The patient pays any balance at the counter.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Reason given</h2>
+          <span style="font-size: 13px; color: #3a3a40; padding: 10px 12px; border-radius: 12px; background: #f8f8fa">Company panel, consultation and medicine covered. Member card checked at counter.</span>
+          <span style="font-size: 11.5px; color: #8a8a93">Approving here is an idea, not built. Today you approve on the patient's Billing page.</span>
+        </section>
+        <div style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Reject</button>
+          <button type="button" style="{{d.approveStyle}}">{{d.approve}}</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const sel = st.sel || 'req';
+    const pick = st.pick === undefined ? 0 : st.pick;
+    const chip = hot => 'font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;' + (hot ? 'background:#fde7ef;color:#c2185b;' : 'background:#f4f4f6;color:#6b6b73;');
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const S = [['req', 'Waiting for approval', '12', '#ff9f0a', true], ['over', 'Over your limit', '2', '#ff3b30', true], ['ok', 'Approved today', '31', '#34c759'], ['rej', 'Rejected', '1', '#8a8a93']];
+    const statuses = S.map(([k, label, count, c, hot]) => ({ label, count, pressed: String(sel === k), pick: () => this.setState({ sel: k }), dot: 'flex:none;width:8px;height:8px;border-radius:50%;background:' + c + ';', countStyle: chip(hot), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;' + (sel === k ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;') }));
+    const kinds = [['Panel', '10', true], ['Pay later', '2']].map(([k, v, on]) => ({ k, v, row: 'display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;' : 'color:#3a3a40;') }));
+    const P = { AIA: ['#e8f0fe', '#1a4fa8', 'AI'], PMC: ['#f1ecfd', '#5a32a8', 'PM'], ETQ: ['#e3f6f5', '#0b6f69', 'ET'], DIR: ['#fff4dc', '#8a5a00', 'DC'], PL: ['#eef0f3', '#3a3a40', 'PL'] };
+    const data = [
+      ['Raj Kumar', 'KPV-00412', 'INV-C-02431', 'AIA', 'AIA', 'AIA-55120-08', 85.00, 97.00, '14 min', 'Hafiz (CA)'],
+      ['Tan Wei Ming', 'KPV-00410', 'INV-C-02429', 'PMCare', 'PMC', 'PMC-88213', 62.50, 62.50, '22 min', 'Nadia (CA)'],
+      ['Nur Izzati', 'KPV-00407', 'INV-C-02426', 'Syarikat Maju Test Sdn Bhd', 'DIR', 'EMP-0412', 180.00, 180.00, '35 min', 'Hafiz (CA)'],
+      ['Kevin Ong', 'KPV-00405', 'INV-C-02424', 'Etiqa', 'ETQ', 'ETQ-30551', 48.00, 60.00, '41 min', 'Nadia (CA)'],
+      ['Arif Hakimi', 'KPV-00403', 'INV-C-02421', 'AIA', 'AIA', 'AIA-55902-01', 96.00, 96.00, '52 min', 'Nadia (CA)'],
+      ['Siti Aisyah', 'KPV-00401', 'INV-C-02419', 'Pay later', 'PL', '—', 40.00, 72.00, '1 h', 'Hafiz (CA)'],
+      ['Chong Li Ying', 'KPV-00398', 'INV-C-02416', 'PMCare', 'PMC', 'PMC-88540', 72.00, 72.00, '1 h', 'Nadia (CA)'],
+      ['Ganesh R.', 'KPV-00396', 'INV-C-02414', 'AIA', 'AIA', 'AIA-55311-02', 120.00, 132.00, '1 h', 'Hafiz (CA)'],
+      ['Lee Boon Kiat', 'KPV-00394', 'INV-C-02412', 'Etiqa', 'ETQ', 'ETQ-30610', 64.00, 64.00, '2 h', 'Nadia (CA)'],
+      ['Farhana Z.', 'KPV-00391', 'INV-C-02409', 'Syarikat Maju Test Sdn Bhd', 'DIR', 'EMP-0388', 210.00, 210.00, '2 h', 'Hafiz (CA)'],
+      ['Mohd Hafiz', 'KPV-00389', 'INV-C-02407', 'PMCare', 'PMC', 'PMC-88702', 55.00, 55.00, '2 h', 'Nadia (CA)'],
+      ['Aiman S.', 'KPV-00387', 'INV-C-02405', 'Pay later', 'PL', '—', 30.00, 30.00, '3 h', 'Hafiz (CA)']
+    ];
+    const limit = 150;
+    const fmt = n => 'RM ' + n.toFixed(2);
+    const limStyleFor = over => 'flex:none;width:120px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:4px 0;' + (over ? 'background:#fde7ef;color:#c2185b;' : 'background:#e9f8ee;color:#1d7a3a;');
+    const filtered = data.map((r, i) => ({ r, i })).filter(x => sel === 'over' ? x.r[6] > limit : true);
+    const rows = filtered.map(({ r, i }) => {
+      const over = r[6] > limit;
+      return {
+        name: r[0], sub: r[1] + ' · ' + r[3] + (r[5] !== '—' ? ' · ' + r[5] : ''), amount: fmt(r[6]), age: r[8], k: P[r[4]][2], ic: ic(P[r[4]][0], P[r[4]][1]),
+        lim: over ? 'Over your limit' : 'Within limit', limStyle: limStyleFor(over),
+        pick: () => this.setState({ pick: i }),
+        row: 'display:flex;align-items:center;gap:12px;padding:6px 10px;min-height:44px;border:0;border-radius:16px;font:inherit;color:inherit;cursor:pointer;text-align:left;' + (pick === i ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;')
+      };
+    });
+    const r = data[pick];
+    const over = r[6] > limit;
+    const note = over ? 'RM ' + r[6].toFixed(2) + ' is over your limit of RM 150.00. A person with a higher limit must approve it.' : 'Within your limit of RM 150.00. You may approve it.';
+    const d = {
+      name: r[0], inv: r[2], visit: r[1], panel: r[3], member: r[5], by: r[9], amount: fmt(r[6]),
+      lim: over ? 'Over your limit' : 'Within limit', limStyle: 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;' + (over ? 'background:#fde7ef;color:#c2185b;' : 'background:#e9f8ee;color:#1d7a3a;'),
+      note, noteStyle: 'padding:10px 12px;border-radius:14px;font-size:12.5px;' + (over ? 'background:#fde7ef;color:#a3134c;' : 'background:#e9f8ee;color:#1d7a3a;'),
+      approve: over ? 'Over your limit' : 'Approve ' + fmt(r[6]),
+      approveStyle: 'flex:2;border:0;border-radius:999px;min-height:48px;font:inherit;font-size:15px;font-weight:600;' + (over ? 'background:#e3e3e8;color:#8a8a93;cursor:not-allowed;' : 'background:#111114;color:#ffffff;cursor:pointer;')
+    };
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const titles = { req: 'Waiting for approval', over: 'Over your limit', ok: 'Approved today', rej: 'Rejected' };
+    const XPMAP = ['wait', null, 'over', 'today'];
+    const XPD = {
+      wait: { title: 'Waiting for approval · RM 1,062.50', note: '12 proposals at Cheras, by Panel', cols: [['PANEL', 'minmax(170px,1.8fr)'], ['PROPOSALS', '90px', 'r'], ['AMOUNT', '110px', 'r'], ['STATUS', 'minmax(140px,1fr)']], rows: [
+        ['AIA', '3', 'RM 301.00', ['ok', 'Within your limit']],
+        ['PMCare', '3', 'RM 189.50', ['ok', 'Within your limit']],
+        ['Etiqa', '2', 'RM 112.00', ['ok', 'Within your limit']],
+        ['Syarikat Maju Test Sdn Bhd', '2', 'RM 390.00', ['d', '2 over your limit']],
+        ['Pay later', '2', 'RM 70.00', ['ok', 'Within your limit']]
+      ], foot: 'Your approval limit is RM 150.00 per proposal, set by the Director in Billing approval limits.' },
+      over: { title: 'Over your limit · 2', note: 'Each is more than RM 150.00', cols: [['PATIENT', 'minmax(120px,1.2fr)'], ['INVOICE', '110px'], ['PANEL', 'minmax(160px,1.6fr)'], ['AMOUNT', '90px', 'r'], ['STATUS', 'minmax(140px,1fr)']], rows: [
+        ['Nur Izzati', 'INV-C-02426', 'Syarikat Maju Test Sdn Bhd', 'RM 180.00', ['d', 'Higher limit needed']],
+        ['Farhana Z.', 'INV-C-02409', 'Syarikat Maju Test Sdn Bhd', 'RM 210.00', ['d', 'Higher limit needed']]
+      ], foot: 'Ask someone whose approval limit covers the amount. The patient pays nothing extra while it waits.' },
+      today: { title: 'Approved today · 31', note: 'Cheras · since 08:00', cols: [['PANEL', 'minmax(170px,1.8fr)'], ['APPROVED', '90px', 'r'], ['AMOUNT', '110px', 'r'], ['LAST', '70px'], ['STATUS', 'minmax(100px,1fr)']], rows: [
+        ['AIA', '12', 'RM 1,140.00', '10:52', ['ok', 'Approved']],
+        ['PMCare', '8', 'RM 610.00', '10:40', ['ok', 'Approved']],
+        ['Etiqa', '5', 'RM 402.00', '10:15', ['ok', 'Approved']],
+        ['Syarikat Maju Test Sdn Bhd', '3', 'RM 520.00', '09:48', ['ok', 'Approved']],
+        ['Pay later', '3', 'RM 96.00', '09:30', ['ok', 'Approved']]
+      ], foot: 'Approved shares lower Due Now on each bill. Panel Officers claim them from Panel claims.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, statuses, kinds, rows, d,
+      listTitle: titles[sel] + ' · ' + rows.length,
+      strip: xpWrap([stripItem('RM 1,062.50', 'waiting for approval', true), stripItem('12', 'proposals'), stripItem('2', 'over your limit'), stripItem('31', 'approved today')]),
+      facts: [{ k: 'Invoice total', v: fmt(r[7]) }, { k: 'Kind', v: r[4] === 'PL' ? 'Pay later' : 'Panel' }, { k: 'Member reference', v: r[5] === '—' ? 'Not needed' : 'Checked by CA' }, { k: 'Patient pays now', v: fmt(r[7] - r[6]) }, { k: 'Waiting', v: r[8] }]
+    };
+  }
+}
+</script>
+
+</body>
+</html>

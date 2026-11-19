@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Suppliers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-mid{flex:1 1 100% !important;min-height:520px !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Aminah" user-role="Administrator" user-ini="AM" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; flex-wrap: wrap; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Suppliers</div>
+      <button type="button" style="margin-left: auto; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer; color: #6b6b73">Search suppliers</button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Add new seller</button>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Suppliers</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Used by receiving, purchase orders and supplier returns</span>
+            <span style="margin-left: auto; display: flex; gap: 6px"><sc-for list="{{filters}}" as="f" hint-placeholder-count="3"><button type="button" onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="{{f.style}}">{{f.label}}</button></sc-for></span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px 13px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 220px">COMPANY NAME</span><span style="flex: 0 1 160px">PIC NAME</span><span style="flex: none; width: 130px">PHONE NUMBER</span><span style="flex: none; width: 92px; text-align: center">STATUS</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="flex: 1 1 220px; min-width: 0; font-weight: 500">{{r.name}}</span>
+              <span style="flex: 0 1 160px; min-width: 0; color: #3a3a40"><span style="display: block">{{r.pic}}</span><span style="font-size: 12px; color: #8a8a93">{{r.more}}</span></span>
+              <span style="flex: none; width: 130px; font-variant-numeric: tabular-nums; color: #3a3a40">{{r.phone}}</span>
+              <span style="flex: none; width: 92px; text-align: center"><span style="{{r.statusStyle}}">{{r.status}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); overflow: hidden; display: flex; flex-direction: column">
+          <div style="padding: 18px 18px 16px; color: #ffffff; background: radial-gradient(120% 160% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%)">
+            <span style="font-size: 12px; opacity: 0.85">Sold by</span>
+            <h2 style="margin: 2px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{sel.name}}</h2>
+            <span style="font-size: 12.5px; opacity: 0.85">{{sel.status}} · {{sel.count}} contacts</span>
+          </div>
+          <div style="padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 12px">
+            <label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12.5px; font-weight: 500">Company name <span style="color: #b0144f">*</span></span><span style="min-height: 40px; line-height: 40px; padding: 0 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px #e6e6ea">{{sel.name}}</span></label>
+            <sc-for list="{{sel.contacts}}" as="c" hint-placeholder-count="2">
+              <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: #f8f8fa">
+                <span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6b6b73">CONTACT {{c.n}}<span style="font-weight: 500; color: #c2185b">Remove</span></span>
+                <label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12.5px; font-weight: 500">PIC name</span><span style="min-height: 40px; line-height: 40px; padding: 0 12px; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea">{{c.pic}}</span></label>
+                <label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12.5px; font-weight: 500">Phone number</span><span style="display: flex; gap: 6px"><span style="flex: none; min-height: 40px; line-height: 40px; padding: 0 10px; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea">MY +60</span><span style="flex: 1; min-height: 40px; line-height: 40px; padding: 0 12px; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; font-variant-numeric: tabular-nums">{{c.phone}}</span></span></label>
+              </div>
+            </sc-for>
+            <button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer; align-self: flex-start">+ Add contact</button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap"><button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer">Save changes</button><button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer; color: #b0144f">{{sel.archiveLabel}}</button></div>
+            <span style="font-size: 12px; color: #8a8a93">Archive hides the supplier from new receipts and orders. Past deliveries and returns keep its name.</span>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const chip = (bg, fg) => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + bg + ';color:' + fg + ';';
+    const tone = { green: chip('#e9f8ee', '#1d7a3a'), amber: chip('#fff4dc', '#8a5a00'), red: chip('#fde7ef', '#b0144f'), grey: chip('#f4f4f6', '#6b6b73'), blue: chip('#e8f0fe', '#1a4fa8'), dark: chip('#111114', '#ffffff') };
+    const rowStyle = on => 'display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:44px;padding:6px 10px 6px 13px;border-radius:12px;' + (on ? 'background:#f4f4f6;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.06),inset 3px 0 0 #c2185b;' : 'background:transparent;box-shadow:inset 0 -1px 0 #f6f6f8;');
+    const stripItem = (v, k) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);', kStyle: 'font-size:12.5px;color:#6b6b73;' });
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;border:0;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const sel = st.sel ?? 0;
+    const filt = st.filt || 'active';
+    const S = [
+      ['Farmasi Contoh Sdn Bhd', [['Encik Rahman', '012-345 6789'], ['Sales desk', '03-2100 4455']], true],
+      ['MedSupply Example Bhd', [['Ms. Lee Wen', '016-220 1180']], true],
+      ['Ubat Sejahtera Trading', [['Puan Noraini', '019-777 0012']], true],
+      ['Kilang Kapas Contoh', [['Mr. Ganesh', '017-450 3321']], true],
+      ['Generik Pharma (Demo)', [['Ms. Chong', '03-5522 8890'], ['Order line', '1-800-00-0000'], ['Mr. Daniel', '012-909 1122']], true],
+      ['Surgical Mart Example', [['Encik Faiz', '013-668 4040']], true],
+      ['Vaksin Contoh Sdn Bhd', [['Dr. Tan (rep)', '012-101 2020']], true],
+      ['Bekalan Klinik Utama', [['Puan Siti', '011-2345 6789']], true],
+      ['North Pharma Distributors', [['Mr. Raj', '04-228 1100']], true],
+      ['Oksigen Gas Contoh', [['Encik Hakim', '03-8000 1234']], true],
+      ['Inhaler House (Demo)', [['Ms. Mei', '016-333 7788']], true],
+      ['Old Supplier Example', [['—', '—']], false],
+      ['Retired Wholesaler Demo', [['Mr. Wong', '012-000 1111']], false]
+    ];
+    const rows = S.map((s, i) => ({ i, name: s[0], pic: s[1][0][0], more: s[1].length > 1 ? '+' + (s[1].length - 1) + ' more' : '', phone: s[1][0][1], status: s[2] ? 'Active' : 'Archived', statusStyle: s[2] ? tone.green : tone.grey, pressed: String(sel === i), pick: () => this.setState({ sel: i }), row: rowStyle(sel === i) }))
+      .filter(r => filt === 'all' || (filt === 'active' ? r.status === 'Active' : r.status === 'Archived'));
+    const s = S[sel];
+    const filters = [['active', 'Active'], ['archived', 'Archived'], ['all', 'All']].map(([k, label]) => ({ label, pressed: String(filt === k), pick: () => this.setState({ filt: k }), style: 'border:0;font:inherit;font-size:12.5px;cursor:pointer;border-radius:999px;padding:4px 12px;' + (filt === k ? 'background:#f4f4f6;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.08);' : 'background:transparent;color:#6b6b73;') }));
+    const XPMAP = [null, 'arch', 'cont', 'noph'];
+    const XPD = {
+      arch: { title: 'Archived · 2', note: 'Kept for past orders and receipts', cols: [['SUPPLIER', 'minmax(180px,1.8fr)'], ['CONTACTS', '90px', 'r'], ['ARCHIVED ON', '120px'], ['STATUS', 'minmax(90px,1fr)']], rows: [
+        ['Old Supplier Example', '0', '3 Mar 2026', ['n', 'Archived']],
+        ['Retired Wholesaler Demo', '1', '20 Jul 2026', ['n', 'Archived']]
+      ], foot: 'An archived supplier cannot be chosen on a new order. Activate it from its row.' },
+      cont: { title: 'Contacts · 15', note: 'Fictional contacts', filters: [['all', 'All'], ['a', 'Active suppliers'], ['x', 'Archived']], cols: [['CONTACT', 'minmax(130px,1.2fr)'], ['SUPPLIER', 'minmax(170px,1.6fr)'], ['PHONE', '130px'], ['STATUS', 'minmax(130px,1fr)']], rows: [
+        ['Encik Rahman', 'Farmasi Contoh Sdn Bhd', '012-345 6789', ['ok', 'Active supplier'], '#a'],
+        ['Sales desk', 'Farmasi Contoh Sdn Bhd', '03-2100 4455', ['ok', 'Active supplier'], '#a'],
+        ['Ms. Lee Wen', 'MedSupply Example Bhd', '016-220 1180', ['ok', 'Active supplier'], '#a'],
+        ['Puan Noraini', 'Ubat Sejahtera Trading', '019-777 0012', ['ok', 'Active supplier'], '#a'],
+        ['Mr. Ganesh', 'Kilang Kapas Contoh', '017-450 3321', ['ok', 'Active supplier'], '#a'],
+        ['Ms. Chong', 'Generik Pharma (Demo)', '03-5522 8890', ['ok', 'Active supplier'], '#a'],
+        ['Order line', 'Generik Pharma (Demo)', '1-800-00-0000', ['ok', 'Active supplier'], '#a'],
+        ['Mr. Daniel', 'Generik Pharma (Demo)', '012-909 1122', ['ok', 'Active supplier'], '#a'],
+        ['Encik Faiz', 'Surgical Mart Example', '013-668 4040', ['ok', 'Active supplier'], '#a'],
+        ['Dr. Tan (rep)', 'Vaksin Contoh Sdn Bhd', '012-101 2020', ['ok', 'Active supplier'], '#a'],
+        ['Puan Siti', 'Bekalan Klinik Utama', '011-2345 6789', ['ok', 'Active supplier'], '#a'],
+        ['Mr. Raj', 'North Pharma Distributors', '04-228 1100', ['ok', 'Active supplier'], '#a'],
+        ['Encik Hakim', 'Oksigen Gas Contoh', '03-8000 1234', ['ok', 'Active supplier'], '#a'],
+        ['Ms. Mei', 'Inhaler House (Demo)', '016-333 7788', ['ok', 'Active supplier'], '#a'],
+        ['Mr. Wong', 'Retired Wholesaler Demo', '012-000 1111', ['n', 'Archived supplier'], '#x']
+      ], foot: 'Phone numbers print in reading form; the stored value is unchanged.' },
+      noph: { title: 'With no phone · 1', note: 'No way to call this supplier', cols: [['SUPPLIER', 'minmax(180px,1.8fr)'], ['CONTACT', '140px'], ['PHONE', '90px'], ['STATUS', 'minmax(130px,1fr)']], rows: [
+        ['Old Supplier Example', 'No contact person', '—', ['w', 'No phone · archived']]
+      ], foot: 'Add a contact before activating it again.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, rows, filters,
+      strip: xpWrap([stripItem('11', 'active suppliers'), stripItem('2', 'archived'), stripItem('15', 'contacts'), stripItem('1', 'with no phone')]),
+      sel: { name: s[0], status: s[2] ? 'Active' : 'Archived', count: String(s[1].length), archiveLabel: s[2] ? 'Archive' : 'Activate', contacts: s[1].map((c, n) => ({ n: String(n + 1), pic: c[0], phone: c[1] })) }
+    };
+  }
+}
+</script>
+</body>
+</html>

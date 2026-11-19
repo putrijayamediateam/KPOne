@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Approval limits</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Billing approval limits</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director only</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Settings sections" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{sections}}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 4px">{{g.title}}</span>
+            <sc-for list="{{g.items}}" as="t" hint-placeholder-count="4">
+              <a href="#" aria-current="{{t.cur}}" style="{{t.style}}"><span style="{{t.ic}}">{{t.k}}</span><span>{{t.label}}</span></a>
+            </sc-for>
+          </div>
+        </sc-for>
+      </nav>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+          <div role="tablist" aria-label="Branch" style="display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #e9e9ee; min-width: 340px">
+            <sc-for list="{{branches}}" as="b" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{b.on}}" onClick="{{b.pick}}" style="{{b.style}}">{{b.label}}</button></sc-for>
+          </div>
+          <span style="font-size: 12.5px; color: #6b6b73">Limits are set per branch. Amounts are typed in sen; the ringgit value shows beside it.</span>
+        </div>
+
+        <section aria-labelledby="h-thr" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap">
+          <div style="flex: 1 1 260px; min-width: 0"><h2 id="h-thr" style="margin: 0; font-size: 15px; font-weight: 600">Invoice adjustment threshold</h2><span style="font-size: 12.5px; color: #6b6b73">A discount or surcharge above this needs someone with override authority (CA Supervisor, Finance Officer or Director). Blank and RM 0.00 mean every positive adjustment needs an override.</span></div>
+          <label style="flex: 0 0 200px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12.5px; font-weight: 500; color: #3a3a40">Threshold (RM)</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; font-variant-numeric: tabular-nums">{{thr}}</span></label>
+          <button type="button" style="flex: none; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 18px; min-height: 44px; font: inherit; font-weight: 500; cursor: pointer; align-self: flex-end">Save threshold</button>
+        </section>
+
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Approver limits · {{branchName}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">staff who may approve Panel coverage or pay later at this branch</span>
+          </div>
+          <div aria-hidden="true" style="display: flex; gap: 12px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.03em; border-bottom: 1px solid #f1f1f4"><span style="flex: 1">APPROVER</span><span style="width: 190px; text-align: right">PANEL APPROVAL LIMIT</span><span style="width: 190px; text-align: right">PAY LATER APPROVAL LIMIT</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.role}}</span></span>
+              <span style="width: 190px; text-align: right; font-variant-numeric: tabular-nums"><span style="display: block; {{r.pStyle}}">{{r.p}}</span><span style="font-size: 12px; color: #8a8a93">{{r.pRm}}</span></span>
+              <span style="width: 190px; text-align: right; font-variant-numeric: tabular-nums"><span style="display: block; {{r.dStyle}}">{{r.d}}</span><span style="font-size: 12px; color: #8a8a93">{{r.dRm}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-ap" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div><span style="display: block; font-size: 12px; color: #6b6b73">{{cur.role}} · {{branchName}}</span><h2 id="h-ap" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{cur.name}}</h2></div>
+          <sc-for list="{{limits}}" as="l" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{l.k}} (sen)</span>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <button type="button" aria-label="{{l.downLabel}}" onClick="{{l.down}}" style="flex: none; width: 44px; height: 44px; border: 0; border-radius: 14px; background: #f4f4f6; font: inherit; font-size: 18px; cursor: pointer">−</button>
+                <span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; font-variant-numeric: tabular-nums; flex: 1; justify-content: space-between"><span>{{l.v}}</span><span style="color: #1d7a3a; font-weight: 600">{{l.rm}}</span></span>
+                <button type="button" aria-label="{{l.upLabel}}" onClick="{{l.up}}" style="flex: none; width: 44px; height: 44px; border: 0; border-radius: 14px; background: #f4f4f6; font: inherit; font-size: 18px; cursor: pointer">+</button>
+              </div>
+              <a href="#" onClick="{{l.clear}}" style="align-self: flex-start; font-size: 12.5px; color: #c2185b; font-weight: 500">Clear limit</a>
+            </div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">A blank value means no configured limit for that approver and capability. Changes apply to approvals made from now on and are recorded with your name.</span>
+          <span style="font-size: 12px; color: #8a8a93">Only the Director sets these limits.</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Save limits for {{cur.first}}</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], grey: ['#f4f4f6', '#6b6b73'], blue: ['#e8f0fe', '#1a4fa8'], violet: ['#f1ecfd', '#5a32a8'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const selRow = on => 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border:0;width:100%;box-sizing:border-box;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const seg = on => 'flex:1;border:0;border-radius:999px;min-height:38px;padding:0 12px;font:inherit;font-weight:500;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 3px rgba(17,17,26,0.12),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const CUR = 'lm';
+    const setIc = c => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#ffffff;background:' + c + ';';
+    const mk = (label, k, c, on) => ({ label, k, ic: setIc(c), cur: on ? 'page' : 'false', style: 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'color:#3a3a40;') });
+    const sections = [
+      { title: 'CLINIC', items: [mk('Business details', 'Bz', '#111114'), mk('Registration', 'Rg', '#ff9f0a'), mk('Consultation', 'Cn', '#0a84ff'), mk('QR check-in', 'QR', '#5e5ce6'), mk('Waiting-room TV', 'TV', '#30b0c7')] },
+      { title: 'MONEY', items: [mk('Payment methods', 'Pm', '#34c759', CUR === 'pm'), mk('Panels', 'Pn', '#bf5af2', CUR === 'pn'), mk('Approval limits', 'Lm', '#ff375f', CUR === 'lm')] },
+      { title: 'CATALOGUE', items: [mk('Medicines', 'Md', '#ff9f0a'), mk('Services', 'Sv', '#0a84ff'), mk('Prices', 'RM', '#34c759'), mk('Suppliers', 'Sp', '#8a8a93')] }
+    ];
+
+    const br = st.br || 'chr';
+    const sel = st.sel ?? 0;
+    const BR = { chr: 'Cheras', sgb: 'Sungai Besi', pcg: 'Puchong' };
+    const branches = Object.keys(BR).map(k => ({ label: BR[k], on: String(br === k), pick: () => this.setState({ br: k, sel: 0 }), style: seg(br === k) }));
+    const PEOPLE = {
+      chr: [['Aina R.', 'CA Supervisor', 50000, 30000], ['Siti', 'CA Supervisor', 50000, 30000], ['Hafiz', 'Clinic assistant', 15000, 5000], ['Nadia', 'Clinic assistant', 15000, null], ['Kamal', 'Clinic assistant', null, null], ['Ravi', 'Clinic assistant', 10000, 5000], ['Hani F.', 'Finance Officer', 200000, 100000]],
+      sgb: [['Mei Ling', 'CA Supervisor', 40000, 20000], ['Aisha', 'Clinic assistant', 10000, null], ['Zul', 'Clinic assistant', null, null]],
+      pcg: [['Rosli', 'CA Supervisor', 40000, 20000], ['Siti Hajar', 'Clinic assistant', 12000, 5000], ['Dev', 'Clinic assistant', 12000, null]]
+    };
+    const edits = st.edits || {};
+    const key = (i, c) => br + ':' + i + ':' + c;
+    const val = (i, c) => key(i, c) in edits ? edits[key(i, c)] : PEOPLE[br][i][c === 'p' ? 2 : 3];
+    const rm = s => s === null ? '' : '= RM ' + fmt(s / 100);
+    const shown = s => s === null ? 'No limit set' : s.toLocaleString('en-MY') + ' sen';
+    const list = PEOPLE[br];
+    const rows = list.map((p, i) => ({ name: p[0], role: p[1], p: shown(val(i, 'p')), pRm: rm(val(i, 'p')), d: shown(val(i, 'd')), dRm: rm(val(i, 'd')), pStyle: val(i, 'p') === null ? 'color:#8a8a93;' : 'font-weight:600;', dStyle: val(i, 'd') === null ? 'color:#8a8a93;' : 'font-weight:600;', pressed: String(i === sel), pick: () => this.setState({ sel: i }), row: selRow(i === sel) }));
+    const s = Math.min(sel, list.length - 1);
+    const set = (c, v) => this.setState({ edits: Object.assign({}, edits, { [key(s, c)]: v }) });
+    const limits = [['p', 'Panel approval limit'], ['d', 'Pay later approval limit']].map(([c, k]) => {
+      const v = val(s, c);
+      return { k, v: v === null ? 'Blank' : String(v), rm: v === null ? 'no limit' : rm(v), downLabel: 'Lower ' + k + ' by 1,000 sen', upLabel: 'Raise ' + k + ' by 1,000 sen', down: () => set(c, Math.max(0, (v || 0) - 1000)), up: () => set(c, (v || 0) + 1000), clear: () => set(c, null) };
+    });
+    return {
+      accent, sections, branches, rows, limits,
+      branchName: BR[br], thr: br === 'chr' ? '20.00' : '',
+      cur: { name: list[s][0], first: list[s][0].split(' ')[0], role: list[s][1] }
+    };
+
+  }
+}
+</script>
+</body>
+</html>

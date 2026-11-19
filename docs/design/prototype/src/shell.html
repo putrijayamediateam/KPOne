@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KPOne screen designs (clickable prototype)</title>
+<!--
+ABOUT THIS FILE (for people and for AI assistants such as ChatGPT)
+
+What it is
+- One self-contained HTML file: a clickable prototype of KPOne, Klinik Putrijaya's internal staff app
+  (front desk, consultation, pharmacy, billing, Panel claims, stock, HR, reports, settings, website drafts),
+  plus the patient-facing QR pages, the waiting-room TV and sign-in.
+- __COUNT__ screens in total; __NEWCOUNT__ of them are marked NEW (added after the original canvas).
+- All names, numbers and records are fictional mock data. Nothing is saved; there is no backend.
+
+How to use it
+- Left: the screen list, grouped by area, with search. Right: the selected screen, fully interactive
+  (tabs, filters, stat cards, row selection, switches and choices change state).
+- Links inside a screen (e.g. the app's own sidebar) open the target screen. The address ends in #ScreenId.
+- Buttons that would save or send something in the real app show a short "prototype" message instead.
+  Buttons with no behaviour of their own are routed by their label (see label-map-data) to the right screen.
+
+How it is built (for maintainers)
+- Each screen is a "Design Component" page: <x-dc> markup with {{holes}}, <sc-for>/<sc-if>, a shared
+  <dc-import name="Sidebar">, and one `class Component extends DCLogic` whose renderVals() returns the data.
+- screens-data  = { ScreenId: "<full .dc.html source>" }  (read a screen's entry to understand it)
+- runtime-data  = the shared Design Component runtime (React based) that renders each screen
+- label-map-data = button label -> screen id, used only for buttons that have no behaviour of their own
+- meta-data     = the list shown on the left (id, title, group, NEW flag, canvas description)
+- Design tokens used everywhere: page #f4f4f6, ink #111114, muted #6b6b73, accent #c2185b, white cards
+  with 26px radius, black pill primary buttons, chips (amber #fff4dc, pink #fde7ef, green #e9f8ee,
+  blue #e8f0fe, purple #f1ecfd), font Geist/Inter, 44px touch targets.
+- Internet is only needed for Google Fonts; without it the screens use system fonts.
+-->
+<style>
+:root{--bg:#f4f4f6;--ink:#111114;--mut:#6b6b73;--line:#e2e2e8;--acc:#c2185b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px/1.4 Geist,Inter,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);display:flex}
+#nav{width:272px;flex:none;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;height:100%}
+#nav header{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+#nav h1{font-size:15px;margin:0 0 2px}
+#nav small{color:var(--mut)}
+#q{width:100%;margin-top:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font:inherit}
+#onlynew{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--mut);cursor:pointer}
+#list{overflow:auto;padding:6px 6px 16px;flex:1}
+#list h2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:14px 10px 4px}
+#list a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;color:inherit;text-decoration:none;cursor:pointer;min-height:34px}
+#list a:hover{background:#f4f4f6}
+#list a.on{background:var(--ink);color:#fff}
+#list a span{flex:1;min-width:0}
+#list a i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:#1d7a3a;background:#e9f8ee;border-radius:999px;padding:1px 7px}
+#list a.on i{background:rgba(255,255,255,.2);color:#fff}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;position:relative}
+#bar{display:flex;gap:10px;align-items:center;padding:8px 14px;background:#fff;border-bottom:1px solid var(--line)}
+#bar .t{flex:1;min-width:0}
+#bar b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bar small{display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bar button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;cursor:pointer;min-height:36px}
+#bar button:hover{background:#f4f4f6}
+#bar #tgl{display:none}
+iframe{flex:1;width:100%;border:0;background:#f4f4f6}
+#toast{position:absolute;left:50%;bottom:22px;transform:translate(-50%,12px);opacity:0;pointer-events:none;transition:all .2s;background:#111114;color:#fff;border-radius:14px;padding:11px 16px;font-size:13.5px;max-width:min(620px,calc(100% - 32px));box-shadow:0 12px 32px rgba(17,17,20,.28);z-index:9}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:820px){#nav{position:fixed;z-index:10;left:-290px;transition:left .2s}#nav.open{left:0;box-shadow:0 0 30px rgba(0,0,0,.3)}#bar #tgl{display:inline-block}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<nav id="nav" aria-label="Screens"><header><h1>KPOne screen designs</h1><small>__COUNT__ clickable screens · __NEWCOUNT__ new · mock data</small>
+<input id="q" type="search" placeholder="Search screens…" aria-label="Search screens">
+<label id="onlynew"><input type="checkbox" id="nw"> Show only NEW screens</label></header><div id="list"></div></nav>
+<div id="main"><div id="bar"><button id="tgl" aria-controls="nav">☰ Screens</button><div class="t"><b id="title"></b><small id="about"></small></div><button id="prev" aria-label="Previous screen">←</button><button id="next" aria-label="Next screen">→</button><button id="copy">Copy source</button></div>
+<iframe id="f" title="Screen preview"></iframe><div id="toast" role="status" aria-live="polite"></div></div>
+<script type="application/json" id="meta-data">__META__</script>
+<script type="application/json" id="label-map-data">__LABELS__</script>
+<script type="application/json" id="screens-data">__SCREENS__</script>
+<script type="application/json" id="runtime-data">__RUNTIME__</script>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var META=JSON.parse($('meta-data').textContent);
+var LABELS=JSON.parse($('label-map-data').textContent);
+var SCREENS=JSON.parse($('screens-data').textContent);
+var RUNTIME=JSON.parse($('runtime-data').textContent);
+var runtimeUrl=URL.createObjectURL(new Blob([RUNTIME],{type:'text/javascript'}));
+var list=$('list'),f=$('f'),cur=null,tt=null;
+function toast(m){var t=$('toast');t.textContent=m;t.className='on';clearTimeout(tt);tt=setTimeout(function(){t.className=''},2800)}
+function esc(s){return String(s).replace(/</g,'\\u003c')}
+function build(id){
+  var pre='<script>window.__resourceBlobs={sb:new Blob(['+esc(JSON.stringify(SCREENS.Sidebar))+'],{type:"text/html"})};window.__resources={"./Sidebar.dc.html":"sb"};<\/script><script src="'+runtimeUrl+'"><\/script>';
+  return SCREENS[id].replace(/<script\s+src="\.\/support\.js"><\/script>/,function(){return pre});
+}
+function render(){
+  var q=$('q').value.trim().toLowerCase(),only=$('nw').checked,last=null;
+  list.innerHTML='';
+  META.forEach(function(m){
+    if(only&&!m.new)return;
+    if(q&&(m.title+' '+m.id+' '+m.group+' '+m.about).toLowerCase().indexOf(q)<0)return;
+    if(m.group!==last){var h=document.createElement('h2');h.textContent=m.group;list.appendChild(h);last=m.group}
+    var a=document.createElement('a');a.href='#'+m.id;a.dataset.id=m.id;
+    var s=document.createElement('span');s.textContent=m.title;a.appendChild(s);
+    if(m.new){var i=document.createElement('i');i.textContent='NEW';a.appendChild(i)}
+    if(m.id===cur)a.className='on';list.appendChild(a);
+  });
+}
+function show(id,noHash){
+  if(!SCREENS[id]||id==='Sidebar')id='Modern';
+  cur=id;
+  var m=META.filter(function(x){return x.id===id})[0]||{title:id,about:''};
+  $('title').textContent=m.title+(m.new?'  · NEW':'');
+  $('about').textContent=m.about||m.group||'';
+  document.title=m.title+' · KPOne designs';
+  if(!noHash)history.replaceState(null,'','#'+id);
+  f.srcdoc=build(id);
+  [].forEach.call(list.querySelectorAll('a'),function(a){a.className=a.dataset.id===id?'on':''});
+  var on=list.querySelector('a.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'});
+  $('nav').classList.remove('open');
+}
+function step(d){var ids=META.map(function(m){return m.id}),i=ids.indexOf(cur);show(ids[(i+d+ids.length)%ids.length])}
+function labelOf(el){return (el.getAttribute('aria-label')||el.textContent||'').replace(/\s+/g,' ').trim()}
+function routeFor(label){
+  var l=label.toLowerCase().replace(/[+…]/g,'').trim();if(!l)return null;
+  if(LABELS.exact[l])return LABELS.exact[l];
+  for(var i=0;i<LABELS.starts.length;i++){if(l.indexOf(LABELS.starts[i][0])===0)return LABELS.starts[i][1]}
+  return null;
+}
+f.addEventListener('load',function(){
+  var doc;try{doc=f.contentDocument}catch(e){return}
+  if(!doc)return;
+  var changes=0;
+  try{new MutationObserver(function(r){changes+=r.length}).observe(doc.documentElement,{subtree:true,childList:true,attributes:true,characterData:true})}catch(e){}
+  doc.addEventListener('click',function(e){
+    var el=e.target.closest&&e.target.closest('a[href],button,[role="switch"]');if(!el)return;
+    if(el.tagName==='A'){
+      var h=el.getAttribute('href')||'';
+      var m=h.match(/^(?:\.?\/)?([A-Za-z0-9_]+)\.dc\.html/);
+      if(m){e.preventDefault();if(SCREENS[m[1]])show(m[1]);else toast('That screen is not in this prototype yet.');return}
+      if(h===''||h==='#'){e.preventDefault();var r=routeFor(labelOf(el));if(r&&SCREENS[r]&&r!==cur)show(r);else toast(labelOf(el)?('“'+labelOf(el).slice(0,60)+'” would open its detail in the real app.'):'This link is part of the mockup.');return}
+      if(/^https?:/.test(h)){e.preventDefault();toast('External link (not opened in the prototype): '+h);return}
+      return;
+    }
+    var before=changes,label=labelOf(el);
+    setTimeout(function(){
+      if(changes!==before||cur===null)return;
+      var r=routeFor(label);
+      if(r&&SCREENS[r]&&r!==cur){show(r);return}
+      toast(label?('“'+label.slice(0,60)+'”: done in the prototype. Nothing is saved.'):'Done in the prototype. Nothing is saved.');
+    },350);
+  },true);
+});
+list.addEventListener('click',function(e){var a=e.target.closest('a');if(a){e.preventDefault();show(a.dataset.id)}});
+$('q').addEventListener('input',render);$('nw').addEventListener('change',render);
+$('tgl').onclick=function(){$('nav').classList.toggle('open')};
+$('prev').onclick=function(){step(-1)};$('next').onclick=function(){step(1)};
+$('copy').onclick=function(){
+  var t=SCREENS[cur];
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(function(){
+    var x=document.createElement('textarea');x.value=t;document.body.appendChild(x);x.select();try{document.execCommand('copy')}catch(e){}x.remove();
+  }).then(function(){toast('Source of “'+cur+'” copied.')});
+};
+window.addEventListener('hashchange',function(){var id=location.hash.slice(1);if(id&&id!==cur)show(id,true)});
+render();
+show(location.hash.slice(1)||'Modern',true);
+})();
+</script>
+</body>
+</html>

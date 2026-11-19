@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Panel summary</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="rep" accent="{{accent}}" branch="Cheras" user-name="Farid" user-role="Finance Officer" user-ini="FA" duty="08:30" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Reports</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Panel summary</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Totals per Panel only. No patient details.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Reports" style="flex: 0 0 220px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 10px 8px 4px">{{g.title}}</span>
+          <sc-for list="{{g.items}}" as="i" hint-placeholder-count="2">
+            <a href="#" aria-current="{{i.cur}}" style="{{i.style}}"><span style="{{i.ic}}">{{i.k}}</span><span style="flex: 1">{{i.label}}</span></a>
+          </sc-for>
+        </sc-for>
+      </nav>
+
+      <main class="kp-mid" aria-labelledby="h-rep" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section aria-label="Filters" style="background: #ffffff; border-radius: 22px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 0"><span style="font-size: 12px; font-weight: 500; color: #6b6b73">{{f.k}}</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 12px; background: #f4f4f6">{{f.v}}<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          </sc-for>
+          <button type="button" style="flex: none; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 22px; min-height: 40px; font: inherit; font-weight: 600; cursor: pointer">Run report</button>
+        </section>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for>
+        </div>
+
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 16px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 10px; flex-wrap: wrap">
+            <h1 id="h-rep" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em">Panel summary</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Cheras · invoices finalised 1 Jan to 18 Nov 2026 · made 18 Nov, 2:14 PM</span>
+            <button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer">Download CSV</button>
+          </div>
+          <div role="radiogroup" aria-label="Age groups show" style="display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: #f4f4f6; margin: 0 4px 10px">
+            <sc-for list="{{modes}}" as="m" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{m.on}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button></sc-for>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px">
+            <thead>
+              <tr><th colspan="7" style="border-bottom: 0"></th><th colspan="4" scope="colgroup" style="font-size: 11.5px; font-weight: 600; color: #8a8a93; text-align: center; padding: 0 8px 4px; border-bottom: 1px solid #e6e6ea; white-space: nowrap">{{modeTitle}} by age (RM)</th></tr>
+              <tr><sc-for list="{{cols}}" as="c" hint-placeholder-count="11"><th scope="col" style="{{c.style}}">{{c.label}}</th></sc-for></tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+                <tr style="border-bottom: 1px solid #f1f1f4">
+                  <th scope="row" style="text-align: left; font-weight: 500; padding: 0 8px; height: 42px; white-space: nowrap">{{r.panel}}</th>
+                  <sc-for list="{{r.vals}}" as="v" hint-placeholder-count="10"><td style="{{v.style}}">{{v.t}}</td></sc-for>
+                </tr>
+              </sc-for>
+            </tbody>
+            <tfoot><tr style="border-top: 2px solid #111114">
+              <th scope="row" style="text-align: left; padding: 0 8px; height: 44px">Total</th>
+              <sc-for list="{{totals}}" as="v" hint-placeholder-count="10"><td style="{{v.style}}">{{v.t}}</td></sc-for>
+            </tr></tfoot>
+          </table>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-age" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 id="h-age" style="margin: 0; font-size: 15px; font-weight: 600">{{modeTitle}} by age</h2>
+          <sc-for list="{{bars}}" as="b" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px"><span style="color: #3a3a40">{{b.k}}</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">{{b.v}}</span></div>
+              <div style="height: 8px; border-radius: 999px; background: #f1f1f4; overflow: hidden"><div style="{{b.fill}}"></div></div>
+            </div>
+          </sc-for>
+          <span style="font-size: 11.5px; color: #8a8a93">Darker means older. Each group also says its days in words.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">How this report counts</h2>
+          <sc-for list="{{how}}" as="h" hint-placeholder-count="4">
+            <div style="font-size: 12.5px; color: #3a3a40; padding: 8px 10px; border-radius: 12px; background: #f8f8fa"><b style="font-weight: 600">{{h.k}}</b> {{h.v}}</div>
+          </sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const mode = st.mode || 'out';
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const item = (key, label, k, bg, fg) => ({ label, k, cur: key === 'panel' ? 'page' : 'false', ic: ic(bg, fg), style: 'display:flex;align-items:center;gap:10px;min-height:42px;padding:0 8px;border-radius:12px;' + (key === 'panel' ? 'background:#f4f4f6;font-weight:600;color:#111114;box-shadow:inset 3px 0 0 #c2185b;' : 'color:#3a3a40;') });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const td = (t, bold, tone) => ({ t, style: 'text-align:right;padding:0 8px;white-space:nowrap;' + (bold ? 'font-weight:600;' : 'color:#3a3a40;') + (tone || '') });
+    const head = (label, left) => ({ label, style: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.03em;padding:0 8px 8px;white-space:nowrap;text-align:' + (left ? 'left' : 'right') + ';border-bottom:1px solid #e6e6ea;' });
+    // panel, approved invoices, approved resp, claimed, unclaimed, accepted, remitted, out ages, unclaimed ages, awaiting ages
+    const D = [
+      ['AIA', 248, 18240, 17010, 1230, 15880, 14640, [620, 410, 140, 70], [980, 170, 60, 20], [520, 90, 0, 0]],
+      ['PMCare', 131, 8420, 8020, 400, 7310, 6950, [210, 90, 60, 0], [330, 70, 0, 0], [380, 40, 0, 0]],
+      ['Etiqa', 74, 5120, 4880, 240, 4410, 3990, [180, 140, 60, 40], [200, 40, 0, 0], [300, 90, 40, 0]],
+      ['Great Eastern', 52, 3640, 3560, 80, 3300, 3300, [0, 0, 0, 0], [80, 0, 0, 0], [180, 40, 0, 0]],
+      ['Syarikat Maju Test Sdn Bhd', 40, 6100, 5410, 690, 4890, 4300, [310, 160, 70, 50], [450, 140, 60, 40], [280, 140, 60, 40]],
+      ['MiCare', 36, 2240, 2180, 60, 1980, 1880, [100, 0, 0, 0], [60, 0, 0, 0], [140, 30, 0, 0]],
+      ['PeKa Test Panel', 19, 1310, 1310, 0, 1160, 1160, [0, 0, 0, 0], [0, 0, 0, 0], [110, 40, 0, 0]],
+      ['Tokio Marine', 14, 980, 900, 80, 820, 700, [60, 40, 20, 0], [80, 0, 0, 0], [50, 30, 0, 0]],
+      ['Direct · Kilang Contoh Test', 9, 760, 620, 140, 540, 300, [80, 60, 40, 60], [40, 40, 20, 40], [40, 20, 20, 0]]
+    ];
+    const idx = mode === 'out' ? 7 : mode === 'unc' ? 8 : 9;
+    const ageTone = j => j === 3 ? 'color:#c2185b;font-weight:600;' : j === 2 ? 'color:#8a5a00;' : '';
+    const tot = new Array(10).fill(0);
+    const rows = D.map(r => {
+      const out = r[5] - r[6];
+      const nums = [r[1], r[2], r[3], r[4], r[5], out].concat(r[idx]);
+      nums.forEach((v, j) => { tot[j] += v; });
+      return { panel: r[0], vals: nums.map((v, j) => j === 0 ? td(String(v)) : j >= 6 ? td(v ? fmt(v) : '—', false, v ? ageTone(j - 6) : '') : td(fmt(v), j === 5)) };
+    });
+    const totals = tot.map((v, j) => j === 0 ? td(String(v), true) : td(fmt(v), true));
+    const ages = tot.slice(6);
+    const maxAge = Math.max.apply(null, ages) || 1;
+    const shades = ['#f2a9c4', '#e0457f', '#c2185b', '#7a1040'];
+    const AG = ['0 to 30 days', '31 to 60 days', '61 to 90 days', 'Over 90 days'];
+    const bars = ages.map((v, j) => ({ k: AG[j], v: 'RM ' + fmt(v), fill: 'height:100%;border-radius:999px;width:' + Math.round(v / maxAge * 100) + '%;background:' + shades[j] + ';' }));
+    const titles = { out: 'Claim outstanding', unc: 'Unclaimed share', wait: 'Awaiting decision' };
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const M = [['out', 'Claim outstanding'], ['unc', 'Unclaimed'], ['wait', 'Awaiting decision']];
+    return {
+      accent, rows, totals, bars,
+      modeTitle: titles[mode],
+      modes: M.map(([k, label]) => ({ label, on: String(mode === k), pick: () => this.setState({ mode: k }), style: 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:12.5px;cursor:pointer;' + (mode === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(17,17,26,0.1);' : 'background:transparent;color:#6b6b73;') })),
+      groups: [
+        { title: 'MONEY', items: [item('daily', 'Daily summary', 'DS', '#eef0f3', '#3a3a40'), item('tx', 'Transaction detail', 'TX', '#e3f6f5', '#0b6f69'), item('bd', 'Billing detail', 'BD', '#e8f0fe', '#1a4fa8')] },
+        { title: 'PANEL AND STOCK', items: [item('panel', 'Panel summary', 'PS', '#f1ecfd', '#5a32a8'), item('stock', 'Stock movement', 'SM', '#fff4dc', '#8a5a00')] },
+        { title: 'OVERVIEW', items: [item('ins', 'Insights', 'IN', '#fde7ef', '#c2185b')] }
+      ],
+      filters: [{ k: 'Branch', v: 'Cheras' }, { k: 'Invoice finalised', v: '1 Jan – 18 Nov 2026' }, { k: 'Panel', v: 'All Panels' }],
+      strip: [stripItem('RM ' + fmt(tot[5]), 'accepted, not yet paid', true), stripItem('RM ' + fmt(tot[1]), 'approved Panel share'), stripItem('RM ' + fmt(tot[3]), 'not claimed yet'), stripItem('RM ' + fmt(D.reduce((a, r) => a + r[7][3], 0)), 'outstanding over 90 days')],
+      cols: [head('Panel', true), head('Invoices'), head('Approved (RM)'), head('Claimed (RM)'), head('Unclaimed (RM)'), head('Accepted (RM)'), head('Outstanding (RM)'), head('0-30'), head('31-60'), head('61-90'), head('Over 90')],
+      how: [
+        { k: 'Outstanding', v: 'is accepted less remitted, never below zero. A claim not yet accepted is not owed.' },
+        { k: 'Claim ages', v: 'count from the first submitted date; a resubmission does not reset them.' },
+        { k: 'Unclaimed ages', v: 'count from the day the invoice was finalised.' },
+        { k: 'Claim figures', v: 'are current at the time the report is made.' }
+      ]
+    };
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audit log</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Audit logs</div>
+      <span style="margin-left: auto; font-size: 12px; color: #8a8a93">Ids and codes only. Never credentials, tokens, note text or patient values.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+          <span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 2px 9px">Filters: idea, not built</span>
+          <span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 36px; padding: 7px 12px">11–18 Nov 2026</span>
+          <span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 36px; padding: 7px 12px; flex: 1 1 200px">Event starts with: billing.</span>
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button type="button" onClick="{{f.pick}}" aria-pressed="{{f.sel}}" style="{{f.style}}">{{f.label}}</button></sc-for>
+          <span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 36px; padding: 7px 12px; width: 110px">Actor #</span>
+          <span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 36px; padding: 7px 12px; width: 120px">Branch: all</span>
+          <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Apply filters</button>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: none; width: 130px">TIME</span><span style="flex: 1 1 240px">EVENT</span><span style="flex: none; width: 110px">ACTOR</span><span style="flex: 1 1 170px">SUBJECT</span><span style="flex: none; width: 90px">BRANCH</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="15">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="flex: none; width: 130px; color: #6b6b73; font-size: 13px; font-variant-numeric: tabular-nums">{{r.when}}</span>
+              <span style="flex: 1 1 240px; min-width: 0; display: flex; align-items: center; gap: 8px"><span style="{{r.dot}}"></span><span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{r.ev}}</span></span>
+              <span style="flex: none; width: 110px; font-size: 13px; font-variant-numeric: tabular-nums">{{r.actor}}</span>
+              <span style="flex: 1 1 170px; min-width: 0; font-size: 13px; color: #3a3a40; font-variant-numeric: tabular-nums">{{r.subj}}</span>
+              <span style="flex: none; width: 90px; font-size: 13px; color: #6b6b73">{{r.br}}</span>
+            </button>
+          </sc-for>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 6px 0"><span style="font-size: 12px; color: #8a8a93">Showing 1–15 · newest first</span><span style="display: flex; gap: 6px"><button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 34px">Previous</button><button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 34px">Next</button></span></div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; color: #8a8a93">Event</span>
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600; font-family: ui-monospace, 'SF Mono', Menlo, monospace; overflow-wrap: anywhere">{{cur.ev}}</h2>
+          <sc-for list="{{cur.facts}}" as="f" hint-placeholder-count="5"><div style="display: flex; justify-content: space-between; gap: 10px; min-height: 30px; border-bottom: 1px solid #f4f4f6; font-size: 13px"><span style="color: #6b6b73">{{f.k}}</span><span style="text-align: right; font-weight: 500; font-variant-numeric: tabular-nums">{{f.v}}</span></div></sc-for>
+          <span style="font-size: 13px; font-weight: 600; padding-top: 4px">Context</span>
+          <div style="padding: 12px 14px; border-radius: 16px; background: #f8f8fa; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; line-height: 1.7; color: #3a3a40">
+            <sc-for list="{{cur.meta}}" as="m" hint-placeholder-count="4"><div style="display: flex; gap: 8px"><span style="color: #8a8a93">{{m.k}}</span><span style="overflow-wrap: anywhere">{{m.v}}</span></div></sc-for>
+          </div>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">How the log works</h2>
+          <span style="font-size: 13px; color: #3a3a40">Rows are only ever added, never edited or deleted. If an audit row cannot be written, the action it describes does not happen.</span>
+          <span style="font-size: 12px; color: #8a8a93">Visible to Director, HR Manager and Technical Admin (audit.view.organisation).</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const fk = S.fk || 'all';
+    const KT = { billing: 'green', queue: 'blue', panel_claim: 'violet', access: 'red', patient: 'amber', hr: 'teal', dispensary: 'teal', ai_read: 'grey', inventory: 'amber' };
+    const E = [
+      ['18 Nov, 10:42:08', 'billing.document_printed', 31, 'invoice #2207', 'CHERAS', [['document_type', 'invoice'], ['version', '2'], ['label', 'COPY']]],
+      ['18 Nov, 10:41:55', 'billing.document_issued', 31, 'invoice #2207', 'CHERAS', [['document_type', 'invoice'], ['version', '2'], ['label', 'REVISED']]],
+      ['18 Nov, 10:30:12', 'queue.called', 12, 'queue_entry #8812', 'CHERAS', [['via', 'call_next'], ['call_next_source', 'board'], ['room_id', '3']]],
+      ['18 Nov, 10:22:40', 'dispensary.labels_printed', 31, 'dispensary_case #1934', 'CHERAS', [['lines', '3'], ['reprints', '1']]],
+      ['18 Nov, 10:05:03', 'panel_claim.created', 22, 'panel_claim #0611', 'PUCHONG', [['amount_sen', '5500'], ['submitted_on', '2026-11-18']]],
+      ['18 Nov, 09:58:47', 'access.role.attached', 1, 'user #64', '—', [['role', 'ca'], ['previous_roles', '0']]],
+      ['18 Nov, 09:44:19', 'patient.merged', 19, 'patient #40318', '—', [['merge_id', '27'], ['reason_code', 'duplicate_registration']]],
+      ['18 Nov, 09:31:02', 'hr.claims.approved', 1, 'staff_claim #42', '—', [['category_id', '3'], ['over_limit', 'true']]],
+      ['18 Nov, 09:12:56', 'queue.recalled', 12, 'queue_entry #8807', 'CHERAS', [['room_id', '3']]],
+      ['18 Nov, 08:50:30', 'inventory.receipt_posted', 19, 'inventory_receipt #318', 'CHERAS', [['lots', '4'], ['exceptions', '0']]],
+      ['18 Nov, 08:41:11', 'ai_read.query_run', null, 'console', '—', [['query_sha256', '9f2c…e41a'], ['rows', '12']]],
+      ['18 Nov, 08:30:44', 'billing.payment_recorded', 44, 'invoice #2203', 'PUCHONG', [['method_id', '2'], ['amount_sen', '3500']]],
+      ['18 Nov, 08:15:09', 'access.branch_assignment.created', 1, 'user #64', 'SUNGAI_BESI', [['primary', 'true'], ['starts_on', '2026-11-18']]],
+      ['17 Nov, 18:02:31', 'hr.incident.acknowledged', 7, 'hr_incident #19', 'CHERAS', [['category', 'patient_care']]],
+      ['17 Nov, 17:55:12', 'queue.called', 52, 'queue_entry #8790', 'PUCHONG', [['room_id', '7']]]
+    ];
+    const pre = { all: null, billing: 'billing.', queue: 'queue.', access: 'access.' };
+    const vis = E.map((e, i) => [e, i]).filter(([e]) => !pre[fk] || e[1].indexOf(pre[fk]) === 0);
+    const selIdx = S.sel !== undefined && vis.some(v => v[1] === S.sel) ? S.sel : (vis[0] ? vis[0][1] : 0);
+    const dot = ev => { const k = ev.split('.')[0]; const t = KT[k] || 'grey'; return 'flex:none;width:8px;height:8px;border-radius:50%;background:' + T[t][1] + ';'; };
+    const rows = vis.map(([e, i]) => ({ when: e[0], ev: e[1], dot: dot(e[1]), actor: e[2] ? 'user #' + e[2] : 'system', subj: e[3], br: e[4], row: rowSel(i === selIdx) + 'gap:14px;', pressed: String(i === selIdx), pick: () => this.setState({ sel: i }) }));
+    const c = E[selIdx];
+    const filters = [['all', 'All'], ['billing', 'Billing'], ['queue', 'Queue'], ['access', 'Access']].map(([k, label]) => ({ label, sel: String(fk === k), style: pill(fk === k), pick: () => this.setState({ fk: k, sel: undefined }) }));
+    return {
+      accent, rows, filters,
+      cur: { ev: c[1], facts: [{ k: 'Time', v: c[0] + ' (MYT)' }, { k: 'Actor', v: c[2] ? 'user #' + c[2] : 'system (console)' }, { k: 'Subject', v: c[3] }, { k: 'Branch', v: c[4] }, { k: 'Organisation', v: '#1' }], meta: c[5].map(([k, v]) => ({ k, v })) }
+    };
+  }
+}
+</script>
+</body>
+</html>

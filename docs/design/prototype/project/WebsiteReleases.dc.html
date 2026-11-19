@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Website releases</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:340px !important}
+  .kp-work.kp-3>.kp-mid{flex:1 1 100% !important;min-height:auto !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Website</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Releases</div>
+      <span style="display: inline-flex; align-items: center; margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">Private · nothing is published or deployed</span>
+      <button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; min-height: 38px">Prepare release</button>
+    </header>
+    <nav aria-label="Website sections" style="display: flex; gap: 4px; padding: 10px 20px 0; overflow-x: auto; flex: none">
+      <sc-for list="{{secs}}" as="s" hint-placeholder-count="10"><a href="#" aria-current="{{s.cur}}" style="{{s.style}}">{{s.label}}</a></sc-for>
+    </nav>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 12px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 280px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 4px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Saved releases</h2><span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 1px 8px">9</span></div>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 8px">A release is a frozen, numbered copy of saved drafts with both EN and BM complete. It never changes.</span>
+        <sc-for list="{{rels}}" as="r" hint-placeholder-count="9">
+          <button type="button" aria-current="{{r.cur}}" onClick="{{r.pick}}" style="{{r.row}}"><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{r.t}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.tagStyle}}">{{r.state}}</span></button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" aria-labelledby="h-rel" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="position: relative; overflow: hidden; flex: none; border-radius: 26px; padding: 18px 22px; color: #ffffff; background: radial-gradient(120% 160% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%); display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+          <div aria-hidden="true" style="position: absolute; right: -60px; top: -70px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.25), rgba(255,255,255,0) 70%)"></div>
+          <div style="flex: 1; min-width: 240px; position: relative"><span style="font-size: 12px; opacity: 0.85">{{selSub}}</span><h1 id="h-rel" style="margin: 2px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{selT}}</h1><p style="margin: 4px 0 0; font-size: 12px; opacity: 0.85; font-family: ui-monospace, Menlo, monospace; word-break: break-all">Manifest SHA-256 {{hash}}</p></div>
+          <span style="position: relative; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 10px">{{selState}}</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ false }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ true }}"><div style="flex: 1 1 130px; display: flex; align-items: baseline; gap: 8px; border-radius: 18px; padding: 10px 16px; background: #ffffff; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)"><span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+
+        <section style="flex: 1 0 auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+          <div role="tablist" aria-label="Release view" style="align-self: flex-start; display: flex; gap: 2px; background: #f4f4f6; border-radius: 999px; padding: 3px">
+            <sc-for list="{{views}}" as="v" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{v.sel}}" onClick="{{v.pick}}" style="{{v.style}}">{{v.label}}</button></sc-for>
+          </div>
+          <sc-if value="{{isChanges}}" hint-placeholder-val="{{ true }}">
+            <span style="font-size: 12.5px; color: #8a8a93">Compared with the latest approved release before it: {{compareTo}}</span>
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <sc-for list="{{changes}}" as="c" hint-placeholder-count="10">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 10px; border-bottom: 1px solid #f6f6f8"><span style="{{c.chipStyle}}">{{c.kind}}</span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{c.t}}</span><span style="font-size: 12px; color: #8a8a93">{{c.sub}}</span></span><span style="font-size: 12px; color: #6b6b73">{{c.type}}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{isPreview}}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 12.5px; color: #8a8a93">Structured preview of the frozen contents. Not the real website, and not public.</span>
+            <div style="border-radius: 20px; box-shadow: inset 0 0 0 1px #ececf0; overflow: hidden">
+              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: #fff6fa; border-bottom: 1px solid #f6dbe6; flex-wrap: wrap"><b style="font-weight: 700; color: #c2185b">Klinik Putrijaya</b><sc-for list="{{pv.nav}}" as="n" hint-placeholder-count="5"><span style="font-size: 12.5px; color: #3a3a40">{{n}}</span></sc-for><span style="margin-left: auto; font-size: 12px; color: #8a8a93">{{pv.lang}}</span></div>
+              <div style="padding: 22px 18px; display: flex; flex-direction: column; gap: 12px">
+                <h3 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{pv.hero}}</h3>
+                <p style="margin: 0; color: #6b6b73">{{pv.sub}}</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px">
+                  <sc-for list="{{pv.cards}}" as="c" hint-placeholder-count="4"><div style="border-radius: 16px; background: #f8f8fa; padding: 12px 14px"><b style="display: block; font-weight: 600">{{c.t}}</b><span style="font-size: 12.5px; color: #6b6b73">{{c.s}}</span></div></sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Omissions</h2>
+          <span style="font-size: 12.5px; color: #8a8a93">Saved drafts left out of this release, and why.</span>
+          <sc-for list="{{omit}}" as="o" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 14px; background: #f8f8fa"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{o.t}}</span><span style="font-size: 12px; color: #8a8a93">{{o.type}}</span></span><span style="font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; background: #fff4dc; color: #8a5a00">{{o.why}}</span></div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Director decision</h2>
+          <span style="font-size: 12.5px; color: #3a3a40">{{decisionText}}</span>
+          <sc-if value="{{canDecide}}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 10px 12px; border-radius: 14px; background: #f8f8fa; font-size: 12.5px; color: #3a3a40"><b style="font-weight: 600">Prepared by {{preparer}}.</b> You are approving the exact contents with this hash. A change to any draft needs a new release.</div>
+            <span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 500; color: #6b6b73">Reason (needed to refuse)</span><span style="display: block; min-height: 64px; border-radius: 12px; background: #f4f4f6"></span></span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap"><button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; flex: 1">Refuse</button><button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; flex: 1">Withdraw</button></div>
+          </sc-if>
+          <sc-if value="{{isApproved}}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 10px 12px; border-radius: 14px; background: #e9f8ee; font-size: 12.5px; color: #1d7a3a; font-weight: 500">Approved. The next step is an output plan (address, pages, footer and look), approved separately.</div>
+            <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer">Prepare output plan</button>
+          </sc-if>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column">
+          <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Decision history</h2>
+          <sc-for list="{{hist}}" as="h" hint-placeholder-count="3">
+            <div style="display: flex; justify-content: space-between; gap: 10px; min-height: 44px; align-items: center; border-bottom: 1px solid #f1f1f4"><span><span style="display: block; font-size: 13px">{{h.k}}</span><span style="font-size: 11.5px; color: #8a8a93">{{h.when}}</span></span><span style="font-size: 12px; color: #6b6b73">{{h.who}}</span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Retained media</h2>
+          <span style="font-size: 12.5px; color: #3a3a40">{{media}}</span>
+          <span style="font-size: 11.5px; color: #8a8a93">Images are copied into the release, encrypted, so a later change in the media library cannot alter it.</span>
+        </section>
+        <sc-if value="{{canDecide}}" hint-placeholder-val="{{ true }}"><button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 48px; margin-top: auto">Approve exact contents</button></sc-if>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      __tile: 'flex:1 1 130px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);',
+      'items frozen': { t: 'Items frozen in this release', n: 'Each item complete in English and Bahasa Melayu', c: ['Type', '>Items', 'Languages', 'Status'], w: 'minmax(150px,1.5fr) 80px 120px 110px',
+        r: [['Branch profiles', '3', 'EN and BM', ['Frozen', 'ok']], ['Doctor profiles', '8', 'EN and BM', ['Frozen', 'ok']], ['Services', '20', 'EN and BM', ['Frozen', 'ok']], ['Promotions', '6', 'EN and BM', ['Frozen', 'ok']], ['Activities', '5', 'EN and BM', ['Frozen', 'ok']], ['FAQs', '17', 'EN and BM', ['Frozen', 'ok']], ['Career postings', '4', 'EN and BM', ['Frozen', 'ok']], ['Little Shield page', '1', 'EN and BM', ['Frozen', 'ok']]],
+        foot: 'Frozen means hashed and never edited. A change needs a new release.' },
+      'images retained': { t: 'Images retained', n: '38 images, 41.2 MB, encrypted with this release', c: ['Used on', '>Images', 'People in them', 'Status'], w: 'minmax(150px,1.5fr) 80px 140px 110px',
+        r: [['Doctor portraits', '8', 'Consent on file', ['Retained', 'ok']], ['Branch profiles', '6', 'None', ['Retained', 'ok']], ['Services', '10', 'None', ['Retained', 'ok']], ['Promotions', '6', 'None', ['Retained', 'ok']], ['Little Shield cover and posters', '8', 'Consent on file', ['Retained', 'ok']]],
+        foot: 'Nothing is public. Output and publishing are later, separate steps.' }
+    };
+    const accent = this.props.accent ?? '#c2185b';
+    const secs = [["profiles","Branch profiles"],["doctors","Doctors"],["careers","Careers"],["services","Services"],["promotions","Promotions"],["activities","Activities"],["faqs","FAQs"],["shield","Little Shield"],["media","Media"],["releases","Releases"]].map(([k, label]) => ({ label, cur: k === 'releases' ? 'page' : 'false', style: 'flex:none;display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:999px;font-size:13px;white-space:nowrap;' + (k === 'releases' ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 0 0 1px rgba(17,17,26,0.08);' : 'color:#6b6b73;') }));
+    const sel = (this.state && this.state.sel) || 0;
+    const view = (this.state && this.state.view) || 'changes';
+    const tag = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const tones = { 'Waiting': ['#fff4dc', '#8a5a00'], 'Approved': ['#e9f8ee', '#1d7a3a'], 'Refused': ['#fde7ef', '#b0144f'], 'Withdrawn': ['#f4f4f6', '#6b6b73'] };
+    const R = [
+      ['Release 9', 'Prepared 18 Nov, 11:52 AM by Aleesya', 'Waiting', 'Aleesya', '3f9a1c0e7b2d44a8e51c96f02ab7d3e48c1f6a0b9e27d5c3a84f1e60b2c9d7a1', 'Release 8'],
+      ['Release 8', 'Approved 11 Nov, 4:40 PM', 'Approved', 'Aleesya', 'b81e4d2a06f9c3e7d5a1b8f04c62e9a7d3b5f18e0c4a96d2e7b1f53a8c0d6e94', 'Release 6'],
+      ['Release 7', 'Withdrawn 9 Nov', 'Withdrawn', 'Aleesya', '9c2f5e18a4d0b73e6f1a8c5d2b94e07f3a6c1d8e5b2f490a7d3e6c1b8f5a2d40', 'Release 6'],
+      ['Release 6', 'Approved 2 Nov', 'Approved', 'Rina (Administrator)', '0d7a3e9c51f8b2d4a6e0c97f3b15d8a2e4c6f09b1d3a5e7c8f2b4d6a0e9c1f37', 'Release 5'],
+      ['Release 5', 'Refused 30 Oct', 'Refused', 'Aleesya', 'e4b2d6f8a0c1e3b5d7f9a2c4e6b8d0f1a3c5e7b9d2f4a6c8e0b1d3f5a7c9e2b4', 'Release 4'],
+      ['Release 4', 'Approved 26 Oct', 'Approved', 'Aleesya', 'a1c3e5b7d9f0a2c4e6b8d1f3a5c7e9b0d2f4a6c8e1b3d5f7a9c0e2b4d6f8a1c3', 'Release 3'],
+      ['Release 3', 'Withdrawn 24 Oct', 'Withdrawn', 'Aleesya', 'c9e1a3b5d7f2c4e6a8b0d1f3c5e7a9b2d4f6c8e0a1b3d5f7c9e2a4b6d8f0c1e3', 'Release 2'],
+      ['Release 2', 'Approved 23 Oct', 'Approved', 'Rina (Administrator)', 'f0d2b4a6c8e1f3d5b7a9c2e4f6d8b0a1c3e5f7d9b2a4c6e8f1d3b5a7c9e0f2d4', 'Release 1'],
+      ['Release 1', 'Approved 22 Oct', 'Approved', 'Aleesya', '7e5c3a1f9d7b5e3c1a9f7d5b3e1c9a7f5d3b1e9c7a5f3d1b9e7c5a3f1d9b7e5c', 'none']
+    ];
+    const rels = R.map((r, i) => ({ t: r[0], sub: r[1], state: r[2], cur: i === sel ? 'true' : 'false', pick: () => this.setState({ sel: i }), tagStyle: tag(tones[r[2]][0], tones[r[2]][1]), row: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 10px;border:0;border-radius:12px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (i === sel ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,0 0 0 1px rgba(17,17,26,0.05);' : 'background:transparent;') }));
+    const r = R[sel];
+    const views = [['changes', 'Change list'], ['en', 'Preview EN'], ['bm', 'Preview BM']].map(([k, label]) => ({ label, sel: view === k ? 'true' : 'false', pick: () => this.setState({ view: k }), style: 'border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (view === k ? 'background:#ffffff;font-weight:600;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.08);' : 'background:transparent;color:#6b6b73;') }));
+    const kinds = { Added: ['#e9f8ee', '#1d7a3a'], Changed: ['#e8f0fe', '#1a4fa8'], Removed: ['#fde7ef', '#b0144f'] };
+    const changes = [
+      ['Added', 'Flu vaccine month', 'EN and BM · valid 1 to 31 Dec', 'Promotion'],
+      ['Added', 'Health talk at the community hall', 'EN and BM · 7 Dec 2026', 'Activity'],
+      ['Changed', 'Flu vaccination', 'Short description and price wording', 'Service'],
+      ['Changed', 'Cheras branch profile', 'Opening hours text', 'Branch profile'],
+      ['Changed', 'Do I need an appointment?', 'Answer (EN and BM)', 'FAQ'],
+      ['Added', 'Clinic Assistant (Cheras)', 'Closes 15 Dec 2026', 'Career posting'],
+      ['Changed', 'Little Shield', 'Posters reordered', 'Programme page'],
+      ['Removed', 'Raya open day 2026', 'Archived on 3 Nov', 'Activity'],
+      ['Removed', 'Panel Officer', 'Posting closed', 'Career posting']
+    ].map(([kind, t, sub, type]) => ({ kind, t, sub, type, chipStyle: tag(kinds[kind][0], kinds[kind][1]) + 'width:70px;text-align:center;' }));
+    const bm = view === 'bm';
+    const pv = { lang: bm ? 'Bahasa Melayu · /bm/' : 'English · /', nav: bm ? ['Perkhidmatan', 'Doktor', 'Promosi', 'Soalan lazim', 'Kerjaya'] : ['Services', 'Doctors', 'Promotions', 'FAQs', 'Careers'], hero: bm ? 'Klinik keluarga anda di Cheras, Puchong dan Sungai Besi' : 'Your family clinic in Cheras, Puchong and Sungai Besi', sub: bm ? 'Datang terus. Imbas kod QR di kaunter untuk daftar masuk.' : 'Walk in. Scan the QR code at the counter to check in.', cards: (bm ? [['Vaksinasi selesema', 'Dari RM 75'], ['Balutan luka', 'Prosedur'], ['Bulan vaksin selesema', '1 hingga 31 Dis'], ['Little Shield', 'Program kanak-kanak']] : [['Flu vaccination', 'From RM 75'], ['Wound dressing', 'Procedures'], ['Flu vaccine month', '1 to 31 Dec'], ['Little Shield', "Children's programme"]]).map(([t, s]) => ({ t, s })) };
+    const waiting = r[2] === 'Waiting';
+    const histFor = { Waiting: [['Prepared', '18 Nov, 11:52 AM', r[3]]], Approved: [['Prepared', 'earlier the same day', r[3]], ['Approved', r[1].replace('Approved ', ''), 'Dr. Director']], Refused: [['Prepared', '30 Oct, 9:12 AM', r[3]], ['Refused · Little Shield wording to review', '30 Oct, 2:05 PM', 'Dr. Director']], Withdrawn: [['Prepared', 'earlier', r[3]], ['Withdrawn · a newer release replaced it', r[1].replace('Withdrawn ', ''), 'Dr. Director']] };
+    const __base = {
+      accent, secs, rels, views, changes, pv,
+      selT: r[0], selSub: r[1], selState: r[2] === 'Waiting' ? 'Waiting for the Director' : r[2], hash: r[4].slice(0, 16) + '…' + r[4].slice(-8),
+      strip: [{ v: '64', k: 'items frozen' }, { v: '9', k: 'changes' }, { v: '3', k: 'left out' }, { v: '38', k: 'images retained' }],
+      isChanges: view === 'changes', isPreview: view !== 'changes', compareTo: r[5],
+      omit: [{ t: 'Family health package', type: 'Promotion', why: 'BM missing' }, { t: 'Child vaccination', type: 'Service', why: 'BM missing' }, { t: 'What should I bring for a wound dressing?', type: 'FAQ', why: 'Linked service archived' }],
+      canDecide: waiting, isApproved: r[2] === 'Approved', preparer: r[3],
+      decisionText: waiting ? 'Only the Director approves, refuses or withdraws a release. Marketing and the Administrator prepare.' : r[2] === 'Approved' ? 'This release is approved. It can still be withdrawn; it is never edited.' : 'This release is closed. It stays readable as history.',
+      hist: histFor[r[2]].map(([k, when, who]) => ({ k, when, who })),
+      media: '38 images, 41.2 MB, frozen with this release.'
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      secs: __x.secs,
+      rels: __x.rels,
+      views: __x.views,
+      changes: __x.changes,
+      pv: __x.pv,
+      selT: __x.selT,
+      selSub: __x.selSub,
+      selState: __x.selState,
+      hash: __x.hash,
+      strip: __x.strip,
+      isChanges: __x.isChanges,
+      isPreview: __x.isPreview,
+      compareTo: __x.compareTo,
+      omit: __x.omit,
+      canDecide: __x.canDecide,
+      isApproved: __x.isApproved,
+      preparer: __x.preparer,
+      decisionText: __x.decisionText,
+      hist: __x.hist,
+      media: __x.media,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

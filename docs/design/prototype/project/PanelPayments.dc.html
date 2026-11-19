@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Panel payments</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="panel" accent="{{accent}}" branch="Cheras" user-name="Hani F." user-role="Finance Officer" user-ini="HF" duty="09:00" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Panel</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Record a Panel payment</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Nothing is recorded from a file by itself</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">1 · The payment</h2>
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="4">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{f.k}}</span><span style="{{f.style}}">{{f.v}}</span></label>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Panel statement <span style="font-weight: 400; color: #8a8a93">· optional</span></h2>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 16px; background: #f8f8fa">
+            <span style="flex: none; width: 34px; height: 34px; border-radius: 10px; background: #e3f6f5; color: #0b6f69; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">CSV</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">AIA statement Nov.csv</span><span style="font-size: 12px; color: #6b6b73">14 rows · 11 matched · 3 not found</span></span>
+            <span style="font-size: 12.5px; color: #6b6b73">Remove</span>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Encrypted and deleted after 30 days. Tick the matches you agree with.</span>
+        </section>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">2 · Split across accepted AIA claims</h1>
+            <span style="margin-left: auto; font-size: 12.5px; font-weight: 600; background: #f4f4f6; border-radius: 999px; padding: 6px 12px">Fill oldest first</span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 220px">CLAIM</span><span style="flex: none; width: 96px; text-align: right">UNPAID</span><span style="flex: none; width: 130px">FROM STATEMENT</span><span style="flex: none; width: 130px; text-align: right">THIS PAYMENT (RM)</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-radius: 14px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1 1 220px; min-width: 0"><span style="display: block; font-weight: 500">{{r.claim}} · {{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.inv}} · accepted {{r.acc}}</span></span>
+              <span style="flex: none; width: 96px; text-align: right; font-variant-numeric: tabular-nums">{{r.unpaid}}</span>
+              <span style="{{r.matchStyle}}">{{r.match}}</span>
+              <span style="{{r.inputStyle}}">{{r.pay}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">3 · Check</h2>
+          <sc-for list="{{check}}" as="c" hint-placeholder-count="3">
+            <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{c.k}}</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">{{c.v}}</span></div>
+          </sc-for>
+          <div style="{{diffStyle}}">{{diffText}}</div>
+          <span style="font-size: 12px; color: #8a8a93">The split must equal the payment. No claim can be paid more than it owes.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Recorded wrongly later?</h2>
+          <span style="font-size: 12.5px; color: #6b6b73">A Finance Officer or the Director who did not record it can reverse the whole payment, with a reason. It is never a refund.</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 52px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Record payment</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const input = 'display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6;';
+    const data = [
+      ['PC-0412', 'Raj Kumar', 'INV-C-02210', '2 Oct', 85.00, 'match'],
+      ['PC-0415', 'Tan Wei Ming', 'INV-C-02231', '3 Oct', 62.50, 'match'],
+      ['PC-0418', 'Kevin Ong', 'INV-C-02240', '4 Oct', 140.00, 'match'],
+      ['PC-0421', 'Nur Izzati', 'INV-C-02255', '6 Oct', 48.00, 'match'],
+      ['PC-0423', 'Arif Hakimi', 'INV-C-02262', '7 Oct', 96.00, 'part'],
+      ['PC-0427', 'Mohd Hafiz', 'INV-C-02270', '9 Oct', 55.00, 'match'],
+      ['PC-0430', 'Chong Li Ying', 'INV-C-02281', '10 Oct', 72.00, 'match'],
+      ['PC-0433', 'Siti Aisyah', 'INV-C-02290', '12 Oct', 38.00, 'none'],
+      ['PC-0436', 'Ganesh R.', 'INV-C-02299', '13 Oct', 120.00, 'match'],
+      ['PC-0440', 'Lee Boon Kiat', 'INV-C-02305', '15 Oct', 64.00, 'none'],
+      ['PC-0442', 'Farhana Z.', 'INV-C-02309', '16 Oct', 58.00, 'none']
+    ];
+    const rm = n => 'RM ' + n.toFixed(2);
+    let split = 0;
+    const rows = data.map(([claim, name, inv, acc, unpaid, m]) => {
+      const pay = m === 'match' ? unpaid : m === 'part' ? 60 : 0;
+      split += pay;
+      const ms = m === 'match' ? 'background:#e9f8ee;color:#1d7a3a;' : m === 'part' ? 'background:#fff4dc;color:#8a5a00;' : 'background:#f4f4f6;color:#8a8a93;';
+      return {
+        claim, name, inv, acc, unpaid: rm(unpaid),
+        match: m === 'match' ? '✓ Full amount' : m === 'part' ? 'Part: RM 60.00' : 'Not on statement',
+        matchStyle: 'flex:none;width:130px;font-size:12px;font-weight:600;border-radius:999px;padding:4px 10px;box-sizing:border-box;' + ms,
+        pay: pay ? pay.toFixed(2) : '0.00',
+        inputStyle: 'flex:none;width:130px;box-sizing:border-box;text-align:right;min-height:36px;line-height:36px;padding:0 12px;border-radius:12px;font-variant-numeric:tabular-nums;' + (pay ? 'background:#f4f4f6;font-weight:600;' : 'background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;color:#8a8a93;')
+      };
+    });
+    const payment = 778.50;
+    const diff = payment - split;
+    const XPMAP = [null, 'acc', null, 'stmt'];
+    const XPD = {
+      acc: { title: 'Accepted claims · 27', note: 'Accepted by the Panel at Cheras and not fully paid · RM 2,026.50 unpaid', cols: [['ACCEPTED IN', 'minmax(140px,1.4fr)'], ['CLAIMS', '70px', 'r'], ['UNPAID', '110px', 'r'], ['STATUS', 'minmax(160px,1fr)']], rows: [
+        ['August 2026', '4', 'RM 312.00', ['w', 'Older than 60 days']],
+        ['September 2026', '8', 'RM 590.00', ['n', 'Not on this statement']],
+        ['October 2026', '11', 'RM 838.50', ['ok', 'In the split list']],
+        ['November 2026', '4', 'RM 286.00', ['n', 'Not on this statement']]
+      ], foot: 'Only the 200 oldest open claims fill the split. Nothing is recorded until you press the button.' },
+      stmt: { title: 'Statement rows · 11 of 14 matched', note: 'From the uploaded CSV · kept encrypted, deleted after 30 days', filters: [['all', 'All'], ['sp', 'In the split'], ['ap', 'Already paid'], ['nf', 'Not found']], cols: [['ROW', '44px', 'r'], ['INVOICE ON STATEMENT', 'minmax(140px,1.3fr)'], ['AMOUNT', '90px', 'r'], ['KPONE CLAIM', '100px'], ['RESULT', 'minmax(140px,1fr)']], rows: [
+        ['1', 'INV-C-02210', 'RM 85.00', 'PC-0412', ['ok', 'In the split'], '#sp'],
+        ['2', 'INV-C-02231', 'RM 62.50', 'PC-0415', ['ok', 'In the split'], '#sp'],
+        ['3', 'INV-C-02240', 'RM 140.00', 'PC-0418', ['ok', 'In the split'], '#sp'],
+        ['4', 'INV-C-02255', 'RM 48.00', 'PC-0421', ['ok', 'In the split'], '#sp'],
+        ['5', 'INV-C-02262', 'RM 60.00', 'PC-0423', ['w', 'Part of RM 96.00'], '#sp'],
+        ['6', 'INV-C-02270', 'RM 55.00', 'PC-0427', ['ok', 'In the split'], '#sp'],
+        ['7', 'INV-C-02281', 'RM 72.00', 'PC-0430', ['ok', 'In the split'], '#sp'],
+        ['8', 'INV-C-02299', 'RM 120.00', 'PC-0436', ['ok', 'In the split'], '#sp'],
+        ['9', 'INV-C-02118', 'RM 40.00', 'PC-0388', ['w', 'Claim already paid'], '#ap'],
+        ['10', 'INV-C-02125', 'RM 32.00', 'PC-0391', ['w', 'Claim already paid'], '#ap'],
+        ['11', 'INV-C-02140', 'RM 22.00', 'PC-0395', ['w', 'Claim already paid'], '#ap'],
+        ['12', 'INV-C-01877', 'RM 14.00', '—', ['d', 'Not found'], '#nf'],
+        ['13', 'INV-B-00412', 'RM 18.00', '—', ['d', 'Not found'], '#nf'],
+        ['14', 'INV-C-0231', 'RM 10.00', '—', ['d', 'Not found: typo?'], '#nf']
+      ], foot: 'Rows not in the split add up to RM 136.00, the amount still to split. Matching is exact, so a typo reads "Not found".' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, rows,
+      fields: [
+        { k: 'Panel', v: 'AIA (TPA)  ⌄', style: input },
+        { k: 'Amount received (RM)', v: '778.50', style: input + 'font-weight:600;font-size:16px;box-shadow:inset 0 0 0 2px #111114;' },
+        { k: 'Date received', v: '17 Nov 2026', style: input },
+        { k: 'Reference (optional)', v: 'EFT 88120419', style: input }
+      ],
+      strip: xpWrap([stripItem(rm(payment), 'this payment', true), stripItem('27', 'accepted claims'), stripItem(rm(split), 'split so far'), stripItem('11 of 14', 'statement rows matched')]),
+      check: [{ k: 'Payment', v: rm(payment) }, { k: 'Split', v: rm(split) }, { k: 'Claims paid', v: String(rows.filter(r => r.pay !== '0.00').length) }],
+      diffText: Math.abs(diff) < 0.005 ? 'Split equals the payment' : (diff > 0 ? rm(diff) + ' still to split' : rm(-diff) + ' too much'),
+      diffStyle: 'border-radius:14px;padding:10px 12px;font-size:13px;font-weight:600;' + (Math.abs(diff) < 0.005 ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#fff4dc;color:#8a5a00;')
+    };
+  }
+}
+</script>
+</body>
+</html>

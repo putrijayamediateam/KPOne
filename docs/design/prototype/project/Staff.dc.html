@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff and access</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Staff and access</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Unsaved changes: 1</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save changes</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" aria-labelledby="h-dir" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 18px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px"><h2 id="h-dir" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Staff</h2><span style="font-size: 12.5px; color: #8a8a93">{{count}}</span></div>
+        <label style="display: flex; align-items: center; gap: 8px; background: #f4f4f6; border-radius: 12px; padding: 0 12px; min-height: 40px; margin: 4px 4px 0"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: none; stroke: #6b6b73; stroke-width: 2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span style="color: #8a8a93">Search name or email</span></label>
+        <div style="display: flex; gap: 6px; padding: 4px; flex-wrap: wrap"><sc-for list="{{roleFilters}}" as="f" hint-placeholder-count="4"><span style="{{f.style}}">{{f.label}}</span></sc-for></div>
+        <sc-for list="{{people}}" as="p" hint-placeholder-count="10">
+          <a href="#" style="{{p.row}}">
+            <span style="{{p.av}}">{{p.ini}}</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{p.name}}</span><span style="font-size: 12px; color: #8a8a93">{{p.role}} · {{p.branch}}</span></span>
+            <span style="{{p.stStyle}}">{{p.st}}</span>
+          </a>
+        </sc-for>
+        <button type="button" style="margin: 6px 4px 0; border: 0; background: #f4f4f6; color: #111114; border-radius: 14px; min-height: 40px; font: inherit; font-weight: 500; cursor: pointer">+ Add staff</button>
+      </aside>
+
+      <main class="kp-mid" aria-labelledby="h-person" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+          <span style="flex: none; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #e0457f, #7a2bd1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px">SI</span>
+          <span style="flex: 1; min-width: 200px"><h1 id="h-person" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Siti Aminah</h1><span style="font-size: 13px; color: #6b6b73">siti.aminah@kpone.test · staff since 3 Mar 2025</span></span>
+          <span style="display: flex; align-items: center; gap: 10px"><span style="font-size: 13px; color: #3a3a40">Active</span><span role="switch" aria-checked="true" aria-label="Active" style="flex: none; width: 46px; height: 28px; border-radius: 999px; padding: 2px; box-sizing: border-box; display: flex; justify-content: flex-end; background: #34c759"><span style="width: 24px; height: 24px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2)"></span></span></span>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600">Roles</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+            <sc-for list="{{roles}}" as="r" hint-placeholder-count="9">
+              <button type="button" aria-pressed="{{r.pressed}}" onClick="{{r.pick}}" style="{{r.style}}"><span style="{{r.box}}">{{r.tick}}</span><span style="flex: 1; text-align: left">{{r.label}}</span></button>
+            </sc-for>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Role changes take effect on the next page load. A role you do not hold yourself is greyed out.</span>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600">Branches</h2><span style="font-size: 13px; font-weight: 600">+ Add assignment</span></div>
+          <sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid #f1f1f4">
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{b.name}}</span><span style="font-size: 12.5px; color: #6b6b73">{{b.when}}</span></span>
+              <span style="{{b.tagStyle}}">{{b.tag}}</span>
+              <span style="font-size: 12.5px; color: #6b6b73">Edit ›</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600">Sign-in</h2>
+          <sc-for list="{{signin}}" as="s" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-bottom: 1px solid #f1f1f4"><span><span style="display: block">{{s.k}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.note}}</span></span><span style="font-size: 13px; color: #6b6b73">{{s.v}}</span></div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-audit" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+          <h2 id="h-audit" style="margin: 0 0 6px; font-size: 15px; font-weight: 600">Recent access changes</h2>
+          <sc-for list="{{audit}}" as="a" hint-placeholder-count="5">
+            <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f1f4"><span style="{{a.dot}}"></span><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px">{{a.t}}</span><span style="font-size: 11.5px; color: #8a8a93">{{a.by}} · {{a.when}}</span></span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Rules</h2>
+          <sc-for list="{{rules}}" as="r" hint-placeholder-count="4"><div style="font-size: 12.5px; color: #3a3a40; padding: 8px 10px; border-radius: 12px; background: #f8f8fa">{{r}}</div></sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const held = st.roles || { ca_supervisor: true };
+    const av = (bg, fg) => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const stS = s => 'font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;' + (s === 'Inactive' ? 'background:#eef0f3;color:#6b6b73;' : 'display:none;');
+    const person = (name, role, branch, ini, bg, fg, s, on) => ({ name, role, branch, ini, st: s || '', stStyle: stS(s), av: av(bg, fg), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 8px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') });
+    const pill = on => 'font-size:12px;padding:4px 10px;border-radius:999px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const ROLES = [['director', 'Director', true], ['resident_doctor', 'Resident doctor'], ['ca', 'Clinic assistant'], ['ca_supervisor', 'CA supervisor'], ['finance_officer', 'Finance officer'], ['panel_officer', 'Panel officer'], ['hr_manager', 'HR manager'], ['administrator', 'Administrator'], ['marketing', 'Marketing']];
+    const roles = ROLES.map(([k, label, locked]) => {
+      const on = !!held[k];
+      return {
+        label, pressed: String(on), tick: on ? '✓' : '',
+        pick: () => { if (locked) return; const r = Object.assign({}, held); r[k] = !on; this.setState({ roles: r }); },
+        box: 'flex:none;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;' + (on ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;'),
+        style: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;border-radius:14px;font:inherit;cursor:' + (locked ? 'not-allowed' : 'pointer') + ';' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;color:' + (locked ? '#b4b4bc' : '#3a3a40') + ';')
+      };
+    });
+    const tag = t => 'font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;' + (t === 'Primary' ? 'background:#e8f0fe;color:#1a4fa8;' : t === 'Ended' ? 'background:#eef0f3;color:#6b6b73;' : 'background:#f4f4f6;color:#3a3a40;');
+    const dot = c => 'flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px;background:' + c + ';';
+    return {
+      accent, roles,
+      count: '24 staff',
+      roleFilters: [{ label: 'All', style: pill(true) }, { label: 'Doctors', style: pill(false) }, { label: 'CAs', style: pill(false) }, { label: 'Office', style: pill(false) }],
+      people: [
+        person('Dr. Aiman', 'Resident doctor', 'Cheras', 'DA', '#e8f0fe', '#1a4fa8'),
+        person('Dr. Mei', 'Resident doctor', 'Puchong', 'DM', '#e8f0fe', '#1a4fa8'),
+        person('Siti Aminah', 'CA supervisor', 'Cheras', 'SI', '#f1ecfd', '#5a32a8', '', true),
+        person('Hafiz', 'Clinic assistant', 'Cheras', 'HF', '#e3f6f5', '#0b6f69'),
+        person('Nadia', 'Clinic assistant', 'Cheras', 'NA', '#fff4dc', '#8a5a00'),
+        person('Kamal', 'Clinic assistant', 'Sungai Besi', 'KM', '#fde7ef', '#c2185b'),
+        person('Farid', 'Finance officer', 'Cheras', 'FA', '#e9f8ee', '#1d7a3a'),
+        person('Yusri', 'Panel officer', 'Puchong', 'YU', '#eef0f3', '#3a3a40'),
+        person('Puan HR', 'HR manager', 'Cheras', 'HR', '#fde7ef', '#c2185b'),
+        person('Zul', 'Clinic assistant', 'Puchong', 'ZU', '#eef0f3', '#6b6b73', 'Inactive')
+      ],
+      branches: [
+        { name: 'Cheras', when: 'From 3 Mar 2025, no end date', tag: 'Primary', tagStyle: tag('Primary') },
+        { name: 'Sungai Besi', when: '1 Dec 2026 to 31 Dec 2026 (inclusive)', tag: 'Extra', tagStyle: tag('Extra') },
+        { name: 'Puchong', when: '1 Jun 2025 to 30 Sep 2025', tag: 'Ended', tagStyle: tag('Ended') }
+      ],
+      signin: [{ k: 'Google', note: 'Only an existing active account can sign in', v: 'Linked' }, { k: 'Password', note: 'Set by the person; never shown', v: 'Set 4 Mar 2025' }],
+      audit: [
+        { t: 'Sungai Besi added (December cover)', by: 'Dr. Director', when: 'just now, not saved', dot: dot('#f5a524') },
+        { t: 'Role CA supervisor added', by: 'Dr. Director', when: '2 Jan 2026', dot: dot('#34c759') },
+        { t: 'Puchong assignment ended', by: 'Puan HR', when: '30 Sep 2025', dot: dot('#8a8a93') },
+        { t: 'Account activated', by: 'Dr. Director', when: '3 Mar 2025', dot: dot('#34c759') }
+      ],
+      rules: [
+        'Nobody can change their own roles, branches or status.',
+        'You can only give a role whose rights you hold yourself.',
+        'Every active staff member keeps exactly one primary branch.',
+        'Only a Director can change a Director.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

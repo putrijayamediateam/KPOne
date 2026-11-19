@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Letters</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">KPOne HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Letters</div>
+      <nav aria-label="Letter tabs" style="margin-left: 12px; display: flex; gap: 2px; background: #e9e9ee; border-radius: 999px; padding: 3px">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><span style="{{t.style}}">{{t.label}}</span></sc-for>
+      </nav>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Printed, signed by hand and given in person. Nothing is sent.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Issue a letter</h2>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Staff file *</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Hafiz Rahim · CA · Cheras</span></label>
+          <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Template *</span>
+            <sc-for list="{{templates}}" as="t" hint-placeholder-count="5">
+              <button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.row}}"><span style="flex: 1; text-align: left"><span style="display: block; font-weight: 500">{{t.title}}</span><span style="font-size: 12px; color: #8a8a93">{{t.sub}}</span></span><span style="{{t.kindStyle}}">{{t.kind}}</span></button>
+            </sc-for>
+          </div>
+          <sc-if value="{{needsDetails}}" hint-placeholder-val="{{ true }}">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Paragraph for this letter *</span><span style="display: block; min-height: 72px; padding: 12px 14px; border-radius: 14px; background: #f4f4f6; font-size: 13px; color: #3a3a40">On 12 and 13 Nov 2026 you clocked in after 08:30 without approval…</span><span style="font-size: 12px; color: #8a8a93">Only warning and show-cause letters take a paragraph.</span></label>
+          </sc-if>
+          <span style="font-size: 12px; color: #8a8a93">Nobody issues a letter to themselves. A letter to the Director or the HR Manager is issued only by a Director.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Templates</h2>
+          <span style="font-size: 12.5px; color: #6b6b73">HR writes each template in English and Bahasa Melayu with fixed placeholders only. KPOne ships no wording. A change is a new template version.</span>
+        </section>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; background: #ebebef; border-radius: 26px; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 12px">
+        <div style="align-self: stretch; display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+          <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Server preview</h1>
+          <span style="font-size: 12.5px; color: #6b6b73">Check it, then issue. The letter gets the next number and cannot be edited.</span>
+          <div role="group" aria-label="Language" style="margin-left: auto; display: flex; gap: 2px; background: #dcdce2; border-radius: 999px; padding: 3px"><sc-for list="{{langs}}" as="l" hint-placeholder-count="2"><button type="button" onClick="{{l.pick}}" aria-pressed="{{l.pressed}}" style="{{l.style}}">{{l.label}}</button></sc-for></div>
+        </div>
+        <article aria-label="Letter preview" style="position: relative; width: 100%; max-width: 560px; aspect-ratio: 210 / 297; background: #ffffff; border-radius: 6px; box-shadow: 0 12px 32px rgba(17,17,26,0.12); padding: 40px 44px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; font-size: 12.5px; color: #1b1b1f">
+          <span aria-hidden="true" style="position: absolute; top: 44%; left: 0; right: 0; text-align: center; transform: rotate(-24deg); font-size: 48px; font-weight: 700; color: rgba(194,24,91,0.08); letter-spacing: 0.08em">PREVIEW</span>
+          <div style="display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #e6e6ea; padding-bottom: 10px"><span style="width: 34px; height: 34px; border-radius: 8px; background: #f4f4f6"></span><span><span style="display: block; font-weight: 700; letter-spacing: 0.02em">KLINIK PUTRIJAYA</span><span style="font-size: 11px; color: #6b6b73">No. 1, Jalan Contoh 2, 56000 Cheras · Tel: 03-2000 0001</span></span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: #3a3a40"><span>{{L.ref}}: HRL/2026/—— <span style="color: #8a8a93">(given on issue)</span></span><span>{{L.date}}: 18/11/2026</span></div>
+          <div style="font-size: 11.5px">Hafiz Rahim<br>CA, Cheras</div>
+          <div style="font-weight: 700; text-decoration: underline">{{L.title}}</div>
+          <sc-for list="{{L.body}}" as="p" hint-placeholder-count="3"><p style="margin: 0; line-height: 1.55">{{p}}</p></sc-for>
+          <div style="margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; font-size: 11px; color: #3a3a40">
+            <span style="border-top: 1px solid #1b1b1f; padding-top: 6px">{{L.sign1}}</span><span style="border-top: 1px solid #1b1b1f; padding-top: 6px">{{L.sign2}}</span>
+          </div>
+        </article>
+        <span style="font-size: 12px; color: #6b6b73">A4, one page per language chosen. The issued copy keeps the letterhead and template version as they were.</span>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-issued" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 id="h-issued" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Issued</h2><span style="font-size: 12.5px; color: #8a8a93">newest first</span></div>
+          <sc-for list="{{issued}}" as="i" hint-placeholder-count="10">
+            <a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 4px 8px; border-radius: 14px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500; font-variant-numeric: tabular-nums">{{i.no}}</span><span style="font-size: 12px; color: #8a8a93">{{i.sub}}</span></span>
+              <span style="{{i.stStyle}}">{{i.st}}</span>
+            </a>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93; padding: 8px 8px 2px">Replace gives a new number and voids the old one as replaced. Void needs a reason. Both are kept.</span>
+        </section>
+        <button type="button" style="flex: none; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Issue letter</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const tpl = S.tpl == null ? 1 : S.tpl;
+    const lang = S.lang || 'en';
+    const T = { warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], ok: ['#e9f8ee', '#1d7a3a'], info: ['#e8f0fe', '#1a4fa8'], mute: ['#f4f4f6', '#6b6b73'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const seg = on => 'display:inline-flex;align-items:center;border:0;font:inherit;font-size:12.5px;font-weight:' + (on ? '600' : '500') + ';min-height:32px;padding:0 12px;border-radius:999px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.1);' : 'background:transparent;color:#6b6b73;');
+    const TP = [['Confirmation of employment', 'v2 · EN and BM', 'Confirmation', 'ok'], ['First warning', 'v1 · EN and BM · takes a paragraph', 'Warning', 'warn'], ['Show-cause', 'v1 · EN and BM · takes a paragraph', 'Show-cause', 'warn'], ['Salary letter for a bank', 'v1 · EN only', 'Other', 'mute']];
+    const templates = TP.map(([title, sub, kind, t], i) => ({ title, sub, kind, kindStyle: chip(t), pressed: String(tpl === i), pick: () => this.setState({ tpl: i }), row: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 10px;border:0;border-radius:14px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (tpl === i ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;') }));
+    const EN = {
+      0: ['CONFIRMATION OF EMPLOYMENT', ['We are pleased to confirm your employment as CA with effect from 1 Sep 2024, following the end of your probation.', 'Your other terms of employment remain as stated in your offer letter.']],
+      1: ['FIRST WARNING', ['This letter is a first warning about your attendance.', 'On 12 and 13 Nov 2026 you clocked in after 08:30 without approval.', 'Please speak to your CA Supervisor if there is a reason we should know about.']],
+      2: ['SHOW-CAUSE', ['You are asked to explain in writing, within 7 days, the matter set out below.', 'On 12 and 13 Nov 2026 you clocked in after 08:30 without approval.']],
+      3: ['CONFIRMATION OF SALARY', ['This letter confirms that the person named above is employed by the clinic.', 'Salary details are given only with the staff member\'s written consent.']]
+    };
+    const BM = {
+      0: ['PENGESAHAN JAWATAN', ['Dengan sukacitanya kami mengesahkan jawatan anda sebagai CA berkuat kuasa 1 Sep 2024, selepas tempoh percubaan anda tamat.', 'Syarat-syarat lain kekal seperti dalam surat tawaran anda.']],
+      1: ['AMARAN PERTAMA', ['Surat ini ialah amaran pertama berkenaan kehadiran anda.', 'Pada 12 dan 13 Nov 2026 anda merakam masuk selepas 08:30 tanpa kebenaran.', 'Sila berjumpa Penyelia CA anda jika ada sebab yang perlu kami ketahui.']],
+      2: ['TUNJUK SEBAB', ['Anda diminta memberi penjelasan bertulis dalam masa 7 hari berkenaan perkara di bawah.', 'Pada 12 dan 13 Nov 2026 anda merakam masuk selepas 08:30 tanpa kebenaran.']],
+      3: ['PENGESAHAN GAJI', ['Surat ini mengesahkan bahawa orang yang dinamakan di atas bekerja dengan klinik.', 'Butiran gaji diberi hanya dengan persetujuan bertulis kakitangan.']]
+    };
+    const src = (lang === 'bm' ? BM : EN)[tpl];
+    const L = lang === 'bm'
+      ? { ref: 'No. Rujukan', date: 'Tarikh', title: src[0], body: src[1], sign1: 'Pengurus Sumber Manusia', sign2: 'Diterima oleh (tandatangan dan tarikh)' }
+      : { ref: 'Ref. No', date: 'Date', title: src[0], body: src[1], sign1: 'HR Manager', sign2: 'Received by (signature and date)' };
+    const I = [
+      ['HRL/2026/000041', 'Nadia Rahman · Confirmation · 16 Nov', 'Waiting to be given', 'warn'],
+      ['HRL/2026/000040', 'Zul Hakim · First warning · 12 Nov', 'Given on 13 Nov', 'ok'],
+      ['HRL/2026/000039', 'Farah Izzati · Show-cause · 10 Nov', 'Given on 10 Nov', 'ok'],
+      ['HRL/2026/000038', 'Farah Izzati · Show-cause · 9 Nov', 'Void · replaced', 'mute'],
+      ['HRL/2026/000037', 'Lee Wen Hui · Confirmation · 2 Nov', 'Given on 3 Nov', 'ok'],
+      ['HRL/2026/000036', 'Mohan Raj · Salary letter · 28 Oct', 'Given on 28 Oct', 'ok'],
+      ['HRL/2026/000035', 'Kamal Hassan · First warning · 20 Oct', 'Void · issued in error', 'mute'],
+      ['HRL/2026/000034', 'Aisha Musa · Confirmation · 14 Oct', 'Given on 15 Oct', 'ok'],
+      ['HRL/2026/000033', 'Ravi Kumar · Confirmation · 1 Oct', 'Given on 1 Oct', 'ok'],
+      ['HRL/2026/000032', 'Siti Aminah · Salary letter · 22 Sep', 'Given on 22 Sep', 'ok']
+    ];
+    return {
+      accent, templates, L,
+      needsDetails: tpl === 1 || tpl === 2,
+      tabs: [['Templates', false], ['Issue', true], ['Issued', false], ['My letters', false]].map(([label, on]) => ({ label, style: seg(on).replace('cursor:pointer;', '') })),
+      langs: [['en', 'English'], ['bm', 'Bahasa Melayu']].map(([k, label]) => ({ label, pressed: String(lang === k), pick: () => this.setState({ lang: k }), style: seg(lang === k) })),
+      issued: I.map(([no, sub, st, t]) => ({ no, sub, st, stStyle: chip(t) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

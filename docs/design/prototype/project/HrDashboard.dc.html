@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HR dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="{{userName}}" user-role="{{userRole}}" user-ini="{{userIni}}" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">KPOne HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Dashboard</div>
+      <span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #ffffff; border-radius: 999px; padding: 4px 10px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Read only · adds up roster, leave and attendance</span>
+      <div role="group" aria-label="View as" style="margin-left: auto; display: flex; gap: 2px; background: #e9e9ee; border-radius: 999px; padding: 3px">
+        <sc-for list="{{viewAs}}" as="v" hint-placeholder-count="2"><button type="button" onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="{{v.style}}">{{v.label}}</button></sc-for>
+      </div>
+      <button type="button" style="display: flex; align-items: center; gap: 8px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer">November 2026<span aria-hidden="true" style="color: #8a8a93">▾</span></button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Open roster planner</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" aria-labelledby="h-today" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 2px 8px 0"><h2 id="h-today" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Today per branch</h2><span style="font-size: 12px; color: #8a8a93">Wed 18 Nov · 10:42</span></div>
+        <sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+          <section style="background: #ffffff; border-radius: 22px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-weight: 600; font-size: 15px">{{b.name}}</span><span style="{{b.stateStyle}}">{{b.state}}</span></div>
+            <div style="display: flex; gap: 14px; font-size: 13px"><span><span style="font-weight: 600">{{b.rostered}}</span> <span style="color: #6b6b73">rostered now</span></span><span><span style="font-weight: 600">{{b.clocked}}</span> <span style="color: #6b6b73">clocked in</span></span></div>
+            <sc-for list="{{b.alerts}}" as="a" hint-placeholder-count="1"><div style="padding: 8px 10px; border-radius: 12px; background: #fff4dc; color: #8a5a00; font-size: 12.5px; font-weight: 500">{{a}}</div></sc-for>
+            <div style="font-size: 12.5px; color: #6b6b73">{{b.short}}</div>
+            <div style="font-size: 12.5px"><span style="color: #8a8a93">On leave today:</span> {{b.leave}}</div>
+          </section>
+        </sc-for>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px">"Enough" and "Short" are for today, by the roster planner's own rule. Minimums apply to every day. Leave never shows its type or reason.</span>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.tile}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+        <section aria-labelledby="h-month" style="flex: none; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: baseline; gap: 10px; margin: 0 6px 8px"><h1 id="h-month" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">This month · November 2026</h1><span style="font-size: 12.5px; color: #8a8a93">per branch, branch-local dates</span></div>
+          <div style="display: flex; gap: 10px; padding: 0 10px 6px; font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 110px">BRANCH</span><span style="flex: 0 0 74px; text-align: right">DAYS CLOCKED</span><span style="flex: 0 0 52px; text-align: right">LATE</span><span style="flex: 0 0 66px; text-align: right">LEFT EARLY</span><span style="flex: 0 0 84px; text-align: right">NO CLOCK-IN / OUT</span><span style="flex: 0 0 82px; text-align: right">APPROVED OT</span><span style="flex: 0 0 70px; text-align: right">LEAVE DAYS</span><span style="flex: 0 0 64px; text-align: right">SHORT DAYS</span>
+          </div>
+          <sc-for list="{{month}}" as="m" hint-placeholder-count="3">
+            <div style="display: flex; gap: 10px; align-items: center; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f4f4f6; font-variant-numeric: tabular-nums">
+              <span style="flex: 1 1 110px; font-weight: 500">{{m.b}}</span><span style="flex: 0 0 74px; text-align: right">{{m.days}}</span><span style="flex: 0 0 52px; text-align: right">{{m.late}}</span><span style="flex: 0 0 66px; text-align: right">{{m.early}}</span><span style="flex: 0 0 84px; text-align: right">{{m.miss}}</span><span style="flex: 0 0 82px; text-align: right">{{m.ot}}</span><span style="flex: 0 0 70px; text-align: right">{{m.leave}}</span><span style="flex: 0 0 64px; text-align: right"><span style="{{m.shortStyle}}">{{m.short}}</span></span>
+            </div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93; padding: 8px 10px 2px">Late and early count only after HR saved a grace period. Leave days are all types added together. No ranking and no score of any person.</span>
+        </section>
+        <section aria-labelledby="h-now" style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h2 id="h-now" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Rostered now</h2><span style="font-size: 12.5px; color: #8a8a93">approved rosters only · all branches</span>
+          </div>
+          <sc-for list="{{now}}" as="n" hint-placeholder-count="10">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="{{n.av}}">{{n.ini}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{n.name}}</span><span style="font-size: 12px; color: #8a8a93">{{n.role}} · {{n.shift}}</span></span>
+              <span style="font-size: 12px; color: #6b6b73; white-space: nowrap">{{n.branch}}</span>
+              <span style="{{n.stStyle}}">{{n.st}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <sc-if value="{{isDirector}}" hint-placeholder-val="{{ true }}">
+          <section aria-labelledby="h-cost" style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: center; gap: 8px"><h2 id="h-cost" style="flex: 1; margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Staff cost · Nov</h2><span style="font-size: 11.5px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 2px 9px">Estimate</span></div>
+            <div style="font-size: 30px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">RM 84,210.40</div>
+            <span style="font-size: 12.5px; color: #6b6b73">Gross pay plus the clinic's statutory contributions, from approved or locked pay runs. Unpaid leave taken off.</span>
+            <sc-for list="{{cost}}" as="c" hint-placeholder-count="4"><div style="display: flex; justify-content: space-between; gap: 12px; min-height: 36px; align-items: center; border-bottom: 1px solid #f1f1f4; font-size: 13px"><span style="color: #6b6b73">{{c.k}}</span><span style="font-weight: 500; text-align: right">{{c.v}}</span></div></sc-for>
+            <div style="padding: 10px 12px; border-radius: 14px; background: #fff4dc; color: #8a5a00; font-size: 12.5px">To confirm with the clinic's accountant before real use. Synthetic data only.</div>
+            <span style="font-size: 12px; color: #8a8a93">One clinic-wide figure. Nothing per person or per branch. The Director's and HR Manager's own pay and locums are paid outside KPOne, so they are not in it.</span>
+          </section>
+        </sc-if>
+        <sc-if value="{{isHr}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+            <h2 style="margin: 0; font-size: 15px; font-weight: 600">Staff cost</h2>
+            <span style="font-size: 13px; color: #6b6b73">Shown to the Director only. The rest of the dashboard is the same for you.</span>
+          </section>
+        </sc-if>
+        <section aria-labelledby="h-att" style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 4px"><h2 id="h-att" style="flex: 1; margin: 0; font-size: 15px; font-weight: 600">Needs attention</h2><span style="font-size: 11px; font-weight: 600; color: #1a4fa8; background: #e8f0fe; border-radius: 999px; padding: 2px 8px">idea, not built</span></div>
+          <sc-for list="{{attention}}" as="a" hint-placeholder-count="5">
+            <a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border-radius: 12px"><span style="flex: 1">{{a.k}}</span><span style="{{a.style}}">{{a.v}}</span><span aria-hidden="true" style="color: #b4b4bc">›</span></a>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93; padding: 4px 8px 0">Counts linking to their own HR pages. Compliance counts on the dashboard wait for an owner decision.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      'branch short today': { t: 'Branch short today', n: 'Against each branch\'s minimum staffing · approved rosters only', c: ['Branch', 'Rostered', 'Clocked in', 'What is short', 'Status'], w: 'minmax(110px,1fr) 80px 90px minmax(200px,2fr) 90px',
+        r: [['Sungai Besi', '4', '3 of 4', 'No Resident Doctor rostered this morning (minimum 1)', ['Short', 'warn']]],
+        foot: 'Cheras and Puchong meet their minimum. A shortfall is a warning; it blocks nothing.' },
+      'on leave today': { t: 'On leave today', n: 'All branches · type and reason are not shown here', c: ['Staff', 'Role', 'Branch', 'Today'], w: 'minmax(150px,1.4fr) minmax(110px,1fr) minmax(100px,1fr) 150px',
+        r: [['Nadia Rahman', 'CA', 'Cheras', ['Half day (morning)', 'mute']], ['Kamal Hassan', 'CA', 'Sungai Besi', ['On leave', 'mute']], ['Lina Tan', 'CA', 'Puchong', ['On leave', 'mute']]] },
+      'approved overtime this month': { t: 'Approved overtime · November', n: 'Minutes as approved · no money worked out here', c: ['Staff', 'Branch', '>Requests', '>Approved'], w: 'minmax(150px,1.6fr) minmax(100px,1fr) 80px 110px',
+        f: [['Cheras', 'Cheras'], ['SB', 'Sungai Besi'], ['PC', 'Puchong']],
+        r: [['Hafiz Rahim', ['Cheras', 'info', 'Cheras'], '3', '6 h 00 min'], ['Ravi Kumar', ['Cheras', 'info', 'Cheras'], '2', '5 h 00 min'], ['Aina Sofea', ['Cheras', 'info', 'Cheras'], '2', '3 h 30 min'], ['Lee Wen Hui', ['Sungai Besi', 'info', 'SB'], '2', '4 h 00 min'], ['Farah Izzati', ['Sungai Besi', 'info', 'SB'], '1', '2 h 00 min'], ['Zul Hakim', ['Puchong', 'info', 'PC'], '3', '5 h 15 min'], ['Mohan Raj', ['Puchong', 'info', 'PC'], '2', '4 h 00 min']],
+        foot: 'Total 29 h 45 min. Pay for overtime is worked out in Payroll, not here.' }
+    };
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const who = S.who || 'dir';
+    const T = { warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], ok: ['#e9f8ee', '#1d7a3a'], info: ['#e8f0fe', '#1a4fa8'], mute: ['#f4f4f6', '#6b6b73'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const seg = on => 'border:0;font:inherit;font-size:12.5px;font-weight:' + (on ? '600' : '500') + ';min-height:32px;padding:0 12px;border-radius:999px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.1);' : 'background:transparent;color:#6b6b73;');
+    const PAL = [['#e3f6f5', '#0b6f69'], ['#f1ecfd', '#5a32a8'], ['#fff4dc', '#8a5a00'], ['#e8f0fe', '#1a4fa8'], ['#fde7ef', '#c2185b']];
+    const av = i => 'flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;background:' + PAL[i % 5][0] + ';color:' + PAL[i % 5][1] + ';';
+    const branches = [
+      { name: 'Cheras', state: 'Enough', stateStyle: chip('ok'), rostered: '7', clocked: '7 of 7', alerts: [], short: 'Morning: 2 doctors, 4 CA, 1 supervisor against a minimum of 1, 3, 1', leave: 'Nadia R. (half day)' },
+      { name: 'Sungai Besi', state: 'Short', stateStyle: chip('warn'), rostered: '4', clocked: '3 of 4', alerts: ['No Resident Doctor rostered now'], short: 'Short of 1 Resident Doctor this morning', leave: 'Kamal H.' },
+      { name: 'Puchong', state: 'Enough', stateStyle: chip('ok'), rostered: '6', clocked: '5 of 6', alerts: [], short: 'Morning: 1 doctor, 4 CA, 1 supervisor', leave: 'Nobody' }
+    ];
+    const month = [
+      ['Cheras', '214', '9', '3', '2', '14 h 30 min', '11.5', '0', 'ok'],
+      ['Sungai Besi', '132', '6', '1', '4', '6 h 00 min', '7', '3', 'warn'],
+      ['Puchong', '176', '4', '2', '1', '9 h 15 min', '5', '1', 'warn']
+    ].map(([b, days, late, early, miss, ot, leave, short, t]) => ({ b, days, late, early, miss, ot, leave, short, shortStyle: short === '0' ? 'color:#6b6b73;' : chip(t) }));
+    const N = [
+      ['Dr. Arif Zulkarnain', 'Resident Doctor', '08:00–17:00', 'Cheras', 'Clocked in 07:51', 'ok'],
+      ['Dr. Mei Xin Tan', 'Resident Doctor', '08:00–14:00', 'Cheras', 'Clocked in 07:58', 'ok'],
+      ['Siti Aminah', 'CA Supervisor', '08:00–17:00', 'Cheras', 'Clocked in 07:55', 'ok'],
+      ['Hafiz Rahim', 'CA', '08:00–17:00', 'Cheras', 'Clocked in 08:09', 'ok'],
+      ['Aina Sofea', 'CA', '08:00–17:00', 'Cheras', 'Clocked in 08:01', 'ok'],
+      ['Ravi Kumar', 'CA', '09:00–18:00', 'Cheras', 'Clocked in 08:57', 'ok'],
+      ['Nadia Rahman', 'CA', '13:00–17:00', 'Cheras', 'Half day: on leave this morning', 'mute'],
+      ['Dr. Kevin Lim', 'Resident Doctor', '14:00–22:00', 'Sungai Besi', 'Later today', 'mute'],
+      ['Farah Izzati', 'CA', '08:00–17:00', 'Sungai Besi', 'Not clocked in yet', 'warn'],
+      ['Lee Wen Hui', 'CA Supervisor', '08:00–17:00', 'Sungai Besi', 'Clocked in 07:49', 'ok'],
+      ['Dr. Priya Nair', 'Resident Doctor', '08:00–17:00', 'Puchong', 'Clocked in 07:56', 'ok'],
+      ['Aisha Musa', 'CA', '08:00–17:00', 'Puchong', 'Not clocked in yet', 'warn'],
+      ['Zul Hakim', 'CA', '08:00–17:00', 'Puchong', 'Clocked in 08:03', 'ok'],
+      ['Mohan Raj', 'CA', '08:00–17:00', 'Puchong', 'Clocked in 08:00', 'ok']
+    ];
+    const now = N.map(([name, role, shift, branch, st, t], i) => ({ name, role, shift, branch, st, stStyle: chip(t), ini: name.replace('Dr. ', '').split(' ').map(w => w[0]).join('').slice(0, 2), av: av(i) }));
+    const __base = {
+      accent, branches, month, now,
+      isDirector: who === 'dir', isHr: who === 'hr',
+      userName: who === 'dir' ? 'Dr. Director' : 'Puan HR', userRole: who === 'dir' ? 'Director' : 'HR Manager', userIni: who === 'dir' ? 'DR' : 'HR',
+      viewAs: [['dir', 'Director'], ['hr', 'HR Manager']].map(([k, label]) => ({ label, pressed: String(who === k), pick: () => this.setState({ who: k }), style: seg(who === k) })),
+      strip: [stripItem('15 of 17', 'clocked in now', true), stripItem('1', 'branch short today'), stripItem('3', 'on leave today'), stripItem('29 h 45 min', 'approved overtime this month')],
+      cost: [{ k: 'People paid through KPOne', v: '31' }, { k: 'Runs counted', v: '2 approved' }, { k: 'Not counted', v: '1 run waiting for approval' }, { k: 'Corrections', v: 'Includes corrections approved later' }],
+      attention: [
+        { k: 'Attendance corrections waiting', v: '3', style: chip('warn') },
+        { k: 'Overtime requests waiting', v: '2', style: chip('warn') },
+        { k: 'Credentials expiring in 60 days', v: '4', style: chip('warn') },
+        { k: 'SOP not acknowledged yet', v: '6', style: chip('mute') },
+        { k: 'Bank changes to confirm', v: '1', style: chip('mute') }
+      ]
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      branches: __x.branches,
+      month: __x.month,
+      now: __x.now,
+      isDirector: __x.isDirector,
+      isHr: __x.isHr,
+      userName: __x.userName,
+      userRole: __x.userRole,
+      userIni: __x.userIni,
+      viewAs: __x.viewAs,
+      strip: __x.strip,
+      cost: __x.cost,
+      attention: __x.attention,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

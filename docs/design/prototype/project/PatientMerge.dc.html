@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patient merge</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="front" accent="{{accent}}" branch="Cheras" user-name="{{me.name}}" user-role="{{me.role}}" user-ini="{{me.ini}}" duty="07:52" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Patients</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Merge requests</div>
+      <div role="tablist" aria-label="Board view" style="margin-left: auto; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #ffffff; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">
+        <sc-for list="{{views}}" as="v" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{v.sel}}" onClick="{{v.pick}}" style="{{v.style}}">{{v.label}}</button></sc-for>
+      </div>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 270px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Waiting for approval</h2><span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 1px 8px">4</span></div>
+        <sc-for list="{{reqs}}" as="r" hint-placeholder-count="4">
+          <a href="#" style="{{r.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.k}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.tagStyle}}">{{r.tag}}</span></a>
+        </sc-for>
+        <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 16px 8px 6px">RECENT DECISIONS</span>
+        <sc-for list="{{done}}" as="d" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px"><span style="flex: 1; min-width: 0"><span style="display: block">{{d.k}}</span><span style="font-size: 12px; color: #8a8a93">{{d.sub}}</span></span><span style="{{d.tagStyle}}">{{d.tag}}</span></div>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Compare the two records</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Masked as on search · nothing is copied between them</span>
+          </div>
+          <div style="display: flex; gap: 12px; padding: 0 10px 8px; align-items: flex-end">
+            <span style="flex: 0 0 160px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">FIELD</span>
+            <span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 16px; background: #f4f4f6; box-shadow: inset 3px 0 0 #c2185b"><span style="font-size: 11.5px; font-weight: 600; color: #1d7a3a">KEEP</span><span style="font-weight: 600">KP-0004182</span></span>
+            <span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 16px; background: #f8f8fa"><span style="font-size: 11.5px; font-weight: 600; color: #c2185b">DUPLICATE · will point to the kept record</span><span style="font-weight: 600">KP-0005907</span></span>
+            <span style="flex: 0 0 96px"></span>
+          </div>
+          <sc-for list="{{cmp}}" as="c" hint-placeholder-count="7">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 0 0 160px; color: #6b6b73">{{c.k}}</span>
+              <span style="flex: 1 1 0; min-width: 0; padding: 0 12px; font-weight: 500">{{c.a}}</span>
+              <span style="flex: 1 1 0; min-width: 0; padding: 0 12px; font-weight: 500">{{c.b}}</span>
+              <span style="{{c.mStyle}}">{{c.m}}</span>
+            </div>
+          </sc-for>
+          <sc-for list="{{cmpX}}" as="c" hint-placeholder-count="1">
+            <button type="button" aria-expanded="{{c.exp}}" aria-controls="{{c.pid}}" onClick="{{c.tog}}" style="{{c.bstyle}}">
+              <span style="flex: 0 0 160px; color: #6b6b73">{{c.k}}</span>
+              <span style="flex: 1 1 0; min-width: 0; padding: 0 12px; font-weight: 500">{{c.a}}</span>
+              <span style="flex: 1 1 0; min-width: 0; padding: 0 12px; font-weight: 500">{{c.b}}</span>
+              <span style="{{c.mStyle}}">{{c.m}}</span><span aria-hidden="true" data-xp="1" style="{{c.chev}}">⌄</span>
+            </button>
+          </sc-for>
+          <sc-for list="{{cmpP}}" as="xp" hint-placeholder-count="1">
+          <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+            <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+                <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+                <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+                <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+              </div>
+              <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+                <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+                <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                  <div role="row" style="{{xr.s}}">
+                    <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                    <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                    <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                    <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                  </div>
+                </sc-for>
+              </div>
+              <span style="{{xp.footS}}">{{xp.foot}}</span>
+            </div>
+          </section>
+          </sc-for>
+          <sc-for list="{{cmp2}}" as="c" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 0 0 160px; color: #6b6b73">{{c.k}}</span>
+              <span style="flex: 1 1 0; min-width: 0; padding: 0 12px; font-weight: 500">{{c.a}}</span>
+              <span style="flex: 1 1 0; min-width: 0; padding: 0 12px; font-weight: 500">{{c.b}}</span>
+              <span style="{{c.mStyle}}">{{c.m}}</span>
+            </div>
+          </sc-for>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; padding: 14px 6px 2px">
+            <sc-for list="{{checks}}" as="x" hint-placeholder-count="5"><span style="{{x.style}}">{{x.k}}</span></sc-for>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <sc-if value="{{isProposer}}" hint-placeholder-val="{{ true }}"><section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Propose a merge</h2>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Record to keep</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">KP-0004182 · Nur Aisyah binti Rahman</span></label>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Duplicate's KP number</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; box-shadow: inset 0 0 0 2px #111114; font-weight: 600">KP-0005907</span></label>
+          <span style="font-size: 13px; font-weight: 500; color: #3a3a40">Reason</span>
+          <div role="radiogroup" aria-label="Reason" style="display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{reasons}}" as="o" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{o.sel}}" onClick="{{o.pick}}" style="{{o.style}}"><span style="{{o.dot}}"></span>{{o.k}}</button></sc-for>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Another person (CA Supervisor or Director) must approve. You can withdraw until then.</span>
+          <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Propose merge</button>
+        </section></sc-if>
+
+        <sc-if value="{{isApprover}}" hint-placeholder-val="{{ false }}"><section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Decide this request</h2>
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+          <div style="padding: 10px 12px; border-radius: 14px; background: #e9f8ee; color: #1d7a3a; font-size: 12.5px">Both records are unchanged since the proposal. You did not propose it, so you may decide.</div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Reason <span style="color: #8a8a93; font-weight: 400">· needed to reject</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">Choose a reason</span></label>
+          <div style="display: flex; gap: 10px">
+            <button type="button" style="flex: 1; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; cursor: pointer">Reject</button>
+            <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Approve merge</button>
+          </div>
+        </section></sc-if>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">After approval</h2>
+          <sc-for list="{{after}}" as="a" hint-placeholder-count="4"><div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; font-size: 12.5px; color: #3a3a40">{{a.t}}</div></sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const st = this.state || {};
+    const view = st.view || 'propose';
+    const reason = st.reason || 'dup';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:32px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#f4f4f6;color:#111114;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;color:#6b6b73;');
+    const views = [['propose', 'Proposer · Nurul (CA)'], ['approve', 'Approver · Siti (CA Supervisor)']].map(([k, label]) => ({ label, sel: String(view === k), pick: () => this.setState({ view: k }), style: pill(view === k) }));
+    const tag = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const reqs = [
+      ['KP-0004182 ← KP-0005907', 'Nurul (CA) · same person registered twice', 'Today', true],
+      ['KP-0002210 ← KP-0006031', 'Hafiz (CA) · IC typed wrongly', '1 d'],
+      ['KP-0003377 ← KP-0006102', 'Aina (CA) · QR and counter both', '2 d'],
+      ['KP-0001954 ← KP-0005880', 'Siti (CA Supervisor) · old record', '3 d']
+    ].map(([k, sub, t, on]) => ({ k, sub, tag: t, tagStyle: t === '3 d' ? tag('#fde7ef', '#c2185b') : tag('#f4f4f6', '#6b6b73'), row: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') }));
+    const done = [['KP-0003012 ← KP-0005511', 'Approved by Dr. Director', 'Approved', '#e9f8ee', '#1d7a3a'], ['KP-0002744 ← KP-0005620', 'Rejected · different people', 'Rejected', '#fde7ef', '#c2185b'], ['KP-0004019 ← KP-0005702', 'Withdrawn by Hafiz', 'Withdrawn', '#f4f4f6', '#6b6b73'], ['KP-0001120 ← KP-0004401', 'Unmerged by two people', 'Unmerged', '#e8f0fe', '#1a4fa8']]
+      .map(([k, sub, t, bg, fg]) => ({ k, sub, tag: t, tagStyle: tag(bg, fg) }));
+    const mStyle = m => 'flex:0 0 96px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 0;' + (m === 'Same' ? 'background:#e9f8ee;color:#1d7a3a;' : m === 'Check' ? 'background:#fff4dc;color:#8a5a00;' : 'background:#f4f4f6;color:#6b6b73;');
+    const cmp = [
+      ['Name', 'Nur Aisyah binti Rahman', 'Nur Aisyah Rahman', 'Check'],
+      ['NRIC / passport', '••••••••6212', '••••••••6212', 'Same'],
+      ['Date of birth', '•• ••• 1994', '•• ••• 1994', 'Same'],
+      ['Sex', 'Female', 'Female', 'Same'],
+      ['Phone', '•••• •••• 4471', '•••• •••• 4471', 'Same'],
+      ['Nationality', 'Malaysian', 'Malaysian', 'Same'],
+      ['Allergies (active)', 'Penicillin', 'Penicillin', 'Same'],
+      ['Visits', '9 · last 2 Nov 2026', '1 · 17 Nov 2026', 'Info'],
+      ['Unfinished visit', 'None', 'None', 'Same'],
+      ['Guardian contact', 'None', 'None', 'Same'],
+      ['Created', '12 Mar 2025 · Cheras', '17 Nov 2026 · QR intake', 'Info']
+    ].map(([k, a, b, m]) => ({ k, a, b, m, mStyle: mStyle(m) }));
+    const ok = 'font-size:12px;font-weight:600;border-radius:999px;padding:5px 12px;background:#e9f8ee;color:#1d7a3a;';
+    const checks = ['No unfinished visit on either record', 'No QR check-in waiting with either IC', 'Duplicate’s allergies shown on the kept record', 'Not a chain or a self-merge'].map(k => ({ k: '✓ ' + k, style: ok }));
+    const R = [['dup', 'Same person registered twice'], ['typo', 'Identifier typed wrongly'], ['qr', 'QR and counter both created a record'], ['other', 'Other administrative reason']];
+    const reasons = R.map(([k, label]) => ({ k: label, sel: String(reason === k), pick: () => this.setState({ reason: k }), style: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;border:0;border-radius:14px;font:inherit;text-align:left;cursor:pointer;color:#111114;' + (reason === k ? 'background:#f4f4f6;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.12);font-weight:600;' : 'background:transparent;box-shadow:inset 0 0 0 1px #ececf0;'), dot: 'flex:none;width:14px;height:14px;border-radius:50%;box-sizing:border-box;' + (reason === k ? 'border:4px solid #111114;' : 'border:2px solid #c4c4cc;') }));
+    const cmpAll = cmp;
+    const VIS = [['2 Nov 2026', 'Consultation · Dr. Lim', 'Cheras', 'k'], ['17 Nov 2026', 'Consultation · Dr. Farah · came by QR', 'Cheras', 'd'], ['9 Oct 2026', 'Medicine only · B-011', 'Cheras', 'k'], ['21 Aug 2026', 'Consultation · Dr. Lim', 'Cheras', 'k'], ['3 Jul 2026', 'Consultation · Dr. Wong', 'Sungai Besi', 'k'], ['18 May 2026', 'Consultation · Dr. Lim', 'Cheras', 'k'], ['2 Apr 2026', 'Medicine only · B-004', 'Puchong', 'k'], ['14 Jan 2026', 'Consultation · Dr. Farah', 'Cheras', 'k'], ['30 Sep 2025', 'Consultation · Dr. Lim', 'Cheras', 'k'], ['12 Mar 2025', 'First visit · Dr. Lim', 'Cheras', 'k']]
+      .sort((a, b) => new Date(b[0]) - new Date(a[0])).map(v => [v[0], v[1], v[2], v[3] === 'k' ? 'KP-0004182 (keep)' : 'KP-0005907 (duplicate)', ['Completed', 'ok'], v[3]]);
+    const CMPD = { vis: { title: 'Visits on both records · 10', note: 'Visits stay on their own record after a merge · nothing is moved', cols: ['DATE', 'BRANCH', 'RECORD', 'STATUS'], filters: [['all', 'All'], ['k', 'Kept record'], ['d', 'Duplicate']], rows: VIS } };
+    return {
+      cmp: cmpAll.slice(0, 7), cmp2: cmpAll.slice(8),
+      cmpX: cmpAll.slice(7, 8).map(c => Object.assign(c, xBtn('vis', 'cmp-xpanel', 'display:flex;align-items:center;gap:12px;padding:4px 10px;min-height:44px;border-bottom:1px solid #f6f6f8;background:transparent;color:#111114;border-radius:12px;'))),
+      cmpP: xPanel('cmp-xpanel', ['vis'], CMPD, 2),
+      accent, views, reqs, done, checks, reasons,
+      isProposer: view === 'propose', isApprover: view === 'approve',
+      me: view === 'propose' ? { name: 'Nurul', role: 'CA', ini: 'NU' } : { name: 'Siti', role: 'CA Supervisor', ini: 'SI' },
+      facts: [{ k: 'Proposed by', v: 'Nurul (CA)' }, { k: 'When', v: 'Today, 9:41 AM' }, { k: 'Reason', v: 'Same person registered twice' }, { k: 'Keep', v: 'KP-0004182' }],
+      after: [
+        'Records are linked, nothing is moved: invoices, receipts, Panel claims, visits and documents stay where they are.',
+        'Search, the duplicate check and QR matching show only the kept record, with "Merged from KP-0005907".',
+        'New visits and edits on the duplicate are refused.',
+        'Unmerge uses the same two-person flow.'
+      ].map(t => ({ t }))
+    };
+  }
+}
+</script>
+</body>
+</html>

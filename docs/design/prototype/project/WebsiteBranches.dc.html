@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Website branch profiles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Mira K." user-role="Marketing" user-ini="MK" duty="09:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Website drafts</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Branch public profiles</div>
+      <span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">DRAFT · nothing is public</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director, Marketing and Administrator edit</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save draft</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 260px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+        <h2 style="margin: 0 8px 8px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Branches</h2>
+        <sc-for list="{{branchList}}" as="b" hint-placeholder-count="3">
+          <a href="#" onClick="{{b.pick}}" style="{{b.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{b.name}}</span><span style="font-size: 12px; color: #8a8a93">{{b.sub}}</span></span><span style="{{b.tagStyle}}">{{b.tag}}</span></a>
+        </sc-for>
+        <span style="margin-top: auto; padding: 10px 8px 0; font-size: 12px; color: #8a8a93">One public profile per branch. Branches themselves are managed in Settings.</span>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">{{selName}}</h1>
+            <div style="display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 4px; margin-left: auto">
+              <sc-for list="{{langs}}" as="l" hint-placeholder-count="2"><button type="button" aria-pressed="{{l.pressed}}" onClick="{{l.pick}}" style="{{l.style}}">{{l.label}}</button></sc-for>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <sc-for list="{{fields}}" as="f" hint-placeholder-count="8">
+              <label style="{{f.wrap}}"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{f.k}} <span style="color: #8a8a93; font-weight: 400">{{f.hint}}</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">{{f.v}}</span></label>
+            </sc-for>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Phone is a public contact only. WhatsApp: a Malaysian 01… number or an explicit +international number. Map links must be https.</span>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: baseline; gap: 10px; margin: 0 6px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Opening hours</h2><span style="font-size: 12.5px; color: #8a8a93">Branch local time</span></div>
+          <sc-for list="{{hours}}" as="h" hint-placeholder-count="7">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 0 0 110px; font-weight: 500">{{h.day}}</span>
+              <span style="{{h.timeStyle}}">{{h.open}}</span><span style="{{h.dashStyle}}">to</span><span style="{{h.timeStyle}}">{{h.close}}</span>
+              <span style="flex: 1"></span>
+              <button type="button" role="switch" aria-checked="{{h.closed}}" aria-label="{{h.aria}}" onClick="{{h.toggle}}" style="{{h.track}}"><span style="width: 20px; height: 20px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2)"></span></button><span style="flex: 0 0 52px; font-size: 12.5px; color: #6b6b73">Closed</span>
+            </div>
+          </sc-for>
+          <label style="display: flex; flex-direction: column; gap: 6px; padding: 10px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Hours note <span style="color: #8a8a93; font-weight: 400">· max 300</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">{{hoursNote}}</span></label>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 10px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Contact blocks</h2><button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 600; cursor: pointer">+ Add contact block</button></div>
+          <sc-for list="{{blocks}}" as="c" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: #f8f8fa"><span style="flex: 0 0 160px; font-weight: 500">{{c.k}}</span><span style="flex: 1; min-width: 0; color: #3a3a40">{{c.v}}</span><a href="#" style="font-size: 12.5px; font-weight: 600; color: #6b6b73">Remove block</a></div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <span style="aspect-ratio: 16 / 9; border-radius: 18px; background: #fde7ef; display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box; font-size: 12.5px; font-weight: 600; color: #8e0f44">Hero image · cheras-front.jpg</span>
+          <label style="display: flex; flex-direction: column; gap: 6px; padding: 0 4px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Hero image <span style="color: #8a8a93; font-weight: 400">· optional</span></span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">cheras-front.jpg<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          <a href="WebsiteMedia.dc.html" style="padding: 0 4px 4px; font-weight: 600; color: #c2185b">Open media library</a>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Completeness</h2><span style="{{readyStyle}}">{{readyText}}</span></div>
+          <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 36px"><span style="{{c.dot}}">{{c.mark}}</span><span style="flex: 1">{{c.k}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Every active branch needs a complete profile in both languages before a release can be frozen.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Revisions</h2>
+          <sc-for list="{{revisions}}" as="r" hint-placeholder-count="3">
+            <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{r.k}}</span><span style="font-size: 12.5px; color: #6b6b73">{{r.v}}</span></div>
+          </sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const sel = st.sel ?? 0;
+    const lang = st.lang || 'en';
+    const closed = st.closed || {};
+    const chip = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + bg + ';color:' + fg + ';';
+    const list = [['Cheras', 'EN rev 6 · BM rev 5', 'Complete'], ['Sungai Besi', 'EN rev 3 · BM rev 3', 'Complete'], ['Puchong', 'EN rev 2 · BM not started', 'BM missing']];
+    const branchList = list.map(([name, sub, tag], i) => ({ name, sub, tag, tagStyle: tag === 'Complete' ? chip('#e6f6ea', '#1d6b34') : chip('#fff4dc', '#8a5a00'), pick: () => this.setState({ sel: i }), row: 'display:flex;align-items:center;gap:10px;padding:8px 10px;min-height:52px;border-radius:14px;cursor:pointer;' + (i === sel ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') }));
+    const seg = on => 'border:0;border-radius:999px;padding:6px 16px;min-height:34px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const name = list[sel][0];
+    const half = 'display:flex;flex-direction:column;gap:6px;';
+    const full = 'grid-column:1/-1;display:flex;flex-direction:column;gap:6px;';
+    const bm = lang === 'bm';
+    const fields = [
+      ['Display name *', '· max 200', bm ? 'Klinik Putrijaya ' + name : 'Klinik Putrijaya ' + name, full],
+      ['Address line 1 *', '', 'No. 1, Jalan Contoh ' + (sel + 1), half],
+      ['Address line 2', '', 'Taman Contoh', half],
+      ['Postcode *', '', '56000', half],
+      ['City *', '', name === 'Puchong' ? 'Puchong' : 'Kuala Lumpur', half],
+      ['State *', '', name === 'Puchong' ? 'Selangor' : 'W.P. Kuala Lumpur', half],
+      ['Public phone *', '', '03-2000 000' + (sel + 1), half],
+      ['WhatsApp', '· optional', '012-000 000' + (sel + 1), half],
+      ['Public email', '· optional', name.toLowerCase().replace(' ', '') + '@example.test', half],
+      ['Map link', '· https only', 'https://maps.example.test/kp-' + (sel + 1), full],
+      [bm ? 'Nota tempat letak kereta' : 'Parking notes', '· max 500', bm ? 'Parkir di hadapan kedai.' : 'Street parking in front of the shop.', full]
+    ].map(([k, hint, v, wrap]) => ({ k, hint, v, wrap }));
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const time = 'flex:0 0 90px;display:flex;align-items:center;justify-content:center;min-height:36px;border-radius:12px;background:#f4f4f6;font-variant-numeric:tabular-nums;';
+    const hours = days.map(day => {
+      const c = !!closed[day];
+      return {
+        day, open: c ? '—' : '08:00', close: c ? '—' : (day === 'Sunday' ? '17:00' : '22:00'),
+        timeStyle: time + (c ? 'color:#c4c4cc;' : ''), dashStyle: 'color:' + (c ? '#c4c4cc' : '#8a8a93') + ';font-size:12.5px;',
+        closed: String(c), aria: day + ' closed',
+        toggle: () => this.setState({ closed: Object.assign({}, closed, { [day]: !c }) }),
+        track: 'flex:none;width:40px;height:24px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (c ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;')
+      };
+    });
+    const ok = { dot: 'flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:#e6f6ea;color:#1d6b34;', mark: '✓' };
+    const no = { dot: 'flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:#fff4dc;color:#8a5a00;', mark: '!' };
+    const bmDone = list[sel][2] === 'Complete';
+    return {
+      accent, branchList, fields, hours, selName: 'Klinik Putrijaya ' + name,
+      langs: [['en', 'English'], ['bm', 'Bahasa Melayu']].map(([k, label]) => ({ label, pressed: String(lang === k), pick: () => this.setState({ lang: k }), style: seg(lang === k) })),
+      hoursNote: bm ? 'Dibuka pada cuti umum kecuali Hari Raya pertama.' : 'Open on public holidays except the first day of Hari Raya.',
+      blocks: [{ k: bm ? 'Pertanyaan panel' : 'Panel enquiries', v: '03-2000 0099' }, { k: bm ? 'Vaksinasi' : 'Vaccination', v: 'Walk in, no appointment needed' }],
+      checks: [Object.assign({ k: 'English complete' }, ok), Object.assign({ k: 'Bahasa Melayu complete' }, bmDone ? ok : no), Object.assign({ k: 'Address and phone' }, ok), Object.assign({ k: 'Opening hours' }, ok)],
+      readyStyle: 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;' + (bmDone ? 'background:#e6f6ea;color:#1d6b34;' : 'background:#fff4dc;color:#8a5a00;'),
+      readyText: bmDone ? 'Ready' : 'Not ready',
+      revisions: [{ k: 'EN revision 6', v: '14 Nov · Mira K. · opening hours' }, { k: 'BM revision 5', v: '14 Nov · Mira K. · hours note' }, { k: 'EN revision 5', v: '2 Nov · Dr. Director · hero image' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

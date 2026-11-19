@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Consultation settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.th{font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#f8f8fa;font-size:12.5px;color:#6b6b73}
+.paper{background:#ffffff;border-radius:10px;box-shadow:0 0 0 1px #e6e6ea,0 10px 24px rgba(17,17,26,0.08)}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Rina A." user-role="Administrator" user-ini="RA" duty="08:05" hint-size="350px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Consultation · Preset diagnoses</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Name only · no patient content</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left card" aria-label="Settings sections" style="flex: 0 0 240px; min-height: 0; overflow: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 14px">
+        <h2 class="h2" style="margin: 0 8px">Settings</h2>
+        <sc-for list="{{sections}}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 4px">{{g.title}}</span>
+            <sc-for list="{{g.items}}" as="t" hint-placeholder-count="3"><a href="#" style="{{t.style}}"><span style="{{t.ic}}">{{t.k}}</span><span>{{t.label}}</span></a></sc-for>
+          </div>
+        </sc-for>
+      </nav>
+      <main class="kp-mid" style="flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap"><sc-for list="{{strip}}" as="s" hint-placeholder-count="3"><div style="{{s.style}}"><span style="flex: none; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for></div>
+        <section class="card" style="flex: 1; min-height: 0; overflow: auto; padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 10px; flex-wrap: wrap">
+            <h1 class="h2">Diagnosis list</h1>
+            <div style="display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 4px"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}">{{t.label}}</button></sc-for></div>
+            <span class="field" style="margin-left: auto; min-width: 220px; color: #8a8a93; min-height: 40px">Search diagnoses<span aria-hidden="true">⌕</span></span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px" class="th"><span style="flex: 1">DIAGNOSIS</span><span style="flex: none; width: 110px">STATUS</span><span style="flex: none; width: 150px; text-align: right">ACTIONS</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <div onClick="{{r.pick}}" style="{{r.row}}">
+              <span style="flex: 1; min-width: 0; font-weight: 500">{{r.name}}</span>
+              <span style="flex: none; width: 110px"><span style="{{r.chip}}">{{r.status}}</span></span>
+              <span style="flex: none; width: 150px; display: flex; gap: 14px; justify-content: flex-end; font-size: 13px; font-weight: 600; color: #3a3a40"><span>Rename</span><span>{{r.act}}</span></span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 320px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <h2 class="h2">Add diagnosis</h2>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Diagnosis name</span><span class="field">Acute tonsillitis<span aria-hidden="true" style="color: #8a8a93">|</span></span></label>
+          <span class="muted">Shown to doctors under "Choose preset" on the consultation page. The doctor can still edit the text.</span>
+          <span style="font-size: 13px; font-weight: 600; color: #3a3a40">+ Add more diagnosis</span>
+        </section>
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 class="h2" style="font-size: 15px">Selected: {{selName}}</h2>
+          <span class="muted">Renaming changes the preset only. Diagnoses already saved on visits keep their own text.</span>
+          <span class="muted">Archive hides it from the picker; nothing is deleted.</span>
+          <div style="display: flex; gap: 8px"><button type="button" class="ghost">Rename</button><button type="button" class="ghost">{{selAct}}</button></div>
+        </section>
+        <div class="note"><span aria-hidden="true" style="font-weight: 700; color: #111114">i</span>Preset diagnoses are reference data. Director, Administrator, Finance Officer and Panel Officer can manage them.</div>
+        <button type="button" class="primary" style="margin-top: auto">Save diagnosis</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8') };
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const row = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 10px;border-radius:14px;cursor:pointer;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '');
+    const seg = on => 'border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const box = on => 'flex:none;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (on ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;');
+    const av = (bg, fg) => 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const ic = c => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#ffffff;background:' + c + ';';
+    const tab = on => 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'color:#3a3a40;');
+    const mk = (label, k, c, on) => ({ label, k, ic: ic(c), style: tab(on) });
+    const all = [['Upper respiratory tract infection', 1], ['Acute gastroenteritis', 1], ['Viral fever', 1], ['Acute pharyngitis', 1], ['Allergic rhinitis', 1], ['Urticaria', 1], ['Dyspepsia', 1], ['Hypertension, follow-up', 1], ['Type 2 diabetes, follow-up', 1], ['Lower back pain', 1], ['Conjunctivitis', 1], ['Contact dermatitis', 1], ['Minor wound', 1], ['Influenza-like illness', 0], ['Dengue fever (suspected)', 0]];
+    const t = st.tab || 'all';
+    const sel = st.sel ?? 0;
+    const list = all.map(([name, on], i) => ({ name, on, i })).filter(x => t === 'all' || (t === 'active' ? x.on : !x.on));
+    const cur = all[sel];
+    return {
+      accent,
+      sections: [
+        { title: 'CLINIC', items: [mk('Business details', 'Bz', '#111114'), mk('Registration', 'Rg', '#ff9f0a'), mk('Consultation', 'Cn', '#0a84ff', true), mk('Checkout', 'Ck', '#34c759')] },
+        { title: 'DOCUMENTS', items: [mk('MC templates', 'MC', '#bf5af2'), mk('Clinician credentials', 'Dr', '#ff375f')] },
+        { title: 'CATALOGUE', items: [mk('Medicine details', 'Md', '#ff9f0a'), mk('Suppliers', 'Sp', '#8a8a93')] }
+      ],
+      strip: [strip('13', 'active presets', true), strip('2', 'archived'), strip('15', 'in total')],
+      tabs: [['all', 'All'], ['active', 'Active'], ['archived', 'Archived']].map(([k, label]) => ({ label, pressed: String(t === k), style: seg(t === k), pick: () => this.setState({ tab: k }) })),
+      rows: list.map(x => ({ name: x.name, status: x.on ? 'Active' : 'Archived', chip: x.on ? P.green : P.grey, act: x.on ? 'Archive' : 'Restore', row: row(x.i === sel) + 'border-bottom:1px solid #f6f6f8;', pick: () => this.setState({ sel: x.i }) })),
+      selName: cur[0], selAct: cur[1] ? 'Archive' : 'Restore'
+    };
+
+  }
+}
+</script>
+</body>
+</html>

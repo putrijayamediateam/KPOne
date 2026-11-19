@@ -1,0 +1,1258 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Billing.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Patient billing",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "BillingMap.dc.html": {
+   "h": 1600,
+   "title": "Billing function map: 30 functions, 5 screens into 1",
+   "w": 1440,
+   "x": 3040,
+   "y": 1200
+  },
+  "Consultation.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Consultation, modern (sidebar starts closed for more room)",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "HR.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "HR, modern: roster week, team and things to decide",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "Modern.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Today (Director dashboard)",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "RegisterVisit.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Register visit, modern: find patient, visit, who pays, then one black button",
+   "w": 1440,
+   "x": 1520,
+   "y": 1200
+  },
+  "Registration.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Registration board",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Settings.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Settings (one page, tabs)",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "Sidebar.dc.html": {
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Sidebar: click an icon to switch area, click it again to close",
+   "w": 340,
+   "x": 0,
+   "y": 1200
+  },
+  "Stock.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Stock, modern: worklists, low stock, batches and Hana's suggestions",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "Approvals.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Approvals inbox (Zara)",
+   "w": 1440,
+   "x": 0,
+   "y": 3000
+  },
+  "Me.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Me: each person's own overview (Zara)",
+   "w": 1440,
+   "x": 1520,
+   "y": 3000
+  },
+  "QrCheckins.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "QR check-ins (Zara)",
+   "w": 1440,
+   "x": 3040,
+   "y": 3000
+  },
+  "Patient.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Patient profile (Zara)",
+   "w": 1440,
+   "x": 4560,
+   "y": 3000
+  },
+  "MyQueue.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "My queue, doctor (Jun Hao)",
+   "w": 1440,
+   "x": 6080,
+   "y": 3000
+  },
+  "MC.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Issue medical certificate (Jun Hao)",
+   "w": 1440,
+   "x": 7600,
+   "y": 3000
+  },
+  "Pharmacy.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Pharmacy, dispensing case (Jun Hao)",
+   "w": 1440,
+   "x": 9120,
+   "y": 3000
+  },
+  "CashClosing.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Cash closing (Jun Hao)",
+   "w": 1440,
+   "x": 10640,
+   "y": 3000
+  },
+  "PanelClaims.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Panel claims (Deepa)",
+   "w": 1440,
+   "x": 0,
+   "y": 4200
+  },
+  "PanelPayments.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Panel payments (Deepa)",
+   "w": 1440,
+   "x": 1520,
+   "y": 4200
+  },
+  "StockCount.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Stock count (Deepa)",
+   "w": 1440,
+   "x": 3040,
+   "y": 4200
+  },
+  "Receiving.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Receiving a delivery (Deepa)",
+   "w": 1440,
+   "x": 4560,
+   "y": 4200
+  },
+  "Leave.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "HR leave (Haikal)",
+   "w": 1440,
+   "x": 6080,
+   "y": 4200
+  },
+  "Payroll.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "HR payroll (Haikal)",
+   "w": 1440,
+   "x": 7600,
+   "y": 4200
+  },
+  "Reports.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Reports, daily summary (Haikal)",
+   "w": 1440,
+   "x": 9120,
+   "y": 4200
+  },
+  "Staff.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Staff and access (Haikal)",
+   "w": 1440,
+   "x": 10640,
+   "y": 4200
+  },
+  "AgentOffice.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Agent office",
+   "w": 1440,
+   "x": 0,
+   "y": 5600
+  },
+  "AgentDailySummary.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Daily summary",
+   "w": 1440,
+   "x": 1520,
+   "y": 5600
+  },
+  "QuickAnswers.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Quick answers",
+   "w": 1440,
+   "x": 3040,
+   "y": 5600
+  },
+  "MyCredentials.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "My clinician credentials",
+   "w": 1440,
+   "x": 4560,
+   "y": 5600
+  },
+  "PatientMerge.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Patient merge",
+   "w": 1440,
+   "x": 0,
+   "y": 7200
+  },
+  "VisitHistory.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Invoices history",
+   "w": 1440,
+   "x": 1520,
+   "y": 7200
+  },
+  "PublicQrForm.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Public QR check-in form",
+   "w": 1440,
+   "x": 0,
+   "y": 8800
+  },
+  "PublicQrStatus.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Public QR status",
+   "w": 1440,
+   "x": 1520,
+   "y": 8800
+  },
+  "WaitingRoomTv.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Waiting-room TV",
+   "w": 1440,
+   "x": 3040,
+   "y": 8800
+  },
+  "SignIn.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Staff sign in",
+   "w": 1440,
+   "x": 4560,
+   "y": 8800
+  },
+  "ReferralLetter.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Referral letter",
+   "w": 1440,
+   "x": 0,
+   "y": 10400
+  },
+  "AttendanceLetter.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Attendance confirmation",
+   "w": 1440,
+   "x": 1520,
+   "y": 10400
+  },
+  "ReturnsToCheck.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Returns to check",
+   "w": 1440,
+   "x": 3040,
+   "y": 10400
+  },
+  "DrugLabel.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Drug labels",
+   "w": 1440,
+   "x": 4560,
+   "y": 10400
+  },
+  "BillsToCollect.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Bills to collect",
+   "w": 1440,
+   "x": 0,
+   "y": 12000
+  },
+  "TerminalCheck.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Terminal check",
+   "w": 1440,
+   "x": 1520,
+   "y": 12000
+  },
+  "ManagePayments.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Manage payments",
+   "w": 1440,
+   "x": 3040,
+   "y": 12000
+  },
+  "InvoiceView.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Invoice",
+   "w": 1440,
+   "x": 4560,
+   "y": 12000
+  },
+  "FinanceHome.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Finance home",
+   "w": 1440,
+   "x": 6080,
+   "y": 12000
+  },
+  "PanelResponsibility.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Panel responsibility",
+   "w": 1440,
+   "x": 0,
+   "y": 13600
+  },
+  "CreateClaim.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Create panel claim",
+   "w": 1440,
+   "x": 1520,
+   "y": 13600
+  },
+  "ClaimsFollowUp.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Claims follow-up",
+   "w": 1440,
+   "x": 3040,
+   "y": 13600
+  },
+  "CorrectPanelPayment.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Correct a Panel payment",
+   "w": 1440,
+   "x": 4560,
+   "y": 13600
+  },
+  "PanelInvoices.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Panel invoices",
+   "w": 1440,
+   "x": 6080,
+   "y": 13600
+  },
+  "ClaimPack.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Claim pack",
+   "w": 1440,
+   "x": 7600,
+   "y": 13600
+  },
+  "PanelSummary.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Panel summary",
+   "w": 1440,
+   "x": 9120,
+   "y": 13600
+  },
+  "MedicineCatalogue.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Medicine catalogue",
+   "w": 1440,
+   "x": 0,
+   "y": 15200
+  },
+  "ServiceCatalogue.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Service catalogue",
+   "w": 1440,
+   "x": 1520,
+   "y": 15200
+  },
+  "Pricing.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Pricing",
+   "w": 1440,
+   "x": 3040,
+   "y": 15200
+  },
+  "PriceCheck.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Check price list",
+   "w": 1440,
+   "x": 4560,
+   "y": 15200
+  },
+  "PurchaseOrders.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Purchase orders",
+   "w": 1440,
+   "x": 6080,
+   "y": 15200
+  },
+  "SupplierReturns.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Supplier returns",
+   "w": 1440,
+   "x": 7600,
+   "y": 15200
+  },
+  "TreatmentUsage.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Treatment room usage",
+   "w": 1440,
+   "x": 9120,
+   "y": 15200
+  },
+  "Transfers.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Transfers",
+   "w": 1440,
+   "x": 10640,
+   "y": 15200
+  },
+  "WriteOff.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Write-off",
+   "w": 1440,
+   "x": 0,
+   "y": 16400
+  },
+  "StockMovement.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Stock movement",
+   "w": 1440,
+   "x": 1520,
+   "y": 16400
+  },
+  "PilotReadiness.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Pilot readiness",
+   "w": 1440,
+   "x": 3040,
+   "y": 16400
+  },
+  "HrDashboard.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "HR dashboard",
+   "w": 1440,
+   "x": 0,
+   "y": 18000
+  },
+  "Attendance.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Attendance",
+   "w": 1440,
+   "x": 1520,
+   "y": 18000
+  },
+  "StaffFiles.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Staff files",
+   "w": 1440,
+   "x": 3040,
+   "y": 18000
+  },
+  "Credentials.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Credentials",
+   "w": 1440,
+   "x": 4560,
+   "y": 18000
+  },
+  "Sops.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "SOPs",
+   "w": 1440,
+   "x": 6080,
+   "y": 18000
+  },
+  "Memos.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Memos",
+   "w": 1440,
+   "x": 7600,
+   "y": 18000
+  },
+  "Letters.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Letters",
+   "w": 1440,
+   "x": 9120,
+   "y": 18000
+  },
+  "Appraisals.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Appraisals",
+   "w": 1440,
+   "x": 10640,
+   "y": 18000
+  },
+  "Incidents.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Incidents",
+   "w": 1440,
+   "x": 0,
+   "y": 19200
+  },
+  "OpenShifts.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Open shifts",
+   "w": 1440,
+   "x": 1520,
+   "y": 19200
+  },
+  "Discipline.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Discipline",
+   "w": 1440,
+   "x": 3040,
+   "y": 19200
+  },
+  "StaffClaims.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Staff claims",
+   "w": 1440,
+   "x": 4560,
+   "y": 19200
+  },
+  "JobApplications.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Job applications",
+   "w": 1440,
+   "x": 6080,
+   "y": 19200
+  },
+  "HrMessages.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "HR messages",
+   "w": 1440,
+   "x": 7600,
+   "y": 19200
+  },
+  "Insights.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Insights",
+   "w": 1440,
+   "x": 0,
+   "y": 20800
+  },
+  "TransactionDetail.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Transaction detail",
+   "w": 1440,
+   "x": 1520,
+   "y": 20800
+  },
+  "BillingDetail.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Billing detail",
+   "w": 1440,
+   "x": 3040,
+   "y": 20800
+  },
+  "QrLinks.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "QR check-in links",
+   "w": 1440,
+   "x": 0,
+   "y": 22400
+  },
+  "RegistrationSettings.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Registration settings",
+   "w": 1440,
+   "x": 1520,
+   "y": 22400
+  },
+  "ConsultationSettings.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Consultation settings",
+   "w": 1440,
+   "x": 3040,
+   "y": 22400
+  },
+  "McTemplates.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "MC templates",
+   "w": 1440,
+   "x": 4560,
+   "y": 22400
+  },
+  "ClinicianCredentials.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Clinician credentials",
+   "w": 1440,
+   "x": 6080,
+   "y": 22400
+  },
+  "PaymentMethods.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Payment methods",
+   "w": 1440,
+   "x": 7600,
+   "y": 22400
+  },
+  "ApprovalLimits.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Approval limits",
+   "w": 1440,
+   "x": 9120,
+   "y": 22400
+  },
+  "CheckoutSettings.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Checkout settings",
+   "w": 1440,
+   "x": 10640,
+   "y": 22400
+  },
+  "ClaimMessageTemplate.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Claim message template",
+   "w": 1440,
+   "x": 0,
+   "y": 23600
+  },
+  "MedicineDetails.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Medicine details",
+   "w": 1440,
+   "x": 1520,
+   "y": 23600
+  },
+  "Suppliers.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Suppliers",
+   "w": 1440,
+   "x": 3040,
+   "y": 23600
+  },
+  "QueueDisplaySettings.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Queue display settings",
+   "w": 1440,
+   "x": 4560,
+   "y": 23600
+  },
+  "AllAgents.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "AI agents",
+   "w": 1440,
+   "x": 6080,
+   "y": 23600
+  },
+  "Compliance.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Clinic compliance",
+   "w": 1440,
+   "x": 7600,
+   "y": 23600
+  },
+  "Branches.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Branches",
+   "w": 1440,
+   "x": 9120,
+   "y": 23600
+  },
+  "AccessControl.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Access control",
+   "w": 1440,
+   "x": 10640,
+   "y": 23600
+  },
+  "AuditLog.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Audit log",
+   "w": 1440,
+   "x": 0,
+   "y": 24800
+  },
+  "WebsiteDoctors.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website doctor profiles",
+   "w": 1440,
+   "x": 0,
+   "y": 26400
+  },
+  "WebsiteBranches.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website branch profiles",
+   "w": 1440,
+   "x": 1520,
+   "y": 26400
+  },
+  "WebsiteMedia.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website media library",
+   "w": 1440,
+   "x": 3040,
+   "y": 26400
+  },
+  "WebsiteCareers.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website careers",
+   "w": 1440,
+   "x": 4560,
+   "y": 26400
+  },
+  "WebsitePromotions.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website promotions",
+   "w": 1440,
+   "x": 6080,
+   "y": 26400
+  },
+  "WebsiteLittleShield.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Little Shield",
+   "w": 1440,
+   "x": 7600,
+   "y": 26400
+  },
+  "WebsiteReleases.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website releases",
+   "w": 1440,
+   "x": 9120,
+   "y": 26400
+  },
+  "WebsiteFaqs.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website FAQs",
+   "w": 1440,
+   "x": 10640,
+   "y": 26400
+  },
+  "WebsiteServices.dc.html": {
+   "expand": "fill",
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Website services",
+   "w": 1440,
+   "x": 0,
+   "y": 27600
+  },
+  "WfRegisterVisit.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1080,
+   "title": "1 · Register visit: triage zone, optional vitals, emergency contact",
+   "page": "page-new-workflow"
+  },
+  "WfQueueBoard.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1080,
+   "title": "2 · Queue board: zones, vitals status, red-zone alert",
+   "page": "page-new-workflow"
+  },
+  "WfConsultation.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1080,
+   "title": "3 · Consultation: CA vitals, diagnosis order set, off-protocol reason",
+   "page": "page-new-workflow"
+  },
+  "WfPharmacy.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 1080,
+   "title": "4 · Pharmacy: CA sees off-protocol flag and doctor reason",
+   "page": "page-new-workflow"
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-11-18T09:30:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "title": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "KPOne, clean white look: mock-up only, fictional data",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "row-today-and-ai-agents": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Today and AI agents",
+   "w": 240,
+   "x": 0,
+   "y": 5340
+  },
+  "row-front-desk": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Front desk",
+   "w": 240,
+   "x": 0,
+   "y": 6940
+  },
+  "row-patient-facing-and-tv-bahasa-melayu-for-patients-": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Patient-facing and TV (Bahasa Melayu for patients)",
+   "w": 240,
+   "x": 0,
+   "y": 8540
+  },
+  "row-consultation-and-pharmacy": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Consultation and pharmacy",
+   "w": 240,
+   "x": 0,
+   "y": 10140
+  },
+  "row-billing": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Billing",
+   "w": 240,
+   "x": 0,
+   "y": 11740
+  },
+  "row-panel": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Panel",
+   "w": 240,
+   "x": 0,
+   "y": 13340
+  },
+  "row-stock-and-catalogue": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Stock and catalogue",
+   "w": 240,
+   "x": 0,
+   "y": 14940
+  },
+  "row-hr": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "HR",
+   "w": 240,
+   "x": 0,
+   "y": 17740
+  },
+  "row-reports": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Reports",
+   "w": 240,
+   "x": 0,
+   "y": 20540
+  },
+  "row-settings-and-management": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Settings and management",
+   "w": 240,
+   "x": 0,
+   "y": 22140
+  },
+  "row-website-drafts-nothing-public-": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Website drafts (nothing public)",
+   "w": 240,
+   "x": 0,
+   "y": 26140
+  },
+  "wf-title": {
+   "x": 0,
+   "y": -300,
+   "text": "New workflow proposal: registration to pharmacy (mock-up, fictional data)",
+   "kind": "title1",
+   "maxW": 5920,
+   "page": "page-new-workflow"
+  },
+  "wf-n1": {
+   "x": 0,
+   "y": 1200,
+   "w": 420,
+   "text": "Vitals: the CA records them at the counter or waiting area. Not required for Call In; the doctor can enter them instead. Each reading shows who took it and when.",
+   "fill": "orange",
+   "page": "page-new-workflow"
+  },
+  "wf-n2": {
+   "x": 1520,
+   "y": 1200,
+   "w": 420,
+   "text": "Triage zones replace Normal/Urgent. Red alerts every doctor at the same branch; the first to press \"I'll take it\" stops the alert for the others. Zone criteria must be written and approved by a named doctor.",
+   "fill": "orange",
+   "page": "page-new-workflow"
+  },
+  "wf-n3": {
+   "x": 3040,
+   "y": 1200,
+   "w": 420,
+   "text": "Order sets come from the clinic's own formulary, approved by a clinic doctor. MIMS content can only be used under a MIMS licence (MIMS Integrated). A medicine outside the set needs the doctor's reason.",
+   "fill": "orange",
+   "page": "page-new-workflow"
+  },
+  "wf-n4": {
+   "x": 4560,
+   "y": 1200,
+   "w": 420,
+   "text": "Warn and confirm, never block: the CA sees the off-protocol flag and the doctor's reason before dispensing. Family history in consult is left out until the PDPA review.",
+   "fill": "orange",
+   "page": "page-new-workflow"
+  }
+ },
+ "order": [
+  "Modern.dc.html",
+  "Registration.dc.html",
+  "RegisterVisit.dc.html",
+  "Billing.dc.html",
+  "Settings.dc.html",
+  "Sidebar.dc.html",
+  "Consultation.dc.html",
+  "BillingMap.dc.html",
+  "HR.dc.html",
+  "Stock.dc.html",
+  "Approvals.dc.html",
+  "Me.dc.html",
+  "QrCheckins.dc.html",
+  "Patient.dc.html",
+  "MyQueue.dc.html",
+  "MC.dc.html",
+  "Pharmacy.dc.html",
+  "CashClosing.dc.html",
+  "PanelClaims.dc.html",
+  "PanelPayments.dc.html",
+  "StockCount.dc.html",
+  "Receiving.dc.html",
+  "Leave.dc.html",
+  "Payroll.dc.html",
+  "Reports.dc.html",
+  "Staff.dc.html",
+  "AgentOffice.dc.html",
+  "AgentDailySummary.dc.html",
+  "QuickAnswers.dc.html",
+  "MyCredentials.dc.html",
+  "PatientMerge.dc.html",
+  "VisitHistory.dc.html",
+  "PublicQrForm.dc.html",
+  "PublicQrStatus.dc.html",
+  "WaitingRoomTv.dc.html",
+  "SignIn.dc.html",
+  "ReferralLetter.dc.html",
+  "AttendanceLetter.dc.html",
+  "ReturnsToCheck.dc.html",
+  "DrugLabel.dc.html",
+  "BillsToCollect.dc.html",
+  "TerminalCheck.dc.html",
+  "ManagePayments.dc.html",
+  "InvoiceView.dc.html",
+  "FinanceHome.dc.html",
+  "PanelResponsibility.dc.html",
+  "CreateClaim.dc.html",
+  "ClaimsFollowUp.dc.html",
+  "CorrectPanelPayment.dc.html",
+  "PanelInvoices.dc.html",
+  "ClaimPack.dc.html",
+  "PanelSummary.dc.html",
+  "MedicineCatalogue.dc.html",
+  "ServiceCatalogue.dc.html",
+  "Pricing.dc.html",
+  "PriceCheck.dc.html",
+  "PurchaseOrders.dc.html",
+  "SupplierReturns.dc.html",
+  "TreatmentUsage.dc.html",
+  "Transfers.dc.html",
+  "WriteOff.dc.html",
+  "StockMovement.dc.html",
+  "PilotReadiness.dc.html",
+  "HrDashboard.dc.html",
+  "Attendance.dc.html",
+  "StaffFiles.dc.html",
+  "Credentials.dc.html",
+  "Sops.dc.html",
+  "Memos.dc.html",
+  "Letters.dc.html",
+  "Appraisals.dc.html",
+  "Incidents.dc.html",
+  "OpenShifts.dc.html",
+  "Discipline.dc.html",
+  "StaffClaims.dc.html",
+  "JobApplications.dc.html",
+  "HrMessages.dc.html",
+  "Insights.dc.html",
+  "TransactionDetail.dc.html",
+  "BillingDetail.dc.html",
+  "QrLinks.dc.html",
+  "RegistrationSettings.dc.html",
+  "ConsultationSettings.dc.html",
+  "McTemplates.dc.html",
+  "ClinicianCredentials.dc.html",
+  "PaymentMethods.dc.html",
+  "ApprovalLimits.dc.html",
+  "CheckoutSettings.dc.html",
+  "ClaimMessageTemplate.dc.html",
+  "MedicineDetails.dc.html",
+  "Suppliers.dc.html",
+  "QueueDisplaySettings.dc.html",
+  "AllAgents.dc.html",
+  "Compliance.dc.html",
+  "Branches.dc.html",
+  "AccessControl.dc.html",
+  "AuditLog.dc.html",
+  "WebsiteDoctors.dc.html",
+  "WebsiteBranches.dc.html",
+  "WebsiteMedia.dc.html",
+  "WebsiteCareers.dc.html",
+  "WebsitePromotions.dc.html",
+  "WebsiteLittleShield.dc.html",
+  "WebsiteReleases.dc.html",
+  "WebsiteFaqs.dc.html",
+  "WebsiteServices.dc.html",
+  "WfRegisterVisit.dc.html",
+  "WfQueueBoard.dc.html",
+  "WfConsultation.dc.html",
+  "WfPharmacy.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "page-1",
+   "name": "Page 1"
+  },
+  {
+   "id": "page-new-workflow",
+   "name": "New workflow (proposal)"
+  }
+ ],
+ "title": "KPOne Clean Look"
+}

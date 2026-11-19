@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quick answers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="today" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Today</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Quick answers</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director only · answered from the database, not by AI</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; padding: 0 8px 8px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Questions</h2>
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+          <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px">
+            <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 4px 8px 4px">{{g.title}}</span>
+            <sc-for list="{{g.qs}}" as="q" hint-placeholder-count="3">
+              <button type="button" onClick="{{q.pick}}" aria-pressed="{{q.pressed}}" style="{{q.row}}">{{q.k}}</button>
+            </sc-for>
+          </div>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: none; background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap">
+          <label style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Branch</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">All branches<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          <label style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">When</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">{{when}}<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          <button type="button" style="flex: none; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 22px; min-height: 44px; font: inherit; font-weight: 600; cursor: pointer">Show answer</button>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; flex-direction: column; gap: 2px; margin: 0 6px 10px">
+            <span style="font-size: 12px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">ANSWER</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{ans.k}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">{{ans.basis}} · as of 18 Nov 2026, 2:16 PM</span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em"><span style="flex: 1 1 200px">{{ans.h0}}</span><span style="flex: none; width: 140px; text-align: right">{{ans.h1}}</span><span style="flex: none; width: 140px; text-align: right">{{ans.h2}}</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+            <div style="{{r.row}}"><span style="flex: 1 1 200px; min-width: 0">{{r.a}}</span><span style="flex: none; width: 140px; text-align: right; font-variant-numeric: tabular-nums">{{r.b}}</span><span style="flex: none; width: 140px; text-align: right; font-variant-numeric: tabular-nums; color: #6b6b73">{{r.c}}</span></div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">How this is answered</h2>
+          <sc-for list="{{how}}" as="h" hint-placeholder-count="4"><div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; font-size: 12.5px; color: #3a3a40">{{h.t}}</div></sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Want to ask anything else?</h2>
+          <span style="font-size: 12.5px; color: #6b6b73">Ask KPOne runs from Claude Code on the server, through masked read-only views. Synthetic data only until the PDPA review.</span>
+          <a href="#" style="font-size: 13px; font-weight: 600; color: #c2185b">Open the daily summary ›</a>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const sel = (this.state && this.state.sel) || 'seenBranch';
+    const Q = {
+      seenBranch: ['CLINIC', 'Patients seen, per branch', 'Visits seen by a doctor today', 'BRANCH', 'SEEN', 'REGISTERED', 'Today', [['Cheras', '24', '31'], ['Sungai Besi', '15', '18'], ['Puchong', '12', '15']], ['All branches', '51', '64']],
+      wait: ['CLINIC', 'Waiting now and average wait, per branch', 'Live queue and today’s average wait', 'BRANCH', 'WAITING NOW', 'AVG WAIT (MIN)', 'As of now', [['Cheras', '6', '21'], ['Sungai Besi', '2', '14'], ['Puchong', '3', '17']], ['All branches', '11', '18']],
+      seenDoctor: ['CLINIC', 'Patients seen, per doctor', 'Consultations started today', 'DOCTOR', 'SEEN', 'AVG CONSULT (MIN)', 'Today', [['Dr. Farid', '14', '9'], ['Dr. Mei', '12', '8'], ['Dr. Kavin', '10', '11'], ['Dr. Hana Lee', '9', '10'], ['Dr. Rosli', '6', '7']], ['All doctors', '51', '9']],
+      sales: ['MONEY', 'Sales this week against last week', 'Net invoice sales, after adjustments', 'BRANCH', 'THIS WEEK', 'LAST WEEK', 'This week', [['Cheras', 'RM 14,280.00', 'RM 13,904.50'], ['Sungai Besi', 'RM 8,115.20', 'RM 8,620.00'], ['Puchong', 'RM 7,402.80', 'RM 6,988.10']], ['All branches', 'RM 29,798.00', 'RM 29,512.60']],
+      receipts: ['MONEY', 'Receipts by payment method', 'Net of reversals, by receipt date', 'METHOD', 'RECEIPTS', 'NET', 'Today', [['Cash', '28', 'RM 1,906.00'], ['Card', '14', 'RM 942.50'], ['DuitNow QR', '9', 'RM 468.00']], ['All methods', '51', 'RM 3,316.50']],
+      unclaimed: ['PANEL', 'Approved Panel invoices not yet claimed, per Panel', 'Approved responsibility with no claim', 'PANEL', 'INVOICES', 'AMOUNT', 'As of now', [['Synthetic Care TPA', '12', 'RM 1,140.00'], ['Demo Health Plus', '7', 'RM 655.00'], ['Sample Corp Sdn Bhd', '3', 'RM 270.00']], ['All Panels', '22', 'RM 2,065.00']],
+      overdue: ['PANEL', 'Overdue unclaimed invoices, per Panel', 'Past each Panel’s claim due rule', 'PANEL', 'OVERDUE', 'AMOUNT', 'As of now', [['Synthetic Care TPA', '4', 'RM 380.00'], ['Demo Health Plus', '1', 'RM 95.00']], ['All Panels', '5', 'RM 475.00']],
+      accepted: ['PANEL', 'Accepted but not yet paid, per Panel', 'Accepted claims less payments received', 'PANEL', 'CLAIMS', 'OUTSTANDING', 'As of now', [['Synthetic Care TPA', '18', 'RM 1,722.00'], ['Sample Corp Sdn Bhd', '6', 'RM 540.00']], ['All Panels', '24', 'RM 2,262.00']],
+      reorder: ['STOCK', 'Items at or below reorder level', 'Usable stock only; returns locations left out', 'ITEM · BRANCH', 'ON HAND', 'REORDER LEVEL', 'As of now', [['Paracetamol 500 mg · Cheras', '180 tab', '500 tab'], ['Ibuprofen 400 mg · Cheras', '90 tab', '200 tab'], ['Salbutamol inhaler · Puchong', '2 unit', '5 unit'], ['Normal saline 500 ml · Sungai Besi', '4 bottle', '6 bottle']], null],
+      expiring: ['STOCK', 'Batches expiring within 90 days', 'Branch-local dates', 'BATCH · BRANCH', 'ON HAND', 'EXPIRES', 'As of now', [['PC-0412 Paracetamol · Cheras', '80 tab', '31 Jan 2027'], ['CE-0931 Cetirizine · Cheras', '118 tab', '28 Jan 2027'], ['AM-1904 Amoxicillin · Puchong', '42 cap', '9 Dec 2026']], null],
+      expired: ['STOCK', 'Expired stock still on hand', 'Waiting for a governed write-off', 'BATCH · BRANCH', 'ON HAND', 'EXPIRED', 'As of now', [['LZ-0088 Lozenges · Sungai Besi', '12 box', '31 Oct 2026']], null]
+    };
+    const titles = ['CLINIC', 'MONEY', 'PANEL', 'STOCK'];
+    const qrow = on => 'display:flex;align-items:center;min-height:44px;padding:6px 10px;border:0;border-radius:14px;font:inherit;text-align:left;cursor:pointer;color:#111114;' + (on ? 'background:#f4f4f6;font-weight:600;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const groups = titles.map(g => ({ title: g, qs: Object.keys(Q).filter(k => Q[k][0] === g).map(k => ({ k: Q[k][1], pressed: String(sel === k), pick: () => this.setState({ sel: k }), row: qrow(sel === k) })) }));
+    const s = Q[sel];
+    const base = 'display:flex;align-items:center;gap:14px;padding:6px 10px;min-height:44px;border-bottom:1px solid #f6f6f8;';
+    const rows = s[7].map(([a, b, c]) => ({ a, b, c, row: base }));
+    if (s[8]) rows.push({ a: s[8][0], b: s[8][1], c: s[8][2], row: base + 'font-weight:600;border-bottom:0;border-top:1px solid #e6e6ea;margin-top:4px;' });
+    return {
+      accent, groups, rows, when: s[6],
+      ans: { k: s[1], basis: s[2], h0: s[3], h1: s[4], h2: s[5] },
+      how: [
+        { t: 'Each question runs one fixed, read-only database query. No AI service is called and nothing is written.' },
+        { t: 'Aggregates only: no patient names, IC numbers or clinical details.' },
+        { t: 'Doctor rows show display names (owner decision).' },
+        { t: 'Money figures are management numbers. To confirm with the clinic’s accountant before any filing.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

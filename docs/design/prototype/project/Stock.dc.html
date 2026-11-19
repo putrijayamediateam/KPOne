@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stock</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-wrap: wrap">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Siti" user-role="CA Supervisor" user-ini="SI" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Inventory · Cheras</div>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Search or scan barcode<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Receive delivery</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <!-- Left: worklists -->
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <nav aria-label="Stock worklists" style="background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">NEEDS A LOOK</span>
+          <sc-for list="{{lists}}" as="l" hint-placeholder-count="5">
+            <a href="#" style="{{l.row}}"><span style="{{l.ic}}">{{l.k}}</span><span style="flex: 1">{{l.label}}</span><span style="{{l.countStyle}}">{{l.count}}</span></a>
+          </sc-for>
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 14px 8px 6px">LOCATIONS</span>
+          <sc-for list="{{locs}}" as="l" hint-placeholder-count="3">
+            <a href="#" style="display: flex; align-items: center; justify-content: space-between; min-height: 38px; padding: 0 8px; border-radius: 12px; color: #3a3a40"><span>{{l.k}}</span><span style="font-size: 12px; color: #8a8a93">{{l.v}}</span></a>
+          </sc-for>
+        </nav>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Deliveries to check</h2>
+          <sc-for list="{{deliveries}}" as="d" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; padding: 10px; border-radius: 14px; background: #f8f8fa"><span style="font-weight: 500">{{d.k}}</span><span style="font-size: 12.5px; color: #6b6b73">{{d.v}}</span></div>
+          </sc-for>
+        </section>
+      </aside>
+
+      <!-- Middle: item list -->
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Low and near reorder</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">12 items · sorted by days left</span>
+            <span style="margin-left: auto; display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 3px">
+              <span style="padding: 4px 12px; border-radius: 999px; background: #ffffff; font-size: 12.5px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.08)">Medicines</span><span style="padding: 4px 12px; font-size: 12.5px; color: #6b6b73">Supplies</span>
+            </span>
+          </div>
+          <sc-for list="{{items}}" as="i" hint-placeholder-count="6">
+            <a href="#" style="{{i.row}}">
+              <span style="{{i.ic}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round"><rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-35 12 12)"></rect><path d="M9.3 8.1l3.4 4.9" transform="rotate(0)"></path></svg></span>
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{i.name}}</span><span style="font-size: 12px; color: #8a8a93">{{i.sub}}</span></span>
+              <span style="flex: 1 1 160px; min-width: 120px; display: flex; flex-direction: column; gap: 5px">
+                <span style="display: flex; justify-content: space-between; font-size: 12px"><span style="font-weight: 600">{{i.qty}}</span><span style="color: #8a8a93">reorder at {{i.reorder}}</span></span>
+                <span style="height: 6px; border-radius: 999px; background: #f1f1f4; overflow: hidden"><span style="{{i.bar}}"></span></span>
+              </span>
+              <span style="{{i.daysStyle}}">{{i.days}}</span>
+            </a>
+          </sc-for>
+        </section>
+      </main>
+
+      <!-- Right: selected item + agent -->
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 12px; align-items: center">
+            <span style="flex: none; width: 44px; height: 44px; border-radius: 14px; background: #f1ecfd; color: #6b3fc4; display: flex; align-items: center; justify-content: center; font-weight: 700">PC</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600; font-size: 16px">Paracetamol 500 mg</span><span style="font-size: 12.5px; color: #6b6b73">Tablet · counted in tablets</span></span>
+          </div>
+          <div style="display: flex; gap: 8px">
+            <sc-for list="{{detailStats}}" as="s" hint-placeholder-count="3">
+              <div style="flex: 1; background: #f8f8fa; border-radius: 14px; padding: 8px 10px"><div style="font-size: 17px; font-weight: 600">{{s.v}}</div><div style="font-size: 11.5px; color: #6b6b73">{{s.k}}</div></div>
+            </sc-for>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em">BATCHES · USE FIRST AT THE TOP</span>
+          <sc-for list="{{batches}}" as="b" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f1f1f4">
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{b.no}}</span><span style="font-size: 12px; color: #8a8a93">{{b.loc}}</span></span>
+              <span style="font-weight: 600">{{b.qty}}</span>
+              <span style="{{b.expStyle}}">{{b.exp}}</span>
+            </div>
+          </sc-for>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <sc-for list="{{actions}}" as="a" hint-placeholder-count="3"><button type="button" style="flex: 1 1 auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; font-weight: 500; cursor: pointer">{{a}}</button></sc-for>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span style="flex: none; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #7a2bd1, #c2185b); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">H</span>
+            <span style="flex: 1"><span style="display: block; font-weight: 600">Hana suggests</span><span style="font-size: 12px; color: #6b6b73">AI agent · checked at 07:00 · you decide</span></span>
+          </div>
+          <sc-for list="{{suggest}}" as="s" hint-placeholder-count="3">
+            <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 6px">
+              <span style="display: flex; gap: 8px; align-items: center"><span style="{{s.tag}}">{{s.kind}}</span><span style="font-weight: 500; font-size: 13px">{{s.title}}</span></span>
+              <span style="font-size: 12.5px; color: #6b6b73">{{s.note}}</span>
+              <span style="display: flex; gap: 8px"><span style="font-size: 12.5px; font-weight: 600; color: #111114; background: #ffffff; border-radius: 999px; padding: 4px 12px; box-shadow: 0 0 0 1px rgba(17,17,26,0.08)">Approve</span><span style="font-size: 12.5px; color: #6b6b73; padding: 4px 6px">Reject</span></span>
+            </div>
+          </sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const accent = this.props.accent ?? '#c2185b';
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const chip = hot => 'font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;' + (hot ? 'background:#fde7ef;color:#c2185b;' : 'background:#f4f4f6;color:#6b6b73;');
+    const list = (label, k, bg, fg, count, hot, on) => ({ label, k, count, ic: ic(bg, fg), countStyle: chip(hot), row: 'display:flex;align-items:center;gap:10px;min-height:42px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;' : 'color:#3a3a40;') });
+    const item = (name, sub, qty, reorder, pct, days, tone, on) => {
+      const col = tone === 'red' ? '#e5484d' : tone === 'amber' ? '#f5a524' : '#34c759';
+      const dbg = tone === 'red' ? 'background:#fde7ef;color:#c2185b;' : tone === 'amber' ? 'background:#fff4dc;color:#8a5a00;' : 'background:#e9f8ee;color:#1d7a3a;';
+      return {
+        name, sub, qty, reorder, days,
+        row: 'display:flex;align-items:center;gap:14px;padding:7px 10px;min-height:44px;border-radius:16px;' + (on ? 'background:#f4f4f6;' : ''),
+        ic: 'flex:none;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#f1ecfd;color:#6b3fc4;',
+        bar: 'display:block;height:100%;border-radius:999px;width:' + pct + '%;background:' + col + ';',
+        daysStyle: 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:4px 10px;white-space:nowrap;' + dbg
+      };
+    };
+    const tag = (bg, fg) => 'font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;background:' + bg + ';color:' + fg + ';';
+    const XPMAP = ['all', 'low', 'exp', null];
+    const XPD = {
+      all: { title: 'Items in stock · 142', note: 'Cheras · by form · usable stock only, patient returns left out', cols: [['FORM', 'minmax(170px,1.8fr)'], ['ITEMS', '70px', 'r'], ['LOW', '60px', 'r'], ['STATUS', 'minmax(150px,1fr)']], rows: [
+        ['Tablets', '64', '2', ['d', '2 low']],
+        ['Capsules', '22', '1', ['d', '1 low']],
+        ['Syrups and liquids', '14', '0', ['ok', 'Above reorder level']],
+        ['Inhalers', '6', '1', ['d', '1 low']],
+        ['Creams and gels', '11', '0', ['ok', 'Above reorder level']],
+        ['Dressings and consumables', '18', '0', ['ok', 'Above reorder level']],
+        ['IV fluids', '7', '1', ['d', '1 low']]
+      ], foot: 'An item kept in more than one location is counted once here.' },
+      low: { title: 'Low stock · 5', note: 'At or below the reorder level set for each location', cols: [['ITEM', 'minmax(170px,1.8fr)'], ['LOCATION', '120px'], ['ON HAND', '80px', 'r'], ['REORDER AT', '90px', 'r'], ['STATUS', 'minmax(170px,1.2fr)']], rows: [
+        ['Paracetamol 500 mg', 'Dispensary', '180 tab', '500', ['d', '2 days left · order open']],
+        ['Amoxicillin 250 mg', 'Dispensary', '96 cap', '200', ['d', '4 days left']],
+        ['Loratadine 10 mg', 'Dispensary', '60 tab', '100', ['w', '6 days left · transfer idea']],
+        ['Salbutamol inhaler', 'Store room', '4 unit', '6', ['w', '9 days left']],
+        ['Normal saline 0.9% 500 ml', 'Treatment room', '7 bag', '10', ['w', '12 days left']]
+      ], foot: 'Days left uses the last 30 days of dispensing. Suggestions from the stock agent wait in the approval inbox.' },
+      exp: { title: 'Expiring within 90 days · 3', note: 'By the branch-local date', cols: [['BATCH', '90px'], ['ITEM', 'minmax(170px,1.8fr)'], ['EXPIRES', '110px'], ['ON HAND', '90px', 'r'], ['STATUS', 'minmax(150px,1fr)']], rows: [
+        ['PC-0412', 'Paracetamol 500 mg', '31 Jan 2027', '80 tab', ['w', 'Use first · 74 days']],
+        ['AX-0110', 'Amoxicillin syrup 125 mg/5 ml', '2 Feb 2027', '6 bottle', ['w', 'Use first · 76 days']],
+        ['DX-0207', 'Dexamethasone 4 mg/ml', '31 Dec 2026', '10 ampoule', ['d', 'Review · 43 days']]
+      ], foot: 'Expired stock on hand is listed separately. A write-off goes through Write-off, approved by someone else.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent,
+      lists: [
+        list('Low stock', 'LO', '#fde7ef', '#c2185b', '5', true, true),
+        list('Expiring in 90 days', 'EX', '#fff4dc', '#8a5a00', '3', false),
+        list('Expired on hand', 'XD', '#eef0f3', '#3a3a40', '1', false),
+        list('On hold', 'HO', '#f1ecfd', '#5a32a8', '1', false),
+        list('Counts due', 'CT', '#e3f6f5', '#0b6f69', '12', false),
+        list('Returns to check', 'RT', '#e8f0fe', '#1a4fa8', '2', false)
+      ],
+      locs: [{ k: 'Dispensary', v: '128 items' }, { k: 'Store room', v: '64 items' }, { k: 'Treatment room', v: '18 items' }],
+      deliveries: [{ k: 'Supplier A · DO-2231', v: 'Arrived 09:40 · 6 lines' }, { k: 'Transfer from Puchong', v: 'Sent yesterday · 2 lines' }],
+      strip: xpWrap([stripItem('142', 'items in stock', true), stripItem('5', 'low'), stripItem('3', 'expire in 90 days'), stripItem('6 days', 'since last count')]),
+      items: [
+        item('Paracetamol 500 mg', 'Tablet · Dispensary', '180 tab', '500', 36, '2 days left', 'red', true),
+        item('Amoxicillin 250 mg', 'Capsule · Dispensary', '96 cap', '200', 48, '4 days left', 'red'),
+        item('Loratadine 10 mg', 'Tablet · Dispensary', '60 tab', '100', 60, '6 days left', 'amber'),
+        item('Salbutamol inhaler', 'Inhaler · Store room', '4 unit', '6', 66, '9 days left', 'amber'),
+        item('Normal saline 0.9% 500 ml', 'Bag · Treatment room', '7 bag', '10', 70, '12 days left', 'amber'),
+        item('Cetirizine 10 mg', 'Tablet · Dispensary', '120 tab', '150', 80, '14 days left', 'green'),
+        item('Omeprazole 20 mg', 'Capsule · Dispensary', '84 cap', '100', 84, '15 days left', 'green'),
+        item('Chlorpheniramine 4 mg', 'Tablet · Dispensary', '210 tab', '250', 84, '16 days left', 'green'),
+        item('Diclofenac gel 1%', 'Tube · Dispensary', '9 tube', '10', 90, '18 days left', 'green'),
+        item('Ibuprofen 400 mg', 'Tablet · Store room', '280 tab', '300', 93, '19 days left', 'green'),
+        item('Gauze swab 10 x 10', 'Pack · Treatment room', '14 pack', '15', 93, '21 days left', 'green'),
+        item('Metformin 500 mg', 'Tablet · Dispensary', '460 tab', '500', 92, '23 days left', 'green')
+      ],
+      detailStats: [{ v: '180', k: 'on hand' }, { v: '90', k: 'used per day' }, { v: '1,000', k: 'on order' }],
+      batches: [
+        { no: 'Batch PC-0412', loc: 'Dispensary', qty: '80', exp: 'exp 12/2026', expStyle: 'font-size:12px;font-weight:600;color:#8a5a00;background:#fff4dc;border-radius:999px;padding:2px 8px;white-space:nowrap;' },
+        { no: 'Batch PC-0519', loc: 'Dispensary', qty: '100', exp: 'exp 05/2027', expStyle: 'font-size:12px;color:#6b6b73;white-space:nowrap;' }
+      ],
+      actions: ['Request transfer', 'Start count', 'History'],
+      suggest: [
+        { kind: 'RESTOCK', title: 'Paracetamol 500 mg · 1,000 tab', note: 'An order of 1,000 is already open: check before approving.', tag: tag('#fde7ef', '#c2185b') },
+        { kind: 'TRANSFER', title: 'Loratadine 10 mg · 40 tab from Puchong', note: 'Puchong stays above its own level.', tag: tag('#e8f0fe', '#1a4fa8') },
+        { kind: 'EXPIRY', title: 'Batch PC-0412 · use first', note: 'Expires in 74 days.', tag: tag('#fff4dc', '#8a5a00') }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

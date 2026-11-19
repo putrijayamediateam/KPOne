@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job applications</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Job applications</div>
+      <span style="margin-left: auto; font-size: 12px; color: #8a8a93">From the public job form. Turning an applicant into staff stays with the account administrator.</span>
+      <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Positions</button><button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Settings</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; padding: 0 8px 10px">Steps</h2>
+        <nav aria-label="Job application sections" style="display: flex; flex-direction: column; gap: 2px">
+          <sc-for list="{{steps}}" as="t" hint-placeholder-count="8"><button type="button" onClick="{{t.pick}}" aria-current="{{t.cur}}" style="{{t.row}}"><span style="flex: 1">{{t.label}}</span><span style="{{t.countStyle}}">{{t.count}}</span></button></sc-for>
+        </nav>
+        <span style="font-size: 12px; color: #8a8a93; padding: 12px 8px 0">At phone screening, the daily check closes an application as Auto-rejected after 3 working days without a decision.</span>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.tile}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h1 style="margin: 0; font-size: 17px; font-weight: 600">{{listTitle}}</h1><span style="font-size: 12px; color: #8a8a93">{{listCount}}</span></div>
+          <sc-for list="{{apps}}" as="a" hint-placeholder-count="12">
+            <button type="button" onClick="{{a.pick}}" aria-pressed="{{a.pressed}}" style="{{a.row}}">
+              <span style="{{a.av}}">{{a.ini}}</span>
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{a.name}}</span><span style="font-size: 12px; color: #8a8a93">{{a.pos}} · {{a.branch}}</span></span>
+              <span style="flex: none; width: 110px; font-size: 12.5px; color: #6b6b73">{{a.when}}</span>
+              <span style="flex: none; width: 128px; display: flex; justify-content: flex-end"><span style="{{a.stStyle}}">{{a.st}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 10px"><span style="{{cur.av}}">{{cur.ini}}</span><div style="flex: 1; min-width: 0"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{cur.name}}</h2><span style="font-size: 12.5px; color: #6b6b73">{{cur.pos}} · {{cur.branch}}</span></div></div>
+          <span style="{{cur.stStyle}}; align-self: flex-start">{{cur.st}}</span>
+          <sc-for list="{{cur.facts}}" as="f" hint-placeholder-count="4"><div style="display: flex; justify-content: space-between; gap: 10px; min-height: 30px; border-bottom: 1px solid #f4f4f6; font-size: 13px"><span style="color: #6b6b73">{{f.k}}</span><span style="text-align: right; font-weight: 500">{{f.v}}</span></div></sc-for>
+          <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; align-self: flex-start">Open CV (PDF, 184 KB)</button>
+          <span style="font-size: 12px; color: #8a8a93">Every CV open is recorded before the file is sent.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Phone screening checklist</h2>
+          <sc-for list="{{checks}}" as="k" hint-placeholder-count="4"><button type="button" role="checkbox" aria-checked="{{k.on}}" onClick="{{k.pick}}" style="display: flex; align-items: center; gap: 10px; min-height: 40px; border: 0; background: transparent; font: inherit; color: #111114; text-align: left; cursor: pointer; padding: 0"><span style="{{k.box}}">{{k.mark}}</span>{{k.t}}</button></sc-for>
+          <span style="font-size: 12.5px; color: #6b6b73; padding-top: 4px">How it went</span>
+          <div style="display: flex; gap: 6px"><sc-for list="{{rating}}" as="r" hint-placeholder-count="5"><button type="button" onClick="{{r.pick}}" aria-pressed="{{r.on}}" style="{{r.style}}">{{r.n}}</button></sc-for></div>
+          <span style="font-size: 12px; color: #8a8a93">1 Weak · 5 Strong</span>
+        </section>
+        <div style="display: flex; gap: 8px"><button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; flex: 1">Reject…</button></div>
+        <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 44px">{{nextLabel}}</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      'interviews today': { t: 'Interviews today', n: 'Wed 18 Nov · branch-local times', c: ['Applicant', 'Position', 'Branch', 'Time', 'Status'], w: 'minmax(150px,1.4fr) minmax(120px,1fr) 90px 70px 190px',
+        r: [['Siti Hajar Ismail', 'Clinic Assistant', 'Cheras', '15:00', ['Confirmed', 'ok']], ['Chong Kai Xin', 'Intern', 'Puchong', '16:30', ['Time proposed, not confirmed', 'warn']]] },
+      'new this week': { t: 'New this week', n: 'From the public application form', c: ['Applicant', 'Position', 'Branch', 'Sent', 'Status'], w: 'minmax(150px,1.4fr) minmax(120px,1fr) 90px 110px 90px',
+        r: [['Nur Izzati Hamdan', 'Clinic Assistant', 'Cheras', 'today, 09:12', ['New', 'info']], ['Tan Jia Wen', 'Clinic Assistant', 'Puchong', 'today, 08:40', ['New', 'info']], ['Amirah Sofia', 'Clinic Assistant', 'Puchong', '16 Nov', ['New', 'info']]] },
+      'close soon without a decision': { t: 'Close soon without a decision', n: 'An application with no next step closes on its own', c: ['Applicant', 'Position', 'Branch', 'Step', 'Status'], w: 'minmax(150px,1.4fr) minmax(120px,1fr) 90px 130px 170px',
+        r: [['Aiman Zulkifli', 'Clinic Assistant', 'Cheras', 'Phone screening', ['Closes today', 'bad']], ['Muhammad Danial', 'Clinic Assistant', 'Sg. Besi', 'Phone screening', ['Closes in 1 working day', 'bad']]] },
+      'open positions': { t: 'Open positions', n: 'Shown on the public form', c: ['Position', 'Branch', '>Applicants', 'Status'], w: 'minmax(150px,1.4fr) 100px 100px 110px',
+        r: [['Clinic Assistant', 'Cheras', '4', ['Open', 'ok']], ['Clinic Assistant', 'Puchong', '3', ['Open', 'ok']], ['Clinic Assistant', 'Sg. Besi', '1', ['Open', 'ok']], ['Locum doctor', 'Cheras', '1', ['Open', 'ok']], ['Locum doctor', 'Sg. Besi', '1', ['Open', 'ok']], ['Intern', 'Puchong', '1', ['Open', 'ok']]] }
+    };
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const step = S.step || 'open';
+    const SL = { new: ['New', 'blue'], phone_screening: ['Phone screening', 'amber'], scheduling: ['Scheduling', 'violet'], interview: ['Interview', 'teal'], passed: ['Passed', 'green'], offered: ['Offered', 'green'], closed: ['Not taken forward', 'grey'] };
+    const A = [
+      ['Nur Izzati Hamdan', 'Clinic Assistant', 'Cheras', 'today, 09:12', 'new'],
+      ['Tan Jia Wen', 'Clinic Assistant', 'Puchong', 'today, 08:40', 'new'],
+      ['Muhammad Danial', 'Clinic Assistant', 'Sg. Besi', 'yesterday', 'phone_screening', 'Closes in 1 working day'],
+      ['Priya Devi', 'Locum doctor', 'Cheras', '15 Nov', 'phone_screening'],
+      ['Aiman Zulkifli', 'Clinic Assistant', 'Cheras', '14 Nov', 'phone_screening', 'Closes today'],
+      ['Chong Kai Xin', 'Intern', 'Puchong', '13 Nov', 'scheduling'],
+      ['Siti Hajar Ismail', 'Clinic Assistant', 'Cheras', '12 Nov', 'interview', 'Interview today, 15:00'],
+      ['Dr. Arvind Raj', 'Locum doctor', 'Sg. Besi', '11 Nov', 'interview', 'Interview 20 Nov, 10:30'],
+      ['Farah Nadia', 'Clinic Assistant', 'Puchong', '8 Nov', 'passed'],
+      ['Lee Hui Ling', 'Clinic Assistant', 'Cheras', '5 Nov', 'offered'],
+      ['Haziq Rosli', 'Clinic Assistant', 'Cheras', '3 Nov', 'closed'],
+      ['Wong Mei Ling', 'Intern', 'Sg. Besi', '1 Nov', 'closed'],
+      ['Amirah Sofia', 'Clinic Assistant', 'Puchong', '16 Nov', 'new']
+    ];
+    const STEPS = [['open', 'All open'], ['new', 'New'], ['phone_screening', 'Phone screening'], ['scheduling', 'Scheduling'], ['interview', 'Interview'], ['passed', 'Passed'], ['offered', 'Offered'], ['closed', 'Closed']];
+    const match = (r, k) => k === 'open' ? r[4] !== 'closed' && r[4] !== 'offered' : r[4] === k;
+    const steps = STEPS.map(([k, label]) => { const n = A.filter(r => match(r, k)).length; return { label, count: String(n), countStyle: chip(k === 'phone_screening' ? 'amber' : 'grey'), cur: step === k ? 'page' : 'false', row: navRow(step === k), pick: () => this.setState({ step: k, sel: undefined }) }; });
+    const rows = A.map((r, i) => [r, i]).filter(([r]) => match(r, step));
+    const selIdx = S.sel !== undefined && rows.some(x => x[1] === S.sel) ? S.sel : (rows[0] ? rows[0][1] : 0);
+    const tones = ['violet', 'teal', 'blue', 'amber', 'red'];
+    const ini = n => n.replace('Dr. ', '').split(' ').map(w => w[0]).slice(0, 2).join('');
+    const apps = rows.map(([r, i]) => ({ name: r[0], pos: r[1], branch: r[2], when: r[5] || 'Sent ' + r[3], ini: ini(r[0]), av: av(tones[i % 5]), st: SL[r[4]][0], stStyle: chip(r[5] && r[5].indexOf('Closes') === 0 ? 'red' : SL[r[4]][1]), row: rowSel(i === selIdx) + 'gap:12px;', pressed: String(i === selIdx), pick: () => this.setState({ sel: i }) }));
+    const c = A[selIdx];
+    const nextOf = { new: 'Move to Phone screening', phone_screening: 'Move to Scheduling', scheduling: 'Confirm interview', interview: 'Move to Passed', passed: 'Ask for a staff account', offered: 'Ask for a staff account', closed: 'Copy to a new application' };
+    const ticks = S.ticks || [true, true, false, false];
+    const checks = ['Confirmed the branch and hours', 'Asked about start date', 'Explained the pay range', 'Asked about transport'].map((t, i) => ({ t, on: String(!!ticks[i]), mark: ticks[i] ? '✓' : '', box: 'flex:none;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (ticks[i] ? 'background:#111114;color:#ffffff;' : 'background:#ffffff;box-shadow:inset 0 0 0 1.5px #c4c4cc;'), pick: () => { const n = ticks.slice(); n[i] = !n[i]; this.setState({ ticks: n }); } }));
+    const rate = S.rate || 4;
+    const rating = [1, 2, 3, 4, 5].map(n => ({ n: String(n), on: String(rate === n), pick: () => this.setState({ rate: n }), style: 'flex:1;min-height:40px;border:0;border-radius:12px;font:inherit;font-weight:600;cursor:pointer;' + (rate === n ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#6b6b73;') }));
+    const label = STEPS.find(s => s[0] === step)[1];
+    const __base = {
+      accent, steps, apps, checks, rating, nextLabel: nextOf[c[4]],
+      listTitle: label, listCount: apps.length + ' shown',
+      cur: { name: c[0], pos: c[1], branch: c[2], ini: ini(c[0]), av: av('violet'), st: SL[c[4]][0], stStyle: chip(SL[c[4]][1]),
+        facts: [{ k: 'Sent', v: c[3] }, { k: 'Phone', v: '01•-•••• 4471 · Show' }, { k: 'Email', v: '••••@example.test · Show' }, { k: 'Notice period', v: '2 weeks' }] },
+      strip: [stripItem('2', 'interviews today', true), stripItem('3', 'new this week'), stripItem('2', 'close soon without a decision'), stripItem('6', 'open positions')]
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      steps: __x.steps,
+      apps: __x.apps,
+      checks: __x.checks,
+      rating: __x.rating,
+      nextLabel: __x.nextLabel,
+      listTitle: __x.listTitle,
+      listCount: __x.listCount,
+      cur: __x.cur,
+      strip: __x.strip,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

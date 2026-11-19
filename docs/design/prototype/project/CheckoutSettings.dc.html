@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="Cheras" user-name="Rina P." user-role="Panel Officer" user-ini="RP" duty="08:30" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Checkout settings · Panels</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director, Finance Officer, Panel Officer and Administrator</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Settings sections" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{sections}}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 4px">{{g.title}}</span>
+            <sc-for list="{{g.items}}" as="t" hint-placeholder-count="4">
+              <a href="#" aria-current="{{t.cur}}" style="{{t.style}}"><span style="{{t.ic}}">{{t.k}}</span><span>{{t.label}}</span></a>
+            </sc-for>
+          </div>
+        </sc-for>
+      </nav>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Panels</h1>
+            <div role="tablist" aria-label="Panel status" style="display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #f4f4f6; min-width: 270px">
+              <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+            </div>
+            <span style="flex: 1 1 160px; display: flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 999px; background: #f4f4f6; color: #8a8a93; font-size: 13px">Search name or code</span>
+            <button type="button" onClick="{{addNew}}" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; cursor: pointer">+ Add panel</button>
+          </div>
+          <div aria-hidden="true" style="display: flex; gap: 12px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.03em; border-bottom: 1px solid #f1f1f4"><span style="flex: 1">PANEL</span><span style="width: 150px">TYPE</span><span style="width: 170px">CLAIM DUE</span><span style="width: 86px; text-align: right">STATUS</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="{{r.ic}}">{{r.code}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.company}}</span></span>
+              <span style="width: 150px; font-size: 12.5px; color: #3a3a40">{{r.type}}</span>
+              <span style="width: 170px; font-size: 12.5px; color: #3a3a40">{{r.due}}</span>
+              <span style="width: 86px; display: flex; justify-content: flex-end; align-items: center; gap: 8px"><span style="{{r.chip}}">{{r.state}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+        <section aria-labelledby="h-self" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+          <button type="button" aria-expanded="{{selfx.exp}}" aria-controls="xp-panel" onClick="{{selfx.open}}" style="all: unset; cursor: pointer; flex: 1 1 260px; display: flex; align-items: center; gap: 10px; border-radius: 14px; min-height: 44px"><span style="flex: 1; min-width: 0"><h2 id="h-self" style="margin: 0; font-size: 14px; font-weight: 600">Self-pay</h2><span style="font-size: 12.5px; color: #6b6b73">Cash, Card terminal, DuitNow QR and 5 more active methods. <b style="color: #111114; font-weight: 600">{{selfx.hint}} all 8</b></span></span><span data-xp-chev="" aria-hidden="true" style="{{selfx.chev}}">⌄</span></button>
+          <a href="#" style="font-size: 13px; font-weight: 500; padding: 9px 14px; border-radius: 999px; background: #f4f4f6">Payment methods ›</a>
+          <a href="#" style="font-size: 13px; font-weight: 500; padding: 9px 14px; border-radius: 999px; background: #f4f4f6">Claim message template ›</a>
+        </section>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-pf" style="flex: 0 0 400px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div><span style="display: block; font-size: 12px; color: #6b6b73">{{f.eyebrow}}</span><h2 id="h-pf" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{f.title}}</h2></div>
+          <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Panel type</span>
+            <div role="radiogroup" aria-label="Panel type" style="display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #f4f4f6">
+              <sc-for list="{{types}}" as="t" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <sc-for list="{{fields}}" as="x" hint-placeholder-count="9">
+              <label style="{{x.wrap}}"><span style="font-size: 12.5px; font-weight: 500; color: #3a3a40">{{x.k}} <span style="color: #8a8a93; font-weight: 400">{{x.hint}}</span></span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; min-width: 0; color: {{x.color}}"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{x.v}}</span><span aria-hidden="true" style="color: #8a8a93">{{x.lock}}</span></span></label>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 18px; background: #f8f8fa">
+            <span style="font-size: 13px; font-weight: 600">Claim due rule</span>
+            <div role="radiogroup" aria-label="Claim due rule" style="display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #ececf0">
+              <sc-for list="{{rules}}" as="t" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+              <sc-for list="{{ruleFields}}" as="x" hint-placeholder-count="2">
+                <label style="display: flex; flex-direction: column; gap: 6px; min-width: 0"><span style="font-size: 12.5px; font-weight: 500; color: #3a3a40">{{x.k}}</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; min-width: 0; background: #ffffff">{{x.v}}<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+              </sc-for>
+            </div>
+            <span style="font-size: 12px; color: #6b6b73">{{ruleNote}} Times are in the branch time zone.</span>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Prices: this Panel uses the default Panel price book unless it has its own (set in Prices). A Panel is archived, never deleted.</span>
+        </section>
+        <div style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">{{f.second}}</button>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{f.primary}}</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ self: { title: 'Self-pay methods', note: '8 active · set on Payment methods', cols: 'minmax(0,1.4fr) 140px minmax(0,1fr) auto', head: ['METHOD','CODE','REFERENCE','CLASS'], filterCol: 3,
+  rows: [['Cash','CASH','Not asked',['Cash','ok']],['Card terminal','CARD','Reference asked',['Non-cash','info']],['DuitNow QR','DUITNOW_QR','Reference asked',['Non-cash','info']],['Debit card (MyDebit)','MYDEBIT','Reference asked',['Non-cash','info']],['Touch ’n Go eWallet','TNG_EWALLET','Reference asked',['Non-cash','info']],['GrabPay','GRABPAY','Reference asked',['Non-cash','info']],['ShopeePay','SHOPEEPAY','Reference asked',['Non-cash','info']],['Bank transfer','BANK_TRANSFER','Reference asked',['Not classified','warn']]],
+  foot: 'A provider fee on e-wallets is reconciled outside KPOne.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], grey: ['#f4f4f6', '#6b6b73'], blue: ['#e8f0fe', '#1a4fa8'], violet: ['#f1ecfd', '#5a32a8'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const selRow = on => 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border:0;width:100%;box-sizing:border-box;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const seg = on => 'flex:1;border:0;border-radius:999px;min-height:38px;padding:0 12px;font:inherit;font-weight:500;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 3px rgba(17,17,26,0.12),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const CUR = 'pn';
+    const setIc = c => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#ffffff;background:' + c + ';';
+    const mk = (label, k, c, on) => ({ label, k, ic: setIc(c), cur: on ? 'page' : 'false', style: 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'color:#3a3a40;') });
+    const sections = [
+      { title: 'CLINIC', items: [mk('Business details', 'Bz', '#111114'), mk('Registration', 'Rg', '#ff9f0a'), mk('Consultation', 'Cn', '#0a84ff'), mk('QR check-in', 'QR', '#5e5ce6'), mk('Waiting-room TV', 'TV', '#30b0c7')] },
+      { title: 'MONEY', items: [mk('Payment methods', 'Pm', '#34c759', CUR === 'pm'), mk('Panels', 'Pn', '#bf5af2', CUR === 'pn'), mk('Approval limits', 'Lm', '#ff375f', CUR === 'lm')] },
+      { title: 'CATALOGUE', items: [mk('Medicines', 'Md', '#ff9f0a'), mk('Services', 'Sv', '#0a84ff'), mk('Prices', 'RM', '#34c759'), mk('Suppliers', 'Sp', '#8a8a93')] }
+    ];
+
+    const tabK = st.tab || 'all';
+    const sel = st.sel ?? 0;
+    const isNew = sel === -1;
+    const P = [
+      ['AIA', 'AIA (TPA)', 'AIA Shared Services Sdn Bhd', 'tpa', ['days', 30], true],
+      ['PMC', 'PMCare', 'PMCare Sdn Bhd', 'tpa', ['monthly', 'Day 5'], true],
+      ['MED', 'MiCare', 'MiCare Sdn Bhd', 'tpa', ['weekly', 'Monday'], true],
+      ['HLT', 'Health Connect', 'Health Connect Sdn Bhd', 'tpa', ['days', 14], true],
+      ['CLG', 'Contoh Logistik', 'Contoh Logistik Sdn Bhd', 'direct', ['monthly', 'Last day'], true],
+      ['CKS', 'Contoh Kilang Selatan', 'Contoh Kilang Selatan Sdn Bhd', 'direct', ['days', 30], true],
+      ['PSM', 'Pasaraya Seri Maju', 'Seri Maju Retail Sdn Bhd', 'direct', ['daily', '6:00 PM'], true],
+      ['ASR', 'Asuransi Rakyat', 'Asuransi Rakyat Berhad', 'tpa', ['days', 45], true],
+      ['UTM', 'Uni Teknik Maju', 'Uni Teknik Maju Sdn Bhd', 'direct', ['monthly', 'Day 1'], true],
+      ['BNK', 'Bank Contoh staff', 'Bank Contoh Berhad', 'direct', ['days', 30], true],
+      ['OLD', 'Old Panel (2024)', 'Lama Holdings Sdn Bhd', 'direct', ['days', 30], false],
+      ['FAS', 'Fasa Sihat', 'Fasa Sihat Sdn Bhd', 'tpa', ['days', 60], false]
+    ];
+    const ruleText = r => r[0] === 'days' ? r[1] + ' days after visit' : r[0] === 'daily' ? 'Daily by ' + r[1] : r[0] === 'weekly' ? 'Every ' + r[1] : 'Monthly · ' + r[1];
+    const tabStyle = on => 'flex:1;border:0;border-radius:999px;min-height:32px;padding:0 10px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 3px rgba(17,17,26,0.12);' : 'background:transparent;color:#6b6b73;');
+    const tabs = [['all', 'All · ' + P.length], ['active', 'Active · ' + P.filter(p => p[5]).length], ['archived', 'Archived · ' + P.filter(p => !p[5]).length]].map(([k, label]) => ({ label, on: String(tabK === k), pick: () => this.setState({ tab: k, sel: 0 }), style: tabStyle(tabK === k) }));
+    const shown = P.map((p, i) => [p, i]).filter(([p]) => tabK === 'all' || (tabK === 'active') === p[5]);
+    const rows = shown.map(([p, i]) => ({ code: p[0], name: p[1], company: p[2], type: p[3] === 'tpa' ? 'Third Party Administrator' : 'Direct company', due: ruleText(p[4]), state: p[5] ? 'Active' : 'Archived', chip: chip(p[5] ? 'green' : 'grey'), ic: ic(p[5] ? '#f1ecfd' : '#f4f4f6', p[5] ? '#5a32a8' : '#8a8a93'), pressed: String(i === sel), pick: () => this.setState({ sel: i, rule: null, ptype: null }), row: selRow(i === sel) }));
+    const p = isNew ? ['', 'New panel', '', 'tpa', ['days', 30], true] : P[sel];
+    const ptype = st.ptype || p[3];
+    const rule = st.rule || p[4][0];
+    const types = [['tpa', 'Third Party Administrator'], ['direct', 'Direct company']].map(([k, label]) => ({ label, on: String(ptype === k), pick: () => this.setState({ ptype: k }), style: seg(ptype === k) }));
+    const rules = [['days', 'Days after visit'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([k, label]) => ({ label, on: String(rule === k), pick: () => this.setState({ rule: k }), style: seg(rule === k) + 'font-size:12.5px;padding:0 6px;' }));
+    const RF = {
+      days: [[{ k: 'Days after the visit', v: rule === p[4][0] ? String(p[4][1]) : '30' }, { k: 'Follow up after (days)', v: '30' }], 'Due a whole number of days after the visit date.'],
+      daily: [[{ k: 'Submit by', v: '6:00 PM' }, { k: 'Day', v: 'Same day as visit' }], 'Due by this time, the same day or up to 3 days after the visit.'],
+      weekly: [[{ k: 'Weekday', v: 'Monday' }, { k: 'By', v: '12:00 PM' }], 'Due by this time on the next named weekday after the visit.'],
+      monthly: [[{ k: 'Day of month', v: 'Day 5' }, { k: 'By', v: '5:00 PM' }], 'Due on this day (1 to 28) of the month after the visit, or the last day of the visit month.']
+    };
+    const blank = isNew;
+    const F = (k, v, opt) => Object.assign({ k, v: blank && !(opt && opt.keep) ? (opt && opt.ph) || '' : v, hint: '', lock: '', color: blank ? '#8a8a93' : '#111114', wrap: 'display:flex;flex-direction:column;gap:6px;min-width:0;' + (opt && opt.wide ? 'grid-column:1/-1;' : '') }, opt && opt.extra);
+    const fields = [
+      F('Panel name', p[1], { ph: 'e.g. AIA (TPA)' }),
+      Object.assign(F('Code', p[0], { ph: 'e.g. AIA' }), isNew ? { hint: '· cannot change later' } : { lock: '🔒', color: '#6b6b73', hint: '· fixed' }),
+      F('Company name', p[2], { wide: true, ph: 'Registered company name' }),
+      Object.assign(F('SSM number', '201901234567', { ph: '12 digits' }), { hint: '· 12 digits' }),
+      Object.assign(F('Income Tax Number (TIN)', 'C 2345678901', { ph: 'For e-invoice' }), { hint: '· stored only' }),
+      F('Person in charge', 'Encik Contoh Hamid', { ph: 'Name' }),
+      F('Phone', '03-2100 0000', { ph: '03-…' }),
+      F('Email', 'claims@example.test', { wide: true, ph: 'name@company.test' }),
+      F('Address', 'Menara Contoh, Jalan Contoh, 50450 Kuala Lumpur', { wide: true, ph: 'Line 1, city, postcode' }),
+      Object.assign(F('Verification link or remark', 'https://portal.example.test/verify', { wide: true, ph: 'https:// link or a short remark' }), { hint: '· https only, or up to 500 characters' })
+    ];
+    return {
+      ...XP.holes,
+      selfx: XP.tile('self'),
+      accent, sections, tabs, rows, types, rules, fields,
+      addNew: () => this.setState({ sel: -1, rule: 'days', ptype: 'tpa' }),
+      ruleFields: RF[rule][0], ruleNote: RF[rule][1],
+      f: isNew ? { eyebrow: 'Add panel', title: 'New panel', second: 'Cancel', primary: 'Add panel' } : { eyebrow: 'Edit panel · ' + (p[5] ? 'Active' : 'Archived'), title: p[1], second: p[5] ? 'Archive' : 'Restore', primary: 'Save panel' }
+    };
+
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoices history</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="front" accent="{{accent}}" branch="Cheras" user-name="Aina" user-role="CA" user-ini="AI" duty="07:48" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <a href="#" style="font-size: 13px; color: #6b6b73">‹ Registration</a><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Invoices · Lim Wei Han</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Completed visits only · newest first</span>
+      <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.10); cursor: pointer">Logs</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 260px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: none; background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; gap: 10px"><span style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: #e3f6f5; color: #0b6f69; display: flex; align-items: center; justify-content: center; font-weight: 600">LW</span><span style="min-width: 0"><span style="display: block; font-weight: 600">Lim Wei Han</span><span style="font-size: 12px; color: #6b6b73">KP-0003561 · ••••••••4419</span></span></div>
+          <span style="font-size: 12.5px; color: #6b6b73">Male · 41 y · Malaysian</span>
+          <span style="align-self: flex-start; font-size: 12px; font-weight: 600; color: #c2185b; background: #fde7ef; border-radius: 999px; padding: 2px 10px">Allergy: Sulfonamides</span>
+        </section>
+        <nav aria-label="Visits" style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <h2 style="margin: 0; padding: 0 8px 8px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Visits · 9</h2>
+          <sc-for list="{{visits}}" as="v" hint-placeholder-count="9">
+            <button type="button" onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="{{v.row}}"><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{v.date}}</span><span style="font-size: 12px; color: #8a8a93">{{v.sub}}</span></span><span style="font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums">{{v.total}}</span></button>
+          </sc-for>
+        </nav>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="flex: none; border-radius: 22px; padding: 16px 20px; color: #ffffff; background: radial-gradient(120% 160% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%); display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+          <div style="flex: 1; min-width: 220px"><span style="font-size: 12.5px; opacity: 0.85">{{cur.no}} · {{cur.type}} · {{cur.branch}}</span><h1 style="margin: 2px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{cur.date}} · {{cur.doctor}}</h1></div>
+          <span style="font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.2); border-radius: 999px; padding: 4px 12px">Completed</span>
+        </div>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Ordered and dispensed</h2><span style="font-size: 12.5px; color: #8a8a93">The doctor's order is kept beside what the CA gave</span></div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em"><span style="flex: 1 1 200px">DOCTOR ORDERED</span><span style="flex: 1 1 200px">DISPENSED</span><span style="flex: none; width: 110px; text-align: center">CHANGE</span></div>
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="8">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1 1 200px; min-width: 0"><span style="{{l.oStyle}}">{{l.o}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{l.oSub}}</span></span>
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{l.d}}</span><span style="font-size: 12px; color: #8a8a93">{{l.dSub}}</span></span>
+              <span style="{{l.cStyle}}">{{l.c}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Invoice {{cur.inv}}</h2><span style="font-size: 12px; font-weight: 600; color: #1d7a3a; background: #e9f8ee; border-radius: 999px; padding: 2px 9px">Paid</span></div>
+          <sc-for list="{{invA}}" as="i" hint-placeholder-count="1">
+            <div style="{{i.row}}"><span>{{i.k}}</span><span style="font-variant-numeric: tabular-nums">{{i.v}}</span></div>
+          </sc-for>
+          <sc-for list="{{invX}}" as="i" hint-placeholder-count="1">
+            <button type="button" aria-expanded="{{i.exp}}" aria-controls="{{i.pid}}" onClick="{{i.tog}}" style="{{i.bstyle}}"><span style="flex: 1">{{i.k}}</span><span style="font-variant-numeric: tabular-nums">{{i.v}}</span><span aria-hidden="true" data-xp="1" style="{{i.chev}}">⌄</span></button>
+          </sc-for>
+          <sc-for list="{{inv}}" as="i" hint-placeholder-count="4">
+            <div style="{{i.row}}"><span>{{i.k}}</span><span style="font-variant-numeric: tabular-nums">{{i.v}}</span></div>
+          </sc-for>
+        </section>
+        <sc-for list="{{invP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Documents</h2>
+          <sc-for list="{{docs}}" as="d" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 48px; border-bottom: 1px solid #f1f1f4"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{d.k}}</span><span style="font-size: 12px; color: #8a8a93">{{d.sub}}</span></span><span style="{{d.tagStyle}}">{{d.tag}}</span></div>
+          </sc-for>
+          <sc-for list="{{docsX}}" as="d" hint-placeholder-count="1">
+            <button type="button" aria-expanded="{{d.exp}}" aria-controls="{{d.pid}}" onClick="{{d.tog}}" style="{{d.bstyle}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{d.k}}</span><span style="font-size: 12px; color: #8a8a93">{{d.sub}}</span></span><span style="{{d.tagStyle}}">{{d.tag}}</span><span aria-hidden="true" data-xp="1" style="{{d.chev}}">⌄</span></button>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Printing records the copy: first print ORIGINAL, then COPY; a changed invoice prints REVISED.</span>
+        </section>
+        <sc-for list="{{docP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <div class="kp-actions" style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Print receipt</button>
+          <button type="button" style="flex: 1.4; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Print invoice</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const sel = (this.state && this.state.sel) || 0;
+    const V = [
+      ['17 Nov 2026', 'Consultation · Dr. Farid', 'RM 78.50', 'KPV-00004812', 'INV/CHR/2026/004812', 'Cheras'],
+      ['2 Oct 2026', 'Consultation · Dr. Mei', 'RM 45.00', 'KPV-00004120', 'INV/CHR/2026/004120', 'Cheras'],
+      ['21 Sep 2026', 'OTC · no doctor', 'RM 12.80', 'KPV-00003988', 'INV/CHR/2026/003988', 'Cheras'],
+      ['30 Aug 2026', 'Consultation · Dr. Farid', 'RM 62.00', 'KPV-00003501', 'INV/PCG/2026/003501', 'Puchong'],
+      ['14 Jul 2026', 'Consultation · Dr. Farid', 'RM 55.00', 'KPV-00002977', 'INV/CHR/2026/002977', 'Cheras'],
+      ['3 Jun 2026', 'Consultation · Panel', 'RM 90.00', 'KPV-00002433', 'INV/CHR/2026/002433', 'Cheras'],
+      ['19 Apr 2026', 'OTC · no doctor', 'RM 8.40', 'KPV-00001902', 'INV/CHR/2026/001902', 'Cheras'],
+      ['8 Feb 2026', 'Consultation · Dr. Mei', 'RM 48.00', 'KPV-00001250', 'INV/SGB/2026/001250', 'Sungai Besi'],
+      ['5 Jan 2026', 'Consultation · Dr. Farid', 'RM 51.00', 'KPV-00000911', 'INV/CHR/2026/000911', 'Cheras']
+    ];
+    const visits = V.map(([date, sub, total], i) => ({ date, sub, total, pressed: String(sel === i), pick: () => this.setState(Object.assign({}, XS, { sel: i, xo: '' })), row: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 10px;border:0;border-radius:14px;font:inherit;color:#111114;cursor:pointer;' + (sel === i ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;') }));
+    const v = V[sel];
+    const otc = v[1].indexOf('OTC') === 0;
+    const cur = { date: v[0], no: v[3], inv: v[4], branch: v[5], type: otc ? 'OTC visit' : 'Consultation', doctor: otc ? 'Medicine only' : v[1].split('· ')[1] };
+    const ch = c => 'flex:none;width:110px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 0;' + (c === 'As ordered' ? 'background:#e9f8ee;color:#1d7a3a;' : c === 'Removed' ? 'background:#fde7ef;color:#c2185b;' : c === 'Added by CA' ? 'background:#e8f0fe;color:#1a4fa8;' : 'background:#fff4dc;color:#8a5a00;');
+    const L = otc ? [
+      ['—', '', 'Paracetamol 500 mg · 10 tab', '1 tab when needed for fever', 'Added by CA'],
+      ['—', '', 'Cetirizine 10 mg · 7 tab', '1 tab at night', 'Added by CA']
+    ] : [
+      ['Paracetamol 500 mg · 20 tab', '2 tab, 3 times a day, 3 days', 'Paracetamol 500 mg · 20 tab', 'Batch PC-0519 · exp 05/2027', 'As ordered'],
+      ['Amoxicillin 250 mg · 21 cap', '1 cap, 3 times a day, 7 days', 'Amoxicillin 250 mg · 21 cap', 'Batch AM-2207 · exp 03/2027', 'As ordered'],
+      ['Chlorpheniramine 4 mg · 15 tab', '1 tab, 3 times a day', 'Loratadine 10 mg · 5 tab', 'Less drowsy · doctor agreed', 'Edited by CA'],
+      ['Lozenges · 1 box', '', '—', 'Patient has some at home', 'Removed'],
+      ['—', '', 'Normal saline gargle · 1 bottle', 'Asked by patient', 'Added by CA'],
+      ['Consultation', 'Service', 'Consultation', 'Service', 'As ordered'],
+      ['Nebuliser', 'Service · 1', 'Nebuliser', 'Service · 1 · confirmed by CA', 'As ordered']
+    ];
+    const lines = L.map(([o, oSub, d, dSub, c]) => ({ o, oSub, d, dSub, c, cStyle: ch(c), oStyle: 'display:block;font-weight:500;' + (c === 'Removed' || c === 'Edited by CA' ? 'color:#8a8a93;text-decoration:line-through;' : '') }));
+    const row = (strong, top) => 'display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:38px;' + (top ? 'border-top:1px solid #ececf0;margin-top:4px;' : '') + (strong ? 'font-weight:600;font-size:15px;' : 'color:#3a3a40;');
+    const inv = otc ? [
+      { k: 'Medicines', v: v[2], row: row() }, { k: 'Total', v: v[2], row: row(true, true) }, { k: 'Cash · receipt RC-00071', v: v[2], row: row() }, { k: 'Due now', v: 'RM 0.00', row: row(true) }
+    ] : [
+      { k: 'Consultation', v: 'RM 30.00', row: row() }, { k: 'Medicines (4 lines)', v: 'RM 28.50', row: row() }, { k: 'Nebuliser', v: 'RM 20.00', row: row() },
+      { k: 'Total', v: v[2], row: row(true, true) }, { k: 'Card · receipt RC-00418', v: v[2], row: row() }, { k: 'Due now', v: 'RM 0.00', row: row(true) }
+    ];
+    const tag = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const docs = [
+      { k: 'Invoice · version 1', sub: 'First printed by Aina · 2 prints', tag: 'ORIGINAL', tagStyle: tag('#e9f8ee', '#1d7a3a') },
+      { k: 'Receipt RC-00418', sub: 'Printed by Aina · 1 print', tag: 'ORIGINAL', tagStyle: tag('#e9f8ee', '#1d7a3a') }
+    ].concat(otc ? [] : [
+      { k: 'Medical certificate', sub: 'MC/KP/CHR/2026/000377 · 1 day · view and print copy', tag: 'DRAFT wording', tagStyle: tag('#fff4dc', '#8a5a00') },
+      { k: 'Drug labels', sub: '4 labels · printed by Aina', tag: 'Printed', tagStyle: tag('#f4f4f6', '#6b6b73') }
+    ]);
+    const rowBtn = 'display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:44px;background:transparent;color:#3a3a40;padding:0 6px;margin:0 -6px;border-radius:10px;';
+    const medI = otc ? -1 : 1;
+    const invX = medI < 0 ? [] : [Object.assign({ k: 'Medicines (4 lines)', v: inv[medI].v }, xBtn('meds', 'inv-xpanel', rowBtn))];
+    const docsX = otc ? [] : docs.slice(3).map(d => Object.assign(d, xBtn('labels', 'doc-xpanel', 'display:flex;align-items:center;gap:10px;min-height:48px;border-bottom:1px solid #f1f1f4;background:transparent;color:#111114;padding:0 6px;margin:0 -6px;border-radius:10px;')));
+    const XD = {
+      meds: { title: 'Medicines · 4 lines · RM 28.50', note: 'Billed from what the CA dispensed', cols: ['MEDICINE', '', '', 'AMOUNT'], rows: [
+        ['Paracetamol 500 mg', '20 tab · as ordered', '', '', ['RM 6.00', 'mute']], ['Amoxicillin 250 mg', '21 cap · as ordered', '', '', ['RM 14.70', 'mute']],
+        ['Loratadine 10 mg', '5 tab · edited by CA', '', '', ['RM 4.80', 'warn']], ['Normal saline gargle', '1 bottle · added by CA', '', '', ['RM 3.00', 'info']]] },
+      labels: { title: 'Drug labels · 4', note: 'Print log · no label content is stored', cols: ['LABEL', '', '', 'PRINTS'], rows: [
+        ['Paracetamol 500 mg', 'Printed 10:12 by Aina', '', '', ['Print 1', 'ok']], ['Amoxicillin 250 mg', 'Printed 10:12, again 10:20 by Aina', '', '', ['REPRINT · 2', 'warn']],
+        ['Loratadine 10 mg', 'Printed 10:12 by Aina', '', '', ['Print 1', 'ok']], ['Normal saline gargle', 'Printed 10:13 by Aina', '', '', ['Print 1', 'ok']]] }
+    };
+    return {
+      accent, visits, cur, lines, docsX,
+      docs: otc ? docs : docs.slice(0, 3),
+      invA: medI < 0 ? [] : inv.slice(0, 1), invX, inv: medI < 0 ? inv : inv.slice(2),
+      invP: xPanel('inv-xpanel', ['meds'], XD, 14, true),
+      docP: xPanel('doc-xpanel', ['labels'], XD, 14, true)
+    };
+  }
+}
+</script>
+</body>
+</html>

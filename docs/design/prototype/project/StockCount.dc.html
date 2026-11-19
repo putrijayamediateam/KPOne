@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stock count</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Siti" user-role="CA Supervisor" user-ini="SI" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Stock count · Dispensary shelf A</div>
+      <span style="display: inline-flex; align-items: center; margin-left: 8px; font-size: 12px; font-weight: 600; color: #1a4fa8; background: #e8f0fe; border-radius: 999px; padding: 4px 10px">Blind count · system quantity hidden</span>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Scan or type barcode<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Submit count</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 260px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Counts due</h2><span style="font-size: 12px; font-weight: 600; color: #c2185b; background: #fde7ef; border-radius: 999px; padding: 1px 8px">12</span></div>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 6px">Never counted first, then the oldest</span>
+        <sc-for list="{{due}}" as="d" hint-placeholder-count="10">
+          <a href="#" style="{{d.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{d.k}}</span><span style="font-size: 12px; color: #8a8a93">{{d.loc}}</span></span><span style="{{d.tagStyle}}">{{d.tag}}</span></a>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Count sheet</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Snapshot frozen 08:10 · counted by Hafiz · recount by Siti</span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 220px">ITEM AND BATCH</span><span style="flex: none; width: 110px; text-align: right">FIRST COUNT</span><span style="flex: none; width: 110px; text-align: right">RECOUNT</span><span style="flex: none; width: 120px; text-align: center">RESULT</span>
+          </div>
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="10">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1 1 220px; min-width: 0"><span style="display: block; font-weight: 500">{{l.name}}</span><span style="font-size: 12px; color: #8a8a93">{{l.batch}} · exp {{l.exp}}</span></span>
+              <span style="{{l.c1Style}}">{{l.c1}}</span>
+              <span style="{{l.c2Style}}">{{l.c2}}</span>
+              <span style="{{l.resStyle}}">{{l.res}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Who does what</h2>
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="{{p.av}}">{{p.ini}}</span><span style="flex: 1"><span style="display: block; font-weight: 500">{{p.role}}</span><span style="font-size: 12px; color: #6b6b73">{{p.who}}</span></span><span style="{{p.stateStyle}}">{{p.state}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">The approver must be someone other than the counter, the recounter and the proposer.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Differences after recount</h2>
+          <sc-for list="{{vars}}" as="v" hint-placeholder-count="2">
+            <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{v.k}}</span><span style="font-size: 12.5px; color: #6b6b73">{{v.v}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Stock moves only when the approval is saved, with a reason code.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const tag = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const due = [
+      ['Dispensary shelf A', '14 items', 'Counting', true],
+      ['Salbutamol inhaler', 'Store room', 'Never'],
+      ['Gauze swab 10 x 10', 'Treatment room', 'Never'],
+      ['Omeprazole 20 mg', 'Dispensary', '41 days'],
+      ['Ibuprofen 400 mg', 'Store room', '38 days'],
+      ['Normal saline 500 ml', 'Treatment room', '36 days'],
+      ['Cetirizine 10 mg', 'Dispensary', '33 days'],
+      ['Diclofenac gel 1%', 'Dispensary', '32 days'],
+      ['Metformin 500 mg', 'Dispensary', '31 days'],
+      ['Patient returns', 'Returns location', '31 days']
+    ].map(([k, loc, t, on]) => ({ k, loc, tag: t, tagStyle: t === 'Counting' ? tag('#111114', '#ffffff') : t === 'Never' ? tag('#fde7ef', '#c2185b') : tag('#f4f4f6', '#6b6b73'), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;' : '') }));
+    const box = (v, filled, focus) => 'flex:none;width:110px;box-sizing:border-box;text-align:right;min-height:36px;line-height:36px;padding:0 12px;border-radius:12px;font-variant-numeric:tabular-nums;' + (focus ? 'background:#f4f4f6;box-shadow:inset 0 0 0 2px #111114;font-weight:600;' : filled ? 'background:#f4f4f6;font-weight:600;' : 'background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;color:#b4b4bc;');
+    const res = r => 'flex:none;width:120px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:4px 0;' + (r === 'Matches' ? 'background:#e9f8ee;color:#1d7a3a;' : r === 'Not counted' ? 'background:#f4f4f6;color:#8a8a93;' : r === 'Recount needed' ? 'background:#e8f0fe;color:#1a4fa8;' : 'background:#fff4dc;color:#8a5a00;');
+    const L = [
+      ['Paracetamol 500 mg', 'PC-0412', '12/2026', '80', '80', 'Matches'],
+      ['Paracetamol 500 mg', 'PC-0519', '05/2027', '100', '100', 'Matches'],
+      ['Amoxicillin 250 mg', 'AM-2207', '03/2027', '96', '94', '2 short'],
+      ['Loratadine 10 mg', 'LO-1180', '08/2027', '60', '60', 'Matches'],
+      ['Cetirizine 10 mg', 'CE-0931', '01/2027', '118', '', 'Recount needed'],
+      ['Chlorpheniramine 4 mg', 'CP-0077', '06/2027', '210', '210', 'Matches'],
+      ['Omeprazole 20 mg', 'OM-3301', '04/2027', '84', '86', '2 over'],
+      ['Metformin 500 mg', 'MF-5120', '09/2027', '460', '460', 'Matches'],
+      ['Diclofenac gel 1%', 'DG-0219', '02/2027', '', '', 'Not counted'],
+      ['Ibuprofen 400 mg', 'IB-4410', '10/2027', '', '', 'Not counted'],
+      ['Ranitidine 150 mg', 'RA-0905', '07/2027', '', '', 'Not counted']
+    ];
+    const lines = L.map(([name, batch, exp, c1, c2, r], i) => ({ name, batch, exp, c1: c1 || '—', c2: c2 || '—', c1Style: box(c1, !!c1, i === 8), c2Style: box(c2, !!c2, false), res: r, resStyle: res(r) }));
+    const av = (bg, fg) => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const st = (bg, fg) => 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + bg + ';color:' + fg + ';';
+    const XPMAP = ['prog', 'match', null, 'rc'];
+    const XPD = {
+      prog: { title: 'Lines counted · 8 of 11', note: 'Dispensary shelf A · counted on the shelf, before seeing the system figure', filters: [['all', 'All'], ['c', 'Counted'], ['n', 'Not counted']], cols: [['ITEM AND BATCH', 'minmax(200px,2fr)'], ['COUNTED BY', 'minmax(120px,1fr)'], ['TIME', '60px'], ['RESULT', 'minmax(130px,1fr)']], rows: [
+        ['Paracetamol 500 mg · PC-0412', 'Hafiz', '09:12', ['ok', 'Matches'], '#c'],
+        ['Paracetamol 500 mg · PC-0519', 'Hafiz', '09:15', ['ok', 'Matches'], '#c'],
+        ['Amoxicillin 250 mg · AM-2207', 'Hafiz, recount Siti', '09:20', ['d', '2 short'], '#c'],
+        ['Loratadine 10 mg · LO-1180', 'Hafiz', '09:24', ['ok', 'Matches'], '#c'],
+        ['Cetirizine 10 mg · CE-0931', 'Hafiz', '09:31', ['w', 'Recount needed'], '#c'],
+        ['Chlorpheniramine 4 mg · CP-0077', 'Hafiz', '09:36', ['ok', 'Matches'], '#c'],
+        ['Omeprazole 20 mg · OM-3301', 'Hafiz, recount Siti', '09:41', ['w', '2 over'], '#c'],
+        ['Metformin 500 mg · MF-5120', 'Hafiz', '09:47', ['ok', 'Matches'], '#c'],
+        ['Diclofenac gel 1% · DG-0219', '—', '—', ['n', 'Not counted'], '#n'],
+        ['Ibuprofen 400 mg · IB-4410', '—', '—', ['n', 'Not counted'], '#n'],
+        ['Ranitidine 150 mg · RA-0905', '—', '—', ['n', 'Not counted'], '#n']
+      ], foot: 'The frozen system figure is the stock at the moment the count started.' },
+      match: { title: 'Lines that match · 5', note: 'Counted equals the frozen system figure', cols: [['ITEM AND BATCH', 'minmax(200px,2fr)'], ['EXPIRY', '80px'], ['SYSTEM', '80px', 'r'], ['COUNTED', '80px', 'r'], ['RESULT', 'minmax(100px,1fr)']], rows: [
+        ['Paracetamol 500 mg · PC-0412', '12/2026', '80', '80', ['ok', 'Matches']],
+        ['Paracetamol 500 mg · PC-0519', '05/2027', '100', '100', ['ok', 'Matches']],
+        ['Loratadine 10 mg · LO-1180', '08/2027', '60', '60', ['ok', 'Matches']],
+        ['Chlorpheniramine 4 mg · CP-0077', '06/2027', '210', '210', ['ok', 'Matches']],
+        ['Metformin 500 mg · MF-5120', '09/2027', '460', '460', ['ok', 'Matches']]
+      ], foot: 'Lines that match need no recount and no approval.' },
+      rc: { title: 'Needs recount · 1', note: 'The first count was not accepted', cols: [['ITEM AND BATCH', 'minmax(200px,2fr)'], ['EXPIRY', '80px'], ['SYSTEM', '80px', 'r'], ['RECOUNT BY', 'minmax(150px,1.2fr)'], ['STATUS', 'minmax(130px,1fr)']], rows: [
+        ['Cetirizine 10 mg · CE-0931', '01/2027', '118', 'Siti (CA Supervisor)', ['w', 'Recount needed']]
+      ], foot: 'The recount is done by someone other than the counter. Approval then comes from a third person.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, due, lines,
+      strip: xpWrap([stripItem('8 of 11', 'lines counted', true), stripItem('5', 'match'), stripItem('2', 'differ after recount'), stripItem('1', 'needs recount')]),
+      people: [
+        { role: 'Counter', who: 'Hafiz (CA)', ini: 'HF', av: av('#e3f6f5', '#0b6f69'), state: 'Done', stateStyle: st('#e9f8ee', '#1d7a3a') },
+        { role: 'Recount', who: 'Siti (CA Supervisor)', ini: 'SI', av: av('#f1ecfd', '#5a32a8'), state: 'In progress', stateStyle: st('#e8f0fe', '#1a4fa8') },
+        { role: 'Approver', who: 'Finance Officer or Director', ini: '?', av: av('#f4f4f6', '#6b6b73'), state: 'Waiting', stateStyle: st('#f4f4f6', '#6b6b73') }
+      ],
+      vars: [{ k: 'Amoxicillin 250 mg · 2 short', v: 'Batch AM-2207 · both counts agree' }, { k: 'Omeprazole 20 mg · 2 over', v: 'Batch OM-3301 · both counts agree' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

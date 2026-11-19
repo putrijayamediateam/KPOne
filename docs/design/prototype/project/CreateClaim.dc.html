@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create panel claim</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="panel" accent="{{accent}}" branch="Cheras" user-name="Rina P." user-role="Panel Officer" user-ini="RP" duty="08:30" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Panel</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; color: #6b6b73">Claims · Pending</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Create panel claim</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">The claim starts as Submitted. Nothing is sent to the Panel from KPOne.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 280px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section aria-labelledby="h-inv" style="position: relative; overflow: hidden; border-radius: 26px; padding: 18px; color: #ffffff; background: radial-gradient(120% 160% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%); display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; opacity: 0.85">Invoice details</span>
+          <h1 id="h-inv" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">INV-C-02418</h1>
+          <span style="font-size: 13px; opacity: 0.9">AIA · visit 11 Nov 2026 · Dr. Lim</span>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px"><span style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em">RM 85.00</span><span style="font-size: 12.5px; opacity: 0.85">Panel share to claim</span></div>
+        </section>
+        <section aria-labelledby="h-pt" style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column">
+          <h2 id="h-pt" style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Patient details</h2>
+          <sc-for list="{{patient}}" as="f" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+        </section>
+        <section aria-labelledby="h-bill" style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column">
+          <h2 id="h-bill" style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Billing details</h2>
+          <sc-for list="{{billing}}" as="f" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right; font-variant-numeric: tabular-nums">{{f.v}}</span></div>
+          </sc-for>
+        </section>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section aria-labelledby="h-items" style="background: #ffffff; border-radius: 26px; padding: 16px 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 10px">
+            <h2 id="h-items" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Treatment items</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">from the invoice · 10 a page</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px">
+            <thead><tr>
+              <th scope="col" style="text-align: left; font-size: 11.5px; font-weight: 600; color: #8a8a93; padding: 0 8px 8px; border-bottom: 1px solid #e6e6ea">Item name</th>
+              <th scope="col" style="text-align: right; font-size: 11.5px; font-weight: 600; color: #8a8a93; padding: 0 8px 8px; border-bottom: 1px solid #e6e6ea">Qty</th>
+              <th scope="col" style="text-align: right; font-size: 11.5px; font-weight: 600; color: #8a8a93; padding: 0 8px 8px; border-bottom: 1px solid #e6e6ea">Rate (RM)</th>
+              <th scope="col" style="text-align: right; font-size: 11.5px; font-weight: 600; color: #8a8a93; padding: 0 8px 8px; border-bottom: 1px solid #e6e6ea">Total (RM)</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{items}}" as="i" hint-placeholder-count="6">
+                <tr style="border-bottom: 1px solid #f1f1f4"><td style="padding: 0 8px; height: 42px">{{i.name}}</td><td style="padding: 0 8px; text-align: right; color: #3a3a40">{{i.qty}}</td><td style="padding: 0 8px; text-align: right; color: #3a3a40">{{i.rate}}</td><td style="padding: 0 8px; text-align: right; font-weight: 500">{{i.total}}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 4px 0; font-size: 12.5px; color: #6b6b73"><span>Page 1 of 1 · 6 items</span><span style="display: flex; gap: 8px"><span style="padding: 4px 12px; border-radius: 999px; background: #f4f4f6; color: #b0b0b8">Previous</span><span style="padding: 4px 12px; border-radius: 999px; background: #f4f4f6; color: #b0b0b8">Next</span></span></div>
+        </section>
+
+        <section aria-labelledby="h-claim" style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 14px">
+          <h2 id="h-claim" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Claim</h2>
+          <div style="display: flex; gap: 14px; flex-wrap: wrap">
+            <label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Submitted date *</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">18 Nov 2026<span aria-hidden="true" style="color: #8a8a93">▦</span></span><span style="font-size: 12px; color: #8a8a93">Between the visit date (11 Nov) and today</span></label>
+            <label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Amount claimed</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f8f8fa; color: #6b6b73">RM 85.00 · the approved Panel share</span><span style="font-size: 12px; color: #8a8a93">Change it later on the claim page, with a reason</span></label>
+          </div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Remarks</span><span style="display: block; min-height: 72px; padding: 12px 14px; border-radius: 14px; background: #f4f4f6; color: #3a3a40; box-sizing: border-box">{{remarks}}</span><span style="font-size: 12px; color: #8a8a93">{{remarksCount}} / 500 · no diagnosis or clinical notes</span></label>
+
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Photos <span style="color: #8a8a93; font-weight: 400">· JPG or PNG, up to 5 MB each</span></span><span style="font-size: 12.5px; font-weight: 600; color: #6b6b73">{{photoCount}} of 10</span></div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px">
+              <sc-for list="{{photos}}" as="p" hint-placeholder-count="4">
+                <span style="position: relative; aspect-ratio: 1; border-radius: 16px; background: #eef0f3; display: flex; align-items: flex-end; padding: 8px; font-size: 11.5px; color: #6b6b73; box-sizing: border-box">{{p.name}}<button type="button" aria-label="Remove {{p.name}}" onClick="{{p.remove}}" style="position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: #ffffff; color: #6b6b73; font: inherit; font-size: 13px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.12)">×</button></span>
+              </sc-for>
+              <button type="button" onClick="{{addPhoto}}" style="{{addStyle}}">+ Upload photo</button>
+            </div>
+            <span style="font-size: 12px; color: #8a8a93">Name photos plainly. Photo names print on the claim pack.</span>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-sum" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+          <h2 id="h-sum" style="margin: 0 0 6px; font-size: 15px; font-weight: 600">Before you create</h2>
+          <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+            <div style="display: flex; gap: 10px; align-items: flex-start; min-height: 36px; font-size: 13px"><span style="{{c.dot}}">{{c.mark}}</span><span style="color: #3a3a40">{{c.t}}</span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">AIA due rule</h2>
+          <span style="font-size: 13px; color: #3a3a40">Claim within 14 days after the visit. Due 25 Nov 2026.</span>
+          <span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 2px 9px; align-self: flex-start">Due in 7 days</span>
+          <span style="font-size: 12px; color: #8a8a93">Verification: AIA provider portal link in Checkout settings.</span>
+        </section>
+        <div style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Cancel</button>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Create panel claim</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const count = st.n === undefined ? 3 : st.n;
+    const photos = [];
+    for (let i = 0; i < count; i++) photos.push({ name: 'Photo ' + (i + 1), remove: () => this.setState({ n: Math.max(0, count - 1) }) });
+    const full = count >= 10;
+    const remarks = 'Member card and claim form photographed at the counter.';
+    const ok = '✓';
+    const dot = good => 'flex:none;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;' + (good ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#fff4dc;color:#8a5a00;');
+    return {
+      accent, photos, remarks,
+      remarksCount: String(remarks.length),
+      photoCount: String(count),
+      addPhoto: () => { if (!full) this.setState({ n: count + 1 }); },
+      addStyle: 'aspect-ratio:1;border:0;border-radius:16px;font:inherit;font-size:12.5px;font-weight:600;' + (full ? 'background:#f4f4f6;color:#b0b0b8;cursor:not-allowed;' : 'background:#ffffff;color:#3a3a40;box-shadow:inset 0 0 0 1.5px #d4d4da;cursor:pointer;'),
+      patient: [{ k: 'Name', v: 'Raj Kumar' }, { k: 'IC', v: '••••6212' }, { k: 'Member reference', v: 'AIA-55120-08' }, { k: 'KP number', v: 'KP-000418' }],
+      billing: [{ k: 'Original subtotal', v: 'RM 97.00' }, { k: 'Invoice adjustment', v: '—' }, { k: 'Adjusted total', v: 'RM 97.00' }, { k: 'Panel share', v: 'RM 85.00' }, { k: 'Patient paid', v: 'RM 12.00' }],
+      items: [
+        { name: 'Consultation', qty: '1', rate: '45.00', total: '45.00' },
+        { name: 'Amoxicillin 250 mg capsule', qty: '15', rate: '1.80', total: '27.00' },
+        { name: 'Paracetamol 500 mg tablet', qty: '20', rate: '0.50', total: '10.00' },
+        { name: 'Nebuliser', qty: '1', rate: '15.00', total: '15.00' }
+      ],
+      checks: [
+        { t: 'Panel share approved on the invoice', mark: ok, dot: dot(true) },
+        { t: 'Member reference recorded', mark: ok, dot: dot(true) },
+        { t: 'Submitted date chosen', mark: ok, dot: dot(true) },
+        { t: full ? '10 photos: the limit' : 'Photos optional, up to 10', mark: full ? '!' : ok, dot: dot(!full) }
+      ]
+    };
+  }
+}
+</script>
+
+</body>
+</html>

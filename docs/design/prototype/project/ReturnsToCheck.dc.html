@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Returns to check</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.th{font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#f8f8fa;font-size:12.5px;color:#6b6b73}
+.paper{background:#ffffff;border-radius:10px;box-shadow:0 0 0 1px #e6e6ea,0 10px 24px rgba(17,17,26,0.08)}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="pharm" accent="{{accent}}" branch="Cheras" user-name="Siti" user-role="CA Supervisor" user-ini="SI" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Pharmacy</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Returns to check</div>
+      <span style="display: inline-flex; font-size: 12px; font-weight: 600; color: #1d7a3a; background: #e9f8ee; border-radius: 999px; padding: 4px 10px">No refund in KPOne</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Oldest first · 25 a page</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left card" style="flex: 0 0 300px; min-height: 0; overflow: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 class="h2">Waiting for a check</h2><span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 1px 8px">{{count}}</span></div>
+        <sc-for list="{{rets}}" as="r" hint-placeholder-count="10">
+          <div onClick="{{r.pick}}" style="{{r.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.med}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.chipStyle}}">{{r.chip}}</span></div>
+        </sc-for>
+      </aside>
+      <main class="kp-mid" style="flex: 1 1 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap"><sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for></div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section class="card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h1 class="h2">{{cur.med}}</h1><span style="{{cur.ctrlStyle}}">{{cur.ctrl}}</span><span style="margin-left: auto; font-size: 13px; font-weight: 600">Open case {{cur.case}} ›</span></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px">
+            <sc-for list="{{facts}}" as="f" hint-placeholder-count="6"><div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa"><span class="muted" style="display: block">{{f.k}}</span><span style="font-weight: 500">{{f.v}}</span></div></sc-for>
+          </div>
+          <span class="lbl">Outcome</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{outs}}" as="o" hint-placeholder-count="3"><button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}"><span style="display: block; font-weight: 600; font-size: 14px">{{o.k}}</span><span style="font-size: 12px; color: #6b6b73">{{o.note}}</span></button></sc-for>
+          </div>
+          <sc-if value="{{isQ}}" hint-placeholder-val="{{ true }}">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Batch to credit</span><span class="field">AM-2207 · exp 03/2027 · 14 dispensed from it<span aria-hidden="true" style="color: #8a8a93">▾</span></span><span class="muted">Goes to Patient Returns (not for dispensing). Never usable stock again; it leaves only by a stock count or write-off.</span></label>
+          </sc-if>
+          <sc-if value="{{isR}}" hint-placeholder-val="{{ false }}">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Refuse reason</span><span class="field">Wrong quantity<span aria-hidden="true" style="color: #8a8a93">▾</span></span><span class="muted">Refusing frees the quantity to be recorded again.</span></label>
+          </sc-if>
+          <sc-if value="{{isD}}" hint-placeholder-val="{{ false }}">
+            <span class="muted">Dispose records the decision only. No stock moves.</span>
+          </sc-if>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 300px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 class="h2">Who checks</h2>
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="{{avA}}">HF</span><span style="flex: 1"><span style="display: block; font-weight: 500">Recorded by</span><span class="muted">Hafiz (CA)</span></span><span style="{{doneChip}}">Done</span></div>
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="{{avB}}">SI</span><span style="flex: 1"><span style="display: block; font-weight: 500">Checker</span><span class="muted">You · Siti (CA Supervisor)</span></span><span style="{{waitChip}}">Now</span></div>
+          <span style="font-size: 12px; color: #8a8a93">You cannot check a return you recorded. Controlled medicines are never quarantined: dispose, or refuse if recorded by mistake.</span>
+        </section>
+        <div class="note"><span aria-hidden="true" style="font-weight: 700; color: #111114">i</span>In KPOne this list opens the Dispensary case; the check is saved on the case page.</div>
+        <button type="button" class="primary" style="margin-top: auto">Save check</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || '-12px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ age: { title: 'Waiting by age', note: 'Oldest first · 7 returns', cols: 'minmax(0,1.6fr) minmax(0,1fr) 60px auto', head: ['MEDICINE','RECORDED','QTY','AGE'], align: ['l','l','r','l'], filterCol: 3,
+  rows: [['Amoxicillin 500 mg capsule','Hafiz (CA)','14',['3 days','bad']],['Tramadol 50 mg capsule','Hafiz (CA)','6',['2 days','warn']],['Salbutamol inhaler','Liyana (CA)','1',['2 days','warn']],['Cetirizine 10 mg tablet','Hafiz (CA)','10',['Yesterday','mute']],['Omeprazole 20 mg capsule','Liyana (CA)','7',['Yesterday','mute']],['Diclofenac gel 1%','Hafiz (CA)','1',['Today','mute']],['Paracetamol 500 mg tablet','Liyana (CA)','20',['Today','mute']]],
+  foot: 'Nothing moves in stock until a CA Supervisor who did not record the return checks it.' },
+ ctrl: { title: 'Controlled returns', note: 'Never quarantined', cols: 'minmax(0,1.6fr) 110px 60px minmax(0,1.2fr) auto', head: ['MEDICINE','VISIT','QTY','REASON','CAN BE'], align: ['l','l','r','l','l'],
+  rows: [['Tramadol 50 mg capsule','KPV-00004039','6','Dispensing error',['Dispose or refuse','bad']]],
+  foot: 'A controlled medicine is disposed, or refused if recorded by mistake.' },
+ done: { title: 'Checked this month', note: 'November · 12 returns', cols: 'minmax(0,1.6fr) 60px minmax(0,1fr) 90px auto', head: ['MEDICINE','QTY','CHECKED BY','DATE','OUTCOME'], align: ['l','r','l','l','l'], filterCol: 4,
+  rows: [['Ibuprofen 400 mg tablet','10','Aina R.','2 Nov',['Quarantined','info']],['Loratadine 10 mg tablet','10','Aina R.','3 Nov',['Disposed','mute']],['Amoxicillin 250 mg syrup','1','Mohan K.','4 Nov',['Disposed','mute']],['Paracetamol 500 mg tablet','16','Aina R.','5 Nov',['Quarantined','info']],['Metformin 500 mg tablet','30','Mohan K.','6 Nov',['Refused','warn']],['Cetirizine 10 mg tablet','10','Aina R.','7 Nov',['Quarantined','info']],['Prednisolone 5 mg tablet','8','Mohan K.','9 Nov',['Disposed','mute']],['Salbutamol inhaler','1','Aina R.','10 Nov',['Quarantined','info']],['Omeprazole 20 mg capsule','14','Aina R.','11 Nov',['Quarantined','info']],['Tramadol 50 mg capsule','4','Mohan K.','12 Nov',['Disposed','mute']],['Mefenamic acid 250 mg','12','Aina R.','13 Nov',['Refused','warn']],['Chlorpheniramine 4 mg','10','Mohan K.','14 Nov',['Quarantined','info']]],
+  foot: 'Quarantined stock goes to Patient Returns and is never dispensed again. No refund in KPOne.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8') };
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const row = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 10px;border-radius:14px;cursor:pointer;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '');
+    const seg = on => 'border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const box = on => 'flex:none;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (on ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;');
+    const av = (bg, fg) => 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const R = [
+      ['Amoxicillin 500 mg capsule', 'B-004 · 3 days ago', 14, 'Patient did not use it', 'Sealed strip, clean', 'Hafiz (CA)', false, 'KPV-00004011', 'Nur Aisyah K.'],
+      ['Tramadol 50 mg capsule', 'A-019 · 2 days ago', 6, 'Dispensing error', 'Opened box', 'Hafiz (CA)', true, 'KPV-00004039', 'Rahman B.'],
+      ['Salbutamol inhaler', 'A-022 · 2 days ago', 1, 'Wrong medicine or strength', 'Unopened', 'Liyana (CA)', false, 'KPV-00004044', 'Chong K. F.'],
+      ['Cetirizine 10 mg tablet', 'B-011 · yesterday', 10, 'Patient reaction', 'Strip cut', 'Hafiz (CA)', false, 'KPV-00004070', 'Devi S.'],
+      ['Omeprazole 20 mg capsule', 'A-005 · yesterday', 7, 'Patient did not use it', 'Sealed strip', 'Liyana (CA)', false, 'KPV-00004081', 'Ali H.'],
+      ['Diclofenac gel 1%', 'A-013 · today', 1, 'Other', 'Tube opened', 'Hafiz (CA)', false, 'KPV-00004102', 'Siew L.'],
+      ['Paracetamol 500 mg tablet', 'B-002 · today', 20, 'Patient did not use it', 'Sealed', 'Liyana (CA)', false, 'KPV-00004110', 'Hamid Z.']
+    ];
+    const sel = st.sel ?? 0;
+    const c = R[sel];
+    const ctrl = c[6];
+    let out = st.out || 'quarantine';
+    if (ctrl && out === 'quarantine') out = 'dispose';
+    const opt = (k, key, note, disabled) => ({ k, note: disabled ? 'Not for controlled medicines' : note, pressed: String(out === key), pick: disabled ? () => {} : () => this.setState({ out: key }), style: 'border:0;text-align:left;border-radius:18px;padding:12px 14px;font:inherit;min-height:64px;cursor:' + (disabled ? 'not-allowed;opacity:0.4;' : 'pointer;') + (out === key ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;') });
+    return {
+      ...XP.holes,
+      accent, count: String(R.length),
+      rets: R.map(([med, sub, q, , , , ct], i) => ({ med, sub: sub + ' · qty ' + q, chip: ct ? 'Controlled' : 'Waiting', chipStyle: ct ? P.red : P.amber, row: row(sel === i), pick: () => this.setState({ sel: i, out: undefined }) })),
+      strip: XP.strip([strip('7', 'waiting', true), strip('3 days', 'oldest'), strip('1', 'controlled'), strip('12', 'checked this month')], { 1: 'age', 2: 'ctrl', 3: 'done' }),
+      cur: { med: c[0], case: c[7], ctrl: ctrl ? 'Controlled medicine' : 'Not controlled', ctrlStyle: ctrl ? P.red : P.grey },
+      facts: [{ k: 'Patient', v: c[8] }, { k: 'Quantity returned', v: c[2] + ' of ' + (c[2] + 7) + ' dispensed' }, { k: 'Reason', v: c[3] }, { k: 'Condition seen', v: c[4] }, { k: 'Recorded by', v: c[5] }, { k: 'Visit', v: c[7] }],
+      outs: [opt('Dispose', 'dispose', 'No stock change'), opt('Quarantine', 'quarantine', 'To Patient Returns', ctrl), opt('Refuse', 'refuse', 'Recorded by mistake')],
+      isQ: out === 'quarantine', isR: out === 'refuse', isD: out === 'dispose',
+      avA: av('#e3f6f5', '#0b6f69'), avB: av('#f1ecfd', '#5a32a8'), doneChip: P.green, waitChip: P.blue
+    };
+
+  }
+}
+</script>
+</body>
+</html>

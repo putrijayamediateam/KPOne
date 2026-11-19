@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Billing function map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+body{margin:0;background:#f4f4f6}
+</style>
+</helmet>
+<div style="min-height: 1600px; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; padding: 40px 48px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px">
+    <div>
+      <p style="margin: 0; font-size: 13px; color: #6b6b73">Function map · Billing</p>
+      <h1 style="margin: 4px 0 0; font-size: 34px; font-weight: 700; letter-spacing: -0.03em">Every Billing function, on one page</h1>
+      <p style="margin: 6px 0 0; color: #3a3a40; max-width: 70ch">Read from KPOne's code today: 30 patient-billing functions spread over 5 screens. In the new design they all live on one patient billing page, arranged by how often they're used. Nothing is removed, and every action still checks its own permission.</p>
+    </div>
+    <div style="display: flex; gap: 12px">
+      <div style="background: #ffffff; border-radius: 22px; padding: 16px 20px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05)"><div style="font-size: 12.5px; color: #6b6b73">Screens today</div><div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em">5</div></div>
+      <div style="display: flex; align-items: center; font-size: 22px; color: #c4c4cc">→</div>
+      <div style="border-radius: 22px; padding: 16px 20px; color: #ffffff; background: radial-gradient(120% 140% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%)"><div style="font-size: 12.5px; opacity: 0.85">New design</div><div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em">1</div></div>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-today" style="display: flex; flex-direction: column; gap: 10px">
+    <h2 id="h-today" style="margin: 0; font-size: 16px; font-weight: 600">The 5 screens today</h2>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{oldPages}}" as="p" hint-placeholder-count="5">
+        <div style="background: #ffffff; border-radius: 18px; padding: 14px 16px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05); display: flex; flex-direction: column; gap: 4px">
+          <span style="font-weight: 600">{{p.name}}</span><span style="font-size: 12.5px; color: #6b6b73">{{p.what}}</span>
+          <span style="font-size: 12px; font-weight: 600; color: #7a2bd1; margin-top: 4px">→ {{p.goes}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <div style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap">
+    <section aria-labelledby="h-wire" style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+      <h2 id="h-wire" style="margin: 0; font-size: 16px; font-weight: 600">The new page, by zone</h2>
+      <div style="background: #ffffff; border-radius: 26px; padding: 16px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05); display: flex; flex-direction: column; gap: 10px">
+        <div style="{{zone.top}}"><span style="{{badge}}">A</span>Top bar · Print · ··· menu</div>
+        <div style="display: grid; grid-template-columns: 0.9fr 1.6fr 1.1fr; gap: 10px; min-height: 420px">
+          <div style="{{zone.left}}"><span style="{{badge}}">B</span>Patient<br>Visit steps<br>Other bills</div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; gap: 6px">
+              <span style="{{zone.tabOn}}"><span style="{{badge}}">C</span>Items</span>
+              <span style="{{zone.tab}}"><span style="{{badge}}">D</span>Payments</span>
+              <span style="{{zone.tab}}"><span style="{{badge}}">E</span>Documents</span>
+              <span style="{{zone.tab}}"><span style="{{badge}}">F</span>Activity</span>
+            </div>
+            <div style="{{zone.mid}}">Invoice lines<br><br>+ Adjustment · Bill to · Note</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div style="{{zone.right}}"><span style="{{badgeW}}">G</span>Due now<br><b>Take payment</b><br>Panel or pay later</div>
+            <div style="{{zone.panel}}"><span style="{{badge}}">H</span>Slide-in panel<br>for forms</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: #6b6b73">
+        <sc-for list="{{legend}}" as="l" hint-placeholder-count="4"><span><span aria-hidden="true" style="{{l.dot}}"></span>{{l.label}}</span></sc-for>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-list" style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+      <h2 id="h-list" style="margin: 0; font-size: 16px; font-weight: 600">Where each function goes</h2>
+      <sc-for list="{{zones}}" as="z" hint-placeholder-count="8">
+        <div style="background: #ffffff; border-radius: 20px; padding: 14px 16px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05); display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 10px"><span style="{{z.badge}}">{{z.key}}</span><span style="font-weight: 600">{{z.title}}</span><span style="{{z.freq}}">{{z.how}}</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <sc-for list="{{z.fns}}" as="f" hint-placeholder-count="4">
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; background: #f7f7f9; border-radius: 999px; padding: 4px 10px">{{f.name}}<span style="font-size: 11px; color: #8a8a93">{{f.from}}</span></span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+
+  <section aria-labelledby="h-area" style="display: flex; flex-direction: column; gap: 10px">
+    <h2 id="h-area" style="margin: 0; font-size: 16px; font-weight: 600">Not about one patient: these stay in the Billing area of the sidebar</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{area}}" as="a" hint-placeholder-count="4">
+        <div style="background: #ffffff; border-radius: 18px; padding: 14px 16px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05); display: flex; flex-direction: column; gap: 4px">
+          <span style="font-weight: 600">{{a.name}}</span><span style="font-size: 12.5px; color: #6b6b73">{{a.what}}</span><span style="font-size: 12px; font-weight: 600; color: #0f8a83; margin-top: 4px">{{a.where}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 4px 0 0; font-size: 12.5px; color: #6b6b73">Approval limits and Payment methods move to Settings. Money rules, approvals by a second person, receipts and audit are unchanged; only where the buttons sit changes.</p>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { main: '#c2185b', tab: '#1a5fd0', menu: '#8a8a93', panel: '#0f8a83' };
+    const box = (bg, bd) => 'border-radius:16px;padding:12px;font-size:12.5px;color:#3a3a40;line-height:1.6;background:' + bg + ';border:1.5px dashed ' + bd + ';position:relative;';
+    const tab = on => 'display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 4px;font-size:12px;font-weight:600;' + (on ? 'background:#111114;color:#ffffff;' : 'background:#f4f4f6;color:#3a3a40;');
+    const fn = (name, from) => ({ name, from });
+    const z = (key, title, how, color, fns) => ({
+      key, title, how, fns,
+      badge: 'flex:none;width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#ffffff;background:' + color + ';',
+      freq: 'margin-left:auto;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + color + '1a;color:' + color + ';'
+    });
+    return {
+      badge: 'display:inline-flex;width:20px;height:20px;border-radius:6px;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#ffffff;background:#111114;margin-right:8px;vertical-align:middle;',
+      badgeW: 'display:inline-flex;width:20px;height:20px;border-radius:6px;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c2185b;background:#ffffff;margin-right:8px;vertical-align:middle;',
+      zone: {
+        top: box('#f7f7f9', '#d8d8de'), left: box('#f7f7f9', '#d8d8de'), mid: box('#eef4fe', '#9dbcf2') + 'flex:1;',
+        right: box('#fde7ef', '#e8a3bd') + 'flex:1;', panel: box('#e3f6f5', '#8fd3cf'),
+        tab: tab(false), tabOn: tab(true)
+      },
+      legend: [
+        { label: 'Every patient: big and visible', dot: 'display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + C.main + ';' },
+        { label: 'Often: tabs and small buttons', dot: 'display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + C.tab + ';' },
+        { label: 'Sometimes: the ··· menu', dot: 'display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + C.menu + ';' },
+        { label: 'Forms: slide-in panel', dot: 'display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + C.panel + ';' }
+      ],
+      oldPages: [
+        { name: 'Patient billing', what: 'Build, finalise, adjust, pay, Panel', goes: 'the new page' },
+        { name: 'Manage payments', what: 'Receipts, reverse, correct, refund', goes: 'Payments tab' },
+        { name: 'Completed invoice', what: 'Invoice after the visit closes', goes: 'same page, read-only' },
+        { name: 'Issued copy', what: 'Printed ORIGINAL / COPY', goes: 'Documents tab' },
+        { name: 'Logs drawer', what: 'Invoice and visit activity', goes: 'Activity tab' }
+      ],
+      zones: [
+        z('G', 'Right column: the money', 'Every patient', C.main, [fn('Take payment: cash, card, QR', 'payment'), fn('Panel cover', 'propose'), fn('Pay later', 'propose'), fn('Approve Panel or pay later', 'approve'), fn('Finalise invoice', 'finalize'), fn('Complete visit', 'complete')]),
+        z('C', 'Items tab', 'Often', C.tab, [fn('Invoice lines', 'build'), fn('Add adjustment', 'adjustment'), fn('Bill to', 'bill-to'), fn('Add note', 'notes')]),
+        z('D', 'Payments tab', 'Often', C.tab, [fn('Receipts list', 'payments'), fn('Print receipt', 'receipt'), fn('Correct a receipt', 'receipt.correct'), fn('Approve refund', 'refund.decide')]),
+        z('E', 'Documents tab', 'Often', C.tab, [fn('Print invoice', 'issue'), fn('Issued copies', 'issued'), fn('Reprint copy', 'reprint'), fn('Letterhead logo', 'letterhead')]),
+        z('F', 'Activity tab', 'Sometimes', C.tab, [fn('Invoice log', 'activity'), fn('Visit log', 'visit-activity'), fn('Note history', 'notes')]),
+        z('B', 'Left column', 'Always visible', C.menu, [fn('Patient and allergies', 'show'), fn('Visit steps', 'show'), fn('Other outstanding bills', 'outstanding')]),
+        z('A', 'The ··· menu', 'Sometimes', C.menu, [fn('Reverse adjustment', 'adjustment.reverse'), fn('Reverse receipt', 'reverse'), fn('Refund', 'refund'), fn('Void and reissue', 'void')]),
+        z('H', 'Slide-in panel', 'Forms', C.panel, [fn('Payment form', ''), fn('Adjustment form', ''), fn('Panel or pay-later form', ''), fn('Refund form', ''), fn('Bill to form', '')])
+      ],
+      area: [
+        { name: 'Invoices', what: 'Every invoice at the branch, filter by status', where: 'Billing › Invoices' },
+        { name: 'Bills to collect', what: 'Pay-later and money still due', where: 'Billing › Bills to collect' },
+        { name: 'Cash closing', what: 'Daily count, monthly view, approval', where: 'Billing › Cash closing' },
+        { name: 'Terminal check', what: 'Card terminal against receipts', where: 'Billing › Terminal check' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

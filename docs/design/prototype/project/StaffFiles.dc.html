@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff files</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">KPOne HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; color: #6b6b73">Staff files</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">{{fileName}}</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Nobody manages their own file. HR never changes accounts, roles or branch assignments.</span>
+      <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Add a locum</button>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" aria-labelledby="h-files" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 id="h-files" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Staff files</h2><span style="font-size: 12.5px; color: #8a8a93">51 people</span></div>
+        <span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; margin: 0 4px 6px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">Search name or role</span>
+        <div style="display: flex; gap: 6px; padding: 0 4px 8px; flex-wrap: wrap"><sc-for list="{{filters}}" as="f" hint-placeholder-count="3"><span style="{{f.style}}">{{f.t}}</span></sc-for></div>
+        <sc-for list="{{people}}" as="p" hint-placeholder-count="12">
+          <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="{{p.row}}"><span style="{{p.av}}">{{p.ini}}</span><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{p.name}}</span><span style="font-size: 12px; color: #8a8a93">{{p.sub}}</span></span><span style="{{p.tagStyle}}">{{p.tag}}</span></button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-right" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column">
+        <div style="display: flex; align-items: center; gap: 14px; padding: 20px 22px 14px; flex-wrap: wrap">
+          <span style="flex: none; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #e0457f, #c2185b 45%, #7a2bd1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700">{{fileIni}}</span>
+          <span style="flex: 1; min-width: 200px"><h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{fileName}}</h1><span style="font-size: 13px; color: #6b6b73">{{fileSub}}</span></span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{fileChips}}" as="c" hint-placeholder-count="3"><span style="{{c.style}}">{{c.t}}</span></sc-for></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 0 22px 12px; border-bottom: 1px solid #f1f1f4; flex-wrap: wrap">
+          <nav aria-label="Staff file tabs" style="display: flex; gap: 2px; background: #f1f1f4; border-radius: 999px; padding: 3px; flex-wrap: wrap">
+            <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+          </nav>
+          <button type="button" onClick="{{primaryAct}}" aria-disabled="{{primaryDisabled}}" style="{{primaryStyle}}">{{primary}}</button>
+        </div>
+
+        <div style="flex: 1; min-height: 0; padding: 16px 22px 20px; display: flex; flex-direction: column; gap: 14px">
+          <sc-if value="{{showNote}}" hint-placeholder-val="{{ true }}"><div style="{{noteStyle}}">{{note}}</div></sc-if>
+
+          <sc-if value="{{isGrid}}" hint-placeholder-val="{{ true }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px">
+              <sc-for list="{{fields}}" as="f" hint-placeholder-count="8">
+                <div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: #f8f8fa; min-height: 44px">
+                  <span style="font-size: 12px; color: #6b6b73">{{f.k}}</span>
+                  <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-weight: 500; font-variant-numeric: tabular-nums">{{f.v}}</span><button type="button" onClick="{{f.show}}" style="{{f.btnStyle}}">{{f.btn}}</button></span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+                <h2 style="margin: 8px 6px 4px; font-size: 15px; font-weight: 600">{{g.title}}</h2>
+                <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f4f4f6">
+                    <span style="{{r.mark}}">{{r.markT}}</span>
+                    <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.a}}</span><span style="font-size: 12px; color: #8a8a93">{{r.b}}</span></span>
+                    <span style="font-size: 12.5px; color: #6b6b73; white-space: nowrap">{{r.c}}</span>
+                    <span style="{{r.chipStyle}}">{{r.chip}}</span>
+                    <span style="font-size: 12.5px; font-weight: 600; color: #111114; min-width: 44px; text-align: right">{{r.act}}</span>
+                  </div>
+                </sc-for>
+              </sc-for>
+            </div>
+          </sc-if>
+          <span style="margin-top: auto; font-size: 12px; color: #8a8a93">{{foot}}</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const tab = S.tab || 'personal';
+    const sel = S.sel == null ? 0 : S.sel;
+    const shown = S.shown || {};
+    const T = { warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], ok: ['#e9f8ee', '#1d7a3a'], info: ['#e8f0fe', '#1a4fa8'], mute: ['#f4f4f6', '#6b6b73'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const seg = on => 'border:0;font:inherit;font-size:13px;font-weight:' + (on ? '600' : '500') + ';min-height:34px;padding:0 14px;border-radius:999px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.1);' : 'background:transparent;color:#6b6b73;');
+    const PAL = [['#e3f6f5', '#0b6f69'], ['#f1ecfd', '#5a32a8'], ['#fff4dc', '#8a5a00'], ['#e8f0fe', '#1a4fa8'], ['#fde7ef', '#c2185b']];
+    const P = [
+      ['Nadia Rahman', 'CA · Cheras', 'Needs attention', 'warn'],
+      ['Hafiz Rahim', 'CA · Cheras', 'Permanent', 'mute'],
+      ['Siti Aminah', 'CA Supervisor · Cheras', 'Permanent', 'mute'],
+      ['Dr. Arif Zulkarnain', 'Resident Doctor · Cheras', 'Permanent', 'mute'],
+      ['Dr. Sarah Wong', 'Locum · no KPOne sign-in', 'Locum', 'info'],
+      ['Farah Izzati', 'CA · Sungai Besi', 'Needs attention', 'warn'],
+      ['Lee Wen Hui', 'CA Supervisor · Sungai Besi', 'Probation', 'info'],
+      ['Kamal Hassan', 'CA · Sungai Besi', 'Permanent', 'mute'],
+      ['Dr. Priya Nair', 'Resident Doctor · Puchong', 'Permanent', 'mute'],
+      ['Aisha Musa', 'CA · Puchong', 'Needs attention', 'warn'],
+      ['Zul Hakim', 'CA · Puchong', 'Contract', 'mute'],
+      ['Mohan Raj', 'CA · Puchong', 'Permanent', 'mute'],
+      ['Dr. Kevin Lim', 'Locum with a KPOne sign-in', 'Locum', 'info'],
+      ['Aina Sofea', 'CA · Cheras', 'Ended 31 Oct', 'mute']
+    ];
+    const people = P.map(([name, sub, tag, t], i) => ({ name, sub, tag, tagStyle: chip(t), ini: name.replace('Dr. ', '').split(' ').map(w => w[0]).join('').slice(0, 2), av: 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + PAL[i % 5][0] + ';color:' + PAL[i % 5][1] + ';', pressed: String(sel === i), pick: () => this.setState({ sel: i }), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 8px;border:0;border-radius:14px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (sel === i ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;') }));
+    const me = P[sel];
+    const TABS = [['emp', 'Employment'], ['personal', 'Personal'], ['bank', 'Bank'], ['docs', 'Documents'], ['check', 'Checklist']];
+    const tabs = TABS.map(([k, label]) => ({ label, pressed: String(tab === k), pick: () => this.setState({ tab: k }), style: seg(tab === k) }));
+    const reveal = k => () => this.setState({ shown: Object.assign({}, shown, { [k]: true }) });
+    const secBtn = 'flex:none;border:0;background:#ffffff;color:#111114;border-radius:999px;padding:0 12px;min-height:30px;font:inherit;font-size:12.5px;font-weight:600;box-shadow:0 0 0 1px rgba(17,17,26,0.14);cursor:pointer;';
+    const fld = (k, masked, real, key) => ({ k, v: key && shown[key] ? real : masked, btn: key ? (shown[key] ? 'Shown · recorded' : 'Show') : '', btnStyle: key ? (shown[key] ? 'flex:none;font-size:12px;color:#1d7a3a;font-weight:600;border:0;background:transparent;' : secBtn) : 'display:none;', show: key ? reveal(key) : () => {} });
+    const blackBtn = on => 'margin-left:auto;border:0;background:#111114;color:#ffffff;border-radius:999px;padding:0 20px;min-height:40px;font:inherit;font-weight:600;cursor:pointer;' + (on ? '' : 'opacity:0.35;cursor:not-allowed;');
+    const row = (a, b, c, chipT, chipK, act, markT, markK) => ({ a, b, c, chip: chipT, chipStyle: chipT ? chip(chipK) : 'display:none;', act: act || '', markT: markT || '', mark: markT ? 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;' + (markK === 'done' ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#f4f4f6;color:#b4b4bc;box-shadow:inset 0 0 0 1px #e1e1e6;') : 'display:none;' });
+    let v = { isGrid: false, isList: false, fields: [], groups: [], note: '', noteStyle: '', primary: '', primaryOn: true, foot: '' };
+    const infoNote = 'padding:10px 14px;border-radius:14px;background:#f8f8fa;color:#3a3a40;font-size:13px;';
+    const warnNote = 'padding:10px 14px;border-radius:14px;background:#fff4dc;color:#8a5a00;font-size:13px;';
+    if (tab === 'personal') {
+      v.isGrid = true;
+      v.fields = [fld('Legal name', me[0], me[0]), fld('Preferred name', me[0].split(' ')[0], ''), fld('Identity number (IC)', '••••••-••-6212', '000000-00-6212', 'ic'), fld('Date of birth', '••/••/19••', '12/04/1990', 'dob'), fld('Nationality', 'Malaysian', ''), fld('Personal phone', '••• ••• 4471', '012-338 4471', 'ph'), fld('Address', 'Line 1 hidden · Cheras, Selangor', '12 Jalan Mawar 3, Taman Fiksyen, 43200 Cheras', 'addr'), fld('Emergency contact', 'Spouse · ••• ••• 9020', 'Spouse · Ali bin Abu · 013-552 9020', 'em')];
+      v.note = 'Correction asked by staff: legal name spelling. Someone other than the staff member applies it.'; v.noteStyle = warnNote;
+      v.primary = 'Edit personal details';
+      v.foot = 'Values arrive masked. Each Show is recorded first; if the record cannot be written, nothing is shown. IC numbers are never shown in lists, search or audit.';
+    } else if (tab === 'bank') {
+      const ok = !!shown.bank;
+      v.isGrid = true;
+      v.fields = [fld('Current account (confirmed 2 Jan 2026)', 'Maybank · ••••••7731', 'Maybank · 1140 2298 7731', 'bankOld'), fld('Account holder', me[0], ''), fld('New account · waiting for confirmation', 'CIMB · ••••••0459', 'CIMB · 8002 6631 0459', 'bank'), fld('Entered by', 'Dr. Director on 17 Nov 2026', '')];
+      v.note = ok ? 'You have seen the new number. You did not enter it and it is not your account, so you may confirm it.' : 'Press Show on the new account before confirming. The confirmer is never the person who entered it and never the staff member.';
+      v.noteStyle = ok ? infoNote : warnNote;
+      v.primary = 'Confirm bank account'; v.primaryOn = ok;
+      v.foot = 'Until it is confirmed, payroll keeps using the current account. Bank numbers are encrypted and never audited.';
+    } else if (tab === 'emp') {
+      v.isList = true;
+      v.groups = [
+        { title: 'Employment periods', rows: [row('Permanent · full time', 'From 1 Mar 2024 · no end date', 'Probation ended 1 Sep 2024', 'Current', 'ok', 'Change or end'), row('Contract · full time', '1 Mar 2023 to 29 Feb 2024', 'Why it ended: converted to permanent', 'Ended', 'mute', '')] },
+        { title: 'Position history', rows: [row('Senior CA', 'Cheras · reports to Siti Aminah', 'From 1 Jan 2026', 'Current', 'ok', ''), row('CA', 'Cheras', '1 Mar 2023 to 31 Dec 2025', '', 'mute', '')] }
+      ];
+      v.note = 'Ending a period changes nothing on the KPOne account. Roles and branch access stay with the account administrator.'; v.noteStyle = infoNote;
+      v.primary = 'Add employment period';
+      v.foot = 'Periods may not overlap.';
+    } else if (tab === 'docs') {
+      v.isList = true;
+      v.groups = [{ title: 'Documents', rows: [
+        row('Offer letter (signed)', 'PDF · 412 KB', 'Issued 20 Feb 2023', 'Keep: not set', 'mute', 'Open'),
+        row('IC copy', 'JPG · re-encoded', 'Issued 4 Jan 2021', 'Keep: 7 years', 'mute', 'Open'),
+        row('BLS certificate', 'PDF · 188 KB', 'Expires 12 Jan 2027', 'Valid', 'ok', 'Open'),
+        row('Medical check-up', 'PDF · 96 KB', 'Issued 3 Mar 2023', 'Keep: 7 years', 'mute', 'Open'),
+        row('Old employment contract', 'Removed 2 Oct 2026 · reason: replaced', 'Bytes deleted, row kept', 'Removed', 'mute', '')
+      ] }];
+      v.note = 'Opening a document is recorded before any byte is sent. No original file name is kept.'; v.noteStyle = infoNote;
+      v.primary = 'Add document';
+      v.foot = 'PDF, JPG or PNG up to 10 MB. Retention per type is entered by the clinic and counts from the end of the latest employment period.';
+    } else {
+      v.isList = true;
+      v.groups = [
+        { title: 'Onboarding', rows: [row('Signed offer letter received', 'Ticked by Puan HR', '2 Mar 2023', 'Done', 'ok', '', '✓', 'done'), row('Ask the account administrator for a KPOne sign-in', 'Records only that HR asked', '2 Mar 2023', 'Done', 'ok', '', '✓', 'done'), row('Uniform issued', 'Ticked by Siti Aminah', '6 Mar 2023', 'Done', 'ok', '', '✓', 'done'), row('BLS course booked', 'Not ticked yet', '', 'Open', 'warn', 'Tick', '', 'open')] },
+        { title: 'Offboarding', rows: [row('No items yet', 'HR enters the items; KPOne ships none', '', '', 'mute', '')] }
+      ];
+      v.note = 'A tick is final. At most 40 items a list.'; v.noteStyle = infoNote;
+      v.primary = 'Add checklist item';
+      v.foot = 'An item about the account never changes the account.';
+    }
+    return {
+      accent, people, tabs,
+      filters: [['All', true], ['Needs attention · 3', false], ['Locums · 2', false]].map(([t, on]) => ({ t, style: 'font-size:12.5px;font-weight:600;border-radius:999px;padding:5px 12px;' + (on ? 'background:#f4f4f6;color:#111114;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.12);' : 'color:#6b6b73;') })),
+      fileName: me[0], fileIni: me[0].replace('Dr. ', '').split(' ').map(w => w[0]).join('').slice(0, 2),
+      fileSub: me[1] + ' · primary branch · employee no. KP-E-0' + (112 + sel),
+      fileChips: [{ t: me[2], style: chip(me[3]) }, { t: 'Active', style: chip('ok') }],
+      isGrid: v.isGrid, isList: v.isList, fields: v.fields, groups: v.groups,
+      showNote: !!v.note, note: v.note, noteStyle: v.noteStyle,
+      primary: v.primary, primaryDisabled: String(!v.primaryOn), primaryStyle: blackBtn(v.primaryOn), primaryAct: () => {},
+      foot: v.foot
+    };
+  }
+}
+</script>
+</body>
+</html>

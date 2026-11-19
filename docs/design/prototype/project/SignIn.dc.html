@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+@container kppage (max-width: 900px){ .kp-art{display:none !important} }
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div class="kp-page" style="height: 100vh; min-height: 720px; overflow: auto; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45">
+  <div style="min-height: 100%; display: flex; gap: 20px; padding: 20px; box-sizing: border-box">
+
+    <!-- The one gradient element -->
+    <aside class="kp-art" style="flex: 1 1 0; min-width: 0; position: relative; overflow: hidden; border-radius: 32px; padding: 40px; color: #ffffff; background: radial-gradient(120% 140% at 0% 0%, #e0457f 0%, #c2185b 45%, #7a2bd1 100%); display: flex; flex-direction: column; justify-content: space-between">
+      <div aria-hidden="true" style="position: absolute; right: -120px; top: -140px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.22), rgba(255,255,255,0) 70%)"></div>
+      <div style="display: flex; align-items: center; gap: 12px"><span style="width: 48px; height: 48px; border-radius: 16px; background: rgba(255,255,255,0.95); color: #c2185b; display: flex; align-items: center; justify-content: center; font-weight: 800">KP</span><span style="font-size: 20px; font-weight: 600">KPOne</span></div>
+      <div style="display: flex; flex-direction: column; gap: 12px; max-width: 460px">
+        <span style="font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1">Klinik Putrijaya's workspace</span>
+        <span style="font-size: 16px; opacity: 0.85">Front desk, consultation, pharmacy, billing, stock and HR in one place. For clinic staff only.</span>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <span style="font-size: 12.5px; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 12px">Cheras</span>
+        <span style="font-size: 12.5px; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 12px">Sungai Besi</span>
+        <span style="font-size: 12.5px; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 12px">Puchong</span>
+      </div>
+    </aside>
+
+    <main style="flex: 0 1 560px; min-width: 0; display: flex; align-items: center; justify-content: center">
+      <section aria-labelledby="h-signin" style="width: 100%; max-width: 420px; background: #ffffff; border-radius: 30px; padding: 32px 28px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 16px">
+        <div>
+          <h1 id="h-signin" style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em">Welcome to KPOne</h1>
+          <p style="margin: 4px 0 0; color: #6b6b73">Sign in to continue to your Klinik Putrijaya workspace.</p>
+        </div>
+
+        <sc-if value="{{showError}}" hint-placeholder-val="{{ false }}">
+          <p role="alert" style="margin: 0; padding: 10px 12px; border-radius: 14px; background: #fde7ef; color: #8e0f44; font-size: 13px">These details do not match an active staff account.</p>
+        </sc-if>
+
+        <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Email address</span><span style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; box-shadow: inset 0 0 0 2px #111114">aina.r@kpone.test<span aria-hidden="true" style="display: inline-block; width: 1.5px; height: 16px; background: #111114; margin-left: 1px"></span></span></label>
+        <label style="display: flex; flex-direction: column; gap: 6px">
+          <span style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; color: #3a3a40">Password<a href="#" style="color: #c2185b; font-weight: 600">Forgot password?</a></span>
+          <span style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 6px 0 14px; border-radius: 14px; background: #f4f4f6"><span style="letter-spacing: 0.2em">{{pw}}</span><button type="button" onClick="{{togglePw}}" aria-label="{{pwAria}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 40px; padding: 0 10px; cursor: pointer">{{pwLabel}}</button></span>
+        </label>
+        <button type="button" role="checkbox" aria-checked="{{remember}}" onClick="{{toggleRemember}}" style="align-self: flex-start; display: flex; align-items: center; gap: 10px; border: 0; background: transparent; font: inherit; min-height: 40px; padding: 0; cursor: pointer"><span style="{{rememberBox}}">✓</span>Remember me</button>
+
+        <button type="button" onClick="{{tryIt}}" style="min-height: 52px; border: 0; border-radius: 999px; background: #111114; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Sign in</button>
+
+        <div style="display: flex; align-items: center; gap: 10px; color: #8a8a93; font-size: 12.5px"><span style="flex: 1; height: 1px; background: #ececf0"></span>or continue with<span style="flex: 1; height: 1px; background: #ececf0"></span></div>
+        <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; border: 0; border-radius: 999px; background: #f4f4f6; color: #111114; font: inherit; font-weight: 600; cursor: pointer"><span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 1px #e6e6ea; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1a4fa0">G</span>Continue with Google</button>
+
+        <div style="padding: 12px 14px; border-radius: 16px; background: #f8f8fa; color: #6b6b73; font-size: 12.5px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-weight: 600; color: #3a3a40">No account? Ask your administrator.</span>
+          <span>There is no self-registration. Google only signs in an existing, active staff account; an unknown Google account never creates one.</span>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const show = !!st.show;
+    const remember = st.remember !== false;
+    return {
+      accent,
+      pw: show ? 'demo-password' : '••••••••••',
+      pwLabel: show ? 'Hide' : 'Show',
+      pwAria: show ? 'Hide password' : 'Show password',
+      togglePw: () => this.setState({ show: !show }),
+      remember: String(remember),
+      toggleRemember: () => this.setState({ remember: !remember }),
+      rememberBox: 'flex:none;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;' + (remember ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;'),
+      showError: !!st.err,
+      tryIt: () => this.setState({ err: !st.err })
+    };
+  }
+}
+</script>
+</body>
+</html>

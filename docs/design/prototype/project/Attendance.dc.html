@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Attendance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="Cheras" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 12px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">KPOne HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Attendance</div>
+      <nav aria-label="Attendance tabs" style="margin-left: 12px; display: flex; gap: 2px; background: #e9e9ee; border-radius: 999px; padding: 3px; flex-wrap: wrap">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6"><button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}">{{t.label}}<span style="{{t.countStyle}}">{{t.count}}</span></button></sc-for>
+      </nav>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Server time only. Login, queue and consultation times are never attendance.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 4px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Week of 16 Nov</h2><span style="font-size: 12px; color: #8a8a93">Cheras</span></div>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 6px">Flags are worked out when the page opens, never stored.</span>
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+          <button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" style="{{d.row}}"><span style="flex: 1; text-align: left"><span style="display: block; font-weight: 500">{{d.label}}</span><span style="font-size: 12px; color: #8a8a93">{{d.sub}}</span></span><span style="{{d.flagStyle}}">{{d.flags}}</span></button>
+        </sc-for>
+        <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 14px 8px 6px">BRANCH</span>
+        <sc-for list="{{branchList}}" as="b" hint-placeholder-count="3"><a href="#" style="{{b.row}}"><span style="flex: 1">{{b.k}}</span><span style="font-size: 12px; color: #8a8a93">{{b.v}}</span></a></sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.tile}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: baseline; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{listTitle}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">{{listSub}}</span>
+          </div>
+          <div style="display: flex; gap: 12px; padding: 0 10px 6px; font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 170px">{{h1}}</span><span style="flex: 0 0 100px">{{h2}}</span><span style="flex: 0 0 104px">{{h3}}</span><span style="flex: 0 0 90px; text-align: right">{{h4}}</span><span style="flex: 1 1 170px">{{h5}}</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="flex: 1 1 170px; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.role}}</span></span>
+              <span style="flex: 0 0 100px; font-size: 13px; color: #3a3a40; text-align: left">{{r.c2}}</span>
+              <span style="flex: 0 0 104px; font-size: 13px; text-align: left; font-variant-numeric: tabular-nums">{{r.c3}}</span>
+              <span style="flex: 0 0 90px; text-align: right; font-variant-numeric: tabular-nums">{{r.c4}}</span>
+              <span style="flex: 1 1 170px; display: flex; flex-wrap: wrap; gap: 4px"><sc-for list="{{r.flags}}" as="f" hint-placeholder-count="1"><span style="{{f.style}}">{{f.t}}</span></sc-for></span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-detail" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; color: #6b6b73">{{dKind}}</span>
+          <h2 id="h-detail" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{dTitle}}</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px"><sc-for list="{{dChips}}" as="c" hint-placeholder-count="2"><span style="{{c.style}}">{{c.t}}</span></sc-for></div>
+          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+          <div style="padding: 10px 12px; border-radius: 14px; background: #f8f8fa; font-size: 12.5px; color: #3a3a40">{{dNote}}</div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{dField}}</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">{{dFieldHint}}</span></label>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Rules on this page</h2>
+          <sc-for list="{{rules}}" as="u" hint-placeholder-count="3"><span style="font-size: 12.5px; color: #6b6b73">{{u}}</span></sc-for>
+        </section>
+        <div style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">{{secondary}}</button>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{primary}}</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      'late': { t: 'Late today', n: 'Wed 18 Nov · after the 5 min grace (settings v3)', c: ['Staff', 'Branch', 'Shift', 'Clock in', 'Status'], w: 'minmax(150px,1.4fr) minmax(130px,1fr) 110px 90px 130px',
+        r: [['Hafiz Rahim · CA', 'Cheras', '08:00–17:00', '08:09', ['Late 9 min', 'warn']], ['Lee Wen Hui · CA Supervisor', 'Cheras (assigned Sungai Besi)', '08:00–17:00', '08:21', ['Late 21 min', 'warn']]],
+        foot: 'Flags are worked out when the page opens and are never stored.' },
+      'no clock-in yet': { t: 'No clock-in yet', n: 'Rostered today, no press recorded', c: ['Staff', 'Branch', 'Shift', 'Status'], w: 'minmax(150px,1.4fr) minmax(110px,1fr) 110px 160px',
+        r: [['Kamal Hassan · CA', 'Cheras', '08:00–17:00', ['No clock-in', 'warn']]],
+        foot: 'KPOne sends no reminder. A forgotten press is fixed by a correction.' },
+      'corrections waiting': { t: 'Corrections waiting', n: 'Oldest first · the decider is never the person', c: ['Staff', 'Day', 'What to correct', 'Reason', 'Status'], w: 'minmax(150px,1.4fr) 110px minmax(130px,1fr) 90px 170px',
+        r: [['Puan HR · HR Manager (you)', 'Mon 16 Nov', 'Add clock-out', 'Forgot', ['Another manager decides', 'mute']], ['Farah Izzati · CA', 'Tue 17 Nov', 'Change clock-in', 'Device', ['Waiting', 'warn']], ['Hafiz Rahim · CA', 'Wed 18 Nov', 'Add clock-out', 'Forgot', ['Waiting', 'warn']]] },
+      'approved this month': { t: 'Approved overtime · November', n: 'All branches · minutes as approved', c: ['Staff', 'Branch', '>Requests', '>Approved'], w: 'minmax(150px,1.6fr) minmax(100px,1fr) 80px 110px',
+        r: [['Hafiz Rahim', 'Cheras', '3', '6 h 00 min'], ['Ravi Kumar', 'Cheras', '2', '5 h 00 min'], ['Aina Sofea', 'Cheras', '2', '3 h 30 min'], ['Lee Wen Hui', 'Sungai Besi', '2', '4 h 00 min'], ['Farah Izzati', 'Sungai Besi', '1', '2 h 00 min'], ['Zul Hakim', 'Puchong', '3', '5 h 15 min'], ['Mohan Raj', 'Puchong', '2', '4 h 00 min']],
+        foot: 'Total 29 h 45 min. No money is worked out or shown here; pay is in Payroll.' },
+      'hours changed after approval': { t: 'Hours changed after approval', n: 'A correction changed the session after overtime was approved', c: ['Staff', 'Session', 'Approved', 'Session now', 'Status'], w: 'minmax(140px,1.3fr) 110px 100px 110px 170px',
+        r: [['Ravi Kumar · CA', 'Mon 9 Nov', '1 h 00 min', '40 min over shift', ['Check the approval', 'warn']]],
+        foot: 'The approval keeps the minutes, day type and settings version it was given with.' },
+      'near weekly limit': { t: 'Near the weekly limit', n: 'Mon to Sun, branch-local · a warning only', c: ['Staff', 'This week', 'Limit', 'Status'], w: 'minmax(150px,1.4fr) 110px 90px 150px',
+        r: [['Hafiz Rahim · CA', '44 h', '45 h', ['Near the limit', 'warn']]],
+        foot: 'The weekly hours line never refuses anything.' }
+    };
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const tab0 = S.tab || 'review';
+    const tab = ['ot', 'corr'].indexOf(tab0) >= 0 ? tab0 : 'review';
+    const day = S.day || 'wed';
+    const sel = S.sel == null ? 2 : S.sel;
+    const T = { warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], ok: ['#e9f8ee', '#1d7a3a'], info: ['#e8f0fe', '#1a4fa8'], mute: ['#f4f4f6', '#6b6b73'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const pickRow = on => 'display:flex;align-items:center;gap:12px;padding:6px 10px;min-height:44px;border:0;border-radius:14px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;box-shadow:inset 0 -1px 0 #f4f4f6;');
+    const seg = on => 'display:inline-flex;align-items:center;gap:6px;border:0;font:inherit;font-size:12.5px;font-weight:' + (on ? '600' : '500') + ';min-height:32px;padding:0 12px;border-radius:999px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.1);' : 'background:transparent;color:#6b6b73;');
+    const FT = { 'Late': 'warn', 'Left early': 'warn', 'No clock-out': 'warn', 'No clock-in': 'warn', 'Not on the roster': 'info', 'Different branch': 'info', 'On approved leave': 'mute', 'Correction waiting': 'bad', 'Hours changed after approval': 'warn', 'Near weekly limit': 'warn', 'Past weekly limit': 'bad', 'Rest day': 'info', 'Public holiday': 'info', 'Normal day': 'mute' };
+    const fl = list => list.map(t => ({ t, style: chip(FT[t] || 'mute') }));
+    const TABS = [['my', 'My attendance', ''], ['review', 'Review', ''], ['corr', 'Corrections', '3'], ['ot', 'Overtime', '2'], ['sum', 'Summary', ''], ['set', 'Settings', '']];
+    const tabs = TABS.map(([k, label, count]) => ({ label, count, pressed: String(tab0 === k), pick: () => this.setState({ tab: k, sel: 0 }), style: seg(tab0 === k), countStyle: count ? chip('bad') : 'display:none;' }));
+    const D = [['mon', 'Mon 16 Nov', '36 sessions', '4'], ['tue', 'Tue 17 Nov', '37 sessions', '5'], ['wed', 'Wed 18 Nov', 'today · 34 so far', '6'], ['thu', 'Thu 19 Nov', 'rostered 36', ''], ['fri', 'Fri 20 Nov', 'rostered 35', ''], ['sat', 'Sat 21 Nov', 'rostered 18', ''], ['sun', 'Sun 22 Nov', 'branch closed', '']];
+    const days = D.map(([k, label, sub, f]) => ({ label, sub, flags: f ? f + ' flags' : '—', flagStyle: f ? chip('warn') : 'font-size:12px;color:#b4b4bc;', pressed: String(day === k), pick: () => this.setState({ day: k, sel: 0 }), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 8px;border:0;border-radius:12px;font:inherit;color:inherit;cursor:pointer;' + (day === k ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;') }));
+    const branchList = [['Cheras', '22 staff', true], ['Sungai Besi', '13 staff'], ['Puchong', '16 staff']].map(([k, v, on]) => ({ k, v, row: 'display:flex;align-items:center;gap:8px;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'font-weight:600;' : 'color:#3a3a40;') }));
+    let data, h, title, sub, detail;
+    if (tab === 'ot') {
+      data = [
+        ['Hafiz Rahim', 'CA', 'Sat 14 Nov', 'Rest day', '1 h 30 min', ['Rest day', 'Near weekly limit']],
+        ['Aina Sofea', 'CA', 'Tue 17 Nov', 'Normal day', '45 min', ['Normal day']],
+        ['Ravi Kumar', 'CA', 'Mon 9 Nov', 'Normal day', '1 h 00 min', ['Normal day', 'Hours changed after approval']],
+        ['Siti Aminah', 'CA Supervisor', 'Thu 12 Nov', 'Public holiday', '3 h 00 min', ['Public holiday']]
+      ].map(([name, role, c2, c3, c4, f], i) => ({ name, role, c2, c3, c4, flags: fl(f) }));
+      h = ['PERSON', 'SESSION', 'DAY TYPE', 'ASKED', 'NOTES']; title = 'Overtime requests · 2 waiting'; sub = 'one closed clock session each, inside the correction window';
+      const r = data[Math.min(sel, data.length - 1)];
+      detail = { kind: 'Overtime request · ' + r.c2, title: r.name + ' · ' + r.c4, chips: r.flags, facts: [['Session', '08:02 to 18:40 (10 h 38 min)'], ['Most that can be asked', 'All time worked (rest day)'], ['Asked', r.c4], ['This week', '44 h of a 45 h limit'], ['Settings version', 'v3 · rest day 2x']], note: 'No money is worked out or shown here. The approval stores the minutes, the day type and the settings version; pay is in Payroll.', field: 'Approve fewer minutes (optional)', hint: 'Minutes · a reason is needed if fewer', sec: 'Reject', pri: 'Approve overtime' };
+    } else if (tab === 'corr') {
+      data = [
+        ['Hafiz Rahim', 'CA', 'Wed 18 Nov', 'Add clock-out', 'Forgot', ['Correction waiting']],
+        ['Farah Izzati', 'CA', 'Tue 17 Nov', 'Change clock-in', 'Device', ['Correction waiting']],
+        ['Puan HR', 'HR Manager (you)', 'Mon 16 Nov', 'Add clock-out', 'Forgot', ['Correction waiting']]
+      ].map(([name, role, c2, c3, c4, f], i) => ({ name, role, c2, c3, c4, flags: fl(f) }));
+      h = ['PERSON', 'DAY', 'WHAT TO CORRECT', 'REASON', 'STATUS']; title = 'Corrections waiting · 3'; sub = 'oldest first';
+      const own = sel === 2;
+      const r = data[Math.min(sel, data.length - 1)];
+      detail = { kind: 'Correction · ' + r.c2, title: r.name + ' · ' + r.c3.toLowerCase(), chips: r.flags, facts: [['Original press', 'Clock in 08:09, no clock-out'], ['Asked for', 'Clock out 17:32'], ['Reason code', r.c4 === 'Forgot' ? 'Forgot to clock out' : 'Device problem'], ['Note', 'Encrypted · shown to deciders only'], ['Asked by', r.name]], note: own ? 'Someone else decides this one. You cannot decide your own correction.' : 'Approving adds an event. The original press is kept and still shows on Review.', field: 'Reason (needed to reject)', hint: 'Choose a reason', sec: 'Reject correction', pri: own ? 'Someone else decides this one' : 'Approve correction' };
+    } else {
+      data = [
+        ['Dr. Arif Zulkarnain', 'Resident Doctor', '08:00–17:00', '07:51 · —', 'open', []],
+        ['Siti Aminah', 'CA Supervisor', '08:00–17:00', '07:55 · —', 'open', []],
+        ['Hafiz Rahim', 'CA', '08:00–17:00', '08:09 · —', 'open', ['Late', 'Correction waiting']],
+        ['Aina Sofea', 'CA', '08:00–17:00', '08:01 · —', 'open', []],
+        ['Ravi Kumar', 'CA', '09:00–18:00', '08:57 · —', 'open', []],
+        ['Nadia Rahman', 'CA', '13:00–17:00', '—', '—', ['On approved leave']],
+        ['Dr. Mei Xin Tan', 'Resident Doctor', '08:00–14:00', '07:58 · —', 'open', []],
+        ['Farah Izzati', 'CA', 'No shift', '08:14 · 13:02', '4 h 48 min', ['Not on the roster']],
+        ['Lee Wen Hui', 'CA Supervisor', '08:00–17:00', '08:21 · —', 'open', ['Late', 'Different branch']],
+        ['Kamal Hassan', 'CA', '08:00–17:00', '—', '—', ['No clock-in']],
+        ['Zul Hakim', 'CA', '07:00–15:00', '06:58 · 12:40', '5 h 42 min', ['Left early']],
+        ['Mohan Raj', 'CA', '07:00–15:00', '06:55 · —', 'open', []],
+        ['Aisha Musa', 'CA', '07:00–15:00', '06:59 · 15:04', '8 h 05 min', []]
+      ].map(([name, role, c2, c3, c4, f]) => ({ name, role, c2, c3, c4, flags: fl(f.length ? f : []) }));
+      h = ['PERSON', 'SHIFT', 'IN · OUT', 'WORKED', 'FLAGS']; title = 'Attendance review · Wed 18 Nov'; sub = 'Cheras · grace 5 min (settings v3)';
+      const r = data[Math.min(sel, data.length - 1)];
+      detail = { kind: 'Clock session · Wed 18 Nov', title: r.name, chips: r.flags.length ? r.flags : fl(['Normal day']), facts: [['Shift', r.c2], ['Clock in', r.c3.split(' · ')[0]], ['Clock out', r.c3.split(' · ')[1] || '—'], ['Worked', r.c4], ['Branch', 'Cheras · assigned that day']], note: 'A forgotten clock-out is never closed automatically. The person asks for a correction and someone else decides it.', field: 'Correction on their behalf (optional)', hint: 'What to correct · reason code', sec: 'Open staff file', pri: 'Open the waiting correction' };
+    }
+    const rows = data.map((r, i) => Object.assign(r, { pressed: String(sel === i), pick: () => this.setState({ sel: i }), row: pickRow(sel === i) }));
+    const strips = tab === 'ot' ? [stripItem('2', 'overtime requests waiting', true), stripItem('29 h 45 min', 'approved this month'), stripItem('1', 'hours changed after approval'), stripItem('1', 'near weekly limit')] : [stripItem('34', 'sessions today', true), stripItem('2', 'late'), stripItem('1', 'no clock-in yet'), stripItem('3', 'corrections waiting')];
+    const __base = {
+      accent, tabs, days, branchList, rows, strip: strips,
+      listTitle: title, listSub: sub, h1: h[0], h2: h[1], h3: h[2], h4: h[3], h5: h[4],
+      dKind: detail.kind, dTitle: detail.title, dChips: detail.chips, dFacts: detail.facts.map(([k, v]) => ({ k, v })), dNote: detail.note, dField: detail.field, dFieldHint: detail.hint, secondary: detail.sec, primary: detail.pri,
+      rules: ['The decider is never the person and never whoever asked.', 'A location check gives only inside, outside or unavailable. There is no tracking.', 'Nothing in HR blocks clinical work.']
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      tabs: __x.tabs,
+      days: __x.days,
+      branchList: __x.branchList,
+      rows: __x.rows,
+      strip: __x.strip,
+      listTitle: __x.listTitle,
+      listSub: __x.listSub,
+      h1: __x.h1,
+      h2: __x.h2,
+      h3: __x.h3,
+      h4: __x.h4,
+      h5: __x.h5,
+      dKind: __x.dKind,
+      dTitle: __x.dTitle,
+      dChips: __x.dChips,
+      dFacts: __x.dFacts,
+      dNote: __x.dNote,
+      dField: __x.dField,
+      dFieldHint: __x.dFieldHint,
+      secondary: __x.secondary,
+      primary: __x.primary,
+      rules: __x.rules,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

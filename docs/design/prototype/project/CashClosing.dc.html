@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cash closing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="bill" accent="{{accent}}" branch="Cheras" user-name="Aina R." user-role="CA Supervisor" user-ini="AR" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Billing</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Cash closing</div><span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Cheras · counted by you</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 300px; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="flex: 1; min-height: 0; overflow: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 6px 8px"><h2 class="h2">November</h2><span class="muted">‹ Oct · Dec ›</span></div>
+          <sc-for list="{{month}}" as="d" hint-placeholder-count="10">
+            <a href="#" style="{{d.row}}"><span style="flex: none; width: 54px; font-weight: 600; font-variant-numeric: tabular-nums">{{d.day}}</span><span style="flex: 1; font-size: 12.5px; color: #6b6b73">{{d.diff}}</span><span style="{{d.chip}}">{{d.status}}</span></a>
+          </sc-for>
+        </section>
+      </aside>
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap"><sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for></div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section class="card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; max-width: 760px; width: 100%; box-sizing: border-box">
+          <h1 class="h2">Count for Wed 18 Nov · Cheras</h1>
+          <div style="display: flex; flex-direction: column">
+            <sc-for list="{{expected}}" as="e" hint-placeholder-count="4"><div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span class="muted">{{e.k}}</span><span style="font-weight: 500; font-variant-numeric: tabular-nums">{{e.v}}</span></div></sc-for>
+            <div style="display: flex; justify-content: space-between; min-height: 46px; align-items: center"><span style="font-weight: 600">Expected cash</span><span style="font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums">RM 1,284.50</span></div>
+          </div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Cash you counted (RM)</span><span class="field" style="box-shadow: inset 0 0 0 2px #111114; font-size: 17px; font-weight: 600">1,279.50</span></label>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #fff4dc; color: #8a5a00"><span style="font-weight: 700">RM 5.00 short</span><span style="font-size: 12.5px">A reason is needed for any difference.</span></div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Reason for the difference</span><span class="field">Change given wrongly at 3 pm<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Note <span style="color: #8a8a93; font-weight: 400">· optional</span></span><span class="field" style="color: #8a8a93">Anything the approver should know</span></label>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 class="h2">Who approves</h2>
+          <span class="muted">Someone other than you approves or returns this count, after the day ends at midnight.</span>
+          <sc-for list="{{approvers}}" as="a" hint-placeholder-count="3"><div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="{{a.av}}">{{a.ini}}</span><span style="flex: 1"><span style="display: block; font-weight: 500">{{a.name}}</span><span class="muted">{{a.role}}</span></span></div></sc-for>
+        </section>
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <h2 class="h2">Waiting for approval</h2>
+          <sc-for list="{{waiting}}" as="w" hint-placeholder-count="2"><div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span>{{w.k}}</span><span style="{{w.style}}">{{w.v}}</span></div></sc-for>
+        </section>
+        <button type="button" class="primary" style="margin-top: auto">Submit count</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ appr: { title: 'Approved days this month', note: 'Cheras · November', cols: '90px minmax(0,1fr) minmax(0,1fr) 120px auto', head: ['DAY','COUNTED BY','APPROVED BY','DIFFERENCE','STATUS'], align: ['l','l','l','r','l'],
+  rows: [['Sun 15','Aina R.','Mei (Finance)','Matches',['Approved','ok']],['Sat 14','Hafiz','Mei (Finance)','Matches',['Approved','ok']],['Thu 12','Aina R.','Dr. Director','RM 1.00 short',['Approved','ok']],['Wed 11','Hafiz','Mei (Finance)','Matches',['Approved','ok']],['Mon 9','Aina R.','Mei (Finance)','Matches',['Approved','ok']],['Sun 8','Hafiz','Dr. Director','Matches',['Approved','ok']],['Sat 7','Aina R.','Mei (Finance)','Matches',['Approved','ok']],['Fri 6','Hafiz','Mei (Finance)','RM 0.50 over',['Approved','ok']],['Thu 5','Aina R.','Mei (Finance)','Matches',['Approved','ok']],['Wed 4','Hafiz','Dr. Director','Matches',['Approved','ok']],['Tue 3','Aina R.','Mei (Finance)','RM 2.00 short',['Approved','ok']],['Mon 2','Hafiz','Mei (Finance)','Matches',['Approved','ok']],['Sun 1','Aina R.','Mei (Finance)','Matches',['Approved','ok']],['Fri 30 Oct','Hafiz','Dr. Director','Matches',['Approved','ok']]],
+  foot: 'The person who counted never approves the same day.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const av = (bg, fg, s) => 'flex:none;width:' + (s || 36) + 'px;height:' + (s || 36) + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8'), none: 'display:none;' };
+    const day = (d, status, diff, today) => ({ day: d, status, diff, chip: { Approved: P.green, Waiting: P.amber, 'Not counted': P.red, Returned: P.purple, Today: P.blue }[status], row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:12px;' + (today ? 'background:#f4f4f6;' : '') });
+    return {
+      ...XP.holes,
+      accent,
+      strip: XP.strip([strip('RM 5.00', 'short today', true), strip('14', 'days approved'), strip('2', 'waiting'), strip('1', 'not counted')], { 1: 'appr' }),
+      month: [
+        day('Wed 18', 'Today', 'Counting now', true), day('Tue 17', 'Waiting', 'Matches'), day('Mon 16', 'Waiting', 'RM 2.00 over'),
+        day('Sun 15', 'Approved', 'Matches'), day('Sat 14', 'Approved', 'Matches'), day('Fri 13', 'Not counted', 'No count'),
+        day('Thu 12', 'Approved', 'RM 1.00 short'), day('Wed 11', 'Approved', 'Matches'), day('Tue 10', 'Returned', 'Recount asked'),
+        day('Mon 9', 'Approved', 'Matches'), day('Sun 8', 'Approved', 'Matches'), day('Sat 7', 'Approved', 'Matches'), day('Fri 6', 'Approved', 'RM 0.50 over')
+      ],
+      expected: [{ k: 'Cash receipts today (31)', v: 'RM 1,342.50' }, { k: 'Cash receipts reversed (1)', v: '− RM 28.00' }, { k: 'Cash refunds paid out (1)', v: '− RM 30.00' }],
+      approvers: [
+        { name: 'Finance Officer', role: 'Any finance officer', ini: 'FO', av: av('#e3f6f5', '#0b6f69') },
+        { name: 'Director', role: 'Dr. Director', ini: 'DR', av: av('#fde7ef', '#8e0f44') },
+        { name: 'Another CA Supervisor', role: 'Not you', ini: 'CS', av: av('#f1ecfd', '#5a32a8') }
+      ],
+      waiting: [{ k: 'Tue 17 Nov', v: 'Waiting', style: P.amber }, { k: 'Mon 16 Nov', v: 'Waiting', style: P.amber }]
+    };
+  }
+}
+</script>
+</body>
+</html>

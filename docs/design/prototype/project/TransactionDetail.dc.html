@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Transaction detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:340px !important}
+  .kp-work.kp-3>.kp-mid{flex:1 1 100% !important;min-height:auto !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="rep" accent="{{accent}}" branch="Cheras" user-name="Farid" user-role="Finance Officer" user-ini="FA" duty="08:30" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Reports</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Transaction detail</div>
+      <span style="display: inline-flex; align-items: center; margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">Patient names shown · every run recorded</span>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Search reports<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Reports" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 10px 8px 4px">{{g.title}}</span>
+          <sc-for list="{{g.items}}" as="i" hint-placeholder-count="2">
+            <a href="#" aria-current="{{i.cur}}" style="{{i.style}}"><span style="{{i.ic}}">{{i.k}}</span><span style="flex: 1; text-align: left">{{i.label}}</span></a>
+          </sc-for>
+        </sc-for>
+        <span style="font-size: 11.5px; color: #8a8a93; padding: 12px 8px 0">Patient-level reports: Finance Officer and Director only.</span>
+      </nav>
+
+      <main class="kp-mid" aria-labelledby="h-rep" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section aria-label="Filters" style="background: #ffffff; border-radius: 22px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+            <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+              <label style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 0"><span style="font-size: 12px; font-weight: 500; color: #6b6b73">{{f.k}}</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 12px; background: #f4f4f6">{{f.v}}<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+            </sc-for>
+            <button type="button" style="flex: none; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; padding: 0 22px; min-height: 40px">Run report</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+            <span style="font-size: 12px; color: #8a8a93; margin-right: 4px">Filters</span>
+            <sc-for list="{{chips}}" as="c" hint-placeholder-count="3"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; min-height: 30px; padding: 0 10px; border-radius: 999px; background: #f4f4f6; color: #3a3a40">{{c}}<span aria-hidden="true" style="color: #8a8a93">×</span></span></sc-for>
+            <span style="font-size: 12.5px; color: #c2185b; font-weight: 500; padding: 0 6px">+ Add filter</span>
+          </div>
+        </section>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+
+        <section style="flex: 1; min-height: 0; display: flex; flex-direction: column; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 16px 10px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 10px; flex-wrap: wrap">
+            <h1 id="h-rep" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em">Transaction detail</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">{{meta}}</span>
+            <button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer">Download CSV</button>
+          </div>
+          <div style="flex: 1; min-height: 0; overflow: auto; padding: 4px; margin: 0 -4px">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: 13px">
+              <thead><tr><sc-for list="{{cols}}" as="c" hint-placeholder-count="9"><th scope="col" style="{{c.style}}">{{c.label}}</th></sc-for></tr></thead>
+              <tbody>
+                <sc-for list="{{rows}}" as="r" hint-placeholder-count="14">
+                  <tr>
+                    <th scope="row" style="position: sticky; left: 0; z-index: 1; background: #ffffff; text-align: left; font-weight: 500; padding: 0 10px; height: 44px; white-space: nowrap; border-bottom: 1px solid #f1f1f4">{{r.id}}</th>
+                    <sc-for list="{{r.vals}}" as="v" hint-placeholder-count="8"><td style="{{v.style}}">{{v.t}}</td></sc-for>
+                    <td style="padding: 0 10px; text-align: right; border-bottom: 1px solid #f1f1f4"><span style="{{r.stStyle}}">{{r.stT}}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 4px 0; border-top: 2px solid #111114; flex-wrap: wrap">
+            <span style="font-weight: 600">Totals, all {{rowCount}} rows</span>
+            <sc-for list="{{totals}}" as="t" hint-placeholder-count="3"><span style="font-size: 12.5px; color: #6b6b73"><b style="color: #111114; font-weight: 600; font-variant-numeric: tabular-nums">{{t.v}}</b> {{t.k}}</span></sc-for>
+            <span style="margin-left: auto; display: flex; align-items: center; gap: 6px">
+              <button type="button" onClick="{{pager.prev}}" aria-label="Previous page" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; padding: 0 12px">‹</button>
+              <span style="font-size: 12.5px; color: #6b6b73; min-width: 80px; text-align: center">{{pager.label}}</span>
+              <button type="button" onClick="{{pager.next}}" aria-label="Next page" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; padding: 0 12px">›</button>
+            </span>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-how" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 id="h-how" style="margin: 0; font-size: 15px; font-weight: 600">How this report counts</h2>
+          <sc-for list="{{how}}" as="h" hint-placeholder-count="4">
+            <div style="font-size: 12.5px; color: #3a3a40; padding: 8px 10px; border-radius: 12px; background: #f8f8fa"><b style="font-weight: 600">{{h.k}}</b> {{h.v}}</div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Privacy and limits</h2>
+          <sc-for list="{{rules}}" as="h" hint-placeholder-count="4">
+            <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: #3a3a40; min-height: 32px"><span aria-hidden="true" style="flex: none; width: 20px; height: 20px; border-radius: 50%; background: #e9f8ee; color: #1d7a3a; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">✓</span><span>{{h}}</span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column">
+          <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Your recent runs</h2>
+          <sc-for list="{{downloads}}" as="d" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 10px; min-height: 44px; align-items: center; border-bottom: 1px solid #f1f1f4"><span><span style="display: block; font-size: 13px">{{d.k}}</span><span style="font-size: 11.5px; color: #8a8a93">{{d.when}}</span></span><span style="font-size: 12px; color: #6b6b73">{{d.rows}}</span></div>
+          </sc-for>
+          <span style="font-size: 11.5px; color: #8a8a93; margin-top: 8px">Files are not kept in KPOne.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ non: { title: 'Non-cash by method', note: 'Net of reversals · 1–18 Nov', cols: 'minmax(0,1.4fr) 90px 130px auto', head: ['METHOD','RECEIPTS','RM','CLASS'], align: ['l','r','r','l'],
+  rows: [['Card','206','15,402.80',['Non-cash','info']],['DuitNow QR','121','8,911.50',['Non-cash','info']],['Touch n Go','48','3,532.00',['Non-cash','info']]],
+  foot: 'Class is the current setting on Payment methods.' },
+ rev: { title: 'Reversed receipts', note: '8 receipts · by original receipt date', cols: 'minmax(0,1.2fr) 90px minmax(0,1fr) 90px auto', head: ['RECEIPT','DATE','METHOD','RM','REFUND'], align: ['l','l','l','r','l'],
+  rows: [['RC-CHR-048206','18 Nov','Cash','120.00',['Refund recorded','info']],['RC-CHR-048195','18 Nov','Card','186.00',['No refund','mute']],['RC-CHR-048184','17 Nov','DuitNow QR','98.00',['Refund recorded','info']],['RC-CHR-048173','17 Nov','Cash','154.00',['No refund','mute']],['RC-CHR-048162','17 Nov','Card','210.00',['No refund','mute']],['RC-CHR-048151','16 Nov','Touch n Go','75.00',['Refund recorded','info']],['RC-CHR-048140','16 Nov','Cash','245.00',['No refund','mute']],['RC-CHR-048129','15 Nov','Card','196.00',['No refund','mute']]],
+  foot: 'A recorded reversal is not proof of a cash refund.', filterCol: 4 } });
+    const accent = this.props.accent ?? '#c2185b';
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const item = (key, label, k, bg, fg) => ({ label, k, cur: 'tx' === key ? 'page' : 'false', ic: ic(bg, fg), style: 'display:flex;align-items:center;gap:10px;min-height:42px;padding:0 8px;border-radius:12px;' + ('tx' === key ? 'background:#f4f4f6;font-weight:600;color:#111114;box-shadow:inset 3px 0 0 #c2185b,0 0 0 1px rgba(17,17,26,0.05);' : 'color:#3a3a40;') });
+    const groups = [
+      { title: 'MONEY', items: [item('daily', 'Daily summary', 'DS', '#f4f4f6', '#3a3a40'), item('tx', 'Transaction detail', 'TX', '#e3f6f5', '#0b6f69'), item('bd', 'Billing detail', 'BD', '#e8f0fe', '#1a4fa8')] },
+      { title: 'PANEL AND STOCK', items: [item('panel', 'Panel summary', 'PS', '#f1ecfd', '#5a32a8'), item('stock', 'Stock movement', 'SM', '#fff4dc', '#8a5a00')] },
+      { title: 'OVERVIEW', items: [item('ins', 'Insights', 'IN', '#fde7ef', '#c2185b')] }
+    ];
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const head = (label, left, sticky) => ({ label, style: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.03em;padding:0 10px 8px;white-space:nowrap;text-align:' + (left ? 'left' : 'right') + ';border-bottom:1px solid #e6e6ea;background:#ffffff;position:sticky;top:0;z-index:' + (sticky ? 3 : 2) + ';' + (sticky ? 'left:0;' : '') });
+    const td = (t, opt) => { opt = opt || {}; return { t, style: 'padding:0 10px;height:44px;white-space:nowrap;text-align:' + (opt.left ? 'left' : 'right') + ';' + (opt.bold ? 'font-weight:600;color:#111114;' : 'color:#3a3a40;') + (opt.muted ? 'color:#8a8a93;' : '') + (opt.chip ? 'font-size:12px;' : '') + 'border-bottom:1px solid #f1f1f4;' }; };
+    const chip = (t, bg, fg) => ({ stT: t, stStyle: 'display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';' });
+    const first = ['Aina', 'Farhan', 'Mei Ling', 'Kumaran', 'Siti Nur', 'Daniel', 'Hana', 'Rajesh', 'Nurul', 'Wei Jie', 'Aishah', 'Arif', 'Priya', 'Zul', 'Liyana', 'Ahmad', 'Tan Sook', 'Haziq', 'Kavya', 'Irfan', 'Melati', 'Joshua'];
+    const last = ['Rahim', 'Ismail', 'Tan', 'Subramaniam', 'Aziz', 'Lim', 'Kamal', 'Nair', 'Hassan', 'Wong', 'Yusof', 'Chong'];
+    const person = i => first[i % first.length] + ' ' + last[(i * 5) % last.length];
+    const page = (this.state && this.state.page) || 1;
+    const pager = { prev: () => this.setState({ page: Math.max(1, page - 1) }), next: () => this.setState({ page: Math.min(31, page + 1) }), label: 'Page ' + page + ' of 31' };
+    const methods = [['Cash', 'Cash'], ['Card', 'Non-cash'], ['DuitNow QR', 'Non-cash'], ['Cash', 'Cash'], ['Touch n Go', 'Non-cash'], ['Card', 'Non-cash']];
+    const rows = [];
+    for (let i = 0; i < 20; i++) {
+      const n = (page - 1) * 20 + i;
+      const day = 18 - Math.floor(n / 34);
+      const amt = 35 + ((n * 37) % 160);
+      const rev = n % 11 === 4 ? amt : 0;
+      const m = methods[n % methods.length];
+      const hidden = n % 17 === 9;
+      const hh = 9 + ((n * 7) % 11), mm = (n * 13) % 60;
+      rows.push({
+        id: 'RC-CHR-' + String(48210 - n).padStart(6, '0'),
+        vals: [
+          td(day + ' Nov, ' + (hh > 12 ? hh - 12 : hh) + ':' + String(mm).padStart(2, '0') + (hh >= 12 ? ' PM' : ' AM'), { left: true }),
+          td(hidden ? '—' : 'KP-' + String(20311 + n * 7).padStart(6, '0'), { left: true, muted: hidden }),
+          td(hidden ? 'Not linked to an invoice' : person(n), { left: true, muted: hidden }),
+          td(hidden ? '—' : 'KPV-' + String(88120 - n).padStart(8, '0'), { left: true, muted: hidden }),
+          td(hidden ? '—' : 'INV-CHR-' + String(31205 - n).padStart(6, '0'), { left: true, muted: hidden }),
+          td(m[0], { left: true }),
+          td(m[1], { left: true, muted: m[1] === 'Non-cash' }),
+          td(fmt(amt)),
+          td(rev ? fmt(rev) : '—', { muted: !rev }),
+          td(fmt(amt - rev), { bold: true })
+        ],
+        ...(rev ? chip('Reversed', '#fde7ef', '#b0144f') : chip('Posted', '#e9f8ee', '#1d7a3a'))
+      });
+    }
+    return {
+      ...XP.holes,
+      accent, groups, rows, pager,
+      meta: 'Cheras · 1 to 18 Nov 2026 · made 18 Nov, 2:14 PM · 20 rows a page',
+      filters: [{ k: 'Branch', v: 'Cheras' }, { k: 'Receipt dates (up to 31 days)', v: '1 – 18 Nov 2026' }, { k: 'Payment method', v: 'All methods' }],
+      chips: ['Cash and Non-cash', 'All statuses'],
+      strip: XP.strip([stripItem('RM 48,912.40', 'net received', true), stripItem('RM 21,066.10', 'cash'), stripItem('RM 27,846.30', 'non-cash'), stripItem('RM 1,284.00', 'reversed')], { 2: 'non', 3: 'rev' }),
+      cols: [head('Receipt no.', true, true), head('Receipt date', true), head('Patient no.', true), head('Patient name', true), head('Visit no.', true), head('Invoice no.', true), head('Method', true), head('Cash / Non-cash', true), head('Original (RM)'), head('Reversed (RM)'), head('Net (RM)'), head('Status')],
+      rowCount: '612',
+      totals: [{ v: 'RM 50,196.40', k: 'original' }, { v: 'RM 1,284.00', k: 'reversed' }, { v: 'RM 48,912.40', k: 'net' }],
+      how: [
+        { k: 'One row per receipt,', v: 'by the original receipt date in branch time.' },
+        { k: 'Method', v: 'is the one used at the time of the receipt.' },
+        { k: 'Cash / Non-cash', v: 'is the current setting of that method in Payment methods.' },
+        { k: 'A reversal', v: 'is a recording correction. It is not proof that cash was refunded.' }
+      ],
+      rules: ['No IC or passport number, contact, clinical or note data.', 'Each page and each download is recorded before rows show. If the record cannot be written, nothing shows.', 'One branch and up to 31 dates per run.', 'A download over 5,000 rows is refused, never cut.'],
+      downloads: [{ k: 'Transaction detail · 1–15 Nov', when: '16 Nov, 4:22 PM', rows: '612 rows' }, { k: 'Transaction detail · Oct', when: '1 Nov, 9:10 AM', rows: '1,844 rows' }, { k: 'Billing detail · Oct', when: '1 Nov, 9:02 AM', rows: '1,203 rows' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

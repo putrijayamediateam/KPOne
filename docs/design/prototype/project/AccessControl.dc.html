@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Access control</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Access control</div>
+      <span style="margin-left: 8px; font-size: 12px; font-weight: 600; color: #6b6b73; background: #ffffff; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); border-radius: 999px; padding: 4px 10px">Read only</span>
+      <span style="margin-left: auto; font-size: 12px; color: #8a8a93">Roles group permissions; each permission keeps its scope (own, branch or organisation).</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Change a person's roles on Staff</button>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 270px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 10px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Configured roles</h2><span style="font-size: 12px; color: #8a8a93">12</span></div>
+        <sc-for list="{{roles}}" as="r" hint-placeholder-count="12">
+          <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+            <span style="{{r.ic}}">{{r.k}}</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.code}}</span></span>
+            <span style="font-size: 12.5px; color: #6b6b73; font-variant-numeric: tabular-nums">{{r.n}}</span>
+          </button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for>
+          <sc-for list="{{stripX}}" as="s" hint-placeholder-count="3"><button type="button" aria-expanded="{{s.exp}}" aria-controls="{{s.pid}}" onClick="{{s.tog}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" data-xp="1" style="{{s.chev}}">⌄</span></button></sc-for>
+        </div>
+        <sc-for list="{{stripP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 0">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600">Role permission matrix</h1>
+            <span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 36px; padding: 7px 12px; width: 260px; color: #8a8a93">Search permissions (idea, not built)</span>
+            <span style="margin-left: auto; font-size: 12px; color: #8a8a93">Highlighted column: {{selName}}</span>
+          </div>
+          <div style="display: flex; align-items: flex-end; gap: 0; padding: 0 6px 6px; position: sticky; top: 0; background: #ffffff; z-index: 1">
+            <span style="flex: 1 1 300px; min-width: 240px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">PERMISSION</span>
+            <sc-for list="{{cols}}" as="c" hint-placeholder-count="12"><span title="{{c.full}}" style="{{c.style}}">{{c.k}}</span></sc-for>
+          </div>
+          <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+            <div style="padding: 10px 6px 4px; font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em">{{g.title}}</div>
+            <sc-for list="{{g.rows}}" as="p" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; min-height: 40px; padding: 0 6px; border-bottom: 1px solid #f6f6f8">
+                <span style="flex: 1 1 300px; min-width: 240px; font-size: 13px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; color: #3a3a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{p.name}}</span>
+                <sc-for list="{{p.cells}}" as="x" hint-placeholder-count="12"><span style="{{x.wrap}}"><span aria-label="{{x.label}}" style="{{x.dot}}"></span></span></sc-for>
+              </div>
+            </sc-for>
+          </sc-for>
+          <span style="margin: 12px 6px 0; font-size: 12px; color: #8a8a93">A filled dot means the role holds the permission. Technical admin never gains clinical or patient access by implication.</span>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const RO = [['director', 'Director', 'Di', 'red'], ['resident_doctor', 'Resident Doctor', 'Dr', 'blue'], ['ca', 'Clinic Assistant', 'CA', 'teal'], ['ca_supervisor', 'CA Supervisor', 'CS', 'teal'], ['panel_officer', 'Panel Officer', 'PO', 'violet'], ['finance_officer', 'Finance Officer', 'FO', 'green'], ['hr_manager', 'HR Manager', 'HR', 'amber'], ['administrator', 'Administrator', 'Ad', 'grey'], ['technical_admin', 'Technical Admin', 'TA', 'grey'], ['marketing', 'Marketing', 'Mk', 'violet'], ['business_development', 'Business Development', 'BD', 'violet'], ['queue_display', 'Waiting-room TV', 'TV', 'grey']];
+    const N = [142, 58, 47, 71, 22, 49, 44, 37, 15, 9, 6, 3];
+    const sel = S.sel !== undefined ? S.sel : 3;
+    const roles = RO.map(([code, name, k, t], i) => ({ code, name, k, ic: ic(t), n: String(N[i]), row: rowSel(i === sel), pressed: String(i === sel), pick: () => this.setState({ sel: i }) }));
+    const colW = 'flex:none;width:40px;display:flex;justify-content:center;';
+    const cols = RO.map(([code, name, k], i) => ({ k, full: name, style: colW + 'font-size:11px;font-weight:700;padding:6px 0;border-radius:10px 10px 0 0;' + (i === sel ? 'background:#f4f4f6;color:#111114;' : 'color:#8a8a93;') }));
+    const G = [
+      ['PATIENTS AND VISITS', [['patients.view.organisation', '111100000000'], ['patients.merge.approve.organisation', '100100000000'], ['visits.view.branch', '111100000000'], ['queue.call.own', '010000000000'], ['queue.display.branch', '000000000001']]],
+      ['CLINICAL', [['medical_certificates.issue.own', '010000000000'], ['dispensary.update.branch', '001100000000'], ['dispensary.labels.print.branch', '001100000000']]],
+      ['MONEY', [['billing.view.branch', '101100000000'], ['payments.refunds.approve.branch', '100001000000'], ['panel.claims.manage.branch', '000010000000'], ['reports.transactions.view.branch', '100001000000']]],
+      ['STOCK', [['inventory.view.branch', '101101010000'], ['inventory.variances.approve.branch', '100101000000']]],
+      ['HR', [['hr.records.view.own', '111111111110'], ['hr.claims.approve.organisation', '100000100000'], ['hr.claims.pay.organisation', '100001000000'], ['hr.payroll.approve.organisation', '100000000000']]],
+      ['PEOPLE AND ACCESS', [['staff.manage.organisation', '000000101000'], ['access.manage.organisation', '000000001000'], ['audit.view.organisation', '100000101000']]]
+    ];
+    const groups = G.map(([title, rows]) => ({ title, rows: rows.map(([name, bits]) => ({ name, cells: bits.split('').map((b, i) => ({ label: RO[i][1] + (b === '1' ? ' holds this' : ' does not hold this'), wrap: colW + 'align-self:stretch;align-items:center;' + (i === sel ? 'background:#f4f4f6;' : ''), dot: 'width:10px;height:10px;border-radius:50%;box-sizing:border-box;' + (b === '1' ? 'background:' + (i === sel ? '#c2185b' : '#111114') + ';' : 'border:1.5px solid #dcdce2;') })) })) }));
+    return {
+      accent, roles, cols, groups, selName: RO[sel][1] + ' · ' + N[sel] + ' permissions',
+      strip: [stripItem('12', 'roles', true), stripItem('318', 'permissions'), stripItem('Director', 'only one who assigns every role')],
+      stripX: [Object.assign(stripItem('3', 'grant authority over people'), xBtn('auth', 'strip-xpanel', stripItem('', '').style + 'color:#111114;'))],
+      stripP: xPanel('strip-xpanel', ['auth'], { auth: { title: 'Permissions that grant authority over people · 3', note: 'The declared set used to decide who may manage whom', foot: 'Nobody manages themselves, and the protected Director is governed only by a Director. Every other permission is operational and grants no authority over people.', cols: ['PERMISSION', 'HELD BY', 'GOVERNS', 'KIND'], grid: 'minmax(220px,2.2fr) minmax(140px,1.4fr) minmax(120px,1fr) minmax(110px,auto)', rows: [
+        ['staff.manage.organisation', 'Staff accounts, profiles, activation', 'Director, Technical Admin, HR Manager', 'Profiles and status', ['Authority', 'violet']],
+        ['branches.manage.organisation', 'Branch records', 'Director, Technical Admin', 'Branches', ['Authority', 'violet']],
+        ['access.manage.organisation', 'Roles and branch assignments', 'Director, Technical Admin', 'Roles and access', ['Authority', 'violet']]] } }, 14)
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Write-off</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:420px !important}
+  .kp-work.kp-3>.kp-mid{min-height:640px !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-act{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Farid" user-role="Finance Officer" user-ini="FA" duty="08:05" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Write-off</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">People never approve their own write-off</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Write-offs</h2><span style="font-size: 12px; font-weight: 600; color: #c2185b; background: #fde7ef; border-radius: 999px; padding: 1px 8px">3 for you</span></div>
+        <div role="tablist" aria-label="Filter" style="display: flex; gap: 2px; padding: 4px; background: #f4f4f6; border-radius: 999px; margin: 0 4px 8px">
+          <sc-for list="{{filters}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+        </div>
+        <sc-for list="{{list}}" as="r" hint-placeholder-count="12">
+          <button type="button" onClick="{{r.pick}}" aria-current="{{r.cur}}" style="{{r.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.no}} · {{r.item}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.chip}}">{{r.state}}</span></button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em">WO-0034 · Expired stock, Dispensary</h1>
+            <span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; background: #fff4dc; color: #8a5a00">Waiting for approval</span>
+          </div>
+          <span style="font-size: 12.5px; color: #8a8a93; margin-top: -6px">Snapshot frozen 17 Nov, 5:40 PM · proposed by Siti · counted by Hafiz</span>
+          <div>
+            <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+              <span style="flex: 1 1 220px">ITEM AND BATCH</span><span style="flex: none; width: 110px; text-align: right">ON HAND</span><span style="flex: none; width: 110px; text-align: right">WRITE OFF</span><span style="flex: none; width: 130px">REASON</span>
+            </div>
+            <sc-for list="{{lines}}" as="l" hint-placeholder-count="6">
+              <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8; font-variant-numeric: tabular-nums">
+                <span style="flex: 1 1 220px; min-width: 0"><span style="display: block; font-weight: 500">{{l.name}}</span><span style="font-size: 12px; color: #8a8a93">{{l.batch}}</span></span>
+                <span style="flex: none; width: 110px; text-align: right; color: #6b6b73">{{l.onhand}}</span>
+                <span style="flex: none; width: 110px; text-align: right; font-weight: 600; color: #c2185b">− {{l.qty}}</span>
+                <span style="flex: none; width: 130px"><span style="{{l.chip}}">{{l.reason}}</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 24px">
+            <sc-for list="{{facts}}" as="f" hint-placeholder-count="4">
+              <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 44px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+            </sc-for>
+          </div>
+          <div style="padding: 10px 12px; border-radius: 14px; background: #fff4dc; color: #8a5a00; font-size: 12.5px">Batch CE-0931 is on hold at Cheras. Writing it off does not release the hold.</div>
+          <span style="font-size: 12px; color: #8a8a93">Quantities only. Stock value is not shown here. Whether regulated items need more steps is to confirm with a pharmacist.</span>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Who does what</h2>
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="{{p.av}}">{{p.ini}}</span><span style="flex: 1"><span style="display: block; font-weight: 500">{{p.role}}</span><span style="font-size: 12px; color: #6b6b73">{{p.who}}</span></span><span style="{{p.chip}}">{{p.state}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">The approver is never the counter, the recounter or the proposer. You took no part in WO-0034.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">When you approve</h2>
+          <sc-for list="{{after}}" as="a" hint-placeholder-count="3">
+            <div style="font-size: 12.5px; color: #3a3a40; padding: 8px 10px; border-radius: 12px; background: #f8f8fa">{{a}}</div>
+          </sc-for>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Reason <span style="color: #8a8a93; font-weight: 400">· needed to return it</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">Type a reason</span></label>
+        </section>
+        <div class="kp-act" style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; padding: 0 18px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Return</button>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; padding: 0 22px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Approve write-off</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const rowStyle = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border:0;border-radius:14px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const tabStyle = on => 'border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(17,17,26,0.08),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+
+    const f = st.f || 'wait';
+    const sel = st.sel || 'WO-0034';
+    const filters = [['wait', 'Waiting · 3'], ['done', 'Approved'], ['all', 'All']].map(([k, label]) => ({ label, on: String(f === k), pick: () => this.setState({ f: k }), style: 'flex:1;' + tabStyle(f === k) }));
+    const tone = { 'Waiting for approval': 'amber', 'Approved': 'green', 'Returned': 'red', 'Reversal proposed': 'violet', 'Reversed': 'grey' };
+    const R = [
+      ['WO-0034', 'Expired, Dispensary', '4 lines · proposed by Siti · 17 Nov', 'Waiting for approval'],
+      ['WO-0033', 'Damaged, Store room', '2 lines · proposed by Siti · 16 Nov', 'Waiting for approval'],
+      ['WO-0031', 'Reversal of WO-0029', 'Wrong batch chosen · by Siti', 'Reversal proposed'],
+      ['WO-0032', 'Count difference', 'From count SC-0118 · 2 short', 'Approved'],
+      ['WO-0030', 'Expired, Treatment room', '3 lines · approved by Dr. Director', 'Approved'],
+      ['WO-0029', 'Damaged, Dispensary', '1 line · reversal waiting', 'Approved'],
+      ['WO-0028', 'Contaminated', 'Proposer asked to add disposal ref', 'Returned'],
+      ['WO-0027', 'Expired, Store room', '5 lines · approved by Farid', 'Approved'],
+      ['WO-0026', 'Count difference', 'From count SC-0109 · 1 short', 'Approved'],
+      ['WO-0025', 'Damaged, Store room', 'Reversed by WO-0025R', 'Reversed'],
+      ['WO-0024', 'Expired, Dispensary', '2 lines · approved by Farid', 'Approved']
+    ];
+    const waitS = ['Waiting for approval', 'Reversal proposed'];
+    const list = R.filter(r => f === 'all' || (f === 'wait' ? waitS.includes(r[3]) : r[3] === 'Approved')).map(([no, item, sub, state]) => ({ no, item, sub, state, chip: chip(tone[state]), cur: String(sel === no), pick: () => this.setState({ sel: no }), row: rowStyle(sel === no) }));
+    const L = [
+      ['Cetirizine 10 mg tablet', 'CE-0931 · exp 31 Oct 2026 · on hold', '118 tablet', '118 tablet', 'Expired'],
+      ['Ranitidine 150 mg tablet', 'RA-0811 · exp 15 Nov 2026', '42 tablet', '42 tablet', 'Expired'],
+      ['Dexamethasone 4 mg/ml', 'DX-0198 · exp 30 Sep 2026', '6 ampoule', '6 ampoule', 'Expired'],
+      ['Diclofenac gel 1% 20 g', 'DG-0201 · exp 01/2027 · crushed tube', '9 tube', '1 tube', 'Damaged']
+    ];
+    const lines = L.map(([name, batch, onhand, qty, reason]) => ({ name, batch, onhand, qty, reason, chip: chip(reason === 'Expired' ? 'red' : 'amber') }));
+    const XPMAP = ['wait', null, 'rev', 'appr'];
+    const XPD = {
+      wait: { title: 'Waiting for you · 3', note: 'Cheras', cols: [['PROPOSAL', '90px'], ['REASON', 'minmax(150px,1.5fr)'], ['LINES', '60px', 'r'], ['PROPOSED BY', '120px'], ['STATUS', 'minmax(150px,1fr)']], rows: [
+        ['WO-0034', 'Expired, Dispensary', '4', 'Siti · 17 Nov', ['w', 'Waiting for approval']],
+        ['WO-0033', 'Damaged, Store room', '2', 'Siti · 16 Nov', ['w', 'Waiting for approval']],
+        ['WO-0031', 'Reversal of WO-0029', '1', 'Siti · 17 Nov', ['q', 'Reversal proposed']]
+      ], foot: 'You did not count, recount or propose these, so you may approve them.' },
+      rev: { title: 'Reversal proposed · 1', note: 'A linked reversal, approved the same way', cols: [['PROPOSAL', '90px'], ['REVERSES', 'minmax(170px,1.6fr)'], ['WHY', 'minmax(130px,1.2fr)'], ['PROPOSED BY', '110px'], ['STATUS', 'minmax(140px,1fr)']], rows: [
+        ['WO-0031', 'WO-0029 · Damaged, Dispensary', 'Wrong batch chosen', 'Siti · 17 Nov', ['q', 'Reversal proposed']]
+      ], foot: 'One reversal per approved write-off. Nothing is deleted.' },
+      appr: { title: 'Approved this month · 9', note: 'November 2026 · Cheras', cols: [['WRITE-OFF', '90px'], ['REASON', 'minmax(150px,1.5fr)'], ['LINES', '60px', 'r'], ['APPROVED BY', '120px'], ['STATUS', 'minmax(170px,1.1fr)']], rows: [
+        ['WO-0032', 'Count difference', '1', 'Dr. Director', ['ok', 'Approved']],
+        ['WO-0030', 'Expired, Treatment room', '3', 'Dr. Director', ['ok', 'Approved']],
+        ['WO-0029', 'Damaged, Dispensary', '1', 'Farid', ['q', 'Approved · reversal waiting']],
+        ['WO-0027', 'Expired, Store room', '5', 'Farid', ['ok', 'Approved']],
+        ['WO-0026', 'Count difference', '1', 'Dr. Director', ['ok', 'Approved']],
+        ['WO-0024', 'Expired, Dispensary', '2', 'Farid', ['ok', 'Approved']],
+        ['WO-0023', 'Damaged, Treatment room', '1', 'Farid', ['ok', 'Approved']],
+        ['WO-0022', 'Expired, Dispensary', '3', 'Dr. Director', ['ok', 'Approved']],
+        ['WO-0021', 'Count difference', '1', 'Farid', ['ok', 'Approved']]
+      ], foot: 'Each approval and its stock movement were saved together, with the reason code.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, filters, list, lines,
+      strip: xpWrap([stripItem('3', 'waiting for you', true), stripItem('4', 'lines in WO-0034'), stripItem('1', 'reversal proposed'), stripItem('9', 'approved this month')]),
+      facts: [{ k: 'Branch and location', v: 'Cheras · Dispensary' }, { k: 'Reason code', v: 'Expiry write-off' }, { k: 'Disposal reference', v: 'Clinical waste log CW-1142' }, { k: 'Linked count', v: 'None (direct write-off)' }],
+      people: [
+        { role: 'Counted', who: 'Hafiz (CA)', ini: 'HF', av: av('teal'), state: 'Done', chip: chip('green') },
+        { role: 'Proposed', who: 'Siti (CA Supervisor)', ini: 'SI', av: av('violet'), state: 'Done', chip: chip('green') },
+        { role: 'Approve', who: 'You · Farid (Finance Officer)', ini: 'FA', av: av('red'), state: 'Waiting', chip: chip('amber') }
+      ],
+      after: ['The approval and its stock movement are saved together, with the reason code.', 'Nothing is deleted. A mistake is fixed by a linked reversal proposal, approved the same way.', 'Disposal is not proven by KPOne; the log reference is kept.']
+    };
+  }
+}
+</script>
+</body>
+</html>

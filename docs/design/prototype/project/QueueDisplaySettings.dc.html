@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Queue display settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1100px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="Cheras" user-name="Aina R." user-role="CA Supervisor" user-ini="AR" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Waiting-room TV</div>
+      <div style="margin-left: 12px; display: inline-flex; background: #e9e9ee; border-radius: 999px; padding: 4px">
+        <sc-for list="{{branches}}" as="b" hint-placeholder-count="3"><button type="button" aria-pressed="{{b.pressed}}" onClick="{{b.pick}}" style="{{b.style}}">{{b.label}}</button></sc-for>
+      </div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Version 14 · saved 9 Nov by Aina R.</span>
+      <a href="WaitingRoomTv.dc.html" style="display: inline-flex; align-items: center; border-radius: 999px; padding: 0 16px; min-height: 38px; background: #ffffff; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.08)">Preview screen ↗</a>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save screen content</button>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: baseline; gap: 10px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Call patients by</h2><span style="font-size: 12.5px; color: #8a8a93">TV list, current call and the spoken call</span></div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+              <button type="button" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="{{m.style}}">
+                <span style="font-weight: 600; font-size: 15px">{{m.label}}</span>
+                <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">{{m.sample}}</span>
+                <span style="font-size: 12.5px; color: #6b6b73">{{m.note}}</span>
+                <span style="{{m.chipStyle}}">{{m.chip}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Rooms</h2><span style="font-size: 12.5px; color: #8a8a93">Doctors pick a consultation room each day; Call In waits until they do</span><button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 600; cursor: pointer">+ Add room</button></div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 200px">NAME</span><span style="flex: 0 0 170px">TYPE</span><span style="flex: 0 0 60px; text-align: right">ORDER</span><span style="flex: 0 0 110px; text-align: center">STATUS</span><span style="flex: 0 0 60px"></span>
+          </div>
+          <sc-for list="{{rooms}}" as="r" hint-placeholder-count="6">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1 1 200px; min-width: 0; font-weight: 500">{{r.name}}</span>
+              <span style="flex: 0 0 170px; color: #3a3a40">{{r.type}}</span>
+              <span style="flex: 0 0 60px; text-align: right; color: #6b6b73; font-variant-numeric: tabular-nums">{{r.order}}</span>
+              <span style="flex: 0 0 110px; display: flex; justify-content: center"><span style="{{r.statusStyle}}">{{r.status}}</span></span>
+              <a href="#" style="flex: 0 0 60px; text-align: right; font-weight: 600; color: #6b6b73">Edit</a>
+            </div>
+          </sc-for>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 14px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Screen content</h2>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Scrolling text <span style="color: #8a8a93; font-weight: 400">· shown at the bottom of the TV</span></span><span style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6"><span>Open every day, 8 am to 10 pm · Please have your IC ready at the counter</span><span style="flex: none; font-size: 12px; color: #8a8a93">72 / 500</span></span></label>
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 12px">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">YouTube video link <span style="color: #8a8a93; font-weight: 400">· plays muted on a loop</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">https://www.youtube.com/watch?v=example123</span></label>
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Seconds per poster</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">12</span></label>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Posters (4 of 8)</h2><span style="font-size: 12.5px; color: #8a8a93">JPG, PNG or WebP, up to 5 MB each. Do not upload anything that identifies a patient.</span></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px">
+            <sc-for list="{{posters}}" as="p" hint-placeholder-count="4">
+              <div style="display: flex; flex-direction: column; gap: 6px"><span style="{{p.thumb}}">{{p.title}}</span><span style="display: flex; justify-content: space-between; font-size: 12px; color: #6b6b73"><span>{{p.k}}</span><a href="#" style="font-weight: 600">Remove</a></span></div>
+            </sc-for>
+            <button type="button" style="aspect-ratio: 16 / 9; border: 0; border-radius: 16px; background: #f8f8fa; box-shadow: inset 0 0 0 1.5px #d8d8de; color: #6b6b73; font: inherit; font-weight: 600; cursor: pointer">+ Upload poster</button>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">The TV at Cheras</h2>
+          <sc-for list="{{tvRows}}" as="t" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{t.k}}</span><span style="{{t.vStyle}}">{{t.v}}</span></div>
+          </sc-for>
+          <sc-for list="{{tvX}}" as="t" hint-placeholder-count="1">
+            <button type="button" aria-expanded="{{t.exp}}" aria-controls="{{t.pid}}" onClick="{{t.tog}}" style="{{t.bstyle}}"><span style="color: #6b6b73">{{t.k}}</span><span style="display: flex; align-items: center; gap: 8px; font-weight: 500">{{t.v}}<span aria-hidden="true" data-xp="1" style="{{t.chev}}">⌄</span></span></button>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">The TV signs in with a Queue Display (TV) staff account. It sees only called numbers, rooms and times for its own branch.</span>
+        </section>
+        <sc-for list="{{tvP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Who can change this</h2>
+          <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa"><span style="display: block; font-weight: 500">Director</span><span style="font-size: 12.5px; color: #6b6b73">Every branch</span></div>
+          <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa"><span style="display: block; font-weight: 500">CA Supervisor</span><span style="font-size: 12.5px; color: #6b6b73">Only branches they are assigned to</span></div>
+          <span style="font-size: 12px; color: #8a8a93">Every change is versioned and recorded in the audit log.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const st = this.state || {};
+    const br = st.br || 'cheras';
+    const mode = st.mode || 'number';
+    const seg = on => 'border:0;border-radius:999px;padding:6px 14px;min-height:32px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const chip = (bg, fg) => 'align-self:flex-start;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:' + bg + ';color:' + fg + ';';
+    const card = on => 'display:flex;flex-direction:column;align-items:flex-start;gap:6px;border:0;cursor:pointer;font:inherit;text-align:left;border-radius:18px;padding:14px 16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;');
+    const modes = [
+      ['number', 'Queue number', 'A-032', 'No patient data on the TV. Default.', 'Most private', '#e6f6ea', '#1d6b34'],
+      ['short', 'Number and short name', 'A-032 · Nur Aisyah', 'First two name words, at most 24 characters; bin, binti, a/l and similar skipped.', 'Privacy review before go-live', '#fff4dc', '#8a5a00'],
+      ['full', 'Full name (as registered)', 'Aisyah binti Contoh', 'Shows the full registered name to the whole waiting room. No queue number.', 'Privacy review before go-live', '#fde7ef', '#8e0f44']
+    ].map(([k, label, sample, note, c, bg, fg]) => ({ label, sample, note, chip: c, chipStyle: chip(bg, fg), pressed: String(mode === k), pick: () => this.setState({ mode: k }), style: card(mode === k) }));
+    const status = on => on ? chip('#e6f6ea', '#1d6b34') : chip('#f1f1f4', '#6b6b73');
+    const room = (name, type, order, on) => ({ name, type, order: String(order), status: on ? 'Active' : 'Inactive', statusStyle: status(on) });
+    const thumb = c => 'aspect-ratio:16/9;border-radius:16px;display:flex;align-items:flex-end;padding:10px;box-sizing:border-box;font-size:12.5px;font-weight:600;color:#111114;background:' + c + ';';
+    return {
+      accent,
+      branches: [['cheras', 'Cheras'], ['sgb', 'Sungai Besi'], ['pcg', 'Puchong']].map(([k, label]) => ({ label, pressed: String(br === k), pick: () => this.setState({ br: k }), style: seg(br === k) })),
+      modes,
+      rooms: [room('Consultation Room 1', 'Consultation room', 1, true), room('Consultation Room 2', 'Consultation room', 2, true), room('Consultation Room 3', 'Consultation room', 3, false), room('Dispensary', 'Dispensary', 4, true), room('Treatment Room', 'Treatment room', 5, true), room('Nebuliser corner', 'Treatment room', 6, true)],
+      posters: [{ title: 'Flu vaccine', k: 'Poster 1', thumb: thumb('#fde7ef') }, { title: 'Opening hours', k: 'Poster 2', thumb: thumb('#e8f0fe') }, { title: 'Health screening', k: 'Poster 3', thumb: thumb('#e6f6ea') }, { title: 'Little Shield', k: 'Poster 4', thumb: thumb('#fff4dc') }],
+      tvX: [Object.assign({ k: 'Calls today', v: '58' }, xBtn('calls', 'tv-xpanel', 'display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;border-bottom:1px solid #f1f1f4;background:transparent;color:#111114;padding:0 6px;margin:0 -6px;border-radius:10px;'))],
+      tvP: xPanel('tv-xpanel', ['calls'], { calls: { title: 'Calls today at Cheras · 58', note: 'By room · call records hold no patient data', cols: ['ROOM', '', '', 'CALLS'], rows: [
+        ['Consultation Room 1', 'Consultation · 3 were Panggil semula', '', '', ['22 calls', 'mute']], ['Consultation Room 2', 'Consultation · 2 were Panggil semula', '', '', ['19 calls', 'mute']],
+        ['Dispensary', 'Pharmacy calls, A and B numbers', '', '', ['13 calls', 'mute']], ['Treatment Room', 'Nebuliser and dressing', '', '', ['4 calls', 'mute']]] } }, 14, true),
+      tvRows: [
+        { k: 'TV account', v: 'tv.cheras@kpone.test', vStyle: 'font-weight:500;' },
+        { k: 'Signed in', v: 'Yes · since 07:31', vStyle: 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:#e6f6ea;color:#1d6b34;' },
+        { k: 'Call mode', v: { number: 'Queue number', short: 'Number + short name', full: 'Full name' }[mode], vStyle: 'font-weight:500;' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

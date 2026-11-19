@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pilot readiness</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:420px !important}
+  .kp-work.kp-3>.kp-mid{min-height:640px !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-act{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:05" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Pilot readiness</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">A review checklist, not a dispensing gate · synthetic data only</span><button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer">Import opening stock</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 260px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">BEFORE THE PILOT</span>
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button type="button" onClick="{{t.pick}}" aria-current="{{t.cur}}" style="{{t.row}}"><span style="{{t.ic}}">{{t.k}}</span><span style="flex: 1; min-width: 0"><span style="display: block">{{t.label}}</span><span style="font-size: 12px; color: #8a8a93; font-weight: 400">{{t.sub}}</span></span><span style="{{t.chip}}">{{t.count}}</span></button>
+        </sc-for>
+        <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 16px 8px 6px">CHECKLIST · CHERAS</span>
+        <sc-for list="{{check}}" as="c" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 8px; font-size: 13px"><span style="{{c.dot}}">{{c.mark}}</span><span style="flex: 1">{{c.k}}</span></div>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for>
+        </div>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 4px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{listTitle}}</h1>
+            <span style="display: flex; align-items: center; min-height: 36px; padding: 0 12px; margin-left: auto; border-radius: 12px; background: #f4f4f6; color: #8a8a93; font-size: 13px">Search SKU</span>
+          </div>
+          <span style="font-size: 12.5px; color: #8a8a93; margin: 0 6px 8px">{{listHint}}</span>
+          <div style="display: flex; gap: 12px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 200px">{{h1}}</span><span style="flex: 0 1 190px">{{h2}}</span><span style="flex: 0 1 150px">{{h3}}</span><span style="flex: none; width: 128px; text-align: center">STATUS</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+            <button type="button" onClick="{{r.pick}}" aria-current="{{r.cur}}" style="{{r.row}}">
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{r.a}}</span><span style="font-size: 12px; color: #8a8a93">{{r.a2}}</span></span>
+              <span style="flex: 0 1 190px; min-width: 0; font-size: 13px; color: #3a3a40">{{r.b}}</span>
+              <span style="flex: 0 1 150px; min-width: 0; font-size: 13px; color: #3a3a40">{{r.c}}</span>
+              <span style="{{r.chip}}">{{r.state}}</span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; color: #6b6b73">{{dKind}}</span>
+          <h2 style="margin: -6px 0 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{dTitle}}</h2>
+          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+          <div style="{{dNoteS}}">{{dNote}}</div>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Why this matters</h2>
+          <span style="font-size: 12.5px; color: #3a3a40">{{why}}</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; padding: 0 22px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{action}}</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const rowStyle = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border:0;border-radius:14px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const tabStyle = on => 'border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(17,17,26,0.08),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+
+    const tab = st.tab || 'opening';
+    const T = { units: ['UN', 'violet'], opening: ['OP', 'teal'], barcodes: ['BC', 'red'] };
+    const tabs = [['units', 'Stock units', 'One verified base unit per SKU', '6 left'], ['opening', 'Opening stock', 'Signed off by someone else', '11 left'], ['barcodes', 'Duplicate barcodes', 'One code, one SKU', '2']].map(([k, label, sub, count]) => ({ label, sub, count, k: T[k][0], ic: ic(T[k][1]), chip: chip(k === 'barcodes' ? 'red' : 'amber'), cur: String(tab === k), pick: () => this.setState({ tab: k, sel: 0 }), row: rowStyle(tab === k) + (tab === k ? 'font-weight:600;' : '') }));
+    const sel = st.sel || 0;
+    const stc = s => 'flex:none;width:128px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:4px 0;' + ({ green: 'background:#e9f8ee;color:#1d7a3a;', amber: 'background:#fff4dc;color:#8a5a00;', red: 'background:#fde7ef;color:#c2185b;', grey: 'background:#f4f4f6;color:#6b6b73;' })[s];
+    const D = {
+      units: { title: 'Stock units · 58 of 64 verified', hint: 'Dispensing is refused when the dispensing unit of a SKU differs from its stock unit.', h: ['SKU', 'BASE STOCK UNIT', 'DISPENSED AS'], rows: [
+        ['Diclofenac gel 1% 20 g', 'SKU-DG20', 'tube', 'gram', 'Units differ', 'red'],
+        ['Salbutamol inhaler', 'SKU-SB100', 'inhaler', 'inhaler', 'Not verified', 'amber'],
+        ['Normal saline 500 ml', 'SKU-NS500', 'bottle', 'bottle', 'Not verified', 'amber'],
+        ['Amoxicillin syrup 125 mg/5 ml', 'SKU-AMS125', 'Not defined', 'ml', 'Not defined', 'red'],
+        ['Cough mixture 100 ml', 'SKU-CM100', 'bottle', 'Not mapped', 'Not mapped', 'grey'],
+        ['Omeprazole 20 mg', 'SKU-OM20 · 2 active SKUs', 'capsule', 'capsule', 'Ambiguous', 'red'],
+        ['Paracetamol 500 mg', 'SKU-PC500', 'tablet', 'tablet', 'Verified', 'green'],
+        ['Amoxicillin 250 mg', 'SKU-AM250', 'capsule', 'capsule', 'Verified', 'green'],
+        ['Cetirizine 10 mg', 'SKU-CE10', 'tablet', 'tablet', 'Verified', 'green'],
+        ['Loratadine 10 mg', 'SKU-LO10', 'tablet', 'tablet', 'Verified', 'green'],
+        ['Metformin 500 mg', 'SKU-MF500', 'tablet', 'tablet', 'Verified', 'green'],
+        ['Gauze swab 10 x 10', 'SKU-GZ10', 'pack', 'pack', 'Verified', 'green']
+      ], action: 'Verify unit', why: 'One verified base unit per SKU keeps every quantity exact. A box and a tablet are never mixed in one count.' },
+      opening: { title: 'Opening stock · 41 of 52 signed off', hint: 'Recorded with a real expiry date. The person who recorded an opening cannot sign it off.', h: ['SKU AND BATCH', 'OPENING RECORDED', 'RECORDED BY'], rows: [
+        ['Paracetamol 500 mg', 'PC-0519 · exp 05/2027 · Dispensary', '1,240 tablet', 'Siti · 2 Nov', 'Ready to sign', 'amber'],
+        ['Amoxicillin 250 mg', 'AM-2207 · exp 03/2027 · Store room', '410 capsule', 'Siti · 2 Nov', 'Ready to sign', 'amber'],
+        ['Cetirizine 10 mg', 'CE-0940 · exp 02/2027 · Dispensary', '320 tablet', 'Siti · 2 Nov', 'Ready to sign', 'amber'],
+        ['Salbutamol inhaler', 'SB-0102 · exp 06/2027 · Dispensary', '14 inhaler', 'You · 3 Nov', 'You recorded it', 'grey'],
+        ['Normal saline 500 ml', 'NS-0560 · exp 08/2027 · Treatment room', '30 bottle', 'Siti · 3 Nov', 'Unit not verified', 'red'],
+        ['Omeprazole 20 mg', 'OM-3301 · exp 04/2027 · Dispensary', '168 capsule', 'Siti · 3 Nov', 'Ready to sign', 'amber'],
+        ['Metformin 500 mg', 'MF-5120 · exp 09/2027 · Dispensary', '900 tablet', 'Siti · 2 Nov', 'Ready to sign', 'amber'],
+        ['Ibuprofen 400 mg', 'IB-4410 · exp 10/2027 · Store room', '400 tablet', 'Siti · 2 Nov', 'Signed off', 'green'],
+        ['Loratadine 10 mg', 'LO-1180 · exp 08/2027 · Dispensary', '150 tablet', 'Siti · 2 Nov', 'Signed off', 'green'],
+        ['Chlorpheniramine 4 mg', 'CP-0077 · exp 06/2027 · Dispensary', '880 tablet', 'Siti · 2 Nov', 'Signed off', 'green'],
+        ['Gauze swab 10 x 10', 'GZ-1120 · exp 01/2029 · Treatment room', '26 pack', 'Siti · 3 Nov', 'Signed off', 'green'],
+        ['Lignocaine 2% 5 ml', 'LG-0711 · exp 11/2027 · Treatment room', '9 ampoule', 'Siti · 3 Nov', 'Signed off', 'green']
+      ], action: 'Sign off opening', why: 'Opening stock is the start of every later count and report. A second person checks it on the shelf before the pilot starts.' },
+      barcodes: { title: 'Duplicate barcodes · 2 codes', hint: 'Until fixed, the scan box refuses these codes. Give each SKU its own code or clear the wrong one.', h: ['BARCODE', 'SKU', 'SKU'], rows: [
+        ['9556123004417', 'Used by 2 SKUs', 'Cetirizine 10 mg', 'Loratadine 10 mg', 'Refused by scan', 'red'],
+        ['9556123009910', 'Used by 2 SKUs', 'Gauze swab 10 x 10', 'Gauze swab 5 x 5', 'Refused by scan', 'red']
+      ], action: 'Save barcode fix', why: 'One barcode belongs to one SKU in the organisation. A shared code could find the wrong medicine.' }
+    };
+    const d = D[tab];
+    const rows = d.rows.map((r, i) => ({ a: r[0], a2: r[1], b: r[2], c: r[3], state: r[4], chip: stc(r[5]), cur: String(sel === i), pick: () => this.setState({ sel: i }), row: rowStyle(sel === i) + 'gap:12px;' }));
+    const pr = d.rows[Math.min(sel, d.rows.length - 1)];
+    const det = {
+      units: { kind: 'Stock unit check', facts: [{ k: 'SKU', v: pr[1] }, { k: 'Base stock unit', v: pr[2] }, { k: 'Dispensed as', v: pr[3] }, { k: 'Factor', v: '1.000' }], note: 'Verifying sets this as the one base unit. Quantities keep three decimals.', tone: 'grey' },
+      opening: { kind: 'Opening sign-off', facts: [{ k: 'Batch and place', v: pr[1].split(' · ')[0] }, { k: 'Quantity', v: pr[2] }, { k: 'Recorded by', v: pr[3] }, { k: 'Expiry', v: pr[1].split(' · ')[1] }], note: pr[4] === 'You recorded it' ? 'You recorded this opening, so someone else must sign it off.' : 'Count it on the shelf. Signing off says you checked it independently.', tone: pr[4] === 'You recorded it' ? 'amber' : 'grey' },
+      barcodes: { kind: 'Barcode fix', facts: [{ k: 'Barcode', v: pr[0] }, { k: 'Keep on', v: pr[2] }, { k: 'Clear from', v: pr[3] }, { k: 'Recorded', v: 'Audit row, no values' }], note: 'The other SKU gets its own code later, from the box.', tone: 'grey' }
+    }[tab];
+    const dot = ok => 'flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;' + (ok ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#fff4dc;color:#8a5a00;');
+    return {
+      accent, tabs, rows,
+      check: [['Catalogue reviewed', true], ['Prices published', true], ['Units verified', false], ['Openings signed off', false], ['Barcodes unique', false]].map(([k, ok]) => ({ k, mark: ok ? '✓' : '!', dot: dot(ok) })),
+      strip: [stripItem('3 of 5', 'checks done', true), stripItem('6', 'units to verify'), stripItem('11', 'openings to sign'), stripItem('2', 'duplicate barcodes')],
+      listTitle: d.title, listHint: d.hint, h1: d.h[0], h2: d.h[1], h3: d.h[2], action: d.action, why: d.why,
+      dKind: det.kind, dTitle: tab === 'barcodes' ? 'Code ' + pr[0] : pr[0], dFacts: det.facts, dNote: det.note,
+      dNoteS: 'padding:10px 12px;border-radius:14px;font-size:12.5px;' + (det.tone === 'amber' ? 'background:#fff4dc;color:#8a5a00;' : 'background:#f8f8fa;color:#3a3a40;')
+    };
+  }
+}
+</script>
+</body>
+</html>

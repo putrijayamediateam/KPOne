@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patient billing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-wrap: wrap">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="bill" accent="{{accent}}" branch="Cheras" user-name="Aina R." user-role="CA Supervisor" user-ini="AR" duty="07:55" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <a href="Registration.dc.html" style="font-size: 13px; color: #6b6b73">Front desk</a><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Aminah Yusof · A-031</div>
+      <div style="margin-left: auto; display: flex; gap: 8px">
+        <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; box-shadow: 0 1px 2px rgba(17,17,26,0.06), 0 0 0 1px rgba(17,17,26,0.05); cursor: pointer">Print invoice</button>
+        <button type="button" aria-label="More actions" style="border: 0; background: #ffffff; color: #3a3a40; border-radius: 50%; width: 38px; height: 38px; font: inherit; box-shadow: 0 1px 2px rgba(17,17,26,0.06), 0 0 0 1px rgba(17,17,26,0.05); cursor: pointer">···</button>
+      </div>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" aria-labelledby="h-pt" style="flex: 0 0 280px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="background: #ffffff; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="width: 56px; height: 56px; border-radius: 20px; background: #e8f0fe; color: #1a4fa0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 19px">AY</div>
+          <div><h1 id="h-pt" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Aminah Yusof</h1><div style="font-size: 13px; color: #6b6b73">KP-10231 · 52 y · Female</div></div>
+          <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: #1f7a3d"><span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 4px rgba(52,199,89,0.15)"></span>No known allergies</span>
+          <div style="display: flex; flex-direction: column">
+            <sc-for list="{{facts}}" as="f" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #f1f1f4; font-size: 13px"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500">{{f.v}}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background: #ffffff; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <span style="font-size: 13px; font-weight: 500; color: #6b6b73">This visit</span>
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+            <div style="display: flex; gap: 10px; align-items: center; font-size: 13.5px"><span style="{{s.dot}}">{{s.mark}}</span><span style="{{s.label}}">{{s.what}}</span><span style="color: #8a8a93; font-size: 12px; font-variant-numeric: tabular-nums">{{s.at}}</span></div>
+          </sc-for>
+        </div>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 0 4px; flex-wrap: wrap">
+          <div><h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.015em">Invoice</h2><div style="font-size: 12.5px; color: #6b6b73">INV-KP-CHR-004211 · draft</div></div>
+          <div role="tablist" aria-label="Invoice view" style="display: flex; background: #ffffff; border-radius: 999px; padding: 4px; gap: 2px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05)">
+            <button type="button" role="tab" aria-selected="true" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 12.5px; font-weight: 600">Items</button>
+            <button type="button" role="tab" aria-selected="false" style="border: 0; background: transparent; color: #3a3a40; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 12.5px">Documents</button>
+            <button type="button" role="tab" aria-selected="false" style="border: 0; background: transparent; color: #3a3a40; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 12.5px">Activity</button>
+          </div>
+        </div>
+        <div style="background: #ffffff; border-radius: 26px; padding: 8px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <sc-for list="{{items}}" as="i" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 18px">
+              <div style="flex: 1; min-width: 0"><div style="font-weight: 600">{{i.name}}</div><div style="font-size: 12.5px; color: #6b6b73">{{i.detail}}</div></div>
+              <span style="font-weight: 600; font-variant-numeric: tabular-nums">{{i.amount}}</span>
+            </div>
+          </sc-for>
+          <div style="display: flex; justify-content: space-between; margin: 4px; padding: 14px 12px; border-radius: 18px; background: #f7f7f9; font-weight: 600"><span>Total</span><span style="font-variant-numeric: tabular-nums">RM 78.00</span></div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-size: 13px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Add adjustment</button>
+          <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-size: 13px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Bill to</button>
+          <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-size: 13px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Add note</button>
+        </div>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-due" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="position: relative; overflow: hidden; border-radius: 26px; padding: 24px; color: #ffffff; background: radial-gradient(120% 140% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%); box-shadow: 0 18px 40px rgba(122,43,209,0.22)">
+          <div aria-hidden="true" style="position: absolute; right: -50px; top: -60px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.25), rgba(255,255,255,0) 70%)"></div>
+          <h2 id="h-due" style="margin: 0; font-size: 13px; font-weight: 500; opacity: 0.85">Due now</h2>
+          <div style="font-size: 52px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; font-variant-numeric: tabular-nums">RM 78.00</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 14px; font-size: 13px">
+            <div style="display: flex; justify-content: space-between; opacity: 0.9"><span>Subtotal</span><span>RM 78.00</span></div>
+            <div style="display: flex; justify-content: space-between; opacity: 0.9"><span>Panel covers</span><span>RM 0.00</span></div>
+            <div style="display: flex; justify-content: space-between; opacity: 0.9"><span>Paid</span><span>RM 0.00</span></div>
+          </div>
+        </div>
+        <div style="background: #ffffff; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <span style="font-size: 13px; font-weight: 500; color: #6b6b73">Pay with</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+            <sc-for list="{{methods}}" as="m" hint-placeholder-count="3"><button type="button" style="{{m.style}}">{{m.label}}</button></sc-for>
+          </div>
+          <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 16px; min-height: 52px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Take RM 78.00 cash</button>
+          <button type="button" style="border: 0; background: transparent; color: #3a3a40; min-height: 34px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer">Panel or pay later</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const ic = (bg, fg) => 'flex:none;width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const step = (done, now) => ({
+      dot: 'flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;' + (done ? 'background:#e7f6ea;color:#1f7a3d;' : now ? 'background:#111114;color:#ffffff;' : 'background:#f1f1f4;color:#8a8a93;'),
+      label: 'flex:1;' + (now ? 'font-weight:600;' : done ? 'color:#3a3a40;' : 'color:#8a8a93;')
+    });
+    const method = on => 'border:0;border-radius:14px;min-height:44px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;box-shadow:0 0 0 2px #111114;font-weight:600;color:#111114;' : 'background:#f4f4f6;color:#3a3a40;');
+    return {
+      accent,
+      facts: [{ k: 'Visit', v: 'A-031' }, { k: 'Doctor', v: 'Dr. Lim Wei' }, { k: 'Payment', v: 'Self-pay' }],
+      steps: [
+        Object.assign({ mark: '✓', what: 'Registered', at: '09:42' }, step(true)),
+        Object.assign({ mark: '✓', what: 'Consultation', at: '10:05' }, step(true)),
+        Object.assign({ mark: '✓', what: 'Medicines checked', at: '10:20' }, step(true)),
+        Object.assign({ mark: '4', what: 'Payment', at: 'now' }, step(false, true)),
+        Object.assign({ mark: '5', what: 'Complete visit', at: '' }, step(false))
+      ],
+      items: [
+        { k: 'GP', ic: ic('#e8f0fe', '#1a4fa0'), name: 'Consultation', detail: 'General practitioner · Dr. Lim', amount: 'RM 35.00' },
+        { k: 'Rx', ic: ic('#f1ecfd', '#5b3fa6'), name: 'Paracetamol 500 mg', detail: '20 tablets · 2 tabs 3 times a day', amount: 'RM 8.00' },
+        { k: 'Rx', ic: ic('#f1ecfd', '#5b3fa6'), name: 'Amoxicillin 500 mg', detail: '21 capsules · 1 cap 3 times a day', amount: 'RM 18.00' },
+        { k: 'Rx', ic: ic('#f1ecfd', '#5b3fa6'), name: 'Chlorpheniramine 4 mg', detail: '10 tablets · at night', amount: 'RM 5.00' },
+        { k: 'TR', ic: ic('#e7f6ea', '#1f6b33'), name: 'Nebuliser treatment', detail: 'Treatment room', amount: 'RM 12.00' }
+      ],
+      methods: [{ label: 'Cash', style: method(true) }, { label: 'Card', style: method(false) }, { label: 'QR Pay', style: method(false) }]
+    };
+  }
+}
+</script>
+</body>
+</html>

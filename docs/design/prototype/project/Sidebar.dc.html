@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KPOne sidebar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+button,a{transition:background-color 180ms ease,color 180ms ease,box-shadow 180ms ease}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+</style>
+</helmet>
+<div style="{{t.page}}">
+  <nav aria-label="Main" style="{{t.shell}}">
+
+    <div style="{{t.rail}}">
+      <div style="width: 40px; height: 40px; border-radius: 12px; background: {{accent}}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; margin-bottom: 14px">KP</div>
+
+      <button type="button" title="Today" aria-label="Today" onClick="{{go.today}}" style="{{r.today}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.today}}"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg><span style="{{dotFor.today}}"></span></button>
+      <span aria-hidden="true" style="{{t.sep}}"></span>
+      <button type="button" title="Front desk" aria-label="Front desk" onClick="{{go.front}}" style="{{r.front}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.front}}"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.7 3.5 5.5"></path></svg></button>
+      <button type="button" title="Consultation" aria-label="Consultation" onClick="{{go.consult}}" style="{{r.consult}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.consult}}"><path d="M6 3v6a5 5 0 0 0 10 0V3"></path><path d="M11 14v2a4 4 0 0 0 8 0v-1"></path><circle cx="19" cy="13" r="2"></circle></svg></button>
+      <button type="button" title="Pharmacy" aria-label="Pharmacy" onClick="{{go.pharm}}" style="{{r.pharm}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.pharm}}"><path d="M10.5 3.5a5 5 0 0 1 7 7l-7 7a5 5 0 0 1-7-7z"></path><path d="m8 8 7 7"></path></svg></button>
+      <span aria-hidden="true" style="{{t.sep}}"></span>
+      <button type="button" title="Billing" aria-label="Billing" onClick="{{go.bill}}" style="{{r.bill}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.bill}}"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"></path><path d="M9 8h6M9 12h6"></path></svg></button>
+      <button type="button" title="Panel" aria-label="Panel" onClick="{{go.panel}}" style="{{r.panel}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.panel}}"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"></path></svg><span style="{{dotFor.panel}}"></span></button>
+      <span aria-hidden="true" style="{{t.sep}}"></span>
+      <button type="button" title="Stock" aria-label="Stock" onClick="{{go.stock}}" style="{{r.stock}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.stock}}"><path d="m3 7 9-4 9 4v10l-9 4-9-4z"></path><path d="m3 7 9 4 9-4M12 11v10"></path></svg><span style="{{dotFor.stock}}"></span></button>
+      <button type="button" title="HR" aria-label="HR" onClick="{{go.hr}}" style="{{r.hr}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.hr}}"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="M6 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M15 10h3M15 13h3"></path></svg></button>
+      <button type="button" title="Reports" aria-label="Reports" onClick="{{go.rep}}" style="{{r.rep}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.rep}}"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg></button>
+
+      <div style="margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px">
+        <button type="button" title="Settings" aria-label="Settings" onClick="{{go.set}}" style="{{r.set}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{ri.set}}"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></button>
+        <a href="Me.dc.html" title="Me: {{userName}}" aria-label="Me, {{userName}}" style="position: relative; width: 40px; height: 40px; border-radius: 50%; background: #fde7ef; color: #8e0f44; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12.5px; text-decoration: none; margin-top: 6px">{{userIni}}<span aria-hidden="true" style="{{t.online}}"></span></a>
+      </div>
+    </div>
+
+    <div style="{{panelWrap}}" aria-hidden="{{panelHidden}}">
+      <div style="{{t.panel}}">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 6px 14px">
+          <h2 style="{{t.title}}">{{area.title}}</h2>
+          <button type="button" aria-label="Search {{area.title}}" style="{{t.iconBtn}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{t.smallI}}"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
+          <button type="button" aria-label="Close panel" onClick="{{close}}" style="{{t.iconBtn}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{t.smallI}}"><path d="m15 6-6 6 6 6"></path></svg></button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{area.sections}}" as="sec" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column">
+              <div style="{{sec.headStyle}}">
+                <span aria-hidden="true" style="{{t.secIcon}}">
+                  <sc-if value="{{sec.iDoc}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path></svg></sc-if>
+                  <sc-if value="{{sec.iUsers}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.7 3.5 5.5"></path></svg></sc-if>
+                  <sc-if value="{{sec.iClock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></sc-if>
+                  <sc-if value="{{sec.iReceipt}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"></path><path d="M9 8h6M9 12h6"></path></svg></sc-if>
+                  <sc-if value="{{sec.iBox}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><path d="m3 7 9-4 9 4v10l-9 4-9-4z"></path><path d="m3 7 9 4 9-4M12 11v10"></path></svg></sc-if>
+                  <sc-if value="{{sec.iChart}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg></sc-if>
+                  <sc-if value="{{sec.iInbox}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><path d="M3 13h5l2 3h4l2-3h5"></path><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"></path></svg></sc-if>
+                  <sc-if value="{{sec.iGear}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="{{t.secSvg}}"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></sc-if>
+                </span>
+                <a href="{{sec.href}}" style="flex: 1; color: inherit; text-decoration: none">{{sec.label}}</a>
+                <sc-if value="{{sec.hasCount}}" hint-placeholder-val="{{ false }}"><span style="{{sec.countStyle}}">{{sec.count}}</span></sc-if>
+                <sc-if value="{{sec.hasAdd}}" hint-placeholder-val="{{ false }}"><a href="{{sec.addHref}}" aria-label="{{sec.addLabel}}" title="{{sec.addLabel}}" style="{{t.plus}}">+</a></sc-if>
+              </div>
+              <sc-if value="{{sec.hasKids}}" hint-placeholder-val="{{ false }}">
+                <div style="{{t.tree}}">
+                  <sc-for list="{{sec.kids}}" as="k" hint-placeholder-count="3">
+                    <a href="{{k.href}}" style="{{k.style}}"><span aria-hidden="true" style="{{t.twig}}"></span><span style="flex: 1">{{k.label}}</span><span style="{{k.countStyle}}">{{k.count}}</span></a>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 16px">
+          <button type="button" style="{{t.branch}}">
+            <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #34c759"></span>
+            <span style="flex: 1; text-align: left"><span style="{{t.branchLabel}}">Branch</span><span style="font-weight: 600">{{branch}}</span></span>
+            <span aria-hidden="true">⌄</span>
+          </button>
+          <div style="{{t.duty}}"><span>{{userName}} · on duty since {{duty}}</span><a href="Me.dc.html" style="color: inherit; font-weight: 600">Me</a></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["today","front","consult","pharm","bill","panel","stock","hr","rep","set"],"default":"today"},"dark":{"editor":"boolean","default":false},"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#1d1d1f","#0a66d8"]},"branch":{"editor":null,"default":"All branches"},"userName":{"editor":null,"default":"Dr. Director"},"userRole":{"editor":null,"default":"Director"},"userIni":{"editor":null,"default":"DR"},"duty":{"editor":null,"default":"08:02"},"startCollapsed":{"editor":"boolean","default":false},"$preview":{"width":340,"height":1080}}'>
+class Component extends DCLogic {
+  cur() {
+    const st = this.state || {};
+    return {
+      area: st.area === undefined ? (this.props.active ?? 'today') : st.area,
+      open: st.open === undefined ? !this.props.startCollapsed : st.open
+    };
+  }
+  pick(key) {
+    const c = this.cur();
+    if (c.area === key) this.setState({ area: key, open: !c.open });
+    else this.setState({ area: key, open: true });
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const dark = !!this.props.dark;
+    const pageArea = this.props.active ?? 'today';
+    const c = this.cur();
+    const P = dark
+      ? { page: '#0b0b0d', shell: '#141416', rail: '#1b1b1e', line: '#2a2a2e', ink: '#f5f5f7', ink2: '#c7c7cc', muted: '#8e8e93', act: '#2c2c30', chip: '#2c2c30', chipInk: '#f5f5f7', hover: '#232327' }
+      : { page: '#f4f4f6', shell: '#ffffff', rail: '#f6f6f8', line: '#ececf0', ink: '#1d1d1f', ink2: '#3a3a3f', muted: '#6e6e73', act: '#ffffff', chip: '#f2f2f5', chipInk: '#3a3a3f', hover: '#f6f6f8' };
+    const font = "font-family: Inter, -apple-system, 'Segoe UI', sans-serif;";
+    const t = {
+      page: 'box-sizing:border-box;height:100vh;min-height:720px;padding:14px;background:' + P.page + ';' + font + 'font-size:14px;line-height:1.45;color:' + P.ink + ';',
+      shell: 'display:flex;height:100%;border-radius:26px;overflow:hidden;background:' + P.shell + ';border:1px solid ' + P.line + ';box-shadow:0 10px 30px rgba(17,17,26,' + (dark ? '0.5' : '0.07') + '),0 1px 2px rgba(17,17,26,0.05);',
+      rail: 'box-sizing:border-box;width:72px;flex:none;padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:6px;background:' + P.rail + ';border-right:1px solid ' + P.line + ';',
+      panel: 'box-sizing:border-box;width:248px;min-width:248px;height:100%;overflow-y:auto;padding:18px 14px 16px;display:flex;flex-direction:column;',
+      sep: 'width:24px;height:1px;background:' + P.line + ';margin:6px 0;',
+      online: 'position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:#34c759;border:2px solid ' + P.rail + ';',
+      title: 'margin:0;flex:1;font-size:19px;font-weight:700;letter-spacing:-0.01em;color:' + P.ink + ';',
+      iconBtn: 'width:30px;height:30px;border:0;border-radius:9px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;',
+      smallI: 'width:17px;height:17px;fill:none;stroke:' + P.muted + ';stroke-width:2;stroke-linecap:round;stroke-linejoin:round;',
+      secIcon: 'width:22px;display:flex;justify-content:center;flex:none;',
+      secSvg: 'width:19px;height:19px;fill:none;stroke:' + P.ink2 + ';stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;',
+      plus: 'display:flex;align-items:center;justify-content:center;text-decoration:none;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:' + P.muted + ';font:inherit;font-size:20px;line-height:1;cursor:pointer;',
+      tree: 'margin:0 0 6px 18px;padding-left:0;border-left:1.5px solid ' + P.line + ';display:flex;flex-direction:column;gap:2px;',
+      twig: 'width:12px;height:1.5px;background:' + P.line + ';flex:none;margin-left:-1px;',
+      branch: 'display:flex;align-items:center;gap:10px;border:1px solid ' + P.line + ';background:' + (dark ? '#1b1b1e' : '#fafafb') + ';border-radius:14px;padding:9px 12px;font:inherit;color:' + P.ink + ';cursor:pointer;',
+      branchLabel: 'display:block;font-size:11px;color:' + P.muted + ';',
+      duty: 'display:flex;justify-content:space-between;gap:8px;border-radius:12px;padding:8px 12px;font-size:12px;font-weight:500;' + (dark ? 'background:#0f2a17;color:#7fd99a;' : 'background:#e7f6ea;color:#1f6b33;')
+    };
+    const keys = ['today', 'front', 'consult', 'pharm', 'bill', 'panel', 'stock', 'hr', 'rep', 'set'];
+    const r = {}, ri = {}, go = {}, dotFor = {};
+    keys.forEach(k => {
+      const on = k === c.area;
+      r[k] = 'position:relative;width:46px;height:46px;border:0;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;' + (on ? 'background:' + P.act + ';box-shadow:0 1px 3px rgba(0,0,0,' + (dark ? '0.4' : '0.08') + ');' : 'background:transparent;');
+      ri[k] = 'width:21px;height:21px;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;stroke:' + (on ? accent : P.muted) + ';';
+      go[k] = () => this.pick(k);
+      dotFor[k] = 'display:none;';
+    });
+    ['today', 'panel', 'stock'].forEach(k => { dotFor[k] = 'position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%;background:#ff3b30;border:2px solid ' + P.rail + ';'; });
+
+    const kidOn = 'display:flex;align-items:center;gap:8px;min-height:34px;padding:0 8px 0 0;border-radius:10px;text-decoration:none;font-size:13.5px;font-weight:600;color:' + P.ink + ';background:' + P.hover + ';';
+    const kidOff = 'display:flex;align-items:center;gap:8px;min-height:34px;padding:0 8px 0 0;border-radius:10px;text-decoration:none;font-size:13.5px;color:' + P.ink2 + ';';
+    const chip = hot => 'min-width:24px;box-sizing:border-box;text-align:center;font-size:12px;font-weight:600;border-radius:7px;padding:1px 7px;font-variant-numeric:tabular-nums;' + (hot ? 'background:' + accent + ';color:#ffffff;' : 'background:' + P.chip + ';color:' + P.chipInk + ';');
+    const headStyle = on => 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:12px;font-weight:600;font-size:14.5px;color:' + P.ink + ';' + (on ? 'background:' + P.hover + ';' : '');
+    const kid = (label, count, on, hot, href) => ({ label, count: count ?? '', href: href || '#', style: on ? kidOn : kidOff, countStyle: count == null ? 'display:none;' : chip(hot) });
+    const sec = (icon, label, opts) => {
+      const o = opts || {};
+      const s = { label, href: o.href || '#', headStyle: headStyle(o.on), hasKids: !!o.kids, kids: o.kids || [], hasCount: o.count != null, count: o.count ?? '', countStyle: chip(o.hot), hasAdd: !!o.add, addLabel: o.add || '', addHref: o.addHref || o.href || '#' };
+      ['Doc', 'Users', 'Clock', 'Receipt', 'Box', 'Chart', 'Inbox', 'Gear'].forEach(n => { s['i' + n] = icon === n; });
+      return s;
+    };
+    const on = (k, sub) => pageArea === k && c.area === k && sub;
+    const AREAS = {
+      today: { title: 'Today', sections: [
+        sec('Chart', 'Overview', { on: on('today', true), href: 'Modern.dc.html' }),
+        sec('Inbox', 'Approvals', { href: 'Approvals.dc.html', count: '4', hot: true, kids: [kid('Stock suggestions', '1', false, false, 'ReorderSuggestions.dc.html'), kid('Leave', '1', false, false, 'Leave.dc.html'), kid('Payroll', '1', false, false, 'PayrollRun.dc.html'), kid('Medical certificates', '1', false, false, 'MC.dc.html')] }),
+        sec('Doc', 'Daily summary', { href: 'AgentDailySummary.dc.html' }),
+        sec('Clock', 'Updates', { href: 'AgentOffice.dc.html', kids: [kid('Agent office', null, false, false, 'AgentOffice.dc.html'), kid('Quick answers', null, false, false, 'QuickAnswers.dc.html')] })
+      ] },
+      front: { title: 'Front desk', sections: [
+        sec('Users', 'Visits today', { add: 'Register visit', addHref: 'RegisterVisit.dc.html', href: 'Registration.dc.html', kids: [kid('All', '34', on('front', true), false, 'Registration.dc.html'), kid('Waiting', '12', false, true, 'QueueBoard.dc.html'), kid('With doctor', '4', false, false, 'QueueBoard.dc.html'), kid('Done', '18', false, false, 'VisitHistory.dc.html')] }),
+        sec('Inbox', 'QR check-ins', { href: 'QrCheckins.dc.html', count: '2', hot: true }),
+        sec('Doc', 'Patients', { href: 'PatientList.dc.html', add: 'New patient', addHref: 'NewPatient.dc.html', kids: [kid('Directory', null, false, false, 'PatientList.dc.html'), kid('Merge requests', '2', false, false, 'PatientMerge.dc.html'), kid('Edit patient', null, false, false, 'PatientEdit.dc.html')] })
+      ] },
+      consult: { title: 'Consultation', sections: [
+        sec('Users', 'My queue', { href: 'MyQueue.dc.html', kids: [kid('Waiting', '7', false, true, 'MyQueue.dc.html'), kid('On hold', '1', false, false, 'QueueBoard.dc.html'), kid('Done today', '15', false, false, 'VisitHistory.dc.html')] }),
+        sec('Clock', 'Queue board', { href: 'QueueBoard.dc.html' }),
+        sec('Doc', 'Medical certificates', { href: 'MC.dc.html', add: 'New MC', kids: [kid('History', null, false, false, 'McHistory.dc.html')] }),
+        sec('Doc', 'Referral letters', { href: 'ReferralLetter.dc.html', add: 'New referral' }),
+        sec('Doc', 'Attendance letters', { href: 'AttendanceLetter.dc.html' })
+      ] },
+      pharm: { title: 'Pharmacy', sections: [
+        sec('Box', 'Cases', { href: 'Pharmacy.dc.html', kids: [kid('Waiting', '3', false, true, 'Pharmacy.dc.html'), kid('Dispensing', '1', false, false, 'Pharmacy.dc.html'), kid('Done', '22', false, false, 'DispensaryCompleted.dc.html')] }),
+        sec('Inbox', 'Returns to check', { href: 'ReturnsToCheck.dc.html', count: '1' }),
+        sec('Users', 'Medicine only', { href: 'Pharmacy.dc.html', count: '2' }),
+        sec('Doc', 'Drug labels', { href: 'DrugLabel.dc.html' })
+      ] },
+      bill: { title: 'Billing', sections: [
+        sec('Receipt', 'Invoices', { href: 'Billing.dc.html', kids: [kid('To pay', '9', on('bill', true), true, 'Billing.dc.html'), kid('Pay later', '4', false, false, 'BillsToCollect.dc.html'), kid('Completed', '61', false, false, 'VisitHistory.dc.html'), kid('Issued copies', null, false, false, 'IssuedCopies.dc.html')] }),
+        sec('Inbox', 'Bills to collect', { href: 'BillsToCollect.dc.html', count: '6' }),
+        sec('Receipt', 'Manage payments', { href: 'ManagePayments.dc.html' }),
+        sec('Clock', 'Cash closing', { href: 'CashClosing.dc.html', kids: [kid('Today', null, false, false, 'CashClosing.dc.html'), kid('This month', null, false, false, 'CashClosingMonth.dc.html')] }),
+        sec('Doc', 'Terminal check', { href: 'TerminalCheck.dc.html' })
+      ] },
+      panel: { title: 'Panel', sections: [
+        sec('Doc', 'Claims', { href: 'PanelClaims.dc.html', add: 'New claim', addHref: 'CreateClaim.dc.html', kids: [kid('Open claim', null, false, false, 'PanelClaimDetail.dc.html'), kid('Pending', '18', false, true, 'PanelClaims.dc.html'), kid('Overdue', '3', false, true, 'PanelClaims.dc.html'), kid('Submitted', '40', false, false, 'PanelClaims.dc.html'), kid('Paid', '112', false, false, 'PanelClaims.dc.html')] }),
+        sec('Inbox', 'Responsibility', { href: 'PanelResponsibility.dc.html' }),
+        sec('Clock', 'Follow-up', { href: 'ClaimsFollowUp.dc.html', count: '3' }),
+        sec('Receipt', 'Payments', { href: 'PanelPayments.dc.html', add: 'Record payment', kids: [kid('Record a payment', null, false, false, 'PanelPayments.dc.html'), kid('Correct a payment', null, false, false, 'CorrectPanelPayment.dc.html')] }),
+        sec('Chart', 'Panel invoices', { href: 'PanelInvoices.dc.html', kids: [kid('Claim pack', null, false, false, 'ClaimPack.dc.html')] })
+      ] },
+      stock: { title: 'Stock', sections: [
+        sec('Box', 'Inventory', { href: 'Stock.dc.html', kids: [kid('Low stock', '5', on('stock', true), true, 'Stock.dc.html'), kid('Expiring soon', '3', false, false, 'Stock.dc.html'), kid('On hold', '4', false, false, 'BatchHolds.dc.html'), kid('Recalls', '1', false, true, 'Recalls.dc.html'), kid('Stock review', '9', false, false, 'StockReview.dc.html')] }),
+        sec('Inbox', 'Buying', { href: 'ReorderSuggestions.dc.html', kids: [kid('Reorder suggestions', '7', false, false, 'ReorderSuggestions.dc.html'), kid('Requests', '5', false, false, 'PurchaseRequests.dc.html'), kid('Purchase orders', null, false, false, 'PurchaseOrders.dc.html'), kid('Supplier invoices', '4', false, false, 'SupplierInvoices.dc.html')] }),
+        sec('Inbox', 'Receiving', { href: 'Receiving.dc.html', count: '2' }),
+        sec('Doc', 'Stock count', { href: 'StockCount.dc.html', add: 'New count', kids: [kid('Write-off', null, false, false, 'WriteOff.dc.html'), kid('Controlled register', null, false, false, 'ControlledRegister.dc.html')] }),
+        sec('Box', 'Moves', { href: 'Transfers.dc.html', kids: [kid('Transfers', null, false, false, 'Transfers.dc.html'), kid('Between branches', '6', false, false, 'BranchReplenishment.dc.html'), kid('Supplier returns', null, false, false, 'SupplierReturns.dc.html'), kid('Treatment room', null, false, false, 'TreatmentUsage.dc.html')] }),
+        sec('Doc', 'Catalogue', { href: 'MedicineCatalogue.dc.html', kids: [kid('Medicines', null, false, false, 'MedicineCatalogue.dc.html'), kid('Stock units', null, false, false, 'Skus.dc.html'), kid('Pilot readiness', null, false, false, 'PilotReadiness.dc.html')] })
+      ] },
+      hr: { title: 'HR', sections: [
+        sec('Chart', 'HR dashboard', { href: 'HrDashboard.dc.html' }),
+        sec('Clock', 'Roster', { href: 'HR.dc.html', kids: [kid('This week', null, on('hr', true), false, 'HR.dc.html'), kid('Open shifts', '2', false, false, 'OpenShifts.dc.html')] }),
+        sec('Inbox', 'Leave', { href: 'Leave.dc.html', count: '2', hot: true }),
+        sec('Clock', 'Attendance', { href: 'Attendance.dc.html' }),
+        sec('Users', 'Staff files', { href: 'StaffFiles.dc.html', add: 'Add staff', addHref: 'StaffFile.dc.html', kids: [kid('Credentials', null, false, false, 'Credentials.dc.html'), kid('SOPs', null, false, false, 'Sops.dc.html'), kid('SOPs to read', '2', false, true, 'SopRead.dc.html')] }),
+        sec('Receipt', 'Payroll', { href: 'Payroll.dc.html', kids: [kid('October run', null, false, false, 'PayrollRun.dc.html'), kid('Payslips', null, false, false, 'Payslip.dc.html'), kid('Locum pay', '3', false, false, 'LocumPay.dc.html')] }),
+        sec('Receipt', 'Staff claims', { href: 'StaffClaims.dc.html' }),
+        sec('Doc', 'Letters and memos', { href: 'Letters.dc.html', kids: [kid('Letters', null, false, false, 'Letters.dc.html'), kid('Memos', null, false, false, 'Memos.dc.html'), kid('Messages', null, false, false, 'HrMessages.dc.html')] }),
+        sec('Users', 'People matters', { href: 'Appraisals.dc.html', kids: [kid('Appraisals', null, false, false, 'Appraisals.dc.html'), kid('Incidents', null, false, false, 'Incidents.dc.html'), kid('Discipline', null, false, false, 'Discipline.dc.html'), kid('Job applications', null, false, false, 'JobApplications.dc.html'), kid('Compliance', null, false, false, 'Compliance.dc.html')] })
+      ] },
+      rep: { title: 'Reports', sections: [
+        sec('Chart', 'Insights', { href: 'Insights.dc.html' }),
+        sec('Doc', 'Money', { href: 'Reports.dc.html', kids: [kid('Daily summary', null, false, false, 'Reports.dc.html'), kid('Transactions', null, false, false, 'TransactionDetail.dc.html'), kid('Billing detail', null, false, false, 'BillingDetail.dc.html'), kid('Finance home', null, false, false, 'FinanceHome.dc.html')] }),
+        sec('Doc', 'Panel summary', { href: 'PanelSummary.dc.html' }),
+        sec('Box', 'Stock', { href: 'StockMovement.dc.html', kids: [kid('Stock movement', null, false, false, 'StockMovement.dc.html'), kid('Stock value', null, false, false, 'StockValue.dc.html'), kid('Stock health', null, false, false, 'StockHealth.dc.html')] })
+      ] },
+      set: { title: 'Settings', sections: [
+        sec('Gear', 'Clinic', { href: 'Settings.dc.html', kids: [kid('Business details', null, on('set', true), false, 'BusinessDetails.dc.html'), kid('Registration', null, false, false, 'RegistrationSettings.dc.html'), kid('Consultation', null, false, false, 'ConsultationSettings.dc.html'), kid('Waiting-room TV', null, false, false, 'QueueDisplaySettings.dc.html'), kid('QR check-in links', null, false, false, 'QrLinks.dc.html'), kid('MC templates', null, false, false, 'McTemplates.dc.html')] }),
+        sec('Gear', 'Money', { href: 'PaymentMethods.dc.html', kids: [kid('Payment methods', null, false, false, 'PaymentMethods.dc.html'), kid('Panels', null, false, false, 'CheckoutSettings.dc.html'), kid('Approval limits', null, false, false, 'ApprovalLimits.dc.html'), kid('Claim message', null, false, false, 'ClaimMessageTemplate.dc.html')] }),
+        sec('Gear', 'Catalogue', { href: 'MedicineCatalogue.dc.html', kids: [kid('Medicines', null, false, false, 'MedicineCatalogue.dc.html'), kid('Services', null, false, false, 'ServiceCatalogue.dc.html'), kid('Prices', null, false, false, 'Pricing.dc.html'), kid('Price check', null, false, false, 'PriceCheck.dc.html'), kid('Medicine details', null, false, false, 'MedicineDetails.dc.html'), kid('Suppliers', null, false, false, 'Suppliers.dc.html')] }),
+        sec('Users', 'Staff and access', { href: 'Staff.dc.html', add: 'Add staff account', addHref: 'StaffCreate.dc.html', kids: [kid('Staff summary', null, false, false, 'StaffShow.dc.html'), kid('Access control', null, false, false, 'AccessControl.dc.html'), kid('Clinician credentials', null, false, false, 'ClinicianCredentials.dc.html'), kid('Branches', null, false, false, 'Branches.dc.html'), kid('Audit log', null, false, false, 'AuditLog.dc.html')] }),
+        sec('Chart', 'AI agents', { href: 'AllAgents.dc.html' }),
+        sec('Doc', 'Website drafts', { href: 'WebsiteReleases.dc.html', kids: [kid('Releases', null, false, false, 'WebsiteReleases.dc.html'), kid('Output plans', null, false, false, 'WebsiteOutputPlans.dc.html'), kid('Draft preview', null, false, false, 'WebsiteDraftPreview.dc.html'), kid('Doctors', null, false, false, 'WebsiteDoctors.dc.html'), kid('Services', null, false, false, 'WebsiteServices.dc.html'), kid('Media', null, false, false, 'WebsiteMedia.dc.html')] })
+      ] }
+    };
+    return {
+      accent, t, r, ri, go, dotFor,
+      open: c.open, area: AREAS[c.area] || AREAS.today,
+      panelWrap: 'flex:none;overflow:hidden;width:' + (c.open ? '248px' : '0px') + ';opacity:' + (c.open ? '1' : '0') + ';transform:translateX(' + (c.open ? '0' : '-12px') + ');visibility:' + (c.open ? 'visible' : 'hidden') + ';transition:width 340ms cubic-bezier(.22,.8,.24,1),opacity 240ms ease,transform 340ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (c.open ? '0s' : '340ms') + ';',
+      panelHidden: c.open ? 'false' : 'true',
+      close: () => this.setState({ area: c.area, open: false }),
+      branch: this.props.branch ?? 'All branches', userName: this.props.userName ?? 'Dr. Director',
+      userIni: this.props.userIni ?? 'DR', duty: this.props.duty ?? '08:02'
+    };
+  }
+}
+</script>
+</body>
+</html>

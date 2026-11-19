@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Attendance confirmation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.th{font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#f8f8fa;font-size:12.5px;color:#6b6b73}
+.paper{background:#ffffff;border-radius:10px;box-shadow:0 0 0 1px #e6e6ea,0 10px 24px rgba(17,17,26,0.08)}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="consult" accent="{{accent}}" branch="Cheras" user-name="Dr. Farah N." user-role="Doctor" user-ini="FN" duty="08:00" hint-size="350px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Consultation</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">A-031 Aminah Yusof</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Attendance confirmation</div>
+      <span style="display: inline-flex; font-size: 12px; font-weight: 600; color: #1a4fa8; background: #e8f0fe; border-radius: 999px; padding: 4px 10px">Date only · not an MC</span>
+      <span style="margin-left: auto; display: inline-flex; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">Wording is a DRAFT until a doctor approves it</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 280px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #e8f0fe; color: #1a4fa0; display: flex; align-items: center; justify-content: center; font-weight: 700">AY</span><span><span style="display: block; font-weight: 600; font-size: 16px">Aminah Yusof</span><span class="muted">KP-001284</span></span></div>
+          <sc-for list="{{visit}}" as="v" hint-placeholder-count="4"><div style="display: flex; justify-content: space-between; min-height: 36px; align-items: center; border-bottom: 1px solid #f1f1f4"><span class="muted">{{v.k}}</span><span style="font-weight: 500">{{v.v}}</span></div></sc-for>
+        </section>
+        <section class="card" style="flex: 1; min-height: 0; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 class="h2">Issued for this visit</h2>
+          <sc-for list="{{history}}" as="h" hint-placeholder-count="2">
+            <div style="padding: 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 4px">
+              <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums">{{h.no}}</span><span style="{{h.statusStyle}}">{{h.status}}</span></span>
+              <span class="muted">{{h.note}}</span>
+              <span style="display: flex; gap: 14px; font-size: 12.5px; font-weight: 600"><sc-for list="{{h.actions}}" as="a" hint-placeholder-count="2"><span>{{a}}</span></sc-for></span>
+            </div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">You can issue more than one (for example, one for the employer and one for school). CAs can view and print issued copies at this branch.</span>
+        </section>
+      </aside>
+      <main class="kp-mid" style="flex: 1 1 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; max-width: 760px; width: 100%; box-sizing: border-box">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><h1 class="h2">New attendance confirmation</h1>
+            <div style="display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 4px; margin-left: auto"><sc-for list="{{langs}}" as="l" hint-placeholder-count="2"><button type="button" onClick="{{l.pick}}" aria-pressed="{{l.pressed}}" style="{{l.style}}">{{l.label}}</button></sc-for></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Attended on</span><span class="field" style="background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea">18/11/2026<span class="muted">from the visit</span></span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Branch</span><span class="field" style="background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea">Cheras<span class="muted">from the visit</span></span></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Intended recipient <span style="color: #8a8a93; font-weight: 400">· optional, 200 characters maximum</span></span>
+            <div onClick="{{toggleRecipient}}" class="field" style="cursor: pointer">{{recipientText}}<span class="muted">{{recipientHint}}</span></div>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px; background: #fde7ef; color: #8a1240; font-size: 13px; font-weight: 600"><span aria-hidden="true">!</span>Do not enter a diagnosis, symptoms or medical details here.</div>
+          <sc-if value="{{hasRecipient}}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{toggleAck}}" role="checkbox" aria-checked="{{ackOn}}" style="{{ackWrap}}"><span style="{{ackBox}}">✓</span><span><span style="display: block; font-weight: 500">I explicitly acknowledge the patient's agreement to disclosure to the stated recipient.</span><span class="muted">A tick does not prove the clinic's written-consent or guardian procedure was followed.</span></span></div>
+          </sc-if>
+          <div class="note"><span aria-hidden="true" style="font-weight: 700; color: #111114">i</span><span>This letter only confirms the date the patient attended. It does not certify illness, fitness or leave, and it shows no date of birth, identity document or clinical content. No charge.</span></div>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 360px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px">
+          <span style="display: flex; justify-content: space-between"><h2 class="h2">Preview</h2><span class="muted">A4 · {{langLabel}}</span></span>
+          <div class="paper" style="aspect-ratio: 210 / 297; padding: 18px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 9.5px; color: #3a3a40; overflow: hidden">
+            <div style="text-align: center; font-weight: 700; font-size: 11px; color: #111114">KLINIK PUTRIJAYA</div>
+            <div style="text-align: center; color: #8a8a93">[BRANCH ADDRESS] · Tel: 03-2000 0001</div>
+            <div style="border: 1.5px solid #c2185b; color: #c2185b; text-align: center; font-weight: 700; padding: 3px; border-radius: 4px">DRAFT · wording pending doctor approval</div>
+            <div style="text-align: center; font-weight: 700; font-size: 11px; color: #111114">{{title}}</div>
+            <div style="text-align: right">No: ATT/KP/CHR/2026/000213<br>Date: 18/11/2026</div>
+            <div>{{toLine}}</div>
+            <div style="line-height: 1.6">{{body}}</div>
+            <div style="font-style: italic; color: #6b6b73">{{notMc}}</div>
+            <div style="margin-top: auto; border-top: 1px solid #c4c4cc; padding-top: 4px; width: 60%">Dr. Farah N. (MMC No: 00000)</div>
+          </div>
+        </section>
+        <button type="button" class="primary" style="{{issueStyle}}">Issue attendance confirmation</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8') };
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const row = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 10px;border-radius:14px;cursor:pointer;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '');
+    const seg = on => 'border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const box = on => 'flex:none;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (on ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;');
+    const av = (bg, fg) => 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const lang = st.lang || 'en';
+    const rec = st.rec ?? true;
+    const ack = !!st.ack;
+    const ready = !rec || ack;
+    const en = lang === 'en';
+    return {
+      accent,
+      langs: [['en', 'English'], ['bm', 'Bahasa Melayu']].map(([k, label]) => ({ label, pressed: String(lang === k), pick: () => this.setState({ lang: k }), style: seg(lang === k) })),
+      langLabel: en ? 'English' : 'Bahasa Melayu',
+      title: en ? 'ATTENDANCE CONFIRMATION' : 'PENGESAHAN KEHADIRAN',
+      body: en ? 'This is to confirm that AMINAH YUSOF (KP-001284) attended Klinik Putrijaya, Cheras on 18/11/2026.' : 'Adalah disahkan bahawa AMINAH YUSOF (KP-001284) telah hadir ke Klinik Putrijaya, Cheras pada 18/11/2026.',
+      notMc: en ? 'This is not a medical certificate.' : 'Ini bukan sijil cuti sakit.',
+      toLine: rec ? (en ? 'To: Human Resources, Contoh Sdn Bhd (demo)' : 'Kepada: Sumber Manusia, Contoh Sdn Bhd (demo)') : '',
+      visit: [{ k: 'Visit', v: 'KPV-00004120' }, { k: 'Seen by', v: 'Dr. Farah N.' }, { k: 'Status', v: 'Serving' }, { k: 'Checkout', v: 'Not yet' }],
+      history: [{ no: 'ATT/KP/CHR/2026/000212', status: 'Current', statusStyle: P.green, note: 'For: school (demo) · issued 10:12 by you', actions: ['Open copy', 'Replace', 'Void'] }],
+      hasRecipient: rec,
+      recipientText: rec ? 'Human Resources, Contoh Sdn Bhd (demo)' : 'No recipient',
+      recipientHint: rec ? 'tap to clear' : 'tap to add',
+      toggleRecipient: () => this.setState({ rec: !rec, ack: false }),
+      ackOn: String(ack), ackBox: box(ack), toggleAck: () => this.setState({ ack: !ack }),
+      ackWrap: 'display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:16px;cursor:pointer;' + (ack ? 'background:#e9f8ee;' : 'background:#fff4dc;'),
+      issueStyle: 'margin-top:auto;' + (ready ? '' : 'opacity:0.35;cursor:not-allowed;')
+    };
+
+  }
+}
+</script>
+</body>
+</html>

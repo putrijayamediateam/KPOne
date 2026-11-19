@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SOPs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">KPOne HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">SOPs</div>
+      <nav aria-label="SOP tabs" style="margin-left: 12px; display: flex; gap: 2px; background: #e9e9ee; border-radius: 999px; padding: 3px">
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; min-height: 32px; padding: 0 12px; color: #6b6b73">SOPs to read <span style="font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 1px 8px; background: #fde7ef; color: #c2185b">1</span></span>
+        <span style="display: inline-flex; align-items: center; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 12px; border-radius: 999px; background: #ffffff; box-shadow: 0 1px 2px rgba(17,17,26,0.1)">All SOPs</span>
+      </nav>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">A new file is a new version, read again by everyone it is for.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" aria-labelledby="h-list" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 id="h-list" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">All SOPs</h2><span style="font-size: 12.5px; color: #8a8a93">11 published</span></div>
+        <sc-for list="{{sops}}" as="s" hint-placeholder-count="11">
+          <button type="button" onClick="{{s.pick}}" aria-pressed="{{s.pressed}}" style="{{s.row}}">
+            <span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{s.title}}</span><span style="font-size: 12px; color: #8a8a93">{{s.sub}}</span>
+              <span style="display: flex; align-items: center; gap: 8px; margin-top: 4px"><span style="flex: 1; height: 5px; border-radius: 99px; background: #f1f1f4; overflow: hidden"><span style="{{s.bar}}"></span></span><span style="font-size: 11.5px; color: #6b6b73; white-space: nowrap">{{s.n}}</span></span>
+            </span>
+            <span style="{{s.stStyle}}">{{s.st}}</span>
+          </button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: none; background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap">
+            <span style="flex: 1; min-width: 220px"><span style="display: block; font-size: 12px; color: #6b6b73">{{cur.sub}}</span><h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{cur.title}}</h1></span>
+            <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; font-size: 13px; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.14); cursor: pointer">Open PDF</button>
+            <button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; font-size: 13px; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.14); cursor: pointer">New version</button>
+            <button type="button" style="border: 0; background: transparent; color: #6b6b73; border-radius: 999px; padding: 0 12px; min-height: 38px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Withdraw</button>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div style="flex: 1 1 140px; padding: 10px 14px; border-radius: 16px; background: #f8f8fa"><span style="display: block; font-size: 12px; color: #6b6b73">{{f.k}}</span><span style="font-weight: 600">{{f.v}}</span></div></sc-for>
+          </div>
+          <span style="font-size: 12.5px; color: #6b6b73">Versions: <span style="color: #111114">{{versions}}</span> · Withdraw keeps every version and acknowledgement.</span>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: baseline; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Who hasn't acknowledged · {{waitingCount}}</h2><span style="font-size: 12.5px; color: #8a8a93">plain list, no ranking · they see it under SOPs to read</span></div>
+          <sc-for list="{{waiting}}" as="w" hint-placeholder-count="10">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{w.name}}</span><span style="font-size: 12px; color: #8a8a93">{{w.role}} · {{w.branch}}</span></span>
+              <span style="{{w.stStyle}}">{{w.st}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-pub" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 id="h-pub" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Publish an SOP</h2>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Title *</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Cold chain: vaccine fridge checks</span></label>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">PDF file * <span style="color: #8a8a93; font-weight: 400">· up to 10 MB</span></span><span style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px 0 14px; border-radius: 14px; background: #f4f4f6"><span style="flex: 1">PDF chosen · 1.2 MB</span><span style="font-size: 12.5px; font-weight: 600; background: #ffffff; border-radius: 999px; padding: 6px 12px; box-shadow: 0 0 0 1px rgba(17,17,26,0.12)">Replace file</span></span></label>
+          <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+            <legend style="font-size: 13px; font-weight: 500; color: #3a3a40; padding-bottom: 6px">Roles that must read it *</legend>
+            <sc-for list="{{roles}}" as="r" hint-placeholder-count="6">
+              <button type="button" role="checkbox" aria-checked="{{r.checked}}" onClick="{{r.toggle}}" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 8px; border: 0; background: transparent; border-radius: 12px; font: inherit; color: inherit; cursor: pointer"><span style="{{r.box}}">{{r.tick}}</span><span style="flex: 1; text-align: left">{{r.k}}</span><span style="font-size: 12px; color: #8a8a93">{{r.n}}</span></button>
+            </sc-for>
+          </fieldset>
+          <div style="padding: 10px 12px; border-radius: 14px; background: #f8f8fa; font-size: 13px">Who will see this: <span style="font-weight: 600">{{audience}} people</span></div>
+          <span style="font-size: 12px; color: #8a8a93">"I have read and understood" becomes possible only after the person has opened the SOP. Opens and acknowledgements are kept for good.</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Publish SOP</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const sel = S.sel == null ? 0 : S.sel;
+    const R0 = { ca: true, sup: true };
+    const picked = S.roles || R0;
+    const T = { warn: ['#fff4dc', '#8a5a00'], ok: ['#e9f8ee', '#1d7a3a'], info: ['#e8f0fe', '#1a4fa8'], mute: ['#f4f4f6', '#6b6b73'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const L = [
+      ['Hand hygiene at the counter', 'v3 · CA, CA Supervisor', 18, 27, 'Published'],
+      ['Sharps disposal', 'v2 · CA, Resident Doctor', 30, 31, 'Published'],
+      ['Cash handling and closing', 'v4 · CA, CA Supervisor, Finance', 29, 30, 'Published'],
+      ['Controlled medicine dispensing', 'v1 · CA, CA Supervisor', 21, 27, 'Published'],
+      ['Patient privacy at registration', 'v2 · All staff', 44, 51, 'Published'],
+      ['Fire evacuation', 'v1 · All staff', 51, 51, 'Published'],
+      ['Needle-stick injury', 'v2 · Doctors, CA', 31, 31, 'Published'],
+      ['Panel claim photos', 'v1 · Panel Officer', 2, 2, 'Published'],
+      ['Opening the clinic', 'v3 · CA Supervisor', 6, 6, 'Published'],
+      ['Old cold chain guide', 'v2 · CA', 0, 0, 'Withdrawn'],
+      ['Lost property', 'v1 · CA', 25, 25, 'Published']
+    ];
+    const sops = L.map(([title, sub, n, m, st], i) => ({
+      title, sub, n: m ? n + ' of ' + m : 'kept', st: st === 'Withdrawn' ? st : n === m ? 'All read' : (m - n) + ' to go', stStyle: chip(st === 'Withdrawn' ? 'mute' : n === m ? 'ok' : 'warn'),
+      bar: 'display:block;height:100%;border-radius:99px;background:' + (n === m ? '#3aa864' : '#c2185b') + ';width:' + (m ? Math.round(n / m * 100) : 0) + '%;',
+      pressed: String(sel === i), pick: () => this.setState({ sel: i }),
+      row: 'display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 10px;border:0;border-radius:14px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (sel === i ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;')
+    }));
+    const c = L[sel];
+    const W = [
+      ['Hafiz Rahim', 'CA', 'Cheras', 'Opened, not acknowledged', 'info'],
+      ['Aina Sofea', 'CA', 'Cheras', 'Not opened yet', 'mute'],
+      ['Ravi Kumar', 'CA', 'Cheras', 'Not opened yet', 'mute'],
+      ['Farah Izzati', 'CA', 'Sungai Besi', 'Opened, not acknowledged', 'info'],
+      ['Kamal Hassan', 'CA', 'Sungai Besi', 'Not opened yet', 'mute'],
+      ['Lee Wen Hui', 'CA Supervisor', 'Sungai Besi', 'Not opened yet', 'mute'],
+      ['Aisha Musa', 'CA', 'Puchong', 'Not opened yet', 'mute'],
+      ['Zul Hakim', 'CA', 'Puchong', 'Opened, not acknowledged', 'info'],
+      ['Mohan Raj', 'CA', 'Puchong', 'Not opened yet', 'mute']
+    ];
+    const missing = Math.max(0, c[3] - c[2]);
+    const waiting = W.slice(0, Math.min(missing, W.length)).map(([name, role, branch, st, t]) => ({ name, role, branch, st, stStyle: chip(t) }));
+    const RL = [['ca', 'CA', 27], ['sup', 'CA Supervisor', 6], ['doc', 'Resident Doctor', 9], ['fin', 'Finance Officer', 2], ['pan', 'Panel Officer', 2], ['all', 'Everyone else', 5]];
+    const roles = RL.map(([k, label, n]) => ({ k: label, n: n + ' people', checked: String(!!picked[k]), tick: picked[k] ? '✓' : '', toggle: () => this.setState({ roles: Object.assign({}, picked, { [k]: !picked[k] }) }), box: 'flex:none;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (picked[k] ? 'background:#111114;color:#ffffff;' : 'background:#ffffff;box-shadow:inset 0 0 0 1.5px #c9c9d1;') }));
+    const audience = RL.reduce((a, [k, , n]) => a + (picked[k] ? n : 0), 0);
+    return {
+      accent, sops, waiting, roles, audience: String(audience),
+      cur: { title: c[0], sub: c[1] + ' · published by Puan HR on 3 Nov 2026' },
+      facts: [{ k: 'Acknowledged', v: c[3] ? c[2] + ' of ' + c[3] : '—' }, { k: 'For roles', v: c[1].split(' · ')[1] }, { k: 'Expected now', v: (c[3] || 0) + ' people' }, { k: 'Status', v: c[4] }],
+      versions: c[1].split(' · ')[0] === 'v1' ? 'v1 (current)' : 'v1, ' + (c[1][1] === '3' ? 'v2, v3 (current)' : c[1][1] === '4' ? 'v2, v3, v4 (current)' : 'v2 (current)'),
+      waitingCount: String(missing)
+    };
+  }
+}
+</script>
+</body>
+</html>

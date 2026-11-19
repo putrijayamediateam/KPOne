@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stock movement</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:420px !important}
+  .kp-work.kp-3>.kp-mid{min-height:640px !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-act{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="rep" accent="{{accent}}" branch="Cheras" user-name="Aminah" user-role="Administrator" user-ini="AM" duty="08:05" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Reports</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Stock movement</div>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Search reports<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Reports" style="flex: 0 0 230px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 10px 8px 4px">{{g.title}}</span>
+          <sc-for list="{{g.items}}" as="i" hint-placeholder-count="2">
+            <a href="{{i.href}}" aria-current="{{i.cur}}" style="{{i.style}}"><span style="{{i.ic}}">{{i.k}}</span><span style="flex: 1; text-align: left">{{i.label}}</span></a>
+          </sc-for>
+        </sc-for>
+      </nav>
+
+      <main class="kp-mid" aria-labelledby="h-rep" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section aria-label="Filters" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); border-radius: 22px; padding: 12px 14px; display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 0"><span style="font-size: 12px; font-weight: 500; color: #6b6b73">{{f.k}}</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 12px; background: #f4f4f6">{{f.v}}<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          </sc-for>
+          <button type="button" style="flex: none; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 22px; min-height: 40px; font: inherit; font-weight: 600; cursor: pointer">Run report</button>
+        </section>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 16px 10px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 10px; flex-wrap: wrap">
+            <h1 id="h-rep" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em">Stock movement</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Cheras · 1 to 18 Nov 2026 · made 18 Nov, 2:20 PM · quantities only</span>
+            <button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer">Download CSV</button>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px">
+            <thead><tr><sc-for list="{{cols}}" as="c" hint-placeholder-count="8"><th scope="col" style="{{c.style}}">{{c.label}}</th></sc-for></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="14">
+                <tr style="border-bottom: 1px solid #f1f1f4">
+                  <th scope="row" style="text-align: left; font-weight: 500; padding: 0 8px; height: 44px; white-space: nowrap; position: sticky; left: 0; background: #ffffff">{{r.sku}}<span style="display: block; font-size: 11.5px; font-weight: 400; color: #8a8a93">{{r.code}} · {{r.unit}}</span></th>
+                  <sc-for list="{{r.vals}}" as="v" hint-placeholder-count="6"><td style="{{v.style}}">{{v.t}}</td></sc-for>
+                  <td style="text-align: center; padding: 0 8px"><span style="{{r.okS}}">{{r.ok}}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <p style="margin: 10px 4px 0; font-size: 12px; color: #8a8a93">No total row: units differ between SKUs, so they are never added together.</p>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-how" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 id="h-how" style="margin: 0; font-size: 15px; font-weight: 600">How this report counts</h2>
+          <sc-for list="{{how}}" as="h" hint-placeholder-count="5">
+            <div style="font-size: 12.5px; color: #3a3a40; padding: 8px 10px; border-radius: 12px; background: #f8f8fa"><b style="font-weight: 600">{{h.k}}</b> {{h.v}}</div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Who sees this</h2>
+          <span style="font-size: 12.5px; color: #3a3a40">Director, Finance Officer and Administrator. No cost, value, batch, supplier or patient is shown. Every run and download is recorded.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ mv: { title: 'Movements by type', note: 'Cheras · 1–18 Nov · quantities only', cols: 'minmax(0,1.6fr) 100px minmax(0,1fr) auto', head: ['TYPE','MOVEMENTS','COUNTED UNDER','DIRECTION'], align: ['l','r','l','l'],
+  rows: [['Dispensing','318','Dispensed',['Out','mute']],['Verified receiving','21','Received',['In','ok']],['Transfer in','9','Transferred (net)',['In','ok']],['Transfer out','11','Transferred (net)',['Out','mute']],['Treatment room usage and waste','24','Adjusted',['Out','mute']],['Stock count and write-off','17','Adjusted',['In or out','info']],['Patient return','4','Adjusted',['In','ok']],['Supplier return','8','Adjusted',['Out','mute']]],
+  foot: 'No cost or value is shown. 412 movements in all.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const rowStyle = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border:0;border-radius:14px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const tabStyle = on => 'border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(17,17,26,0.08),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+
+    const sel = st.row || null;
+    const ici = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const item = (key, label, k, bg, fg, href) => ({ label, k, href: href || '#', cur: key === 'stock' ? 'page' : 'false', ic: ici(bg, fg), style: 'display:flex;align-items:center;gap:10px;min-height:42px;padding:0 8px;border-radius:12px;' + (key === 'stock' ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'color:#3a3a40;') });
+    const head = (label, left) => ({ label, style: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.03em;padding:0 8px 8px;white-space:nowrap;text-align:' + (left === 1 ? 'left' : left === 2 ? 'center' : 'right') + ';border-bottom:1px solid #e6e6ea;' });
+    const fmt = n => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-MY');
+    const sgn = n => n > 0 ? '+' + n.toLocaleString('en-MY') : fmt(n);
+    const td = (t, strong, muted) => ({ t, style: 'text-align:right;padding:0 8px;white-space:nowrap;' + (strong ? 'font-weight:600;' : muted ? 'color:#c4c4cc;' : 'color:#3a3a40;') });
+    const S = [
+      ['Paracetamol 500 mg', 'SKU-PC500', 'tablet', 1240, 2000, -1832, -20, 200],
+      ['Amoxicillin 250 mg', 'SKU-AM250', 'capsule', 410, 1000, -566, -96, 90],
+      ['Cetirizine 10 mg', 'SKU-CE10', 'tablet', 320, 0, -142, -118, 90],
+      ['Chlorpheniramine 4 mg', 'SKU-CP4', 'tablet', 880, 1000, -670, 0, 0],
+      ['Loratadine 10 mg', 'SKU-LO10', 'tablet', 150, 0, -96, 0, 60],
+      ['Omeprazole 20 mg', 'SKU-OM20', 'capsule', 168, 300, -228, 2, 56],
+      ['Metformin 500 mg', 'SKU-MF500', 'tablet', 900, 1000, -1410, 0, 30],
+      ['Ibuprofen 400 mg', 'SKU-IB400', 'tablet', 400, 0, -212, -20, 0],
+      ['Diclofenac gel 1% 20 g', 'SKU-DG20', 'tube', 22, 24, -18, -1, 0],
+      ['Salbutamol inhaler', 'SKU-SB100', 'inhaler', 14, 10, -9, 0, -2],
+      ['Normal saline 500 ml', 'SKU-NS500', 'bottle', 30, 48, 0, -18, 10],
+      ['Gauze swab 10 x 10', 'SKU-GZ10', 'pack', 26, 40, 0, -21, 20],
+      ['Ranitidine 150 mg', 'SKU-RA150', 'tablet', 42, 0, 0, -42, 0],
+      ['Dexamethasone 4 mg/ml', 'SKU-DX4', 'ampoule', 16, 10, 0, -9, 0]
+    ];
+    let moved = 0;
+    const rows = S.map(([sku, code, unit, op, rec, dis, adj, tr]) => {
+      const cl = op + rec + dis + adj + tr;
+      if (rec || dis || adj || tr) moved++;
+      return { sku, code, unit, ok: 'Reconciles', okS: chip('green'), vals: [td(fmt(op)), td(rec ? sgn(rec) : '0', false, !rec), td(dis ? fmt(dis) : '0', false, !dis), td(adj ? sgn(adj) : '0', false, !adj), td(tr ? sgn(tr) : '0', false, !tr), td(fmt(cl), true)] };
+    });
+    return {
+      ...XP.holes,
+      accent, rows,
+      groups: [
+        { title: 'MONEY', items: [item('daily', 'Daily summary', 'DS', '#111114', '#ffffff', 'Reports.dc.html'), item('tx', 'Transaction detail', 'TX', '#e3f6f5', '#0b6f69'), item('bd', 'Billing detail', 'BD', '#e8f0fe', '#1a4fa8')] },
+        { title: 'PANEL AND STOCK', items: [item('panel', 'Panel summary', 'PS', '#f1ecfd', '#5a32a8'), item('stock', 'Stock movement', 'SM', '#fff4dc', '#8a5a00')] },
+        { title: 'OVERVIEW', items: [item('ins', 'Insights', 'IN', '#fde7ef', '#c2185b')] }
+      ],
+      filters: [{ k: 'Branch', v: 'Cheras' }, { k: 'Dates (up to 31 days)', v: '1 – 18 Nov 2026' }, { k: 'SKU', v: 'All SKUs' }],
+      strip: XP.strip([stripItem(String(S.length), 'SKUs in this period', true), stripItem(String(moved), 'with movements'), stripItem('412', 'movements counted'), stripItem('0', 'not reconciling')], { 2: 'mv' }),
+      cols: [head('SKU and unit', 1), head('Opening'), head('Received'), head('Dispensed'), head('Adjusted (net)'), head('Transferred (net)'), head('Closing'), head('Check', 2)],
+      how: [
+        { k: 'Closing', v: 'is the ledger quantity at the end of the last day, not today\'s live balance.' },
+        { k: 'Adjusted', v: 'includes opening balances, write-offs, supplier returns, treatment room use and waste, and patient returns.' },
+        { k: 'Transferred', v: 'is net: into the branch minus out of it.' },
+        { k: 'Quantities', v: 'are exact to three decimals in the CSV; shown rounded here.' },
+        { k: 'Check', v: 'Opening plus movements equals Closing for every row.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

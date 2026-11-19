@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pharmacy, new workflow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1000px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-mid{flex:1 1 100% !important;max-height:none !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+}
+@container kppage (max-width: 760px){ .kp-grid2{grid-template-columns:minmax(0,1fr) !important} .kp-hide-sm{display:none !important} }
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+@media print{ .kp-noprint{display:none !important} body{background:#ffffff !important} .kp-sheet{box-shadow:none !important;margin:0 !important} }
+button:focus-visible,a:focus-visible{outline:2px solid #0a56d1;outline-offset:2px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex"><div class="kp-noprint" style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="pharm" accent="{{accent}}" branch="Cheras" user-name="Hafiz" user-role="Clinic Assistant" user-ini="HF" duty="07:55" start-collapsed="{{true}}" hint-size="350px,1080px"></dc-import></div><div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column"><header class="kp-noprint" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)"><a href="Pharmacy.dc.html" style="font-size: 13px; color: #6b6b73">Pharmacy</a><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">A-033 · Siti Aminah</div><span style="display: inline-flex; align-items: center; margin-left: 8px; font-size: 12px; font-weight: 600; color: #c2185b; background: #fde7ef; border-radius: 999px; padding: 4px 10px">Proposal</span><span style="margin-left: auto"></span><button type="button" onClick="{{H.h0}}" style="display: inline-flex; align-items: center; justify-content: center; border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer; white-space: nowrap">Return to doctor</button><a href="DispensaryCompleted.dc.html" style="display: inline-flex; align-items: center; justify-content: center; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap">Complete dispensing</a></header><div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div role="note" style="display: flex; align-items: center; gap: 14px; background: #fff4dc; border-radius: 22px; padding: 14px 18px"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; color: #8a5a00">Off-protocol order · Amoxicillin 250 mg</span><span style="font-size: 13px; color: #3a3a40">Dr. Farah N.: &quot;Bacterial cause suspected; review in 3 days.&quot; Allergy on file: Penicillin. The doctor confirmed the allergy check at 10:44.</span></span></div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap"><button type="button" aria-pressed="{{SP.s0}}" onClick="{{SF.s0}}" style="{{SS.s0}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">3</span><span style="{{SK.s0}}">medicines</span></button><button type="button" aria-pressed="{{SP.s1}}" onClick="{{SF.s1}}" style="{{SS.s1}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">1</span><span style="{{SK.s1}}">off-protocol</span></button><button type="button" aria-pressed="{{SP.s2}}" onClick="{{SF.s2}}" style="{{SS.s2}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">1</span><span style="{{SK.s2}}">allergy warning</span></button><button type="button" aria-pressed="{{SP.s3}}" onClick="{{SF.s3}}" style="{{SS.s3}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">Yellow</span><span style="{{SK.s3}}">zone</span></button></div>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 6px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Order from the doctor</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Check each line; edit quantity or batch if needed</span>
+            <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3"><button type="button" aria-pressed="{{tb.pressed}}" onClick="{{tb.pick}}" style="{{tb.style}}">{{tb.label}} <span style="opacity: 0.7">{{tb.n}}</span></button></sc-for></span>
+          </div>
+          <div role="table" aria-label="Order from the doctor" style="overflow-x: auto; display: flex; flex-direction: column">
+            <div role="row" style="display: grid; grid-template-columns: minmax(200px,2fr) 100px 140px 150px; gap: 12px; align-items: center; padding: 0 10px 8px; min-width: 640px"><span role="columnheader" style="font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em; white-space: nowrap;">MEDICINE</span><span role="columnheader" style="font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em; white-space: nowrap; text-align: right;">QUANTITY</span><span role="columnheader" style="font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em; white-space: nowrap;">BATCH</span><span role="columnheader" style="font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em; white-space: nowrap;">CHECK</span></div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <button type="button" role="row" aria-pressed="{{r.on}}" onClick="{{r.pick}}" style="{{r.style}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="5"><span role="cell" style="{{c.wrap}}"><span style="{{c.s}}">{{c.t}}</span><sc-if value="{{c.hasSub}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-size: 12px; color: #8a8a93; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{c.sub}}</span></sc-if></span></sc-for></button>
+            </sc-for>
+            <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 24px 10px; color: #8a8a93; text-align: center">Nothing in this list.</p></sc-if>
+          </div>
+          <p style="margin: 6px 10px 0; font-size: 12px; color: #8a8a93"></p>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: flex-start; gap: 10px"><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 12px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">{{detailLabel}}</span><h2 style="margin: 2px 0 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{sel.title}}</h2><span style="font-size: 12.5px; color: #6b6b73">{{sel.sub}}</span></span><sc-if value="{{sel.hasStatus}}" hint-placeholder-val="{{ true }}"><span style="{{sel.statusStyle}}">{{sel.status}}</span></sc-if></div>
+          <div style="display: flex; flex-direction: column">
+            <sc-for list="{{sel.facts}}" as="f" hint-placeholder-count="4"><div style="display: flex; justify-content: space-between; gap: 12px; min-height: 36px; align-items: center; border-top: 1px solid #f4f4f6"><span style="font-size: 13px; color: #6b6b73">{{f.k}}</span><span style="font-size: 13px; font-weight: 500; text-align: right">{{f.v}}</span></div></sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <sc-for list="{{sel.actions}}" as="a" hint-placeholder-count="2"><sc-if value="{{a.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{a.href}}" style="{{a.style}}">{{a.label}}</a></sc-if><sc-if value="{{a.isBtn}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{a.go}}" style="{{a.style}}">{{a.label}}</button></sc-if></sc-for>
+          </div>
+          <sc-if value="{{sel.hasNote}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #8a8a93">{{sel.note}}</span></sc-if>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px"><h2 style="margin: 0; font-size: 15px; font-weight: 600">What changes for the CA</h2><div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Flag</span><span style="font-size: 12.5px; color: #6b6b73">Off-protocol lines are marked with the doctor&#x27;s reason</span></div><div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Allergy</span><span style="font-size: 12.5px; color: #6b6b73">The warning still needs your tick before saving</span></div><span style="font-size: 12px; color: #8a8a93">Proposal: step 4 of the new workflow.</span></section>
+      </aside>
+    </div></div><sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}"><div role="status" class="kp-noprint" style="position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; max-width: min(560px, calc(100vw - 32px)); background: #111114; color: #ffffff; border-radius: 16px; padding: 12px 18px; font-size: 13.5px; font-weight: 500; box-shadow: 0 12px 32px rgba(17,17,20,0.28)">{{toast}}</div></sc-if></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent": {"editor": "color", "default": "#c2185b", "options": ["#c2185b", "#111114", "#0a66d8"]}, "$preview": {"width": 1440, "height": 1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = {"kind": "list", "stats": [["3", "medicines"], ["1", "off-protocol", "off"], ["1", "allergy warning", "off"], ["Yellow", "zone"]], "rows": [{"id": "m1", "tag": "ok", "cells": [{"t": "Paracetamol 500 mg", "s": "2 tablets · 3 times a day · 5 days"}, "30 tablet", "PC-0412 · exp 12/2026", ["n", "To check"]], "facts": [["Source", "In order set"]], "actions": [{"label": "Checked", "set": ["ok", "Checked", "ok"]}, {"label": "Scan box", "toast": "Scanned: matches this line (prototype)."}]}, {"id": "m2", "tag": "ok", "cells": [{"t": "Cetirizine 10 mg", "s": "1 tablet at night · 5 days"}, "5 tablet", "CE-0931 · exp 01/2027", ["n", "To check"]], "facts": [["Source", "In order set"]], "actions": [{"label": "Checked", "set": ["ok", "Checked", "ok"]}]}, {"id": "m3", "tag": "off", "cells": [{"t": "Amoxicillin 250 mg", "s": "1 capsule · 3 times a day · 7 days"}, "21 capsule", "AM-2207 · exp 03/2027", ["w", "Off-protocol"]], "facts": [["Doctor reason", "Clinical judgement"], ["Note", "Review in 3 days"], ["Allergy", "Penicillin on file"]], "actions": [{"label": "I have checked with the doctor", "set": ["ok", "Checked", "ok"]}, {"label": "Return to doctor", "toast": "Returned to Dr. Farah (prototype)."}]}], "cols": [["Medicine", "minmax(200px,2fr)"], ["Quantity", "100px", "r"], ["Batch", "140px"], ["Check", "150px"]], "statusCol": 3, "filters": [["all", "All"], ["off", "Off-protocol"], ["ok", "In order set"]], "detail_label": "Line", "header_actions": [{"label": "Return to doctor", "toast": "Returned to Dr. Farah with your question (prototype)."}, {"label": "Complete dispensing", "primary": true, "href": "DispensaryCompleted.dc.html"}]};
+    const st = this.state || {};
+    const accent = this.props.accent ?? '#c2185b';
+    const T = { w: ['#fff4dc', '#8a5a00'], d: ['#fde7ef', '#c2185b'], ok: ['#e9f8ee', '#1d7a3a'], i: ['#e8f0fe', '#1a4fa8'], q: ['#f1ecfd', '#5a32a8'], n: ['#f4f4f6', '#6b6b73'], r: ['#fff1f0', '#a1281c'], k: ['#111114', '#ffffff'] };
+    const chip = t => { const c = T[t] || T.n; return 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + c[0] + ';color:' + c[1] + ';'; };
+    const say = m => { clearTimeout(this.__tt); this.setState({ toast: m }); this.__tt = setTimeout(() => this.setState({ toast: null }), 2800); };
+    const btn = (primary, full) => 'display:flex;align-items:center;justify-content:center;min-height:44px;border:0;border-radius:999px;padding:0 18px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;box-sizing:border-box;' + (full ? 'width:100%;' : '') + (primary ? 'background:#111114;color:#ffffff;' : 'background:#f4f4f6;color:#111114;');
+    const H = { search: () => say('Search: type a name, IC or number in the real app.'), print: () => { try { window.print(); } catch (e) {} } };
+    (S.header_actions || []).forEach((a, i) => { H['h' + i] = () => say(a.toast || (a.label + ': done in the prototype. Nothing is saved.')); });
+    const out = { accent, H, toast: st.toast || '', toastOn: !!st.toast };
+    const mkAct = (a, onSet, primaryIdx, i) => {
+      const href = a.href || '';
+      return { label: a.label, isLink: !!href, isBtn: !href, href, style: btn(a.primary || i === primaryIdx, true), go: () => { if (onSet) onSet(a); say(a.toast || (a.label + ': done in the prototype. Nothing is saved.')); } };
+    };
+
+    // Stat strip: each card can filter the table (or just show a message).
+    const f = st.f || 'all';
+    const SP = {}, SF = {}, SS = {}, SK = {};
+    (S.stats || []).forEach((s, i) => {
+      const key = s[2] || null, hot = i === 0, on = !!key && f === key;
+      SP['s' + i] = on ? 'true' : 'false';
+      SF['s' + i] = () => key ? this.setState({ f: on ? 'all' : key, sel: null }) : say(s[3] || (s[0] + ' ' + s[1]));
+      SS['s' + i] = 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border:0;border-radius:18px;padding:10px 16px;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;' + (hot ? 'background:linear-gradient(120deg,#e0457f,' + accent + ' 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);') + (on ? 'box-shadow:0 0 0 2px #111114;' : '');
+      SK['s' + i] = 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;');
+    });
+    Object.assign(out, { SP, SF, SS, SK });
+
+    if (S.kind === 'list') {
+      const ov = st.ov || {};
+      const cols = S.cols;
+      const all = S.rows.map(r => {
+        const cells = r.cells.slice();
+        if (S.statusCol != null && ov[r.id]) cells[S.statusCol] = ov[r.id];
+        return Object.assign({}, r, { cells, tagNow: (ov[r.id] && ov[r.id][2]) || r.tag });
+      });
+      const vis = all.filter(r => f === 'all' || r.tagNow === f || (r.tags || []).indexOf(f) >= 0);
+      const selId = vis.some(r => r.id === st.sel) ? st.sel : (vis[0] && vis[0].id);
+      const grid = 'display:grid;grid-template-columns:' + cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:6px 10px;min-height:52px;min-width:' + (S.min_width || 640) + 'px;';
+      out.rows = vis.map(r => {
+        const on = r.id === selId;
+        return { on: on ? 'true' : 'false', pick: () => this.setState({ sel: r.id }),
+          style: grid + 'border:0;border-top:1px solid #f1f1f4;border-radius:12px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;' : 'background:transparent;'),
+          cells: r.cells.map((v, j) => {
+            const right = cols[j] && cols[j][2] === 'r';
+            const wrap = 'min-width:0;' + (right ? 'text-align:right;' : '');
+            if (Array.isArray(v)) return { t: v[1], s: chip(v[0]), wrap, hasSub: false, sub: '' };
+            const o = typeof v === 'object' && v !== null ? v : { t: String(v) };
+            return { t: o.t, sub: o.s || '', hasSub: !!o.s, wrap, s: 'display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:600;color:#111114;' : 'color:#3a3a40;') + (right ? 'font-variant-numeric:tabular-nums;' : '') };
+          }) };
+      });
+      out.empty = vis.length === 0;
+      out.tabs = (S.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? all.length : all.filter(r => r.tagNow === k || (r.tags || []).indexOf(k) >= 0).length), pressed: String(f === k), pick: () => this.setState({ f: k, sel: null }),
+        style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (f === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+      const r = all.find(x => x.id === selId);
+      out.detailLabel = (S.detail_label || 'SELECTED').toUpperCase();
+      if (r) {
+        const sc = S.statusCol != null ? r.cells[S.statusCol] : null;
+        const acts = (r.actions || S.row_actions || []).filter(a => !a.when || (sc && a.when.indexOf(sc[1]) >= 0));
+        out.sel = { title: r.title || (typeof r.cells[0] === 'object' && !Array.isArray(r.cells[0]) ? r.cells[0].t : String(r.cells[0])), sub: r.sub || '', hasStatus: !!sc, status: sc ? sc[1] : '', statusStyle: sc ? chip(sc[0]) : '',
+          facts: (r.facts || []).map(([k, v]) => ({ k, v })), note: r.note || S.detail_note || '', hasNote: !!(r.note || S.detail_note),
+          actions: acts.map((a, i) => mkAct(a, a.set ? (x => this.setState({ ov: Object.assign({}, ov, { [r.id]: x.set }) })) : null, 0, i)) };
+      } else {
+        out.sel = { title: 'Nothing selected', sub: '', hasStatus: false, facts: [], actions: [], hasNote: false, note: '' };
+      }
+    }
+
+    if (S.kind === 'form') {
+      const ch = st.ch || {}, sw = st.sw || {}, focus = st.focus || null;
+      const val = (id, def) => ch[id] !== undefined ? ch[id] : def;
+      const swv = (id, def) => sw[id] !== undefined ? sw[id] : !!def;
+      const ctx = { val: id => { for (const s of S.sections) for (const it of s.items) if (it.id === id) { if (it.choice) return val(id, it.def != null ? it.def : it.choice[0]); if (it.sw !== undefined) return swv(id, it.sw); return it.value; } return ''; } };
+      const visible = it => !it.show || it.show.every(([id, v]) => String(ctx.val(id)).toLowerCase() === String(v).toLowerCase());
+      out.sections = S.sections.filter(visible).map(s => ({ title: s.title, note: s.note || '', items: s.items.filter(visible).map(it => {
+        const cell = 'display:flex;flex-direction:column;gap:6px;min-width:0;' + (it.wide ? 'grid-column:1 / -1;' : '');
+        const base = { isField: false, isChoice: false, isSwitch: false, isNote: false, isList: false, cell, label: it.label || '', hint: it.hint || '', hasHint: !!it.hint };
+        if (it.choice) {
+          const cur = val(it.id, it.def != null ? it.def : it.choice[0]);
+          return Object.assign(base, { isChoice: true, opts: it.choice.map(o => ({ label: o, pressed: String(cur === o), pick: () => this.setState({ ch: Object.assign({}, ch, { [it.id]: o }) }),
+            style: 'border:0;border-radius:999px;padding:8px 14px;min-height:36px;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;' + (cur === o ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:transparent;color:#3a3a40;') })) });
+        }
+        if (it.sw !== undefined) {
+          const on = swv(it.id, it.sw);
+          return Object.assign(base, { isSwitch: true, note: it.note || '', on: String(on), toggle: () => this.setState({ sw: Object.assign({}, sw, { [it.id]: !on }) }),
+            track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;justify-content:' + (on ? 'flex-end' : 'flex-start') + ';background:' + (on ? accent : '#e3e3e8') + ';',
+            knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+        }
+        if (it.text) {
+          const c = T[it.tone || 'n'];
+          return Object.assign(base, { isNote: true, text: it.text, cell: cell + 'grid-column:1 / -1;', noteStyle: 'border-radius:16px;padding:12px 14px;font-size:13px;background:' + c[0] + ';color:' + (it.tone && it.tone !== 'n' ? c[1] : '#3a3a40') + ';' });
+        }
+        if (it.list) {
+          return Object.assign(base, { isList: true, rows: it.list.map(([t, s, tone, c]) => ({ t, s, chip: c || '', chipStyle: c ? chip(tone) : 'display:none;', pick: () => say(t + (c ? ' · ' + c : '')),
+            style: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 8px;border:0;border-top:1px solid #f4f4f6;background:transparent;font:inherit;color:inherit;cursor:pointer;text-align:left;' })) });
+        }
+        const on = focus === it.id;
+        const empty = !it.value;
+        return Object.assign(base, { isField: true, opt: it.optional ? '· optional' : '', shown: empty ? (it.ph || '') : it.value, tail: it.tail || '', caret: on,
+          focus: () => this.setState({ focus: on ? null : it.id }),
+          box: 'display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:0;border-radius:14px;font:inherit;cursor:text;width:100%;box-sizing:border-box;background:#f4f4f6;' + (empty ? 'color:#8a8a93;' : 'color:#111114;') + (on ? 'box-shadow:inset 0 0 0 2px #111114;' : (it.error ? 'box-shadow:inset 0 0 0 2px #e5383b;' : '')) });
+      }) }));
+      out.summary = (S.summary || []).map(([k, v]) => ({ k, v: typeof v === 'string' && v.charAt(0) === '@' ? String(ctx.val(v.slice(1))) : v }));
+      out.checks = (S.checks || []).map(([t, ok]) => ({ t, dot: 'flex:none;width:8px;height:8px;border-radius:50%;background:' + (ok ? '#34c759' : '#e3e3e8') + ';', ts: ok ? 'color:#111114;' : 'color:#8a8a93;' }));
+      out.finals = (S.finals || []).map((a, i) => mkAct(a, null, 0, i));
+    }
+    return out;
+  }
+}
+</script>
+</body>
+</html>

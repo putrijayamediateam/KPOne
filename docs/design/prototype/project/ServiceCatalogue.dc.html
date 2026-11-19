@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Service catalogue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-mid{flex:1 1 100% !important;min-height:520px !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Siti" user-role="CA Supervisor" user-ini="SI" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; flex-wrap: wrap; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Clinical service catalogue</div>
+      <button type="button" style="margin-left: auto; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer; color: #6b6b73">Search services</button>
+      <button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer">Add service</button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save service</button>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Clinical service catalogue</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">Procedures and services a doctor orders or a CA adds at Dispensary</span>
+          </div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px 13px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 220px">SERVICE</span><span style="flex: 0 1 170px">CATEGORY</span><span style="flex: none; width: 82px; text-align: right">SELF-PAY</span><span style="flex: none; width: 82px; text-align: right">PANEL</span><span style="flex: none; width: 92px; text-align: center">STATUS</span>
+          </div>
+          <sc-for list="{{rows}}" as="m" hint-placeholder-count="12">
+            <button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.row}}">
+              <span style="flex: 1 1 220px; min-width: 0"><span style="display: block; font-weight: 500">{{m.name}}</span><span style="font-size: 12px; color: #8a8a93">{{m.code}}</span></span>
+              <span style="flex: 0 1 170px; min-width: 0; font-size: 12.5px; color: #6b6b73">{{m.cat}}</span>
+              <span style="flex: none; width: 82px; text-align: right; font-variant-numeric: tabular-nums">{{m.self}}</span>
+              <span style="flex: none; width: 82px; text-align: right; font-variant-numeric: tabular-nums">{{m.panel}}</span>
+              <span style="flex: none; width: 92px; text-align: center"><span style="{{m.statusStyle}}">{{m.status}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 360px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); overflow: hidden; display: flex; flex-direction: column">
+          <div style="padding: 18px 18px 16px; color: #ffffff; background: radial-gradient(120% 160% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%)">
+            <span style="font-size: 12px; opacity: 0.85">Editing · {{sel.code}}</span>
+            <h2 style="margin: 2px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{sel.name}}</h2>
+            <span style="font-size: 12.5px; opacity: 0.85">{{sel.cat}}</span>
+          </div>
+          <div style="padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 12px">
+            <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
+              <label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12.5px; font-weight: 500">{{f.k}}</span><span style="min-height: 40px; line-height: 40px; padding: 0 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px #e6e6ea">{{f.v}}</span></label>
+            </sc-for>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 12.5px; font-weight: 500">Prices</span>
+              <sc-for list="{{sel.prices}}" as="p" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8"><span style="flex: 1"><span style="display: block">{{p.k}}</span><span style="font-size: 12px; color: #8a8a93">{{p.note}}</span></span><span style="font-weight: 600; font-variant-numeric: tabular-nums">{{p.v}}</span></div>
+              </sc-for>
+              <a href="#" style="font-size: 12.5px; font-weight: 500; color: #c2185b">Price history ›</a>
+            </div>
+            <span style="font-size: 12px; color: #8a8a93">The code cannot change once the service has been ordered or priced. A service is deactivated, never deleted.</span>
+          </div>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Consultation tariff</h2><span style="font-size: 12px; color: #8a8a93">Used by Billing for every visit</span></div>
+          <sc-for list="{{tariff}}" as="t" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8"><span style="flex: 1"><span style="display: block">{{t.k}}</span><span style="font-size: 12px; color: #8a8a93">{{t.note}}</span></span><span style="{{t.vStyle}}">{{t.v}}</span></div>
+          </sc-for>
+          <button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer; align-self: flex-start">Edit consultation prices</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const chip = (bg, fg) => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + bg + ';color:' + fg + ';';
+    const tone = { green: chip('#e9f8ee', '#1d7a3a'), amber: chip('#fff4dc', '#8a5a00'), red: chip('#fde7ef', '#b0144f'), grey: chip('#f4f4f6', '#6b6b73'), blue: chip('#e8f0fe', '#1a4fa8'), dark: chip('#111114', '#ffffff') };
+    const rowStyle = on => 'display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:44px;padding:6px 10px 6px 13px;border-radius:12px;' + (on ? 'background:#f4f4f6;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.06),inset 3px 0 0 #c2185b;' : 'background:transparent;box-shadow:inset 0 -1px 0 #f6f6f8;');
+    const stripItem = (v, k) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);', kStyle: 'font-size:12.5px;color:#6b6b73;' });
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;border:0;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const sel = st.sel ?? 0;
+    const S = [
+      ['Nebuliser', 'SVC-NEB', 'Respiratory', 'RM 25.00', 'RM 22.00', 'Active'],
+      ['Wound dressing (small)', 'SVC-DRS-S', 'Wound care', 'RM 15.00', 'RM 15.00', 'Active'],
+      ['Wound dressing (large)', 'SVC-DRS-L', 'Wound care', 'RM 30.00', 'RM 28.00', 'Active'],
+      ['Intramuscular injection', 'SVC-IM', 'Injections', 'RM 10.00', 'RM 10.00', 'Active'],
+      ['IV drip (1 pint)', 'SVC-IV1', 'Injections', 'RM 80.00', 'RM 70.00', 'Active'],
+      ['ECG', 'SVC-ECG', 'Diagnostics', 'RM 40.00', 'RM 35.00', 'Active'],
+      ['Blood glucose (finger prick)', 'SVC-GLU', 'Point-of-care tests', 'RM 8.00', 'RM 8.00', 'Active'],
+      ['Urine dipstick', 'SVC-URI', 'Point-of-care tests', 'RM 8.00', 'RM 7.00', 'Active'],
+      ['Ear syringing', 'SVC-EAR', 'Procedures', 'RM 35.00', 'RM 30.00', 'Active'],
+      ['Toilet and suture (up to 3 cm)', 'SVC-TS3', 'Procedures', 'RM 60.00', 'RM 55.00', 'Active'],
+      ['Removal of stitches', 'SVC-ROS', 'Procedures', 'RM 15.00', '—', 'Active'],
+      ['Incision and drainage', 'SVC-IND', 'Procedures', 'RM 80.00', 'RM 75.00', 'Active'],
+      ['Spirometry', 'SVC-SPI', 'Diagnostics', 'RM 50.00', 'RM 45.00', 'Inactive']
+    ];
+    const rows = S.map((m, i) => ({ name: m[0], code: m[1], cat: m[2], self: m[3], panel: m[4], status: m[5], statusStyle: m[5] === 'Active' ? tone.green : tone.grey, pressed: String(sel === i), pick: () => this.setState({ sel: i }), row: rowStyle(sel === i) }));
+    const s = S[sel];
+    const XPMAP = ['cat', null, 'np', 'inact'];
+    const XPD = {
+      cat: { title: 'Active services · 42 in 7 categories', note: 'By category', cols: [['CATEGORY', 'minmax(170px,1.6fr)'], ['SERVICES', '90px', 'r'], ['FOR EXAMPLE', 'minmax(180px,1.6fr)']], rows: [
+        ['Respiratory', '4', 'Nebuliser'], ['Wound care', '6', 'Wound dressing (small)'], ['Injections', '7', 'Intramuscular injection'],
+        ['Diagnostics', '5', 'ECG'], ['Point-of-care tests', '8', 'Blood glucose (finger prick)'], ['Procedures', '10', 'Ear syringing'], ['Consultation extras', '2', 'After-hours surcharge']
+      ], foot: 'Categories group services on this page and in the doctor\'s picker.' },
+      np: { title: 'No default Panel price · 1', note: 'Panels without their own price cannot be billed for it', cols: [['SERVICE', 'minmax(170px,1.8fr)'], ['CODE', '90px'], ['SELF-PAY', '90px', 'r'], ['STATUS', 'minmax(170px,1fr)']], rows: [
+        ['Removal of stitches', 'SVC-ROS', 'RM 15.00', ['w', 'No default Panel price']]
+      ], foot: 'Add the price in the Default Panel book in Pricing.' },
+      inact: { title: 'Inactive · 3', note: 'Kept for history', cols: [['SERVICE', 'minmax(170px,1.8fr)'], ['CODE', '90px'], ['CATEGORY', '130px'], ['STATUS', 'minmax(90px,1fr)']], rows: [
+        ['Spirometry', 'SVC-SPI', 'Diagnostics', ['n', 'Inactive']],
+        ['Pap smear', 'SVC-PAP', 'Procedures', ['n', 'Inactive']],
+        ['Ear piercing', 'SVC-EPR', 'Procedures', ['n', 'Inactive']]
+      ], foot: 'An inactive service cannot be ordered. Its past orders and prices stay.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, rows,
+      strip: xpWrap([stripItem('42', 'active services'), stripItem('7', 'categories'), stripItem('1', 'no default Panel price'), stripItem('3', 'inactive')]),
+      sel: { name: s[0], code: s[1], cat: s[2], prices: [{ k: 'Self-pay', note: 'Cheras price book', v: s[3] }, { k: 'Default Panel', note: 'All Panels without their own price', v: s[4] === '—' ? 'Not set' : s[4] }] },
+      fields: [{ k: 'Service name', v: s[0] }, { k: 'Category', v: s[2] }, { k: 'Branch used for price publication', v: 'Cheras' }],
+      tariff: [
+        { k: 'Consultation · Self-pay', note: 'Cheras price book', v: 'RM 35.00', vStyle: 'font-weight:600;font-variant-numeric:tabular-nums;' },
+        { k: 'Consultation · default Panel', note: 'All Panels without their own price', v: 'RM 30.00', vStyle: 'font-weight:600;font-variant-numeric:tabular-nums;' },
+        { k: 'Consultation · MediCare TPA', note: 'Own price book', v: 'RM 28.00', vStyle: 'font-weight:600;font-variant-numeric:tabular-nums;' },
+        { k: 'Next Self-pay price', note: 'Scheduled from 1 Dec 2026, 9:00 AM', v: 'RM 40.00', vStyle: tone.amber }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
