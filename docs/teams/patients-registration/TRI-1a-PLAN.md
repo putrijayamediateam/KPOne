@@ -447,3 +447,21 @@ arrays (13); `raiseToUrgentForTriage` re-checks authority and Waiting and writes
 Visit as audit subject, no age band in audit, a rule on metadata display (15); one lock order, actor before
 organisation (16); the triage retry hash covers the visit and the replay checks it (17); `very_low < very_high`
 (18); a fictional doctor name in tests and the fixture note (19).
+
+## 9. Build (19 Nov 2026)
+
+Built on `feature/tri-1a-triage-backend` as planned. The coordinator answered open points A, B, C, D, F, G and I for
+the owner ("be me, i approve all", 19 Nov 2026) with the defaults above; the guideline settings page goes in
+TRI-1b, and later slices build Classic pages only (no V2). Farhana's diff review found no blocker; her fixes are
+in the build: a CHECK hole for a reason code on a readings-only row, a successor rule that names the newest
+approved version, `very_low < very_high` in PostgreSQL, the recorder must hold the triage permission in the
+insert trigger, `model_type` and guard filters in the permission check, checked audit writes in
+`raiseToUrgentForTriage`, and more tests (unknown date of birth, adult confirmation, an ended assignment, direct
+insert messages, Call next state). Her race finding on the very first guideline is closed with a triage-only
+PostgreSQL advisory lock (`kp_triage_guideline_gate`: shared for a triage save, exclusive for guideline entry and
+approval), not the organisation row, because the visit edit locks the organisation before the visit and
+triage locks the visit first.
+
+Open for the owner: "readings differ" counts a change in any reading (for example the height), so a red from a
+reading that is still past its threshold, or from a ticked red flag, can be lowered on a retake with a reason;
+and one limit per reading, age group and direction means no tiered rule such as "38 is yellow, 39.5 is red".
