@@ -289,7 +289,6 @@ that lasts.
 8. **Roster:** does an MA count towards the CA minimum on the roster planner? Recommended: no, a separate MA line.
 9. **Result values** (for example a point-of-care glucose): recommended not in v1. If wanted, the values and
    their units need the doctor's approval as a clinical design of their own.
-
 10. **Treatment-room call for a held patient:** today the TV-2 call refuses a held patient, though treatment
     usually runs while the consultation is held. Recommended: allow it under `queue.treatment_call.branch` only
     (section 3.3).
