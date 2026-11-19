@@ -65,14 +65,21 @@ another branch. The CA who finds a red-zone patient still tells a doctor in pers
 Acknowledge has two buttons in the banner:
 
 - **"I'll see this patient"**: records the acknowledgement and, in the same transaction, makes the acknowledging
-  doctor the visit's assigned doctor through `VisitAdministrationService` (audited as today), so their Call In
-  and Call next work at once. Refused if the patient is no longer Waiting.
+  doctor the visit's assigned doctor, so their Call In and Call next work at once. Resident Doctors do not hold
+  `visits.update.branch`, so this cannot go through `VisitAdministrationService::update`; it is a dedicated
+  domain method, `EmergencyAlertService::take`, under `queue.emergency.respond.branch` only. It locks the users
+  (the actor, the old and the new assigned doctor, ascending id) before the visit, as `ConsultationLocks`
+  requires, runs the doctor-eligibility check (`VisitDoctorEligibilityService`), and writes the same
+  assignment-change audit row as a CA's edit. Refused if the patient is no longer Waiting, and refused while the
+  taking doctor is **busy** (serving a patient who is not held, `ConsultationLocks::doctorBusy`): the patient
+  must never belong to a doctor who cannot call them. The banner then offers "Hold my current patient, then take"
+  (owner question 9).
 - **"Seen, not taking"**: records that this doctor has seen the alert, but **does not stop it**. The alert keeps
   going until someone presses "I'll see this patient". This avoids an alert being silenced by a doctor who then
   does nothing.
 
 The banner explains that the busy rule still applies: a doctor serving another patient must **hold** that
-consultation first (HC-01's limit of three holds still applies), and the banner offers a link to do so.
+consultation first (HC-01's limit of three holds still applies).
 
 ## 4. Data
 
@@ -109,25 +116,36 @@ alert, no second sound).
 
 - **Board order:** the lane sits above the table and is ordered by raised time, oldest first. Below it, the table
   keeps today's rule. The red patient does not appear twice: the lane row replaces their table row.
-- **Carry-over:** a red patient from a previous day still goes in the lane (red outranks "today first").
+- **Carry-over:** a red patient from a previous day still goes in the lane (red outranks "today first"). The
+  board loads today's entries and carry-over in two separate queries (`QueueDirectoryService`), so the lane is
+  its own query across both, and both lists leave out the lane's patients.
 - **Call next:** for the doctor who holds the patient (assigned, or taken under 3.1), an open alert comes before
   every other entry, including today's Urgent. Other doctors' Call next is unchanged: they reach the patient by
   "I'll see this patient", never by Call next picking another doctor's patient.
-- **Not ready to call:** recommended (owner question 4): the flag **cannot be set** on an entry with an open alert
-  (refused in the service), and if the patient already had the flag when triage turned red, the alert still
-  fires and the lane row shows "Not ready: <reason>" so the doctor can override with a reason, as today.
+- **Not ready to call:** Call next skips every entry with an open not-ready flag, with no override (Q-4 owner
+  decision, `CallNextService::next()`), so a flagged red patient would never be offered by Call next and could
+  only be reached by Call In with the doctor's override. Recommended (owner question 4): the flag **cannot be
+  set** on an entry with an open alert (refused in the service), and a flag already open when triage turns the
+  zone red is **closed in the same triage transaction** as a system close with code `zone_red` (audited; the
+  flag's own history keeps who set it and why), so nothing hides a red patient.
 
 ## 6. The alert without any messaging service
 
 ### 6.1 Polling
 
-- A new read-only endpoint, `GET /queue/emergency-alerts` (`no-store`, about 60 a minute), returns for the active
+- A new read-only endpoint, `GET /queue/emergency-alerts` (`no-store`), returns for the active
   branch: the open alerts (alert id, queue number, patient name, raised at, assigned doctor's display name,
   whether this doctor pressed "Seen") and a cursor.
 - The shared clinic layout polls it **every 5 seconds** for doctors on every staff page, and the Queue board's
   existing 3-second poll carries the lane. The first poll only sets the cursor, as in the readiness alerts, but
   **an alert that is still open is always shown again after a refresh**: unlike "ready" and "treatment done",
   an emergency is a state, not an event, so refreshing must never hide it.
+- **Throttle:** numeric throttles count per user and route (THROTTLE-1), so several open tabs share one counter.
+  The limit is set well above one tab's need (recommended 240 a minute), and a failed or throttled poll shows
+  **"Live alerts paused. Reload this page."** in the banner area instead of failing silently, as REG-LIVE-1 does.
+- **"No doctor online":** each poll records, in the cache only (no table), the time a Resident Doctor last
+  polled for this branch. The lane shows **"No doctor has KPOne open at this branch"** when no Resident Doctor
+  polled in the last 30 seconds. It is a count, never a name, and it tells the CA to fetch a doctor in person.
 - **No push, no WebSocket, no email, SMS, WhatsApp or phone notification.** Patient messaging stays unauthorised
   (`AGENTS.md`), and the HR messaging exception covers staff HR only.
 - **Known limit:** browsers slow timers in hidden tabs (often to once a minute) and stop them on a sleeping
@@ -151,7 +169,8 @@ alert, no second sound).
 - Never colour alone: the word "Emergency", an icon and the number.
 - The banner is a non-modal region pinned at the top of the page (it must not trap a doctor mid-consultation),
   announced once by screen readers (`role="alert"`), with the buttons reachable by keyboard and 44 px tall below
-  1024 px. It does not cover the consultation toolbar (UX-5 toast rule).
+  1024 px. Where it sits on the consultation page in focus mode, so it does not cover the doctor's toolbar, is
+  for the Lead UI/UX Designer to decide (UX-5 is a toast exception, not a banner rule).
 - Dark mode and 390 px checked; staff screens in English.
 
 ### 6.4 Wording on screen
@@ -197,7 +216,13 @@ The lane and the banner both carry one muted line: "Also tell a doctor in person
     no longer Waiting; never both;
   - "I'll see this patient" against a triage that lowers the zone;
   - two CAs saving red triage at once: one alert;
-  - "I'll see this patient" against visit cancellation.
+  - "I'll see this patient" against visit cancellation;
+  - "I'll see this patient" against Call next by the old assigned doctor;
+  - "I'll see this patient" against a CA changing the visit's doctor through `VisitAdministrationService`;
+  - a red triage saved at the same moment as Call In (the alert insert trigger requires Waiting, so either the
+    alert is raised and then system-closed by the call, or the triage is refused as stale; never an open alert
+    on a Serving entry);
+  - "I'll see this patient" by a doctor who becomes busy at the same moment (refused, never assigned).
 - **Tests:** permission and branch denial, a doctor at another active branch sees nothing, refresh shows an open
   alert again, closed alerts never return, TV and QR payloads pinned, frontend tests, screenshots at 1440 and
   390 px in light and dark, checked by the Lead UI/UX Designer.
@@ -221,6 +246,9 @@ The lane and the banner both carry one muted line: "Also tell a doctor in person
    acknowledged for N min"); the clinic SOP says what the CA does after, for example, 2 minutes.
 8. **Locum doctors:** a locum without a clinical role sees nothing. If locum doctors ever see patients in KPOne,
    that is a separate role decision (`AGENTS.md`).
+9. **A busy doctor who wants to take the patient:** recommended a single "Hold my current patient, then take"
+   action (one confirmed step, two transactions in the order Hold then Take; if the Take fails, the held patient
+   stays held and the doctor is told). The alternative is two separate presses.
 
 ## 11. Slices
 
