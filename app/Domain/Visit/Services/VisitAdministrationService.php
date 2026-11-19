@@ -131,6 +131,41 @@ class VisitAdministrationService
         }, 3);
     }
 
+    /**
+     * TRI-1a: a yellow or red triage zone puts a Waiting consultation into the existing Urgent order. Called only by
+     * TriageService inside its transaction, after it took the users, actor, visit and queue locks in the
+     * ConsultationLocks order and checked the triage permission under lock. Writes the same audit rows a
+     * priority-only visit edit writes. Never lowers priority.
+     */
+    public function raiseToUrgentForTriage(Visit $lockedVisit, QueueEntry $lockedQueue, User $lockedActor, Branch $branch, int $triageAssessmentId): void
+    {
+        abort_unless(DB::transactionLevel() > 0, 409);
+        if (! $lockedActor->is_active || ! $lockedActor->can('visits.triage.record.branch')
+            || $lockedVisit->organisation_id !== $lockedActor->organisation_id || $lockedVisit->branch_id !== $branch->id
+            || $lockedQueue->visit_id !== $lockedVisit->id) {
+            throw new AuthorizationException('You may not change this Visit.');
+        }
+        if ($lockedVisit->status !== Visit::STATUS_REGISTERED || $lockedVisit->visit_type !== 'consultation'
+            || $lockedQueue->status !== QueueEntry::STATUS_WAITING || $lockedVisit->priority === 'urgent') {
+            return;
+        }
+        $lockedVisit->forceFill([
+            'priority' => 'urgent',
+            'updated_by_user_id' => $lockedActor->id,
+            'lock_version' => $lockedVisit->lock_version + 1,
+        ])->save();
+        $this->audit->record('visit.details.updated', $lockedVisit, [
+            'changed_fields' => ['priority'],
+            'sensitive_fields_changed' => [],
+            'record_version' => $lockedVisit->lock_version,
+        ], $lockedActor, $branch);
+        $this->audit->record('visit.priority.marked_urgent', $lockedVisit, [
+            'record_version' => $lockedVisit->lock_version,
+            'source' => 'triage',
+            'triage_assessment_id' => $triageAssessmentId,
+        ], $lockedActor, $branch);
+    }
+
     /** @param array<string, mixed> $attributes */
     public function cancel(Visit $visit, array $attributes, User $actor): Visit
     {
