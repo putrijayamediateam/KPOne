@@ -115,19 +115,30 @@ ALTER TABLE triage_guideline_events ADD CONSTRAINT triage_guideline_event_shape 
 CREATE OR REPLACE FUNCTION kp_triage_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'Triage evidence is append-only' USING ERRCODE = 'P0001'; END $$;
 
-CREATE OR REPLACE FUNCTION kp_triage_manager(org bigint, uid bigint) RETURNS boolean LANGUAGE sql STABLE AS $$
+CREATE OR REPLACE FUNCTION kp_triage_holds(org bigint, uid bigint, perm text) RETURNS boolean LANGUAGE sql STABLE AS $$
  SELECT EXISTS (SELECT 1 FROM users u WHERE u.id = uid AND u.organisation_id = org AND u.is_active)
  AND (EXISTS (SELECT 1 FROM model_has_roles mr JOIN role_has_permissions rp ON rp.role_id = mr.role_id
               JOIN permissions p ON p.id = rp.permission_id
-              WHERE mr.model_id = uid AND p.name = 'triage.guideline.manage.organisation')
+              WHERE mr.model_id = uid AND mr.model_type = 'App\Models\User' AND p.name = perm AND p.guard_name = 'web')
    OR EXISTS (SELECT 1 FROM model_has_permissions mp JOIN permissions p ON p.id = mp.permission_id
-              WHERE mp.model_id = uid AND p.name = 'triage.guideline.manage.organisation'))
+              WHERE mp.model_id = uid AND mp.model_type = 'App\Models\User' AND p.name = perm AND p.guard_name = 'web'))
 $$;
+CREATE OR REPLACE FUNCTION kp_triage_manager(org bigint, uid bigint) RETURNS boolean LANGUAGE sql STABLE AS $$
+ SELECT kp_triage_holds(org, uid, 'triage.guideline.manage.organisation')
+$$;
+-- The triage guideline gate: shared by every triage save, exclusive for guideline entry and approval. A keyed
+-- transaction lock of its own, so it never joins the organisation row lock other services take before a visit.
+CREATE OR REPLACE FUNCTION kp_triage_guideline_gate(org bigint, exclusive boolean) RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+ IF exclusive THEN PERFORM pg_advisory_xact_lock(20261120, org::integer);
+ ELSE PERFORM pg_advisory_xact_lock_shared(20261120, org::integer); END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION kp_triage_guideline_insert() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE latest integer;
 BEGIN
  PERFORM 1 FROM organisations WHERE id = NEW.organisation_id FOR UPDATE;
+ PERFORM kp_triage_guideline_gate(NEW.organisation_id, true);
  SELECT COALESCE(max(version_number), 0) INTO latest FROM triage_guideline_versions WHERE organisation_id = NEW.organisation_id;
  IF NEW.status <> 'draft' OR NEW.lock_version <> 1 OR NEW.version_number <> latest + 1
   OR NEW.approved_by_user_id IS NOT NULL OR NEW.approved_at IS NOT NULL OR NEW.replaced_at IS NOT NULL
@@ -141,6 +152,7 @@ CREATE TRIGGER triage_guideline_insert BEFORE INSERT ON triage_guideline_version
 
 CREATE OR REPLACE FUNCTION kp_triage_guideline_update() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+ PERFORM kp_triage_guideline_gate(NEW.organisation_id, true);
  IF NOT ((OLD.status = 'draft' AND NEW.status IN ('approved','discarded')) OR (OLD.status = 'approved' AND NEW.status = 'replaced'))
   OR NEW.lock_version <> OLD.lock_version + 1
   OR (NEW.id, NEW.organisation_id, NEW.version_number, NEW.child_age_limit_years, NEW.approving_doctor_name, NEW.doctor_signed_on,
@@ -170,13 +182,18 @@ BEGIN
   RAISE EXCEPTION 'A triage guideline change requires its event' USING ERRCODE = '23514';
  END IF;
  IF v.status = 'replaced' AND NOT EXISTS (SELECT 1 FROM triage_guideline_versions s WHERE s.organisation_id = v.organisation_id
-   AND s.id <> v.id AND s.status IN ('approved','replaced') AND s.approved_at = v.replaced_at) THEN
+   AND s.id <> v.id AND s.status = 'approved' AND s.version_number > v.version_number AND s.approved_at = v.replaced_at) THEN
   RAISE EXCEPTION 'A triage guideline version is replaced only by approving its successor' USING ERRCODE = '23514';
  END IF;
  IF (SELECT count(*) FROM triage_guideline_signs WHERE guideline_version_id = v.id AND kind = 'red_flag') <> v.red_flag_count
   OR (SELECT count(*) FROM triage_guideline_signs WHERE guideline_version_id = v.id AND kind = 'yellow_sign') <> v.yellow_sign_count
   OR (SELECT count(*) FROM triage_guideline_thresholds WHERE guideline_version_id = v.id) <> v.threshold_count THEN
   RAISE EXCEPTION 'A triage guideline version must hold exactly its entered signs and thresholds' USING ERRCODE = '23514';
+ END IF;
+ IF EXISTS (SELECT 1 FROM triage_guideline_thresholds lo JOIN triage_guideline_thresholds hi
+   ON hi.guideline_version_id = lo.guideline_version_id AND hi.reading = lo.reading AND hi.age_band = lo.age_band
+   WHERE lo.guideline_version_id = v.id AND lo.direction = 'very_low' AND hi.direction = 'very_high' AND lo.limit_value >= hi.limit_value) THEN
+  RAISE EXCEPTION 'A very low limit must be below the very high limit for the same reading' USING ERRCODE = '23514';
  END IF;
  RETURN NULL;
 END $$;

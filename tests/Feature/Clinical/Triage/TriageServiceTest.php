@@ -84,8 +84,25 @@ class TriageServiceTest extends TriageTestCase
         $other = Branch::query()->where('organisation_id', $this->organisation->id)->where('id', '!=', $this->branch->id)->firstOrFail();
         $elsewhere = $this->actor('ca', $other);
         $this->selectBranch($elsewhere, $other);
-        $this->expectException(ModelNotFoundException::class);
-        app(TriageService::class)->record($elsewhere, $visit, [...$this->triageInput($visit), 'expected_branch_id' => $other->id]);
+        try {
+            app(TriageService::class)->record($elsewhere, $visit, [...$this->triageInput($visit), 'expected_branch_id' => $other->id]);
+            $this->fail('another branch visit must not be found');
+        } catch (ModelNotFoundException) {
+            $this->addToAssertionCount(1);
+        }
+
+        // A CA whose assignment to this branch ended is refused under lock, even with the branch still in session.
+        $ended = $this->actor('ca');
+        $this->selectBranch($ended);
+        DB::table('staff_branch_assignments')->where('staff_profile_id', $ended->staffProfile()->value('id'))
+            ->update(['valid_from' => now()->subDays(10)->toDateString(), 'valid_until' => now()->subDays(3)->toDateString()]);
+        try {
+            app(TriageService::class)->record($ended, $visit, $this->triageInput($visit));
+            $this->fail('a CA with no current assignment must be refused');
+        } catch (AuthorizationException|\Symfony\Component\HttpKernel\Exception\HttpException) {
+            $this->addToAssertionCount(1);
+        }
+        $this->assertSame(0, VisitTriageAssessment::query()->count());
     }
 
     public function test_yellow_and_red_raise_urgent_while_waiting_with_the_existing_audit_and_green_never_lowers(): void
@@ -130,7 +147,7 @@ class TriageServiceTest extends TriageTestCase
         }
     }
 
-    public function test_thresholds_follow_the_age_band_and_unknown_age_takes_the_higher_zone(): void
+    public function test_thresholds_follow_the_age_band(): void
     {
         $this->approvedGuideline();
         [$ca, $child] = $this->waitingFixture(null, ['date_of_birth' => now('Asia/Kuala_Lumpur')->subYears(5)->toDateString(), 'guardian' => GuardianFixture::contact()]);
@@ -146,6 +163,21 @@ class TriageServiceTest extends TriageTestCase
 
         [$ca, $edge] = $this->waitingFixture();
         $this->assertSame('red', $this->triage($ca, $edge, ['temperature_celsius' => '39.5', 'chosen_zone' => 'red'])->suggested_zone, 'at the limit counts');
+    }
+
+    public function test_unknown_date_of_birth_takes_both_bands_and_an_adult_confirmation_counts_as_adult(): void
+    {
+        $this->approvedGuideline();
+        [$ca, $legacy] = $this->waitingFixture();
+        DB::table('patients')->where('id', $legacy->patient_id)->update(['date_of_birth' => null]);
+        $this->assertSame(0, DB::table('patient_adult_confirmations')->where('patient_id', $legacy->patient_id)->count());
+        $row = $this->triage($ca, $legacy, ['temperature_celsius' => '38.60', 'chosen_zone' => 'red']);
+        $this->assertSame(['unknown', 'red'], [$row->age_band, $row->suggested_zone], 'the child limit applies when age is unknown');
+
+        [$ca, $confirmed] = $this->waitingFixture(null, ['date_of_birth' => null, 'adult_confirmed' => true, 'adult_confirmation_key' => (string) \Illuminate\Support\Str::uuid(), 'expected_branch_id' => $this->branch->id]);
+        $this->assertSame(1, DB::table('patient_adult_confirmations')->where('patient_id', $confirmed->patient_id)->count());
+        $row = $this->triage($ca, $confirmed, ['temperature_celsius' => '38.60']);
+        $this->assertSame(['adult', 'green'], [$row->age_band, $row->suggested_zone]);
     }
 
     public function test_the_age_band_uses_the_branch_local_date_at_kuala_lumpur_midnight(): void
@@ -195,7 +227,7 @@ class TriageServiceTest extends TriageTestCase
 
         $otc = $this->register($ca, $this->patient($ca), ['visit_type' => 'otc', 'assigned_doctor_user_id' => null]);
         $this->selectBranch($ca);
-        $this->refused(fn () => app(TriageService::class)->record($ca, $otc, [...$this->triageInput($serving), 'visit_lock_version' => $otc->lock_version]), 'changed');
+        $this->refused(fn () => app(TriageService::class)->record($ca, $otc, [...$this->triageInput($serving), 'visit_lock_version' => $otc->lock_version, 'expected_latest_triage_id' => null]), 'only for a registered consultation');
 
         [$ca, $cancelled, $q] = $this->waitingFixture();
         $this->selectBranch($ca);
@@ -271,15 +303,18 @@ class TriageServiceTest extends TriageTestCase
         foreach (['UPDATE visit_triage_assessments SET pulse_bpm = 99', 'DELETE FROM visit_triage_assessments', 'TRUNCATE visit_triage_assessments'] as $sql) {
             $this->assertDatabaseRefuses($sql, 'P0001');
         }
-        // A direct insert on another branch's scope, a skipped sequence or a stale guideline is refused by the trigger.
-        $this->assertDatabaseRefuses(
-            "INSERT INTO visit_triage_assessments (organisation_id, branch_id, visit_id, queue_entry_id, sequence, recorded_by_user_id, recorded_at, idempotency_key, payload_hash, created_at)
-             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 3, recorded_by_user_id, now(), gen_random_uuid(), repeat('a', 64), now() FROM visit_triage_assessments LIMIT 1",
-            '23514',
-        );
+        $insert = fn (string $columns, string $values): string => "INSERT INTO visit_triage_assessments (organisation_id, branch_id, visit_id, queue_entry_id, sequence, recorded_by_user_id, recorded_at, idempotency_key, payload_hash, created_at{$columns})
+             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, now(), gen_random_uuid(), repeat('a', 64), now(){$values} FROM visit_triage_assessments LIMIT 1";
+        $this->assertDatabaseRefuses(str_replace(', 2, recorded_by', ', 3, recorded_by', $insert('', '')), '23514', 'numbered in order');
+        $this->assertDatabaseRefuses($insert(', override_reason_code', ", 'staff_concern'"), '23514', 'visit_triage_shape');
+        $this->assertDatabaseRefuses(str_replace('SELECT organisation_id, branch_id,', 'SELECT organisation_id, branch_id + 1,', $insert('', '')), '23514', 'registered consultation');
+        $other = $this->actor('finance_officer');
+        $this->assertDatabaseRefuses(str_replace('recorded_by_user_id, now()', $other->id.', now()', $insert('', '')), '23514', 'holder of the triage permission');
+        $this->approvedGuideline();
+        $this->assertDatabaseRefuses($insert('', ''), '23514', 'version in force');
     }
 
-    private function assertDatabaseRefuses(string $sql, string $state): void
+    private function assertDatabaseRefuses(string $sql, string $state, ?string $message = null): void
     {
         DB::beginTransaction();
         try {
@@ -287,6 +322,9 @@ class TriageServiceTest extends TriageTestCase
             $this->fail("must be refused: $sql");
         } catch (QueryException $e) {
             $this->assertSame($state, $e->errorInfo[0] ?? $e->getCode(), $sql);
+            if ($message !== null) {
+                $this->assertStringContainsString($message, $e->getMessage());
+            }
         } finally {
             DB::rollBack();
         }

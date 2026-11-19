@@ -82,14 +82,16 @@ class TriageService
             }
 
             $latest = VisitTriageAssessment::query()->where('visit_id', $lockedVisit->id)->orderByDesc('sequence')->first();
-            if ($lockedVisit->assigned_doctor_user_id !== $originalDoctorId || ! $queue
+            if ($lockedVisit->status !== Visit::STATUS_REGISTERED || $lockedVisit->visit_type !== 'consultation' || ! $queue) {
+                $this->refuse('triage', 'Triage is only for a registered consultation in the queue.');
+            }
+            if ($lockedVisit->assigned_doctor_user_id !== $originalDoctorId
                 || $lockedVisit->lock_version !== $data['visit_lock_version'] || $queue->lock_version !== $data['queue_lock_version']
                 || $latest?->id !== $data['expected_latest_triage_id']) {
                 $this->refuse('lock_version', "This patient's triage or queue changed. Reload and review the latest readings.");
             }
             $started = ClinicalEncounter::query()->where('visit_id', $lockedVisit->id)->exists();
-            if ($lockedVisit->status !== Visit::STATUS_REGISTERED || $lockedVisit->visit_type !== 'consultation'
-                || ! in_array($queue->status, [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING], true)) {
+            if (! in_array($queue->status, [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING], true)) {
                 $this->refuse('triage', 'Triage is only for a registered consultation in the queue.');
             }
             if ($queue->status === QueueEntry::STATUS_SERVING && $started) {
@@ -119,10 +121,10 @@ class TriageService
                     $data['red_flag_codes'],
                     $data['yellow_sign_codes'],
                     $ageBand,
-                    $guideline->thresholds->map(fn (TriageGuidelineThreshold $t): array => [
+                    array_values($guideline->thresholds->map(fn (TriageGuidelineThreshold $t): array => [
                         'reading' => $t->reading, 'age_band' => $t->age_band, 'direction' => $t->direction,
                         'limit_value' => (string) $t->limit_value, 'zone' => $t->zone,
-                    ])->values()->all(),
+                    ])->all()),
                 )['zone'];
                 $chosen = $data['chosen_zone'];
                 $this->assertZoneChoice($suggested, $chosen, $data['override_reason_code'], $latest, $readings);

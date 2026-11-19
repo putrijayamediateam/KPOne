@@ -5,6 +5,7 @@ namespace App\Domain\Visit\Services;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -140,7 +141,7 @@ class VisitAdministrationService
     public function raiseToUrgentForTriage(Visit $lockedVisit, QueueEntry $lockedQueue, User $lockedActor, Branch $branch, int $triageAssessmentId): void
     {
         abort_unless(DB::transactionLevel() > 0, 409);
-        if (! $lockedActor->is_active || ! $lockedActor->can('visits.triage.record.branch')
+        if (! $lockedActor->is_active || ! $lockedActor->can(TriagePermissions::RECORD_BRANCH)
             || $lockedVisit->organisation_id !== $lockedActor->organisation_id || $lockedVisit->branch_id !== $branch->id
             || $lockedQueue->visit_id !== $lockedVisit->id) {
             throw new AuthorizationException('You may not change this Visit.');
@@ -154,16 +155,17 @@ class VisitAdministrationService
             'updated_by_user_id' => $lockedActor->id,
             'lock_version' => $lockedVisit->lock_version + 1,
         ])->save();
-        $this->audit->record('visit.details.updated', $lockedVisit, [
+        $details = $this->audit->record('visit.details.updated', $lockedVisit, [
             'changed_fields' => ['priority'],
             'sensitive_fields_changed' => [],
             'record_version' => $lockedVisit->lock_version,
         ], $lockedActor, $branch);
-        $this->audit->record('visit.priority.marked_urgent', $lockedVisit, [
+        $marked = $this->audit->record('visit.priority.marked_urgent', $lockedVisit, [
             'record_version' => $lockedVisit->lock_version,
             'source' => 'triage',
             'triage_assessment_id' => $triageAssessmentId,
         ], $lockedActor, $branch);
+        abort_if($details === null || $marked === null, 503, 'Unable to record the audit. Try again.');
     }
 
     /** @param array<string, mixed> $attributes */

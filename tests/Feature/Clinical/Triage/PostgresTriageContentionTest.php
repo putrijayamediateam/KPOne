@@ -99,7 +99,12 @@ class PostgresTriageContentionTest extends TriageTestCase
             ['triage', $ca, $visit, $this->triageInput($visit, ['chosen_zone' => 'red'])],
             ['callnext', $doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'doctor_user_id' => $doctor->id, 'visit_number' => $visit->visit_number, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version]],
         ]);
-        $this->assertNotSame(str_contains($out[0], 'TRIAGE_OK'), str_contains($out[1], 'CALLNEXT_OK'));
+        $triaged = str_contains($out[0], 'TRIAGE_OK');
+        $called = str_contains($out[1], 'CALLNEXT_OK');
+        $this->assertNotSame($triaged, $called);
+        $this->assertSame($called ? QueueEntry::STATUS_SERVING : QueueEntry::STATUS_WAITING, $queue->refresh()->status);
+        $this->assertSame($triaged ? 'urgent' : 'normal', $visit->refresh()->priority);
+        $this->assertSame($triaged ? 1 : 0, VisitTriageAssessment::query()->where('visit_id', $visit->id)->count());
     }
 
     public function test_two_directors_approving_one_version_give_one_approval(): void

@@ -84,13 +84,14 @@ ALTER TABLE visit_triage_assessments ADD CONSTRAINT visit_triage_shape CHECK (
  AND ((guideline_version_id IS NULL) = (age_band IS NULL))
  AND (guideline_version_id IS NOT NULL OR (cardinality(red_flag_codes) = 0 AND cardinality(yellow_sign_codes) = 0))
  AND kp_triage_codes_ok(red_flag_codes) AND kp_triage_codes_ok(yellow_sign_codes)
+ AND (chosen_zone IS NOT NULL OR override_reason_code IS NULL)
  AND (
   (chosen_zone IS NULL AND override_reason_code IS NULL)
   OR (kp_triage_zone_rank(chosen_zone) = kp_triage_zone_rank(suggested_zone) AND override_reason_code IS NULL)
   OR (kp_triage_zone_rank(chosen_zone) < kp_triage_zone_rank(suggested_zone)
       AND override_reason_code IN ('doctor_reviewed_at_triage','device_error_confirmed'))
   OR (kp_triage_zone_rank(chosen_zone) > kp_triage_zone_rank(suggested_zone)
-      AND (override_reason_code IS NULL OR override_reason_code IN ('staff_concern','patient_appears_unwell')))));
+      AND (override_reason_code IS NULL OR override_reason_code IN ('staff_concern','patient_appears_unwell')))) IS TRUE);
 
 CREATE OR REPLACE FUNCTION kp_visit_triage_scope() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE v record; q record; g record; prev record; latest integer;
@@ -104,13 +105,14 @@ BEGIN
   OR NOT (q.status = 'waiting' OR (q.status = 'serving' AND NOT EXISTS (SELECT 1 FROM clinical_encounters e WHERE e.visit_id = v.id))) THEN
   RAISE EXCEPTION 'Triage needs a registered consultation that is Waiting or called in before the consultation starts' USING ERRCODE = '23514';
  END IF;
- IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.recorded_by_user_id AND organisation_id = NEW.organisation_id) THEN
-  RAISE EXCEPTION 'Invalid triage actor' USING ERRCODE = '23514';
+ IF NOT kp_triage_holds(NEW.organisation_id, NEW.recorded_by_user_id, 'visits.triage.record.branch') THEN
+  RAISE EXCEPTION 'Triage is recorded only by an active holder of the triage permission' USING ERRCODE = '23514';
  END IF;
  SELECT COALESCE(max(sequence), 0) INTO latest FROM visit_triage_assessments WHERE visit_id = NEW.visit_id;
  IF NEW.sequence <> latest + 1 THEN
   RAISE EXCEPTION 'Triage rows are numbered in order per visit' USING ERRCODE = '23514';
  END IF;
+ PERFORM kp_triage_guideline_gate(NEW.organisation_id, false);
  SELECT id, child_age_limit_years INTO g FROM triage_guideline_versions
   WHERE organisation_id = NEW.organisation_id AND status = 'approved' FOR SHARE;
  IF g.id IS DISTINCT FROM NEW.guideline_version_id THEN

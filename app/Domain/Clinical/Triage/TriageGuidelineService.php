@@ -122,6 +122,7 @@ class TriageGuidelineService
     {
         $query = TriageGuidelineVersion::query()->where('organisation_id', $organisationId)->where('status', TriageGuidelineVersion::STATUS_APPROVED);
         if ($lock) {
+            self::gate($organisationId, false);
             $query->sharedLock();
         }
         $version = $query->first();
@@ -257,9 +258,23 @@ class TriageGuidelineService
         return collect($zones)->map(fn (string $zone): string => CarbonImmutable::now($zone)->toDateString())->max();
     }
 
+    /** Organisation row, then the triage guideline gate exclusively, before any version row is locked. */
     private function lockOrganisation(User $actor): void
     {
         Organisation::query()->whereKey($actor->organisation_id)->lockForUpdate()->firstOrFail();
+        self::gate($actor->organisation_id, true);
+    }
+
+    /**
+     * The triage guideline gate (PostgreSQL transaction advisory lock): shared for each triage save, exclusive for
+     * guideline entry and approval, so a triage never reads a guideline that an approval is about to retire. Its own
+     * key, so it never joins the organisation row lock that other services take before a visit lock.
+     */
+    public static function gate(int $organisationId, bool $exclusive): void
+    {
+        if (DB::getDriverName() === 'pgsql') {
+            DB::select('select kp_triage_guideline_gate(?::bigint, ?::boolean)', [$organisationId, $exclusive ? 'true' : 'false']);
+        }
     }
 
     /** @param array<string, mixed> $payload */
