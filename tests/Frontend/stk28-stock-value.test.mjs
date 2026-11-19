@@ -11,24 +11,46 @@ const script = v2.slice(0, v2.indexOf('<template>'));
 const template = v2.slice(v2.indexOf('<template>'));
 const flat = template.replace(/\s+/g, ' ');
 
-test('STK-28: the report is a Version 2 page; the Classic page only offers to turn the new layout on', () => {
+test('STK-28: Classic and the new layout show the same report from the same props (owner decision 2026-11-19)', () => {
+    // The page swap stays registered, so a person with the new layout on still gets the V2 page.
     assert.match(registry, /'Inventory\/StockValue',/);
-    assert.match(
-        classic,
-        /This report is in the new layout\. Turn on the new layout to open it\./,
+    // Classic no longer asks the Director to turn on the new layout.
+    assert.doesNotMatch(classic, /\/spaces\/preference|Turn on the new layout/);
+    // The same props type, the same report route and the same journal download.
+    const propsType = (source) =>
+        source.slice(
+            source.indexOf('type StockRow'),
+            source.indexOf('const props'),
+        );
+    assert.equal(propsType(classic), propsType(v2));
+    assert.match(classic, /defineProps<\{ report: Report \}>\(\)/);
+    assert.match(classic, /router\.get\(\s*'\/inventory\/stock-value'/);
+    assert.equal(
+        (classic.match(/\/inventory\/stock-value\/journal/g) ?? []).length,
+        1,
     );
-    assert.match(
-        classic.replace(/\s+/g, ' '),
-        /This turns the new layout on for all your pages\. You can turn it off again with Back to Classic at the top of any page/,
+    // The banner shows above the summary and on every tab, with an icon, as in V2.
+    const classicTemplate = classic.slice(classic.indexOf('<template>'));
+    assert.ok(
+        (classicTemplate.match(/\{\{ report\.banner \}\}/g) ?? []).length >= 3,
     );
-    assert.match(classic, /router\.put\(\s*'\/spaces\/preference'/);
-    assert.match(classic, /enabled: true/);
-    assert.match(
-        classic,
-        /onSuccess: \(\) => router\.visit\('\/inventory\/stock-value'\)/,
+    assert.ok(
+        classicTemplate.indexOf('valuation-banner') <
+            classicTemplate.indexOf('valuation-summary'),
     );
-    // No figure ever reaches the Classic page.
-    assert.doesNotMatch(classic, /report\.|money\(|defineProps/);
+
+    // The same four tabs and 25 rows a page; nothing exported beyond the CSV.
+    for (const label of [
+        'Stock value',
+        'Cost and margin',
+        'Losses',
+        'How this is counted',
+    ]) {
+        assert.match(classic, new RegExp(`label: '${label}'`));
+    }
+
+    assert.match(classic, /const PAGE_SIZE = 25;/);
+    assert.doesNotMatch(classic, /\.xlsx|\.pdf/i);
 });
 
 test('STK-28: the disclaimer banner shows above the summary and on every tab, with an icon and words', () => {
@@ -121,7 +143,7 @@ test('STK-28: four tabs, "How this is counted" on every tab, 25 rows a page with
     );
 });
 
-test('STK-28: the V2 Inventory home links the report under Reports and checks, for the Director only', () => {
+test('STK-28: both Inventory homes link the report under Reports and checks, for the Director only', () => {
     const home = read('resources/js/pages/Inventory/V2/Index.vue');
     assert.match(
         home,
@@ -131,9 +153,9 @@ test('STK-28: the V2 Inventory home links the report under Reports and checks, f
         home,
         /href: '\/inventory\/stock-value',\s*label: 'Stock value and cost'/,
     );
-    // Classic stays untouched.
-    assert.doesNotMatch(
+    // Classic links it the same way, behind the same server flag (owner decision 2026-11-19).
+    assert.match(
         read('resources/js/pages/Inventory/Index.vue'),
-        /stock-value|canViewStockValue/,
+        /href="\/inventory\/stock-value"\s+variant="outline"\s+v-if="referenceData\.canViewStockValue"/,
     );
 });
