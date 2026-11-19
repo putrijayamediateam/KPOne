@@ -1,7 +1,7 @@
 # Classic only: plan to remove Version 2
 
 Owner decision, 19 Nov 2026: remove the "Try the new layout" Version 2 (V2) look, so every person always sees
-Classic, and lose no function. This file is the Phase 1 survey and plan from the Classic-only team (Haris, Lead;
+Classic, and lose no function. This file is the Phase 1 survey and plan, reviewed by Nadiah (her ten findings are folded in), from the Classic-only team (Haris, Lead;
 Nadiah, Reviewer). **It removes nothing.** Nothing is built until the owner approves it through the coordinator.
 
 Surveyed at `origin/main` `6acd9d3` (PR #993). PR #996 (Stock value in Classic) is open, not merged.
@@ -9,7 +9,7 @@ Surveyed at `origin/main` `6acd9d3` (PR #993). PR #996 (Stock value in Classic) 
 ## 0. How V2 works today (evidence)
 
 - One backend for both looks. `AppServiceProvider::boot()` calls `Inertia::transformComponentUsing()`, which asks
-  `UiVersionResolver::pageFor()` for the page name. A page listed in `config/v2-pages.php` `pages` (97 pages) becomes
+  `UiVersionResolver::pageFor()` for the page name. A page listed in `config/v2-pages.php` `pages` (95 pages) becomes
   `<Dir>/V2/<Name>` when `isV2()` is true. Controllers, routes, permissions and props are the same.
 - `isV2()` is true when the person's saved switch is on (`user_space_preferences.enabled`) **or the request is any
   `/spaces` page**, except for the waiting-room TV account (never offered).
@@ -20,7 +20,7 @@ Surveyed at `origin/main` `6acd9d3` (PR #993). PR #996 (Stock value in Classic) 
   `v2:` Tailwind variant and the V2 and new-look colour blocks.
 - `HandleInertiaRequests` shares `workspace.spaces` (switch state), `workspace.newLook` and `workspace.shell` (the V2
   sidebar from `V2ShellNavigation`, only in V2).
-- `ClinicManagementLayout`/`ClinicLayout`/`AdminLayout` draw `V2AppShell` when `useUiVersion()` says V2;
+- `ClinicLayout` and `AdminLayout` draw `V2AppShell` when `useUiVersion()` says V2;
   `resources/js/app.ts` picks `V2Layout` for V2 pages.
 
 **The trap is real.** Classic's account menu has a "Me" row (`AccountMenuLinks`, every person who can enter Me)
@@ -30,11 +30,11 @@ they are not a V2-only corner that can simply be deleted.
 
 ## 1. Every V2 artefact and what to do with it
 
-### 1.1 Pages (106 files under `resources/js/pages/**/V2/`)
+### 1.1 Pages (106 files under `resources/js/pages/**/V2/`, `.vue` and `.ts`)
 
 | Artefact | Action | Reason |
 |---|---|---|
-| 97 staff V2 pages listed in `config/v2-pages.php` `pages` (Registration, Patient, Queue, Clinical, Dispensary incl. 9 `Dispensary/V2/Partials/*`, Billing, PanelClaims, Pricing, Medicine, ClinicalService, Inventory (25), HR (27), Agents (5), Staff (4), settings pages, ClinicManagement, AuditLogs, Branches, AccessControl, Attendance, MC, Referrals, Visits/History, QueueDisplay/Settings) | **Remove** | Every one has a Classic page at the same name (checked: 97 of 97 exist). No V2 page reads a prop that its Classic page does not (scripted check; only `Billing/V2/Show` reads the shared `branchContext` for its own completion dialog, and `Pricing/V2/PriceHistory` reads `timezone`, which Classic shows its own way). Functions only in V2 are in section 2. |
+| 95 staff V2 pages listed in `config/v2-pages.php` `pages`, plus `Dispensary/V2/Partials/*` (6 `.vue`, 3 `.ts`) (Registration, RegistrationReview, PublicCheckInLinks, Patient, Queue, Clinical, Dispensary, Billing, PanelClaims, Pricing, Medicine, ClinicalService, Inventory (19), HR (23), Agents (5), Staff (4), settings pages, ClinicManagement, AuditLogs, Branches, AccessControl, Attendance, MC, Referrals, Visits/History, QueueDisplay/Settings) | **Remove** | Every one has a Classic page at the same name (checked: 95 of 95 exist). No V2 page reads a prop that its Classic page does not (scripted check; only `Billing/V2/Show` reads the shared `branchContext` for its own completion dialog, and `Pricing/V2/PriceHistory` reads `timezone`, which Classic shows its own way). Functions only in V2 are in section 2. |
 | `PublicCheckIn/V2/Show.vue`, `PublicCheckIn/V2/Status.vue` | **Remove** | Never shown: `'public' => false`. No patient loses anything. |
 
 ### 1.2 Components, composables, libraries, layouts (124 non-page files)
@@ -46,14 +46,15 @@ they are not a V2-only corner that can simply be deleted.
 | `components/workspace/V2AppShell.vue`, `V2ShellNav.vue`, `V2JumpDialog.vue`, `V2NewLookSidebar.vue`, `V2NewLookRailButton.vue` | **Remove** | V2 sidebar and the new-look pilot. Classic has its own top bar and the Clinic management hub with search. |
 | `components/workspace/V2PageCrumbs.vue` | **Remove**, after taking it out of Classic `components/ui/page-frame/PageFrame.vue` | PageFrame imports it (it renders only in V2). |
 | `layouts/V2Layout.vue` and its branch in `app.ts` | **Remove** | |
-| `layouts/SpacePassThroughLayout.vue` | **Remove or keep**, depends on owner question Q1 | Only `Spaces/Show.vue` uses it. |
+| `layouts/SpacePassThroughLayout.vue` | **Remove** once Spaces sit under `ClinicLayout` (Q1 = keep) | Only `Spaces/Show.vue` uses it. It also mounts `ClockPhotoDialog`, which Me home's photo Clock in needs: the Classic layout that replaces it must mount the dialog (`ClinicLayout` already does; verify in the slice). |
 | `composables/useUiVersion.ts`, `lib/ui-version.ts` | **Remove** in the last slice | Used by `ClinicLayout`, `AdminLayout`, `agents/office/OfficeScene.vue`, Classic `Dispensary/ReturnsToCheck.vue`; each becomes plain Classic. |
 | `composables/billing/useBillingWorkspaceV2.ts`, `clinical/useConsultationV2.ts`, `queue/useQueueBoardV2.ts`, `composables/inventory-v2/*` | **Remove** | V2 pages only. |
 | `lib/v2-leave-popstate.ts`, `lib/v2-leave-rule.ts` | **Move to Classic** (rename `leave-popstate.ts`, `leave-rule.ts`) | Classic `composables/useLeaveGuard.ts` imports both. |
 | `lib/registration-v2.ts` | **Move** the `RowAction` type to a Classic file, then remove | Classic `composables/registration/useRegistrationRowActions.ts` imports the type. |
 | `lib/v2-spaces.ts` | Depends on Q1 | Only `Spaces/Show.vue` uses it. |
 | Other `lib/*v2*` (`billing-v2`, `hr-attendance-v2`, `hr-roster-v2`, `inventory-v2-words`, `panel-claims-v2`, `patient-v2`, `queue-v2`, `v2-date*`, `v2-money`, `v2-refused-*`, `v2-staff-history`, `v2-time`, `v2-week-grid`) | **Remove** | V2 only. Each slice re-checks with `grep` before deleting. |
-| `v2:` class variant used in 8 Classic files (`WorkspaceHeader`, `WorkspaceBranchSwitcher`, `BillingWorkspace`, `Billing/Invoice`, `Dispensary/ReturnsToCheck`, `types/inventory-operations.ts`, `lib/inertia-auth-history-boundary.ts`, `useUiVersion.ts`) | **Strip the `v2:` classes** (Classic classes stay as they are) | They never apply once `data-ui="v2"` is gone; leaving them is dead code. |
+| `v2:` class variant used in 5 Classic files (`WorkspaceHeader`, `WorkspaceBranchSwitcher`, `BillingWorkspace`, `Billing/Invoice`, `Dispensary/ReturnsToCheck`) | **Strip the `v2:` classes** (Classic classes stay as they are) | They never apply once `data-ui="v2"` is gone; leaving them is dead code. |
+| **Not V2, do not touch:** the `v2` in `lib/inertia-auth-history-boundary.ts` storage keys (`kpone:authentication-history:…:v2`) and the `^v2:organisation:` draft-key pattern in `types/inventory-operations.ts` | **Keep unchanged** | These are storage-format versions, not the V2 look. Renaming them would reset sign-in history state and lose saved stock drafts. |
 
 ### 1.3 PHP, config, views, CSS
 
@@ -64,7 +65,10 @@ they are not a V2-only corner that can simply be deleted.
 | `UiVersionResolver` | **Remove** | `ClinicManagementController` uses it only to relabel links for V2 (UX-21); that branch goes. |
 | `V2ShellNavigation` | **Remove** (its `SPACE_FOR_PATH` crumb map goes with it) | V2 sidebar only. `ClinicManagementNavigation` keeps every link. |
 | `SpacePreferenceService`, `SpacePreferenceController`, route `PUT spaces/preference` | **Remove** | The switch itself. |
-| `HandleInertiaRequests` `workspace.spaces`, `workspace.newLook`, `workspace.shell` | **Remove** (and the TS `workspace` types) | |
+| `HandleInertiaRequests` `workspace.spaces`, `workspace.newLook`, `workspace.shell` | **Remove**, with their TS types in `types/global.d.ts` (`spaces`, `newLook`, `shell: V2Shell`) | |
+| `ClinicManagementController` UX-21 branch (calls `V2ShellNavigation::label`) | **Remove before** `V2ShellNavigation` | Otherwise the hub breaks. |
+| `SpacePreferenceController` redirects to `spaces.index` / `spaces.show` | **Removed with the controller** | |
+| `UserMenuContent.vue` `inNewLayout` rule (treats any `/spaces` URL as V2) | **Remove** in the first slice | Otherwise the menu hides the Classic Clock in row on the spaces pages. |
 | `UserMenuContent.vue` rows "Try the new layout"/"Back to Classic layout", "Spaces" (shown only when the switch is on), "New look (preview)", and the "Clock in or out" link row used in V2 | **Remove**; the Classic "Clock in" shortcut row stays | |
 | `app.blade.php` `data-ui` / `data-look` and the V2 inline colour blocks; `app.css` `v2` variant, `:root[data-ui='v2']`, `.dark[data-ui='v2']` and new-look blocks | **Remove** | |
 | `user_space_preferences` table (migrations `2026_11_14_000100`, `2026_11_19_000100`) | **Keep the table, stop reading it** in the removal slices; **drop it in a last, separate slice only if the owner agrees** (Q4), with a `down()` that recreates it | Never edit a merged migration. Dropping loses each person's saved choice, which no longer means anything; the `space_preference.changed` audit rows stay. |
@@ -104,11 +108,15 @@ the check for its own pages before deleting, and Nadiah re-reads both files of e
   `V2ShellNavigationTest.php` (6), `V2ClinicHubTest.php` (3), `V2SpacesShellTest.php` (3, see Q1: kept parts move to a
   Classic spaces test), `SpacePreferenceTest.php` (5), `UiVersionResolverTest.php` (3),
   `Billing/BillingV2PageTest.php` (1).
-- Frontend (133 files): every `tests/Frontend/*v2*`, `*space*` and `new-look-*` file (for example `ui-v2-gate`,
+- Frontend (138 files): every `tests/Frontend/*v2*`, `*space*` and `new-look-*` file (for example `ui-v2-gate`,
   `ux-17-v2-shell`, `ux-21-v2-clinic-hub`, `ux-24-v2-spaces`, `ux-24-part2-spaces`, `ds-0-space-tokens`,
   `ds-1-space-shell`, `new-look-sidebar`, `new-look-switch`, all `hr-v2-*`, `v2-inventory-*`, `bv2-*`, `ag-1x-v2-*`,
   the `*-parity` files). The `ds-*`/`ux-24*` space tests are reviewed one by one: assertions about space content that
   stays are rewritten for the Classic spaces page, not dropped.
+
+**Possible extra change (depends on Q2):** a Clinic management group for the spaces changes
+`ClinicManagementNavigation` and the exact destination map in `ClinicManagementTest`, an existing assertion.
+CO-1's Spaces menu row changes the account-menu tests (`AccountMenuLinks`, `UserMenuContent` frontend tests).
 
 **Mixed files: only the V2 assertions change (41 frontend, 7 PHP):** `ag-13-office-version-gate` (8 V2 lines),
 `pca-2-panel-claim-adjustment` (8), `stk28-stock-value` (7), `ag-32-inbox-prepare` (7), `ui-restyle-d1-returns-to-check`
@@ -130,20 +138,23 @@ function stays tested in Classic.
 ## 4. Slice order (each its own branch, gate and PR)
 
 0. **Wait for PR #996** (Stock value in Classic). No V2 Inventory page is removed before it merges.
-1. **CO-1 Switch off for everyone (no deletion).** `isV2()` returns false for everybody, including `/spaces`; the
-   account menu loses "Try the new layout", "Spaces" and "New look (preview)"; `PUT spaces/preference` is removed (or
-   answers 404). The spaces render in Classic (if Q1 = keep), so "Me" opens a Classic page. Every V2 file still exists
-   but is unreachable. Tests: rewrite the resolver, preference and dispatch tests to pin "always Classic". Smallest,
-   reversible, and the owner can try it before anything is deleted.
-2. **CO-2 Spaces in Classic (if Q1 = keep).** `Spaces/Show.vue` drops `SpacePassThroughLayout`, `V2Chip` and
-   `v2-spaces`, and uses the Classic layout and Classic chips; the space list becomes a Classic tab strip or a
-   Clinic management group (Q2). Design team look required (new screen look).
+1. **CO-1 Switch off for everyone, spaces in Classic (one PR; Nadiah's finding).** Switching V2 off alone is not
+   safe: once `isV2()` is false the spaces lose `workspace.shell` and fall back to their older DS-1 sidebar (a third look,
+   neither Classic nor V2), and the only way into the eight department spaces today is the V2 sidebar. So one change:
+   `isV2()` returns false for everybody, including `/spaces`; `Spaces/Show.vue` uses `ClinicLayout` (which mounts
+   `ClockPhotoDialog`) instead of `SpacePassThroughLayout`, Classic chips instead of `V2Chip`, and a Classic space
+   tab strip; the account menu keeps a **Spaces** row for everyone who can enter a space (no longer tied to the switch)
+   and the "Me" row, and loses "Try the new layout", "New look (preview)" and the `inNewLayout` rule;
+   `PUT spaces/preference` is removed. Every V2 page file still exists but is unreachable, so this is reversible and
+   the owner can try it before anything is deleted. Design team look required (the spaces get a new Classic look).
+   If Q1 is (b) or (c), this slice instead removes the matching spaces and their tests.
+2. **CO-2 (reserved)** for the Q2 placement if the owner wants a Clinic management group as well as the menu row.
 3. **CO-3 Move shared bits to Classic.** `V2MoneyInput` → `MoneyInput`, `v2-leave-*` → `leave-*`, the `RowAction`
    type, `PageFrame` without crumbs. No visible change.
 4. **CO-4 to CO-9 Delete V2 pages and components area by area,** about 15 to 25 files each so a reviewer can read the
    pairs: (4) Front desk, Patient, Queue, Clinical; (5) Dispensary, Billing, Panel, Visits; (6) Inventory (after #996);
    (7) HR and Attendance; (8) Catalogue, Pricing, settings, Staff, Branches, Access, Audit, MC, Referrals, Agents;
-   (9) public QR V2 pages. Each slice removes its names from `config/v2-pages.php` and its V2-only tests.
+   (9) staff QR pages (`RegistrationReview`, `PublicCheckInLinks`) and the patient QR V2 pages (never live). Each slice removes its names from `config/v2-pages.php` and its V2-only tests.
 5. **CO-10 Remove the machinery:** `config/v2-pages.php`, `UiVersionResolver`, the transform, `V2Layout`,
    `V2AppShell` and the other shell parts, `useUiVersion`, `data-ui`/`data-look`, the CSS blocks and every `v2:` class,
    the shared props, the V2 docs marked retired.
@@ -153,8 +164,11 @@ function stays tested in Classic.
 
 - **Losing a V2-only function unnoticed.** Mitigation: the per-pair scripted check above, rerun in every slice, plus
   Nadiah reading both files of each pair; any find stops the slice and goes to the coordinator.
-- **Classic pages that quietly depend on a V2 file** (found five: `PanelAdjustmentPanel`, `PageFrame`,
-  `useLeaveGuard`, `useRegistrationRowActions`, `Spaces/Show`). CO-3 moves them before any deletion; `npm run build`
+- **Classic files that quietly depend on a V2 file.** Five need a move (`PanelAdjustmentPanel`, `PageFrame`,
+  `useLeaveGuard`, `useRegistrationRowActions`, `Spaces/Show`), done in CO-1 and CO-3 before any deletion. Five more import
+  V2 code only to switch looks (`app.ts`, `ClinicLayout`, `AdminLayout`, `agents/office/OfficeScene`, Classic
+  `Dispensary/ReturnsToCheck`); CO-10 strips those imports before the files they import are deleted, and no deletion
+  slice may delete `V2AppShell`, `V2Layout` or `useUiVersion` early; `npm run build`
   and `vue-tsc` catch any missed import.
 - **The "Me" link** sends every Classic person to `/spaces/me` today; CO-1 must make that page Classic in the same PR,
   or remove the link, so nobody lands in a half-styled page.
@@ -175,10 +189,11 @@ function stays tested in Classic.
    (b) keep only Me home in Classic and remove the eight department spaces and Ask (loses about 40 widgets and the
    Ask answers, some of which no Classic page shows);
    (c) remove all spaces; "Me" goes to My attendance (loses the Me home and all of the above).
-2. If (a): where do the spaces live in Classic? A "Spaces" row in the account menu (as today when the switch is on), a
-   group in Clinic management, or both?
+2. If (a): CO-1 keeps a "Spaces" row in the account menu for everyone who can enter a space. Should they also get a
+   group in Clinic management (changes an existing hub test)?
 3. Show people who were using V2 a one-time note ("The new layout has been retired; everything is in Classic"), or
    switch silently?
 4. Drop the saved switch table (`user_space_preferences`) at the end, or keep it?
-5. Approve the slice order above, starting with CO-1 (switch V2 off for everyone without deleting files), and the
+5. Approve the slice order above, starting with CO-1 (switch V2 off for everyone and show the spaces in Classic,
+   without deleting files), and the
    test changes it lists (each slice lists its exact assertions before its PR).
