@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 import { waitingTone } from '@/lib/waiting-time';
 
 type Space = { key: string; title: string };
@@ -401,9 +402,13 @@ const groups = computed(() => {
         .filter((g) => g.items.length > 0);
 });
 
-// The other spaces this person can enter, as a Classic tab strip under the title. Me is in the account menu, so a person
-// whose only space is Me gets no strip.
+// The other spaces this person can enter, as a Classic tab strip under the title. DS-12: Me lives in the account menu, so
+// it is not a tab, and a person whose only space is Me gets no strip.
 const tabs = computed(() => groups.value.flatMap((g) => g.items));
+
+// 390 px: the strip scrolls sideways, the current space is brought to the start and the hidden edge fades (as before CO-1).
+const side = ref<HTMLElement | null>(null);
+const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
 </script>
 
 <template>
@@ -425,9 +430,12 @@ const tabs = computed(() => groups.value.flatMap((g) => g.items));
                         tabs.length > 1 ||
                         (tabs.length === 1 && tabs[0].key !== space.key)
                     "
+                    ref="side"
                     aria-label="Spaces"
                     class="space-tabs"
                     data-test="space-tabs"
+                    :style="fadeStyle"
+                    @scroll.passive="measure"
                 >
                     <Link
                         v-for="s in tabs"
