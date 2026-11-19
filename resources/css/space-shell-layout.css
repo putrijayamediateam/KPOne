@@ -980,3 +980,69 @@
 .space-shell .space-roster-short {
     white-space: nowrap;
 }
+
+/* Classic only (CO-1, owner 19 Nov 2026): a space home inside the Classic clinic layout and PageFrame. The layout draws
+   the top bar, so the space is a plain block, and its own tokens follow the Classic theme (light and dark) instead of the
+   DS-0 cobalt look. The Me home's gradient and tile tints are kept: they are that page's own accents. */
+.space-shell[data-classic-frame] {
+    display: block;
+    min-height: 0;
+    background: transparent;
+    font-family: inherit;
+    color: var(--foreground);
+    color-scheme: inherit;
+
+    --space-bg: var(--background);
+    --space-surface: var(--card);
+    --space-surface-2: var(--muted);
+    --space-side: var(--muted);
+    --space-fg: var(--foreground);
+    --space-muted: var(--muted-foreground);
+    --space-line: var(--border);
+    --space-hover: var(--accent);
+    --space-accent: var(--brand-strong);
+    --space-accent-fg: var(--brand-foreground);
+    --space-accent-tint: color-mix(in srgb, var(--brand) 12%, transparent);
+    --space-ok: var(--success);
+    --space-warn: var(--warning);
+    --space-bad: var(--destructive);
+    --space-radius-card: 14px;
+}
+.space-shell[data-classic-frame] .space-main {
+    padding: 0;
+}
+.space-shell[data-classic-frame] .space-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+}
+.space-shell[data-classic-frame] .space-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    color: var(--muted-foreground);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.space-shell[data-classic-frame] .space-tab:hover {
+    color: var(--foreground);
+}
+.space-shell[data-classic-frame] .space-tab.is-on {
+    border-bottom-color: var(--brand);
+    color: var(--foreground);
+}
+.space-shell[data-classic-frame] .space-tab:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+@media (min-width: 1024px) {
+    .space-shell[data-classic-frame] .space-tab {
+        min-height: 36px;
+    }
+}
