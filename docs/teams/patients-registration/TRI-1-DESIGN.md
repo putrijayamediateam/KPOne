@@ -1,7 +1,7 @@
 # TRI-1 design note: the triage station
 
-Status: **DESIGN NOTE, NOT BUILT, NOT AUTHORISED.** Nothing here is built until the owner approves this note, the
-new permission and the open questions in section 9. Synthetic data only.
+Status: **DESIGN NOTE, NOT BUILT.** The owner answered every section 9 question on 19 Nov 2026, including the two
+new permissions. Nothing is built until the owner says to start TRI-1a. Synthetic data only.
 
 Owners: Patients & Registration (the triage record and the CA screen), with Queue & TV (queue order, the boards
 and Call next). The Lead UI/UX Designer reviews every new or changed screen.
@@ -76,9 +76,10 @@ KPOne ships **no clinical list**, as with drug groups and leave types. A Directo
   limit;
 - the approving doctor's name (Dr Fatin Adilah) and the date of her signature.
 
-Each save is a new version, starting as Draft. A version counts only once a second Director, or a Director other
-than the person who entered it, marks it **Approved**, confirming that the signed paper guideline matches. The
-earlier approved version stays in force until then. Until any version is approved, triage records readings only
+Each save is a new version, starting as Draft. A version counts only once someone other than the person who
+entered it marks it **Approved**, confirming that it matches Dr Fatin Adilah's signed paper copy. Owner decision
+(19 Nov 2026): the Director or the HR Manager enters it, and the other one checks and approves it. The earlier
+approved version stays in force until then. Until any version is approved, triage records readings only
 and suggests no zone.
 
 ### 4.3 The Visit
@@ -105,7 +106,8 @@ triage form and wherever the triage readings appear.
 
 - **Higher than suggested:** always allowed, with an optional reason code.
 - **Lower than suggested:** needs a fixed reason code (for example "Reading repeated and normal", or "Doctor
-  reviewed at triage"). The record keeps both zones. Recommended: a CA may lower only after a second reading.
+  reviewed at triage"). The record keeps both zones. Owner decision (19 Nov 2026): a CA may lower the zone only with
+a reason, after taking the reading again; the service refuses a lower zone without a second set of readings.
 
 ## 6. Child fever and the standing order
 
@@ -119,10 +121,12 @@ That is a separate slice (TRI-3), not designed here, and only after the owner su
   triage readings on the board. This is a clinical write for the CA, so `AGENTS.md` requires the owner's explicit
   role decision. The MA joins only if the MA role is approved.
 - **Doctor:** sees triage readings for their own patients through the consultation (`encounters.view.own`, existing).
-- **Guideline settings:** a new permission, `triage.guideline.manage.organisation`, for the Director only. A
-  Director approves a version entered by someone else.
-- **None for** Administrator, Technical Admin, Finance Officer, Panel Officer, HR, Marketing, Business Development
-  or the TV account.
+- **Guideline settings:** a new permission, `triage.guideline.manage.organisation`, for the Director and the HR
+  Manager (owner decisions, 19 Nov 2026): enter a version, and approve a version someone else entered. Whoever
+  entered a version can never approve it (service and PostgreSQL). The settings page shows the guideline wording
+  and thresholds only, never patient data.
+- **None for** Administrator, Technical Admin, Finance Officer, Panel Officer, Marketing, Business Development or
+  the TV account. The HR Manager gets only the guideline settings above, never triage readings.
 - **The TV and the public QR page show no zone and no readings.**
 
 ## 8. Rules for the build
@@ -140,17 +144,21 @@ That is a separate slice (TRI-3), not designed here, and only after the owner su
 - **Screens:** staff screens in English, Classic and the new layout from the same props, usable at 390 px, dark
   mode checked.
 
-## 9. Open owner questions
+## 9. Owner decisions (19 Nov 2026)
 
-1. Approve `visits.triage.record.branch` for CA and CA Supervisor, and `triage.guideline.manage.organisation`
-   for the Director?
-2. Does yellow join the Urgent order (recommended), or only show a chip?
-3. May a CA choose a lower zone than suggested? Recommended: only with a reason code after a repeated reading.
-4. Which readings are required before saving? Recommended: none required, but the missing ones are named.
-5. Should Call In warn when a patient has no triage yet? Recommended: warn only, never block.
-6. The QR page's "patients ahead" ignores Urgent today. Keep it (simpler, slightly optimistic for some patients),
-   or count Urgent first (accurate, but it hints that someone is urgent)? Recommended: keep it.
-7. Who enters the guideline into KPOne, and who confirms that it matches Dr Fatin Adilah's signed copy?
+1. **Permissions approved:** `visits.triage.record.branch` for CA and CA Supervisor, and
+   `triage.guideline.manage.organisation` for the Director, extended to the HR Manager by answer 7. This is the owner's explicit role decision for a CA
+   clinical write, as `AGENTS.md` requires.
+2. **Yellow joins the Urgent order.**
+3. **A lower zone than suggested** is allowed only with a reason code, after the reading is taken again.
+4. **No reading is required** before saving; the form names the missing ones.
+5. **Call In and Call next warn** when a patient has no triage yet, and never block.
+6. **The QR page keeps counting "patients ahead" by arrival**, ignoring Urgent, so it never hints that someone
+   is urgent.
+7. **Who enters and who checks the guideline:** the Director or the HR Manager enters it, and the other one checks
+   it against Dr Fatin Adilah's signed copy and approves it (owner: "director/hr", then "second reading"). The HR
+   Manager therefore also holds `triage.guideline.manage.organisation`, for the guideline only, with no patient
+   or triage readings.
 
 ## 10. Slices
 
