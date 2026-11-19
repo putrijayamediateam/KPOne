@@ -31,7 +31,12 @@ test('V2 Inventory home: the same 16 task links, in the same order, as the Class
         ...desktop.matchAll(
             /href="([^"]+)"[\s\S]*?>\s*([^<]+?)\s*<\/ActionLink/g,
         ),
-    ].map((m) => `${m[1]}=${m[2]}`);
+    ]
+        .map((m) => `${m[1]}=${m[2]}`)
+        // Stock value is not in the shared list: each layout adds it for the Director (asserted below).
+        .filter(
+            (link) => link !== '/inventory/stock-value=Stock value and cost',
+        );
     const v2Links = [
         ...block(home, 'inventoryTaskGroups = ').matchAll(
             /href:\s*'([^']+)',\s*label:\s*'([^']+)'/g,
@@ -51,6 +56,15 @@ test('V2 Inventory home: the same 16 task links, in the same order, as the Class
     assert.match(
         home,
         /canViewControlledRegister\s*\?\s*\[\s*\{\s*href: '\/inventory\/controlled-register'/,
+    );
+    // Stock value and cost: the same link and the same server flag in both layouts.
+    assert.match(
+        desktop,
+        /href="\/inventory\/stock-value"\s+variant="outline"\s+v-if="referenceData\.canViewStockValue"[\s\S]*?>Stock value and cost<\/ActionLink/,
+    );
+    assert.match(
+        read('resources/js/pages/Inventory/V2/Index.vue'),
+        /props\.referenceData\.canViewStockValue[\s\S]*?href: '\/inventory\/stock-value',\s*label: 'Stock value and cost'/,
     );
 });
 
