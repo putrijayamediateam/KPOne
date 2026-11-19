@@ -15,8 +15,10 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use LogicException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\GuardianFixture;
 
 /** TRI-1a: TriageService (TRI-1-DESIGN sections 3 to 8, owner decisions 19 Nov 2026). */
@@ -99,7 +101,7 @@ class TriageServiceTest extends TriageTestCase
         try {
             app(TriageService::class)->record($ended, $visit, $this->triageInput($visit));
             $this->fail('a CA with no current assignment must be refused');
-        } catch (AuthorizationException|\Symfony\Component\HttpKernel\Exception\HttpException) {
+        } catch (AuthorizationException|HttpException) {
             $this->addToAssertionCount(1);
         }
         $this->assertSame(0, VisitTriageAssessment::query()->count());
@@ -174,7 +176,7 @@ class TriageServiceTest extends TriageTestCase
         $row = $this->triage($ca, $legacy, ['temperature_celsius' => '38.60', 'chosen_zone' => 'red']);
         $this->assertSame(['unknown', 'red'], [$row->age_band, $row->suggested_zone], 'the child limit applies when age is unknown');
 
-        [$ca, $confirmed] = $this->waitingFixture(null, ['date_of_birth' => null, 'adult_confirmed' => true, 'adult_confirmation_key' => (string) \Illuminate\Support\Str::uuid(), 'expected_branch_id' => $this->branch->id]);
+        [$ca, $confirmed] = $this->waitingFixture(null, ['date_of_birth' => null, 'adult_confirmed' => true, 'adult_confirmation_key' => (string) Str::uuid(), 'expected_branch_id' => $this->branch->id]);
         $this->assertSame(1, DB::table('patient_adult_confirmations')->where('patient_id', $confirmed->patient_id)->count());
         $row = $this->triage($ca, $confirmed, ['temperature_celsius' => '38.60']);
         $this->assertSame(['adult', 'green'], [$row->age_band, $row->suggested_zone]);
