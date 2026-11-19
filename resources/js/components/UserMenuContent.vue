@@ -35,7 +35,8 @@ defineProps<Props>();
 const page = usePage();
 // DS-12: the person's own pages, built on the server from the permissions they hold, and the phone clock row.
 const accountMenu = computed(() => page.props.workspace?.accountMenu);
-// Classic only (CO-1, 19 Nov 2026): the Clock in row is the same on every page, the spaces included.
+// Classic only (CO-1, 19 Nov 2026): the Clock in row is the same on every page except Me home, whose big Clock in button
+// is the one Clock in there (owner, 18 Nov 2026: one Clock in on Me home).
 const {
     load: loadClock,
     press: pressClock,
@@ -50,8 +51,9 @@ const pressClockAfterMenu = () =>
             '[aria-haspopup="menu"][aria-expanded="true"]',
         ),
     );
+const onMeHome = computed(() => /^\/spaces\/me(?:[/?#]|$)/.test(page.url));
 onMounted(() => {
-    if (accountMenu.value?.clock) {
+    if (accountMenu.value?.clock && !onMeHome.value) {
         void loadClock();
     }
 });
@@ -66,7 +68,7 @@ onMounted(() => {
     <DropdownMenuSeparator />
     <DropdownMenuGroup v-if="accountMenu?.links.length || accountMenu?.clock">
         <DropdownMenuItem
-            v-if="accountMenu?.clock && clockVisible"
+            v-if="accountMenu?.clock && clockVisible && !onMeHome"
             class="cursor-pointer max-lg:min-h-11"
             data-test="clock-shortcut-row"
             @select="pressClockAfterMenu"

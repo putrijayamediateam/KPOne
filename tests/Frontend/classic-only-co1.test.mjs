@@ -43,9 +43,9 @@ test('CO-1: the spaces sit in the Classic clinic layout with the Classic page fr
         page,
         /V2Chip|v2-spaces|SpacePassThroughLayout|v2-page-title/,
     );
-    assert.match(page, /<PageFrame>/);
+
     assert.match(page, /<PageHeader :title="space\.title"/);
-    assert.match(page, /class="space-shell" data-classic-frame/);
+    assert.match(page, /<PageFrame class="space-shell" data-classic-frame>/);
     // The layout owns the page landmark and the account menu; the page draws neither again.
     assert.doesNotMatch(
         page,
@@ -93,6 +93,9 @@ test('CO-1: the account menu has no layout switch and a Spaces row from the serv
     assert.match(menu, /v-if="accountMenu\?\.spaces"/);
     assert.match(menu, /href="\/spaces"/);
     assert.match(menu, /data-test="spaces-row"/);
-    // The Classic Clock in row stays, now on every page.
-    assert.match(menu, /v-if="accountMenu\?\.clock && clockVisible"/);
+    // The Classic Clock in row stays on every page except Me home, which has its own big Clock in button.
+    assert.match(
+        menu,
+        /v-if="accountMenu\?\.clock && clockVisible && !onMeHome"/,
+    );
 });

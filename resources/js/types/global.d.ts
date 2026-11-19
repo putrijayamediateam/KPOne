@@ -26,7 +26,7 @@ declare module '@inertiajs/core' {
                 accountMenu?: {
                     links: Array<{ title: string; href: string }>;
                     clock: boolean;
-                    spaces?: boolean;
+                    spaces: boolean;
                 };
                 spaces: {
                     offered: boolean;
