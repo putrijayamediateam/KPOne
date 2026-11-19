@@ -3,9 +3,11 @@ import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft, TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
+import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { quantityWithUnit } from '@/lib/inventory-v2-words';
@@ -402,7 +404,7 @@ const lossHelp: Record<string, string> = {
         </p>
 
         <form
-            class="flex min-w-0 flex-wrap items-end gap-2"
+            class="flex min-w-0 flex-wrap items-start gap-2"
             aria-label="Report filters"
             novalidate
             @submit.prevent="show"
@@ -429,22 +431,39 @@ const lossHelp: Record<string, string> = {
                     v-model="from"
                     required
                     :max="report.filters.today"
+                    :aria-invalid="rangeError ? true : undefined"
+                    :aria-describedby="
+                        rangeError ? 'valuation-range-error' : undefined
+                    "
                 />
             </label>
             <label class="grid min-w-0 flex-1 basis-56 gap-1 text-sm"
                 >To
-                <DateField v-model="to" required :max="report.filters.today" />
+                <DateField
+                    v-model="to"
+                    required
+                    :max="report.filters.today"
+                    :aria-invalid="rangeError ? true : undefined"
+                    :aria-describedby="
+                        rangeError ? 'valuation-range-error' : undefined
+                    "
+                />
             </label>
-            <button
-                type="submit"
-                class="inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
-                :disabled="!ready || busy"
-            >
-                {{ busy ? 'Showing…' : 'Show' }}
-            </button>
+            <!-- An empty label line keeps Show level with the boxes, whose labels sit above them. -->
+            <div class="grid w-full gap-1 text-sm sm:w-auto">
+                <span aria-hidden="true" class="invisible">&nbsp;</span>
+                <Button
+                    type="submit"
+                    class="h-11 w-full px-5 sm:w-auto lg:h-9"
+                    :disabled="!ready || busy"
+                >
+                    {{ busy ? 'Showing…' : 'Show' }}
+                </Button>
+            </div>
         </form>
         <p
             v-if="rangeError"
+            id="valuation-range-error"
             role="alert"
             class="-mt-4 text-sm text-destructive"
             data-testid="valuation-range-error"
@@ -631,15 +650,23 @@ const lossHelp: Record<string, string> = {
                     <OperationalTable
                         label="Stock value per medicine"
                         :columns="4"
-                        min-width="640px"
+                        min-width="0px"
                         :empty="report.stock.length === 0"
                         empty-message="No stock on hand at the end of this period."
                     >
                         <template #head>
                             <tr>
                                 <th scope="col">Medicine</th>
-                                <th scope="col" class="text-right">On hand</th>
-                                <th scope="col" class="text-right">
+                                <th
+                                    scope="col"
+                                    class="hidden text-right md:table-cell"
+                                >
+                                    On hand
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="hidden text-right md:table-cell"
+                                >
                                     Average cost per unit
                                 </th>
                                 <th scope="col" class="text-right">Value</th>
@@ -658,11 +685,13 @@ const lossHelp: Record<string, string> = {
                                         class="block font-mono text-xs [overflow-wrap:anywhere] text-muted-foreground"
                                         >{{ unbroken(row.sku) }}</span
                                     >
-                                    <span
+                                    <StatusBadge
                                         v-if="row.includesEstimate"
-                                        class="mt-1 inline-flex rounded-full border px-2 py-0.5 text-xs"
-                                        >Includes an estimate</span
-                                    >
+                                        class="mt-1"
+                                        status="estimate"
+                                        tone="neutral"
+                                        label="Includes an estimate"
+                                    />
                                     <span
                                         v-if="row.uncostedQuantity !== '0'"
                                         class="mt-1 block text-xs text-warning-strong"
@@ -674,16 +703,33 @@ const lossHelp: Record<string, string> = {
                                         }}
                                         with no cost recorded</span
                                     >
+                                    <!-- Below md the two middle columns move here, so Value stays on screen. -->
+                                    <span
+                                        class="mt-1 block text-xs text-muted-foreground tabular-nums md:hidden"
+                                        >{{
+                                            quantityWithUnit(
+                                                row.quantity,
+                                                row.unit,
+                                            )
+                                        }}
+                                        on hand<template
+                                            v-if="row.averageMilliSen !== null"
+                                        >
+                                            ·
+                                            {{ perUnit(row.averageMilliSen) }}
+                                            per unit</template
+                                        ></span
+                                    >
                                 </td>
                                 <td
-                                    class="text-right whitespace-nowrap tabular-nums"
+                                    class="hidden text-right whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{
                                         quantityWithUnit(row.quantity, row.unit)
                                     }}
                                 </td>
                                 <td
-                                    class="text-right whitespace-nowrap tabular-nums"
+                                    class="hidden text-right whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ perUnit(row.averageMilliSen) }}
                                 </td>
@@ -708,7 +754,7 @@ const lossHelp: Record<string, string> = {
                             </tr>
                             <tr data-total>
                                 <th scope="row" class="font-semibold">Total</th>
-                                <td class="text-right">
+                                <td class="hidden text-right md:table-cell">
                                     {{ report.stock.length }}
                                     {{
                                         report.stock.length === 1
@@ -716,7 +762,10 @@ const lossHelp: Record<string, string> = {
                                             : 'medicines'
                                     }}
                                 </td>
-                                <td aria-hidden="true" />
+                                <td
+                                    aria-hidden="true"
+                                    class="hidden md:table-cell"
+                                />
                                 <td
                                     class="text-right font-semibold whitespace-nowrap tabular-nums"
                                 >
@@ -740,17 +789,32 @@ const lossHelp: Record<string, string> = {
                     <OperationalTable
                         label="Sales, cost and margin per medicine"
                         :columns="5"
-                        min-width="640px"
+                        min-width="0px"
                         :empty="report.medicines.length === 0"
                         empty-message="No medicine sold or dispensed in this period."
                     >
                         <template #head>
                             <tr>
                                 <th scope="col">Medicine</th>
-                                <th scope="col" class="text-right">Sales</th>
-                                <th scope="col" class="text-right">Cost</th>
+                                <th
+                                    scope="col"
+                                    class="hidden text-right md:table-cell"
+                                >
+                                    Sales
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="hidden text-right md:table-cell"
+                                >
+                                    Cost
+                                </th>
                                 <th scope="col" class="text-right">Margin</th>
-                                <th scope="col" class="text-right">Margin %</th>
+                                <th
+                                    scope="col"
+                                    class="hidden text-right md:table-cell"
+                                >
+                                    Margin %
+                                </th>
                             </tr>
                         </template>
                         <template #body>
@@ -772,14 +836,21 @@ const lossHelp: Record<string, string> = {
                                         class="block text-xs text-muted-foreground"
                                         >{{ row.reason }}</span
                                     >
+                                    <!-- Below md, sales, cost and margin % move here, so Margin stays on screen. -->
+                                    <span
+                                        class="mt-1 block text-xs text-muted-foreground tabular-nums md:hidden"
+                                        >Sales {{ money(row.salesSen) }} · Cost
+                                        {{ money(row.costSen) }} ·
+                                        {{ percent(row.marginPercent) }}</span
+                                    >
                                 </td>
                                 <td
-                                    class="text-right whitespace-nowrap tabular-nums"
+                                    class="hidden text-right whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ money(row.salesSen) }}
                                 </td>
                                 <td
-                                    class="text-right whitespace-nowrap tabular-nums"
+                                    class="hidden text-right whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ money(row.costSen) }}
                                 </td>
@@ -800,20 +871,28 @@ const lossHelp: Record<string, string> = {
                                     </span>
                                 </td>
                                 <td
-                                    class="text-right whitespace-nowrap tabular-nums"
+                                    class="hidden text-right whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ percent(row.marginPercent) }}
                                 </td>
                             </tr>
                             <tr data-total>
-                                <th scope="row" class="font-semibold">Total</th>
+                                <th scope="row" class="font-semibold">
+                                    Total
+                                    <span
+                                        class="block text-xs font-normal text-muted-foreground tabular-nums md:hidden"
+                                        >Sales {{ money(s.salesSen) }} · Cost
+                                        {{ money(s.dispenseCostSen) }} ·
+                                        {{ percent(s.marginPercent) }}</span
+                                    >
+                                </th>
                                 <td
-                                    class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                    class="hidden text-right font-semibold whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ money(s.salesSen) }}
                                 </td>
                                 <td
-                                    class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                    class="hidden text-right font-semibold whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ money(s.dispenseCostSen) }}
                                 </td>
@@ -832,7 +911,7 @@ const lossHelp: Record<string, string> = {
                                     </span>
                                 </td>
                                 <td
-                                    class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                    class="hidden text-right font-semibold whitespace-nowrap tabular-nums md:table-cell"
                                 >
                                     {{ percent(s.marginPercent) }}
                                 </td>
@@ -864,7 +943,7 @@ const lossHelp: Record<string, string> = {
                     <OperationalTable
                         label="Losses in this period"
                         :columns="3"
-                        min-width="560px"
+                        min-width="0px"
                     >
                         <template #head>
                             <tr>
