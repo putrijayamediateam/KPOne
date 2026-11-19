@@ -197,3 +197,14 @@ function stays tested in Classic.
 5. Approve the slice order above, starting with CO-1 (switch V2 off for everyone and show the spaces in Classic,
    without deleting files), and the
    test changes it lists (each slice lists its exact assertions before its PR).
+
+## 7. Decisions (coordinator for the owner, "be me, i approve all", 19 Nov 2026)
+
+1. Keep the spaces, shown in the Classic look. No function may be lost.
+2. No Clinic management group: the Spaces row in the account menu only, so the hub test stays as it is.
+3. Switch silently: no "new layout retired" note.
+4. Do not drop `user_space_preferences` (no CO-11 for now); the data stays until the owner decides.
+5. Slice order approved. Phase 2 starts with CO-1 only. Each slice reports every changed or deleted assertion with its
+   reason, approved per slice before the commit that changes them. CO-1 needs the Design team's look (1440 and 390 px
+   screenshots, light and dark, synthetic data on a task-owned database). The two storage-format "v2" keys stay
+   untouched. Inventory V2 pages wait for PR #996. No PRs from this team; the coordinator opens them.
