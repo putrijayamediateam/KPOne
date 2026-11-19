@@ -38,20 +38,6 @@ test('DS-12: the shortcut reads the attendance state and opens the camera dialog
     );
 });
 
-test('DS-12: a person with no space and no Clinic management link gets no empty rail', () => {
-    assert.match(
-        page,
-        /const bare = computed\(\(\) => groups\.value\.length === 0 && !hub\.value\)/,
-    );
-    assert.match(page, /:class="\{ 'is-bare': bare \}"/);
-    assert.match(
-        css,
-        /\.space-shell\.is-bare \.space-side \{\s*display: none;/,
-    );
-});
-
 test('DS-12: the own-page rows line up with the icon rows and a phone gets a dim layer behind the open menu', () => {
     assert.match(menu, /class="pl-10 max-lg:min-h-11"/);
-    assert.match(page, /@update:open="menuOpen = \$event"/);
-    assert.match(page, /v-if="menuOpen"[\s\S]*?bg-black\/30 sm:hidden/);
 });

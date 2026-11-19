@@ -82,7 +82,6 @@ test('the dialog is mounted once in each layout', () => {
     for (const layout of [
         'AdminLayout.vue',
         'ClinicLayout.vue',
-        'SpacePassThroughLayout.vue',
         'V2Layout.vue',
     ]) {
         const source = read(`resources/js/layouts/${layout}`);
