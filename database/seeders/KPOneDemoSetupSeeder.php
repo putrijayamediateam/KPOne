@@ -28,6 +28,7 @@ use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Services\ConsultationTariffAdministrationService;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -87,6 +88,23 @@ class KPOneDemoSetupSeeder extends Seeder
     /** @var array{code: string, display_name: string, self_pay_sen: int, panel_default_sen: int} */
     public const CONSULTATION = ['code' => 'CONSULTATION', 'display_name' => 'General consultation', 'self_pay_sen' => 3000, 'panel_default_sen' => 2500];
 
+    /**
+     * A starter list of common visit reasons, so the Register Visit picker is not empty on a fresh demo. A CA can
+     * still add a new reason from the picker, as before.
+     */
+    public const VISIT_REASONS = [
+        'Fever',
+        'Cough and cold',
+        'Sore throat',
+        'Diarrhoea and vomiting',
+        'Headache',
+        'Rash or skin problem',
+        'Wound dressing',
+        'Follow-up visit',
+        'Medical check-up',
+        'Blood pressure review',
+    ];
+
     public function run(): void
     {
         $this->assertSafeEnvironment();
@@ -133,6 +151,12 @@ class KPOneDemoSetupSeeder extends Seeder
         $verifier = $this->actAs(self::SECOND_SUPERVISOR_EMAIL);
         foreach ($openings as $opening) {
             $this->ensureOpeningSignedOff($verifier, $branch, $opening);
+        }
+
+        // VisitReasonService::create returns an existing reason unchanged, so a rerun adds nothing.
+        $counter = $this->actAs('demo.ca@kpone.test');
+        foreach (self::VISIT_REASONS as $reason) {
+            app(VisitReasonService::class)->create($counter, $reason);
         }
     }
 
