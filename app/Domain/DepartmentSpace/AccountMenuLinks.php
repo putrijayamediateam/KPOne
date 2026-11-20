@@ -14,12 +14,16 @@ final class AccountMenuLinks
     public function __construct(private DepartmentSpaceNavigation $spaces) {}
 
     /**
-     * @return array{links: list<array{title: string, href: string}>, clock: bool}
+     * `spaces`: Classic only (CO-1, 19 Nov 2026), the account menu's Spaces row, shown to everyone who can enter at least
+     * one department space (Me is its own row). Before CO-1 it showed only with "Try the new layout" switched on.
+     *
+     * @return array{links: list<array{title: string, href: string}>, clock: bool, spaces: bool}
      */
     public function for(User $actor): array
     {
         $links = [];
-        if ($this->spaces->canEnter($actor, 'me')) {
+        $keys = array_column($this->spaces->spaces($actor), 'key');
+        if (in_array(DepartmentSpaceNavigation::ME[0], $keys, true)) {
             $links[] = ['title' => 'Me', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
         }
         foreach ([
@@ -35,6 +39,6 @@ final class AccountMenuLinks
             }
         }
 
-        return ['links' => $links, 'clock' => $actor->can('hr.attendance.clock.own')];
+        return ['links' => $links, 'clock' => $actor->can('hr.attendance.clock.own'), 'spaces' => array_diff($keys, [DepartmentSpaceNavigation::ME[0]]) !== []];
     }
 }

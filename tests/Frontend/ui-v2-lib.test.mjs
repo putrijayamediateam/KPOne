@@ -7,10 +7,9 @@ const src = readFileSync(
     'utf8',
 );
 
-test('uiVersionFor: v2 only with the switch on or inside the spaces', () => {
-    assert.match(src, /enabled === true/);
-    assert.match(src, /url\.startsWith\('\/spaces'\)/);
-    assert.match(src, /'classic'/);
+test('uiVersionFor (CO-1, Classic only): always classic, the spaces included', () => {
+    assert.match(src, /\): UiVersion => 'classic';/);
+    assert.doesNotMatch(src, /enabled === true|url\.startsWith\('\/spaces'\)/);
     assert.match(src, /dataset\.ui = version/);
 });
 

@@ -67,6 +67,8 @@ if (authenticationHistory.ready) {
                 case name.startsWith('Dispensary/'):
                 case name.startsWith('Billing/'):
                 case name.startsWith('Clinic/'):
+                // Classic only (CO-1): the department spaces and the Me home sit in the Classic clinic layout.
+                case name.startsWith('Spaces/'):
                     return ClinicLayout;
                 default:
                     return AdminLayout;
