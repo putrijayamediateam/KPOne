@@ -282,3 +282,4 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (`bg-brand/10 text-brand-strong dark:bg-brand/15`), which carry their own dark values. It looks almost the
    same: the icon's contrast on its tile is 5.2:1 in light and 6.9:1 in dark (3:1 needed for an icon). A
    destructive question keeps its red tile. No assertion changed.
+17. **Classic leave warning on long forms (not built yet).** Recorded with the owner's approval on 2026-11-20 (CO-3): an unsaved-changes prompt built fresh on Classic's `OperationalConfirmDialog` (not ported from V2), on chosen pages only (consultation note, Register visit, Billing adjustments, HR forms), with the Lead UI/UX Designer's look, as its own slice after CO-10.
