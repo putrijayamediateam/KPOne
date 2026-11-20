@@ -36,7 +36,7 @@ defineProps<{
         runs: number;
         waiting: number;
         unassigned: number;
-        locumCorrections: string | null;
+        locumCorrections: boolean;
         unreadable: number;
     };
 }>();
@@ -337,9 +337,8 @@ const muted = (value: string | null | undefined) =>
                     v-if="labourCost.locumCorrections"
                     data-test="labour-cost-corrections"
                 >
-                    Locum corrections not tied to a branch:
-                    {{ labourCost.locumCorrections }}, counted in the clinic
-                    total only.
+                    Locum corrections not tied to a branch are counted in the
+                    clinic total only.
                 </li>
                 <li
                     v-if="labourCost.unassigned > 0"

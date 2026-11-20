@@ -86,7 +86,7 @@ class LabourCostTest extends VisitTestCase
         // Staff figures cover 4 hidden staff; the locum column covers one locum, so its clinic total is withheld.
         $this->assertSame(['people' => 9, 'pay' => 'RM 23,900.00', 'employer' => 'RM 3,200.00', 'locum' => null, 'total' => null], $page['total']);
         $this->assertTrue($page['someHidden']);
-        $this->assertNull($page['locumCorrections']); // one locum's correction is never shown on its own (Suresh, M1)
+        $this->assertTrue($page['locumCorrections']); // a flag only, never an amount (Suresh, M1)
         $this->assertSame([1, 1, 0, 0], [$page['runs'], $page['waiting'], $page['unassigned'], $page['unreadable']]);
         $this->assertNotNull($locum);
 
@@ -171,12 +171,34 @@ class LabourCostTest extends VisitTestCase
         $this->payRun($this->group(), 'approved', $people);
         $this->locumPaid([], [['amount' => 20000]]); // a correction only, for one locum
         $page = $this->page($this->actor('director'));
-        $this->assertNull($page['locumCorrections']);
+        $this->assertTrue($page['locumCorrections']);
         $rows = collect($page['rows'])->keyBy('branch');
         $this->assertSame(['RM 3,000.00', 'RM 3,000.00'], [$rows[$this->branch->name]['total'], $rows[$this->second->name]['total']]);
         $this->assertSame(7, $page['total']['people']); // the locum is counted
         $this->assertSame(['RM 6,000.00', null, null], [$page['total']['pay'], $page['total']['locum'], $page['total']['total']]);
         $this->assertTrue($page['someHidden']);
+    }
+
+    public function test_the_corrections_amount_is_never_shown_so_it_cannot_be_subtracted_out(): void
+    {
+        // Suresh, HR-18 M1: three locums with corrections and one locum paid outside the shown branches.
+        $people = [];
+        foreach (range(1, 3) as $i) {
+            $people[] = [$this->worker($this->actor('ca')), 100000, 0];
+        }
+        $this->payRun($this->group(), 'approved', $people);
+        foreach ([1000, 2000, 3000] as $amount) {
+            $this->locumPaid([], [['amount' => $amount]]);
+        }
+        $this->locumPaid([['branch' => 'No such branch', 'amount' => 77700]], []);
+        $page = $this->page($this->actor('director'));
+        $this->assertTrue($page['locumCorrections']);
+        // The clinic locum total covers four locums; no figure on the page lets the outside locum's RM 777.00 be isolated.
+        $this->assertSame('RM 837.00', $page['total']['locum']);
+        $json = (string) json_encode($page);
+        foreach (['RM 60.00', 'RM 777.00'] as $amount) {
+            $this->assertStringNotContainsString($amount, $json);
+        }
     }
 
     // ---- fixture ----

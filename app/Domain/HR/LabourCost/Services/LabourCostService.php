@@ -217,8 +217,8 @@ final class LabourCostService
             'waiting' => $runs->count() - count($counted),
             // A count only, never an amount; shown when no column's not-shown group has 1 or 2 people.
             'unassigned' => $groupsSafe ? count($unassigned) : 0,
-            // The corrections figure is a sum of its own, so it needs at least 3 locums with a correction.
-            'locumCorrections' => $corrections !== 0 && count($correctionPeople) >= self::MIN_PEOPLE && ! $locumBlocked ? PayrollMoney::rm($corrections) : null,
+            // Never an amount: a separate corrections figure could be subtracted from the locum group (Suresh, HR-18 M1).
+            'locumCorrections' => $corrections !== 0,
             'unreadable' => $unreadable,
         ];
     }
