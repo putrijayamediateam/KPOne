@@ -691,3 +691,30 @@ test('Classic Visit page and Edit visit keep their routes, payload keys, permiss
         assert.ok(edit.includes(shared), `Classic Edit ${shared}`);
     }
 });
+
+// From v2-registration-board.test.mjs: Classic Registration files never import V2 code.
+test('Classic Registration files import no V2 code', () => {
+    const board = read('resources/js/pages/Registration/Index.vue');
+    const create = read('resources/js/pages/Registration/Create.vue');
+
+    assert.ok(
+        !board.includes('registration-v2') && !board.includes('components/v2'),
+    );
+    assert.ok(
+        !read(
+            'resources/js/components/registration/QrIntakeTable.vue',
+        ).includes('components/v2'),
+    );
+    assert.ok(!create.includes('composables/registration/'));
+    assert.ok(!create.includes('components/v2'));
+    assert.ok(
+        !read('resources/js/pages/Registration/Show.vue').includes(
+            'components/v2',
+        ),
+    );
+    assert.ok(
+        !read('resources/js/pages/Registration/Edit.vue').includes(
+            'components/v2',
+        ),
+    );
+});
