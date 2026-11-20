@@ -7,6 +7,6 @@ const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const classic = read('resources/js/pages/Inventory/TreatmentUsage.vue');
 
-test('page 4: Classic Treatment room usage keeps its script', () => {
+test('page 4: Classic Treatment room usage imports no V2 code', () => {
     assert.ok(!classic.includes('components/v2/'));
 });

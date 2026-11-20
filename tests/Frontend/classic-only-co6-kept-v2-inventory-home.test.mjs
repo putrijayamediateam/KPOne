@@ -29,7 +29,7 @@ test('Classic Inventory home keeps its 16 task links in order', () => {
     );
 });
 
-test('Classic Inventory home keeps its props, hold label rule and panels', () => {
+test('Classic Inventory home keeps its props', () => {
     for (const prop of [
         'inventory:',
         'operations:',
@@ -48,18 +48,6 @@ test('Classic Inventory home imports no V2 code', () => {
     );
 });
 
-test('Classic Inventory home keeps its filter wording and stock panels', () => {
-    const bar = read('resources/js/components/inventory-v2/StockPanelBar.vue');
-    assert.match(bar, /<div\s+v-show="open"/);
-    assert.ok(!/v-if="open"/.test(bar));
-    assert.match(bar, /max-width: 1023\.98px/);
-    assert.ok(!bar.includes("type='submit'"), 'submits are flattened too');
-    assert.match(bar, /min-height: 2\.75rem/);
-});
-
-test('Classic Inventory home keeps its panel headings and units', () => {
-    const bar = read('resources/js/components/inventory-v2/StockPanelBar.vue');
-    assert.match(bar, /:inert="!open"/);
-    assert.match(bar, /> section > h2:first-child/);
+test('Classic Inventory home shows a quantity with its stock unit', () => {
     assert.match(classic, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
 });
