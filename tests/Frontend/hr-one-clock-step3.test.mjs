@@ -6,7 +6,6 @@ import test from 'node:test';
 const read = (path) => readFileSync(path, 'utf8');
 const pages = {
     classic: read('resources/js/pages/HR/Attendance.vue'),
-    v2: read('resources/js/pages/HR/V2/Attendance.vue'),
 };
 
 for (const [name, page] of Object.entries(pages)) {

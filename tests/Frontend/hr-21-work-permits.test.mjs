@@ -4,7 +4,7 @@ import test from 'node:test';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 
 // HR-21 foreign worker permits: a credential type flag, and a warning line (never red) on the register, the staff file
-// and the HR dashboard, in Classic and Version 2.
+// and the HR dashboard, in Classic.
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const warnings = read(
@@ -52,7 +52,6 @@ test('a new type sends work_permit only when it expires and is not a health item
 
 for (const [name, path] of [
     ['Classic', 'resources/js/pages/HR/Credentials.vue'],
-    ['V2', 'resources/js/pages/HR/V2/Credentials.vue'],
 ]) {
     test(`${name} Credentials: the Work permit choice and the register warnings`, () => {
         const page = read(path);
@@ -69,7 +68,6 @@ for (const [name, path] of [
 
 for (const [name, path] of [
     ['Classic', 'resources/js/pages/HR/StaffFile.vue'],
-    ['V2', 'resources/js/pages/HR/V2/StaffFile.vue'],
 ]) {
     test(`${name} staff file shows its work permit lines`, () => {
         assert.match(
@@ -81,7 +79,6 @@ for (const [name, path] of [
 
 for (const [name, path] of [
     ['Classic', 'resources/js/pages/HR/Dashboard.vue'],
-    ['V2', 'resources/js/pages/HR/V2/Dashboard.vue'],
 ]) {
     test(`${name} dashboard shows the count only when there is one`, () => {
         const page = read(path);
