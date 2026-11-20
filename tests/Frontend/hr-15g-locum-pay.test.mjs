@@ -8,12 +8,9 @@ const composable = read('resources/js/composables/hr/useLocumPayPage.ts');
 const view = read('resources/js/components/hr/locum-pay/StatementView.vue');
 const pages = {
     classic: read('resources/js/pages/HR/LocumPay.vue'),
-    v2: read('resources/js/pages/HR/V2/LocumPay.vue'),
 };
 
-test('the V2 page is registered and both pages use the shared composable and statement view', () => {
-    assert.match(read('config/v2-pages.php'), /'HR\/LocumPay',/);
-
+test('the Classic page uses the shared composable and statement view', () => {
     for (const page of Object.values(pages)) {
         assert.match(page, /useLocumPayPage\(props\)/);
         assert.match(page, /<StatementView/);

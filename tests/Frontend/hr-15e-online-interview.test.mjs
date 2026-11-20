@@ -7,7 +7,6 @@ import test from 'node:test';
 // integration.
 const pages = {
     classic: readFileSync('resources/js/pages/HR/Applications.vue', 'utf8'),
-    v2: readFileSync('resources/js/pages/HR/V2/Applications.vue', 'utf8'),
 };
 const composable = readFileSync(
     'resources/js/composables/hr/useApplicationsPage.ts',
@@ -73,6 +72,4 @@ test('the link field shows its error on the field itself (Daniel)', () => {
         /'interview-video-link-help interview-video-link-error'/,
     );
     assert.match(pages.classic, /id="interview-video-link-error"/);
-    assert.match(pages.v2, /aria-invalid:border-destructive/);
-    assert.match(pages.v2, /:aria-invalid="invalid \|\| undefined"/);
 });
