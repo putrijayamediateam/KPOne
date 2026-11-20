@@ -56,6 +56,8 @@ final class ClinicManagementNavigation
             [$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'],
             [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'QR check-in links', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
             [$settings, 'Consultation settings', 'Manage preset diagnoses for consultations.', 'diagnosis-presets.index'],
+            // TRI-1b: the triage guideline (Director and HR Manager enter and approve, two people).
+            [$actor->can('triage.guideline.manage.organisation'), 'Triage guideline', 'Enter and approve the signed triage guideline: red flags, yellow signs and limits.', 'triage-guideline.index'],
             [$panels, 'Checkout settings', 'Manage Panels, verification details and claim due rules.', 'panel-settings.index'],
             [$actor->can('payment_methods.manage.organisation'), 'Payment Methods', 'Configure the payment methods available at checkout.', 'payment-methods.index'],
             [$actor->can('billing.approval_limits.manage.organisation'), 'Billing Approval Limits', 'Manage the existing Panel and pay-later approval limits.', 'billing-approval-limits.index'],
