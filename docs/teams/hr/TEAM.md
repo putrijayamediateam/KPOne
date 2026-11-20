@@ -550,6 +550,29 @@ check items, keep them"). The rest stand unless the owner changes them.
     ships no number.
 104. Ctrl+K (owner, 2026-11-18): the keyboard search is Version 2 only.
 105. Order after the locum slices (owner, 2026-11-18): the HR docs PR, then HR-21, HR-20, HR-19 and HR-18.
+106. HR-21 foreign worker permits (owner's plan 2026-11-18; ship-it by B.E.R.N.I.S.S for the owner; PR #992, merged as
+    `505c391`; migration `2026_11_10_007700`). A clinic-added credential type may be marked "Work permit": it must expire,
+    is never a health item, and the flag never changes after creation (service, PostgreSQL CHECK and the type guard
+    trigger). No new table or permission (`hr.credentials.manage.organisation`). An accepted permit inside the type's
+    warning days, or expired, shows one line in words, warning tone and never red ("Work permit expires on 2 Jan 2027 (in
+    45 days)"), on the credentials register, the staff file and as a count on the HR dashboard, for credential managers
+    only; names, type and date only, never a permit number or nationality; people who have left are not counted (the
+    register's rule). Daniel: the Work permit answer starts unpicked and saving one asks once more in a confirm dialog;
+    in-sentence links are always underlined.
+107. HR-20 "On call" (owner's slice rules 2026-11-18 and the eight defaults the owner approved himself the same day;
+    ship-it by B.E.R.N.I.S.S for the owner; PR #1006; migration `2026_11_10_007800`). A new session `on_call` for roster
+    shifts and open shifts. Outside weekly hours, the weekly limit, days in a row and daily rest; no clinic hours (not in
+    minimum staffing or cover gaps, no consultation room from the roster); inside fair rotation. No Late, Left early or No
+    clock-in; a call-in is clocked as usual, keeps all its time (no break taken off), has no rostered minutes and may all
+    be claimed as overtime. The HR dashboard shows on-call people on their own line, never as the doctor on duty. Left out
+    of locum pay for now, and cannot be marked not worked. It can be an open shift; overlapping leave still warns. Suresh:
+    on call is never the next shift of a split day (M1), and a clinic shift wins over on call when one session overlaps
+    both (m1). Daniel: the planner footer reads "0 on shift · 1 on call", never folding on call into "on shift"; the label
+    is plain text in the grid, no colour.
+108. HR-20 night rule (B.E.R.N.I.S.S for the owner, 2026-11-18, CHECK THIS on the owner's list): an on-call shift counts
+    as a night for fair rotation when it crosses midnight, starts at 20:00 or later, or starts before 06:00.
+109. Classic only for HR (owner, 2026-11-20): CO-7 deletes every HR and Attendance Version 2 page and merges before HR-20;
+    HR-20 drops its V2 edits and the V2 reads in its frontend test (part of this decision); its Classic changes stay.
 
 ## 7. Open items and known limits
 
@@ -662,6 +685,10 @@ check items, keep them"). The rest stand unless the owner changes them.
 - HR-15e note: the video link is stored exactly as typed (only its shape is checked: https, no spaces or `<>{}"`, at
   most 500 characters, no `@` in the address part).
 - HR-15f note (Daniel, m2): where the start date of a long shift sits in a month cell is left as built.
+- HR-21 note: a work permit's warning line counts accepted records only, so a renewal still waiting for a check does
+  not hide an expiring permit. The dashboard count reads once per page view and each staff file view (one query).
+- HR-20 notes: on-call shifts are left out of locum pay for now (an on-call rate for locums is a later owner decision);
+  a call-in on an on-call shift counts as worked minutes for payroll, as any clocked session does.
 - HR-15g known limits: the Statements tab builds each locum's statement separately (about 6 queries a locum); batch it
   if the list grows. A paid month has no undo in v1. Locum pay stays synthetic-only until the PDPA review.
 - Payroll note go-live item (M4, Daniel, 2026-11-16): the payroll pages, the payslip footer and the accountant CSV end
