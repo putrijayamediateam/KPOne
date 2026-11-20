@@ -425,3 +425,269 @@ test('Classic Registration board and Edit visit keep their routes, payload keys 
         assert.ok(edit.includes(piece), `Classic lacks ${piece}`);
     }
 });
+
+// From ui-v2-clinical-parity.test.mjs (the exact-copy test pinned these on Classic through the shared body).
+test('Classic consultation page keeps its endpoints, save-before-hold, drift rule and treatment-room call', () => {
+    const page = read('resources/js/pages/Clinical/Show.vue');
+    const flat = page.replace(/\s+/g, ' ');
+
+    for (const piece of [
+        '/queue/recall',
+        '/queue/treatment-call',
+        '/encounter/${action}',
+        'queue_lock_version',
+        'encounter_lock_version',
+        'visit_lock_version',
+        'expected_branch_id',
+        'idempotency_key',
+    ]) {
+        assert.ok(page.includes(piece), `Classic ${piece}`);
+    }
+
+    assert.match(flat, /const saveAndHold = \(\) => \{/);
+    assert.match(flat, /panel\.saveForHold\(proceedToHold/);
+    assert.match(
+        flat,
+        /if \(form\.isDirty\) \{ recordDrifted\.value = true; return; \}/,
+    );
+    assert.match(
+        flat,
+        /const requestHold = \(\) => \{ if \(!hasUnsavedWork\.value\)/,
+    );
+    assert.match(
+        flat,
+        /treatment-call`, \{ expected_branch_id: props\.clinical\.branch\.id, queue_lock_version: props\.clinical\.queue\.lockVersion, branch_room_id: treatmentRoomId\.value, from: 'consultation', \}, \{ preserveScroll: true, preserveState: true,/,
+    );
+});
+
+// From v2-patient-details.test.mjs, v2-patient-directory.test.mjs and v2-patient-edit.test.mjs.
+test('Classic Patient pages keep the merge gates, search result keys and guardian relationships', () => {
+    const merge = read('resources/js/components/patient/PatientMergePanel.vue');
+
+    for (const gate of [
+        'merge.canPropose',
+        'request.canDecide',
+        'request.canWithdraw',
+        'comparison.blockers.length',
+    ]) {
+        assert.ok(merge.includes(gate), gate);
+    }
+
+    const directory = read('resources/js/pages/Patient/Index.vue');
+
+    for (const key of [
+        'canWhatsapp',
+        'patientNumber',
+        'fullName',
+        'dateOfBirth',
+        'identifier',
+        'maskedPhone',
+        'mergedFrom',
+    ]) {
+        assert.ok(directory.includes(key), key);
+    }
+
+    const guardian = read('resources/js/components/patient/GuardianFields.vue');
+
+    for (const relationship of [
+        'mother',
+        'father',
+        'legal_guardian',
+        'other_family_member',
+    ]) {
+        assert.ok(guardian.includes(relationship), relationship);
+    }
+});
+
+// From v2-registration-board.test.mjs.
+test('Classic Registration board keeps its search route, poll backoff, pause selectors, failure notice and filters', () => {
+    const board = read('resources/js/pages/Registration/Index.vue');
+
+    assert.match(board, /fetch\('\/registration\/search'/);
+    assert.match(board, /10_000 \* 2 \*\* pollFailures/);
+
+    for (const text of [
+        'Live refresh paused. Showing last successful results.',
+        ' Press Search to try again.',
+        'Registration search could not be completed.',
+    ]) {
+        assert.ok(board.includes(text), `Classic has: ${text}`);
+    }
+
+    const overlay = board.match(
+        /'(\[role="menu"\]\[data-state="open"\][^']+)'/,
+    )?.[1];
+    const typing = board.match(/'(input, textarea, select[^']+)'/)?.[1];
+    assert.ok(overlay && typing, 'Classic selectors found');
+    assert.match(board, /registration-board-search/);
+    assert.match(board, /JSON\.stringify\(\{ \.\.\.appliedFilters, page \}\)/);
+
+    for (const key of [
+        'patient_query',
+        'doctor_id',
+        'visit_type',
+        'priority',
+        'coverage_type',
+        'board_status',
+        'date_from',
+        'date_to',
+    ]) {
+        assert.ok(board.includes(`${key}:`), `Classic form has ${key}`);
+    }
+
+    assert.ok(board.includes("'/registration?tab=qr-intake'"));
+});
+
+// From v2-registration-board.test.mjs (reasons were read from the deleted lib/registration-v2.ts; written out here).
+test('Classic Not ready and Ready actions keep their reasons and request; the QR intake table keeps its records and links', () => {
+    const actions = read(
+        'resources/js/components/queue/CallReadinessActions.vue',
+    );
+
+    for (const [code, label] of [
+        ['awaiting_panel_confirmation', 'Awaiting Panel confirmation'],
+        ['awaiting_patient_details', 'Awaiting patient details'],
+        ['awaiting_payment_or_deposit', 'Awaiting payment or deposit'],
+        ['other_administrative', 'Other administrative'],
+    ]) {
+        assert.ok(actions.includes(`'${code}'`), code);
+        assert.ok(actions.includes(`'${label}'`), label);
+    }
+
+    for (const key of [
+        '/queue/readiness`',
+        'expected_branch_id',
+        'queue_lock_version',
+        'lock_version',
+        'call_hold_id',
+        'reason_code',
+        'idempotency_key',
+        'from: props.from',
+    ]) {
+        assert.ok(actions.includes(key), `Classic ${key}`);
+    }
+
+    const table = read(
+        'resources/js/components/registration/QrIntakeTable.vue',
+    );
+
+    for (const shared of [
+        '/registration-review/${item.publicId}',
+        'item.canVerify',
+        'item.visitUrl',
+        "'See a doctor / illness'",
+        "'Medical check-up'",
+        'Redacted after retention period',
+        'No QR intake records are available for this branch.',
+        'history-page-change',
+        "item.displayStatus === 'pending'",
+        "item.displayStatus !== 'pending'",
+    ]) {
+        assert.ok(table.includes(shared), `Classic ${shared}`);
+    }
+});
+
+// From v2-registration-board.test.mjs.
+test('Classic Register visit keeps its payload, search, rules, shared fields, phone checks and reason picker', () => {
+    const create = read('resources/js/pages/Registration/Create.vue');
+
+    for (const shared of [
+        "'/patients/search'",
+        "form.post('/registration'",
+        'idempotency_key: props.options.idempotencyKey',
+        'expected_branch_id: props.options.branch.id',
+        'quick_patient: null',
+        'visit_reason_public_ids: []',
+        'coverage_panel_note',
+        'panel_note_panel_id',
+        'confirm_repeat',
+        "trimmed.toUpperCase().startsWith('KP-')",
+        '/^\\d{12}$/',
+        'query.length < 3',
+        'phoneError(',
+        'identityError(',
+        'Please enter the Patient name.',
+        'issuing_country_code:',
+        "'#quick-patient-name'",
+        'GuardianFields',
+        'AdultConfirmation',
+        'RegistrationContactFields',
+        'WhatsAppLink',
+        'VisitReasonPicker',
+    ]) {
+        assert.ok(create.includes(shared), `Classic ${shared}`);
+    }
+
+    const phone = read('resources/js/components/patient/PhoneInput.vue');
+
+    for (const shared of [
+        "from 'libphonenumber-js/max'",
+        'getCountryCallingCode(code)',
+        'phoneInputError(',
+        "'update:country'",
+        'unchangedValue',
+    ]) {
+        assert.ok(phone.includes(shared), `Classic phone ${shared}`);
+    }
+
+    const picker = read(
+        'resources/js/components/visit/VisitReasonPicker.vue',
+    ).replace(/\s+/g, ' ');
+
+    for (const shared of [
+        '/visit-reasons?',
+        "'/visit-reasons'",
+        "method: 'POST'",
+        'JSON.stringify({ name: query.value })',
+        'props.selected.length < 5',
+        'isActive === false',
+        'ask a Supervisor.',
+        'X-CSRF-TOKEN',
+    ]) {
+        assert.ok(picker.includes(shared), `Classic picker ${shared}`);
+    }
+});
+
+// From v2-registration-board.test.mjs.
+test('Classic Visit page and Edit visit keep their routes, payload keys, permissions and rules', () => {
+    const norm = (text) => text.replace(/\s+/g, ' ');
+    const show = norm(read('resources/js/pages/Registration/Show.vue'));
+    const edit = norm(read('resources/js/pages/Registration/Edit.vue'));
+
+    for (const shared of [
+        '/queue`',
+        '/cancel`',
+        "from: 'registration'",
+        'visit_lock_version: props.visit.lockVersion',
+        'expected_branch_id',
+        'lock_version: props.visit.lockVersion',
+        'queue_lock_version: props.visit.queue?.lockVersion ?? null',
+        'cancellation_reason',
+        'visits.create.branch',
+        'medical_certificates.view.branch',
+        'attendance_documents.view.branch',
+        'attendance_documents.print.branch',
+        'visit.hasConsultation',
+        'No medical certificate: this visit was cancelled.',
+        'Medical certificates are available after the doctor starts the',
+        'visit.can.update',
+        'visit.can.sendToWaiting',
+        'visit.can.cancel',
+        '/medical-certificates`',
+        '/attendance/${copy.id}',
+    ]) {
+        assert.ok(show.includes(shared), `Classic Show ${shared}`);
+    }
+
+    for (const shared of [
+        'panel_note_idempotency_key: crypto.randomUUID()',
+        'panel_note_panel_id',
+        'queue_lock_version: props.visit.queue?.lockVersion ?? null',
+        "Reflect.deleteProperty(legacy, 'visit_reason_public_ids')",
+        '.patch(`/visits/${props.visit.visitNumber}`)',
+        'visit.visitReasons.structured.length',
+        'preserved unchanged.',
+    ]) {
+        assert.ok(edit.includes(shared), `Classic Edit ${shared}`);
+    }
+});
