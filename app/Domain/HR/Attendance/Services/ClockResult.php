@@ -4,6 +4,7 @@ namespace App\Domain\HR\Attendance\Services;
 
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Roster\Models\RosterShift;
+use App\Domain\HR\Roster\Services\RosterRules;
 
 /**
  * HR-PHOTO confirmation screen: the press's branch-local time and one chip, worked out with the same matching and the
@@ -27,6 +28,9 @@ final class ClockResult
         $grace = $this->settings->forDate($session->organisation_id, $session->local_date)->graceMinutes ?? 0;
         if ($shift === null) {
             $chip = ['code' => 'no_shift', 'label' => 'No shift set'];
+        } elseif (RosterRules::isOnCall($shift->session_type)) {
+            // HR-20: a call-in has no Late or Left early, as on Review.
+            $chip = ['code' => 'on_call', 'label' => 'On call'];
         } else {
             $minutes = $kind === 'out'
                 ? (int) floor(($shift->ends_at->getTimestamp() - $at->getTimestamp()) / 60)

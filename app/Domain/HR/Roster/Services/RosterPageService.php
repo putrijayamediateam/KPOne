@@ -63,6 +63,8 @@ final class RosterPageService
             'tab' => $tab, 'tabs' => $tabs,
             'week' => $this->week($weekStart) + ['today' => now($branch->timezone)->toDateString()],
             'sessions' => collect(RosterRules::SESSIONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
+            // HR-20: on call is no clinic hours, so the minimum staffing grid lists clinic sessions only.
+            'staffingSessions' => collect(RosterRules::clinicSessions())->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'my' => $canOwn ? $this->my($actor, $weekStart) : null,
             // HR-15f: the month calendar on My roster, only when asked for (owner, via B.E.R.N.I.S.S, 18 Nov 2026).
             // Its own key, so it never meets the planner's "view" (Suresh, m1).
@@ -254,8 +256,9 @@ final class RosterPageService
                 'returnReason' => $shown->return_reason === null ? null : RosterService::RETURN_REASONS[$shown->return_reason] ?? null,
             ],
             'rows' => $rows,
-            'totals' => collect(range(0, 6))->map(fn (int $i): int => $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->setTimezone($branch->timezone)->toDateString() === $weekStart->addDays($i)->toDateString())
-                ->pluck('staff_user_id')->unique()->count())->all(),
+            // HR-20 (Daniel): on call never folds into the "on shift" count; it has its own count beside it.
+            'totals' => $this->dayCounts($branch, $weekStart, $shifts->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))),
+            'onCallTotals' => $this->dayCounts($branch, $weekStart, $shifts->filter(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))),
             'shortDays' => $shown === null ? [] : $this->shortDays($branch, $weekStart, $shifts, $people),
             'warnings' => $shown === null ? [] : [...$this->warnings($branch, $weekStart, $shown, $shifts, $people, $roomNames), ...$this->leaveWarnings($branch, $shifts, $leave, $people)],
             // HR-5b: compliance warnings in words and the month's rotation counts; warnings only, never a refusal.
@@ -288,6 +291,18 @@ final class RosterPageService
         return ['id' => $version->public_id, 'number' => $version->version_number, 'status' => $version->status, 'lockVersion' => $version->lock_version,
             'createdBy' => $name($version->created_by_user_id), 'submittedBy' => $name($version->submitted_by_user_id), 'submittedAt' => $at($version->submitted_at),
             'decidedBy' => $name($version->decided_by_user_id), 'decidedAt' => $at($version->decided_at), 'changedAt' => $at($version->updated_at)];
+    }
+
+    /**
+     * People with a shift starting on each branch-local day of the week.
+     *
+     * @param  Collection<int, RosterShift>  $shifts
+     * @return array<int, int>
+     */
+    private function dayCounts(Branch $branch, CarbonImmutable $weekStart, Collection $shifts): array
+    {
+        return collect(range(0, 6))->map(fn (int $i): int => $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->setTimezone($branch->timezone)->toDateString() === $weekStart->addDays($i)->toDateString())
+            ->pluck('staff_user_id')->unique()->count())->values()->all();
     }
 
     /**
