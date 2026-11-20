@@ -147,7 +147,7 @@ saving the form at once (already covered in the service; a route-level replay ch
 
 | File:line | Today | After | Why |
 |---|---|---|---|
-| `tests/Feature/Clinical/Triage/TriageServiceTest.php:205-206` | lowering red to yellow with temperature 39.90 (still past the red limit) and a reason is **accepted** | refused ("within limits"); then a retake at 37.00 with the suggested green is accepted as row 2 | owner rule 1 |
+| `tests/Feature/Clinical/Triage/TriageServiceTest.php:204-205` | lowering red to yellow with temperature 39.90 (still past the red limit) and a reason is **accepted** | refused ("within limits"); then a retake at 37.00 with the suggested green is accepted as row 2 | owner rule 1 |
 | `tests/Feature/Clinical/Triage/TriageGuidelineServiceTest.php:97` | pulse red 120 plus yellow 130 refused with `'only once'` | the same pair refused with `'nearer normal'` (yellow beyond red); a new line shows yellow 110 plus red 120 accepted | owner rule 2 |
 | `tests/Feature/Queue/TabCountsTest.php:81` | exact CA `tabCounts` without `triage` | gains `'triage' => 1` at the place its predicate sits | the new tab |
 | `tests/Feature/ClinicManagementTest.php:45` (exact destination map) | no triage row | gains `'/triage-guideline' => ['triage.guideline.manage.organisation']` | the new hub row |

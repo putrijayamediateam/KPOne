@@ -206,7 +206,7 @@ class TriageGuidelineService
             'red_flags.*' => ['required', 'string', 'min:3', 'max:160', 'distinct:ignore_case'],
             'yellow_signs' => ['present', 'array', 'max:12'],
             'yellow_signs.*' => ['required', 'string', 'min:3', 'max:160', 'distinct:ignore_case'],
-            'thresholds' => ['present', 'array', 'max:28'],
+            'thresholds' => ['present', 'array', 'max:56'],
             'thresholds.*.reading' => ['required', Rule::in(self::READINGS)],
             'thresholds.*.age_band' => ['required', Rule::in(['adult', 'child'])],
             'thresholds.*.direction' => ['required', Rule::in(['very_low', 'very_high'])],
@@ -218,12 +218,14 @@ class TriageGuidelineService
             'red_flags.required' => 'Enter at least one red flag.',
             'red_flags.min' => 'Enter at least one red flag.',
         ])->validate();
+        // TRI-1b (owner, 20 Nov 2026): at most one yellow and one red limit per reading, age group and direction; the
+        // yellow one nearer normal; every "very low" limit below every "very high" limit of the same reading and group.
         $thresholds = [];
         $seen = [];
         foreach (array_values($data['thresholds']) as $row) {
-            $key = $row['reading'].'|'.$row['age_band'].'|'.$row['direction'];
+            $key = $row['reading'].'|'.$row['age_band'].'|'.$row['direction'].'|'.$row['zone'];
             if (isset($seen[$key])) {
-                $this->refuse('thresholds', 'Enter each reading, age group and direction only once.');
+                $this->refuse('thresholds', 'Enter one yellow and one red limit at most for each reading, age group and direction.');
             }
             $seen[$key] = TriageZoneRules::hundredths((string) $row['limit_value']);
             $thresholds[] = [
@@ -232,10 +234,21 @@ class TriageGuidelineService
             ];
         }
         foreach ($seen as $key => $limit) {
-            [$reading, $band, $direction] = explode('|', $key);
-            $high = $seen["$reading|$band|very_high"] ?? null;
-            if ($direction === 'very_low' && $high !== null && $limit >= $high) {
-                $this->refuse('thresholds', 'A "very low" limit must be below the "very high" limit for the same reading.');
+            [$reading, $band, $direction, $zone] = explode('|', $key);
+            if ($zone === 'yellow' && isset($seen["$reading|$band|$direction|red"])) {
+                $red = $seen["$reading|$band|$direction|red"];
+                if ($direction === 'very_high' ? $limit >= $red : $limit <= $red) {
+                    $this->refuse('thresholds', 'A yellow limit must be nearer normal than the red limit for the same reading.');
+                }
+            }
+            if ($direction !== 'very_low') {
+                continue;
+            }
+            foreach (['yellow', 'red'] as $highZone) {
+                $high = $seen["$reading|$band|very_high|$highZone"] ?? null;
+                if ($high !== null && $limit >= $high) {
+                    $this->refuse('thresholds', 'A "very low" limit must be below the "very high" limit for the same reading.');
+                }
             }
         }
 

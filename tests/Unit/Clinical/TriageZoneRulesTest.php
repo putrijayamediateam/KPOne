@@ -54,6 +54,18 @@ class TriageZoneRulesTest extends TestCase
         $this->assertSame('yellow', TriageZoneRules::suggest(['pulse_bpm' => 125], [], [], 'unknown', $this->thresholds())['zone']);
     }
 
+    /** TRI-1b: the shared cases also read by triage-zone.ts and kp_triage_assess, so the three rules cannot drift. */
+    public function test_shared_zone_cases_with_yellow_and_red_limits(): void
+    {
+        $fixture = json_decode((string) file_get_contents(__DIR__.'/../../Fixtures/triage-zone-cases.json'), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertGreaterThanOrEqual(15, count($fixture['cases']));
+        foreach ($fixture['cases'] as $case) {
+            $result = TriageZoneRules::suggest($case['readings'], $case['red_flags'], $case['yellow_signs'], $case['age_band'], $fixture['limits']);
+            $this->assertSame($case['zone'], $result['zone'], $case['name']);
+            $this->assertSame($case['crossed'], array_map(fn (array $c): string => $c['zone'], $result['crossed']), $case['name']);
+        }
+    }
+
     public function test_hundredths_are_exact(): void
     {
         $this->assertSame(3800, TriageZoneRules::hundredths('38'));
