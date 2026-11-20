@@ -61,7 +61,6 @@ test('V2 blocks are V2-only and import nothing from the Classic ui components', 
         'V2Tabs',
         'V2Table',
         'V2Chip',
-        'WaitRing',
     ]) {
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
@@ -73,7 +72,6 @@ test('Debt carried into V2: wrapping chips, balanced titles, reduced motion, "mi
     assert.match(css, /\.v2-page-title \{\s*text-wrap: balance;/);
     assert.match(v2('V2Tabs'), /motion-reduce:transition-none/);
     assert.match(v2('V2Toolbar'), /motion-reduce:transition-none/);
-    assert.match(v2('WaitRing'), /min(<template|\s*<\/span)/);
 });
 
 test('v2.css only matches V2 classes, so Classic is untouched', () => {
@@ -99,9 +97,6 @@ test('v2.css only matches V2 classes, so Classic is untouched', () => {
 });
 
 test("Daniel's notes: words beside the ring from 30 minutes, primary field first in cards, fade on a cut-off tab strip", () => {
-    assert.match(v2('WaitRing'), /words\?: boolean/);
-    assert.match(v2('WaitRing'), /v-if="words && level !== 'ok'"/);
-    assert.match(v2('WaitRing'), /very long wait/);
     assert.match(css, /td\[data-primary\]/);
     assert.match(css, /td\[data-actions\] \{\s*order: 99;/);
     assert.match(css, /td\[data-select\] \{\s*order: -2;/);

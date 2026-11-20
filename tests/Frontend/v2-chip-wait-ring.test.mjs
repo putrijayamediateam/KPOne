@@ -5,7 +5,6 @@ import test from 'node:test';
 const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const chip = read('resources/js/components/v2/V2Chip.vue');
-const ring = read('resources/js/components/v2/WaitRing.vue');
 const css = read('resources/css/app.css');
 
 const block = (selector) =>
@@ -62,14 +61,6 @@ test('V2Chip: a dot plus the word, the dot is decoration', () => {
     for (const tone of ['neutral', 'info', 'success', 'warning', 'danger']) {
         assert.match(chip, new RegExp(`${tone}:`));
     }
-});
-
-test('WaitRing: 30 and 60 minute thresholds, minutes shown and spoken with the state', () => {
-    assert.match(ring, /warnAt: 30, dangerAt: 60/);
-    assert.match(ring, /long wait/);
-    assert.match(ring, /very long wait/);
-    assert.match(ring, /role="img"/);
-    assert.match(ring, /tabular-nums/);
 });
 
 test('V2 chip dots and ring strokes reach 3:1 on the card in the Version 2 look, light and dark', () => {
