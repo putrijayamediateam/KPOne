@@ -53,7 +53,7 @@ class LabourCostTest extends VisitTestCase
         $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority(LabourCostPermissions::VIEW));
     }
 
-    public function test_branches_with_fewer_than_three_people_are_hidden_and_one_hidden_branch_hides_the_next_smallest(): void
+    public function test_small_branches_are_hidden_and_every_shown_figure_covers_none_or_at_least_three_people(): void
     {
         $group = $this->group();
         // Main branch: 3 staff; second branch: 4 staff and a locum; third branch: 1 staff.
@@ -74,15 +74,18 @@ class LabourCostTest extends VisitTestCase
         $this->assertSame(5, $rows[$this->second->name]['people']); // 4 staff and the locum
         $this->assertSame('RM 11,900.00', $rows[$this->second->name]['pay']); // 4 × 3,000 less 100 unpaid leave
         $this->assertSame('RM 1,600.00', $rows[$this->second->name]['employer']);
-        $this->assertSame('RM 500.00', $rows[$this->second->name]['locum']);
-        $this->assertSame('RM 14,000.00', $rows[$this->second->name]['total']);
+        $this->assertNull($rows[$this->second->name]['locum']); // one locum: their pay is never shown
+        $this->assertNull($rows[$this->second->name]['total']);
         $this->assertSame('few', $rows[$this->third->name]['state']);
-        $this->assertSame('protect', $rows[$this->branch->name]['state']); // the next smallest, so the total cannot reveal the third
-        foreach ([$this->third->name, $this->branch->name] as $hidden) {
-            $this->assertArrayNotHasKey('pay', $rows[$hidden]);
-            $this->assertArrayNotHasKey('people', $rows[$hidden]);
-        }
-        $this->assertSame(['people' => 9, 'pay' => 'RM 23,900.00', 'employer' => 'RM 3,200.00', 'locum' => 'RM 490.00', 'total' => 'RM 27,590.00'], $page['total']);
+        $this->assertArrayNotHasKey('pay', $rows[$this->third->name]);
+        $this->assertArrayNotHasKey('people', $rows[$this->third->name]);
+        // The main branch's staff figures are withheld, so the clinic total less the shown branches cannot reveal the third.
+        $this->assertSame('shown', $rows[$this->branch->name]['state']);
+        $this->assertSame([3, null, null, 'RM 0.00', null], [$rows[$this->branch->name]['people'], $rows[$this->branch->name]['pay'],
+            $rows[$this->branch->name]['employer'], $rows[$this->branch->name]['locum'], $rows[$this->branch->name]['total']]);
+        // Staff figures cover 4 hidden staff; the locum column covers one locum, so its clinic total is withheld.
+        $this->assertSame(['people' => 9, 'pay' => 'RM 23,900.00', 'employer' => 'RM 3,200.00', 'locum' => null, 'total' => null], $page['total']);
+        $this->assertTrue($page['someHidden']);
         $this->assertNull($page['locumCorrections']); // one locum's correction is never shown on its own (Suresh, M1)
         $this->assertSame([1, 1, 0, 0], [$page['runs'], $page['waiting'], $page['unassigned'], $page['unreadable']]);
         $this->assertNotNull($locum);
@@ -140,10 +143,10 @@ class LabourCostTest extends VisitTestCase
         $this->payRun($this->group(), 'approved', $people);
         $page = $this->page($this->actor('director'));
         $rows = collect($page['rows'])->keyBy('branch');
-        $this->assertSame('protect', $rows[$this->branch->name]['state']);
-        $this->assertSame('shown', $rows[$this->second->name]['state']);
+        $this->assertSame([null, null], [$rows[$this->branch->name]['pay'], $rows[$this->branch->name]['total']]);
+        $this->assertSame('RM 4,000.00', $rows[$this->second->name]['pay']);
         $this->assertSame(1, $page['unassigned']); // a count only: the leaver's pay sits inside a 4-person hidden group
-        $this->assertNotNull($page['total']);
+        $this->assertSame('RM 12,000.00', $page['total']['pay']);
     }
 
     public function test_two_branches_of_one_person_each_hide_a_larger_branch_too(): void
@@ -154,7 +157,8 @@ class LabourCostTest extends VisitTestCase
         }
         $this->payRun($this->group(), 'approved', $people);
         $rows = collect($this->page($this->actor('director'))['rows'])->keyBy('branch');
-        $this->assertSame(['few', 'few', 'protect'], [$rows[$this->second->name]['state'], $rows[$this->third->name]['state'], $rows[$this->branch->name]['state']]);
+        $this->assertSame(['few', 'few', 'shown'], [$rows[$this->second->name]['state'], $rows[$this->third->name]['state'], $rows[$this->branch->name]['state']]);
+        $this->assertNull($rows[$this->branch->name]['pay']); // otherwise the clinic total less this branch reveals the two
     }
 
     public function test_one_locums_correction_is_never_shown_alone(): void
@@ -168,9 +172,11 @@ class LabourCostTest extends VisitTestCase
         $this->locumPaid([], [['amount' => 20000]]); // a correction only, for one locum
         $page = $this->page($this->actor('director'));
         $this->assertNull($page['locumCorrections']);
-        $states = collect($page['rows'])->pluck('state', 'branch');
-        $this->assertSame(1, $states->filter(fn (string $s): bool => $s === 'protect')->count());
-        $this->assertSame(7, $page['total']['people']); // the locum is counted, inside the hidden group
+        $rows = collect($page['rows'])->keyBy('branch');
+        $this->assertSame(['RM 3,000.00', 'RM 3,000.00'], [$rows[$this->branch->name]['total'], $rows[$this->second->name]['total']]);
+        $this->assertSame(7, $page['total']['people']); // the locum is counted
+        $this->assertSame(['RM 6,000.00', null, null], [$page['total']['pay'], $page['total']['locum'], $page['total']['total']]);
+        $this->assertTrue($page['someHidden']);
     }
 
     // ---- fixture ----

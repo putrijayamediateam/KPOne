@@ -23,7 +23,10 @@ test('the page compiles and has no Version 2 twin', () => {
 
 test('hidden branches say why, in words', () => {
     assert.match(page, /few: 'Fewer than 3 people: not shown'/);
-    assert.match(page, /protect: "Hidden to protect another branch's figure"/);
+    assert.match(page, /const NOT_SHOWN = 'Not shown'/);
+    assert.match(page, /value \?\? NOT_SHOWN/);
+    assert.match(template, /data-test="labour-cost-some-hidden"/);
+    assert.match(template, /no one person's pay can be worked\s+out/);
     assert.match(template, /data-test="labour-cost-hidden"/);
     assert.match(template, /The clinic total covers fewer than 3 people/);
 });

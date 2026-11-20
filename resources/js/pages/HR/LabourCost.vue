@@ -11,16 +11,17 @@ import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 
+// A null amount is withheld so no one person's pay can be worked out (every shown figure covers 0 or at least 3 people).
 type Amounts = {
     people: number;
-    pay: string;
-    employer: string;
-    locum: string;
-    total: string;
+    pay: string | null;
+    employer: string | null;
+    locum: string | null;
+    total: string | null;
 };
 type Row = {
     branch: string;
-    state: 'shown' | 'few' | 'protect' | 'none';
+    state: 'shown' | 'few' | 'none';
 } & Partial<Amounts>;
 
 defineProps<{
@@ -31,6 +32,7 @@ defineProps<{
         rows: Row[];
         total: Amounts | null;
         totalHidden: boolean;
+        someHidden: boolean;
         runs: number;
         waiting: number;
         unassigned: number;
@@ -48,9 +50,13 @@ const chooseMonth = (value: string | number) =>
 
 const hiddenText: Record<string, string> = {
     few: 'Fewer than 3 people: not shown',
-    protect: "Hidden to protect another branch's figure",
     none: 'No pay recorded',
 };
+
+const NOT_SHOWN = 'Not shown';
+const amount = (value: string | null | undefined) => value ?? NOT_SHOWN;
+const muted = (value: string | null | undefined) =>
+    value == null ? 'text-muted-foreground font-normal' : '';
 </script>
 
 <template>
@@ -145,23 +151,27 @@ const hiddenText: Record<string, string> = {
                                 </td>
                                 <td
                                     class="text-right whitespace-nowrap tabular-nums"
+                                    :class="muted(row.pay)"
                                 >
-                                    {{ row.pay }}
+                                    {{ amount(row.pay) }}
                                 </td>
                                 <td
                                     class="text-right whitespace-nowrap tabular-nums"
+                                    :class="muted(row.employer)"
                                 >
-                                    {{ row.employer }}
+                                    {{ amount(row.employer) }}
                                 </td>
                                 <td
                                     class="text-right whitespace-nowrap tabular-nums"
+                                    :class="muted(row.locum)"
                                 >
-                                    {{ row.locum }}
+                                    {{ amount(row.locum) }}
                                 </td>
                                 <td
                                     class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                    :class="muted(row.total)"
                                 >
-                                    {{ row.total }}
+                                    {{ amount(row.total) }}
                                 </td>
                             </template>
                             <td
@@ -186,23 +196,27 @@ const hiddenText: Record<string, string> = {
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                :class="muted(labourCost.total.pay)"
                             >
-                                {{ labourCost.total.pay }}
+                                {{ amount(labourCost.total.pay) }}
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                :class="muted(labourCost.total.employer)"
                             >
-                                {{ labourCost.total.employer }}
+                                {{ amount(labourCost.total.employer) }}
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                :class="muted(labourCost.total.locum)"
                             >
-                                {{ labourCost.total.locum }}
+                                {{ amount(labourCost.total.locum) }}
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
+                                :class="muted(labourCost.total.total)"
                             >
-                                {{ labourCost.total.total }}
+                                {{ amount(labourCost.total.total) }}
                             </td>
                         </tr>
                     </template>
@@ -225,18 +239,34 @@ const hiddenText: Record<string, string> = {
                             {{ row.people }}
                         </dd>
                         <dt class="text-muted-foreground">Pay</dt>
-                        <dd class="text-right tabular-nums">{{ row.pay }}</dd>
+                        <dd
+                            class="text-right tabular-nums"
+                            :class="muted(row.pay)"
+                        >
+                            {{ amount(row.pay) }}
+                        </dd>
                         <dt class="text-muted-foreground">
                             Employer contributions
                         </dt>
-                        <dd class="text-right tabular-nums">
-                            {{ row.employer }}
+                        <dd
+                            class="text-right tabular-nums"
+                            :class="muted(row.employer)"
+                        >
+                            {{ amount(row.employer) }}
                         </dd>
                         <dt class="text-muted-foreground">Locum pay</dt>
-                        <dd class="text-right tabular-nums">{{ row.locum }}</dd>
+                        <dd
+                            class="text-right tabular-nums"
+                            :class="muted(row.locum)"
+                        >
+                            {{ amount(row.locum) }}
+                        </dd>
                         <dt class="font-medium">Total</dt>
-                        <dd class="text-right font-semibold tabular-nums">
-                            {{ row.total }}
+                        <dd
+                            class="text-right font-semibold tabular-nums"
+                            :class="muted(row.total)"
+                        >
+                            {{ amount(row.total) }}
                         </dd>
                     </dl>
                     <p v-else class="mt-1 text-muted-foreground">
@@ -254,27 +284,47 @@ const hiddenText: Record<string, string> = {
                             {{ labourCost.total.people }}
                         </dd>
                         <dt class="text-muted-foreground">Pay</dt>
-                        <dd class="text-right tabular-nums">
-                            {{ labourCost.total.pay }}
+                        <dd
+                            class="text-right tabular-nums"
+                            :class="muted(labourCost.total.pay)"
+                        >
+                            {{ amount(labourCost.total.pay) }}
                         </dd>
                         <dt class="text-muted-foreground">
                             Employer contributions
                         </dt>
-                        <dd class="text-right tabular-nums">
-                            {{ labourCost.total.employer }}
+                        <dd
+                            class="text-right tabular-nums"
+                            :class="muted(labourCost.total.employer)"
+                        >
+                            {{ amount(labourCost.total.employer) }}
                         </dd>
                         <dt class="text-muted-foreground">Locum pay</dt>
-                        <dd class="text-right tabular-nums">
-                            {{ labourCost.total.locum }}
+                        <dd
+                            class="text-right tabular-nums"
+                            :class="muted(labourCost.total.locum)"
+                        >
+                            {{ amount(labourCost.total.locum) }}
                         </dd>
                         <dt class="font-medium">Total</dt>
-                        <dd class="text-right font-semibold tabular-nums">
-                            {{ labourCost.total.total }}
+                        <dd
+                            class="text-right font-semibold tabular-nums"
+                            :class="muted(labourCost.total.total)"
+                        >
+                            {{ amount(labourCost.total.total) }}
                         </dd>
                     </dl>
                 </li>
             </ul>
 
+            <p
+                v-if="labourCost.someHidden"
+                class="text-sm text-muted-foreground"
+                data-test="labour-cost-some-hidden"
+            >
+                Some figures are not shown so no one person's pay can be worked
+                out. Every figure shown covers no one or at least 3 people.
+            </p>
             <p
                 v-if="labourCost.totalHidden"
                 class="text-sm text-muted-foreground"
