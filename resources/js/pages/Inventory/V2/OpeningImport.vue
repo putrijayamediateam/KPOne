@@ -9,7 +9,7 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { formatDate } from '@/lib/presentation';
 import { formatRinggit } from '@/lib/supplier-terms';
 

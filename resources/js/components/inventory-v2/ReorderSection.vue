@@ -5,7 +5,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import { useReorderLevel } from '@/composables/inventory-v2/useReorderLevel';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { formatDate } from '@/lib/presentation';
 import { trimQuantity } from '@/lib/supplier-terms';
 import type { InventoryOperations } from '@/types/inventory-operations';

@@ -14,7 +14,7 @@ import V2Table from '@/components/v2/V2Table.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 
 /**
  * Version 2 Purchase requests (inventory V2 page 10b). Everything from the STK-18 comment to `lineWord` is a verbatim copy

@@ -6,7 +6,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 
 /**
  * Version 2 Controlled register list (inventory V2 page 8a). Everything from `type Row` to `statusTone` is a verbatim copy

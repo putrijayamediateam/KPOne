@@ -8,7 +8,7 @@ import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Picker from '@/components/v2/V2Picker.vue';
 import type { PickerOption } from '@/components/v2/V2Picker.vue';
 import { formatInventoryReason } from '@/lib/inventory-picker';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { requestJson } from '@/lib/json-client';
 import { formatDate } from '@/lib/presentation';
 

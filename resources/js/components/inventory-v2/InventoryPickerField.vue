@@ -5,7 +5,7 @@ import V2SearchCombobox from '@/components/v2/V2SearchCombobox.vue';
 import type { ComboOption } from '@/components/v2/V2SearchCombobox.vue';
 import { inventoryPickerUrl } from '@/lib/inventory-picker';
 import type { InventoryPickerRow } from '@/lib/inventory-picker';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { requestJson } from '@/lib/json-client';
 import { formatDate } from '@/lib/presentation';
 

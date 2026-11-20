@@ -16,7 +16,7 @@ import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { formatInventoryReason } from '@/lib/inventory-picker';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import { trimQuantity } from '@/lib/supplier-terms';

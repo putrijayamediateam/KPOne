@@ -235,7 +235,7 @@ test('2b: Classic stays untouched by V2 and leaves out requests only when the V2
 });
 
 test("2b round 2: Daniel's changes (units, live sum, item names, batch quantities, SKU hint)", () => {
-    const words = read('resources/js/lib/inventory-v2-words.ts');
+    const words = read('resources/js/lib/inventory-words.ts');
     // "5 units", decimals only when there is a fraction.
     assert.match(words, /trimQuantity\(String\(value \?\? '0'\)\)/);
     assert.match(
