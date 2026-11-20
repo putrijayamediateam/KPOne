@@ -14,14 +14,7 @@
 
 return [
     'pages' => [
-        'PanelClaims/Index',
-        'PanelClaims/Create',
-        'PanelClaims/Show',
         'ClinicalService/Index',
-        'Dispensary/Show',
-        'Dispensary/Completed',
-        'Dispensary/ReturnsToCheck',
-        'Dispensary/Labels',
         'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
@@ -65,8 +58,6 @@ return [
         'Staff/Show',
         'Staff/Create',
         'Staff/Edit',
-        'Billing/Show',
-        'Billing/Invoice',
         'Agents/Assistant',
         'Agents/DailySummary',
         'Inventory/TreatmentUsage',
@@ -90,7 +81,6 @@ return [
         'Inventory/Skus',
         'Inventory/PurchaseRequests',
         'MedicalCertificates/Index',
-        'Visits/History',
         'Referrals/Index',
         'ClinicianCredentials/Index',
         'PublicCheckInLinks/Index',
