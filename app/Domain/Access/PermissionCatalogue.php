@@ -6,6 +6,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
 use App\Domain\HR\Attendance\ClockPermissions;
@@ -66,6 +67,7 @@ final class PermissionCatalogue
         return [
             ...array_keys(CallHoldPermissions::grants()),
             ...array_keys(TreatmentStepPermissions::grants()),
+            ...array_keys(TriagePermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -436,6 +438,14 @@ final class PermissionCatalogue
         }
 
         foreach (TreatmentStepPermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        // TRI-1 (owner decisions 19 Nov 2026): triage readings for CA and CA Supervisor; the guideline for the
+        // Director and the HR Manager only (the HR Manager never sees triage readings).
+        foreach (TriagePermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
