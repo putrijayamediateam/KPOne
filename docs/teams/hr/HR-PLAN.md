@@ -3392,3 +3392,20 @@ its exact head. The decisions are TEAM.md 99 to 102.
 Next (owner, 2026-11-18): HR-21 (credential warning days per type, none shipped), HR-20 (on-call outside the hour
 limits, inside fair rotation), HR-19, then HR-18 (labour cost view for the Director, HR Manager and Finance Officer,
 at least 3 people per branch-month). Each still needs its design note, Daniel's look and a ship-it.
+
+## 27. HR-21 and HR-20, as built (owner, 2026-11-18 to 2026-11-20)
+
+Each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on its exact head. The decisions are TEAM.md
+106 to 109.
+
+| Slice | What | PR |
+|---|---|---|
+| HR-21 | A credential type marked "Work permit" (must expire, never a health item, fixed after creation). An expiring or expired permit shows one warning line on the register and the staff file and a count on the HR dashboard, for credential managers only. No new table or permission. | #992 |
+| HR-20 | An "On call" roster session: outside weekly hours, the weekly limit, days in a row and daily rest; no clinic hours; inside fair rotation (a night when it crosses midnight, starts at 20:00 or later, or starts before 06:00). No Late, Left early or No clock-in; a call-in may all be claimed as overtime. Its own dashboard line and planner count; left out of locum pay for now. | #1006 |
+
+Classic only (owner, 2026-11-20): CO-7 removes the HR Version 2 pages before HR-20 merges, so HR-20 keeps its Classic
+changes only.
+
+Next (owner, 2026-11-18): HR-19 (Ctrl+K search entries, after Kavitha's shortcut), then HR-18 (labour cost view for the
+Director, HR Manager and Finance Officer, at least 3 people per branch-month). Each still needs its design note,
+Daniel's look and a ship-it.
