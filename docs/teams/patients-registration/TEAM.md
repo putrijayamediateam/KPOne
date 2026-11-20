@@ -11,6 +11,12 @@ updates it in the same PR as the code.
 | Lead | **Nurul** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
 | Reviewer | **Hafiz** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
 | Designer | **Balqis** | Sketches every screen change before it is built and checks the screenshots before hand-off |
+| Triage Lead | **Syazwan** | Builds the triage station (TRI-1a merged in PR #999; TRI-1b screens and TRI-1c next) |
+| Triage Reviewer | **Farhana** | Reviews every triage plan and diff for bugs, races, permission or branch-scope gaps, audit leaks and missed rules |
+| Flow notes Lead | **Aqilah** | Writes patient-flow design notes (TRI-2 emergency lane, MA role; PR #998) before anything is built |
+| Flow notes Reviewer | **Imran** | Checks every note's claims against the code, `AGENTS.md`, `docs/BASELINE.md` and the existing notes, and anything unsafe for patients |
+
+**Added 2026-11-20 (owner request):** Syazwan, Farhana, Aqilah and Imran joined this team from short-term sessions run on 19 and 20 Nov 2026 (triage station and patient-flow notes). Triage and the patient flow (register, triage, emergency lane, treatment room handover) are this team's area; queue, TV and treatment-room screens they touch are agreed with Queue & TV first.
 
 All are Claude sessions working for the owner through the coordinator session. Names chosen by the coordinator at
 the owner's request (2026-11-05). The Reviewer was called Daniel until the owner set up the Design team
