@@ -46,6 +46,7 @@ use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
 use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
+use App\Http\Controllers\HR\LabourCostController as HrLabourCostController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
@@ -254,6 +255,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // HR-9 HR dashboard (docs/teams/hr/HR-9-DESIGN.md). Read-only aggregates; each section needs its own existing HR permission.
     Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
         ->middleware(['permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
+
+    // HR-18 labour cost (owner, 18 and 20 Nov 2026). Read-only branch-by-month aggregates; rules in app/Domain/HR/LabourCost.
+    Route::get('hr/labour-cost', [HrLabourCostController::class, 'index'])
+        ->middleware(['permission:hr.labour_cost.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.labour-cost.index');
 
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
