@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { trimQuantity } from '@/lib/supplier-terms';
 import {
     defaultTransferReceiptRow,

@@ -3,7 +3,7 @@ import { reactive, watch } from 'vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import {
     transferDifferenceKindLabels,
     transferOutcomeLabels,

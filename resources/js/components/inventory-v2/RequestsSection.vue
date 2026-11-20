@@ -11,7 +11,7 @@ import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import { useRequestsAndTransfers } from '@/composables/inventory-v2/useRequestsAndTransfers';
 import { stockRequestActionAllowed } from '@/lib/inventory-operation-transitions';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
