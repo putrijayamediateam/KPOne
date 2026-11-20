@@ -83,7 +83,7 @@ class LabourCostTest extends VisitTestCase
             $this->assertArrayNotHasKey('people', $rows[$hidden]);
         }
         $this->assertSame(['people' => 9, 'pay' => 'RM 23,900.00', 'employer' => 'RM 3,200.00', 'locum' => 'RM 490.00', 'total' => 'RM 27,590.00'], $page['total']);
-        $this->assertSame('RM -10.00', $page['locumCorrections']);
+        $this->assertNull($page['locumCorrections']); // one locum's correction is never shown on its own (Suresh, M1)
         $this->assertSame([1, 1, 0, 0], [$page['runs'], $page['waiting'], $page['unassigned'], $page['unreadable']]);
         $this->assertNotNull($locum);
 
@@ -122,6 +122,55 @@ class LabourCostTest extends VisitTestCase
         $rows = collect($this->page($this->actor('director'))['rows'])->keyBy('branch');
         $this->assertSame(3, $rows[$this->second->name]['people']);
         $this->assertSame('none', $rows[$this->branch->name]['state']);
+    }
+
+    public function test_the_not_shown_group_never_has_one_or_two_people_however_it_is_made(): void
+    {
+        // (1) A leaver with no primary branch on the month's last day, and no small branch: the smallest branch is hidden.
+        $leaver = $this->actor('ca');
+        DB::table('staff_branch_assignments')->where('staff_profile_id', DB::table('staff_profiles')->where('user_id', $leaver->id)->value('id'))
+            ->update(['valid_until' => '2026-11-20']);
+        $people = [[$this->worker($leaver), 500000, 0]];
+        foreach (range(1, 3) as $i) {
+            $people[] = [$this->worker($this->actor('ca')), 100000, 0];
+        }
+        foreach (range(1, 4) as $i) {
+            $people[] = [$this->worker($this->actor('ca', $this->second)), 100000, 0];
+        }
+        $this->payRun($this->group(), 'approved', $people);
+        $page = $this->page($this->actor('director'));
+        $rows = collect($page['rows'])->keyBy('branch');
+        $this->assertSame('protect', $rows[$this->branch->name]['state']);
+        $this->assertSame('shown', $rows[$this->second->name]['state']);
+        $this->assertSame(1, $page['unassigned']); // a count only: the leaver's pay sits inside a 4-person hidden group
+        $this->assertNotNull($page['total']);
+    }
+
+    public function test_two_branches_of_one_person_each_hide_a_larger_branch_too(): void
+    {
+        $people = [[$this->worker($this->actor('ca', $this->second)), 100000, 0], [$this->worker($this->actor('ca', $this->third)), 100000, 0]];
+        foreach (range(1, 10) as $i) {
+            $people[] = [$this->worker($this->actor('ca')), 100000, 0];
+        }
+        $this->payRun($this->group(), 'approved', $people);
+        $rows = collect($this->page($this->actor('director'))['rows'])->keyBy('branch');
+        $this->assertSame(['few', 'few', 'protect'], [$rows[$this->second->name]['state'], $rows[$this->third->name]['state'], $rows[$this->branch->name]['state']]);
+    }
+
+    public function test_one_locums_correction_is_never_shown_alone(): void
+    {
+        $people = [];
+        foreach (range(1, 3) as $i) {
+            $people[] = [$this->worker($this->actor('ca')), 100000, 0];
+            $people[] = [$this->worker($this->actor('ca', $this->second)), 100000, 0];
+        }
+        $this->payRun($this->group(), 'approved', $people);
+        $this->locumPaid([], [['amount' => 20000]]); // a correction only, for one locum
+        $page = $this->page($this->actor('director'));
+        $this->assertNull($page['locumCorrections']);
+        $states = collect($page['rows'])->pluck('state', 'branch');
+        $this->assertSame(1, $states->filter(fn (string $s): bool => $s === 'protect')->count());
+        $this->assertSame(7, $page['total']['people']); // the locum is counted, inside the hidden group
     }
 
     // ---- fixture ----

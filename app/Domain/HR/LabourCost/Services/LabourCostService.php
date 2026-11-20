@@ -109,6 +109,7 @@ final class LabourCostService
 
         // Locum months Finance recorded as paid: each paid shift at its own branch; corrections have no branch.
         $corrections = 0;
+        $correctionPeople = [];
         foreach (DB::table('hr_locum_pay_months')->where('organisation_id', $organisationId)->where('month', $first)->get(['worker_id', 'statement_encrypted']) as $paid) {
             $plain = $this->decrypt((string) $paid->statement_encrypted);
             $statement = $plain === null ? null : json_decode($plain, true);
@@ -133,26 +134,40 @@ final class LabourCostService
                 $cells[$branchId]['locum'] += $amount;
             }
             foreach (is_array($statement['corrections'] ?? null) ? $statement['corrections'] : [] as $correction) {
-                $corrections += is_array($correction) ? (int) ($correction['amount'] ?? 0) : 0;
+                $amount = is_array($correction) ? (int) ($correction['amount'] ?? 0) : 0;
+                $corrections += $amount;
+                if ($amount !== 0) {
+                    $correctionPeople[(int) $paid->worker_id] = true;
+                }
             }
         }
 
-        // The owner's rule: fewer than 3 people is not shown; one hidden branch hides the next smallest too.
+        // The owner's rule: fewer than 3 people is not shown. Everything not shown is one group (hidden branches, people
+        // outside any branch and locums with a correction), since the clinic total less the shown branches equals it; while
+        // that group has 1 or 2 people the next smallest branch is hidden too (Suresh, HR-18 M1).
         $hidden = [];
+        $group = $outside['people'] + $correctionPeople;
         foreach ($cells as $id => $cell) {
             $n = count($cell['people']);
             if ($n > 0 && $n < self::MIN_PEOPLE) {
                 $hidden[$id] = 'few';
+                $group += $cell['people'];
             }
         }
-        if (count($hidden) === 1) {
+        $totalBlocked = false;
+        while (count($group) > 0 && count($group) < self::MIN_PEOPLE) {
             $next = collect($cells)->filter(fn (array $c, int $id): bool => ! isset($hidden[$id]) && count($c['people']) > 0)
                 ->sortBy([fn (array $a, array $b): int => count($a['people']) <=> count($b['people']), fn (array $a, array $b): int => strcmp($a['name'], $b['name'])])
                 ->keys()->first();
-            if ($next !== null) {
-                $hidden[(int) $next] = 'protect';
+            if ($next === null) {
+                $totalBlocked = true; // nothing left to hide: the total would reveal the group
+
+                break;
             }
+            $hidden[(int) $next] = 'protect';
+            $group += $cells[(int) $next]['people'];
         }
+        $groupSafe = count($group) === 0 || count($group) >= self::MIN_PEOPLE;
 
         $rows = [];
         $total = ['people' => [], 'pay' => 0, 'employer' => 0, 'locum' => 0];
@@ -171,6 +186,7 @@ final class LabourCostService
         }
         // People outside every branch (no primary branch, or a locum shift at a branch now inactive) still count in the total.
         $total['people'] += $outside['people'];
+        $total['people'] += $correctionPeople;
         $total['pay'] += $outside['pay'];
         $total['employer'] += $outside['employer'];
         $total['locum'] += $outside['locum'] + $corrections;
@@ -179,15 +195,17 @@ final class LabourCostService
 
         return [
             'rows' => $rows,
-            'total' => $count >= self::MIN_PEOPLE ? [
+            'total' => $count >= self::MIN_PEOPLE && ! $totalBlocked ? [
                 'people' => $count, 'pay' => PayrollMoney::rm($total['pay']), 'employer' => PayrollMoney::rm($total['employer']),
                 'locum' => PayrollMoney::rm($total['locum']), 'total' => PayrollMoney::rm($grand),
             ] : null,
-            'totalHidden' => $count > 0 && $count < self::MIN_PEOPLE,
+            'totalHidden' => $count > 0 && ($count < self::MIN_PEOPLE || $totalBlocked),
             'runs' => count($counted),
             'waiting' => $runs->count() - count($counted),
-            'unassigned' => count($unassigned),
-            'locumCorrections' => $corrections !== 0 && $count >= self::MIN_PEOPLE ? PayrollMoney::rm($corrections) : null,
+            // A count only, never an amount; shown when the not-shown group is 0 or at least 3 people.
+            'unassigned' => $groupSafe ? count($unassigned) : 0,
+            // The corrections figure is its own sum, so it needs 3 locums of its own, whatever the group.
+            'locumCorrections' => $corrections !== 0 && count($correctionPeople) >= self::MIN_PEOPLE && $groupSafe && ! $totalBlocked ? PayrollMoney::rm($corrections) : null,
             'unreadable' => $unreadable,
         ];
     }
@@ -207,7 +225,7 @@ final class LabourCostService
         return DB::table('staff_branch_assignments as a')->join('staff_profiles as p', 'p.id', '=', 'a.staff_profile_id')
             ->whereIn('p.user_id', $userIds)->where('a.is_primary', true)->where('a.valid_from', '<=', $date)
             ->where(fn ($q) => $q->whereNull('a.valid_until')->orWhere('a.valid_until', '>=', $date))
-            ->orderBy('a.valid_from')->get(['p.user_id', 'a.branch_id'])
+            ->orderBy('a.valid_from')->orderBy('a.id')->get(['p.user_id', 'a.branch_id'])
             ->mapWithKeys(fn (object $r): array => [(int) $r->user_id => (int) $r->branch_id])->all();
     }
 
