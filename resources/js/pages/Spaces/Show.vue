@@ -1,27 +1,20 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import UserInfo from '@/components/UserInfo.vue';
-import UserMenuContent from '@/components/UserMenuContent.vue';
-import V2Chip from '@/components/v2/V2Chip.vue';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status';
 import { useScrollStrip } from '@/composables/useScrollStrip';
-import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
-import { V2_FRAMED_SPACES } from '@/lib/v2-spaces';
 import { waitingTone } from '@/lib/waiting-time';
 
 type Space = { key: string; title: string };
 
-// The space shell draws its own chrome, so it opts out of the staff layouts without touching the shared layout map.
-defineOptions({ layout: SpacePassThroughLayout });
+// Classic only (CO-1, owner 19 Nov 2026): a space home sits inside the Classic clinic layout (app.ts maps Spaces/* to
+// ClinicLayout), which draws the top bar, branch switcher, account menu and the Clock in camera dialog.
 
 type Billing = {
     branchName: string | null;
@@ -322,14 +315,7 @@ const props = defineProps<{
     me?: MeHome | null;
 }>();
 
-const page = usePage();
-const user = computed(() => page.props.auth.user!);
-const branches = computed(() => page.props.branchContext);
-const hub = computed(
-    () => page.props.workspace?.navigation.clinicManagement === true,
-);
-
-// Daniel (UX-24 part 2): a status is the dot-and-word V2 chip. The cash closing and the roster use the page's own words.
+// A status is the Classic status badge (it was the V2 chip until CO-1). The cash closing and the roster use the page's own words.
 const cashTone = (status: string) =>
     status === 'approved'
         ? 'success'
@@ -416,162 +402,50 @@ const groups = computed(() => {
         .filter((g) => g.items.length > 0);
 });
 
-// A person with no department space and no Clinic management link gets no empty rail: the sidebar (or the phone strip)
-// is collapsed and the page stands alone, reached through the account menu.
-const bare = computed(() => groups.value.length === 0 && !hub.value);
+// The other spaces this person can enter, as a Classic tab strip under the title. DS-12: Me lives in the account menu, so
+// it is not a tab, and a person whose only space is Me gets no strip.
+const tabs = computed(() => groups.value.flatMap((g) => g.items));
 
-const changeBranch = (event: Event) => {
-    const branchId = Number((event.target as HTMLSelectElement).value);
-
-    if (branchId) {
-        router.post(
-            '/branch-context',
-            { branch_id: branchId, return_to: page.url },
-            { preserveScroll: true },
-        );
-    }
-};
-
-// 390 px: the nav is one scrolling row. The current space is brought to the start and the hidden edge fades.
+// 390 px: the strip scrolls sideways, the current space is brought to the start and the hidden edge fades (as before CO-1).
 const side = ref<HTMLElement | null>(null);
 const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
-
-// DS-12: on a phone a light dim layer sits behind the open account menu, as dialogs have.
-const menuOpen = ref(false);
-
-// DS-12: Me lives in the account menu, so it is not a nav item. A person whose only space is Me gets no space items.
-
-// UX-24 part 1 (Daniel, 2026-11-13): Me home and Management sit in the V2 shell (its sidebar, search, branch switcher,
-// Back to Classic and account menu replace this page's own), content in the page frame with a V2 header. The other
-// spaces keep this page's own chrome until part 2. The teams' blocks below are unchanged.
-// The shell itself is drawn by SpacePassThroughLayout, so this page keeps its markup; here it only drops its own chrome.
-const v2Shell = computed(() =>
-    V2_FRAMED_SPACES.includes(props.space.key)
-        ? (page.props.workspace?.shell ?? null)
-        : null,
-);
 </script>
 
 <template>
     <Head :title="space.title" />
-    <div
-        class="space-shell"
-        :class="{ 'is-bare': bare }"
-        :data-v2-frame="v2Shell ? '' : undefined"
-    >
-        <div
-            v-if="!v2Shell"
-            ref="side"
-            class="space-side"
-            :style="fadeStyle"
-            @scroll.passive="measure"
-        >
-            <Link href="/" class="space-logo"
-                ><span class="space-logo-mark" aria-hidden="true">K</span
-                >KPOne</Link
-            >
-            <nav aria-label="Spaces" class="space-nav">
-                <div v-for="g in groups" :key="g.title" class="space-block">
-                    <div class="space-group">{{ g.title }}</div>
+    <PageFrame class="space-shell" data-classic-frame>
+        <div class="space-main">
+            <PageHeader :title="space.title" data-test="space-head">
+                <template v-if="primaryAction" #actions>
                     <Link
-                        v-for="s in g.items"
-                        :key="s.key"
-                        :href="`/spaces/${s.key}`"
-                        class="space-item"
-                        :class="{ 'is-on': s.key === space.key }"
-                        :aria-current="s.key === space.key ? 'page' : undefined"
-                    >
-                        {{ s.title }}
-                    </Link>
-                </div>
-                <div v-if="hub" class="space-block">
-                    <div class="space-group">More</div>
-                    <Link href="/clinic-management" class="space-item"
-                        >Clinic management</Link
-                    >
-                </div>
-            </nav>
-        </div>
-        <div
-            v-if="menuOpen"
-            class="fixed inset-0 z-40 bg-black/30 sm:hidden"
-            aria-hidden="true"
-        />
-        <main
-            id="main-content"
-            class="space-main"
-            :class="{
-                'mx-auto w-full max-w-7xl': v2Shell,
-            }"
-            tabindex="-1"
-        >
-            <div v-if="!v2Shell" class="space-top">
-                <label
-                    v-if="branches?.active"
-                    class="space-branch"
-                    for="space-branch"
-                >
-                    <span class="space-muted">Branch</span>
-                    <select
-                        id="space-branch"
-                        class="space-select"
-                        :value="branches.active.id"
-                        @change="changeBranch"
-                    >
-                        <option
-                            v-for="b in branches.available"
-                            :key="b.id"
-                            :value="b.id"
-                        >
-                            {{ b.name }}
-                        </option>
-                    </select>
-                </label>
-                <DropdownMenu @update:open="menuOpen = $event">
-                    <DropdownMenuTrigger :as-child="true">
-                        <button
-                            type="button"
-                            class="space-account"
-                            :aria-label="`Account menu, ${user.name}`"
-                        >
-                            <UserInfo :user="user" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                        align="end"
-                        class="w-56 max-sm:[&_[role=menuitem]]:min-h-11"
-                    >
-                        <UserMenuContent :user="user" />
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-            <header
-                v-if="v2Shell"
-                class="flex flex-wrap items-start justify-between gap-3"
-                data-test="v2-space-head"
-            >
-                <h1 class="v2-page-title">{{ space.title }}</h1>
-                <div
-                    v-if="primaryAction"
-                    class="flex flex-wrap items-center gap-2 max-[359px]:flex-col max-[359px]:items-stretch max-sm:w-full [&>*]:max-sm:grow"
-                >
-                    <Link
-                        v-if="primaryAction"
                         :href="primaryAction.href"
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
+                        class="inline-flex h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
                         >{{ primaryAction.title }}</Link
                     >
-                </div>
-            </header>
-            <div v-else class="space-head">
-                <h1 class="space-title">{{ space.title }}</h1>
+                </template>
+            </PageHeader>
+            <nav
+                v-if="
+                    tabs.length > 1 ||
+                    (tabs.length === 1 && tabs[0].key !== space.key)
+                "
+                ref="side"
+                aria-label="Spaces"
+                class="space-tabs"
+                data-test="space-tabs"
+                :style="fadeStyle"
+                @scroll.passive="measure"
+            >
                 <Link
-                    v-if="primaryAction"
-                    :href="primaryAction.href"
-                    class="space-primary"
-                    >{{ primaryAction.title }}</Link
+                    v-for="s in tabs"
+                    :key="s.key"
+                    :href="`/spaces/${s.key}`"
+                    class="space-tab"
+                    :class="{ 'is-on': s.key === space.key }"
+                    :aria-current="s.key === space.key ? 'page' : undefined"
+                    >{{ s.title }}</Link
                 >
-            </div>
+            </nav>
             <template v-if="pharmacy">
                 <SpaceAsOf
                     v-if="pharmacy.branchName"
@@ -1017,7 +891,8 @@ const v2Shell = computed(() =>
                 >
                     <h2 id="bl-cash">Cash closing today</h2>
                     <p class="space-ask-sentence">
-                        <V2Chip
+                        <StatusBadge
+                            :status="billing.cashClosing.status"
                             :tone="cashTone(billing.cashClosing.status)"
                             :label="billing.cashClosing.statusText"
                         />
@@ -1778,7 +1653,8 @@ const v2Shell = computed(() =>
                             <span class="space-row-text">
                                 <span class="space-row-main space-roster-head"
                                     >{{ hr.roster.label }}
-                                    <V2Chip
+                                    <StatusBadge
+                                        :status="hr.roster.status"
                                         :tone="rosterTone(hr.roster.status)"
                                         :label="hr.roster.status"
                                 /></span>
@@ -2065,6 +1941,6 @@ const v2Shell = computed(() =>
                 <h2 id="recent">Recent activity</h2>
                 <p class="space-muted">Recent activity will appear here.</p>
             </section>
-        </main>
-    </div>
+        </div>
+    </PageFrame>
 </template>

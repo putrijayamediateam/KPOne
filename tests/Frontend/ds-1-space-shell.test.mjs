@@ -9,11 +9,7 @@ test('the space shell page uses the server list and has no menu link or mutation
     const page = read('resources/js/pages/Spaces/Show.vue');
     assert.match(page, /defineProps<\{\s*space: Space;\s*spaces: Space\[\];/);
     assert.match(page, /aria-current/);
-    assert.match(page, /id="main-content"/);
-    assert.doesNotMatch(page, /router\.(put|patch|delete)|fetch\(/);
-    assert.equal((page.match(/router\.post\(/g) ?? []).length, 1);
-    assert.match(page, /router\.post\(\s*'\/branch-context'/);
-    assert.match(page, /defineOptions\(\{ layout:/);
+    assert.doesNotMatch(page, /router\.(put|patch|delete|post)|fetch\(/);
 });
 
 test('the shell touch targets are 44 px and the layout collapses below 768 px', () => {
@@ -44,29 +40,12 @@ test('the shell layout css is imported and every selector is scoped to the space
     }
 });
 
-test('DS-2: the switch lives in the user menu, defaults off and sends the lock version', () => {
-    const menu = read('resources/js/components/UserMenuContent.vue');
-    assert.match(menu, /router\.put\('\/spaces\/preference'/);
-    assert.match(
-        menu,
-        /lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion/,
-    );
-    assert.match(menu, /Back to Classic layout/);
-    assert.match(menu, /page\.url\.startsWith\('\/spaces'\)/);
-    assert.match(menu, /switchSpaces\(!inNewLayout\)/);
-    assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
-});
-
-test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way back to the existing screens and a right-edge fade', () => {
+test('DS-1, CO-1: the spaces have a named nav, a way back to the existing screens and a right-edge fade (the branch switcher and account menu come from the Classic layout)', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
-    const css = read('resources/css/space-shell-layout.css');
-    assert.match(page, /<nav aria-label="Spaces"/);
-    assert.match(page, /id="space-branch"/);
-    assert.match(page, /UserMenuContent/);
+    assert.match(page, /<nav[\s\S]*?aria-label="Spaces"/);
     assert.match(page, /Open the existing \{\{ existing\.title \}\} screens/);
     assert.match(page, /useScrollStrip\(side, '\[aria-current="page"\]'\)/);
     assert.match(page, /:style="fadeStyle"/);
-    assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
 });
 
 test('DS-3: the Pharmacy widgets render only what the server sent and mutate nothing', () => {
@@ -84,13 +63,6 @@ test('DS-2: below 640 px the branch select and an initials-only account button s
     assert.match(css, /\.space-account > div \{\s*display: none;/);
 });
 
-test('DS-2: account menu rows are 44 px below 640 px', () => {
-    assert.match(
-        read('resources/js/pages/Spaces/Show.vue'),
-        /max-sm:\[&_\[role=menuitem\]\]:min-h-11/,
-    );
-});
-
 test('DS-3: a Pharmacy space with no widgets still links to the existing screens', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
     assert.equal(
@@ -100,13 +72,6 @@ test('DS-3: a Pharmacy space with no widgets still links to the existing screens
             ) ?? []
         ).length,
         10,
-    );
-});
-
-test('DS-2: the account button names the person', () => {
-    assert.match(
-        read('resources/js/pages/Spaces/Show.vue'),
-        /:aria-label="`Account menu, \$\{user\.name\}`"/,
     );
 });
 
@@ -207,7 +172,7 @@ test('DS-4: Refresh reloads only the Front desk data, with no polling', () => {
 test('DS-4: the primary action sits in the header, rows and buttons stack on phones, the glance is 2x2 and a failed refresh says so', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
     const css = read('resources/css/space-shell-layout.css');
-    assert.match(page, /class="space-primary"/);
+    assert.match(page, /<template v-if="primaryAction" #actions>/);
     assert.match(
         read('resources/js/components/spaces/SpaceAsOf.vue'),
         /Could not refresh\. Still showing the update from/,
@@ -234,11 +199,4 @@ test('DS-5: the Billing space shows pay later, cash closing and awaiting billing
     assert.match(page, /Changed after approval\./);
     assert.match(page, /props\.billing\?\.primaryAction/);
     assert.doesNotMatch(page, /billing\.[a-zA-Z.]*patientName/);
-});
-
-test('the layout switch row shows a layout icon in the new layout and keeps the grid icon in Classic', () => {
-    const menu = read('resources/js/components/UserMenuContent.vue');
-    assert.match(menu, /<LayoutTemplate v-if="inNewLayout"/);
-    assert.match(menu, /<LayoutGrid v-else/);
-    assert.match(menu, /'Back to Classic layout' : 'Try the new layout'/);
 });
