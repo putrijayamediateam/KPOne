@@ -10,13 +10,13 @@ import { CompactPagination } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { formatDate } from '@/lib/presentation';
 
 /**
  * STK-28 in Classic: stock value, cost of goods sold, margin and losses (Director only), with the STK-29 journal summary
- * download. The same props, route and permission as Inventory/V2/StockValue.vue, so both layouts show the same report
- * (owner decision 2026-11-19, replacing the 2026-11-15 "new layout only" page). Figures come from the server; this page
+ * download. The only Stock value page since Classic only (CO-6 removed the V2 copy; owner decision 2026-11-19,
+ * replacing the 2026-11-15 "new layout only" page). Figures come from the server; this page
  * only formats them. Every figure is a KPOne default, not professional accounting advice, so the banner stays on every
  * tab.
  */

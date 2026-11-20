@@ -240,5 +240,5 @@ test('UX-17: the V2 layout takes an optional focusMode that defaults to false, s
         .map((file) => file.replaceAll('\\', '/'))
         .sort();
 
-    assert.deepEqual(asking, ['Clinical/Show.vue', 'Clinical/V2/Show.vue']);
+    assert.deepEqual(asking, ['Clinical/Show.vue']);
 });
