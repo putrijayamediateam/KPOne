@@ -910,6 +910,7 @@ onBeforeUnmount(() => {
                                         v-if="row.triageUrl"
                                         as-child
                                         size="sm"
+                                        class="max-lg:h-11"
                                         ><Link
                                             :href="row.triageUrl"
                                             :aria-label="`Triage ${row.patientName}`"
