@@ -317,3 +317,6 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    a reason, no reason refused, each entry point, and an audit row with the reason and no personal data. Until then the staff procedure in
    `docs/pilot/PATIENT-DUPLICATES.md` applies. A new permission comes back to the coordinator and the owner first.
 
+- **Follow-up (Lead UI/UX Designer, 20 Nov 2026, not in TRI-1b):** make "Apply" an outline button on every
+  Registration board tab (one filled button per view). TRI-1b makes it outline on the Triage tab only. A separate
+  small piece; check the frontend tests that mount the board before changing it.

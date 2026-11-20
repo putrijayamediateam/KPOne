@@ -413,16 +413,23 @@ const submit = () => {
                                         >{{ crossedText(f.key) }}</span
                                     >
                                 </template>
-                                <span
+                                <template
                                     v-else-if="
                                         lowering.readingsToRetake.includes(
                                             f.key,
                                         )
                                     "
-                                    class="font-semibold text-warning-strong"
-                                    >Retake: this reading crossed a limit
-                                    earlier</span
                                 >
+                                    <span
+                                        aria-hidden="true"
+                                        class="size-2.5 shrink-0 rounded-full bg-warning"
+                                    />
+                                    <span
+                                        class="font-semibold text-warning-strong"
+                                        >Retake: this reading crossed a limit
+                                        earlier</span
+                                    >
+                                </template>
                             </p>
                             <InputError :message="errorFor(f.key)" />
                         </div>
