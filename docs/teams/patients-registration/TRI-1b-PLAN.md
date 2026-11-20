@@ -157,7 +157,9 @@ them), the same-zone-reason refusal (`:214`), the yellow-sign-to-green save (`:1
 and `tests/Frontend/tab-counts-1.test.mjs:32` (the tab is added only when a count is sent).
 If the full run finds another, I list it with file, line and reason and wait.
 
-## 6. Open points for the owner (built as the default unless told otherwise)
+## 6. Open points: owner decisions (20 Nov 2026)
+
+The owner kept all five defaults below ("yes, approve a to d and keep R1-R5", relayed word for word by B.E.R.N.I.S.S, 20 Nov 2026), and approved the four assertion changes a to d in section 5.1. They are owner decisions now (TEAM.md section 6, item 31).
 
 - **R1. Red flags (default: sticky).** Once any save at this visit ticked a red flag, the CA can no longer choose a
   zone below red; the doctor sees the patient. Alternative: a later save that unticks it may lower (Farhana showed this
