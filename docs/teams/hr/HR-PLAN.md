@@ -3406,6 +3406,17 @@ Each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on its e
 Classic only (owner, 2026-11-20): CO-7 removes the HR Version 2 pages before HR-20 merges, so HR-20 keeps its Classic
 changes only.
 
-Next (owner, 2026-11-18): HR-19 (Ctrl+K search entries, after Kavitha's shortcut), then HR-18 (labour cost view for the
-Director, HR Manager and Finance Officer, at least 3 people per branch-month). Each still needs its design note,
-Daniel's look and a ship-it.
+HR-19 (Ctrl+K search entries) is paused (owner, 2026-11-20, decision 110).
+
+## 28. HR-18 labour cost, as built (owner, 2026-11-20)
+
+Decisions 111 and 112. Suresh's review, Daniel's look and a green PostgreSQL 18 gate. PR #1011.
+
+| What | Detail |
+|---|---|
+| Page | `/hr/labour-cost`, Classic only, read only, one month from the last 12, an "Estimate" badge; no CSV. |
+| Who | `hr.labour_cost.view.organisation`: Director, HR Manager, Finance Officer (additive migration `007900`). |
+| Source | Approved or locked pay runs (the HR-9b staff-cost basis) and locum months Finance recorded as paid (HR-15g). |
+| Branch | Staff at their primary branch on the month's last day; locum pay at the branch of each paid shift. |
+| Hiding | Every amount covers no one or at least 3 people, per column (staff figures and locum figure); the clinic total less the shown figures never isolates 1 or 2 people; locum corrections never shown as an amount. |
+| Limits | Locum statement lines carry the branch name, not its id (follow-up); comparing months could narrow a figure. |

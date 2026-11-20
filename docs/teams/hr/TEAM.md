@@ -573,8 +573,23 @@ check items, keep them"). The rest stand unless the owner changes them.
     as a night for fair rotation when it crosses midnight, starts at 20:00 or later, or starts before 06:00.
 109. Classic only for HR (owner, 2026-11-20): CO-7 deletes every HR and Attendance Version 2 page and merges before HR-20;
     HR-20 drops its V2 edits and the V2 reads in its frontend test (part of this decision); its Classic changes stay.
+110. HR-19 paused (owner, 2026-11-20, option (b)): the Ctrl+K search entries wait; nothing is built.
+111. HR-18 labour cost (owner, 2026-11-20): the design note is approved with (a) locum pay in its own column; (b) staff
+    count at their primary branch on the month's last day, locum pay at the branch of each paid shift; (c) extra hiding
+    so a small branch cannot be worked out; (d) read only, no CSV. The Clinic management hub line ("KPOne HR labour
+    cost") and its one ClinicManagementTest map line are approved. PR #1011, merged; Daniel OK, Suresh OK.
+112. HR-18 per-figure rule (owner, 2026-11-20, "confirm the HR-18 rule"): every amount on the page covers no one or at
+    least 3 people, checked separately for the staff figures (pay, employer contributions) and the locum figure. A
+    branch with 1 or 2 people is not shown; a column with 1 or 2 people reads "Not shown"; while the clinic total less
+    the shown figures would leave 1 or 2 people in a column, the next smallest branch's figure in that column is
+    withheld, and with nothing left the clinic total of that column is withheld. Locum corrections are never shown as
+    an amount; one line says they are in the clinic total, only when at least 3 locums had one.
 
 ## 7. Open items and known limits
+
+- HR-18: HR-15g locum statement lines store the branch name, not its id, so a renamed branch's locum pay counts outside
+  the branches (follow-up: store the branch id). Comparing two months could narrow a figure down; the page shows one
+  month at a time.
 
 - Every statutory and policy question in `docs/reports/ANALYSIS-HR.md` section 8 is open and is for the clinic's
   accountant, HR adviser or lawyer, not the team.
