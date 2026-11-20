@@ -50,7 +50,7 @@ test('UX-20: Classic renders nothing: without the V2 shell every call is a no-op
 });
 
 test('UX-20: PageFrame draws the crumb at the content edge, 8 px above the title; the shell draws it only for pages without PageFrame', () => {
-    assert.match(frame, /<V2PageCrumbs in-frame class="-mb-4" \/>\s+<slot \/>/);
+    assert.doesNotMatch(frame, /V2PageCrumbs/);
     assert.match(
         squash(shell),
         /<V2PageCrumbs v-if="!focusMode && crumbsInFrame === 0" class="px-4 pt-4 md:px-6" data-test="v2-shell-crumb" \/>/,

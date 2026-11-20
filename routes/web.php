@@ -106,7 +106,6 @@ use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\SkuEditController;
 use App\Http\Controllers\SpaceAskController;
-use App\Http\Controllers\SpacePreferenceController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
@@ -204,8 +203,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('clinician-credentials/{subject}', [ClinicianCredentialController::class, 'save'])->whereNumber('subject')->middleware(['permission:clinician_credentials.manage.organisation', 'sensitive.no-store', 'throttle:20,1'])->name('clinician-credentials.save');
     Route::get('medical-certificate-templates', [ClinicianCredentialController::class, 'templates'])->middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->name('medical-certificate-templates.index');
 
-    // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
-    Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
+    // DS-1 department spaces. Classic only (CO-1, 19 Nov 2026): shown in the Classic layout and reached from the account
+    // menu's Spaces and Me rows; the "Try the new layout" switch (PUT spaces/preference) is gone.
     Route::post('spaces/{space}/ask', [SpaceAskController::class, 'ask'])->where('space', '[a-z_]+')->middleware(['sensitive.no-store', 'throttle:60,1'])->name('spaces.ask');
     // DS-13: the Me home lives at /spaces/me; /me is a plain redirect to it.
     Route::get('me', fn () => to_route('spaces.show', ['space' => 'me']))->middleware('sensitive.no-store')->name('me');

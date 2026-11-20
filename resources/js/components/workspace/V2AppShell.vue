@@ -20,6 +20,7 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import V2RefusedNotice from '@/components/v2/V2RefusedNotice.vue';
 import V2JumpDialog from '@/components/workspace/V2JumpDialog.vue';
+import V2NewLookSidebar from '@/components/workspace/V2NewLookSidebar.vue';
 import V2PageCrumbs from '@/components/workspace/V2PageCrumbs.vue';
 import V2ShellNav from '@/components/workspace/V2ShellNav.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
@@ -39,6 +40,8 @@ const props = defineProps<{ shell: V2Shell; focusMode?: boolean }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
 const sheetOpen = ref(false);
+// "New look (preview)" (docs/design/NEWLOOK-PILOT.md): the two-part sidebar replaces the desktop sidebar for people who switched it on.
+const newLook = computed(() => page.props.workspace?.newLook === true);
 
 // One Clock in (owner, 18 Nov 2026): the top bar has no clock button. The one Clock in button is on Me home.
 const jumpOpen = ref(false);
@@ -84,9 +87,15 @@ const crumbsInFrame = computed(() => placed.value.length);
         :style="{ '--v2-topbar-h': focusMode ? '0px' : '4rem' }"
         data-test="v2-shell"
     >
+        <V2NewLookSidebar
+            v-if="!focusMode && newLook"
+            :shell="shell"
+            :user-name="user.name"
+        />
         <div
             v-if="!focusMode"
             class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-4 lg:flex"
+            :class="{ 'lg:hidden!': newLook }"
             data-test="v2-shell-sidebar"
         >
             <Link
@@ -214,6 +223,14 @@ const crumbsInFrame = computed(() => placed.value.length);
                 scroll-into-view
                 class="mx-4 mt-4 md:mx-6"
             />
+
+            <!-- New look: the target of "Skip to content" (focus lands here, so the next Tab is the page). -->
+            <span
+                v-if="newLook"
+                id="v2-main"
+                tabindex="-1"
+                class="sr-only"
+            ></span>
 
             <slot />
         </div>

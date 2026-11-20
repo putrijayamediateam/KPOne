@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-// HR-15f (owner, via B.E.R.N.I.S.S, 18 Nov 2026; layout by Daniel): a month calendar on My roster, Classic and V2.
+// HR-15f (owner, via B.E.R.N.I.S.S, 18 Nov 2026; layout by Daniel): a month calendar on My roster.
 const calendar = readFileSync(
     'resources/js/components/hr/roster/MonthCalendar.vue',
     'utf8',
@@ -13,7 +13,6 @@ const composable = readFileSync(
 );
 const pages = {
     classic: readFileSync('resources/js/pages/HR/Roster.vue', 'utf8'),
-    v2: readFileSync('resources/js/pages/HR/V2/Roster.vue', 'utf8'),
 };
 
 test('Week stays the default and the month is in the address, nothing stored', () => {

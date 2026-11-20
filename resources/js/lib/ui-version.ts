@@ -1,18 +1,15 @@
 /**
- * Version 2 look. Classic is the default for everyone. A person who switches on "Try the new layout" (and any page
- * inside the spaces shell) gets `data-ui="v2"` on <html>; the new tokens and component looks apply only under it.
- * `app.blade.php` sets the attribute on first paint from the same rule, so there is no flash.
+ * Classic only (CO-1, owner decision 19 Nov 2026): every page is Classic, the spaces included, so `data-ui` on <html>
+ * is always "classic" and no `v2:` class or Version 2 token applies. `app.blade.php` sets the same value on first
+ * paint. The type and helpers stay until the V2 code is removed (CO-10).
  */
 export type UiVersion = 'classic' | 'v2';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const uiVersionFor = (page: {
     url: string;
     props: { workspace?: { spaces?: { enabled?: boolean } } | null };
-}): UiVersion =>
-    page.props.workspace?.spaces?.enabled === true ||
-    page.url.startsWith('/spaces')
-        ? 'v2'
-        : 'classic';
+}): UiVersion => 'classic';
 
 export const applyUiVersion = (version: UiVersion): void => {
     if (typeof document === 'undefined') {

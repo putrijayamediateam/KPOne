@@ -30,7 +30,7 @@ class AccountMenuClockTest extends VisitTestCase
 
         // The waiting-room TV account gets no own pages and no clock.
         $tv = $this->actor('queue_display');
-        $this->assertSame(['links' => [], 'clock' => false], app(AccountMenuLinks::class)->for($tv));
+        $this->assertSame(['links' => [], 'clock' => false, 'spaces' => false], app(AccountMenuLinks::class)->for($tv));
         $this->actingAs($tv)->get('/spaces/me')->assertForbidden();
     }
 

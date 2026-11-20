@@ -86,10 +86,13 @@ test('Version 2: the new look lives only under data-ui="v2"', () => {
     assert.match(css, /@custom-variant v2 \(&:where\(\[data-ui='v2'\] \*\)\);/);
 });
 
-test('Version 2 is set from the saved preference on first paint and on every navigation', () => {
+test('CO-1 (Classic only): the look is Classic on first paint and on every navigation', () => {
     const blade = read('resources/views/app.blade.php');
-    assert.match(blade, /data-ui="\{\{ \$uiVersion \}\}"/);
-    assert.match(blade, /\['props'\]\['workspace'\]\['spaces'\]\['enabled'\]/);
+    assert.match(blade, /data-ui="classic"/);
+    assert.doesNotMatch(
+        blade,
+        /\['props'\]\['workspace'\]\['spaces'\]\['enabled'\]/,
+    );
     assert.match(blade, /html\[data-ui='v2'\]/);
 
     const app = read('resources/js/app.ts');

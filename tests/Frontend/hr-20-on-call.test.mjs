@@ -19,10 +19,7 @@ const compiles = (path) => {
     return template;
 };
 
-for (const path of [
-    'resources/js/pages/HR/Roster.vue',
-    'resources/js/pages/HR/V2/Roster.vue',
-]) {
+for (const path of ['resources/js/pages/HR/Roster.vue']) {
     test(`${path}: the minimum staffing grid lists clinic sessions only`, () => {
         const template = compiles(path);
         assert.match(template, /v-for="session in roster\.staffingSessions"/);
@@ -41,10 +38,7 @@ test('the roster page props carry the clinic sessions separately', () => {
     );
 });
 
-for (const path of [
-    'resources/js/pages/HR/Dashboard.vue',
-    'resources/js/pages/HR/V2/Dashboard.vue',
-]) {
+for (const path of ['resources/js/pages/HR/Dashboard.vue']) {
     test(`${path}: on-call people have their own line`, () => {
         const template = compiles(path);
         assert.match(
@@ -71,8 +65,6 @@ test('the planner footer shows on call beside "on shift", never inside it', () =
     const classic = read('resources/js/pages/HR/Roster.vue');
     assert.match(classic, /planner\.onCallTotals\[index\]/);
     assert.match(classic, /on call<\/template/);
-    const v2 = read('resources/js/pages/HR/V2/Roster.vue');
-    assert.match(v2, /` · \$\{planner\.value\?\.onCallTotals\[i\]\} on call`/);
     assert.match(
         read('app/Domain/HR/Roster/Services/RosterPageService.php'),
         /'totals' => \$this->dayCounts\(\$branch, \$weekStart, \$shifts->reject\(/,
