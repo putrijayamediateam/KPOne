@@ -85,6 +85,11 @@ BEGIN
 
  -- The age group follows the date of birth on the branch-local date of the save (an unknown date of birth with an
  -- adult confirmation is adult), and the suggested zone follows the readings and the ticked codes.
+ -- recorded_at drives the age group, so it must fall within the visit (registered at most three days earlier);
+ -- a far-future value cannot turn a child into an adult.
+ IF NEW.recorded_at < v.registered_at OR NEW.recorded_at > v.registered_at + interval '3 days' THEN
+  RAISE EXCEPTION 'The triage time must fall within the visit' USING ERRCODE = '23514';
+ END IF;
  SELECT pt.date_of_birth AS dob, b.timezone AS tz INTO p FROM patients pt JOIN branches b ON b.id = NEW.branch_id WHERE pt.id = v.patient_id;
  today := (NEW.recorded_at AT TIME ZONE p.tz)::date;
  IF p.dob IS NULL THEN

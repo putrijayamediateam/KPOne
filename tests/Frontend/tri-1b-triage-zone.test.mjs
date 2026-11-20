@@ -150,3 +150,28 @@ test('the yellow sign override below the suggestion is allowed only with every r
         /Pulse must be within limits/,
     );
 });
+
+test('the triage form keeps the retry key on a refusal, renews it on success and follows the server versions', () => {
+    const show = read('resources/js/pages/Triage/Show.vue').replace(/\s+/g, ' ');
+    assert.match(show, /idempotency_key: crypto\.randomUUID\(\)/);
+    assert.match(show, /onSuccess: \(\) => \{ form\.idempotency_key = crypto\.randomUUID\(\); \}/);
+    assert.doesNotMatch(show, /onError: \(\) => \{ form\.idempotency_key/);
+    assert.match(show, /\(\) => props\.expected, \(expected\) => \{ form\.visit_lock_version = expected\.visitLockVersion;/);
+    assert.match(show, /\/visits\/\$\{props\.visit\.visitNumber\}\/triage/);
+    assert.doesNotMatch(show, /dateOfBirth|date_of_birth/);
+    assert.match(show, /aria-pressed/);
+});
+
+test('the guideline page uses fixed heading ids and shows the two-person rule', () => {
+    const page = read('resources/js/pages/TriageGuideline/Index.vue').replace(/\s+/g, ' ');
+    assert.match(page, /heading-\$\{section\.id\}/);
+    assert.match(page, /someone else must check it against the signed copy and approve it/);
+    assert.match(page, /'Very high · yellow'/);
+    assert.match(page, /'Very high · red'/);
+});
+
+test('the Registration board shows the Triage tab only with its server count and links each row to the form', () => {
+    const board = read('resources/js/pages/Registration/Index.vue').replace(/\s+/g, ' ');
+    assert.match(board, /tabCounts\.value\?\.triage !== undefined \|\| props\.visits\?\.tabCounts\?\.triage !== undefined/);
+    assert.match(board, /:aria-label="`Triage \$\{row\.patientName\}`"/);
+});

@@ -7,7 +7,9 @@ use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageGuidelineVersion;
 use App\Domain\Clinical\Triage\VisitTriageAssessment;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Services\VisitDirectoryService;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -212,6 +214,76 @@ class TriageLoweringRuleTest extends TriageTestCase
              SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, now(), gen_random_uuid(), repeat('a', 64), now(), 36.5, %s, guideline_version_id, 'green', 'green' FROM visit_triage_assessments WHERE id = {$first->id}";
         $this->assertDatabaseRefuses(sprintf($sql, "'adult'"), 'age group');
         $this->assertDatabaseRefuses(sprintf($sql, "'child'"), 'stays red');
+    }
+
+    /** PHP and PostgreSQL work out the same age group on birthdays, 29 February and Kuala Lumpur midnight. */
+    public function test_php_and_postgresql_agree_on_the_age_group_at_birthday_edges(): void
+    {
+        $this->approvedGuideline(['child_age_limit_years' => 13]);
+        $cases = [
+            ['2026-11-25 04:00:00', '2013-11-26', 'child', 'the day before the 13th birthday'],
+            ['2026-11-25 04:00:00', '2013-11-25', 'adult', 'the 13th birthday'],
+            ['2026-11-25 16:30:00', '2013-11-26', 'adult', '00:30 next day in Kuala Lumpur is already the birthday'],
+            ['2025-02-28 04:00:00', '2012-02-29', 'child', '29 February birth on 28 February'],
+            ['2025-03-01 04:00:00', '2012-02-29', 'adult', '29 February birth on 1 March'],
+        ];
+        foreach ($cases as [$now, $dob, $band, $label]) {
+            $this->travelTo(CarbonImmutable::parse($now, 'UTC'));
+            [$ca, $visit] = $this->waitingFixture(null, ['date_of_birth' => $dob, 'guardian' => GuardianFixture::contact()]);
+            $this->assertSame($band, $this->triage($ca, $visit)->age_band, $label);
+        }
+        $this->travelBack();
+    }
+
+    public function test_postgresql_refuses_a_triage_time_outside_the_visit(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('PostgreSQL rule.');
+        }
+        $this->twoLimitGuideline();
+        [$ca, $child] = $this->waitingFixture(null, ['date_of_birth' => now('Asia/Kuala_Lumpur')->subYears(5)->toDateString(), 'guardian' => GuardianFixture::contact()]);
+        $first = $this->triage($ca, $child);
+        $this->assertDatabaseRefuses("INSERT INTO visit_triage_assessments (organisation_id, branch_id, visit_id, queue_entry_id, sequence, recorded_by_user_id, recorded_at, idempotency_key, payload_hash, created_at, temperature_celsius, age_band, guideline_version_id, suggested_zone, chosen_zone)
+             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, '2099-01-01', gen_random_uuid(), repeat('a', 64), now(), 38.6, 'adult', guideline_version_id, 'yellow', 'yellow' FROM visit_triage_assessments WHERE id = {$first->id}", 'within the visit');
+    }
+
+    public function test_unknown_age_lowering_needs_the_reading_within_both_groups_limits(): void
+    {
+        $this->twoLimitGuideline();
+        [$ca, $visit] = $this->waitingFixture();
+        DB::table('patients')->where('id', $visit->patient_id)->update(['date_of_birth' => null]);
+        $this->assertSame(['unknown', 'red'], [($r = $this->triage($ca, $visit, ['temperature_celsius' => '38.60', 'chosen_zone' => 'red']))->age_band, $r->suggested_zone]);
+        $this->refused(fn () => $this->triage($ca, $visit, ['temperature_celsius' => '38.20', 'chosen_zone' => 'green', 'override_reason_code' => 'device_error_confirmed']), 'Temperature must be retaken and within limits');
+        $this->assertSame('yellow', $this->triage($ca, $visit, ['temperature_celsius' => '38.20', 'chosen_zone' => 'yellow'])->chosen_zone, 'past the adult yellow limit only');
+    }
+
+    public function test_a_readings_only_row_never_counts_as_crossed_once_a_guideline_is_approved(): void
+    {
+        [$ca, $visit] = $this->waitingFixture();
+        $this->triage($ca, $visit, ['temperature_celsius' => '40.00', 'chosen_zone' => null]);
+        $this->twoLimitGuideline();
+        $row = $this->triage($ca, $visit, ['temperature_celsius' => null]);
+        $this->assertSame(['green', 2], [$row->chosen_zone, $row->sequence], 'no earlier zone, so nothing to lower from');
+    }
+
+    public function test_a_zone_raised_only_by_a_higher_override_may_come_down_on_a_later_save_r4_default(): void
+    {
+        $this->twoLimitGuideline();
+        [$ca, $visit] = $this->waitingFixture();
+        $this->triage($ca, $visit, ['chosen_zone' => 'red', 'override_reason_code' => 'staff_concern']);
+        $this->assertSame('green', $this->triage($ca, $visit, ['pulse_bpm' => 82])->chosen_zone);
+    }
+
+    public function test_visit_details_offer_triage_until_the_doctor_starts_the_consultation(): void
+    {
+        $this->twoLimitGuideline();
+        [$doctor, $ca, $serving, $queue] = $this->servingFixture();
+        $this->selectBranch($ca);
+        $directory = app(VisitDirectoryService::class);
+        $this->assertTrue($directory->detail($ca, $serving->refresh())['can']['triage'], 'called in, no consultation yet');
+        $this->startEncounter($doctor, $serving, $queue->refresh());
+        $this->selectBranch($ca);
+        $this->assertFalse($directory->detail($ca, $serving->refresh())['can']['triage']);
     }
 
     private function assertDatabaseRefuses(string $sql, string $message): void

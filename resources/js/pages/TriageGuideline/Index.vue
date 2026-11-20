@@ -228,17 +228,22 @@ const firstError = (prefix: string) =>
                     detail: inForce,
                     empty: 'No version is approved yet, so triage records readings only and suggests no zone.',
                 },
-                { title: 'Waiting for approval', detail: draft, empty: null },
+                {
+                    id: 'draft',
+                    title: 'Waiting for approval',
+                    detail: draft,
+                    empty: null,
+                },
             ]"
             :key="section.title"
         >
             <section
                 v-if="section.detail || section.empty"
                 class="rounded-lg border bg-card p-4"
-                :aria-labelledby="`heading-${section.title}`"
+                :aria-labelledby="`heading-${section.id}`"
             >
                 <h2
-                    :id="`heading-${section.title}`"
+                    :id="`heading-${section.id}`"
                     class="flex flex-wrap items-center gap-2 text-base font-semibold"
                 >
                     {{ section.title }}
@@ -400,7 +405,8 @@ const firstError = (prefix: string) =>
                             class="space-y-3"
                             @submit.prevent="approveDraft"
                         >
-                            <label class="flex items-start gap-3 text-sm"
+                            <label
+                                class="flex min-h-11 items-start gap-3 text-sm lg:min-h-0"
                                 ><input
                                     v-model="approval.matches_signed_copy"
                                     type="checkbox"
@@ -558,7 +564,7 @@ const firstError = (prefix: string) =>
                         <Button
                             type="button"
                             variant="outline"
-                            size="sm"
+                            class="h-11 lg:h-9"
                             :disabled="entry[list.field].length >= 12"
                             @click="entry[list.field].push('')"
                             >Add

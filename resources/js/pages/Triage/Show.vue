@@ -173,12 +173,15 @@ const direction = computed(() => {
 
     return Math.sign(rank(form.chosen_zone) - rank(assessment.value.zone));
 });
+// A zone the form holds above the suggestion (owner rule 1) is not the CA's override, so no reason is asked.
 const reasonOptions = computed(() =>
-    direction.value < 0
-        ? props.lowerReasons
-        : direction.value > 0
-          ? props.higherReasons
-          : [],
+    !zoneTouched.value && direction.value > 0
+        ? []
+        : direction.value < 0
+          ? props.lowerReasons
+          : direction.value > 0
+            ? props.higherReasons
+            : [],
 );
 watch(direction, () => {
     if (
@@ -239,6 +242,10 @@ const submit = () => {
         ),
     })).post(`/visits/${props.visit.visitNumber}/triage`, {
         preserveScroll: true,
+        // A new key once this save succeeded, so a page restored from history never reuses it; a refusal keeps it.
+        onSuccess: () => {
+            form.idempotency_key = crypto.randomUUID();
+        },
     });
 };
 </script>
@@ -472,7 +479,7 @@ const submit = () => {
                         <button
                             v-if="zoneTouched"
                             type="button"
-                            class="mt-2 text-xs underline"
+                            class="mt-2 min-h-11 text-xs underline lg:min-h-0"
                             @click="resetZone"
                         >
                             Use the suggested zone
@@ -491,6 +498,12 @@ const submit = () => {
                             <select
                                 id="triage-reason"
                                 v-model="form.override_reason_code"
+                                :aria-invalid="
+                                    errorFor('override_reason_code')
+                                        ? 'true'
+                                        : undefined
+                                "
+                                aria-describedby="triage-zone-error"
                                 class="h-11 rounded-md border bg-background px-2 text-sm lg:h-9"
                             >
                                 <option :value="null">Choose a reason</option>
@@ -505,12 +518,13 @@ const submit = () => {
                         </div>
                         <p
                             v-if="refusal"
-                            role="alert"
+                            aria-live="polite"
                             class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
                         >
                             {{ refusal }}
                         </p>
                         <InputError
+                            id="triage-zone-error"
                             :message="
                                 errorFor('chosen_zone') ||
                                 errorFor('override_reason_code')

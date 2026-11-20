@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageGuidelineSign;
 use App\Domain\Clinical\Triage\TriageGuidelineThreshold;
@@ -25,6 +26,8 @@ class TriageGuidelineController extends Controller
     public function index(Request $request): Response
     {
         $actor = $this->manager($request);
+        // Organisation-wide page: dates in the active branch's time zone, or the clinic's when none is selected.
+        $timezone = app(BranchAccessService::class)->activeBranch($actor)->timezone ?? 'Asia/Kuala_Lumpur';
         $versions = TriageGuidelineVersion::query()->where('organisation_id', $actor->organisation_id)
             ->with(['signs', 'thresholds'])->orderByDesc('version_number')->limit(20)->get();
         $names = User::query()->whereIn('id', $versions->flatMap(fn (TriageGuidelineVersion $v): array => array_filter([
@@ -39,9 +42,9 @@ class TriageGuidelineController extends Controller
                 'versionNumber' => $v->version_number,
                 'status' => $v->status,
                 'enteredBy' => $names[$v->entered_by_user_id] ?? 'Staff member',
-                'enteredAt' => $v->entered_at->setTimezone('Asia/Kuala_Lumpur')->format('j M Y'),
+                'enteredAt' => $v->entered_at->setTimezone($timezone)->format('j M Y'),
                 'approvedBy' => $v->approved_by_user_id ? ($names[$v->approved_by_user_id] ?? 'Staff member') : null,
-                'approvedAt' => $v->approved_at?->setTimezone('Asia/Kuala_Lumpur')->format('j M Y'),
+                'approvedAt' => $v->approved_at?->setTimezone($timezone)->format('j M Y'),
             ])->values()->all(),
             'readings' => TriageGuidelineService::READINGS,
         ]);
