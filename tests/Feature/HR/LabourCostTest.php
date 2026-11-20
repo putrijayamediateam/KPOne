@@ -86,7 +86,7 @@ class LabourCostTest extends VisitTestCase
         // Staff figures cover 4 hidden staff; the locum column covers one locum, so its clinic total is withheld.
         $this->assertSame(['people' => 9, 'pay' => 'RM 23,900.00', 'employer' => 'RM 3,200.00', 'locum' => null, 'total' => null], $page['total']);
         $this->assertTrue($page['someHidden']);
-        $this->assertTrue($page['locumCorrections']); // a flag only, never an amount (Suresh, M1)
+        $this->assertFalse($page['locumCorrections']); // one locum's correction: not even the flag (Suresh, M1)
         $this->assertSame([1, 1, 0, 0], [$page['runs'], $page['waiting'], $page['unassigned'], $page['unreadable']]);
         $this->assertNotNull($locum);
 
@@ -171,7 +171,7 @@ class LabourCostTest extends VisitTestCase
         $this->payRun($this->group(), 'approved', $people);
         $this->locumPaid([], [['amount' => 20000]]); // a correction only, for one locum
         $page = $this->page($this->actor('director'));
-        $this->assertTrue($page['locumCorrections']);
+        $this->assertFalse($page['locumCorrections']);
         $rows = collect($page['rows'])->keyBy('branch');
         $this->assertSame(['RM 3,000.00', 'RM 3,000.00'], [$rows[$this->branch->name]['total'], $rows[$this->second->name]['total']]);
         $this->assertSame(7, $page['total']['people']); // the locum is counted

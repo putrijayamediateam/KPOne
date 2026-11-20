@@ -26,6 +26,7 @@ test('hidden branches say why, in words', () => {
     assert.match(page, /const NOT_SHOWN = 'Not shown'/);
     assert.match(page, /value \?\? NOT_SHOWN/);
     assert.match(template, /data-test="labour-cost-some-hidden"/);
+    assert.match(template, /class="sr-only">\s*\(withheld to protect privacy\)/);
     assert.match(template, /no one person's pay can be worked\s+out/);
     assert.match(template, /data-test="labour-cost-hidden"/);
     assert.match(template, /The clinic total covers fewer than 3 people/);

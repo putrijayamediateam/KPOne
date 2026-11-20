@@ -218,7 +218,7 @@ final class LabourCostService
             // A count only, never an amount; shown when no column's not-shown group has 1 or 2 people.
             'unassigned' => $groupsSafe ? count($unassigned) : 0,
             // Never an amount: a separate corrections figure could be subtracted from the locum group (Suresh, HR-18 M1).
-            'locumCorrections' => $corrections !== 0,
+            'locumCorrections' => $corrections !== 0 && count($correctionPeople) >= self::MIN_PEOPLE, // so it cannot hint at which locum had one
             'unreadable' => $unreadable,
         ];
     }

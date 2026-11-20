@@ -153,25 +153,49 @@ const muted = (value: string | null | undefined) =>
                                     class="text-right whitespace-nowrap tabular-nums"
                                     :class="muted(row.pay)"
                                 >
-                                    {{ amount(row.pay) }}
+                                    {{ amount(row.pay)
+                                    }}<span
+                                        v-if="row.pay == null"
+                                        class="sr-only"
+                                    >
+                                        (withheld to protect privacy)</span
+                                    >
                                 </td>
                                 <td
                                     class="text-right whitespace-nowrap tabular-nums"
                                     :class="muted(row.employer)"
                                 >
-                                    {{ amount(row.employer) }}
+                                    {{ amount(row.employer)
+                                    }}<span
+                                        v-if="row.employer == null"
+                                        class="sr-only"
+                                    >
+                                        (withheld to protect privacy)</span
+                                    >
                                 </td>
                                 <td
                                     class="text-right whitespace-nowrap tabular-nums"
                                     :class="muted(row.locum)"
                                 >
-                                    {{ amount(row.locum) }}
+                                    {{ amount(row.locum)
+                                    }}<span
+                                        v-if="row.locum == null"
+                                        class="sr-only"
+                                    >
+                                        (withheld to protect privacy)</span
+                                    >
                                 </td>
                                 <td
                                     class="text-right font-semibold whitespace-nowrap tabular-nums"
                                     :class="muted(row.total)"
                                 >
-                                    {{ amount(row.total) }}
+                                    {{ amount(row.total)
+                                    }}<span
+                                        v-if="row.total == null"
+                                        class="sr-only"
+                                    >
+                                        (withheld to protect privacy)</span
+                                    >
                                 </td>
                             </template>
                             <td
@@ -198,25 +222,49 @@ const muted = (value: string | null | undefined) =>
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
                                 :class="muted(labourCost.total.pay)"
                             >
-                                {{ amount(labourCost.total.pay) }}
+                                {{ amount(labourCost.total.pay)
+                                }}<span
+                                    v-if="labourCost.total.pay == null"
+                                    class="sr-only"
+                                >
+                                    (withheld to protect privacy)</span
+                                >
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
                                 :class="muted(labourCost.total.employer)"
                             >
-                                {{ amount(labourCost.total.employer) }}
+                                {{ amount(labourCost.total.employer)
+                                }}<span
+                                    v-if="labourCost.total.employer == null"
+                                    class="sr-only"
+                                >
+                                    (withheld to protect privacy)</span
+                                >
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
                                 :class="muted(labourCost.total.locum)"
                             >
-                                {{ amount(labourCost.total.locum) }}
+                                {{ amount(labourCost.total.locum)
+                                }}<span
+                                    v-if="labourCost.total.locum == null"
+                                    class="sr-only"
+                                >
+                                    (withheld to protect privacy)</span
+                                >
                             </td>
                             <td
                                 class="text-right font-semibold whitespace-nowrap tabular-nums"
                                 :class="muted(labourCost.total.total)"
                             >
-                                {{ amount(labourCost.total.total) }}
+                                {{ amount(labourCost.total.total)
+                                }}<span
+                                    v-if="labourCost.total.total == null"
+                                    class="sr-only"
+                                >
+                                    (withheld to protect privacy)</span
+                                >
                             </td>
                         </tr>
                     </template>
@@ -243,7 +291,10 @@ const muted = (value: string | null | undefined) =>
                             class="text-right tabular-nums"
                             :class="muted(row.pay)"
                         >
-                            {{ amount(row.pay) }}
+                            {{ amount(row.pay)
+                            }}<span v-if="row.pay == null" class="sr-only">
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                         <dt class="text-muted-foreground">
                             Employer contributions
@@ -252,21 +303,30 @@ const muted = (value: string | null | undefined) =>
                             class="text-right tabular-nums"
                             :class="muted(row.employer)"
                         >
-                            {{ amount(row.employer) }}
+                            {{ amount(row.employer)
+                            }}<span v-if="row.employer == null" class="sr-only">
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                         <dt class="text-muted-foreground">Locum pay</dt>
                         <dd
                             class="text-right tabular-nums"
                             :class="muted(row.locum)"
                         >
-                            {{ amount(row.locum) }}
+                            {{ amount(row.locum)
+                            }}<span v-if="row.locum == null" class="sr-only">
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                         <dt class="font-medium">Total</dt>
                         <dd
                             class="text-right font-semibold tabular-nums"
                             :class="muted(row.total)"
                         >
-                            {{ amount(row.total) }}
+                            {{ amount(row.total)
+                            }}<span v-if="row.total == null" class="sr-only">
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                     </dl>
                     <p v-else class="mt-1 text-muted-foreground">
@@ -288,7 +348,13 @@ const muted = (value: string | null | undefined) =>
                             class="text-right tabular-nums"
                             :class="muted(labourCost.total.pay)"
                         >
-                            {{ amount(labourCost.total.pay) }}
+                            {{ amount(labourCost.total.pay)
+                            }}<span
+                                v-if="labourCost.total.pay == null"
+                                class="sr-only"
+                            >
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                         <dt class="text-muted-foreground">
                             Employer contributions
@@ -297,21 +363,39 @@ const muted = (value: string | null | undefined) =>
                             class="text-right tabular-nums"
                             :class="muted(labourCost.total.employer)"
                         >
-                            {{ amount(labourCost.total.employer) }}
+                            {{ amount(labourCost.total.employer)
+                            }}<span
+                                v-if="labourCost.total.employer == null"
+                                class="sr-only"
+                            >
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                         <dt class="text-muted-foreground">Locum pay</dt>
                         <dd
                             class="text-right tabular-nums"
                             :class="muted(labourCost.total.locum)"
                         >
-                            {{ amount(labourCost.total.locum) }}
+                            {{ amount(labourCost.total.locum)
+                            }}<span
+                                v-if="labourCost.total.locum == null"
+                                class="sr-only"
+                            >
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                         <dt class="font-medium">Total</dt>
                         <dd
                             class="text-right font-semibold tabular-nums"
                             :class="muted(labourCost.total.total)"
                         >
-                            {{ amount(labourCost.total.total) }}
+                            {{ amount(labourCost.total.total)
+                            }}<span
+                                v-if="labourCost.total.total == null"
+                                class="sr-only"
+                            >
+                                (withheld to protect privacy)</span
+                            >
                         </dd>
                     </dl>
                 </li>
