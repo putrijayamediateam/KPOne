@@ -94,7 +94,7 @@ class TriageGuidelineServiceTest extends TriageTestCase
         $this->refused(fn () => $this->enterGuideline($hr, ['thresholds' => [
             ['reading' => 'pulse_bpm', 'age_band' => 'adult', 'direction' => 'very_high', 'limit_value' => '120', 'zone' => 'red'],
             ['reading' => 'pulse_bpm', 'age_band' => 'adult', 'direction' => 'very_high', 'limit_value' => '130', 'zone' => 'yellow'],
-        ]]), 'only once');
+        ]]), 'nearer normal'); // TRI-1b owner rule 2 (two limits), approved 2026-11-20
         $this->assertSame(0, TriageGuidelineVersion::query()->count());
     }
 

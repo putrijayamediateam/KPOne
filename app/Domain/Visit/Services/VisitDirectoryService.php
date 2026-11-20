@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Models\ConsultationCheckout;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
@@ -106,12 +107,17 @@ class VisitDirectoryService
         if ($boardStatus === 'billing') {
             abort_unless($actor->can('billing.view.branch'), 404);
         }
+        if ($boardStatus === 'triage') {
+            abort_unless($actor->can(TriagePermissions::RECORD_BRANCH), 404);
+        }
         $predicate = $this->tabPredicates()[$boardStatus] ?? null;
         if ($predicate !== null) {
             $query->whereRaw($predicate);
         }
 
-        $paginator = $query->latest('registered_at')->paginate(25, page: (int) ($criteria['page'] ?? 1), total: $tabCounts[$boardStatus] ?? $tabCounts['all']);
+        // TRI-1b: the Triage tab lists the longest-waiting patient first; every other tab stays newest first.
+        $boardStatus === 'triage' ? $query->oldest('registered_at')->oldest('id') : $query->latest('registered_at');
+        $paginator = $query->paginate(25, page: (int) ($criteria['page'] ?? 1), total: $tabCounts[$boardStatus] ?? $tabCounts['all']);
         $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
         $eligibleDoctorIds = $this->doctors->eligibleDoctors($branch, $effectiveDate)
             ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
@@ -154,6 +160,8 @@ class VisitDirectoryService
             'completed' => "visits.status = 'completed'",
             'cancelled' => "visits.status = 'cancelled'",
             'billing' => "visits.status = 'registered' AND EXISTS (SELECT 1 FROM consultation_checkouts checkout WHERE checkout.current_visit_guard = visits.id AND (checkout.route = 'billing' OR EXISTS (SELECT 1 FROM dispensary_cases dc WHERE dc.visit_id = visits.id AND dc.status = 'completed')))",
+            // TRI-1b: consultations waiting with no triage yet (TRI-1 section 3, step 2). OTC visits never appear.
+            'triage' => "visits.status = 'registered' AND visits.visit_type = 'consultation' AND EXISTS (SELECT 1 FROM queue_entries q WHERE q.visit_id = visits.id AND q.status = 'waiting') AND NOT EXISTS (SELECT 1 FROM visit_triage_assessments t WHERE t.visit_id = visits.id)",
         ];
     }
 
@@ -168,6 +176,9 @@ class VisitDirectoryService
         $predicates = $this->tabPredicates();
         if (! $actor->can('billing.view.branch')) {
             unset($predicates['billing']);
+        }
+        if (! $actor->can(TriagePermissions::RECORD_BRANCH)) {
+            unset($predicates['triage']);
         }
         foreach ($predicates as $tab => $predicate) {
             $aggregate->selectRaw("COUNT(CASE WHEN {$predicate} THEN 1 END) AS {$tab}");
@@ -249,6 +260,10 @@ class VisitDirectoryService
                 'update' => $actor->can('update', $visit),
                 'cancel' => $actor->can('cancel', $visit),
                 'sendToWaiting' => $canSendToWaiting,
+                // TRI-1b: record or correct triage until the doctor starts the consultation.
+                'triage' => $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
+                    && in_array($visit->queueEntry?->status, [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING], true)
+                    && ! $visit->clinicalEncounter()->exists() && $actor->can(TriagePermissions::RECORD_BRANCH),
             ],
         ];
     }
@@ -443,6 +458,10 @@ class VisitDirectoryService
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,
             'dispensaryStatus' => $openCase?->status,
             'dispensaryUrl' => $openCase && $actor->can('dispensary.view.branch') ? route('dispensary.show', $openCase->public_id) : null,
+            // TRI-1b: the triage form, for CA and CA Supervisor while the consultation is Waiting.
+            'triageUrl' => $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
+                && $visit->queueEntry?->status === QueueEntry::STATUS_WAITING && $actor->can(TriagePermissions::RECORD_BRANCH)
+                ? route('visits.triage.show', $visit) : null,
             'historyUrl' => $this->history->available($actor, $visit) ? route('visits.invoice', $visit) : null,
             'awaitingBilling' => $canBilling && $visit->status === Visit::STATUS_REGISTERED,
             'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),

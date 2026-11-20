@@ -109,5 +109,10 @@ export type VisitDetail = {
         calledAt: string | null;
         lockVersion: number;
     } | null;
-    can: { update: boolean; cancel: boolean; sendToWaiting: boolean };
+    can: {
+        update: boolean;
+        cancel: boolean;
+        sendToWaiting: boolean;
+        triage?: boolean;
+    };
 };

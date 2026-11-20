@@ -146,6 +146,10 @@ const submitCancel = () => {
                     ><Link href="/registration"
                         ><ArrowLeft class="size-4" /> Console</Link
                     ></Button
+                ><Button v-if="visit.can.triage" variant="outline" as-child
+                    ><Link :href="`/visits/${visit.visitNumber}/triage`"
+                        >Triage</Link
+                    ></Button
                 ><Button v-if="visit.can.update" as-child
                     ><Link :href="`/visits/${visit.visitNumber}/edit`"
                         ><Pencil class="size-4" /> Edit</Link
