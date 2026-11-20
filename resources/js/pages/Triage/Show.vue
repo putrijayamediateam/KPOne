@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Check, TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import {
     READING_NAMES,
     loweringRefusal,
     rank,
+    readingNames,
     suggest,
     zoneToConfirm,
 } from '@/lib/triage-zone';
@@ -211,6 +213,13 @@ const zoneLabel = (zone: TriageZone) =>
 const zoneTone = (zone: TriageZone) =>
     ({ green: 'success', yellow: 'warning', red: 'danger' })[zone] as
         'success' | 'warning' | 'danger';
+// Design review (Daniel, 20 Nov): a zone always shows as a coloured dot plus its word, never colour alone.
+const zoneDot = (zone: TriageZone) =>
+    ({ green: 'bg-success', yellow: 'bg-warning', red: 'bg-destructive' })[
+        zone
+    ];
+const crossedZone = (key: Field) =>
+    assessment.value?.crossed[key]?.zone ?? null;
 const crossedText = (key: Field) => {
     const c = assessment.value?.crossed[key];
 
@@ -218,8 +227,35 @@ const crossedText = (key: Field) => {
         return null;
     }
 
-    return `${c.direction === 'very_high' ? 'Very high' : 'Very low'} · past the ${c.zone} limit`;
+    return `${zoneLabel(c.zone)} · ${c.direction === 'very_high' ? 'Very high' : 'Very low'} · past the ${c.zone} limit`;
 };
+// Why the suggestion cannot be saved yet, naming the readings that hold it (owner rule 1).
+const heldReason = computed(() => {
+    if (!offered.value?.heldBy || !assessment.value) {
+        return null;
+    }
+
+    if (props.lowering.hadRedFlag || form.red_flag_codes.length > 0) {
+        return 'not allowed: a red flag was ticked at this visit';
+    }
+
+    const suggested = assessment.value.zone;
+    const blocking = props.lowering.readingsToRetake.filter((field) => {
+        const value = readings.value[field] ?? '';
+        const crossed = assessment.value?.crossed[field];
+
+        return (
+            value.trim() === '' ||
+            (crossed !== undefined && rank(crossed.zone) > rank(suggested))
+        );
+    });
+
+    if (blocking.length === 0) {
+        return 'not allowed yet';
+    }
+
+    return `not allowed until the ${readingNames(blocking).toLowerCase()} ${blocking.length > 1 ? 'are' : 'is'} retaken`;
+});
 const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 const generalError = computed(
     () =>
@@ -346,9 +382,11 @@ const submit = () => {
                                 autocomplete="off"
                                 class="h-11 rounded-md border bg-background px-3 text-sm tabular-nums outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 lg:h-9"
                                 :class="
-                                    crossedText(f.key)
-                                        ? 'border-foreground font-semibold'
-                                        : ''
+                                    crossedZone(f.key) === 'red'
+                                        ? 'border-2 border-destructive font-semibold'
+                                        : crossedZone(f.key) === 'yellow'
+                                          ? 'border-2 border-warning font-semibold'
+                                          : ''
                                 "
                                 :aria-invalid="
                                     errorFor(f.key) ? 'true' : undefined
@@ -357,24 +395,33 @@ const submit = () => {
                             />
                             <p
                                 :id="`triage-${f.key}-note`"
-                                class="min-h-4 text-xs"
-                                :class="
-                                    crossedText(f.key)
-                                        ? 'font-semibold text-foreground'
-                                        : 'text-muted-foreground'
-                                "
+                                class="flex min-h-4 items-center gap-1.5 text-xs"
                             >
-                                <template v-if="crossedText(f.key)">{{
-                                    crossedText(f.key)
-                                }}</template>
-                                <template
+                                <template v-if="crossedText(f.key)">
+                                    <span
+                                        aria-hidden="true"
+                                        class="size-2.5 shrink-0 rounded-full"
+                                        :class="zoneDot(crossedZone(f.key)!)"
+                                    />
+                                    <span
+                                        class="font-semibold"
+                                        :class="
+                                            crossedZone(f.key) === 'red'
+                                                ? 'text-destructive'
+                                                : 'text-warning-strong'
+                                        "
+                                        >{{ crossedText(f.key) }}</span
+                                    >
+                                </template>
+                                <span
                                     v-else-if="
                                         lowering.readingsToRetake.includes(
                                             f.key,
                                         )
                                     "
-                                    >Crossed a limit earlier: retake
-                                    it</template
+                                    class="font-semibold text-warning-strong"
+                                    >Retake: this reading crossed a limit
+                                    earlier</span
                                 >
                             </p>
                             <InputError :message="errorFor(f.key)" />
@@ -442,14 +489,28 @@ const submit = () => {
                                 :tone="zoneTone(assessment.zone)"
                                 :label="`${zoneLabel(assessment.zone)} zone`"
                             />
+                            <span
+                                v-if="heldReason"
+                                class="text-xs text-muted-foreground"
+                                >({{ heldReason }})</span
+                            >
                         </p>
-                        <p
+                        <div
                             v-if="offered?.heldBy"
-                            class="mt-2 text-xs text-muted-foreground"
+                            role="status"
+                            class="mt-3 flex gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
                         >
-                            Held at {{ zoneLabel(offered.zone) }}:
-                            {{ offered.heldBy }}
-                        </p>
+                            <TriangleAlert
+                                aria-hidden="true"
+                                class="mt-0.5 size-4 shrink-0"
+                            />
+                            <div>
+                                <p class="font-semibold">
+                                    Held at {{ zoneLabel(offered.zone) }}
+                                </p>
+                                <p class="mt-0.5">{{ offered.heldBy }}</p>
+                            </div>
+                        </div>
                         <fieldset class="mt-3">
                             <legend class="text-xs text-muted-foreground">
                                 Zone to save
@@ -463,15 +524,25 @@ const submit = () => {
                                     ] as TriageZone[]"
                                     :key="zone"
                                     type="button"
-                                    class="min-h-11 rounded-md border px-2 text-sm lg:min-h-9"
+                                    class="flex min-h-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm"
                                     :class="
                                         form.chosen_zone === zone
-                                            ? 'border-foreground bg-muted font-semibold'
-                                            : 'text-muted-foreground'
+                                            ? 'border-2 border-foreground bg-muted font-semibold text-foreground'
+                                            : 'border text-muted-foreground'
                                     "
                                     :aria-pressed="form.chosen_zone === zone"
                                     @click="choose(zone)"
                                 >
+                                    <Check
+                                        v-if="form.chosen_zone === zone"
+                                        aria-hidden="true"
+                                        class="size-4 shrink-0"
+                                    />
+                                    <span
+                                        aria-hidden="true"
+                                        class="size-2.5 shrink-0 rounded-full"
+                                        :class="zoneDot(zone)"
+                                    />
                                     {{ zoneLabel(zone) }}
                                 </button>
                             </div>

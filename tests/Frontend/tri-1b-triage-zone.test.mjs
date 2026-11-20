@@ -175,3 +175,20 @@ test('the Registration board shows the Triage tab only with its server count and
     assert.match(board, /tabCounts\.value\?\.triage !== undefined \|\| props\.visits\?\.tabCounts\?\.triage !== undefined/);
     assert.match(board, /:aria-label="`Triage \$\{row\.patientName\}`"/);
 });
+
+test("Daniel's review: the zone selector, the Held box, reading notes, outline buttons and the guideline page", () => {
+    const show = read('resources/js/pages/Triage/Show.vue').replace(/\s+/g, ' ');
+    assert.match(show, /<Check v-if="form\.chosen_zone === zone"/);
+    assert.match(show, /zoneDot\(zone\)/);
+    assert.match(show, /Held at \{\{ zoneLabel\(offered\.zone\) \}\}/);
+    assert.match(show, /<TriangleAlert/);
+    assert.match(show, /not allowed until the/);
+    assert.match(show, /Retake: this reading crossed a limit earlier/);
+    assert.match(show, /border-2 border-warning/);
+    const board = read('resources/js/pages/Registration/Index.vue').replace(/\s+/g, ' ');
+    assert.match(board, /:variant=" activeTab === 'triage' \? 'outline' : 'default' "/);
+    const page = read('resources/js/pages/TriageGuideline/Index.vue').replace(/\s+/g, ' ');
+    assert.match(page, /it becomes the guideline in force/);
+    assert.match(page, /<DateField id="tg-signed"/);
+    assert.match(page, /class="space-y-2 md:hidden"/);
+});

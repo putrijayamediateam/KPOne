@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
 
@@ -67,6 +68,13 @@ const COLUMNS = [
     { direction: 'very_low', zone: 'yellow', label: 'Very low · yellow' },
     { direction: 'very_high', zone: 'yellow', label: 'Very high · yellow' },
     { direction: 'very_high', zone: 'red', label: 'Very high · red' },
+] as const;
+// Phone cards: the red limits first, then the yellow ones, each low then high.
+const CARD_COLUMNS = [
+    { direction: 'very_low', zone: 'red', label: 'Red · very low' },
+    { direction: 'very_high', zone: 'red', label: 'Red · very high' },
+    { direction: 'very_low', zone: 'yellow', label: 'Yellow · very low' },
+    { direction: 'very_high', zone: 'yellow', label: 'Yellow · very high' },
 ] as const;
 const BANDS = [
     { value: 'adult', label: 'Adults' },
@@ -327,8 +335,44 @@ const firstError = (prefix: string) =>
                     </div>
                     <div
                         v-for="band in BANDS"
+                        :key="`view-cards-${band.value}`"
+                        class="mt-4 space-y-2 md:hidden"
+                    >
+                        <h3 class="text-sm font-medium">
+                            {{ band.label }} · limits
+                        </h3>
+                        <dl
+                            v-for="r in readings"
+                            :key="r"
+                            class="rounded-md border p-3 text-sm"
+                        >
+                            <dt class="font-medium">{{ READING_LABELS[r] }}</dt>
+                            <dd class="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
+                                <span
+                                    v-for="c in CARD_COLUMNS"
+                                    :key="c.label"
+                                    class="text-xs text-muted-foreground"
+                                    >{{ c.label }}:
+                                    <span
+                                        class="text-sm text-foreground tabular-nums"
+                                        >{{
+                                            limitText(
+                                                section.detail.limits,
+                                                band.value,
+                                                r,
+                                                c.direction,
+                                                c.zone,
+                                            ) || '—'
+                                        }}</span
+                                    ></span
+                                >
+                            </dd>
+                        </dl>
+                    </div>
+                    <div
+                        v-for="band in BANDS"
                         :key="band.value"
-                        class="mt-4 overflow-x-auto"
+                        class="mt-4 hidden overflow-x-auto md:block"
                     >
                         <table class="w-full min-w-[520px] text-sm">
                             <caption class="mb-1 text-left text-sm font-medium">
@@ -432,7 +476,8 @@ const firstError = (prefix: string) =>
                                     !approval.matches_signed_copy
                                 "
                             >
-                                Approve version {{ draft.versionNumber }}
+                                Approve version {{ draft.versionNumber }}: it
+                                becomes the guideline in force
                             </Button>
                         </form>
                         <form class="mt-3" @submit.prevent="discardDraft">
@@ -498,11 +543,10 @@ const firstError = (prefix: string) =>
                     </div>
                     <div class="grid gap-1">
                         <label for="tg-signed" class="text-sm">Signed on</label>
-                        <input
+                        <DateField
                             id="tg-signed"
                             v-model="entry.doctor_signed_on"
-                            type="date"
-                            class="h-11 rounded-md border bg-background px-3 text-sm lg:h-9"
+                            calendar-label="Choose the signature date"
                         />
                         <InputError :message="entry.errors.doctor_signed_on" />
                     </div>
@@ -554,7 +598,7 @@ const firstError = (prefix: string) =>
                             <Button
                                 type="button"
                                 variant="outline"
-                                class="h-11 lg:h-9"
+                                class="h-11 shrink-0 lg:h-9"
                                 :disabled="entry[list.field].length <= list.min"
                                 :aria-label="`Remove ${list.field === 'red_flags' ? 'red flag' : 'yellow sign'} ${i + 1}`"
                                 @click="entry[list.field].splice(i, 1)"
@@ -577,10 +621,50 @@ const firstError = (prefix: string) =>
                         <InputError :message="firstError(list.field)" />
                     </fieldset>
                 </div>
+                <!-- Below 768 px each reading is a stacked card (Lead UI/UX Designer, 20 Nov). -->
+                <div
+                    v-for="band in BANDS"
+                    :key="`cards-${band.value}`"
+                    class="space-y-2 md:hidden"
+                >
+                    <h3 class="text-sm font-medium">
+                        {{ band.label }} · limits
+                    </h3>
+                    <fieldset
+                        v-for="r in readings"
+                        :key="r"
+                        class="rounded-md border p-3"
+                    >
+                        <legend class="px-1 text-sm">
+                            {{ READING_LABELS[r] }}
+                        </legend>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label
+                                v-for="c in CARD_COLUMNS"
+                                :key="c.label"
+                                class="grid gap-1 text-xs text-muted-foreground"
+                                >{{ c.label }}
+                                <input
+                                    v-model="
+                                        entry.limits[
+                                            key(
+                                                band.value,
+                                                r,
+                                                c.direction,
+                                                c.zone,
+                                            )
+                                        ]
+                                    "
+                                    inputmode="decimal"
+                                    class="h-11 w-full min-w-0 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums"
+                            /></label>
+                        </div>
+                    </fieldset>
+                </div>
                 <div
                     v-for="band in BANDS"
                     :key="band.value"
-                    class="overflow-x-auto"
+                    class="hidden overflow-x-auto md:block"
                 >
                     <table class="w-full min-w-[620px] text-sm">
                         <caption class="mb-1 text-left text-sm font-medium">

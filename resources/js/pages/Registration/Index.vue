@@ -757,7 +757,13 @@ onBeforeUnmount(() => {
                         label="Urgency"
                         :options="urgencyOptions"
                     />
-                    <Button size="sm" type="submit" :disabled="loading"
+                    <Button
+                        size="sm"
+                        type="submit"
+                        :variant="
+                            activeTab === 'triage' ? 'outline' : 'default'
+                        "
+                        :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"
                             class="size-4 animate-spin"
@@ -910,6 +916,7 @@ onBeforeUnmount(() => {
                                         v-if="row.triageUrl"
                                         as-child
                                         size="sm"
+                                        variant="outline"
                                         class="max-lg:h-11"
                                         ><Link
                                             :href="row.triageUrl"
@@ -950,6 +957,7 @@ onBeforeUnmount(() => {
                             <Button
                                 v-if="row.triageUrl"
                                 as-child
+                                variant="outline"
                                 class="h-11 shrink-0"
                                 ><Link
                                     :href="row.triageUrl"
