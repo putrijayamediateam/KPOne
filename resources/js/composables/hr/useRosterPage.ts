@@ -54,6 +54,7 @@ export type Planner = {
         leaveDays: Record<string, 'full' | 'half'>;
     }[];
     totals: number[];
+    onCallTotals: number[];
     shortDays: { date: string; label: string }[];
     warnings: string[];
     /** HR-5b: compliance warnings and fair rotation; null when no week is shown. */
@@ -97,6 +98,7 @@ export type RosterProps = {
             label: string;
         };
         sessions: Option[];
+        staffingSessions: Option[];
         my: {
             days: { date: string; label: string; shifts: Shift[] }[];
             canClock: boolean;

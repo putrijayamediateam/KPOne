@@ -49,6 +49,7 @@ const props = defineProps<{
             label: string;
         };
         sessions: Option[];
+        staffingSessions: Option[];
         my: {
             days: { date: string; label: string; shifts: Shift[] }[];
             canClock: boolean;
@@ -637,7 +638,22 @@ const isMonth = computed(
                                         class="inline-flex items-center gap-2 whitespace-nowrap"
                                         data-test="day-total"
                                     >
-                                        <span>{{ planner.totals[index] }}</span>
+                                        <span
+                                            >{{ planner.totals[index]
+                                            }}<template
+                                                v-if="
+                                                    planner.onCallTotals[
+                                                        index
+                                                    ] > 0
+                                                "
+                                            >
+                                                ·
+                                                {{
+                                                    planner.onCallTotals[index]
+                                                }}
+                                                on call</template
+                                            ></span
+                                        >
                                         <StatusBadge
                                             v-if="isShort(day.date)"
                                             status="roster_short"
@@ -780,7 +796,7 @@ const isMonth = computed(
                     </template>
                     <template #body>
                         <tr
-                            v-for="session in roster.sessions"
+                            v-for="session in roster.staffingSessions"
                             :key="session.value"
                         >
                             <th scope="row" class="font-medium">
@@ -820,7 +836,7 @@ const isMonth = computed(
             </div>
             <ul class="flex flex-col gap-3 md:hidden">
                 <li
-                    v-for="session in roster.sessions"
+                    v-for="session in roster.staffingSessions"
                     :key="session.value"
                     class="rounded-xl border bg-card p-4"
                 >

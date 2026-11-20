@@ -3,6 +3,7 @@
 namespace App\Domain\HR\LocumPay\Services;
 
 use App\Domain\HR\Payroll\Services\PayrollMoney;
+use App\Domain\HR\Roster\Services\RosterRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
@@ -149,6 +150,8 @@ final class LocumPayStatement
             $shifts = DB::table('hr_roster_shifts as s')->join('hr_roster_versions as v', 'v.id', '=', 's.roster_version_id')
                 ->join('branches as b', 'b.id', '=', 's.branch_id')
                 ->where('s.organisation_id', $organisationId)->where('s.staff_user_id', $userId)->where('v.status', 'approved')
+                // HR-20 (owner, 18 Nov 2026): on-call shifts are left out of locum pay for now.
+                ->where('s.session_type', '<>', RosterRules::ON_CALL)
                 ->where('s.starts_at', '>=', $start->subDays(2))->where('s.starts_at', '<', $start->addMonth()->addDays(2))
                 ->orderBy('s.starts_at')->orderBy('s.id')
                 ->get(['s.id', 's.public_id', 's.starts_at', 's.ends_at', 's.timezone', 's.break_minutes', 's.session_type', 'b.name as branch']);

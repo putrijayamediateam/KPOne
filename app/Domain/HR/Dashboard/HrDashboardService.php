@@ -144,8 +144,11 @@ final class HrDashboardService
                 ->whereIn('roster_version_id', $approved)->where('starts_at', '<=', $now)->where('ends_at', '>', $now)->orderBy('starts_at')->get();
             // Someone whose approved leave covers now is on leave, not rostered (the other half of a half day still is).
             $away = $this->onLeaveNow($actor->organisation_id, $branch, $now, array_values($shifts->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
-            $onShift = $shifts->filter(fn (RosterShift $s): bool => isset($names[$s->staff_user_id]) && ! isset($away[$s->staff_user_id]))->values();
-            $roles = $this->roles(array_values($onShift->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
+            $present = $shifts->filter(fn (RosterShift $s): bool => isset($names[$s->staff_user_id]) && ! isset($away[$s->staff_user_id]))->values();
+            // HR-20 (owner, 18 Nov 2026): on-call people show on their own line and never count as the doctor on duty.
+            $onShift = $present->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))->values();
+            $onCall = $present->filter(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))->values();
+            $roles = $this->roles(array_values($present->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
             $doctors = $onShift->filter(fn (RosterShift $s): bool => in_array('resident_doctor', $roles[$s->staff_user_id] ?? [], true))->pluck('staff_user_id')->unique()->count();
             $out['rostered'] = [
                 'count' => $onShift->pluck('staff_user_id')->unique()->count(),
@@ -157,6 +160,12 @@ final class HrDashboardService
                 ])->values()->all(),
                 // Only when someone is on now: a closed or quiet branch is not "without a doctor".
                 'noDoctor' => $onShift->isNotEmpty() && $doctors === 0,
+                'onCallCount' => $onCall->pluck('staff_user_id')->unique()->count(),
+                'onCall' => $onCall->unique('staff_user_id')->take(self::MAX_NAMES)->map(fn (RosterShift $s): array => [
+                    'name' => $names[$s->staff_user_id],
+                    'role' => $this->roleLabel($roles[$s->staff_user_id] ?? []),
+                    'until' => $s->ends_at->setTimezone($s->timezone)->format('g:i A'),
+                ])->values()->all(),
             ];
             $out['staffing'] = $this->staffing($actor, $branch, $localToday);
         }

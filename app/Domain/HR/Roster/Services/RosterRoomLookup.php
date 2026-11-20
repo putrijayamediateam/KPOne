@@ -45,6 +45,8 @@ final class RosterRoomLookup
                 ->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->where('status', 'approved'))
             ->where('starts_at', '<', $dayEnd)
             ->where('ends_at', '>', $dayStart)
+            // HR-20 (owner, 18 Nov 2026): an on-call doctor gets no consultation room from the roster.
+            ->where('session_type', '<>', RosterRules::ON_CALL)
             ->orderBy('starts_at')->orderBy('id')
             ->get(['id', 'starts_at', 'ends_at', 'branch_room_id']);
 

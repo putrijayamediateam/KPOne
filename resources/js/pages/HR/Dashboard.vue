@@ -320,6 +320,33 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                             }}
                             more
                         </p>
+                        <p
+                            v-if="branch.today.rostered.onCall.length"
+                            class="text-sm"
+                            data-test="on-call-now"
+                        >
+                            <span class="font-medium">On call:</span>
+                            <template
+                                v-for="(p, i) in branch.today.rostered.onCall"
+                                :key="`oncall-${p.name}-${i}`"
+                                >{{ i > 0 ? ', ' : ' ' }}{{ p.name }}
+                                <span class="text-muted-foreground"
+                                    >({{ p.role }}, until {{ p.until }})</span
+                                ></template
+                            >
+                            <template
+                                v-if="
+                                    branch.today.rostered.onCallCount >
+                                    branch.today.rostered.onCall.length
+                                "
+                                >, and
+                                {{
+                                    branch.today.rostered.onCallCount -
+                                    branch.today.rostered.onCall.length
+                                }}
+                                more</template
+                            >
+                        </p>
                     </div>
                     <div
                         v-if="branch.today.clockedIn"

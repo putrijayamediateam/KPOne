@@ -6,6 +6,7 @@ use App\Domain\HR\LocumPay\LocumPayPermissions;
 use App\Domain\HR\Payroll\Services\PayrollMoney;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\RecordSupport;
+use App\Domain\HR\Roster\Services\RosterRules;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -90,7 +91,7 @@ final class LocumPayService
             $userId = LocumPayStatement::linkedUserId((int) $worker->id);
             $shift = DB::table('hr_roster_shifts as s')->join('hr_roster_versions as v', 'v.id', '=', 's.roster_version_id')
                 ->where('s.organisation_id', $actor->organisation_id)->where('s.public_id', $shiftId)->where('v.status', 'approved')
-                ->where('s.staff_user_id', $userId ?? 0)->first(['s.id', 's.starts_at', 's.timezone']);
+                ->where('s.staff_user_id', $userId ?? 0)->where('s.session_type', '<>', RosterRules::ON_CALL)->first(['s.id', 's.starts_at', 's.timezone']);
             abort_if($shift === null, 404);
             $month = CarbonImmutable::parse((string) $shift->starts_at)->setTimezone((string) $shift->timezone)->format('Y-m-01');
             $this->assertUnpaid((int) $worker->id, $month);
