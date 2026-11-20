@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clinic compliance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="Cheras" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Clinic compliance</div>
+      <span style="margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">Warnings only: nothing here stops clinical work</span>
+      <button type="button" style="margin-left: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Add a licence</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; padding: 0 8px 10px">Compliance</h2>
+        <nav aria-label="Clinic compliance sections" style="display: flex; flex-direction: column; gap: 2px">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><button type="button" onClick="{{t.pick}}" aria-current="{{t.cur}}" style="{{t.row}}"><span style="{{t.ic}}">{{t.k}}</span><span style="flex: 1">{{t.label}}</span><span style="{{t.countStyle}}">{{t.count}}</span></button></sc-for>
+        </nav>
+        <span style="font-size: 12px; color: #8a8a93; padding: 12px 8px 0">Dates and temperatures are what someone typed; KPOne does not check them.</span>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for>
+          <sc-for list="{{stripX}}" as="s" hint-placeholder-count="3"><button type="button" aria-expanded="{{s.exp}}" aria-controls="{{s.pid}}" onClick="{{s.tog}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" data-xp="1" style="{{s.chev}}">⌄</span></button></sc-for>
+        </div>
+        <sc-for list="{{stripP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <sc-if value="{{showLic}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h1 style="margin: 0; font-size: 17px; font-weight: 600">Licences</h1><span style="font-size: 12px; color: #8a8a93">All branches · soonest expiry first</span></div>
+            <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+              <span style="flex: 1 1 220px">LICENCE</span><span style="flex: none; width: 100px">APPLIES TO</span><span style="flex: none; width: 110px">EXPIRES</span><span style="flex: none; width: 170px; text-align: right">STATUS</span>
+            </div>
+            <sc-for list="{{lic}}" as="l" hint-placeholder-count="12">
+              <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+                <span style="flex: 1 1 220px; min-width: 0"><span style="display: block; font-weight: 500">{{l.name}}</span><span style="font-size: 12px; color: #8a8a93">{{l.ref}}</span></span>
+                <span style="flex: none; width: 100px; color: #3a3a40">{{l.to}}</span>
+                <span style="flex: none; width: 110px; color: #3a3a40; font-variant-numeric: tabular-nums">{{l.exp}}</span>
+                <span style="flex: none; width: 170px; display: flex; justify-content: flex-end"><span style="{{l.stStyle}}">{{l.st}}</span></span>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{showFridge}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap"><h1 style="margin: 0; font-size: 17px; font-weight: 600">Fridge log · Vaccine fridge 1</h1><span style="font-size: 12px; color: #8a8a93">Cheras · safe range 2–8 °C · readings at 08:30 and 17:30</span></div>
+            <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+              <span style="flex: none; width: 120px">TAKEN</span><span style="flex: none; width: 70px; text-align: right">NOW</span><span style="flex: none; width: 90px; text-align: right">LOW / HIGH</span><span style="flex: 1 1 160px">BY</span><span style="flex: none; width: 130px; text-align: right">STATUS</span>
+            </div>
+            <sc-for list="{{reads}}" as="r" hint-placeholder-count="12">
+              <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+                <span style="flex: none; width: 120px; color: #3a3a40; font-variant-numeric: tabular-nums">{{r.when}}</span>
+                <span style="flex: none; width: 70px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.now}}</span>
+                <span style="flex: none; width: 90px; text-align: right; color: #6b6b73; font-variant-numeric: tabular-nums">{{r.lh}}</span>
+                <span style="flex: 1 1 160px; min-width: 0"><span style="display: block">{{r.by}}</span><span style="font-size: 12px; color: #8a8a93">{{r.action}}</span></span>
+                <span style="flex: none; width: 130px; display: flex; justify-content: flex-end"><span style="{{r.stStyle}}">{{r.st}}</span></span>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{showOther}}" hint-placeholder-val="{{ false }}">
+            <h1 style="margin: 0 6px 8px; font-size: 17px; font-weight: 600">{{otherTitle}}</h1>
+            <span style="margin: 0 6px; color: #6b6b73">{{otherText}}</span>
+          </sc-if>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Add a reading</h2>
+          <span style="font-size: 13px; color: #6b6b73">Vaccine fridge 1 · Cheras · 17:30 reading due</span>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Temperature now (°C)<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">9.1</span></label>
+          <div style="display: flex; gap: 8px"><label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73; flex: 1">Lowest since last (°C)<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">4.2</span></label><label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73; flex: 1">Highest since last (°C)<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">9.4</span></label></div>
+          <div style="padding: 10px 12px; border-radius: 14px; background: #fde7ef; color: #c2185b; font-size: 13px; font-weight: 500">Out of range: above 8 °C. Record what was done.</div>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">What was done<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 60px">Door was not closed fully. Closed it and checked again at 17:45.</span></label>
+          <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; align-self: flex-start">Save reading</button>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Needs attention</h2>
+          <sc-for list="{{attention}}" as="a" hint-placeholder-count="3"><div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{a.k}}</span><span style="font-size: 12.5px; color: #6b6b73">{{a.v}}</span></div></sc-for>
+          <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; align-self: flex-start">Renew a licence</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const tab = S.tab || 'licences';
+    const TABS = [['overview', 'Overview', 'grey', 'Ov', ''], ['licences', 'Licences', 'violet', 'Li', '2'], ['fridge', 'Fridge log', 'blue', 'Fr', '1'], ['audits', 'Audit checklist', 'teal', 'Au', ''], ['settings', 'Settings', 'grey', 'St', '']];
+    const tabs = TABS.map(([k, label, t, kk, n]) => ({ label, k: kk, ic: ic(t), count: n, countStyle: n ? chip('red') : 'display:none;', cur: tab === k ? 'page' : 'false', row: navRow(tab === k), pick: () => this.setState({ tab: k }) }));
+    const L = [
+      ['Poison licence (Type A)', 'Ref ••••0412', 'Cheras', '30 Nov 2026', 'red', 'Expires in 12 days'],
+      ['Business premises licence', 'Ref ••••7731', 'Puchong', '20 Dec 2026', 'amber', 'Expires in 32 days'],
+      ['Clinic registration', 'Ref ••••2208', 'Sg. Besi', '—', 'grey', 'Not recorded yet'],
+      ['Radiation licence', 'Ref ••••1150', 'Cheras', '14 Jan 2027', 'amber', 'Expires in 57 days'],
+      ['Clinic registration', 'Ref ••••2201', 'Cheras', '2 Mar 2027', 'green', 'In force'],
+      ['Clinic registration', 'Ref ••••2204', 'Puchong', '2 Mar 2027', 'green', 'In force'],
+      ['Business premises licence', 'Ref ••••7729', 'Cheras', '30 Apr 2027', 'green', 'In force'],
+      ['Business premises licence', 'Ref ••••7733', 'Sg. Besi', '30 Apr 2027', 'green', 'In force'],
+      ['Poison licence (Type A)', 'Ref ••••0415', 'Puchong', '31 May 2027', 'green', 'In force'],
+      ['Poison licence (Type A)', 'Ref ••••0418', 'Sg. Besi', '31 May 2027', 'green', 'In force'],
+      ['Signboard permit', 'Ref ••••5521', 'All', 'Does not expire', 'green', 'In force'],
+      ['Fire certificate', 'Ref ••••9002', 'Cheras', '1 Oct 2026', 'red', 'Expired']
+    ];
+    const lic = L.map(([name, ref, to, exp, t, st]) => ({ name, ref, to, exp, st, stStyle: chip(t) }));
+    const R = [
+      ['18 Nov, 17:30', '9.1', '4.2 / 9.4', 'Siti Aminah', 'Action: door closed, checked again 17:45', 'red', 'Out of range'],
+      ['18 Nov, 08:30', '4.6', '4.1 / 5.0', 'Nur Aina', '', 'green', 'In range'],
+      ['17 Nov, 17:30', '4.8', '4.3 / 5.2', 'Kamal Arif', '', 'green', 'In range'],
+      ['17 Nov, 08:30', '—', '—', '—', '', 'amber', 'Missed'],
+      ['16 Nov, 17:30', '5.1', '4.4 / 5.6', 'Siti Aminah', '', 'green', 'In range'],
+      ['16 Nov, 08:30', '4.9', '4.2 / 5.3', 'Nur Aina', '', 'green', 'In range'],
+      ['15 Nov, 17:30', '5.0', '4.5 / 5.4', 'Kamal Arif', '', 'green', 'In range'],
+      ['15 Nov, 08:30', '4.7', '4.0 / 5.1', 'Nur Aina', '', 'green', 'In range'],
+      ['14 Nov, 17:30', '4.6', '4.2 / 5.0', 'Siti Aminah', 'Marked entered in error, then re-entered', 'grey', 'Entered in error'],
+      ['14 Nov, 17:31', '4.6', '4.2 / 5.0', 'Siti Aminah', '', 'green', 'In range'],
+      ['14 Nov, 08:30', '5.2', '4.6 / 5.8', 'Nur Aina', '', 'green', 'In range'],
+      ['13 Nov, 17:30', '4.9', '4.4 / 5.3', 'Kamal Arif', '', 'green', 'In range']
+    ];
+    const reads = R.map(([when, now, lh, by, action, t, st]) => ({ when, now, lh, by, action, st, stStyle: chip(t) }));
+    const other = { overview: ['Overview', 'A summary of licences, fridges and this month\'s audit at the active branch.'], audits: ['Audit checklist', 'Monthly audits and supervisor tasks, checked at each branch.'], settings: ['Settings', 'Licence types, warning days, fridges and their safe range, and the audit checklist. KPOne ships none of them.'] };
+    return {
+      accent, tabs, lic, reads,
+      showLic: tab === 'licences', showFridge: tab === 'fridge', showOther: !!other[tab],
+      otherTitle: other[tab] ? other[tab][0] : '', otherText: other[tab] ? other[tab][1] : '',
+      attention: [{ k: 'Fire certificate · Cheras', v: 'Expired on 1 Oct 2026' }, { k: 'Poison licence · Cheras', v: 'Expires 30 Nov 2026 · warn 30 days before' }, { k: 'Vaccine fridge 1 · Cheras', v: 'Out of range at 17:30 · action recorded' }],
+      strip: [stripItem('2', 'need attention now', true)],
+      stripX: [['lic', stripItem('10', 'licences in force')], ['miss', stripItem('1', 'reading missed this week')], ['fr', stripItem('3', 'fridges logged')]].map(([id, it]) => Object.assign(it, xBtn(id, 'strip-xpanel', it.style + 'color:#111114;'))),
+      stripP: xPanel('strip-xpanel', ['lic', 'miss', 'fr'], {
+        lic: { title: 'Licences in force · 10', note: 'Not expired and recorded · soonest first', cols: ['LICENCE', 'APPLIES TO', 'EXPIRES', 'STATUS'], filters: [['all', 'All'], ['soon', 'Expiring within 60 days'], ['ok', 'Not due yet']],
+          rows: L.filter(r => r[5] !== 'Expired' && r[5] !== 'Not recorded yet').map(r => [r[0], r[1], r[2], r[3], [r[5], r[4] === 'green' ? 'ok' : r[4] === 'red' ? 'bad' : 'warn'], r[4] === 'green' ? 'ok' : 'soon']) },
+        miss: { title: 'Readings missed this week · 1', note: 'A missed reading cannot be filled in later; it stays missed', cols: ['FRIDGE', 'BRANCH', 'DUE', 'STATUS'], rows: [['Vaccine fridge 1', 'Morning reading', 'Cheras', '17 Nov, 08:30', ['Missed', 'warn']]] },
+        fr: { title: 'Fridges logged · 3', note: 'Latest reading for each fridge', cols: ['FRIDGE', 'BRANCH', 'LATEST °C', 'STATUS'], rows: [
+          ['Vaccine fridge 1', 'Read 18 Nov, 17:30 by Siti Aminah', 'Cheras', '9.1', ['Out of range', 'bad']], ['Vaccine fridge', 'Read 18 Nov, 08:30 by Nadia', 'Puchong', '4.4', ['In range', 'ok']], ['Vaccine fridge', 'Read 18 Nov, 08:30 by Ravi', 'Sungai Besi', '5.0', ['In range', 'ok']]] }
+      }, 14)
+    };
+  }
+}
+</script>
+</body>
+</html>

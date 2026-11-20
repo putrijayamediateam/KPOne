@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Branches</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Branches</div>
+      <span style="margin-left: auto; font-size: 12px; color: #8a8a93">Branches you may see. Names and addresses are edited in Business details.</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Edit in Business details</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 280px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; padding: 0 8px 10px">Branches</h2>
+        <sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+          <button type="button" onClick="{{b.pick}}" aria-pressed="{{b.pressed}}" style="{{b.row}}">
+            <span style="{{b.ic}}">{{b.k}}</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{b.name}}</span><span style="font-size: 12px; color: #8a8a93">{{b.code}} · Asia/Kuala_Lumpur</span></span>
+            <span style="{{b.stStyle}}">{{b.st}}</span>
+          </button>
+        </sc-for>
+        <span style="font-size: 12px; color: #8a8a93; padding: 12px 8px 0">One organisation, three branches. A branch is never deleted.</span>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Klinik Putrijaya {{cur.name}}</h1><span style="{{cur.stStyle}}">{{cur.st}}</span><span style="{{cur.docStyle}}">{{cur.doc}}</span></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px">
+            <sc-for list="{{cur.facts}}" as="f" hint-placeholder-count="6"><div style="padding: 10px 14px; border-radius: 16px; background: #f8f8fa; min-width: 0"><span style="display: block; font-size: 12px; color: #8a8a93">{{f.k}}</span><span style="font-weight: 500; overflow-wrap: anywhere">{{f.v}}</span></div></sc-for>
+          </div>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px 8px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Rooms</h2><span style="font-size: 12px; color: #8a8a93">Used by the waiting-room TV and Call In</span></div>
+          <sc-for list="{{cur.rooms}}" as="r" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 8px; border-bottom: 1px solid #f6f6f8"><span style="flex: 1; font-weight: 500">{{r.name}}</span><span style="{{r.kindStyle}}">{{r.kind}}</span><span style="flex: none; width: 150px; text-align: right; font-size: 13px; color: #6b6b73">{{r.today}}</span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px 12px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 6px; flex-wrap: wrap"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Staff assigned today</h2><span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 2px 9px">idea, not built</span></div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 0 6px"><sc-for list="{{cur.staff}}" as="s" hint-placeholder-count="5"><div style="flex: 1 1 120px; padding: 10px 14px; border-radius: 16px; background: #f8f8fa"><span style="display: block; font-size: 18px; font-weight: 600">{{s.n}}</span><span style="font-size: 12px; color: #8a8a93">{{s.k}}</span></div></sc-for></div>
+          <span style="margin: 4px 6px 0; font-size: 12px; color: #8a8a93">Counts of effective branch assignments by role, no names. Assignments change only on a staff member's page.</span>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Where each thing is changed</h2>
+          <sc-for list="{{where}}" as="w" hint-placeholder-count="4"><div style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f4f4f6"><span style="flex: 1"><span style="display: block; font-weight: 500">{{w.k}}</span><span style="font-size: 12px; color: #6b6b73">{{w.who}}</span></span><span aria-hidden="true" style="color: #c4c4cc">›</span></div></sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Document readiness</h2>
+          <span style="font-size: 13px; color: #3a3a40">{{cur.docNote}}</span>
+          <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; align-self: flex-start">Open branch report</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const B = [
+      ['Cheras', 'CHERAS', 'CH', 'violet', 'Ready', 'green', 'Every letter can be printed. Invoices and receipts print the branch footer.', '[CHERAS PUBLIC ADDRESS]', '03-2000 0001 / 03-2000 0002', 'cheras@example.test', [['Consultation Room 1', 'Consultation', 'Dr. Lim today'], ['Consultation Room 2', 'Consultation', 'Not chosen today'], ['Dispensary', 'Dispensary', ''], ['Treatment Room', 'Treatment', '']], ['3', '5', '2', '1', '1']],
+      ['Sungai Besi', 'SUNGAI_BESI', 'SB', 'teal', 'Needs footer', 'amber', 'Letters print, but invoices and receipts have no footer yet. Add it in Business details before real use.', '[SUNGAI BESI PUBLIC ADDRESS]', '03-2000 0101', 'sgbesi@example.test', [['Bilik 1', 'Consultation', 'Dr. Arvind today'], ['Farmasi', 'Dispensary', '']], ['1', '3', '1', '0', '0']],
+      ['Puchong', 'PUCHONG', 'PC', 'blue', 'Ready', 'green', 'Every letter can be printed. Invoices and receipts print the branch footer.', '[PUCHONG PUBLIC ADDRESS]', '03-2000 0201', 'puchong@example.test', [['Consultation Room A', 'Consultation', 'Dr. Kavya today'], ['Consultation Room B', 'Consultation', 'Not chosen today'], ['Dispensary', 'Dispensary', ''], ['Nebuliser Room', 'Treatment', '']], ['2', '4', '1', '1', '0']]
+    ];
+    const sel = S.sel !== undefined ? S.sel : 0;
+    const branches = B.map((b, i) => ({ name: b[0], code: b[1], k: b[2], ic: ic(b[3]), st: 'Active', stStyle: chip('green'), row: rowSel(i === sel), pressed: String(i === sel), pick: () => this.setState({ sel: i }) }));
+    const c = B[sel];
+    const kindT = { Consultation: 'blue', Dispensary: 'violet', Treatment: 'teal' };
+    return {
+      accent, branches,
+      cur: { name: c[0], st: 'Active', stStyle: chip('green'), doc: 'Documents: ' + c[4], docStyle: chip(c[5]), docNote: c[6],
+        facts: [{ k: 'Code', v: c[1] }, { k: 'Time zone', v: 'Asia/Kuala_Lumpur' }, { k: 'Public address', v: c[7] }, { k: 'Map link', v: 'Set · opens Google Maps' }, { k: 'Phone', v: c[8] }, { k: 'Email', v: c[9] }],
+        rooms: c[10].map(([name, kind, today]) => ({ name, kind, today, kindStyle: chip(kindT[kind]) })),
+        staff: ['Doctors', 'Clinic Assistants', 'CA Supervisors', 'Panel Officers', 'TV accounts'].map((k, i) => ({ k, n: c[11][i] })) },
+      where: [{ k: 'Name, address, phones, footer', who: 'Business details · Director, Administrator' }, { k: 'Rooms, posters, call mode', who: 'Waiting-room TV · Director, CA Supervisor' }, { k: 'Who works here', who: 'Staff page · branch assignments' }, { k: 'QR check-in link', who: 'QR check-in · rotate or revoke' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

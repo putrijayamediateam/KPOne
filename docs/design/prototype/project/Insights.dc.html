@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Insights</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:340px !important}
+  .kp-work.kp-3>.kp-mid{flex:1 1 100% !important;min-height:auto !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="rep" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Reports</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Insights</div>
+      <div role="tablist" aria-label="Insights reports" style="margin-left: 12px; display: flex; gap: 2px; background: #ffffff; border-radius: 999px; padding: 3px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); flex-wrap: wrap">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6"><button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+      </div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Aggregates only · no patient names</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" aria-labelledby="h-ins" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section aria-label="Filters" style="background: #ffffff; border-radius: 22px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 0"><span style="font-size: 12px; font-weight: 500; color: #6b6b73">{{f.k}}</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 12px; background: #f4f4f6">{{f.v}}<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          </sc-for>
+          <div style="display: flex; flex-direction: column; gap: 4px; flex: 2 1 280px; min-width: 0"><span style="font-size: 12px; font-weight: 500; color: #6b6b73">Period</span>
+            <span style="display: flex; gap: 4px; flex-wrap: wrap"><sc-for list="{{presets}}" as="p" hint-placeholder-count="5"><span style="{{p.style}}">{{p.label}}</span></sc-for></span>
+          </div>
+          <button type="button" style="flex: none; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; padding: 0 22px; min-height: 40px">Apply</button>
+        </section>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="display: flex; align-items: baseline; gap: 8px"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></span><span style="{{s.dStyle}}">{{s.d}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="display: flex; align-items: baseline; gap: 8px"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></span><span style="{{s.dStyle}}">{{s.d}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+
+        <div style="display: flex; gap: 14px; flex-wrap: wrap">
+          <section aria-labelledby="h-ins" style="flex: 2 1 420px; min-width: 0; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h1 id="h-ins" style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{trendTitle}}</h1>
+              <span style="margin-left: auto; display: flex; gap: 12px; font-size: 12px; color: #6b6b73"><span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: #111114"></span>This period</span><span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: #dcdce2"></span>Previous period</span></span></div>
+            <div role="img" aria-label="{{trendAlt}}" style="height: 200px; display: flex; align-items: flex-end; gap: 6px; padding: 8px 4px 0; border-bottom: 1px solid #e6e6ea; background: repeating-linear-gradient(to top, transparent 0 49px, #f1f1f4 49px 50px)">
+              <sc-for list="{{bars}}" as="b" hint-placeholder-count="14"><div style="flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 100%"><span style="{{b.prev}}"></span><span style="{{b.cur}}"></span></div></sc-for>
+            </div>
+            <div style="display: flex; gap: 6px; padding: 0 4px; font-size: 11px; color: #8a8a93"><sc-for list="{{bars}}" as="b" hint-placeholder-count="14"><span style="flex: 1; text-align: center">{{b.lab}}</span></sc-for></div>
+          </section>
+          <section style="flex: 1 1 260px; min-width: 0; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{splitTitle}}</h2>
+            <sc-for list="{{split}}" as="s" hint-placeholder-count="5">
+              <div style="display: flex; flex-direction: column; gap: 5px"><span style="display: flex; justify-content: space-between; font-size: 13px"><span>{{s.k}}</span><b style="font-weight: 600; font-variant-numeric: tabular-nums">{{s.v}}</b></span><span style="height: 8px; border-radius: 999px; background: #f1f1f4; overflow: hidden; display: block"><span style="{{s.bar}}"></span></span></div>
+            </sc-for>
+            <span style="font-size: 11.5px; color: #8a8a93; margin-top: auto">{{splitNote}}</span>
+          </section>
+        </div>
+
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 16px 10px; display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 8px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{rankTitle}}</h2>
+            <span style="margin-left: auto; display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 999px; background: #f4f4f6; color: #8a8a93; font-size: 13px; min-width: 200px">Search ranking</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px">
+            <thead><tr><sc-for list="{{rankCols}}" as="c" hint-placeholder-count="4"><th scope="col" style="{{c.style}}">{{c.label}}</th></sc-for></tr></thead>
+            <tbody><sc-for list="{{rank}}" as="r" hint-placeholder-count="6"><tr style="border-bottom: 1px solid #f1f1f4">
+              <td style="width: 34px; padding: 0 8px; height: 44px; color: #8a8a93">{{r.n}}</td>
+              <th scope="row" style="text-align: left; font-weight: 500; padding: 0 8px">{{r.k}}</th>
+              <sc-for list="{{r.vals}}" as="v" hint-placeholder-count="3"><td style="text-align: right; padding: 0 8px; white-space: nowrap; color: #3a3a40">{{v}}</td></sc-for>
+            </tr></sc-for></tbody>
+          </table>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">{{sideTitle}}</h2>
+          <sc-for list="{{side}}" as="s" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f1f1f4"><span style="font-size: 13px; color: #3a3a40">{{s.k}}</span><span style="text-align: right"><b style="display: block; font-weight: 600; font-variant-numeric: tabular-nums">{{s.v}}</b><span style="{{s.dStyle}}">{{s.d}}</span></span></div>
+          </sc-for>
+          <sc-if value="{{costNote}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 12px; padding: 8px 10px">Stock cost: Director only. Management figure; cost policy to confirm with the clinic's accountant.</span></sc-if>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Downloads</h2>
+          <sc-for list="{{downloads}}" as="d" hint-placeholder-count="2">
+            <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; min-height: 44px"><span>{{d}}</span><span aria-hidden="true" style="color: #8a8a93">↓</span></button>
+          </sc-for>
+          <span style="font-size: 11.5px; color: #8a8a93">{{dlNote}}</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">How this tab counts</h2>
+          <sc-for list="{{how}}" as="h" hint-placeholder-count="3"><div style="font-size: 12.5px; color: #3a3a40; padding: 8px 10px; border-radius: 12px; background: #f8f8fa">{{h}}</div></sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ today1: { title: 'Patients by branch', note: 'Total 94 · +8 on last Wednesday', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','PATIENTS','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','40','43% of total',['Highest','mute']],['Puchong','31','33% of total',['Middle','mute']],['Sungai Besi','23','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ today2: { title: 'Per patient by branch', note: 'All branches RM 72.79 · +3%', cols: 'minmax(0,1.4fr) 130px auto', head: ['BRANCH','PER PATIENT','COMPARED'], align: ['l','r','l'], rows: [['Cheras','RM 69.88',['Near average','mute']],['Puchong','RM 77.89',['Highest','mute']],['Sungai Besi','RM 69.15',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ today3: { title: 'Average wait by branch', note: 'All branches 18 min · +4 min', cols: 'minmax(0,1.4fr) 130px auto', head: ['BRANCH','AVERAGE WAIT','COMPARED'], align: ['l','r','l'], rows: [['Cheras','17 min',['Middle','mute']],['Puchong','20 min',['Longest','warn']],['Sungai Besi','16 min',['Shortest','ok']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ sales1: { title: 'Gross item sales by branch', note: 'Total RM 101,226 · +5%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','GROSS ITEM SALES','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','RM 43,527','43% of total',['Highest','mute']],['Puchong','RM 33,405','33% of total',['Middle','mute']],['Sungai Besi','RM 24,294','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ sales2: { title: 'Discounts less surcharges by branch', note: 'Total RM 2,816 · -2%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','DISCOUNTS LESS SURCHARGES','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','RM 1,211','43% of total',['Highest','mute']],['Puchong','RM 929','33% of total',['Middle','mute']],['Sungai Besi','RM 676','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ sales3: { title: 'Patients by branch', note: 'Total 1,312 · +4%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','PATIENTS','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','564','43% of total',['Highest','mute']],['Puchong','433','33% of total',['Middle','mute']],['Sungai Besi','315','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ clinic1: { title: 'Urgent visits by branch', note: 'Total 86 · +9', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','URGENT VISITS','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','37','43% of total',['Highest','mute']],['Puchong','28','33% of total',['Middle','mute']],['Sungai Besi','21','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ clinic2: { title: 'Average wait by branch', note: 'All branches 19 min · -2 min', cols: 'minmax(0,1.4fr) 130px auto', head: ['BRANCH','AVERAGE WAIT','COMPARED'], align: ['l','r','l'], rows: [['Cheras','18 min',['Middle','mute']],['Puchong','21 min',['Longest','warn']],['Sungai Besi','17 min',['Shortest','ok']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ clinic3: { title: 'In clinic by branch', note: 'All branches 42 min · -1 min', cols: 'minmax(0,1.4fr) 130px auto', head: ['BRANCH','IN CLINIC','COMPARED'], align: ['l','r','l'], rows: [['Cheras','39 min',['Middle','mute']],['Puchong','47 min',['Longest','warn']],['Sungai Besi','38 min',['Shortest','ok']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ pay1: { title: 'Panel claims outstanding by branch', note: 'Total RM 14,906 · -8%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','PANEL CLAIMS OUTSTANDING','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','RM 6,410','43% of total',['Highest','mute']],['Puchong','RM 4,919','33% of total',['Middle','mute']],['Sungai Besi','RM 3,577','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ pay2: { title: 'Outstanding balance by branch', note: 'Total RM 1,120 · +RM 210', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','OUTSTANDING BALANCE','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','RM 482','43% of total',['Highest','mute']],['Puchong','RM 370','33% of total',['Middle','mute']],['Sungai Besi','RM 268','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ pay3: { title: 'Outstanding invoices by branch', note: 'Total 24 · +3', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','OUTSTANDING INVOICES','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','10','43% of total',['Highest','mute']],['Puchong','8','33% of total',['Middle','mute']],['Sungai Besi','6','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ inv1: { title: 'Cost of inventory sold by branch', note: 'Total RM 18,402 · +4%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','COST OF INVENTORY SOLD','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','RM 7,913','43% of total',['Highest','mute']],['Puchong','RM 6,073','33% of total',['Middle','mute']],['Sungai Besi','RM 4,416','24% of total',['Lowest','mute']]], foot: 'Cost figures are for the Director only. Management report: cost policy to be confirmed by the clinic accountant.' },
+ inv2: { title: 'Low-stock items by branch', note: 'Total 17 · +3', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','LOW-STOCK ITEMS','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','7','43% of total',['Highest','mute']],['Puchong','6','33% of total',['Middle','mute']],['Sungai Besi','4','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ inv3: { title: 'Recorded wastage by branch', note: 'Total RM 312 · -RM 40', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','RECORDED WASTAGE','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','RM 134','43% of total',['Highest','mute']],['Puchong','RM 103','33% of total',['Middle','mute']],['Sungai Besi','RM 75','24% of total',['Lowest','mute']]], foot: 'Cost figures are for the Director only. Management report: cost policy to be confirmed by the clinic accountant.' },
+ pat1: { title: 'New patients by branch', note: 'Total 318 · +11%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','NEW PATIENTS','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','137','43% of total',['Highest','mute']],['Puchong','105','33% of total',['Middle','mute']],['Sungai Besi','76','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ pat2: { title: 'Returning by branch', note: 'Total 994 · +2%', cols: 'minmax(0,1.4fr) 130px minmax(0,1fr) auto', head: ['BRANCH','RETURNING','SHARE','COMPARED'], align: ['l','r','l','l'], rows: [['Cheras','427','43% of total',['Highest','mute']],['Puchong','328','33% of total',['Middle','mute']],['Sungai Besi','239','24% of total',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' },
+ pat3: { title: 'Net sales per patient by branch', note: 'All branches RM 75.01 · +2%', cols: 'minmax(0,1.4fr) 130px auto', head: ['BRANCH','NET SALES PER PATIENT','COMPARED'], align: ['l','r','l'], rows: [['Cheras','RM 72.01',['Near average','mute']],['Puchong','RM 80.26',['Highest','mute']],['Sungai Besi','RM 71.26',['Lowest','mute']]], foot: 'Aggregates only. No patient list or patient-level ranking.' }
+});
+    const accent = this.props.accent ?? '#c2185b';
+    const cur = (this.state && this.state.tab) || 'today';
+    const names = { today: 'Today', sales: 'Sales', clinic: 'In-clinic', pay: 'Payments', inv: 'Inventory', pat: 'Patients' };
+    const tabs = Object.keys(names).map(k => ({ label: names[k], sel: cur === k ? 'true' : 'false', pick: () => this.setState({ tab: k, xp: null }), style: 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;cursor:pointer;' + (cur === k ? 'background:#f4f4f6;font-weight:600;color:#111114;box-shadow:inset 0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;') }));
+    const stripItem = (v, k, d, up, hot) => ({ v, k, d, style: 'flex:1 1 160px;display:flex;flex-direction:column;gap:2px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;'), dStyle: 'font-size:11.5px;font-weight:600;' + (hot ? 'opacity:0.9;' : up ? 'color:#1d7a3a;' : 'color:#b0144f;') });
+    const dd = (t, up) => ({ d: t, dStyle: 'font-size:11.5px;font-weight:600;' + (up === null ? 'color:#8a8a93;' : up ? 'color:#1d7a3a;' : 'color:#b0144f;') });
+    const head = (label, left) => ({ label, style: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.03em;padding:0 8px 8px;white-space:nowrap;text-align:' + (left ? 'left' : 'right') + ';border-bottom:1px solid #e6e6ea;' });
+    const mkBars = (labels, cur, prev) => { const max = Math.max(...cur, ...prev); return labels.map((lab, i) => ({ lab, cur: 'flex:1;border-radius:6px 6px 2px 2px;background:#111114;height:' + Math.round(cur[i] / max * 100) + '%;', prev: 'flex:1;border-radius:6px 6px 2px 2px;background:#dcdce2;height:' + Math.round(prev[i] / max * 100) + '%;' })); };
+    const days = ['5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18'];
+    const series = (b, s, k) => days.map((d, i) => Math.round(b + ((i * s + k) % 9) * b * 0.06));
+    const split = (items, color) => { const t = items.reduce((a, x) => a + x[2], 0); return items.map(([k, v, n]) => ({ k, v, bar: 'display:block;height:100%;border-radius:999px;background:' + color + ';width:' + Math.round(n / t * 100) + '%;' })); };
+    const hours = ['8a', '9a', '10a', '11a', '12p', '1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p'];
+    const T = {
+      today: {
+        strip: [stripItem('RM 6,842', 'net invoice sales', '+12% on last Wednesday', true, true), stripItem('94', 'patients', '+8 on last Wednesday', true), stripItem('RM 72.79', 'per patient', '+3%', true), stripItem('18 min', 'average wait', '+4 min', false)],
+        trendTitle: 'Net invoice sales by hour', trendAlt: 'Bar chart of net invoice sales by hour, today against last Wednesday', bars: mkBars(hours, [120, 540, 880, 760, 510, 330, 620, 710, 650, 480, 420, 390, 260, 52], [90, 480, 820, 700, 560, 300, 580, 640, 600, 500, 380, 300, 210, 70]),
+        splitTitle: 'New and returning sales', split: split([['Returning patients', 'RM 4,926', 72], ['New patients', 'RM 1,916', 28]], '#111114'), splitNote: 'Net of discounts and surcharges.',
+        rankTitle: 'Provider · net invoice sales', rankCols: [head('#', true), head('Doctor', true), head('Patients'), head('Net sales (RM)'), head('Per patient (RM)')],
+        rank: [['Dr. Amira', ['38', '2,812.00', '74.00']], ['Dr. Kenneth', ['31', '2,201.50', '71.02']], ['Dr. Suresh', ['19', '1,342.50', '70.66']], ['OTC (no doctor)', ['6', '486.00', '81.00']]],
+        sideTitle: 'Clinic time averages', side: [Object.assign({ k: 'Average waiting time', v: '18 min' }, dd('+4 min on last Wed', false)), Object.assign({ k: 'Average serving time', v: '11 min' }, dd('same', null)), Object.assign({ k: 'Average in-clinic time', v: '41 min' }, dd('+3 min', false))],
+        downloads: [], dlNote: 'Today has no download. Use Sales or Payments.', how: ['Compared with the same weekday last week, up to the same time.', 'Sales are net of invoice adjustments; item rankings stay gross.']
+      },
+      sales: {
+        strip: [stripItem('RM 98,410', 'net invoice sales', '+6% on Oct 5–18', true, true), stripItem('RM 101,226', 'gross item sales', '+5%', true), stripItem('RM 2,816', 'discounts less surcharges', '-2%', true), stripItem('1,312', 'patients', '+4%', true)],
+        trendTitle: 'Daily net invoice sales', trendAlt: 'Bar chart of daily net invoice sales, 5 to 18 November against the previous 14 days', bars: mkBars(days, series(6800, 4, 1), series(6400, 5, 3)),
+        splitTitle: 'Self-pay and Panel', split: split([['Self-pay net invoice sales', 'RM 70,862', 72], ['Panel net invoice sales', 'RM 27,548', 28]], '#111114'), splitNote: 'OTC is counted in Self-pay.',
+        rankTitle: 'Item ranking (gross)', rankCols: [head('#', true), head('Item', true), head('Units sold'), head('Gross sales (RM)'), head('Share')],
+        rank: [['Consultation (general)', ['1,104', '33,120.00', '33%']], ['Paracetamol 500 mg', ['2,860', '5,720.00', '6%']], ['Amoxicillin 250 mg', ['1,210', '4,840.00', '5%']], ['Nebuliser treatment', ['146', '4,380.00', '4%']], ['Wound dressing', ['121', '3,630.00', '4%']], ['Cetirizine 10 mg', ['980', '2,940.00', '3%']]],
+        sideTitle: 'Gross to net', side: [Object.assign({ k: 'Gross item sales', v: 'RM 101,226' }, dd('', null)), Object.assign({ k: 'Discounts', v: '- RM 3,104' }, dd('', null)), Object.assign({ k: 'Surcharges', v: '+ RM 288' }, dd('', null)), Object.assign({ k: 'Net invoice sales', v: 'RM 98,410' }, dd('+6%', true))],
+        downloads: ['Sales summary CSV', 'Daily net sales CSV'], dlNote: 'Aggregates only. Each download is recorded.', how: ['Sales are by invoice finalisation date in branch time.', 'Item rankings are gross, before invoice adjustments.']
+      },
+      clinic: {
+        strip: [stripItem('1,402', 'visits', '+3%', true, true), stripItem('86', 'urgent visits', '+9', false), stripItem('19 min', 'average wait', '-2 min', true), stripItem('42 min', 'in clinic', '-1 min', true)],
+        trendTitle: 'Daily patient visits', trendAlt: 'Bar chart of daily patient visits', bars: mkBars(days, series(96, 3, 2), series(92, 4, 1)),
+        splitTitle: 'Visit types', split: split([['Normal visits', '1,316', 1316], ['Urgent visits', '86', 86]], '#111114'), splitNote: 'Appointments are not in KPOne.',
+        rankTitle: 'Doctor · average times', rankCols: [head('#', true), head('Doctor', true), head('Visits'), head('Waiting'), head('Serving')],
+        rank: [['Dr. Amira', ['512', '17 min', '10 min']], ['Dr. Kenneth', ['468', '21 min', '12 min']], ['Dr. Suresh', ['336', '19 min', '11 min']]],
+        sideTitle: 'Clinic time averages', side: [Object.assign({ k: 'Average waiting time', v: '19 min' }, dd('-2 min', true)), Object.assign({ k: 'Average serving time', v: '11 min' }, dd('same', null)), Object.assign({ k: 'Average in-clinic time', v: '42 min' }, dd('-1 min', true))],
+        downloads: [], dlNote: 'No download for this tab.', how: ['Waiting is from registration to Call In; serving is from Call In to completion.', 'Held time is counted inside serving time.']
+      },
+      pay: {
+        strip: [stripItem('RM 79,233', 'payments received', '+5%', true, true), stripItem('RM 14,906', 'Panel claims outstanding', '-8%', true), stripItem('RM 1,120', 'outstanding balance', '+RM 210', false), stripItem('24', 'outstanding invoices', '+3', false)],
+        trendTitle: 'Daily receipts', trendAlt: 'Bar chart of daily receipts', bars: mkBars(days, series(5600, 5, 4), series(5300, 3, 2)),
+        splitTitle: 'Payment method', split: split([['Cash', 'RM 33,280', 42], ['Card', 'RM 23,770', 30], ['DuitNow QR', 'RM 15,846', 20], ['Touch n Go', 'RM 6,337', 8]], '#111114'), splitNote: 'Receipts by receipt date, after reversals.',
+        rankTitle: 'Panel ranking', rankCols: [head('#', true), head('Panel', true), head('Approved (RM)'), head('Accepted (RM)'), head('Outstanding (RM)')],
+        rank: [['Panel Sejahtera TPA', ['9,840.00', '7,120.00', '2,720.00']], ['Syarikat Contoh Sdn Bhd', ['6,210.00', '4,880.00', '1,330.00']], ['MediCover Demo', ['5,102.00', '2,980.00', '2,122.00']], ['Kilang Fiksyen Bhd', ['2,880.00', '2,880.00', '0.00']]],
+        sideTitle: 'Panel claims', side: [Object.assign({ k: 'Panel claim packs', v: '182' }, dd('+14', true)), Object.assign({ k: 'Panel decisions accepted', v: 'RM 17,860' }, dd('+9%', true)), Object.assign({ k: 'Panel remittances received', v: 'RM 15,204' }, dd('+4%', true))],
+        downloads: ['Daily receipts by payment method CSV'], dlNote: 'Aggregates only. Each download is recorded.', how: ['Receipt cards use the same receipt record as terminal reconciliation.', 'Allocation cards count what was paid towards invoices in the period.']
+      },
+      inv: {
+        strip: [stripItem('RM 84,210', 'inventory value', 'Director only', true, true), stripItem('RM 18,402', 'cost of inventory sold', '+4%', false), stripItem('17', 'low-stock items', '+3', false), stripItem('RM 312', 'recorded wastage', '-RM 40', true)],
+        trendTitle: 'Units dispensed per day', trendAlt: 'Bar chart of units dispensed per day', bars: mkBars(days, series(410, 4, 0), series(395, 2, 5)),
+        splitTitle: 'Wastage by kind', split: split([['Expired write-off', 'RM 196', 196], ['Treatment-room waste', 'RM 71', 71], ['Damaged', 'RM 45', 45]], '#111114'), splitNote: 'Treatment-room waste is shown as its own line.',
+        rankTitle: 'Low-stock items', rankCols: [head('#', true), head('Item', true), head('On hand'), head('Reorder level'), head('Branch')],
+        rank: [['Salbutamol inhaler', ['4', '12', 'Cheras']], ['Amoxicillin 250 mg', ['60', '200', 'Puchong']], ['Normal saline 500 ml', ['8', '20', 'Sungai Besi']], ['Gauze swab 10 x 10', ['30', '100', 'Cheras']], ['Cetirizine 10 mg', ['40', '120', 'Puchong']]],
+        sideTitle: 'Stock value', side: [Object.assign({ k: 'Cheras', v: 'RM 34,880' }, dd('Management figure', null)), Object.assign({ k: 'Puchong', v: 'RM 27,104' }, dd('Management figure', null)), Object.assign({ k: 'Sungai Besi', v: 'RM 22,226' }, dd('Management figure', null))],
+        downloads: [], dlNote: 'No download for this tab.', how: ['Units are each SKU\'s verified stock unit.', 'Returned stock in a patient returns location is never counted as usable.']
+      },
+      pat: {
+        strip: [stripItem('1,312', 'patients', '+4%', true, true), stripItem('318', 'new patients', '+11%', true), stripItem('994', 'returning', '+2%', true), stripItem('RM 75.01', 'net sales per patient', '+2%', true)],
+        trendTitle: 'Distinct patients per day', trendAlt: 'Bar chart of distinct patients per day', bars: mkBars(days, series(92, 3, 1), series(88, 4, 3)),
+        splitTitle: 'Patient age distribution', split: split([['Under 12', '186', 186], ['12 to 17', '74', 74], ['18 to 39', '532', 532], ['40 to 59', '348', 348], ['60 and over', '172', 172]], '#111114'), splitNote: 'Patients without a date of birth are left out (shown as Unavailable).',
+        rankTitle: 'Patients by branch', rankCols: [head('#', true), head('Branch', true), head('Patients'), head('New'), head('Returning')],
+        rank: [['Cheras', ['562', '131', '431']], ['Puchong', ['421', '104', '317']], ['Sungai Besi', ['329', '83', '246']]],
+        sideTitle: 'New and returning', side: [Object.assign({ k: 'New net sales', v: 'RM 22,110' }, dd('+10%', true)), Object.assign({ k: 'Returning net sales', v: 'RM 76,300' }, dd('+5%', true))],
+        downloads: [], dlNote: 'No download for this tab.', how: ['Counts only. No patient list or patient-level ranking.', 'A merged record may count once in each record before the merge date.']
+      }
+    };
+    const t = T[cur];
+    const presets = ['Today', 'Last 7 days', 'Last 14 days', 'This month', 'Custom'].map((p, i) => ({ label: p, style: 'display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border-radius:12px;font-size:13px;' + ((cur === 'today' ? i === 0 : i === 2) ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    presets.forEach(p => { if (p.style.indexOf('#111114;color:#ffffff') > -1) p.style = p.style.replace('background:#111114;color:#ffffff;', 'background:#ffffff;color:#111114;box-shadow:inset 0 0 0 1.5px #111114;'); });
+    return {
+      ...XP.holes,
+      accent, tabs, presets,
+      filters: [{ k: 'Branch', v: 'All branches' }, { k: 'Doctor', v: 'All doctors' }],
+      strip: XP.strip(t.strip, { 1: cur + '1', 2: cur + '2', 3: cur + '3' }), trendTitle: t.trendTitle, trendAlt: t.trendAlt, bars: t.bars,
+      splitTitle: t.splitTitle, split: t.split, splitNote: t.splitNote,
+      rankTitle: t.rankTitle, rankCols: t.rankCols, rank: t.rank.map((r, i) => ({ n: String(i + 1), k: r[0], vals: r[1] })),
+      sideTitle: t.sideTitle, side: t.side, costNote: cur === 'inv', downloads: t.downloads, dlNote: t.dlNote, how: t.how
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QR check-ins</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="front" accent="{{accent}}" branch="Cheras" user-name="Aina R." user-role="CA Supervisor" user-ini="AR" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Front desk</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">QR check-ins</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Nothing is created until you accept · forms are deleted after 30 days</span>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for>
+          <sc-for list="{{stripX}}" as="s" hint-placeholder-count="3"><button type="button" aria-expanded="{{s.exp}}" aria-controls="{{s.pid}}" onClick="{{s.tog}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" data-xp="1" style="{{s.chev}}">⌄</span></button></sc-for>
+        </div>
+        <sc-for list="{{stripP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Waiting for review</h1>
+            <span style="display: inline-flex; margin-left: auto; background: #f4f4f6; border-radius: 999px; padding: 3px">
+              <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+            </span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+            <a href="#" style="{{r.row}}">
+              <span style="{{r.av}}">{{r.ini}}</span>
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span>
+              <span style="{{r.matchStyle}}">{{r.match}}</span>
+              <span style="flex: none; width: 110px; font-size: 12.5px; color: #3a3a40">{{r.visit}}</span>
+              <span style="flex: none; width: 60px; text-align: right; font-size: 12px; color: #8a8a93">{{r.age}}</span>
+            </a>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-intake" style="flex: 0 0 420px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+            <h2 id="h-intake" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Raj Kumar</h2>
+            <span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 3px 10px">Submitted 09:42 · 8 min</span>
+          </div>
+          <span style="font-size: 12.5px; color: #6b6b73">See a doctor · Panel (patient-reported, not yet checked)</span>
+          <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr); gap: 0; font-size: 13px; border-radius: 16px; overflow: hidden; box-shadow: inset 0 0 0 1px #f1f1f4">
+            <span style="padding: 8px 10px; background: #f8f8fa; font-size: 11.5px; font-weight: 600; color: #8a8a93">FIELD</span>
+            <span style="padding: 8px 10px; background: #f8f8fa; font-size: 11.5px; font-weight: 600; color: #8a8a93">ON THE FORM</span>
+            <span style="padding: 8px 10px; background: #f8f8fa; font-size: 11.5px; font-weight: 600; color: #8a8a93">KP-000731</span>
+            <sc-for list="{{compare}}" as="c" hint-placeholder-count="6">
+              <span style="padding: 9px 10px; border-top: 1px solid #f1f1f4; color: #6b6b73">{{c.k}}</span>
+              <span style="{{c.aStyle}}">{{c.a}}</span>
+              <span style="{{c.bStyle}}">{{c.b}}</span>
+            </sc-for>
+          </div>
+          <div style="padding: 10px 12px; border-radius: 14px; background: #fff4dc; color: #8a5a00; font-size: 12.5px">Phone differs from the saved record. Choose which to keep.</div>
+          <div role="radiogroup" aria-label="Phone to keep" style="display: flex; gap: 8px">
+            <span role="radio" aria-checked="true" style="flex: 1; padding: 10px 12px; border-radius: 14px; box-shadow: inset 0 0 0 2px #111114; font-size: 13px"><b>Keep saved</b><br><span style="color: #6b6b73">012-•••• 4410</span></span>
+            <span role="radio" aria-checked="false" style="flex: 1; padding: 10px 12px; border-radius: 14px; box-shadow: inset 0 0 0 1px #e6e6ea; font-size: 13px"><b>Use new</b><br><span style="color: #6b6b73">017-•••• 2093</span></span>
+          </div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Doctor</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Dr. Lim · Room 1 · 3 waiting<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Panel <span style="color: #8a8a93; font-weight: 400">· confirm before it counts</span></span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">AIA (TPA) · AIA-55120-08<span style="font-size: 12px; color: #8a8a93">Confirm</span></span></label>
+        </section>
+        <div style="margin-top: auto; display: flex; gap: 8px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Reject</button>
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Correct</button>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Accept · A-033</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const tab = (this.state && this.state.tab) || 'wait';
+    const av = (bg, fg) => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const seg = on => 'border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const tabs = [['wait', 'Waiting · 6'], ['rev', 'In review · 1'], ['done', 'Accepted today'], ['rej', 'Rejected']].map(([k, label]) => ({ label, pressed: String(tab === k), pick: () => this.setState({ tab: k }), style: seg(tab === k) }));
+    const tone = { match: 'background:#e9f8ee;color:#1d7a3a;', new: 'background:#e8f0fe;color:#1a4fa8;', check: 'background:#fff4dc;color:#8a5a00;' };
+    const row = (name, ini, a, sub, m, mt, visit, age, on) => ({ name, ini, av: a, sub, match: m, visit, age, matchStyle: 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + tone[mt], row: 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border-radius:16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') });
+    const rows = [
+      row('Raj Kumar', 'RK', av('#fff4e5', '#8a4b00'), 'IC ••••5521 · 42 y', 'Matches KP-000731', 'check', 'See a doctor', '8 min', true),
+      row('Siti Mariam', 'SM', av('#fde7ef', '#8e0f44'), 'IC ••••0782 · 29 y', 'New patient', 'new', 'See a doctor', '6 min'),
+      row('Lim Ah Kow', 'LA', av('#e8f0fe', '#1a4fa0'), 'IC ••••3317 · 67 y', 'Matches KP-000214', 'match', 'Medicine only', '5 min'),
+      row('Nur Aisyah (8 y)', 'NA', av('#f1ecfd', '#5b3fa6'), 'Guardian: mother · phone given', 'Matches KP-002031', 'match', 'See a doctor', '4 min'),
+      row('Daniel Tan', 'DT', av('#e7f6ea', '#1f6b33'), 'Passport ••••8841 · 31 y', 'New patient', 'new', 'See a doctor', '3 min'),
+      row('Mohd Firdaus', 'MF', av('#f4f4f6', '#3a3a40'), 'IC ••••6620 · 38 y', '2 possible matches', 'check', 'See a doctor', '1 min')
+    ];
+    const cell = diff => 'padding:9px 10px;border-top:1px solid #f1f1f4;' + (diff ? 'background:#fff8e8;font-weight:600;' : '');
+    const compare = [
+      ['Name', 'Raj Kumar', 'Raj Kumar'],
+      ['IC', '••••••-••-5521', '••••••-••-5521'],
+      ['Date of birth', '14/03/1984', '14/03/1984'],
+      ['Phone', '017-•••• 2093', '012-•••• 4410', true],
+      ['Email', 'not given', 'raj@example.test'],
+      ['Allergy', '"none"', 'Penicillin', true]
+    ].map(([k, a, b, d]) => ({ k, a, b, aStyle: cell(d), bStyle: cell(d) }));
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const NM = ['Farah Hanim', 'Tan Boon Keat', 'Muthu Rajan', 'Nurul Izzah', 'Wong Siew Lan', 'Ahmad Zaki', 'Chen Yi Ling', 'Haslinda Omar', 'Arjun Pillai', 'Lim Kok Wai', 'Rohana Yusof', 'Jason Teh', 'Aida Sulaiman', 'Kumar Selvam', 'Ng Hui Min', 'Syafiqah Rahim', 'Benjamin Loh', 'Zarina Hassan', 'Ong Chee Seng', 'Fatin Najwa', 'Ismail Bakar'];
+    const ACC = NM.map((nm, i) => { const t = 2 + Math.round(i * 5.4); const h = 8 + Math.floor(t / 60); const m = String(t % 60).padStart(2, '0'); const isNew = i % 5 === 2; const otc = i % 7 === 4; return [nm, (isNew ? 'New patient · KP-0062' + String(10 + i) : 'Matched KP-00' + String(1200 + i * 37)) + ' · ' + (otc ? 'Medicine only' : 'See a doctor'), (otc ? 'B-0' + String(5 + Math.floor(i / 7) * 2).padStart(2, '0') : 'A-0' + String(10 + i)), String(h).padStart(2, '0') + ':' + m, ['Accepted', 'ok'], isNew ? 'new' : 'match']; });
+    const XD = {
+      new: { title: 'New patients · 2', note: 'No saved record matches · a new KP number is made on Accept', cols: ['FROM THE FORM', 'VISIT', 'SUBMITTED', 'STATUS'], rows: [
+        ['Siti Mariam', 'IC ••••0782 · 29 y', 'See a doctor', '6 min ago', ['New patient', 'info']], ['Daniel Tan', 'Passport ••••8841 · 31 y', 'See a doctor', '3 min ago', ['New patient', 'info']]] },
+      acc: { title: 'Accepted today · 21', note: 'Each one became a visit and a queue number', cols: ['PATIENT', 'QUEUE NO.', 'ACCEPTED', 'STATUS'], filters: [['all', 'All'], ['match', 'Matched a record'], ['new', 'New patient']], rows: ACC }
+    };
+    return {
+      accent, tabs, rows, compare,
+      strip: [stripItem('6', 'waiting for review', true), stripItem('8 min', 'oldest')],
+      stripX: [['new', stripItem('2', 'new patients')], ['acc', stripItem('21', 'accepted today')]].map(([id, it]) => Object.assign(it, xBtn(id, 'strip-xpanel', it.style + 'color:#111114;'))),
+      stripP: xPanel('strip-xpanel', ['new', 'acc'], XD, 14)
+    };
+  }
+}
+</script>
+</body>
+</html>

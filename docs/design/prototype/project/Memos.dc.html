@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Memos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">KPOne HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Memos</div>
+      <nav aria-label="Memo tabs" style="margin-left: 12px; display: flex; gap: 2px; background: #e9e9ee; border-radius: 999px; padding: 3px">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}">{{t.label}}<span style="{{t.countStyle}}">{{t.count}}</span></button></sc-for>
+      </nav>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Nothing is sent by email or message: people see memos here.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" aria-labelledby="h-list" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 id="h-list" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{listTitle}}</h2><span style="font-size: 12.5px; color: #8a8a93">newest first</span></div>
+        <sc-for list="{{memos}}" as="m" hint-placeholder-count="10">
+          <button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.row}}"><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{m.title}}</span><span style="font-size: 12px; color: #8a8a93">{{m.sub}}</span></span><span style="{{m.stStyle}}">{{m.st}}</span></button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <article style="flex: none; background: #ffffff; border-radius: 26px; padding: 20px 22px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><span style="font-size: 12px; color: #6b6b73">{{cur.meta}}</span><span style="{{cur.stStyle}}">{{cur.st}}</span></div>
+          <h1 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">{{cur.title}}</h1>
+          <sc-for list="{{cur.body}}" as="p" hint-placeholder-count="3"><p style="margin: 0; color: #3a3a40; max-width: 70ch">{{p}}</p></sc-for>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            <button type="button" onClick="{{openPdf}}" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; font-size: 13px; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.14); cursor: pointer">{{pdfLabel}}</button>
+            <span style="font-size: 12.5px; color: #8a8a93">{{cur.audience}}</span>
+          </div>
+        </article>
+        <sc-if value="{{isManage}}" hint-placeholder-val="{{ true }}">
+          <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+            <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Who hasn't read yet</h2><span style="font-size: 12.5px; color: #8a8a93">{{readLine}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px"><button type="button" style="border: 0; background: #ffffff; color: #111114; border-radius: 999px; padding: 0 12px; min-height: 34px; font: inherit; font-size: 12.5px; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.14); cursor: pointer">Replace with a new memo</button><button type="button" style="border: 0; background: transparent; color: #6b6b73; border-radius: 999px; padding: 0 10px; min-height: 34px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer">Withdraw</button></span>
+            </div>
+            <sc-for list="{{unread}}" as="u" hint-placeholder-count="8">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 4px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{u.name}}</span><span style="font-size: 12px; color: #8a8a93">{{u.role}} · {{u.branch}}</span></span><span style="font-size: 12.5px; color: #6b6b73">{{u.st}}</span></div>
+            </sc-for>
+          </section>
+        </sc-if>
+        <sc-if value="{{isMine}}" hint-placeholder-val="{{ false }}">
+          <section style="flex: 1; min-height: 0; background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0; font-size: 15px; font-weight: 600">How reading works</h2>
+            <span style="font-size: 13px; color: #6b6b73">Open the memo, and its PDF if it has one. Then press I have read this. Your read is kept, even if the memo is later withdrawn or replaced.</span>
+          </section>
+        </sc-if>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <sc-if value="{{isManage}}" hint-placeholder-val="{{ true }}">
+          <section aria-labelledby="h-write" style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+            <h2 id="h-write" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Write a memo</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Title *</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Year-end roster requests</span><span style="font-size: 12px; color: #8a8a93">Don't put a staff member's name, health or pay in the title.</span></label>
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Memo * <span style="color: #8a8a93; font-weight: 400">· plain text, up to 4,000 characters</span></span><span style="display: block; min-height: 84px; padding: 12px 14px; border-radius: 14px; background: #f4f4f6; color: #3a3a40; font-size: 13px">Please send leave requests for 24 Dec to 2 Jan by 30 Nov so the roster can be planned…</span></label>
+            <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Branches <span style="color: #8a8a93; font-weight: 400">· none ticked = all</span></span><div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{brTicks}}" as="b" hint-placeholder-count="3"><button type="button" onClick="{{b.toggle}}" aria-pressed="{{b.on}}" style="{{b.style}}">{{b.k}}</button></sc-for></div></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Roles <span style="color: #8a8a93; font-weight: 400">· none ticked = all</span></span><div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{roleTicks}}" as="b" hint-placeholder-count="4"><button type="button" onClick="{{b.toggle}}" aria-pressed="{{b.on}}" style="{{b.style}}">{{b.k}}</button></sc-for></div></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Open until</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">Optional</span></label>
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Replaces</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">Optional</span></label>
+            </div>
+            <div style="padding: 10px 12px; border-radius: 14px; background: #f8f8fa; font-size: 13px">Who will see this: <span style="font-weight: 600">{{audience}}</span><span style="display: block; font-size: 12px; color: #8a8a93">Branch and role ticked together means both must match.</span></div>
+          </section>
+          <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Publish memo</button>
+        </sc-if>
+        <sc-if value="{{isMine}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Your read</h2>
+            <sc-for list="{{steps}}" as="s" hint-placeholder-count="3"><div style="display: flex; align-items: center; gap: 10px; min-height: 40px"><span style="{{s.box}}">{{s.tick}}</span><span style="flex: 1">{{s.k}}</span></div></sc-for>
+            <span style="font-size: 12px; color: #8a8a93">{{ackHint}}</span>
+          </section>
+          <button type="button" aria-disabled="{{ackDisabled}}" onClick="{{ack}}" style="{{ackStyle}}">{{ackLabel}}</button>
+        </sc-if>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const tab = S.tab || 'manage';
+    const sel = S.sel == null ? 0 : S.sel;
+    const br = S.br || { ch: true };
+    const ro = S.ro || {};
+    const T = { warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], ok: ['#e9f8ee', '#1d7a3a'], info: ['#e8f0fe', '#1a4fa8'], mute: ['#f4f4f6', '#6b6b73'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const seg = on => 'display:inline-flex;align-items:center;gap:6px;border:0;font:inherit;font-size:12.5px;font-weight:' + (on ? '600' : '500') + ';min-height:32px;padding:0 12px;border-radius:999px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.1);' : 'background:transparent;color:#6b6b73;');
+    const pickRow = on => 'display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:0;border-radius:14px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const tick = on => 'border:0;font:inherit;font-size:12.5px;font-weight:600;min-height:34px;padding:0 12px;border-radius:999px;cursor:pointer;' + (on ? 'background:#111114;color:#ffffff;' : 'background:#f4f4f6;color:#3a3a40;');
+    const MAN = [
+      ['New parking arrangement at Cheras', '17 Nov · Cheras · all roles', 'Published', 'ok', '14 of 22 read', true],
+      ['Fridge temperature log reminder', '12 Nov · CA, CA Supervisor', 'Published', 'ok', '25 of 33 read', false],
+      ['Deepavali opening hours', '5 Nov · all staff', 'Closed', 'mute', '49 of 51 read', false],
+      ['Uniform collection (corrected)', '3 Nov · all branches · CA', 'Published', 'ok', '26 of 27 read', true],
+      ['Uniform collection', '1 Nov · all branches · CA', 'Replaced', 'info', '19 of 27 read', false],
+      ['Panel portal downtime', '29 Oct · Panel Officer', 'Withdrawn', 'mute', '2 of 2 read', false],
+      ['Staff room cleaning rota', '22 Oct · Puchong', 'Published', 'ok', '15 of 16 read', false],
+      ['Training day on 14 Nov', '20 Oct · all staff', 'Closed', 'mute', '51 of 51 read', false],
+      ['New queue TV in Sungai Besi', '15 Oct · Sungai Besi', 'Published', 'ok', '13 of 13 read', false]
+    ];
+    const MINE = [
+      ['New parking arrangement at Cheras', '17 Nov · from Dr. Director', 'To read', 'bad', '', true],
+      ['Deepavali opening hours', '5 Nov · from Puan HR', 'Read', 'ok', '', false],
+      ['Training day on 14 Nov', '20 Oct · from Puan HR', 'Read', 'ok', '', false],
+      ['Panel portal downtime', '29 Oct · withdrawn', 'Withdrawn', 'mute', '', false]
+    ];
+    const L = tab === 'manage' ? MAN : MINE;
+    const s = Math.min(sel, L.length - 1);
+    const memos = L.map(([title, sub, st, t, n], i) => ({ title, sub: tab === 'manage' ? sub + ' · ' + n : sub, st, stStyle: chip(t), pressed: String(s === i), pick: () => this.setState({ sel: i, opened: false, pdf: false }), row: pickRow(s === i) }));
+    const c = L[s];
+    const pdfOpen = !!S.pdf;
+    const hasPdf = c[5];
+    const body = ['From Monday 23 Nov, staff parking moves to the back lane behind the clinic. The front bays are for patients only.', 'Please display your staff pass on the dashboard. Security will check passes from 7:30 to 9:00 each morning.', 'Questions go to your CA Supervisor.'];
+    const steps = [['Memo opened', true], ['PDF opened', pdfOpen || !hasPdf], ['I have read this', !!S.acked]].map(([k, on]) => ({ k, tick: on ? '✓' : '', box: 'flex:none;width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (on ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#ffffff;box-shadow:inset 0 0 0 1.5px #c9c9d1;') }));
+    const canAck = (pdfOpen || !hasPdf) && !S.acked && c[2] === 'To read';
+    const U = [['Hafiz Rahim', 'CA', 'Cheras', 'Opened'], ['Ravi Kumar', 'CA', 'Cheras', 'Not opened'], ['Nadia Rahman', 'CA', 'Cheras', 'Not opened'], ['Dr. Mei Xin Tan', 'Resident Doctor', 'Cheras', 'Opened, PDF not opened'], ['Aina Sofea', 'CA', 'Cheras', 'Not opened'], ['Siti Aminah', 'CA Supervisor', 'Cheras', 'Opened'], ['Dr. Sarah Wong', 'Locum', 'Cheras', 'Not opened'], ['Kumar Selvam', 'Finance Officer', 'Cheras · and Puchong', 'Not opened']];
+    const BR = [['ch', 'Cheras', 22], ['sb', 'Sungai Besi', 13], ['pc', 'Puchong', 16]];
+    const RO = [['ca', 'CA'], ['sup', 'CA Supervisor'], ['doc', 'Resident Doctor'], ['fin', 'Finance Officer']];
+    const nBr = BR.reduce((a, [k, , n]) => a + (br[k] ? n : 0), 0) || 51;
+    const anyRole = RO.some(([k]) => ro[k]);
+    const nRole = anyRole ? Math.round(nBr * RO.reduce((a, [k]) => a + (ro[k] ? ({ ca: 0.55, sup: 0.12, doc: 0.18, fin: 0.05 })[k] : 0), 0)) : nBr;
+    return {
+      accent, memos,
+      isManage: tab === 'manage', isMine: tab === 'mine',
+      tabs: [['mine', 'My memos', '1'], ['manage', 'Manage', '']].map(([k, label, count]) => ({ label, count, pressed: String(tab === k), pick: () => this.setState({ tab: k, sel: 0, pdf: false, acked: false }), style: seg(tab === k), countStyle: count ? chip('bad') : 'display:none;' })),
+      listTitle: tab === 'manage' ? 'Published memos' : 'My memos',
+      cur: { title: c[0], meta: c[1], st: c[2], stStyle: chip(c[3]), body, audience: tab === 'manage' ? 'For Cheras · all roles · expected now: 22 people' : 'Opening is recorded before the text is shown.' },
+      pdfLabel: hasPdf ? (pdfOpen ? 'PDF opened · recorded' : 'Open the PDF') : 'No PDF', openPdf: () => this.setState({ pdf: true }),
+      readLine: c[4] + ' · expected now', unread: U.map(([name, role, branch, st]) => ({ name, role, branch, st })),
+      brTicks: BR.map(([k, label]) => ({ k: label, on: String(!!br[k]), style: tick(!!br[k]), toggle: () => this.setState({ br: Object.assign({}, br, { [k]: !br[k] }) }) })),
+      roleTicks: RO.map(([k, label]) => ({ k: label, on: String(!!ro[k]), style: tick(!!ro[k]), toggle: () => this.setState({ ro: Object.assign({}, ro, { [k]: !ro[k] }) }) })),
+      audience: nRole + ' people',
+      steps, ackHint: canAck || S.acked ? 'One read per person. A double press counts once.' : hasPdf && !pdfOpen ? 'Open the PDF first.' : 'Nothing to acknowledge on this memo.',
+      ackDisabled: String(!canAck), ack: () => { if (canAck) this.setState({ acked: true }); },
+      ackLabel: S.acked ? 'Read · thank you' : 'I have read this',
+      ackStyle: 'margin-top:auto;border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:48px;font:inherit;font-size:15px;font-weight:600;cursor:pointer;' + (canAck ? '' : 'opacity:0.35;cursor:not-allowed;')
+    };
+  }
+}
+</script>
+</body>
+</html>

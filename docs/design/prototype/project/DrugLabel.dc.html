@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drug labels</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.th{font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#f8f8fa;font-size:12.5px;color:#6b6b73}
+.paper{background:#ffffff;border-radius:10px;box-shadow:0 0 0 1px #e6e6ea,0 10px 24px rgba(17,17,26,0.08)}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="pharm" accent="{{accent}}" branch="Cheras" user-name="Hafiz" user-role="CA" user-ini="HF" duty="07:58" hint-size="350px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Pharmacy</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">A-031 Aminah Yusof</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Drug labels</div>
+      <span style="display: inline-flex; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">100 × 62 mm · provisional until the sticker test</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">From the saved CA-final lines</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left card" style="flex: 0 0 280px; min-height: 0; overflow: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="padding: 0 8px 8px"><h2 class="h2">Medicine lines</h2><span class="muted">Only dispensed quantities print</span></div>
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="5">
+          <div onClick="{{l.pick}}" style="{{l.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{l.name}}</span><span style="font-size: 12px; color: #8a8a93">{{l.sub}}</span></span><span style="{{l.chipStyle}}">{{l.chip}}</span></div>
+        </sc-for>
+      </aside>
+      <main class="kp-mid" style="flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap"><sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for></div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section class="card" style="flex: 1; min-height: 0; overflow: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h1 class="h2">Print preview</h1><span class="muted">{{reprintNote}}</span></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; align-items: start">
+            <sc-for list="{{labels}}" as="b" hint-placeholder-count="4">
+              <div onClick="{{b.pick}}" style="{{b.wrap}}">
+                <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-size: 12.5px; font-weight: 600">{{b.title}}</span><span style="{{b.chipStyle}}">{{b.chip}}</span></span>
+                <sc-if value="{{b.ok}}" hint-placeholder-val="{{ true }}">
+                  <div style="aspect-ratio: 100 / 62; background: #ffffff; border-radius: 8px; box-shadow: 0 0 0 1px #e6e6ea, 0 6px 16px rgba(17,17,26,0.06); padding: 7px; box-sizing: border-box">
+                    <div style="height: 100%; box-sizing: border-box; border: 1.2px solid #111114; border-radius: 8px; padding: 5px 8px; font-family: 'Courier New', Courier, monospace; font-size: 9.6px; line-height: 1.32; color: #111114; display: flex; flex-direction: column; overflow: hidden">
+                      <div style="display: flex; gap: 6px"><b style="flex: 1">KLINIK PUTRIJAYA</b><sc-if value="{{b.reprint}}" hint-placeholder-val="{{ false }}"><span style="border: 1.2px solid #111114; padding: 0 3px; font-weight: 700">REPRINT</span></sc-if></div>
+                      <div>[BRANCH ADDRESS LINE 1]</div>
+                      <div>[BRANCH ADDRESS LINE 2]</div>
+                      <div><b>Tel: 03-2000 0001</b></div>
+                      <div><b>AMINAH YUSOF</b></div>
+                      <div style="display: flex; gap: 6px"><b style="flex: 1">{{b.med}}</b><span>QTY: {{b.qty}}</span></div>
+                      <div>{{b.dir}}</div>
+                      <div>{{b.prec}}</div>
+                      <div>{{b.dur}}</div>
+                      <div>{{b.ind}}</div>
+                      <div style="margin-top: auto; display: flex; justify-content: space-between"><span>18/11/2026</span><span>{{b.exp}}</span></div>
+                    </div>
+                  </div>
+                  <sc-if value="{{b.ctrl}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: 700; text-align: center">Ubat Terkawal/Controlled Medicine</span></sc-if>
+                </sc-if>
+                <sc-if value="{{b.blocked}}" hint-placeholder-val="{{ false }}">
+                  <div style="aspect-ratio: 100 / 62; border-radius: 8px; box-shadow: inset 0 0 0 1.5px #f3b6cb; background: #fff7fa; padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #8a1240">
+                    <b>This label is blocked. Nothing is cut.</b>
+                    <sc-for list="{{b.reasons}}" as="r" hint-placeholder-count="2"><span>• {{r}}</span></sc-for>
+                    <span style="margin-top: auto; color: #6b6b73">Shorten the saved line on the Dispensary page, then reload.</span>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 300px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 class="h2">Label limits</h2>
+          <sc-for list="{{limits}}" as="m" hint-placeholder-count="5"><div style="display: flex; justify-content: space-between; min-height: 36px; align-items: center; border-bottom: 1px solid #f1f1f4"><span>{{m.k}}</span><span class="muted">{{m.v}}</span></div></sc-for>
+          <span style="font-size: 12px; color: #8a8a93">A label over a limit is blocked, never cut or shrunk.</span>
+        </section>
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <h2 class="h2" style="font-size: 15px">Print log</h2>
+          <span class="muted">Each press of Print records who printed which line and when. A line printed before carries REPRINT. Printing from the browser menu is not logged.</span>
+        </section>
+        <button type="button" class="primary" style="margin-top: auto">Print current labels ({{printCount}})</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || '-12px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ rep: { title: 'Printed before', note: 'From the print log', cols: 'minmax(0,1.6fr) 70px minmax(0,1fr) minmax(0,1fr) auto', head: ['MEDICINE','PRINT','BY','WHEN','ON THE LABEL'],
+  rows: [['Amoxicillin 500 mg capsule','Print 1','Hafiz (CA)','Today, 10:42 AM',['REPRINT box','info']]],
+  foot: 'A cancelled print dialog still counts once the check passes. Printing from the browser menu is not logged.' },
+ blk: { title: 'Blocked label', note: 'Never cut to fit', cols: 'minmax(0,1.2fr) minmax(0,2fr) auto', head: ['MEDICINE','REASON','STATUS'],
+  rows: [['Chlorpheniramine 4 mg','Instruction is 171 characters; the limit is 144 (3 rows).',['Blocked','bad']],['Chlorpheniramine 4 mg','Label needs 15 rows; the limit is 13.',['Blocked','bad']]],
+  foot: 'Shorten the directions on the Pharmacy page, then print again.' },
+ ctl: { title: 'Controlled medicine', note: 'Marker prints below the border', cols: 'minmax(0,1.4fr) 60px minmax(0,1.6fr) auto', head: ['MEDICINE','QTY','MARKER','STATUS'], align: ['l','r','l','l'],
+  rows: [['Tramadol 50 mg capsule','10','Ubat Terkawal/Controlled Medicine',['Ready','ok']]],
+  foot: 'Wording to confirm with a pharmacist.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8') };
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const row = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 10px;border-radius:14px;cursor:pointer;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '');
+    const seg = on => 'border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const box = on => 'flex:none;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (on ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;');
+    const av = (bg, fg) => 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const L = [
+      { name: 'Amoxicillin 500 mg capsule', med: 'AMOXICILLIN 500MG CAPSULE', qty: 21, dir: '1 CAPSULE, 3 TIMES A DAY, AFTER FOOD', prec: 'Precaution: Finish the whole course', dur: 'Duration: 7 days', ind: 'Indication: Infection', exp: 'EXP: 30/03/2027', state: 'reprint' },
+      { name: 'Paracetamol 500 mg tablet', med: 'PARACETAMOL 500MG TABLET', qty: 20, dir: '2 TABLETS, EVERY 6 HOURS, WHEN NEEDED', prec: 'Precaution: Max 8 tablets a day', dur: 'Duration: 5 days', ind: 'Indication: Fever or pain', exp: 'EXP: -', state: 'ready', twoBatch: true },
+      { name: 'Tramadol 50 mg capsule', med: 'TRAMADOL 50MG CAPSULE', qty: 10, dir: '1 CAPSULE, TWICE A DAY, WHEN NEEDED', prec: 'Precaution: May cause drowsiness', dur: 'Duration: 5 days', ind: 'Indication: Pain', exp: 'EXP: 31/08/2027', state: 'ready', ctrl: true },
+      { name: 'Chlorpheniramine 4 mg', state: 'blocked', reasons: ['Instruction is 171 characters; the limit is 144 (3 rows).', 'Label needs 15 rows; the limit is 13.'] }
+    ];
+    const sel = st.sel ?? 0;
+    const chipOf = s => s === 'reprint' ? ['Printed before', P.blue] : s === 'blocked' ? ['Blocked', P.red] : ['Ready', P.green];
+    return {
+      ...XP.holes,
+      accent,
+      lines: L.map((l, i) => { const [chip, chipStyle] = chipOf(l.state); return { name: l.name, sub: l.state === 'blocked' ? 'Over the label limits' : 'Qty ' + l.qty + (l.twoBatch ? ' · 2 batches, no EXP' : ''), chip, chipStyle, row: row(sel === i), pick: () => this.setState({ sel: i }) }; }),
+      strip: XP.strip([strip('3', 'labels will print', true), strip('1', 'reprint'), strip('1', 'blocked'), strip('1', 'controlled')], { 1: 'rep', 2: 'blk', 3: 'ctl' }),
+      reprintNote: '1 of these labels was printed before.',
+      labels: L.map((l, i) => { const [chip, chipStyle] = chipOf(l.state); return Object.assign({}, l, { title: l.name, chip, chipStyle, ok: l.state !== 'blocked', blocked: l.state === 'blocked', reprint: l.state === 'reprint', ctrl: !!l.ctrl, reasons: l.reasons || [], qty: String(l.qty || ''), pick: () => this.setState({ sel: i }), wrap: 'display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:20px;cursor:pointer;' + (sel === i ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') }); }),
+      limits: [{ k: 'Size', v: '100 × 62 mm' }, { k: 'Grid', v: '48 cells × 13 rows' }, { k: 'Clinic name', v: '40 characters' }, { k: 'Medicine name', v: '72 characters, 2 rows' }, { k: 'Directions', v: '3 rows' }],
+      printCount: '3'
+    };
+
+  }
+}
+</script>
+</body>
+</html>

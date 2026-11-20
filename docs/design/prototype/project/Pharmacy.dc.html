@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pharmacy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="pharm" accent="{{accent}}" branch="Cheras" user-name="Hafiz" user-role="Clinic assistant" user-ini="HF" duty="08:10" hint-size="350px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Pharmacy</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Case · A-028 Tan Wei Ming</div><span style="margin-left: auto; display: inline-flex; font-size: 12px; font-weight: 600; color: #1a4fa8; background: #e8f0fe; border-radius: 999px; padding: 4px 10px">Dispensing</span>
+    </header>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 50%; background: #e7f6ea; color: #1f6b33; display: flex; align-items: center; justify-content: center; font-weight: 700">TW</span><span><span style="display: block; font-weight: 600; font-size: 16px">Tan Wei Ming</span><span class="muted">KP-000731 · 42 y · A-028</span></span></div>
+          <sc-for list="{{facts}}" as="v" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; min-height: 36px; align-items: center; border-bottom: 1px solid #f1f1f4"><span class="muted">{{v.k}}</span><span style="font-weight: 500">{{v.v}}</span></div></sc-for>
+        </section>
+        <section style="border-radius: 26px; padding: 16px 18px; background: #fde7ef; color: #8e0f44; display: flex; flex-direction: column; gap: 8px; box-shadow: inset 0 0 0 1.5px #f3b6cb">
+          <h2 class="h2" style="color: #8e0f44">Allergies</h2>
+          <sc-for list="{{allergies}}" as="a" hint-placeholder-count="2"><div style="display: flex; flex-direction: column; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.7)"><span style="font-weight: 600">{{a.k}}</span><span style="font-size: 12.5px">{{a.v}}</span></div></sc-for>
+          <span style="font-size: 12px">Checked against medicine names, drug groups and other names. It can still miss a brand name.</span>
+        </section>
+      </aside>
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: 18px; background: #ffffff; box-shadow: inset 0 0 0 2px #111114">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #111114; stroke-width: 1.8"><path d="M4 6v12M7 6v12M10 6v12M14 6v12M17 6v12M20 6v12"></path></svg>
+          <span style="flex: 1; color: #8a8a93">Scan or type barcode to check a box against the lines</span><span class="muted">{{checked}} of 3 checked (not saved)</span>
+        </label>
+        <section class="card" style="padding: 16px 16px 10px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 10px"><h1 class="h2">Medicines</h1><span class="muted">Doctor ordered beside what you give</span><span style="margin-left: auto; font-size: 12.5px; font-weight: 600">+ Add medicine</span></div>
+          <sc-for list="{{meds}}" as="m" hint-placeholder-count="3">
+            <div style="{{m.row}}">
+              <span style="display: flex; align-items: center; gap: 12px">
+                <span style="{{m.ic}}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{m.svg}}"><path d="M10.5 3.5a5 5 0 0 1 7 7l-7 7a5 5 0 0 1-7-7z"></path><path d="m8 8 7 7"></path></svg></span>
+                <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600">{{m.name}}</span><span class="muted">{{m.dir}}</span></span>
+                <span style="{{m.tagStyle}}">{{m.tag}}</span>
+                <span style="{{m.okStyle}}">✓ Checked by scan</span>
+              </span>
+              <span style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; padding-left: 48px">
+                <span class="field" style="min-height: 40px"><span>{{m.batch}}</span><span aria-hidden="true" style="color: #8a8a93">⌄</span></span>
+                <span class="field" style="min-height: 40px"><span style="font-weight: 600">{{m.qty}}</span><span class="muted">{{m.unit}}</span></span>
+              </span>
+              <span style="padding-left: 48px; font-size: 12px; color: #8a8a93">Doctor ordered: {{m.ordered}}</span>
+            </div>
+          </sc-for>
+        </section>
+        <section class="card" style="padding: 16px 16px 10px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; gap: 10px"><h2 class="h2">Services</h2><span style="margin-left: auto; font-size: 12.5px; font-weight: 600">+ Add service</span></div>
+          <sc-for list="{{svcs}}" as="s" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid #f1f1f4">
+              <span style="{{s.ic}}"><sc-if value="{{s.isTreat}}" hint-placeholder-val="{{ true }}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{s.svg}}"><path d="m18 2 4 4"></path><path d="m15 5 4 4"></path><path d="M17 7 7.5 16.5 5 19l-2-2 2.5-2.5L15 5"></path><path d="m9 11 2 2"></path><path d="m12 8 2 2"></path></svg></sc-if><sc-if value="{{s.isSvc}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" viewBox="0 0 24 24" style="{{s.svg}}"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V3h6v1"></path><path d="m9 13 2 2 4-4"></path></svg></sc-if></span>
+              <span style="flex: 1; font-weight: 500">{{s.name}}</span><span class="muted">× {{s.qty}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column">
+          <h2 class="h2" style="margin-bottom: 6px">Summary</h2>
+          <sc-for list="{{summary}}" as="v" hint-placeholder-count="4"><div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span class="muted">{{v.k}}</span><span style="font-weight: 500">{{v.v}}</span></div></sc-for>
+        </section>
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 class="h2">Patient</h2>
+          <span class="muted">Called to the dispensary 10:41 · on the TV as A-028</span>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap"><button type="button" class="ghost" style="flex: 1">Panggil again</button><button type="button" class="ghost" style="flex: 1">Print labels (3)</button></div>
+          <button type="button" class="ghost">Return to doctor</button>
+        </section>
+        <button type="button" class="primary" style="margin-top: auto">Complete dispensing</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const av = (bg, fg, s) => 'flex:none;width:' + (s || 36) + 'px;height:' + (s || 36) + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8'), none: 'display:none;' };
+    const T = { med: { bg: '#f1ecfd', fg: '#6b3fc4' }, treat: { bg: '#e3f6f5', fg: '#0f8a83' }, svc: { bg: '#e8f0fe', fg: '#1a5fd0' } };
+    const icon = t => ({ ic: 'flex:none;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:' + T[t].bg + ';', svg: 'width:17px;height:17px;fill:none;stroke:' + T[t].fg + ';stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;' });
+    const med = (name, dir, batch, qty, unit, ordered, tag, tagKind, checked) => Object.assign({ name, dir, batch, qty, unit, ordered, tag: tag || '', tagStyle: tag ? P[tagKind] : P.none, okStyle: checked ? P.green : P.none, row: 'display:flex;flex-direction:column;gap:8px;padding:12px 10px;border-radius:18px;' + (checked ? 'background:#f6fbf7;' : 'background:#fafafb;') }, icon('med'));
+    const meds = [
+      med('Paracetamol 500 mg', '2 tablets, 4 times a day, after food · 3 days', 'PC-0412 · exp 12/2026 · 80 on hand', '24', 'tablet', '24 tablet', '', '', true),
+      med('Loratadine 10 mg', '1 tablet, once a day, at night · 5 days', 'LR-0207 · exp 03/2027 · 60 on hand', '5', 'tablet', '7 tablet', 'Edited by CA', 'purple', true),
+      med('Throat lozenges', 'Suck 1 every 3 hours when needed', 'LZ-0098 · exp 08/2027 · 30 on hand', '1', 'box', '—', 'Added by CA', 'blue', false)
+    ];
+    return {
+      accent, meds,
+      checked: String(meds.filter(m => m.okStyle !== P.none).length),
+      facts: [{ k: 'Doctor', v: 'Dr. Lim' }, { k: 'Pays', v: 'Panel · PMCare' }, { k: 'Visit', v: 'KPV-00004117' }],
+      allergies: [{ k: 'Penicillin', v: 'Rash · moderate' }, { k: 'Aspirin', v: 'Swelling · severe' }],
+      svcs: [Object.assign({ name: 'Nebuliser', qty: '1', isTreat: true, isSvc: false }, icon('treat')), Object.assign({ name: 'Consultation', qty: '1', isTreat: false, isSvc: true }, icon('svc'))],
+      summary: [{ k: 'Medicines', v: '3 lines' }, { k: 'Services', v: '2 lines' }, { k: 'Changed by you', v: '2 lines' }, { k: 'Unsaved', v: 'None' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

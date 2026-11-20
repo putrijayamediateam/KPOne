@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Finance home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="bill" accent="{{accent}}" branch="All branches" user-name="Hani F." user-role="Finance Officer" user-ini="HF" duty="09:00" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Billing</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Finance home</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Finance home: idea, not built · all three branches</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 250px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <nav aria-label="Waiting for you" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">WAITING FOR YOU</span>
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="6">
+            <button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.row}}"><span style="{{t.ic}}">{{t.k}}</span><span style="flex: 1; text-align: left">{{t.label}}</span><span style="{{t.countStyle}}">{{t.count}}</span></button>
+          </sc-for>
+        </nav>
+        <nav aria-label="Go to" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 12px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">GO TO</span>
+          <sc-for list="{{links}}" as="l" hint-placeholder-count="5">
+            <a href="#" style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 8px; border-radius: 12px; color: #3a3a40"><span>{{l.t}}</span><span aria-hidden="true" style="color: #c4c4cc">›</span></a>
+          </sc-for>
+        </nav>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section aria-labelledby="h-today" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 16px 10px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 8px"><h2 id="h-today" style="margin: 0; font-size: 15px; font-weight: 600">Today's money by branch</h2><span style="font-size: 12.5px; color: #8a8a93">18 Nov, up to 2:14 PM · receipt date</span></div>
+          <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px">
+            <thead><tr><sc-for list="{{cols}}" as="c" hint-placeholder-count="6"><th scope="col" style="{{c.style}}">{{c.label}}</th></sc-for></tr></thead>
+            <tbody><sc-for list="{{brRows}}" as="r" hint-placeholder-count="3"><tr style="border-bottom: 1px solid #f1f1f4"><th scope="row" style="text-align: left; font-weight: 500; padding: 0 8px; height: 42px">{{r.name}}</th><sc-for list="{{r.vals}}" as="v" hint-placeholder-count="4"><td style="{{v.style}}">{{v.t}}</td></sc-for><td style="text-align: right; padding: 0 8px"><span style="{{r.chip}}">{{r.state}}</span></td></tr></sc-for></tbody>
+          </table>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{listTitle}}</h1><span style="font-size: 12.5px; color: #8a8a93">oldest first · items you recorded go to someone else</span></div>
+          <sc-for list="{{items}}" as="i" hint-placeholder-count="8">
+            <a href="#" style="{{i.row}}">
+              <span style="{{i.ic}}">{{i.k}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{i.title}}</span><span style="font-size: 12px; color: #8a8a93">{{i.sub}}</span></span>
+              <span style="font-size: 12px; color: #8a8a93; white-space: nowrap">{{i.branch}}</span>
+              <span style="{{i.ageStyle}}">{{i.age}}</span>
+            </a>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section aria-labelledby="h-panel" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between"><h2 id="h-panel" style="margin: 0; font-size: 15px; font-weight: 600">Panel outstanding</h2><b style="font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums">{{panelTotal}}</b></div>
+          <span style="font-size: 12px; color: #8a8a93">Accepted claims not yet paid, plus Panel coverage not yet claimed. Age from first submission or from invoice date.</span>
+          <sc-for list="{{ageing}}" as="a" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px"><span>{{a.k}}</span><span style="font-variant-numeric: tabular-nums; font-weight: 500">{{a.v}}</span></div>
+              <div style="height: 8px; border-radius: 999px; background: #f1f1f4; overflow: hidden"><div style="{{a.bar}}"></div></div>
+            </div>
+          </sc-for>
+        </section>
+        <section aria-labelledby="h-pl" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+          <h2 id="h-pl" style="margin: 0; font-size: 15px; font-weight: 600">Pay later still owed</h2>
+          <sc-for list="{{payLater}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; justify-content: space-between; min-height: 36px; align-items: center; border-bottom: 1px solid #f1f1f4; font-size: 13px"><span style="color: #6b6b73">{{p.k}}</span><span style="font-variant-numeric: tabular-nums; font-weight: 500">{{p.v}}</span></div>
+          </sc-for>
+        </section>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 6px">This home page is an idea, not built. Its figures follow the Daily summary and Panel summary rules. Total received is Cash plus Non-cash only. Tax and e-Invoice: to confirm with the clinic's accountant.</span>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{nextLabel}}</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ non: { title: 'Non-cash received today', note: 'All branches · by payment method', cols: 'minmax(0,1.4fr) 80px 120px auto', head: ['METHOD','RECEIPTS','RM','TERMINAL CHECK'], align: ['l','r','r','l'],
+  rows: [['Card terminal','31','1,986.40',['Open today','mute']],['DuitNow QR','22','1,204.00',['Open today','mute']],['Debit card (MyDebit)','12','742.20',['Open today','mute']],['Touch ’n Go eWallet','9','388.00',['Open today','mute']],['GrabPay','4','196.00',['Open today','mute']],['Bank transfer','1','80.00',['Not classified','warn']]],
+  foot: 'Bank transfer has no Cash or Non-cash class yet, so it counts as Non-cash.' },
+ ref: { title: 'Refunds paid out today', note: 'Money handed back after a reversal', cols: 'minmax(0,1fr) 120px 80px minmax(0,1.2fr) auto', head: ['BRANCH','RECEIPT','RM','METHOD AND REASON','STATUS'], align: ['l','l','r','l','l'],
+  rows: [['Cheras','RCP-…4411','50.00','Cash · Wrong amount charged',['Waiting for approval','warn']],['Puchong','RCP-…3980','18.00','DuitNow QR · Duplicate payment',['Waiting for approval','warn']]],
+  foot: 'Waiting refunds count as paid out. A different person approves them.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], grey: ['#f4f4f6', '#6b6b73'], blue: ['#e8f0fe', '#1a4fa8'], violet: ['#f1ecfd', '#5a32a8'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const selRow = on => 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border:0;width:100%;box-sizing:border-box;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const seg = on => 'flex:1;border:0;border-radius:999px;min-height:38px;padding:0 12px;font:inherit;font-weight:500;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 3px rgba(17,17,26,0.12),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const sel = st.sel || 'all';
+    const C = { refund: ['#fde7ef', '#c2185b', 'RF'], cash: ['#eef0f3', '#3a3a40', 'CC'], term: ['#e8f0fe', '#1a4fa8', 'TC'], claim: ['#e9f8ee', '#1d7a3a', 'SC'], panel: ['#f1ecfd', '#5a32a8', 'PN'] };
+    const ALL = [
+      ['refund', 'Cash refund · RM 50.00 · RCP-…4411', 'Recorded by Aina R. · Wrong amount charged', 'Cheras', '4 h'],
+      ['cash', 'Cash closing · 17 Nov · RM 2.00 short', 'Counted by Siti · reason given', 'Puchong', '20 h'],
+      ['refund', 'DuitNow QR refund · RM 18.00 · RCP-…3980', 'Recorded by Rosli · Duplicate payment', 'Puchong', '1 d'],
+      ['term', 'Terminal check · 17 Nov · DuitNow QR', '−RM 42.00 · explanation needed', 'Cheras', '20 h'],
+      ['cash', 'Cash closing · 17 Nov · matches', 'Counted by Aina R.', 'Cheras', '20 h'],
+      ['claim', 'Pay staff claim SC-0042 · RM 86.40', 'Approved by HR Manager · Hafiz (CA)', 'Cheras', '2 d'],
+      ['panel', 'Record Panel payment · AIA (TPA)', 'Statement received · 14 accepted claims', 'Cheras', '3 d'],
+      ['cash', 'Cash closing · 16 Nov · RM 5.00 over', 'Counted by Mei Ling · reason given', 'Sg. Besi', '2 d'],
+      ['claim', 'Pay staff claim SC-0043 · RM 60.00', 'Approved by Director · Aisha (CA)', 'Sg. Besi', '1 d'],
+      ['claim', 'Pay staff claim SC-0044 · RM 40.00', 'Approved by HR Manager · Ravi (CA)', 'Cheras', '4 h']
+    ];
+    const T = [['all', 'All', null], ['refund', 'Refunds to approve', C.refund], ['cash', 'Cash closings', C.cash], ['term', 'Terminal differences', C.term], ['claim', 'Staff claims to pay', C.claim], ['panel', 'Panel payments', C.panel]];
+    const types = T.map(([k, label, c]) => ({ label, k: c ? c[2] : '∑', ic: c ? ic(c[0], c[1]) : ic('#111114', '#ffffff'), count: String(ALL.filter(r => k === 'all' || r[0] === k).length), countStyle: chip(k === 'refund' ? 'red' : 'grey'), pressed: String(sel === k), pick: () => this.setState({ sel: k }), row: navRow(sel === k) }));
+    const shown = ALL.filter(r => sel === 'all' || r[0] === sel);
+    const items = shown.map(([t, title, sub, branch, age], n) => ({ title, sub, branch, age, k: C[t][2], ic: ic(C[t][0], C[t][1]), row: 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border-radius:16px;' + (n === 0 ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : ''), ageStyle: 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;' + (parseInt(age) >= 2 && age.indexOf('d') > 0 ? 'background:#fde7ef;color:#c2185b;' : 'background:#f4f4f6;color:#6b6b73;') }));
+    const head = (label, left) => ({ label, style: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.03em;padding:0 8px 8px;white-space:nowrap;text-align:' + (left ? 'left' : 'right') + ';border-bottom:1px solid #e6e6ea;' });
+    const td = t => ({ t, style: 'text-align:right;padding:0 8px;white-space:nowrap;color:#3a3a40;' });
+    const B = [['Cheras', 1240.5, 2210.4, 50.0, 'Open today', 'grey'], ['Sungai Besi', 640.0, 980.2, 0, 'Open today', 'grey'], ['Puchong', 812.3, 1406.0, 18.0, '17 Nov waiting', 'amber']];
+    const brRows = B.map(b => ({ name: b[0], vals: [td(fmt(b[1])), td(fmt(b[2])), td(b[3] ? fmt(b[3]) : '—'), td(fmt(b[1] + b[2]))], state: b[4], chip: chip(b[5]) }));
+    const cash = B.reduce((a, b) => a + b[1], 0), non = B.reduce((a, b) => a + b[2], 0);
+    const AG = [['0 to 30 days', 18420.0, 'green'], ['31 to 60 days', 6210.5, 'amber'], ['61 to 90 days', 2140.0, 'amber'], ['Over 90 days', 980.0, 'red']];
+    const max = Math.max(...AG.map(a => a[1]));
+    const BAR = { green: '#34c759', amber: '#f0a020', red: '#e0457f' };
+    const first = shown[0];
+    return {
+      ...XP.holes,
+      accent, types, items, brRows,
+      listTitle: (sel === 'all' ? 'Waiting for you' : T.find(t => t[0] === sel)[1]) + ' · ' + items.length,
+      links: ['Reports', 'Pay later to collect', 'Panel payments', 'Daily cash closing', 'Terminal reconciliation'].map(t => ({ t })),
+      strip: XP.strip([stripItem('RM ' + fmt(cash + non), 'received today', true), stripItem('RM ' + fmt(cash), 'cash'), stripItem('RM ' + fmt(non), 'non-cash'), stripItem('RM 68.00', 'refunds paid out')], { 2: 'non', 3: 'ref' }),
+      cols: [head('Branch', true), head('Cash (RM)'), head('Non-cash (RM)'), head('Refunds paid (RM)'), head('Total received (RM)'), head('Cash closing')],
+      panelTotal: 'RM ' + fmt(AG.reduce((a, x) => a + x[1], 0)),
+      ageing: AG.map(([k, v, t]) => ({ k, v: 'RM ' + fmt(v), bar: 'height:100%;border-radius:999px;width:' + Math.max(4, Math.round(v / max * 100)) + '%;background:' + BAR[t] + ';' })),
+      payLater: [{ k: 'Cheras · 13 bills', v: 'RM 1,146.40' }, { k: 'Sungai Besi · 4 bills', v: 'RM 312.00' }, { k: 'Puchong · 6 bills', v: 'RM 488.50' }],
+      nextLabel: first ? 'Open: ' + first[1].split(' · ')[0] : 'Nothing waiting'
+    };
+
+  }
+}
+</script>
+</body>
+</html>

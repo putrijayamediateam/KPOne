@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today: modern</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+button[aria-controls="duty-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:4px}
+.card{transition:transform .18s ease, box-shadow .18s ease}
+.card:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(17,17,26,0.08),0 1px 2px rgba(17,17,26,0.04)}
+@media (prefers-reduced-motion: reduce){.card,.card:hover{transition:none;transform:none}}
+</style>
+</helmet>
+<div style="min-height: 1080px; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-wrap: wrap">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="today" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+    <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 14px 32px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Today</div>
+      <span aria-hidden="true" style="color: #c4c4cc">/</span>
+      <div style="font-size: 13px; font-weight: 600">Overview</div>
+      <label for="cmd" style="position: absolute; left: -9999px">Search or ask</label>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; background: #ffffff; border-radius: 999px; padding: 0 6px 0 14px; min-height: 38px; width: min(380px, 40vw); box-shadow: 0 1px 2px rgba(17,17,26,0.06), 0 0 0 1px rgba(17,17,26,0.05)">
+        <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: none; stroke: #8a8a93; stroke-width: 2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="cmd" placeholder="Search or ask KPOne…" style="flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: #111114; outline: none">
+        <span style="font-size: 11px; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 3px 9px">⌘K</span>
+      </div>
+      <button type="button" aria-label="Notifications, 3 new" style="position: relative; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #ffffff; box-shadow: 0 1px 2px rgba(17,17,26,0.06), 0 0 0 1px rgba(17,17,26,0.05); display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 17px; height: 17px; fill: none; stroke: #3a3a40; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+        <span style="position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: {{accent}}; box-shadow: 0 0 0 2px #ffffff"></span>
+      </button>
+    </header>
+
+    <main style="padding: 24px 32px 48px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 16px; align-items: stretch">
+
+      <section class="card" aria-labelledby="h-hero" style="grid-column: span 2; position: relative; overflow: hidden; border-radius: 26px; padding: 26px 28px; color: #ffffff; background: radial-gradient(120% 140% at 0% 0%, #e0457f 0%, #c2185b 38%, #7a2bd1 100%); box-shadow: 0 18px 40px rgba(122,43,209,0.22)">
+        <div aria-hidden="true" style="position: absolute; right: -60px; top: -80px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.28), rgba(255,255,255,0) 70%)"></div>
+        <p style="margin: 0; font-size: 13px; opacity: 0.85">Wednesday, 18 November · 10:15</p>
+        <h1 id="h-hero" style="margin: 6px 0 0; font-size: 30px; font-weight: 600; letter-spacing: -0.025em">Good morning, Doctor</h1>
+        <div style="display: flex; align-items: flex-end; gap: 28px; margin-top: 22px; flex-wrap: wrap">
+          <div><div style="font-size: 56px; font-weight: 700; letter-spacing: -0.04em; line-height: 1">86</div><div style="font-size: 13px; opacity: 0.85; margin-top: 4px">patients so far</div></div>
+          <div><div style="font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1">12</div><div style="font-size: 13px; opacity: 0.85; margin-top: 4px">waiting now</div></div>
+          <div><div style="font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1">17<span style="font-size: 16px">m</span></div><div style="font-size: 13px; opacity: 0.85; margin-top: 4px">average wait</div></div>
+        </div>
+        <svg role="img" aria-label="Patients per hour today, rising to 14 at 10 o'clock" viewBox="0 0 520 90" preserveAspectRatio="none" style="display: block; width: 100%; height: 90px; margin-top: 16px">
+          <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.45"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop></linearGradient></defs>
+          <path d="M0 78 L52 70 L104 58 L156 50 L208 36 L260 28 L312 20 L364 14 L364 90 L0 90 Z" fill="url(#hg)"></path>
+          <path d="M0 78 L52 70 L104 58 L156 50 L208 36 L260 28 L312 20 L364 14" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>
+          <path d="M364 14 L416 18 L468 26 L520 34" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="4 5"></path>
+          <circle cx="364" cy="14" r="5" fill="#ffffff"></circle>
+        </svg>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; opacity: 0.75"><span>8 am</span><span>10 am · now</span><span>expected to 1 pm</span></div>
+      </section>
+
+      <section class="card" aria-labelledby="h-coll" style="background: #ffffff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+        <div style="display: flex; justify-content: space-between; align-items: center"><h2 id="h-coll" style="margin: 0; font-size: 13px; font-weight: 500; color: #6b6b73">Collected today</h2><span style="font-size: 12px; font-weight: 600; color: #1f7a3d; background: #e7f6ea; border-radius: 999px; padding: 2px 8px">+5%</span></div>
+        <div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em">RM 4,820</div>
+        <svg role="img" aria-label="Collections rising through the morning" viewBox="0 0 200 60" preserveAspectRatio="none" style="width: 100%; height: 60px">
+          <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a84ff" stop-opacity="0.25"></stop><stop offset="1" stop-color="#0a84ff" stop-opacity="0"></stop></linearGradient></defs>
+          <path d="M0 52 L25 48 L50 44 L75 40 L100 30 L125 32 L150 22 L175 16 L200 10 L200 60 L0 60 Z" fill="url(#cg)"></path>
+          <path d="M0 52 L25 48 L50 44 L75 40 L100 30 L125 32 L150 22 L175 16 L200 10" fill="none" stroke="#0a84ff" stroke-width="2.2" stroke-linejoin="round"></path>
+        </svg>
+        <div style="display: flex; gap: 14px; font-size: 12.5px; color: #6b6b73"><span><span aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0a84ff; margin-right: 6px"></span>Card RM 2,880</span><span><span aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #c4c4cc; margin-right: 6px"></span>Cash RM 1,940</span></div>
+      </section>
+
+      <section class="card" aria-labelledby="h-ring" style="background: #ffffff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+        <h2 id="h-ring" style="margin: 0; font-size: 13px; font-weight: 500; color: #6b6b73; align-self: flex-start">Busy-ness</h2>
+        <svg role="img" aria-label="62 percent of a usual Wednesday" viewBox="0 0 120 120" style="width: 132px; height: 132px">
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#f1f1f4" stroke-width="12"></circle>
+          <circle cx="60" cy="60" r="48" fill="none" stroke="url(#rg)" stroke-width="12" stroke-linecap="round" stroke-dasharray="187 302" transform="rotate(-90 60 60)"></circle>
+          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e0457f"></stop><stop offset="1" stop-color="#7a2bd1"></stop></linearGradient></defs>
+          <text x="60" y="58" text-anchor="middle" font-size="26" font-weight="700" fill="#111114" font-family="Geist, Inter, sans-serif">62%</text>
+          <text x="60" y="76" text-anchor="middle" font-size="10" fill="#6b6b73" font-family="Geist, Inter, sans-serif">of usual</text>
+        </svg>
+        <p style="margin: 0; font-size: 12.5px; color: #6b6b73">A usual Wednesday is 140 patients</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-appr" style="grid-column: span 2; grid-row: span 2; background: #ffffff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <h2 id="h-appr" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">Needs your approval</h2>
+          <a href="#" style="font-size: 13px; color: #6b6b73">View all</a>
+        </div>
+        <sc-for list="{{approvals}}" as="a" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 18px; background: #fafafb">
+            <span style="{{a.tag}}">{{a.k}}</span>
+            <button type="button" aria-expanded="{{a.exp}}" aria-controls="{{a.pid}}" onClick="{{a.tog}}" style="{{a.bstyle}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600">{{a.title}}</span><span style="display: block; font-size: 12.5px; color: #6b6b73">{{a.meta}}</span></span><span aria-hidden="true" data-xp="1" style="{{a.chev}}">⌄</span></button>
+            <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 16px; min-height: 36px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Approve</button>
+            <button type="button" aria-label="More options for {{a.title}}" style="border: 0; background: transparent; width: 32px; height: 32px; border-radius: 50%; color: #8a8a93; font: inherit; cursor: pointer">···</button>
+          </div>
+        </sc-for>
+        <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(90deg, rgba(194,24,91,0.07), rgba(122,43,209,0.07)); font-size: 13px; color: #4a2a6b">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #7a2bd1; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round"><path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.3z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>
+          <span>The stock agent prepared 1 restock. You approve, KPOne creates the request.</span>
+        </div>
+      </section>
+
+      <sc-for list="{{apprX}}" as="xp" hint-placeholder-count="1">
+      <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+            <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+          </div>
+          <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+            <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+            <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+              <div role="row" style="{{xr.s}}">
+                <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <span style="{{xp.footS}}">{{xp.foot}}</span>
+        </div>
+      </section>
+      </sc-for>
+
+      <section class="card" aria-labelledby="h-now" style="grid-column: span 2; background: #ffffff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+        <h2 id="h-now" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">Clinic right now</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+          <sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+            <button type="button" aria-expanded="{{b.exp}}" aria-controls="{{b.pid}}" onClick="{{b.tog}}" style="{{b.bstyle}}">
+              <div style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="{{b.dot}}"></span><span style="font-weight: 600">{{b.name}}</span><span aria-hidden="true" data-xp="1" style="{{b.chev}}">⌄</span></div>
+              <div style="display: flex; align-items: baseline; gap: 6px"><span style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em">{{b.waiting}}</span><span style="font-size: 12.5px; color: #6b6b73">waiting · {{b.wait}}</span></div>
+              <div style="display: flex; height: 6px; border-radius: 6px; overflow: hidden; background: #ececf0"><div style="{{b.bDone}}"></div><div style="{{b.bServ}}"></div><div style="{{b.bWait}}"></div></div>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 14px; font-size: 12px; color: #6b6b73"><span><span aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34c759; margin-right: 6px"></span>Done</span><span><span aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0a84ff; margin-right: 6px"></span>With doctor</span><span><span aria-hidden="true" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff9f0a; margin-right: 6px"></span>Waiting</span></div>
+      </section>
+
+      <sc-for list="{{clinicX}}" as="xp" hint-placeholder-count="1">
+      <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+            <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+          </div>
+          <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+            <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+            <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+              <div role="row" style="{{xr.s}}">
+                <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <span style="{{xp.footS}}">{{xp.foot}}</span>
+        </div>
+      </section>
+      </sc-for>
+
+      <section class="card" aria-labelledby="h-duty" style="{{dutyCard}}">
+        <button type="button" aria-expanded="{{dutyOpenStr}}" aria-controls="duty-panel" onClick="{{toggleDuty}}" style="all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 12px; border-radius: 16px">
+        <span style="display: flex; align-items: center; justify-content: space-between"><h2 id="h-duty" style="margin: 0; font-size: 13px; font-weight: 500; color: #6b6b73">On duty</h2><span aria-hidden="true" style="{{dutyChevron}}">⌄</span></span>
+        <div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em">23<span style="font-size: 16px; color: #8a8a93; font-weight: 500"> / 25</span></div>
+        <div style="display: flex">
+          <sc-for list="{{faces}}" as="f" hint-placeholder-count="6"><span style="{{f.style}}">{{f.ini}}</span></sc-for>
+          <span style="width: 34px; height: 34px; border-radius: 50%; margin-left: -8px; background: #f1f1f4; color: #3a3a40; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; box-shadow: 0 0 0 2px #ffffff">+17</span>
+        </div>
+        <p style="margin: 0; font-size: 12.5px; color: #6b6b73">2 on leave · <b style="color: #8a5a00">1 late</b> · 1 not clocked in · <span style="color: #111114; font-weight: 600">{{dutyHint}}</span></p>
+        </button>
+      </section>
+
+      <section id="duty-panel" aria-label="Staff on duty today" aria-hidden="{{dutyHidden}}" style="{{dutyPanel}}">
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px 22px">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">Staff on duty today</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">Clock times from KPOne HR attendance · grace 5 min · updated 10:42</span>
+            <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap">
+              <sc-for list="{{dutyFilters}}" as="f" hint-placeholder-count="4"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for>
+            </span>
+          </div>
+          <div role="table" aria-label="Staff on duty" style="display: flex; flex-direction: column">
+            <div role="row" style="display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, 1fr) 90px 110px minmax(150px, 1.2fr) 90px; gap: 12px; padding: 0 12px 8px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+              <span role="columnheader">STAFF</span><span role="columnheader">BRANCH</span><span role="columnheader">SHIFT</span><span role="columnheader">CLOCKED IN</span><span role="columnheader">STATUS</span><span role="columnheader" style="text-align: right">ON SHIFT</span>
+            </div>
+            <sc-for list="{{dutyRows}}" as="r" hint-placeholder-count="8">
+              <div role="row" style="display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, 1fr) 90px 110px minmax(150px, 1.2fr) 90px; gap: 12px; align-items: center; min-height: 48px; padding: 0 12px; border-top: 1px solid #f1f1f4">
+                <span role="cell" style="display: flex; align-items: center; gap: 10px; min-width: 0"><span style="{{r.av}}">{{r.ini}}</span><span style="min-width: 0"><span style="display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span><span style="font-size: 12px; color: #8a8a93">{{r.role}}</span></span></span>
+                <span role="cell" style="color: #3a3a40">{{r.branch}}</span>
+                <span role="cell" style="color: #6b6b73; font-variant-numeric: tabular-nums">{{r.shift}}</span>
+                <span role="cell" style="font-variant-numeric: tabular-nums">{{r.inAt}}</span>
+                <span role="cell"><span style="{{r.chip}}">{{r.status}}</span></span>
+                <span role="cell" style="text-align: right; font-variant-numeric: tabular-nums; color: #3a3a40">{{r.since}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: #8a8a93">Late and early follow HR's attendance settings. Times are the server's clock-in time only; no location or photo is shown here.</p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-up" style="background: #ffffff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+        <h2 id="h-up" style="margin: 0; font-size: 13px; font-weight: 500; color: #6b6b73">To review</h2>
+        <sc-for list="{{reviews}}" as="r" hint-placeholder-count="3">
+          <button type="button" aria-expanded="{{r.exp}}" aria-controls="{{r.pid}}" onClick="{{r.tog}}" style="{{r.bstyle}}"><span aria-hidden="true" style="{{r.dot}}"></span><span style="flex: 1; min-width: 0; font-size: 13.5px">{{r.title}}</span><span aria-hidden="true" data-xp="1" style="{{r.chev}}">⌄</span></button>
+        </sc-for>
+      </section>
+
+      <sc-for list="{{reviewX}}" as="xp" hint-placeholder-count="1">
+      <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+            <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+          </div>
+          <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+            <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+            <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+              <div role="row" style="{{xr.s}}">
+                <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <span style="{{xp.footS}}">{{xp.foot}}</span>
+        </div>
+      </section>
+      </sc-for>
+    </main>
+    <p style="margin: 0 32px 32px; font-size: 12px; color: #8a8a93">Mock-up only. Fictional names and figures.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const st = this.state || {};
+    const dutyOpen = !!st.dutyOpen && !st.xo;
+    const dutyFilter = st.dutyFilter || 'all';
+    const avd = (bg, fg) => 'flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', late: 'background:#fff4dc;color:#8a5a00;', early: 'background:#e8f0fe;color:#1a4fa0;', miss: 'background:#fde7ef;color:#c2185b;', leave: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const STAFF = [
+      ['Dr. Lim', 'Resident doctor', 'DL', 'Cheras', '08:00–17:00', '07:52', 'Early 8 min', 'early', '2 h 50 min', ['#e8f0fe', '#1a4fa0']],
+      ['Aina R.', 'CA supervisor', 'AR', 'Cheras', '08:00–17:00', '07:58', 'On time', 'ok', '2 h 44 min', ['#fde7ef', '#8e0f44']],
+      ['Hafiz', 'Clinic assistant', 'HF', 'Cheras', '09:00–18:00', '09:14', 'Late 14 min', 'late', '1 h 28 min', ['#e3f6f5', '#0b6f69']],
+      ['Dr. Farah N.', 'Resident doctor', 'FN', 'Puchong', '08:00–17:00', '08:00', 'On time', 'ok', '2 h 42 min', ['#f1ecfd', '#5a32a8']],
+      ['Siti', 'Clinic assistant', 'SI', 'Puchong', '08:00–17:00', '08:03', 'On time', 'ok', '2 h 39 min', ['#fff4e5', '#8a4b00']],
+      ['Dr. Locum B', 'Locum doctor', 'LB', 'Sungai Besi', '10:00–14:00', '—', 'Not clocked in (shift 10:00)', 'miss', '—', ['#eef0f3', '#3a3a40']],
+      ['Ravi', 'Clinic assistant', 'RV', 'Sungai Besi', '10:00–19:00', '10:11', 'On time (grace)', 'ok', '31 min', ['#e8f0fe', '#1a4fa0']],
+      ['Mei', 'Finance officer', 'MI', 'Cheras', '09:00–18:00', '08:47', 'Early 13 min', 'early', '1 h 55 min', ['#e9f8ee', '#1d7a3a']],
+      ['Nadia', 'Clinic assistant', 'NA', 'Puchong', '—', '—', 'On leave today', 'leave', '—', ['#fff4dc', '#8a5a00']],
+      ['Kamal', 'Clinic assistant', 'KM', 'Sungai Besi', '—', '—', 'On leave today', 'leave', '—', ['#f4f4f6', '#3a3a40']]
+    ];
+    const keep = r => dutyFilter === 'all' || (dutyFilter === 'late' && (r[7] === 'late' || r[7] === 'miss')) || r[3] === dutyFilter;
+    const dutyRows = STAFF.filter(keep).map(r => ({ name: r[0], role: r[1], ini: r[2], branch: r[3], shift: r[4], inAt: r[5], status: r[6], chip: chipS(r[7]), since: r[8], av: avd(r[9][0], r[9][1]) }));
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const dutyFilters = [['all', 'All', STAFF.length], ['late', 'Late or missing', 2], ['Cheras', 'Cheras', 4], ['Puchong', 'Puchong', 3], ['Sungai Besi', 'Sungai Besi', 3]].map(([k, label, n]) => ({ label, n: String(n), pressed: String(dutyFilter === k), pick: () => this.setState(Object.assign({}, XS, { dutyOpen: true, dutyFilter: k, xo: '' })), style: fpill(dutyFilter === k) }));
+    const tag = (bg, fg) => 'flex:none;width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const dot = c => 'width:9px;height:9px;border-radius:50%;flex:none;background:' + c + ';box-shadow:0 0 0 4px ' + c + '22;';
+    const bar = (w, c) => 'height:100%;width:' + w + ';background:' + c + ';';
+    const face = (bg, fg, i) => ({ ini: i, style: 'width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:' + bg + ';color:' + fg + ';box-shadow:0 0 0 2px #ffffff;margin-left:-8px;' });
+    const W = (no, name, doc, wait, st, f) => [no + ' · ' + name, doc, 'waiting ' + wait, '', st, f];
+    const CLIN = {
+      'cl-CHR': { title: 'Cheras · 12 waiting', note: 'Average wait 24 min · names as on the Registration board', cols: ['PATIENT', 'DOCTOR', 'WAITING', 'STATUS'], filters: [['all', 'All'], ['lim', 'Dr. Lim'], ['farah', 'Dr. Farah'], ['otc', 'Medicine only']], rows: [
+        W('A-029', 'Nor Hidayah', 'Dr. Farah', '41 min', ['Long wait', 'bad'], 'farah'), W('A-030', 'Raj Kumar', 'Dr. Lim', '22 min', ['Not ready · Panel', 'warn'], 'lim'), W('A-031', 'Aminah Yusof', 'Dr. Lim', '9 min', ['Waiting', 'mute'], 'lim'),
+        W('A-032', 'Chong Li Ying', 'Dr. Farah', '31 min', ['Waiting', 'warn'], 'farah'), W('A-033', 'Ravi Shankar', 'Dr. Lim', '28 min', ['Waiting', 'mute'], 'lim'), W('A-034', 'Hamidah Salleh', 'Dr. Farah', '26 min', ['Urgent', 'bad'], 'farah'),
+        W('A-035', 'Lee Jun Hao', 'Dr. Lim', '24 min', ['Waiting', 'mute'], 'lim'), W('A-036', 'Farid Osman', 'Dr. Farah', '19 min', ['Waiting', 'mute'], 'farah'), W('A-037', 'Mei Xin Tan', 'Dr. Lim', '15 min', ['Waiting', 'mute'], 'lim'),
+        W('B-013', 'Zulkifli Hamid', 'Pharmacy', '12 min', ['Medicine only', 'violet'], 'otc'), W('A-038', 'Sarah Lim', 'Dr. Farah', '8 min', ['Waiting', 'mute'], 'farah'), W('B-014', 'Kamala Devi', 'Pharmacy', '4 min', ['Medicine only', 'violet'], 'otc')] },
+      'cl-SGB': { title: 'Sungai Besi · 5 waiting', note: 'Average wait 12 min', cols: ['PATIENT', 'DOCTOR', 'WAITING', 'STATUS'], rows: [
+        W('A-014', 'Azman Ali', 'Dr. Wong', '18 min', ['Waiting', 'mute']), W('A-015', 'Grace Tan', 'Dr. Wong', '14 min', ['Waiting', 'mute']), W('A-016', 'Nurul Huda', 'Dr. Wong', '11 min', ['Waiting', 'mute']),
+        W('B-006', 'Suresh Nair', 'Pharmacy', '9 min', ['Medicine only', 'violet']), W('A-017', 'Liew Kah Mun', 'Dr. Wong', '6 min', ['Waiting', 'mute'])] },
+      'cl-PCG': { title: 'Puchong · 3 waiting', note: 'Average wait 9 min', cols: ['PATIENT', 'DOCTOR', 'WAITING', 'STATUS'], rows: [
+        W('A-021', 'Aishah Kamal', 'Dr. Farah N.', '13 min', ['Waiting', 'mute']), W('A-022', 'Daniel Ong', 'Dr. Farah N.', '9 min', ['Waiting', 'mute']), W('A-023', 'Rosnah Ismail', 'Dr. Farah N.', '5 min', ['Not ready · details', 'warn'])] }
+    };
+    const APPR = {
+      'ap-stk': { title: 'Restock Paracetamol 500 mg · Puchong', note: 'Suggested by Hana (AI agent) at 07:00 by fixed rules', cols: ['CHECK', 'BASIS', 'VALUE', 'RESULT'], rows: [
+        ['On hand', 'Puchong dispensary and store', '120 tab', '', ['Below reorder level', 'warn']], ['Reorder level', 'set for this SKU and location', '500 tab', ''], ['Used per day', 'last 14 days', 'about 34 tab', ''],
+        ['Open orders', 'none for this SKU at Puchong', '—', '', ['None open', 'ok']], ['Suggested quantity', 'reorder level minus on hand, rounded up to a box of 100', '400 tab', '', ['Suggested', 'info']]] },
+      'ap-lv': { title: 'Annual leave · Siti A. · 24 to 26 Nov', note: 'Balance after approval: 6 of 14 days', cols: ['DAY', 'ROSTER', 'COVER', 'CHECK'], rows: [
+        ['Mon 24 Nov', 'Full day · Puchong', '08:00–17:00', '', ['Covered by Ravi', 'ok']], ['Tue 25 Nov', 'Full day · Puchong', '08:00–17:00', '', ['No cover yet', 'warn']], ['Wed 26 Nov', 'Full day · Puchong', '08:00–17:00', '', ['Covered by Nadia', 'ok']]] },
+      'ap-pay': { title: 'November payroll · prepared by HR', note: 'To confirm with the clinic\'s accountant before real use · synthetic data only', cols: ['BRANCH', 'STAFF', 'GROSS PAY', 'CHECK'], foot: 'Your own pay and the HR Manager\'s stay outside KPOne in this version. KPOne pays nothing and files nothing.', rows: [
+        ['Cheras', 'resident doctors, CAs, finance', '11 staff', 'RM 41,280.00', ['Second check done', 'ok']], ['Sungai Besi', 'resident doctor, CAs', '6 staff', 'RM 19,940.00', ['Second check done', 'ok']], ['Puchong', 'resident doctor, CAs', '6 staff', 'RM 20,310.00', ['Second check done', 'ok']]] },
+      'ap-mc': { title: '2 medical certificates · Sungai Besi', note: 'Issued yesterday · wording still DRAFT · no diagnosis is printed', cols: ['MC NUMBER', 'DAYS', 'ISSUED BY', 'STATUS'], rows: [
+        ['MC/KP/SGB/2026/000412', 'Patient KP-004417', '1 day · 17 Nov', 'Dr. Wong', ['DRAFT wording', 'warn']], ['MC/KP/SGB/2026/000413', 'Patient KP-002296', '2 days · 17–18 Nov', 'Dr. Wong', ['DRAFT wording', 'warn']]] }
+    };
+    const REV = {
+      'rv-cash': { title: 'Cash closing · Cheras · 17 Nov', note: 'Counted by Aina R. · waiting for someone else to approve', cols: ['LINE', 'BASIS', 'AMOUNT', 'STATUS'], rows: [
+        ['Expected cash', 'posted Cash receipts less Cash refunds', 'RM 1,952.50', ''], ['Counted', 'counted at 22:10', 'RM 1,940.00', ''], ['Difference', 'reason given: change given twice', 'RM 12.50 short', '', ['Short', 'warn']], ['Approval', 'not the person who counted', '—', '', ['Waiting', 'warn']]] },
+      'rv-fridge': { title: 'Vaccine fridge 1 · Cheras', note: 'Readings this week · 1 missed', cols: ['TAKEN', 'BY', 'NOW °C', 'STATUS'], rows: [
+        ['18 Nov, 08:30', 'Nur Aina', '4.6', '', ['In range', 'ok']], ['17 Nov, 17:30', 'Kamal Arif', '4.8', '', ['In range', 'ok']], ['17 Nov, 08:30', 'no reading entered', '—', '', ['Missed', 'warn']], ['16 Nov, 17:30', 'Siti Aminah', '5.1', '', ['In range', 'ok']], ['16 Nov, 08:30', 'Nur Aina', '4.9', '', ['In range', 'ok']]] },
+      'rv-apc': { title: '3 APC renewals due', note: 'From KPOne HR credentials · reminders show inside KPOne only', cols: ['DOCTOR', 'BRANCH', 'ENDS', 'STATUS'], rows: [
+        ['Dr. Lim', 'Resident doctor', 'Cheras', '31 Dec 2026', ['Ends in 43 days', 'warn']], ['Dr. Farah N.', 'Resident doctor', 'Puchong', '31 Dec 2026', ['Ends in 43 days', 'warn']], ['Dr. Locum B', 'Locum doctor', 'Sungai Besi', '31 Dec 2026', ['Not sent yet', 'bad']]] }
+    };
+    const apprBase = 'flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:transparent;color:inherit;padding:6px 8px;border-radius:12px;';
+    const tileBase = 'border-radius:18px;background:#fafafb;padding:14px;display:flex;flex-direction:column;gap:8px;color:inherit;min-height:44px;';
+    const revBase = 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;margin:0 -8px;border-radius:12px;background:transparent;color:inherit;';
+    return {
+      accent,
+      apprX: xPanel('appr-xpanel', Object.keys(APPR), APPR, 16),
+      clinicX: xPanel('clinic-xpanel', Object.keys(CLIN), CLIN, 16),
+      reviewX: xPanel('review-xpanel', Object.keys(REV), REV, 16),
+      dutyRows, dutyFilters,
+      dutyOpenStr: dutyOpen ? 'true' : 'false', dutyHidden: dutyOpen ? 'false' : 'true',
+      dutyHint: dutyOpen ? 'Hide list' : 'See who',
+      toggleDuty: () => this.setState(Object.assign({}, XS, { dutyOpen: !dutyOpen, dutyFilter, xo: '' })),
+      dutyChevron: 'font-size:16px;color:#6b6b73;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (dutyOpen ? '180deg' : '0deg') + ');',
+      dutyCard: 'background:#ffffff;border-radius:26px;padding:22px;display:flex;flex-direction:column;gap:12px;box-shadow:' + (dutyOpen ? '0 0 0 2px #111114' : '0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)') + ';',
+      dutyPanel: 'grid-column:1 / -1;background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (dutyOpen ? '760px' : '0px') + ';opacity:' + (dutyOpen ? '1' : '0') + ';transform:translateY(' + (dutyOpen ? '0' : '-8px') + ');margin-top:' + (dutyOpen ? '0' : '-16px') + ';visibility:' + (dutyOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (dutyOpen ? '0s' : '420ms') + ';',
+      approvals: [
+        { k: 'STK', tag: tag('#e8f0fe', '#1a4fa0'), title: 'Restock Paracetamol 500 mg', meta: 'Stock agent · Puchong · 400 tablets' },
+        { k: 'LV', tag: tag('#f1ecfd', '#5b3fa6'), title: 'Leave for Siti A., 3 days', meta: 'Annual leave · 24–26 Nov' },
+        { k: 'PAY', tag: tag('#e7f6ea', '#1f6b33'), title: 'November payroll', meta: 'Prepared by HR · second check done' },
+        { k: 'MC', tag: tag('#fde7ef', '#8e0f44'), title: '2 medical certificates', meta: 'Issued yesterday · Sungai Besi' }
+      ].map((a, i) => Object.assign(a, xBtn(['ap-stk', 'ap-lv', 'ap-pay', 'ap-mc'][i], 'appr-xpanel', apprBase))),
+      branches: [
+        { name: 'Cheras', waiting: '12', wait: '24 min', dot: dot('#ff9f0a'), bDone: bar('45%', '#34c759'), bServ: bar('15%', '#0a84ff'), bWait: bar('40%', '#ff9f0a') },
+        { name: 'Sungai Besi', waiting: '5', wait: '12 min', dot: dot('#34c759'), bDone: bar('60%', '#34c759'), bServ: bar('20%', '#0a84ff'), bWait: bar('20%', '#ff9f0a') },
+        { name: 'Puchong', waiting: '3', wait: '9 min', dot: dot('#34c759'), bDone: bar('70%', '#34c759'), bServ: bar('18%', '#0a84ff'), bWait: bar('12%', '#ff9f0a') }
+      ].map((b, i) => Object.assign(b, xBtn(['cl-CHR', 'cl-SGB', 'cl-PCG'][i], 'clinic-xpanel', tileBase))),
+      faces: [face('#e8f0fe', '#1a4fa0', 'WL'), face('#f1ecfd', '#5b3fa6', 'FN'), face('#fde7ef', '#8e0f44', 'AR'), face('#e7f6ea', '#1f6b33', 'TM'), face('#fff4e5', '#8a4b00', 'KS'), face('#e8f0fe', '#1a4fa0', 'NH')],
+      reviews: [
+        { title: 'Cash closing RM 12.50 short', dot: dot('#ff9f0a') },
+        { title: 'Fridge reading missed', dot: dot('#ff9f0a') },
+        { title: '3 APC renewals due', dot: dot('#8a8a93') }
+      ].map((r, i) => Object.assign(r, xBtn(['rv-cash', 'rv-fridge', 'rv-apc'][i], 'review-xpanel', revBase)))
+    };
+  }
+}
+</script>
+</body>
+</html>

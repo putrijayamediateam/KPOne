@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Leave</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="Cheras" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Leave</div>
+      <div role="tablist" aria-label="Leave" style="display: inline-flex; margin-left: 12px; background: #e9e9ee; border-radius: 999px; padding: 3px">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+      </div>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Search staff<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" aria-labelledby="h-wait" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 18px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 6px"><h2 id="h-wait" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Waiting for you</h2><span style="font-size: 12px; font-weight: 600; color: #c2185b; background: #fde7ef; border-radius: 999px; padding: 2px 9px">{{waitCount}}</span></div>
+        <sc-for list="{{requests}}" as="r" hint-placeholder-count="5">
+          <a href="#" style="{{r.row}}">
+            <span style="{{r.av}}">{{r.ini}}</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.name}}</span><span style="font-size: 12px; color: #6b6b73">{{r.when}} · {{r.days}}</span></span>
+            <span style="{{r.flagStyle}}">{{r.flag}}</span>
+          </a>
+        </sc-for>
+        <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 14px 8px 4px">DECIDED THIS WEEK</span>
+        <sc-for list="{{decided}}" as="d" hint-placeholder-count="3">
+          <div style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 8px; color: #3a3a40"><span>{{d.k}}</span><span style="{{d.style}}">{{d.v}}</span></div>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.tile}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+        <section aria-labelledby="h-cal" style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 12px; flex-wrap: wrap">
+            <h2 id="h-cal" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Team calendar · November 2026</h2>
+            <span style="font-size: 12.5px; color: #8a8a93">Shows who is away, never the leave type or reason</span>
+            <span style="margin-left: auto; display: flex; gap: 6px"><span style="border-radius: 999px; padding: 4px 10px; background: #f4f4f6; font-size: 12.5px">‹ Oct</span><span style="border-radius: 999px; padding: 4px 10px; background: #f4f4f6; font-size: 12.5px">Dec ›</span></span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px">
+            <sc-for list="{{dows}}" as="d" hint-placeholder-count="7"><span style="text-align: center; font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 4px 0">{{d}}</span></sc-for>
+            <sc-for list="{{cells}}" as="c" hint-placeholder-count="35">
+              <div style="{{c.style}}">
+                <span style="{{c.numStyle}}">{{c.n}}</span>
+                <sc-for list="{{c.away}}" as="a" hint-placeholder-count="1"><span style="{{a.style}}">{{a.label}}</span></sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-sel" style="flex: 0 0 330px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: #fff4dc; color: #8a5a00; display: flex; align-items: center; justify-content: center; font-weight: 600">NA</span>
+            <span><h2 id="h-sel" style="margin: 0; font-size: 17px; font-weight: 600">Nadia · Annual leave</h2><span style="font-size: 12.5px; color: #6b6b73">Clinic assistant · Cheras</span></span>
+          </div>
+          <sc-for list="{{detail}}" as="d" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{d.k}}</span><span style="font-weight: 500; text-align: right">{{d.v}}</span></div>
+          </sc-for>
+          <div style="display: flex; gap: 8px">
+            <div style="flex: 1; background: #f8f8fa; border-radius: 14px; padding: 10px 12px"><div style="font-size: 11.5px; color: #6b6b73">Balance now</div><div style="font-size: 20px; font-weight: 600">9 days</div></div>
+            <div style="flex: 1; background: #f8f8fa; border-radius: 14px; padding: 10px 12px"><div style="font-size: 11.5px; color: #6b6b73">After approval</div><div style="font-size: 20px; font-weight: 600">7 days</div></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="display: inline-flex; align-self: flex-start; font-size: 12px; font-weight: 600; color: #1d7a3a; background: #e9f8ee; border-radius: 999px; padding: 3px 10px">Evidence attached: check it</span>
+            <sc-for list="{{files}}" as="f" hint-placeholder-count="2">
+              <a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 14px; background: #f8f8fa"><span style="font-size: 10px; font-weight: 700; color: #c2185b; border: 1px solid #f3b6cb; border-radius: 4px; padding: 0 4px">{{f.kind}}</span><span style="flex: 1">{{f.name}}</span><span style="font-size: 12px; color: #8a8a93">{{f.size}}</span></a>
+            </sc-for>
+          </div>
+          <div style="font-size: 12px; color: #8a8a93">Nobody decides their own leave. An HR Manager's leave goes to the Director.</div>
+          <div style="display: flex; gap: 8px">
+            <button type="button" style="flex: 1; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; min-height: 44px; font: inherit; font-weight: 500; cursor: pointer">Reject…</button>
+            <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 44px; font: inherit; font-weight: 600; cursor: pointer">Approve</button>
+          </div>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Roster on those days</h2>
+          <span style="font-size: 12.5px; color: #8a5a00; background: #fff4dc; border-radius: 12px; padding: 8px 10px">Nadia has 2 shifts on 24–25 Nov. Approving does not change the roster: update it after.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      'away this week': { t: 'Away in the next 7 days', n: '18 to 24 Nov · approved and waiting', c: ['Staff', 'Dates', 'Days', 'Status'], w: 'minmax(150px,1.4fr) minmax(130px,1fr) 90px 150px',
+        f: [['ok', 'Approved'], ['warn', 'Waiting']],
+        r: [['Siti · CA supervisor', '17–18 Nov', '2 days', ['Approved', 'ok']], ['Ravi · Clinic assistant', '18 Nov', 'Half day', ['Approved', 'ok']], ['Nadia · Clinic assistant', '24–25 Nov', '2 days', ['Waiting for you', 'warn']]],
+        foot: 'The team calendar shows "On leave" or "half day" only, never the type or reason.' },
+      'needs an MC': { t: 'Needs an MC', n: 'Leave types where HR switched "Evidence files" on', c: ['Staff', 'Dates', 'Leave type', 'Evidence', 'Add by'], w: 'minmax(150px,1.4fr) 110px minmax(110px,1fr) 160px 110px',
+        r: [['Aisha · Clinic assistant', '1 Dec', 'Sick leave', ['Evidence needed', 'warn'], '15 Dec']],
+        foot: 'Staff can add an MC photo or PDF up to 14 days after the leave ends.' }
+    };
+    const accent = this.props.accent ?? '#c2185b';
+    const tab = (this.state && this.state.tab) || 'cal';
+    const tabs = [['appr', 'Approvals'], ['cal', 'Team calendar'], ['set', 'Settings']].map(([k, label]) => ({ label, sel: String(tab === k), pick: () => this.setState({ tab: k }), style: 'border:0;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer;' + (tab === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;') }));
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const av = (bg, fg) => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const flag = t => t === 'MC' ? 'font-size:11px;font-weight:600;color:#1d7a3a;background:#e9f8ee;border-radius:999px;padding:2px 8px;' : t === 'Needs MC' ? 'font-size:11px;font-weight:600;color:#8a5a00;background:#fff4dc;border-radius:999px;padding:2px 8px;' : 'display:none;';
+    const req = (name, ini, when, days, f, a, on) => ({ name, ini, when, days, flag: f || '', flagStyle: flag(f), av: a, row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:8px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') });
+    const requests = [
+      req('Nadia', 'NA', '24–25 Nov', '2 days', 'MC', av('#fff4dc', '#8a5a00'), true),
+      req('Hafiz', 'HF', '28 Nov', 'half day', '', av('#e3f6f5', '#0b6f69')),
+      req('Dr. Mei', 'DM', '2–4 Dec', '3 days', '', av('#e8f0fe', '#1a4fa8')),
+      req('Aisha', 'AI', '1 Dec', '1 day', 'Needs MC', av('#f1ecfd', '#5a32a8')),
+      req('Ravi', 'RV', '15–19 Dec', '5 days', '', av('#fde7ef', '#c2185b'))
+    ];
+    // November 2026 starts on Sunday; grid Mon..Sun, leading Mon 26 Oct .. Sat 31 Oct
+    const away = { 6: ['Kamal'], 12: ['Lina (½)'], 17: ['Siti'], 18: ['Siti', 'Ravi (½)'], 24: ['Nadia'], 25: ['Nadia'], 28: ['Hafiz (½)'] };
+    const pending = { 24: 1, 25: 1, 28: 1 };
+    const cells = [];
+    for (let i = 0; i < 35; i++) {
+      const n = i - 5; // day of Nov
+      const inMonth = n >= 1 && n <= 30;
+      const today = n === 18;
+      const names = inMonth ? (away[n] || []) : [];
+      cells.push({
+        n: inMonth ? String(n) : String(n <= 0 ? 31 + n : n - 30),
+        numStyle: 'font-size:12.5px;font-weight:600;' + (today ? 'background:#111114;color:#ffffff;border-radius:999px;padding:1px 7px;align-self:flex-start;' : inMonth ? 'color:#3a3a40;' : 'color:#c4c4cc;'),
+        style: 'min-height:96px;border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:4px;' + (inMonth ? 'background:#f8f8fa;' : 'background:transparent;') + ((i % 7) >= 5 && inMonth ? 'background:#f3f3f6;' : ''),
+        away: names.map(nm => ({ label: (nm.indexOf('½') >= 0 ? nm.replace(' (½)', '') + ' · half day' : nm + ' · on leave'), style: 'font-size:11.5px;border-radius:8px;padding:2px 6px;' + (pending[n] ? 'background:#ffffff;color:#8a5a00;box-shadow:inset 0 0 0 1px #f5c56b;' : 'background:#fff4dc;color:#8a5a00;') }))
+      });
+    }
+    const __base = {
+      accent, tabs, requests, cells,
+      waitCount: String(requests.length),
+      dows: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+      decided: [{ k: 'Siti · 17–18 Nov', v: 'Approved', style: 'font-size:12px;color:#1d7a3a;' }, { k: 'Kamal · 6 Nov', v: 'Approved', style: 'font-size:12px;color:#1d7a3a;' }, { k: 'Lina · 30 Nov', v: 'Rejected', style: 'font-size:12px;color:#c2185b;' }],
+      strip: [stripItem('5', 'waiting for you', true), stripItem('3', 'away this week'), stripItem('1', 'needs an MC'), stripItem('0', 'below zero')],
+      detail: [{ k: 'Dates', v: 'Tue 24 – Wed 25 Nov' }, { k: 'Working days', v: '2 days' }, { k: 'Asked on', v: '16 Nov, 9:12 AM' }, { k: 'Reason', v: 'Given (private)' }],
+      files: [{ kind: 'JPG', name: 'Photo 1', size: '1.2 MB' }]
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      tabs: __x.tabs,
+      requests: __x.requests,
+      cells: __x.cells,
+      waitCount: __x.waitCount,
+      dows: __x.dows,
+      decided: __x.decided,
+      strip: __x.strip,
+      detail: __x.detail,
+      files: __x.files,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

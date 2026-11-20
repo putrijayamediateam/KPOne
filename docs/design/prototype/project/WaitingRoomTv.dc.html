@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Waiting-room TV</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+@keyframes kp-ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.kp-ticker{display:inline-block;white-space:nowrap;animation:kp-ticker 28s linear infinite}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}.kp-ticker{animation:none}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 1000px; overflow: auto; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 28px 24px; box-sizing: border-box">
+
+  <!-- Board controls (designer notes) -->
+  <div style="width: 1344px; max-width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+    <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Waiting-room TV</h1>
+    <span style="font-size: 12.5px; color: #6b6b73">1920 × 1080 TV shown at 70% · signed in as the Cheras TV account · no patient data except in the name modes</span>
+    <div style="margin-left: auto; display: inline-flex; background: #e9e9ee; border-radius: 999px; padding: 4px">
+      <sc-for list="{{phaseTabs}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button></sc-for>
+    </div>
+    <div style="display: inline-flex; background: #e9e9ee; border-radius: 999px; padding: 4px">
+      <sc-for list="{{modeTabs}}" as="m" hint-placeholder-count="3"><button type="button" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button></sc-for>
+    </div>
+  </div>
+
+  <!-- TV frame -->
+  <div style="flex: none; width: 1344px; height: 756px; border-radius: 22px; background: #111114; padding: 10px; box-sizing: content-box; box-shadow: 0 30px 60px rgba(17,17,26,0.18)">
+    <div style="position: relative; width: 1344px; height: 756px; overflow: hidden; border-radius: 14px">
+      <div style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform: scale(0.7); transform-origin: 0 0; background: #fbf7f9; color: #111114; display: flex; flex-direction: column">
+
+        <header style="flex: none; display: flex; align-items: center; gap: 24px; padding: 28px 48px; background: #ffffff; box-shadow: 0 1px 0 rgba(17,17,20,0.06)">
+          <span style="width: 64px; height: 64px; border-radius: 20px; background: #c2185b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px">KP</span>
+          <span><span style="display: block; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">Klinik Putrijaya</span><span style="font-size: 22px; color: #6b6b73">Cheras</span></span>
+          <span style="margin-left: auto; text-align: right"><span style="display: block; font-size: 48px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">10:42</span><span style="font-size: 20px; color: #6b6b73">Wednesday, 18 November 2026</span></span>
+          <button type="button" style="border: 0; background: #e9e9ee; color: #111114; border-radius: 999px; padding: 0 22px; min-height: 52px; font: inherit; font-size: 18px; font-weight: 600">Dark mode</button>
+          <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 22px; min-height: 52px; font: inherit; font-size: 18px; font-weight: 600">Full screen</button>
+        </header>
+
+        <div style="flex: 1; min-height: 0; display: flex; gap: 32px; padding: 32px 48px">
+          <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 32px">
+            <!-- Current call: the one gradient element -->
+            <section style="position: relative; overflow: hidden; border-radius: 40px; padding: 40px 48px; color: #ffffff; background: radial-gradient(120% 140% at 0% 0%, #e0457f 0%, #c2185b 45%, #7a2bd1 100%); display: flex; flex-direction: column; gap: 14px">
+              <div aria-hidden="true" style="position: absolute; right: -80px; top: -90px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.25), rgba(255,255,255,0) 70%)"></div>
+              <div style="display: flex; align-items: center; gap: 16px"><span style="font-size: 30px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.92">{{heading}}</span><span style="{{recallStyle}}">Recall</span></div>
+              <div style="display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap"><span style="{{callStyle}}">{{callText}}</span><span style="{{nameStyle}}">{{callName}}</span></div>
+              <span style="font-size: 44px; font-weight: 600">→ Consultation Room 2</span>
+            </section>
+
+            <!-- Poster -->
+            <section style="flex: 1; min-height: 0; border-radius: 40px; background: #ffffff; box-shadow: 0 0 0 1px rgba(17,17,26,0.05); display: flex; overflow: hidden">
+              <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 40px 48px; background: #fde7ef">
+                <span style="font-size: 20px; font-weight: 600; color: #8e0f44; letter-spacing: 0.04em">POSTER 2 OF 4</span>
+                <span style="font-size: 52px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1">Flu season:<br>get your vaccine at the counter</span>
+                <span style="font-size: 22px; color: #6b6b73">Sample poster · uploaded by the branch</span>
+              </div>
+              <div style="flex: 0 0 520px; background: #111114; color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px">
+                <span aria-hidden="true" style="width: 96px; height: 96px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 40px">▶</span>
+                <span style="font-size: 20px; opacity: 0.8">Clinic video · muted, on a loop</span>
+              </div>
+            </section>
+          </div>
+
+          <!-- Recent calls -->
+          <aside style="flex: 0 0 620px; min-width: 0; background: #ffffff; border-radius: 40px; padding: 32px 28px; box-shadow: 0 0 0 1px rgba(17,17,26,0.05); display: flex; flex-direction: column; gap: 6px">
+            <h2 style="margin: 0 12px 10px; font-size: 30px; font-weight: 600">Earlier calls</h2>
+            <div style="display: flex; gap: 16px; padding: 0 16px 8px; font-size: 18px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+              <span style="flex: 1">{{colLabel}}</span><span style="flex: 0 0 230px">ROOM</span><span style="flex: 0 0 90px; text-align: right">TIME</span>
+            </div>
+            <sc-for list="{{recent}}" as="r" hint-placeholder-count="7">
+              <div style="display: flex; align-items: center; gap: 16px; padding: 0 16px; min-height: 76px; border-radius: 20px; background: #f8f8fa">
+                <span style="flex: 1; min-width: 0; font-size: 38px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.label}}</span>
+                <span style="flex: 0 0 230px; font-size: 22px; color: #3a3a40">{{r.room}}</span>
+                <span style="flex: 0 0 90px; text-align: right; font-size: 22px; color: #6b6b73; font-variant-numeric: tabular-nums">{{r.time}}</span>
+              </div>
+            </sc-for>
+          </aside>
+        </div>
+
+        <footer style="flex: none; overflow: hidden; background: #111114; color: #ffffff; padding: 18px 0">
+          <span class="kp-ticker" style="font-size: 30px; font-weight: 600">Open every day, 8 am to 10 pm · Please have your IC ready at the counter · Masks are available at the entrance · Open every day, 8 am to 10 pm · Please have your IC ready at the counter · Masks are available at the entrance · </span>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <div style="width: 1344px; max-width: 100%; display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: #6b6b73">
+    <span style="background: #ffffff; border-radius: 999px; padding: 6px 12px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">"Last called" after 15 minutes, timed from server time</span>
+    <span style="background: #ffffff; border-radius: 999px; padding: 6px 12px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Chime, then the spoken call in Malay or English</span>
+    <span style="background: #ffffff; border-radius: 999px; padding: 6px 12px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">One row per patient, service and room</span>
+    <span style="background: #fff4dc; color: #8a5a00; border-radius: 999px; padding: 6px 12px">Name modes need the privacy review before go-live</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const phase = st.phase || 'now';
+    const mode = st.mode || 'number';
+    const seg = on => 'border:0;border-radius:999px;padding:8px 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const phaseTabs = [['now', 'Now calling'], ['recall', 'Recall'], ['last', 'Last called']].map(([k, label]) => ({ label, pressed: String(phase === k), pick: () => this.setState({ phase: k }), style: seg(phase === k) }));
+    const modeTabs = [['number', 'Number'], ['short', 'Short name'], ['full', 'Full name']].map(([k, label]) => ({ label, pressed: String(mode === k), pick: () => this.setState({ mode: k }), style: seg(mode === k) }));
+    const rows = [['A-031', 'Hafiz Rahman', 'Hafiz Rahman bin Contoh', 'Consultation Room 1', '10:38'], ['B-012', 'Mei Ling', 'Tan Mei Ling', 'Dispensary', '10:35'], ['A-029', 'Siti Aminah', 'Siti Aminah binti Contoh', 'Treatment Room', '10:31'], ['A-030', 'Ravi Kumar', 'Ravi Kumar a/l Contoh', 'Consultation Room 2', '10:27'], ['B-011', 'Farid', 'Farid bin Contoh', 'Dispensary', '10:22'], ['A-028', 'Nadia Omar', 'Nadia Omar', 'Consultation Room 1', '10:19'], ['A-027', 'Wong Kai', 'Wong Kai Xuan', 'Consultation Room 2', '10:12']];
+    const label = r => mode === 'number' ? r[0] : mode === 'short' ? r[0] + ' · ' + r[1] : r[2];
+    return {
+      accent, phaseTabs, modeTabs,
+      heading: phase === 'last' ? 'Last called' : 'Now calling',
+      recallStyle: phase === 'recall' ? 'font-size:20px;font-weight:600;background:rgba(255,255,255,0.22);border-radius:999px;padding:4px 16px;' : 'display:none;',
+      callText: mode === 'full' ? 'Aisyah binti Contoh' : 'A-032',
+      callStyle: "font-weight:700;letter-spacing:-0.04em;line-height:1;font-size:" + (mode === "full" ? "104px" : "168px") + ";",
+      callName: mode === 'short' ? '· Nur Aisyah' : '',
+      nameStyle: mode === 'short' ? 'font-size:72px;font-weight:600;letter-spacing:-0.02em;' : 'display:none;',
+      colLabel: mode === 'full' ? 'NAME' : 'NUMBER',
+      recent: rows.map(r => ({ label: label(r), room: r[3], time: r[4] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

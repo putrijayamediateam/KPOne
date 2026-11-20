@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI agents</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">AI agents</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director, Administrator and Technical Admin view · only the Director enables or disables</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Open agent office</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Registered agents</h2><span style="font-size: 12px; color: #8a8a93">{{enabledCount}} on</span></div>
+        <sc-for list="{{agents}}" as="a" hint-placeholder-count="6">
+          <div style="{{a.row}}">
+            <button type="button" onClick="{{a.pick}}" aria-pressed="{{a.pressed}}" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0">
+              <span style="{{a.av}}">{{a.ini}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 6px"><span style="{{a.light}}"></span><span style="font-weight: 500">{{a.name}}</span></span><span style="display: block; font-size: 12px; color: #8a8a93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.title}}</span></span>
+            </button>
+            <button type="button" role="switch" aria-checked="{{a.on}}" aria-label="{{a.switchLabel}}" onClick="{{a.flip}}" style="{{a.track}}"><span style="{{a.knob}}"></span></button>
+          </div>
+        </sc-for>
+        <span style="font-size: 12px; color: #8a8a93; padding: 10px 8px 0">Agents are never deleted. Turning one off stops its next run; past runs stay.</span>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="flex: 1 1 140px; display: flex; align-items: baseline; gap: 8px; border-radius: 18px; padding: 10px 16px; background: #ffffff; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span></div></sc-for>
+          <sc-for list="{{stripX}}" as="s" hint-placeholder-count="3"><button type="button" aria-expanded="{{s.exp}}" aria-controls="{{s.pid}}" onClick="{{s.tog}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span><span aria-hidden="true" data-xp="1" style="{{s.chev}}">⌄</span></button></sc-for>
+        </div>
+        <sc-for list="{{stripP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Recent activity · {{cur.name}}</h1><span style="font-size: 12.5px; color: #8a8a93">latest 25 runs</span></div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em"><span style="flex: none; width: 130px">STARTED</span><span style="flex: 1 1 200px">TASK</span><span style="flex: none; width: 100px">BRANCH</span><span style="flex: 1 1 160px">LAST STEP</span><span style="flex: none; width: 96px; text-align: center">STATUS</span></div>
+          <sc-for list="{{runs}}" as="r" hint-placeholder-count="12">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: none; width: 130px; color: #3a3a40; font-variant-numeric: tabular-nums">{{r.t}}</span>
+              <span style="flex: 1 1 200px; min-width: 0; font-weight: 500">{{r.task}}</span>
+              <span style="flex: none; width: 100px; color: #3a3a40">{{r.branch}}</span>
+              <span style="flex: 1 1 160px; min-width: 0; font-size: 12.5px; color: #6b6b73">{{r.step}}</span>
+              <span style="{{r.stStyle}}">{{r.st}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; gap: 12px; align-items: center">
+            <span style="{{cur.av}}">{{cur.ini}}</span>
+            <span style="min-width: 0"><span style="display: block; font-size: 12px; color: #6b6b73">{{cur.code}}</span><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{cur.title}}</h2></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">Status</span><span style="{{cur.stStyle}}">{{cur.st}}</span></div>
+          <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">Office light</span><span style="font-weight: 500">{{cur.light}}</span></div>
+          <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">Runs</span><span style="font-weight: 500">{{cur.when}}</span></div>
+          <span style="font-size: 13px; font-weight: 500; color: #3a3a40; padding-top: 4px">Data sources it may read</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+            <sc-for list="{{sources}}" as="d" hint-placeholder-count="3"><span style="font-size: 12px; font-family: ui-monospace, Menlo, monospace; color: #3a3a40; background: #f4f4f6; border-radius: 8px; padding: 3px 8px">{{d.k}}</span></sc-for>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Aggregates only, checked on every read. Each read is logged as a step.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">What it may do</h2>
+          <sc-for list="{{rules}}" as="u" hint-placeholder-count="3"><div style="{{u.style}}">{{u.t}}</div></sc-for>
+        </section>
+        <section style="background: #f8f8fa; border-radius: 22px; padding: 14px 16px; font-size: 12.5px; color: #6b6b73">Design agent: deferred by the owner. Voice, AI service calls and agents that change clinic data are not authorised.</section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const st = this.state || {};
+    const sel = st.sel || 'hana';
+    const A = {
+      hana: { name: 'Hana', title: 'Inventory analyst (AI agent)', code: 'inventory_analyst', c: ['#f1ecfd', '#5a32a8'], on: true, light: 'Amber · waiting for people', lc: '#ff9f0a', when: '07:00 and 14:00, per branch', src: ['inventory.stock_review', 'inventory.branch_balances', 'inventory.dispensing_activity'], proposes: true },
+      rizal: { name: 'Rizal', title: 'Stocktake officer (AI agent)', code: 'stocktake_officer', c: ['#e3f6f5', '#0b6f69'], on: true, light: 'Grey · idle', lc: '#c4c4cc', when: '07:00 and 14:00, per branch', src: ['inventory.stock_counts'] },
+      lina: { name: 'Lina', title: 'Report assistant (AI agent)', code: 'report_assistant', c: ['#e8f0fe', '#1a4fa8'], on: true, light: 'Green · working', lc: '#34c759', when: 'Builds the daily summary', src: ['insights.today', 'insights.sales', 'clinic.day', 'money.day', 'panel.claims'] },
+      faris: { name: 'Faris', title: 'System health (AI agent)', code: 'system_health', c: ['#fde7ef', '#c2185b'], on: true, light: 'Red · needs attention', lc: '#ff375f', when: 'From the start of his previous check', src: ['system.health'] },
+      design: { name: 'Design agent', title: 'Deferred (AI agent)', code: 'design_agent', c: ['#f4f4f6', '#6b6b73'], on: false, light: 'Off', lc: '#e3e3e8', when: 'Not scheduled', src: [] }
+    };
+    const isOn = k => (st['on_' + k] === undefined ? A[k].on : st['on_' + k]);
+    const agents = Object.keys(A).map(k => {
+      const a = A[k]; const on = isOn(k); const pick = sel === k;
+      return {
+        name: a.name, title: a.title, ini: a.name[0], pressed: String(pick), pick: () => this.setState({ sel: k }),
+        on: on ? 'true' : 'false', switchLabel: (on ? 'Disable ' : 'Enable ') + a.name, flip: () => this.setState({ ['on_' + k]: !on }),
+        row: 'display:flex;align-items:center;gap:10px;min-height:56px;padding:4px 10px;border-radius:14px;' + (pick ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : ''),
+        av: 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;background:' + a.c[0] + ';color:' + a.c[1] + ';',
+        light: 'flex:none;width:8px;height:8px;border-radius:50%;background:' + (on ? a.lc : '#e3e3e8') + ';',
+        track: 'flex:none;width:46px;height:28px;border:0;cursor:pointer;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'),
+        knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);'
+      };
+    });
+    const a = A[sel]; const on = isOn(sel);
+    const stc = s => 'flex:none;width:96px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 0;' + (s === 'Finished' ? 'background:#e9f8ee;color:#1d7a3a;' : s === 'Running' ? 'background:#e8f0fe;color:#1a4fa8;' : s === 'Failed' ? 'background:#fde7ef;color:#c2185b;' : 'background:#f4f4f6;color:#6b6b73;');
+    const RUNS = {
+      hana: [['18 Nov, 14:00', 'Inventory review · 1400', 'Cheras', 'Proposed 1 restock', 'Finished'], ['18 Nov, 14:00', 'Inventory review · 1400', 'Puchong', 'No new suggestion', 'Finished'], ['18 Nov, 14:00', 'Inventory review · 1400', 'Sungai Besi', 'Proposed 1 slow-moving', 'Finished'], ['18 Nov, 07:00', 'Inventory review · 0700', 'Cheras', 'Proposed 5 suggestions', 'Finished'], ['18 Nov, 07:00', 'Inventory review · 0700', 'Puchong', 'Proposed 1 transfer', 'Finished'], ['18 Nov, 07:00', 'Inventory review · 0700', 'Sungai Besi', 'No new suggestion', 'Finished'], ['17 Nov, 14:00', 'Inventory review · 1400', 'Cheras', 'Retried after a timeout', 'Finished'], ['17 Nov, 14:00', 'Inventory review · 1400', 'Puchong', 'Database timeout', 'Failed'], ['17 Nov, 07:00', 'Inventory review · 0700', 'Cheras', 'Proposed 2 restock', 'Finished'], ['17 Nov, 07:00', 'Inventory review · 0700', 'Puchong', 'No new suggestion', 'Finished'], ['17 Nov, 07:00', 'Inventory review · 0700', 'Sungai Besi', 'Proposed 1 expiry warning', 'Finished'], ['16 Nov, 14:00', 'Inventory review · 1400', 'Cheras', 'No new suggestion', 'Finished']],
+      lina: [['18 Nov, 14:03', 'Daily summary · update', 'All', 'Writing summary sections', 'Running'], ['18 Nov, 07:00', 'Daily summary · build', 'All', 'Report ready', 'Finished'], ['17 Nov, 14:00', 'Daily summary · update', 'All', 'Report ready', 'Finished'], ['17 Nov, 07:00', 'Daily summary · build', 'All', 'Report ready', 'Finished']],
+      faris: [['18 Nov, 14:05', 'Health check', 'All', 'Failed queue jobs: 1', 'Finished'], ['18 Nov, 07:00', 'Health check', 'All', 'All counts zero', 'Finished'], ['17 Nov, 14:00', 'Health check', 'All', 'All counts zero', 'Finished']],
+      rizal: [['18 Nov, 14:02', 'Counts due', 'Cheras', '12 pairs due', 'Finished'], ['18 Nov, 07:00', 'Counts due', 'Cheras', '12 pairs due', 'Finished'], ['18 Nov, 07:00', 'Counts due', 'Puchong', '7 pairs due', 'Finished']],
+      design: []
+    };
+    const runs = RUNS[sel].map(([t, task, branch, step, s]) => ({ t, task, branch, step, st: s, stStyle: stc(s) }));
+    if (!runs.length) runs.push({ t: '—', task: 'No runs yet', branch: '', step: 'Deferred by the owner', st: 'None', stStyle: stc('None') });
+    const rule = (t, good) => ({ t, style: 'padding:10px 12px;border-radius:16px;font-size:12.5px;' + (good ? 'background:#f8f8fa;color:#3a3a40;' : 'background:#fde7ef;color:#c2185b;') });
+    const enabledCount = Object.keys(A).filter(isOn).length;
+    return {
+      accent, agents, runs, enabledCount,
+      cur: { name: a.name, title: a.title, code: a.code, ini: a.name[0], av: 'flex:none;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;background:' + a.c[0] + ';color:' + a.c[1] + ';', st: on ? 'Enabled' : 'Disabled', stStyle: 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;' + (on ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#f4f4f6;color:#6b6b73;'), light: a.light, when: a.when },
+      sources: a.src.length ? a.src.map(k => ({ k })) : [{ k: 'none' }],
+      rules: [rule(a.proposes ? 'Proposes suggestions into the approval inbox. People decide.' : 'Reads and records a counts-only note. Proposes nothing.', true), rule('Never sends a message, email or notification.', true), rule('Never changes stock, money or patient data.', true)],
+      strip: [{ v: String(enabledCount) + ' of 5', k: 'agents enabled' }, { v: '0', k: 'AI service calls' }],
+      stripX: [['today', { v: '38', k: 'runs today' }], ['failed', { v: '1', k: 'failed in 24 h' }]].map(([id, it]) => Object.assign(it, xBtn(id, 'strip-xpanel', 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'))),
+      stripP: xPanel('strip-xpanel', ['today', 'failed'], {
+        today: { title: 'Runs today · 38', note: 'Scheduled runs and runs started when a person opens a page', cols: ['AGENT', 'BRANCHES', 'RUNS', 'STATUS'], filters: [['all', 'All'], ['sch', 'Scheduled'], ['page', 'From a page']], rows: [
+          ['Hana', 'Scheduled 07:00 and 14:00', 'Cheras, Puchong, Sungai Besi', '6 runs', ['All finished', 'ok'], 'sch'], ['Rizal', 'Scheduled 07:00 and 14:00', 'Cheras, Puchong, Sungai Besi', '6 runs', ['All finished', 'ok'], 'sch'],
+          ['Rizal', 'When Stock count is opened', 'Cheras, Puchong', '14 runs', ['All finished', 'ok'], 'page'], ['Lina', 'Scheduled 07:00 and 14:00', 'All branches', '2 runs', ['1 running', 'info'], 'sch'],
+          ['Lina', 'When the daily summary is opened', 'All branches', '6 runs', ['All finished', 'ok'], 'page'], ['Faris', 'Scheduled 07:00 and 14:00', 'All branches', '2 runs', ['All finished', 'ok'], 'sch'],
+          ['Faris', 'When All agents is opened', 'All branches', '2 runs', ['All finished', 'ok'], 'page']] },
+        failed: { title: 'Failed in 24 h · 1', note: 'A failed run changes nothing; the next run starts fresh', cols: ['RUN', 'BRANCH', 'WHEN', 'STATUS'], rows: [
+          ['Hana · Inventory review · 1400', 'Stopped: database read timed out · retried, finished at 14:06', 'Puchong', '17 Nov, 14:01', ['Failed', 'bad']]] }
+      }, 14)
+    };
+  }
+}
+</script>
+</body>
+</html>

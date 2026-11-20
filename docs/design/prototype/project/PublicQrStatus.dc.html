@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>Public QR status</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 900px; overflow: auto; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; padding: 24px; box-sizing: border-box">
+
+  <aside style="flex: 0 1 320px; min-width: 260px; display: flex; flex-direction: column; gap: 14px">
+    <span style="align-self: flex-start; font-size: 12px; font-weight: 600; color: #6b6b73; background: #ffffff; border-radius: 999px; padding: 4px 10px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Public page · phone only · Bahasa Melayu</span>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em">QR status page</h1>
+    <p style="margin: 0; color: #6b6b73">Polls every 10 seconds. The first name and queue number appear only after a CA accepts the check-in. Before that, only counts and public branch details.</p>
+    <div style="background: #ffffff; border-radius: 22px; padding: 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 4px 8px">STATE · TAP TO PREVIEW</span>
+      <sc-for list="{{stateTabs}}" as="t" hint-placeholder-count="4">
+        <button type="button" onClick="{{t.pick}}" style="{{t.style}}"><span style="flex: 1; text-align: left">{{t.label}}</span><span style="font-size: 12px; color: #8a8a93">{{t.note}}</span></button>
+      </sc-for>
+    </div>
+    <ul style="margin: 0; padding: 0 0 0 18px; color: #6b6b73; font-size: 12.5px; display: flex; flex-direction: column; gap: 4px">
+      <li>Wait range: last 14 days, at least 5 samples, shown as 70–130%; otherwise hidden.</li>
+      <li>Location is optional, asked only after a tap, used only in the browser and never sent to KPOne.</li>
+      <li>Choosing another branch does not move the registration.</li>
+    </ul>
+  </aside>
+
+  <div style="flex: none; width: 390px; height: 844px; border-radius: 52px; background: #111114; padding: 10px; box-sizing: border-box; box-shadow: 0 30px 60px rgba(17,17,26,0.18)">
+    <div style="width: 100%; height: 100%; border-radius: 42px; background: #f4f4f6; overflow: hidden; display: flex; flex-direction: column">
+      <div style="flex: none; display: flex; justify-content: space-between; align-items: center; padding: 14px 28px 6px; font-size: 13px; font-weight: 600"><span>10:58</span><span aria-hidden="true" style="width: 110px; height: 28px; border-radius: 999px; background: #111114"></span><span>5G</span></div>
+      <header style="flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 20px 10px">
+        <span style="width: 34px; height: 34px; border-radius: 11px; background: #c2185b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px">KP</span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600">Klinik Putrijaya</span><span style="font-size: 12px; color: #6b6b73">Cawangan Cheras</span></span>
+        <span style="font-size: 11.5px; color: #8a8a93">Dikemas kini 10:58</span>
+      </header>
+
+      <main style="flex: 1; min-height: 0; overflow: auto; padding: 4px 16px 20px; display: flex; flex-direction: column; gap: 12px">
+
+        <sc-if value="{{called}}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 22px; background: #e6f6ea; color: #14532d; box-shadow: inset 0 0 0 1px #b7e4c4">
+            <span aria-hidden="true" style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: #1d6b34; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 18px">🔔</span>
+            <span><span style="display: block; font-weight: 700; font-size: 16px">Giliran anda!</span><span>Sila masuk ke Bilik Konsultasi 2.</span></span>
+          </div>
+        </sc-if>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 22px 18px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px">
+          <sc-if value="{{hasNumber}}" hint-placeholder-val="{{ true }}">
+            <span style="font-size: 18px; font-weight: 600">Aisyah</span>
+            <span style="font-size: 13px; color: #6b6b73">Nombor queue anda</span>
+            <span style="font-size: 64px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.05">A-032</span>
+          </sc-if>
+          <sc-if value="{{noNumber}}" hint-placeholder-val="{{ false }}">
+            <span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 50%; background: #f4f4f6; display: flex; align-items: center; justify-content: center; font-size: 24px">⏱</span>
+            <h1 style="margin: 4px 0 0; font-size: 22px; font-weight: 600">Status pendaftaran</h1>
+          </sc-if>
+          <p style="margin: 4px 0 0; color: #3a3a40; max-width: 290px">{{message}}</p>
+        </section>
+
+        <sc-if value="{{hasNumber}}" hint-placeholder-val="{{ true }}">
+          <section style="background: #ffffff; border-radius: 22px; padding: 14px 16px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px; text-align: center">
+            <span>{{aheadText}}</span>
+            <span style="color: #3a3a40">Anggaran masa menunggu: kira-kira <b>12–22 minit</b></span>
+            <span style="font-size: 12px; color: #8a8a93">Anggaran berdasarkan purata terkini, bukan jaminan.</span>
+          </section>
+        </sc-if>
+
+        <ol aria-label="Kemajuan pendaftaran" style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; font-size: 12px">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+            <li style="display: flex; flex-direction: column; gap: 6px"><span style="{{s.bar}}"></span><span style="{{s.labelStyle}}">{{s.label}}</span></li>
+          </sc-for>
+        </ol>
+
+        <sc-if value="{{showSound}}" hint-placeholder-val="{{ true }}">
+          <button type="button" style="min-height: 52px; border: 0; border-radius: 999px; background: #111114; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">🔊 Aktifkan bunyi pemberitahuan</button>
+        </sc-if>
+        <button type="button" style="min-height: 48px; border: 0; border-radius: 999px; background: #e9e9ee; color: #111114; font: inherit; font-weight: 600; cursor: pointer">↻ Semak status</button>
+
+        <section aria-label="Cawangan lain" style="background: #ffffff; border-radius: 22px; padding: 14px 14px 6px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px 6px"><h2 style="margin: 0; font-size: 14px; font-weight: 600">Cawangan Klinik Putrijaya</h2><button type="button" style="border: 0; background: transparent; color: #c2185b; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 36px; cursor: pointer">Isih ikut jarak</button></div>
+          <sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 56px; border-top: 1px solid #f1f1f4">
+              <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 6px; font-weight: 500">{{b.name}}<span style="{{b.youStyle}}">Cawangan anda</span></span><span style="display: block; font-size: 12px; color: #8a8a93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{b.addr}}</span></span>
+              <span style="flex: none; text-align: right"><span style="display: block; font-weight: 600">{{b.wait}}</span><span style="font-size: 11.5px; color: #8a8a93">menunggu</span></span>
+              <a href="#" style="flex: none; font-size: 12.5px; font-weight: 600; color: #c2185b; padding: 8px 4px">Buka peta</a>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const s = st.s || 'accepted';
+    const order = ['pending', 'review', 'accepted', 'called'];
+    const idx = order.indexOf(s);
+    const stateTabs = [['pending', 'Dihantar', 'waiting for CA'], ['review', 'Disemak', 'CA reviewing'], ['accepted', 'Disahkan', 'name + number'], ['called', 'Dipanggil', 'call-in banner']].map(([k, label, note]) => ({ label, note, pick: () => this.setState({ s: k }), style: 'display:flex;align-items:center;gap:10px;border:0;font:inherit;min-height:44px;padding:0 10px;border-radius:12px;cursor:pointer;' + (s === k ? 'background:#f4f4f6;font-weight:600;color:#111114;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.08);' : 'background:transparent;color:#3a3a40;') }));
+    const steps = ['Dihantar', 'Disemak', 'Disahkan', 'Dipanggil'].map((label, i) => ({ label, bar: 'display:block;height:6px;border-radius:999px;background:' + (i <= idx ? '#1d6b34' : '#e3e3e8') + ';', labelStyle: i === idx ? 'font-weight:600;color:#111114;' : 'color:#8a8a93;' }));
+    const hasNumber = idx >= 2;
+    const messages = {
+      pending: 'Maklumat anda telah dihantar. Sila tunggu, staf akan menyemaknya sebentar lagi.',
+      review: 'Staf sedang menyemak maklumat anda. Jangan tutup halaman ini.',
+      accepted: 'Pendaftaran anda telah disahkan. Sila tunggu di ruang menunggu.',
+      called: 'Anda sedang dipanggil sekarang.'
+    };
+    return {
+      accent, stateTabs, steps, hasNumber, noNumber: !hasNumber,
+      called: s === 'called', showSound: s === 'accepted',
+      message: messages[s],
+      aheadText: s === 'called' ? 'Anda seterusnya dalam giliran.' : 'Pesakit di hadapan anda: 4',
+      branches: [
+        { name: 'Cheras', addr: 'Jalan Contoh 1, Cheras', wait: '9', youStyle: 'font-size:11px;font-weight:600;color:#8e0f44;background:#fde7ef;border-radius:999px;padding:1px 8px;' },
+        { name: 'Sungai Besi', addr: 'Jalan Contoh 2, Sungai Besi', wait: '3', youStyle: 'display:none;' },
+        { name: 'Puchong', addr: 'Jalan Contoh 3, Puchong', wait: '5', youStyle: 'display:none;' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

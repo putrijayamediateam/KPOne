@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Manage payments</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="bill" accent="{{accent}}" branch="Cheras" user-name="Hani F." user-role="Finance Officer" user-ini="HF" duty="09:00" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Billing</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Manage payments · INV-CHR-2026-01488</div>
+      <a href="#" style="margin-left: auto; font-size: 13px; color: #3a3a40">← Back to Billing</a>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" aria-labelledby="h-inv" style="flex: 0 0 280px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; color: #6b6b73">KP-000533 · IC ••••3390</span>
+          <h2 id="h-inv" style="margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Tan Mei Hua</h2>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px"><span style="font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:#e8f0fe;color:#1a4fa8">Self-pay</span><span style="font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:#fff4dc;color:#8a5a00">Visit not completed</span></div>
+          <span style="font-size: 12.5px; color: #6b6b73">KPV-00002560 · INV-CHR-2026-01488</span>
+          <sc-for list="{{sums}}" as="s" hint-placeholder-count="6">
+            <div style="{{s.style}}"><span>{{s.k}}</span><span style="font-variant-numeric: tabular-nums">{{s.v}}</span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600">Rules on this page</h3>
+          <span style="font-size: 12.5px; color: #6b6b73">A receipt is reversed, never deleted or edited.</span>
+          <span style="font-size: 12.5px; color: #6b6b73">A refund is only for a reversed receipt, for the full reversed amount, before the visit is completed.</span>
+          <span style="font-size: 12.5px; color: #6b6b73">A Finance Officer or Director who did not record the refund approves it.</span>
+        </section>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Receipts · {{count}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">newest first</span>
+            <button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; cursor: pointer">+ Add payment</button>
+          </div>
+          <sc-for list="{{receipts}}" as="r" hint-placeholder-count="6">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="{{r.ic}}">{{r.k}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.no}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span>
+              <span style="{{r.amtStyle}}">{{r.amt}}</span>
+              <span style="width: 170px; display: flex; justify-content: flex-end"><span style="{{r.chip}}">{{r.state}}</span></span>
+            </button>
+          </sc-for>
+          <div style="margin: 14px 6px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em">ACTIVITY</div>
+          <sc-for list="{{log}}" as="l" hint-placeholder-count="5">
+            <div style="display: flex; gap: 12px; align-items: center; min-height: 40px; padding: 0 10px; font-size: 13px; border-bottom: 1px solid #f6f6f8"><span style="width: 74px; color: #8a8a93; font-variant-numeric: tabular-nums">{{l.t}}</span><span style="flex: 1">{{l.v}}</span><span style="color: #8a8a93; font-size: 12.5px">{{l.who}}</span></div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-rcp" style="flex: 0 0 360px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div><span style="display: block; font-size: 12px; color: #6b6b73">{{cur.eyebrow}}</span><h2 id="h-rcp" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{cur.title}}</h2></div>
+          <sc-if value="{{showNote}}" hint-placeholder-val="{{ true }}"><div style="padding: 10px 12px; border-radius: 14px; background: {{cur.noteBg}}; color: {{cur.noteFg}}; font-size: 12.5px">{{cur.note}}</div></sc-if>
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="6">
+            <div style="display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+          <sc-for list="{{inputs}}" as="f" hint-placeholder-count="2">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{f.k}} <span style="color: #8a8a93; font-weight: 400">{{f.hint}}</span></span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: {{f.color}}">{{f.v}}<span aria-hidden="true" style="color: #8a8a93">{{f.caret}}</span></span></label>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">{{cur.foot}}</span>
+        </section>
+        <div style="margin-top: auto; display: flex; gap: 10px">
+          <sc-if value="{{showSecondary}}" hint-placeholder-val="{{ true }}"><button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 48px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">{{cur.second}}</button></sc-if>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{cur.primary}}</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ rev: { title: 'Reversed receipts', note: 'Reversals keep the receipt and add a row', cols: 'minmax(0,1.2fr) minmax(0,1fr) 90px minmax(0,1.2fr) auto', head: ['RECEIPT','REVERSED','RM','REASON','REFUND'], align: ['l','l','r','l','l'],
+  rows: [['RCP-CHR-2026-04411','18 Nov, 10:20 AM · Hafiz','50.00','Wrong amount charged',['Refund waiting','warn']],['RCP-CHR-2026-04402','18 Nov, 9:58 AM · Aina R.','40.00','Posted to wrong invoice',['No refund recorded','mute']]],
+  foot: 'A reversal is not a refund. Only money really handed back is recorded as a refund.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], grey: ['#f4f4f6', '#6b6b73'], blue: ['#e8f0fe', '#1a4fa8'], violet: ['#f1ecfd', '#5a32a8'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const selRow = on => 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border:0;width:100%;box-sizing:border-box;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const seg = on => 'flex:1;border:0;border-radius:999px;min-height:38px;padding:0 12px;font:inherit;font-weight:500;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 3px rgba(17,17,26,0.12),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const sel = st.sel ?? 0;
+    const R = [
+      ['RCP-CHR-2026-04416', 'DuitNow QR', 'DQ', 18.5, '18 Nov, 10:24 AM · by Hafiz (CA)', 'posted'],
+      ['RCP-CHR-2026-04415', 'Cash', 'CA', 30.0, '18 Nov, 10:22 AM · by Hafiz (CA)', 'posted'],
+      ['RCP-CHR-2026-04411', 'Cash', 'CA', 50.0, '18 Nov, 10:12 AM · by Hafiz (CA)', 'waiting'],
+      ['RCP-CHR-2026-04402', 'Card terminal', 'CD', 40.0, '18 Nov, 9:51 AM · by Hafiz (CA)', 'reversed']
+    ];
+    const S = { posted: ['Posted', 'green'], waiting: ['Reversed · refund waiting', 'amber'], reversed: ['Reversed · no refund', 'grey'] };
+    const order = [2, 0, 1, 3];
+    const receipts = order.map((idx, n) => {
+      const r = R[idx];
+      const rev = r[5] !== 'posted';
+      return { no: r[0], sub: r[1] + ' · ' + r[4], k: r[2], ic: ic(rev ? '#f4f4f6' : '#e9f8ee', rev ? '#6b6b73' : '#1d7a3a'), amt: 'RM ' + fmt(r[3]), amtStyle: 'width:90px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;' + (rev ? 'color:#8a8a93;text-decoration:line-through;' : ''), state: S[r[5]][0], chip: chip(S[r[5]][1]), pressed: String(n === sel), pick: () => this.setState({ sel: n }), row: selRow(n === sel) };
+    });
+    const r = R[order[sel]];
+    const sumRow = (k, v, strong) => ({ k, v, style: 'display:flex;justify-content:space-between;gap:12px;min-height:36px;align-items:center;border-bottom:1px solid #f1f1f4;' + (strong ? 'font-weight:600;font-size:15px;border-bottom:0;' : 'color:#3a3a40;') });
+    let cur, facts, inputs, showSecondary = true;
+    if (r[5] === 'waiting') {
+      cur = { eyebrow: 'Refund on ' + r[0], title: 'Cash refund · RM 50.00', note: 'Recorded by Aina R. (CA Supervisor). You did not record it, so you may approve or reject it.', noteBg: '#fff4dc', noteFg: '#8a5a00', foot: 'Approving records your decision. The cash was already handed back; it counts as paid out in the 18 Nov cash closing.', second: 'Reject', primary: 'Approve refund' };
+      facts = [{ k: 'Receipt reversed', v: '18 Nov, 10:20 AM · Hafiz (CA)' }, { k: 'Reversal reason', v: 'Wrong amount charged' }, { k: 'Refund method', v: 'Cash' }, { k: 'Refund reason', v: 'Overcharged' }, { k: 'Paid out', v: '18 Nov, 10:25 AM' }, { k: 'Amount', v: 'RM 50.00 (full reversal)' }];
+      inputs = [{ k: 'Reason to reject', hint: '· needed only to reject', v: 'Choose a reason', caret: '⌄', color: '#8a8a93' }];
+    } else if (r[5] === 'reversed') {
+      cur = { eyebrow: r[0] + ' · reversed', title: 'Record a refund · RM 40.00', note: 'Only record money that was really handed back. A Finance Officer or Director other than you approves it.', noteBg: '#f4f4f6', noteFg: '#3a3a40', foot: 'Refunds are for the full reversed amount, before the visit is completed. Partial refunds are not in this version.', second: '', primary: 'Record refund' };
+      showSecondary = false;
+      facts = [{ k: 'Original', v: 'Card terminal · RM 40.00' }, { k: 'Reversed', v: '18 Nov, 9:58 AM · Aina R.' }, { k: 'Reversal reason', v: 'Posted to wrong invoice' }];
+      inputs = [{ k: 'Refund method', hint: '', v: 'Card terminal', caret: '⌄', color: '#111114' }, { k: 'Refund reason', hint: '', v: 'Choose a reason', caret: '⌄', color: '#8a8a93' }];
+    } else {
+      cur = { eyebrow: r[0] + ' · posted', title: r[1] + ' · RM ' + fmt(r[3]), note: '', noteBg: '#f4f4f6', noteFg: '#3a3a40', foot: 'Reversing keeps the receipt and adds a reversal row. Reprints say the receipt was reversed.', second: 'Print receipt', primary: 'Reverse receipt' };
+      facts = [{ k: 'Method', v: r[1] }, { k: 'Amount', v: 'RM ' + fmt(r[3]) }, { k: 'Recorded', v: r[4].replace(' · by ', ' · ') }, { k: 'Allocated to', v: 'INV-CHR-2026-01488' }];
+      inputs = [{ k: 'Reversal reason', hint: '· required', v: 'Choose a reason', caret: '⌄', color: '#8a8a93' }];
+    }
+    return {
+      ...XP.holes,
+      accent, receipts, count: String(R.length), facts, inputs, cur, showSecondary, showNote: !!cur.note,
+      sums: [sumRow('Lines', 'RM 98.50'), sumRow('Adjustment', '—'), sumRow('Invoice total', 'RM 98.50'), sumRow('Received (after reversals)', 'RM 48.50'), sumRow('Panel or pay later', '—'), sumRow('Due now', 'RM 50.00', true)],
+      strip: XP.strip([stripItem('1', 'refund waiting for you', true), stripItem('RM 48.50', 'received'), stripItem('RM 90.00', 'reversed'), stripItem('RM 50.00', 'due now')], { 2: 'rev' }),
+      log: [{ t: '10:25 AM', v: 'Refund recorded on RCP-…4411 (waiting)', who: 'Aina R.' }, { t: '10:24 AM', v: 'Payment posted · DuitNow QR', who: 'Hafiz' }, { t: '10:22 AM', v: 'Payment posted · Cash', who: 'Hafiz' }, { t: '10:20 AM', v: 'Receipt RCP-…4411 reversed', who: 'Hafiz' }, { t: '9:58 AM', v: 'Receipt RCP-…4402 reversed', who: 'Aina R.' }]
+    };
+
+  }
+}
+</script>
+</body>
+</html>

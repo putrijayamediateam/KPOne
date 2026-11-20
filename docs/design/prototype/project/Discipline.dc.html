@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Discipline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Discipline</div>
+      <span style="margin-left: 8px; font-size: 12px; font-weight: 600; color: #5a32a8; background: #f1ecfd; border-radius: 999px; padding: 4px 10px">Restricted · Director and HR Manager</span>
+      <button type="button" style="margin-left: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Open a case</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 4px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Cases</h2><span style="font-size: 12px; color: #8a8a93">{{openCount}} open</span></div>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 8px">Cases about you, or that only a Director may handle, are not listed.</span>
+        <sc-for list="{{cases}}" as="c" hint-placeholder-count="9">
+          <button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="{{c.row}}">
+            <span style="{{c.av}}">{{c.ini}}</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{c.person}}</span><span style="font-size: 12px; color: #8a8a93">{{c.no}} · opened {{c.opened}}</span></span>
+            <span style="{{c.stStyle}}">{{c.st}}</span>
+          </button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{cur.person}}</h1>
+            <span style="{{cur.stStyle}}">{{cur.st}}</span>
+            <span style="margin-left: auto; font-size: 12px; color: #8a8a93">{{cur.no}} · {{cur.role}} · {{cur.branch}}</span>
+          </div>
+          <div style="padding: 14px 16px; border-radius: 18px; background: #f8f8fa; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 12px; color: #8a8a93">Allegation · date it happened {{cur.date}}</span>
+            <span style="color: #111114">{{cur.allegation}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0">
+            <span style="font-size: 13px; font-weight: 600; padding-bottom: 8px">Timeline</span>
+            <sc-for list="{{cur.timeline}}" as="t" hint-placeholder-count="5">
+              <div style="display: flex; gap: 12px; min-height: 52px">
+                <span style="flex: none; display: flex; flex-direction: column; align-items: center; width: 14px"><span style="{{t.dot}}"></span><span style="flex: 1; width: 2px; background: #f0f0f3"></span></span>
+                <span style="flex: 1; min-width: 0; padding-bottom: 12px"><span style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"><span style="font-weight: 500">{{t.what}}</span><span style="{{t.tagStyle}}">{{t.tag}}</span></span><span style="display: block; font-size: 12.5px; color: #6b6b73">{{t.detail}}</span><span style="font-size: 12px; color: #8a8a93">{{t.when}}</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            <span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; flex: 1 1 260px; color: #8a8a93">Add a note (optional)</span>
+            <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Add note</button>
+            <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Add file</button>
+            <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Link letter</button>
+            <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Record reply</button>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Outcome</h2>
+          <span style="font-size: 13px; color: #6b6b73">One outcome closes the case. It cannot be changed afterwards.</span>
+          <div role="radiogroup" aria-label="Outcome" style="display: flex; flex-direction: column; gap: 4px">
+            <sc-for list="{{outcomes}}" as="o" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="{{o.row}}"><span style="{{o.dot}}"></span>{{o.label}}</button></sc-for>
+          </div>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Note (optional)<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114; min-height: 64px; color: #8a8a93">Shown on the case only</span></label>
+          <button type="button" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; align-self: flex-start">Record outcome and close…</button>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">What KPOne will not do</h2>
+          <sc-for list="{{rules}}" as="r" hint-placeholder-count="3"><div style="display: flex; gap: 8px; font-size: 13px; color: #3a3a40"><span aria-hidden="true" style="color: #8a8a93">•</span><span>{{r.t}}</span></div></sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const C = [
+      ['Staff member #27', 'CA', 'Cheras', 'DC-0009', '14 Nov', 'open', '12 Nov 2026', 'Raised voice at a patient at the counter during a queue delay; two staff saw it.', [['Case opened', 'From incident report', 'Puan HR · 14 Nov, 09:20', 'red', 'Incident'], ['Show-cause letter', 'Letter LT-0031 issued, reply in 7 days', 'Puan HR · 14 Nov, 15:05', 'blue', 'HR letter'], ['Reply, as received', 'Date received 18 Nov · PDF, 2 pages', 'Puan HR · 18 Nov, 10:12', 'amber', 'File'], ['Note', 'Meeting with the staff member set for 20 Nov.', 'Puan HR · 18 Nov, 10:20', 'grey', 'Note']]],
+      ['Staff member #44', 'CA', 'Puchong', 'DC-0008', '6 Nov', 'open', '3 Nov 2026', 'Late clock-in four times in two weeks without a reason.', [['Case opened', '', 'Puan HR · 6 Nov, 11:00', 'red', 'Opened'], ['Show-cause letter', 'Letter LT-0028 issued', 'Puan HR · 6 Nov, 16:40', 'blue', 'HR letter']]],
+      ['Staff member #19', 'CA Supervisor', 'Cheras', 'DC-0007', '28 Oct', 'closed', '25 Oct 2026', 'Cash closing left unsigned for three days.', [['Case opened', '', 'Puan HR · 28 Oct', 'red', 'Opened'], ['Reply, as received', 'Date received 31 Oct', 'Puan HR · 31 Oct', 'amber', 'File'], ['Outcome recorded', 'Verbal warning · case closed', 'Puan HR · 3 Nov', 'green', 'Closed']]],
+      ['Staff member #52', 'CA', 'Puchong', 'DC-0006', '20 Oct', 'closed', '18 Oct 2026', 'Personal phone use at the dispensary counter.', [['Case opened', '', 'Puan HR · 20 Oct', 'red', 'Opened'], ['Outcome recorded', 'No action · case closed', 'Puan HR · 24 Oct', 'green', 'Closed']]],
+      ['Staff member #61', 'CA', 'Sg. Besi', 'DC-0005', '9 Oct', 'closed', '7 Oct 2026', 'Left the branch early without telling the supervisor.', [['Case opened', '', 'Puan HR · 9 Oct', 'red', 'Opened'], ['Outcome recorded', 'Written warning · case closed', 'Puan HR · 17 Oct', 'green', 'Closed']]],
+      ['Staff member #33', 'CA', 'Cheras', 'DC-0004', '1 Oct', 'closed', '29 Sep 2026', 'Uniform rules not followed after two reminders.', [['Outcome recorded', 'No action · case closed', 'Puan HR · 8 Oct', 'green', 'Closed']]]
+    ];
+    const sel = S.sel !== undefined ? S.sel : 0;
+    const out = S.out || 'verbal';
+    const tones = ['violet', 'teal', 'blue', 'amber', 'grey', 'red'];
+    const cases = C.map((c, i) => ({ person: c[0], no: c[3], opened: c[4], ini: '#' + c[0].split('#')[1], av: av(tones[i % 6]), st: c[5] === 'open' ? 'Open' : 'Closed', stStyle: chip(c[5] === 'open' ? 'amber' : 'green'), row: rowSel(i === sel), pressed: String(i === sel), pick: () => this.setState({ sel: i }) }));
+    const c = C[sel];
+    const dot = t => 'flex:none;width:12px;height:12px;border-radius:50%;margin-top:4px;background:' + T[t][1] + ';';
+    const timeline = c[8].map(([what, detail, when, t, tag]) => ({ what, detail, when, dot: dot(t), tag, tagStyle: chip(t) }));
+    const outcomes = [['none', 'No action'], ['verbal', 'Verbal warning'], ['written', 'Written warning'], ['final', 'Final warning']].map(([k, label]) => ({ label, checked: String(out === k), pick: () => this.setState({ out: k }), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;color:#111114;' + (out === k ? 'background:#f4f4f6;font-weight:600;' : 'background:transparent;'), dot: 'flex:none;width:16px;height:16px;border-radius:50%;box-sizing:border-box;' + (out === k ? 'border:5px solid #111114;' : 'border:2px solid #c4c4cc;') }));
+    return {
+      accent, cases, timeline, outcomes, openCount: C.filter(x => x[5] === 'open').length,
+      cur: { person: c[0], role: c[1], branch: c[2], no: c[3], date: c[6], allegation: c[7], timeline, st: c[5] === 'open' ? 'Open' : 'Closed', stStyle: chip(c[5] === 'open' ? 'amber' : 'green') },
+      rules: ['Never ends employment or changes a KPOne account.', 'Never shows a case on the staff file, the dashboard or any export.', 'Never lets you open or see a case about yourself.'].map(t => ({ t }))
+    };
+  }
+}
+</script>
+</body>
+</html>

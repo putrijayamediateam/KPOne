@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Open shifts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right,.kp-work.kp-2>.kp-left{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible{outline:2px solid #111114;outline-offset:2px}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="All branches" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Open shifts</div>
+      <span style="margin-left: auto; font-size: 12px; color: #8a8a93">Locums ask for a shift; HR confirms one. Confirming adds it to that week's draft roster.</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Open shifts</h2><span style="font-size: 12px; color: #8a8a93">Next 14 days</span></div>
+        <sc-for list="{{shifts}}" as="s" hint-placeholder-count="10">
+          <button type="button" onClick="{{s.pick}}" aria-pressed="{{s.pressed}}" style="{{s.row}}">
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{s.when}}</span><span style="font-size: 12px; color: #8a8a93">{{s.branch}} · {{s.need}}</span></span>
+            <span style="{{s.tagStyle}}">{{s.tag}}</span>
+          </button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.tile}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 4px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{cur.when}}</h1>
+            <span style="{{cur.tagStyle}}">{{cur.tag}}</span>
+            <button type="button" style="margin-left: auto; border: 0; background: transparent; color: #c2185b; font: inherit; font-weight: 600; cursor: pointer; min-height: 38px">Withdraw shift…</button>
+          </div>
+          <span style="margin: 0 6px 12px; font-size: 13px; color: #6b6b73">{{cur.branch}} · {{cur.session}} · {{cur.need}} · break {{cur.brk}} min · posted by {{cur.by}}</span>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 200px">LOCUM WHO ASKED</span><span style="flex: none; width: 120px">ASKED</span><span style="flex: none; width: 150px">STATUS</span><span style="flex: none; width: 170px; text-align: right">DECIDE</span>
+          </div>
+          <sc-for list="{{asks}}" as="a" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 10px"><span style="{{a.av}}">{{a.ini}}</span><span><span style="display: block; font-weight: 500">{{a.name}}</span><span style="font-size: 12px; color: #8a8a93">{{a.kind}}</span></span></span>
+              <span style="flex: none; width: 120px; color: #6b6b73; font-size: 13px">{{a.asked}}</span>
+              <span style="flex: none; width: 150px"><span style="{{a.stStyle}}">{{a.st}}</span></span>
+              <span style="flex: none; width: 170px; display: flex; justify-content: flex-end; gap: 6px"><sc-if value="{{a.canDecide}}" hint-placeholder-val="{{ true }}"><button type="button" aria-label="{{a.confirmLabel}}" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 34px; padding: 0 12px">Confirm</button><button type="button" aria-label="{{a.declineLabel}}" style="border: 0; background: #f0f0f3; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 34px; padding: 0 12px; background: transparent">Decline</button></sc-if></span>
+            </div>
+          </sc-for>
+          <sc-if value="{{noAsks}}" hint-placeholder-val="{{ false }}"><span style="padding: 14px 10px; color: #8a8a93">No locum has asked for this shift yet.</span></sc-if>
+          <div style="margin: 14px 6px 4px; padding: 12px 14px; border-radius: 16px; background: #f8f8fa; font-size: 13px; color: #6b6b73">Confirming one locum declines the other asks. A declined locum sees that they were not chosen, with the reason. The locum sees the shift on My roster once the week is approved.</div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Post an open shift</h2>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Branch<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">Cheras</span></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Date<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">Sat, 29 Nov 2026</span></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Session<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">Morning</span></label>
+          <div style="display: flex; gap: 8px"><label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73; flex: 1">Start time<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">08:00</span></label><label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73; flex: 1">End time<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">14:00</span></label></div>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Break (minutes)<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">30</span></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #6b6b73">Who is needed<span style="min-height: 40px; box-sizing: border-box; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; padding: 9px 12px; font-size: 14px; color: #111114">Locum doctor</span></label>
+          <span style="font-size: 12px; color: #8a8a93">Only locums with a KPOne sign-in see open shifts at their branches.</span>
+        </section>
+        <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer; min-height: 44px; margin-top: auto">Post open shift</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      'asks waiting': { t: 'Asks waiting', n: 'Oldest first · you confirm one person per shift', c: ['Who asked', 'Shift', 'Branch', 'Asked', 'Status'], w: 'minmax(150px,1.3fr) minmax(170px,1.5fr) 90px 110px 100px',
+        r: [['Mei Yee Tan · Locum CA', 'Wed 26 Nov · 14:00–22:00', 'Cheras', '17 Nov, 16:30', ['Waiting', 'warn']], ['Ain Sofea · Locum CA', 'Wed 26 Nov · 14:00–22:00', 'Cheras', '17 Nov, 10:02', ['Waiting', 'warn']], ['Dr. Kavya Nair · Locum doctor', 'Sun 23 Nov · 09:00–13:00', 'Puchong', '17 Nov, 20:15', ['Waiting', 'warn']], ['Dr. Lim Wei Han · Locum doctor', 'Sun 30 Nov · 09:00–13:00', 'Cheras', '18 Nov, 08:00', ['Waiting', 'warn']], ['Dr. Lim Wei Han · Locum doctor', 'Sat 22 Nov · 08:00–14:00', 'Cheras', '18 Nov, 09:10', ['Waiting', 'warn']], ['Dr. Kavya Nair · Locum doctor', 'Sat 22 Nov · 08:00–14:00', 'Cheras', '18 Nov, 11:42', ['Waiting', 'warn']]] },
+      'with no asks': { t: 'Open shifts with no asks', n: 'Nobody has asked yet', c: ['Shift', 'Branch', 'Needs', 'Session', 'Status'], w: 'minmax(170px,1.5fr) 90px minmax(110px,1fr) 90px 100px',
+        r: [['Mon 24 Nov · 18:00–22:00', 'Sg. Besi', 'Locum doctor', 'Night', ['No asks', 'mute']], ['Sat 29 Nov · 08:00–14:00', 'Puchong', 'Locum doctor', 'Morning', ['No asks', 'mute']], ['Tue 2 Dec · 18:00–22:00', 'Sg. Besi', 'Locum doctor', 'Night', ['No asks', 'mute']]],
+        foot: 'KPOne sends no message about open shifts. Staff messages are a separate, not-built slice.' },
+      'filled this week': { t: 'Filled this week', n: 'Confirmed shifts join the approved roster', c: ['Shift', 'Branch', 'Confirmed', 'Status'], w: 'minmax(170px,1.5fr) 90px minmax(150px,1.3fr) 100px',
+        r: [['Fri 14 Nov · 18:00–22:00', 'Cheras', 'Ain Sofea · Locum CA', ['Filled', 'ok']], ['Sat 15 Nov · 08:00–14:00', 'Cheras', 'Dr. Azman Hadi · Locum doctor', ['Filled', 'ok']]] }
+    };
+    const accent = this.props.accent ?? '#c2185b';
+    const S = this.state || {};
+    const T = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'], dark: ['#111114', '#ffffff'] };
+    const chip = t => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const rowSel = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;border:0;font:inherit;color:#111114;cursor:pointer;min-height:44px;padding:6px 10px;border-radius:14px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;text-align:left;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + T[t][0] + ';color:' + T[t][1] + ';';
+    const pill = on => 'border:0;border-radius:999px;padding:0 14px;min-height:34px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 0 0 1px rgba(17,17,20,0.16),0 1px 2px rgba(17,17,26,0.08);' : 'background:#f0f0f3;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+
+    const SH = [
+      ['Sat 22 Nov · 08:00–14:00', 'Cheras', 'Locum doctor', 'Morning', 30, 'open', [['Dr. Lim Wei Han', 'Locum doctor', '18 Nov, 09:10', 'Waiting'], ['Dr. Kavya Nair', 'Locum doctor', '18 Nov, 11:42', 'Waiting'], ['Dr. Azman Hadi', 'Locum doctor', '18 Nov, 13:05', 'Withdrawn by the locum']]],
+      ['Sun 23 Nov · 09:00–13:00', 'Puchong', 'Locum doctor', 'Morning', 0, 'open', [['Dr. Kavya Nair', 'Locum doctor', '17 Nov, 20:15', 'Waiting']]],
+      ['Mon 24 Nov · 18:00–22:00', 'Sg. Besi', 'Locum doctor', 'Night', 15, 'open', []],
+      ['Wed 26 Nov · 14:00–22:00', 'Cheras', 'Clinic Assistant', 'Evening', 45, 'open', [['Ain Sofea', 'Locum CA', '17 Nov, 10:02', 'Waiting'], ['Mei Yee Tan', 'Locum CA', '17 Nov, 16:30', 'Waiting']]],
+      ['Sat 29 Nov · 08:00–14:00', 'Puchong', 'Locum doctor', 'Morning', 30, 'open', []],
+      ['Sun 30 Nov · 09:00–13:00', 'Cheras', 'Locum doctor', 'Morning', 0, 'open', [['Dr. Lim Wei Han', 'Locum doctor', '18 Nov, 08:00', 'Waiting']]],
+      ['Tue 2 Dec · 18:00–22:00', 'Sg. Besi', 'Locum doctor', 'Night', 15, 'open', []],
+      ['Sat 15 Nov · 08:00–14:00', 'Cheras', 'Locum doctor', 'Morning', 30, 'filled', [['Dr. Azman Hadi', 'Locum doctor', '10 Nov, 09:00', 'Confirmed'], ['Dr. Lim Wei Han', 'Locum doctor', '10 Nov, 10:20', 'Not chosen: another locum was confirmed']]],
+      ['Sun 16 Nov · 09:00–13:00', 'Puchong', 'Locum doctor', 'Morning', 0, 'withdrawn', []],
+      ['Fri 14 Nov · 18:00–22:00', 'Cheras', 'Clinic Assistant', 'Night', 15, 'filled', [['Ain Sofea', 'Locum CA', '9 Nov, 12:00', 'Confirmed']]]
+    ];
+    const sel = S.sel !== undefined ? S.sel : 0;
+    const tagOf = (st, n) => st === 'filled' ? ['Filled', 'green'] : st === 'withdrawn' ? ['Withdrawn', 'grey'] : n ? [n + (n === 1 ? ' ask' : ' asks'), 'amber'] : ['No asks', 'grey'];
+    const shifts = SH.map((s, i) => { const t = tagOf(s[5], s[6].filter(a => a[3] === 'Waiting').length); return { when: s[0], branch: s[1], need: s[2], tag: t[0], tagStyle: chip(t[1]), row: rowSel(i === sel), pressed: String(i === sel), pick: () => this.setState({ sel: i }) }; });
+    const c = SH[sel];
+    const t = tagOf(c[5], c[6].filter(a => a[3] === 'Waiting').length);
+    const tones = ['teal', 'violet', 'blue', 'amber'];
+    const asks = c[6].map(([name, kind, asked, st], i) => ({ name, kind, asked, st, ini: name.replace('Dr. ', '').split(' ').map(w => w[0]).slice(0, 2).join(''), av: av(tones[i % 4]), stStyle: chip(st === 'Waiting' ? 'amber' : st === 'Confirmed' ? 'green' : 'grey') + 'white-space:normal;', confirmLabel: 'Confirm ' + name, declineLabel: 'Decline ' + name, canDecide: st === 'Waiting' && c[5] === 'open' }));
+    const __base = {
+      accent, shifts, asks, noAsks: asks.length === 0,
+      cur: { when: c[0], branch: c[1], need: c[2], session: c[3], brk: c[4], by: 'Puan HR', tag: t[0], tagStyle: chip(t[1]) },
+      strip: [stripItem('7', 'open shifts', true), stripItem('6', 'asks waiting'), stripItem('3', 'with no asks'), stripItem('2', 'filled this week')]
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      shifts: __x.shifts,
+      asks: __x.asks,
+      noAsks: __x.noAsks,
+      cur: __x.cur,
+      strip: __x.strip,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

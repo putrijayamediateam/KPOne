@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Daily summary</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="today" accent="{{accent}}" branch="Cheras" user-name="{{me.name}}" user-role="{{me.role}}" user-ini="{{me.ini}}" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Today</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Daily summary</div>
+      <span style="margin-left: 8px; font-size: 12px; font-weight: 600; color: #1d7a3a; background: #e9f8ee; border-radius: 999px; padding: 4px 10px">Report ready · updated 14:00</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Nothing is sent: no message, email or notification</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <nav aria-label="Summary days" style="background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">SUMMARY ON</span>
+          <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+            <a href="#" style="{{d.row}}"><span style="flex: 1">{{d.k}}</span><span style="font-size: 12px; color: #8a8a93">{{d.v}}</span></a>
+          </sc-for>
+        </nav>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">MOCK-UP · VIEW AS</span>
+          <sc-for list="{{roles}}" as="r" hint-placeholder-count="4">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">{{r.k}}</button>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93; padding: 6px 8px 0">Each person sees only the sections their existing permissions allow.</span>
+        </section>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{sections}}" as="s" hint-placeholder-count="5">
+          <section style="flex: none; background: #ffffff; border-radius: 26px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <span style="{{s.ic}}">{{s.code}}</span>
+              <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{s.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{s.by}}</span>
+              <span style="{{s.chipStyle}}">{{s.chip}}</span>
+            </div>
+            <sc-if value="{{s.shown}}" hint-placeholder-val="{{ true }}">
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px">
+                <sc-for list="{{s.tiles}}" as="t" hint-placeholder-count="4">
+                  <sc-if value="{{t.nx}}" hint-placeholder-val="{{ false }}"><div style="padding: 10px 14px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px; min-height: 64px; box-sizing: border-box"><span style="font-size: 12.5px; color: #6b6b73">{{t.k}}</span><span style="font-size: 19px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{t.v}}</span><span style="font-size: 11.5px; color: #8a8a93">{{t.note}}</span></div></sc-if>
+                  <sc-if value="{{t.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{t.exp}}" aria-controls="{{t.pid}}" onClick="{{t.tog}}" style="{{t.bstyle}}"><span style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #6b6b73"><span style="flex: 1">{{t.k}}</span><span aria-hidden="true" data-xp="1" style="{{t.chev}}">⌄</span></span><span style="font-size: 19px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{t.v}}</span><span style="font-size: 11.5px; color: #8a8a93">{{t.note}}</span></button></sc-if>
+                </sc-for>
+              </div>
+              <sc-for list="{{s.xp}}" as="xp" hint-placeholder-count="1">
+              <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+                <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+                    <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+                    <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+                    <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+                  </div>
+                  <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+                    <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+                    <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                      <div role="row" style="{{xr.s}}">
+                        <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                        <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                        <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                        <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <span style="{{xp.footS}}">{{xp.foot}}</span>
+                </div>
+              </section>
+              </sc-for>
+              <span style="font-size: 12px; color: #8a8a93">{{s.foot}}</span>
+            </sc-if>
+            <sc-if value="{{s.hidden}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 12px 14px; border-radius: 16px; background: #f8f8fa; color: #8a8a93; font-size: 13px">Not shown for your role.</div>
+            </sc-if>
+          </section>
+        </sc-for>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Today's runs</h2>
+          <sc-for list="{{runs}}" as="r" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 48px; border-bottom: 1px solid #f1f1f4"><span style="flex: none; width: 48px; font-weight: 600; font-variant-numeric: tabular-nums">{{r.t}}</span><span style="flex: 1; min-width: 0"><span style="display: block">{{r.k}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.stStyle}}">{{r.st}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Runs read allowlisted aggregates as "system". Figures are filtered for you when you open the page.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Waiting in your inbox</h2>
+          <sc-for list="{{inbox}}" as="i" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; border-bottom: 1px solid #f1f1f4"><span>{{i.k}}</span><span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 1px 9px; background: #fff4dc; color: #8a5a00">{{i.v}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">The inbox lists your active branch.</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Open approval inbox</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const role = (this.state && this.state.role) || 'dir';
+    const R = { dir: ['Director', 'Dr. Director', 'DR'], sup: ['CA Supervisor', 'Siti', 'SI'], fin: ['Finance Officer', 'Kumar', 'KU'], adm: ['Administrator', 'Ahmad', 'AH'] };
+    const roles = Object.keys(R).map(k => ({ k: R[k][0], pressed: String(role === k), pick: () => this.setState({ role: k }), row: 'display:flex;align-items:center;min-height:40px;padding:0 10px;border:0;border-radius:12px;font:inherit;text-align:left;cursor:pointer;color:#111114;' + (role === k ? 'background:#f4f4f6;font-weight:600;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;') }));
+    const ic = (bg, fg) => 'flex:none;width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const t = (k, v, note) => ({ k, v, note: note || '' });
+    const SEC = [
+      { code: 'CD', c: ['#e8f0fe', '#1a4fa8'], title: 'Clinic day', by: 'Lina (AI agent)', who: ['dir', 'sup', 'adm'], tiles: [t('Registered', '64', '3 branches'), t('Seen by a doctor', '51'), t('Average wait (minutes)', '18', 'was 22 yesterday'), t('Average consultation (minutes)', '9')], foot: 'Per-branch and per-doctor figures open from Quick answers.' },
+      { code: 'RM', c: ['#e9f8ee', '#1d7a3a'], title: 'Money day', by: 'Lina (AI agent)', who: ['dir', 'fin'], tiles: [t('Net invoice sales', 'RM 4,812.40'), t('Cash received (net)', 'RM 1,906.00'), t('Non-cash received (net)', 'RM 1,410.50'), t('Total received (Cash + Non-cash)', 'RM 3,316.50'), t('Panel approved', 'RM 1,220.00'), t('Pay later due', 'RM 275.90')], foot: 'Panel and pay later are not part of Total received.' },
+      { code: 'ST', c: ['#f1ecfd', '#5a32a8'], title: 'Stock suggestions', by: 'Hana (AI agent)', who: ['dir', 'sup', 'fin'], tiles: [t('Restock', '3', 'below reorder level'), t('Expiry warning', '1', 'use first · 74 days'), t('Transfer', '1', 'Puchong to Cheras'), t('Slow-moving', '1', 'no use for 64 days')], foot: 'Suggestions only. Approving records your decision; nothing moves in stock.' },
+      { code: 'SC', c: ['#e3f6f5', '#0b6f69'], title: 'Stock counts', by: 'Rizal (AI agent)', who: ['dir', 'sup'], tiles: [t('Counts due', '12', 'no count in 30 days'), t('Open count cases', '1'), t('Unresolved differences', '2')], foot: 'Counts only. Counting stays with the CA Supervisor.' },
+      { code: 'SH', c: ['#fde7ef', '#c2185b'], title: 'System health', by: 'Faris (AI agent)', who: ['dir', 'adm'], tiles: [t('Error log lines', '0', 'since 07:00'), t('Failed agent runs', '0'), t('Pending migrations', '0'), t('Failed queue jobs', '1', 'needs a look')], foot: 'A missing or unreadable log is never shown as all clear.' }
+    ];
+    const M = (title, note, cols, rows, foot) => ({ title, note, cols, rows, foot });
+    const B3 = ['Cheras', 'Sungai Besi', 'Puchong'];
+    const DD = {
+      'CD-0': M('Registered today · 64', 'By branch · counts only', ['BRANCH', 'DOCTOR VISITS', 'MEDICINE ONLY', 'TOTAL'], [[B3[0], '', '24', '6', ['30 visits', 'mute']], [B3[1], '', '13', '3', ['16 visits', 'mute']], [B3[2], '', '14', '4', ['18 visits', 'mute']]]),
+      'CD-1': M('Seen by a doctor · 51', 'By branch · counts only', ['BRANCH', 'DOCTORS ON SHIFT', 'STILL WAITING', 'SEEN'], [[B3[0], '', '2', '12', ['24 seen', 'mute']], [B3[1], '', '1', '5', ['13 seen', 'mute']], [B3[2], '', '1', '3', ['14 seen', 'mute']]]),
+      'CD-2': M('Average wait · 18 minutes', 'Queued to called, by branch', ['BRANCH', 'YESTERDAY', 'LONGEST TODAY', 'TODAY'], [[B3[0], '', '27 min', '41 min', ['22 min', 'warn']], [B3[1], '', '18 min', '24 min', ['14 min', 'ok']], [B3[2], '', '17 min', '22 min', ['15 min', 'ok']]]),
+      'RM-0': M('Net invoice sales · RM 4,812.40', 'By branch · after discounts and surcharges', ['BRANCH', 'INVOICES', 'ADJUSTMENTS', 'NET SALES'], [[B3[0], '', '31', '− RM 12.00', ['RM 2,240.10', 'mute']], [B3[1], '', '16', 'none', ['RM 1,180.80', 'mute']], [B3[2], '', '18', '+ RM 5.00', ['RM 1,391.50', 'mute']]]),
+      'RM-2': M('Non-cash received · RM 1,410.50', 'By payment method, net of reversals', ['METHOD', 'RECEIPTS', 'REVERSED', 'NET'], [['Card', '', '14', 'RM 0.00', ['RM 980.50', 'mute']], ['DuitNow QR', '', '9', 'RM 15.00', ['RM 430.00', 'mute']]]),
+      'RM-4': M('Panel approved · RM 1,220.00', 'By Panel · not part of Total received', ['PANEL', 'INVOICES', 'CLAIMED', 'APPROVED'], [['AIA (TPA)', '', '9', '6 claimed', ['RM 520.00', 'info']], ['PMCare', '', '7', '7 claimed', ['RM 410.00', 'info']], ['Etiqa', '', '5', '2 claimed', ['RM 290.00', 'info']]]),
+      'RM-5': M('Pay later due · RM 275.90', 'By branch · open bills only, no names here', ['BRANCH', 'BILLS', 'OLDEST', 'DUE'], [[B3[0], '', '3 bills', '2 Oct', ['RM 145.90', 'warn']], [B3[1], '', '1 bill', '11 Nov', ['RM 60.00', 'warn']], [B3[2], '', '2 bills', '28 Oct', ['RM 70.00', 'warn']]]),
+      'ST-0': M('Restock · 3', 'Reorder level minus on hand', ['ITEM', 'BRANCH', 'ON HAND / LEVEL', 'STATUS'], [['Paracetamol 500 mg', 'tablet', 'Cheras', '180 / 500 tab', ['Waiting in inbox', 'warn']], ['Ibuprofen 400 mg', 'tablet', 'Cheras', '40 / 200 tab', ['Waiting in inbox', 'warn']], ['ORS sachets', 'sachet', 'Puchong', '12 / 60 sachet', ['Waiting in inbox', 'warn']]]),
+      'ST-1': M('Expiry warning · 1', 'Use first at 60 to 90 days', ['BATCH', 'BRANCH', 'EXPIRES', 'STATUS'], [['Paracetamol 500 mg', 'Batch PC-0412 · 300 tab', 'Cheras', '31 Jan 2027', ['74 days · use first', 'warn']]]),
+      'ST-2': M('Transfer · 1', 'The sender stays at or above its own level', ['ITEM', 'FROM → TO', 'QUANTITY', 'STATUS'], [['Loratadine 10 mg', 'tablet', 'Puchong → Cheras', '40 tab', ['Waiting in inbox', 'warn']]]),
+      'ST-3': M('Slow-moving · 1', 'Positive quantity, no dispensing for 60 days', ['ITEM', 'BRANCH', 'LAST DISPENSED', 'STATUS'], [['Diclofenac gel 1%', '18 tubes', 'Sungai Besi', '15 Sep 2026', ['Review', 'mute']]]),
+      'SC-0': M('Counts due · 12', 'No completed count in the last 30 days · never counted first', ['ITEM', 'LOCATION', 'LAST COUNTED', 'STATUS'], [
+        ['Diclofenac gel 1%', 'tube', 'Cheras store', 'never', ['Due', 'warn']], ['ORS sachets', 'sachet', 'Cheras store', 'never', ['Due', 'warn']], ['Cetirizine 10 mg', 'tablet', 'Cheras dispensary', '2 Sep', ['Due', 'warn']], ['Amoxicillin 250 mg', 'capsule', 'Cheras dispensary', '5 Sep', ['Due', 'warn']],
+        ['Loratadine 10 mg', 'tablet', 'Cheras dispensary', '9 Sep', ['Due', 'warn']], ['Ibuprofen 400 mg', 'tablet', 'Cheras dispensary', '12 Sep', ['Due', 'warn']], ['Chlorpheniramine 4 mg', 'tablet', 'Cheras store', '15 Sep', ['Due', 'warn']], ['Normal saline gargle', 'bottle', 'Cheras store', '20 Sep', ['Due', 'warn']],
+        ['Antacid syrup', 'bottle', 'Cheras dispensary', '24 Sep', ['Due', 'warn']], ['Paracetamol 500 mg', 'tablet', 'Cheras store', '30 Sep', ['Due', 'warn']], ['Salbutamol inhaler', 'inhaler', 'Treatment room', '3 Oct', ['Due', 'warn']], ['Returned medicine', 'mixed', 'Patient returns', '10 Oct', ['Due', 'warn']]]),
+      'SC-2': M('Unresolved differences · 2', 'Waiting for someone other than the counter to decide', ['ITEM', 'LOCATION', 'DIFFERENCE', 'STATUS'], [['Cetirizine 10 mg', 'count of 14 Nov', 'Cheras dispensary', '− 6 tab', ['Waiting for approval', 'warn']], ['ORS sachets', 'count of 16 Nov', 'Puchong store', '+ 2 sachet', ['Recount asked', 'info']]]),
+      'SH-3': M('Failed queue jobs · 1', 'Since 07:00 · counts only, no job content shown', ['JOB', 'QUEUE', 'FAILED AT', 'STATUS'], [['Daily purge of leave evidence files', 'hr-leave-evidence:purge', 'default', '13:10', ['Needs a look', 'bad']]])
+    };
+    const sections = SEC.map(s => { const shown = s.who.indexOf(role) >= 0; const pid = 'sum-' + s.code + '-xpanel'; const ids = s.tiles.map((t, i) => s.code + '-' + i).filter(id => DD[id]);
+      const tilesX = s.tiles.map((t, i) => { const id = s.code + '-' + i; return DD[id] ? Object.assign({}, t, { x: true, nx: false }, xBtn(id, pid, 'padding:10px 14px;border-radius:16px;background:#f8f8fa;color:#111114;display:flex;flex-direction:column;gap:2px;min-height:64px;box-sizing:border-box;')) : Object.assign({}, t, { x: false, nx: true }); });
+      return { code: s.code, ic: ic(s.c[0], s.c[1]), title: s.title, by: s.by, tiles: tilesX, foot: s.foot, xp: ids.length ? xPanel(pid, ids, DD, 10) : [], shown, hidden: !shown, chip: shown ? 'Shown' : 'Hidden', chipStyle: 'margin-left:auto;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;' + (shown ? 'background:#e9f8ee;color:#1d7a3a;' : 'background:#f4f4f6;color:#6b6b73;') }; });
+    const days = [['Today', '18 Nov', true], ['Yesterday', '17 Nov'], ['Sunday', '16 Nov'], ['Saturday', '15 Nov'], ['Friday', '14 Nov'], ['Thursday', '13 Nov'], ['Wednesday', '12 Nov']].map(([k, v, on]) => ({ k, v, row: 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'color:#3a3a40;') }));
+    const ok = 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;background:#e9f8ee;color:#1d7a3a;';
+    const canInbox = role !== 'adm';
+    return {
+      accent, roles, sections, days,
+      me: { name: R[role][1], role: R[role][0], ini: R[role][2] },
+      runs: [{ t: '07:00', k: 'Morning build', sub: 'Yesterday and overnight', st: 'Ready', stStyle: ok }, { t: '14:00', k: 'Afternoon update', sub: 'Today so far', st: 'Ready', stStyle: ok }],
+      inbox: canInbox ? [{ k: 'Restock', v: '3' }, { k: 'Expiry warning', v: '1' }, { k: 'Transfer', v: '1' }, { k: 'Slow-moving', v: '1' }] : [{ k: 'No inbox for your role', v: '—' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Front desk</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.lift{transition:transform .18s ease, box-shadow .18s ease}
+.lift:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(17,17,26,0.07),0 0 0 1px rgba(17,17,26,0.04)}
+@media (prefers-reduced-motion: reduce){.lift,.lift:hover{transition:none;transform:none}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-wrap: wrap">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="front" accent="{{accent}}" branch="Cheras" user-name="Aina R." user-role="CA Supervisor" user-ini="AR" duty="07:55" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Front desk</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Visits today</div>
+      <label for="q" style="position: absolute; left: -9999px">Search patients</label>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; background: #ffffff; border-radius: 999px; padding: 0 6px 0 14px; min-height: 38px; width: min(360px, 36vw); box-shadow: 0 1px 2px rgba(17,17,26,0.06), 0 0 0 1px rgba(17,17,26,0.05)">
+        <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: none; stroke: #8a8a93; stroke-width: 2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="q" placeholder="Name, IC or KP number" style="flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: #111114; outline: none">
+        <span style="font-size: 11px; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 3px 9px">⌘K</span>
+      </div>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 18px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">+ Register visit</button>
+    </header>
+
+    <div style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px">
+      <sc-if value="{{isPipeline}}" hint-placeholder-val="{{ true }}">
+        <div role="group" aria-label="Patient flow" style="display: flex; align-items: stretch; gap: 6px; overflow-x: auto; padding-bottom: 2px">
+          <sc-for list="{{stages}}" as="s" hint-placeholder-count="6">
+            <button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.style}}">
+              <span style="display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: #6b6b73; white-space: nowrap"><span aria-hidden="true" style="{{s.dot}}"></span>{{s.label}}</span>
+              <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.05">{{s.n}}</span>
+              <span style="{{s.noteStyle}}">{{s.note}}</span>
+            </button>
+            <span aria-hidden="true" style="{{s.arrow}}">›</span>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isSegmented}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+          <div role="tablist" aria-label="Visits by status" style="display: flex; gap: 2px; background: #ffffff; border-radius: 999px; padding: 4px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); overflow-x: auto">
+            <sc-for list="{{stages}}" as="s" hint-placeholder-count="6">
+              <button type="button" role="tab" aria-selected="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.seg}}"><span aria-hidden="true" style="{{s.dotSmall}}"></span>{{s.label}}<span style="{{s.segCount}}">{{s.n}}</span></button>
+            </sc-for>
+          </div>
+          <span style="font-size: 13px; color: #6b6b73">Average wait <b style="color: #111114">24 min</b> · 1 long wait</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isBar}}" hint-placeholder-val="{{ false }}">
+        <div style="background: #ffffff; border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 30px; font-weight: 700; letter-spacing: -0.035em">34</span><span style="font-size: 13px; color: #6b6b73">visits today · average wait 24 min</span></div>
+          <div role="img" aria-label="12 waiting, 4 with doctor, 1 in treatment room, 3 at pharmacy, 2 at payment, 18 done" style="display: flex; height: 14px; border-radius: 999px; overflow: hidden; gap: 3px">
+            <sc-for list="{{barStages}}" as="s" hint-placeholder-count="6"><span style="{{s.seg}}"></span></sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px 18px">
+            <sc-for list="{{barStages}}" as="s" hint-placeholder-count="6">
+              <button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="{{s.legend}}"><span aria-hidden="true" style="{{s.dotSmall}}"></span>{{s.label}} <b>{{s.n}}</b></button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isTiles}}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+          <sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+            <button type="button" style="{{t.style}}">
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b6b73"><span aria-hidden="true" style="{{t.dot}}"></span>{{t.label}}</span>
+              <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.03em; text-align: left">{{t.n}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div class="kp-work kp-2" style="flex: 1; min-height: 0; display: flex; gap: 16px; align-items: stretch">
+        <section class="kp-mid" aria-labelledby="h-list" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px">
+            <h1 id="h-list" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.015em">{{listTitle}}</h1>
+            <div role="group" aria-label="Doctor" style="display: flex; gap: 6px">
+              <button type="button" aria-pressed="true" style="border: 0; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; background: #111114; color: #ffffff">All doctors</button>
+              <button type="button" aria-pressed="false" style="border: 0; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; background: #ffffff; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Dr. Lim · 7</button>
+              <button type="button" aria-pressed="false" style="border: 0; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; background: #ffffff; color: #3a3a40; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Dr. Farah · 5</button>
+            </div>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+            <div class="lift" style="{{r.card}}">
+              <span style="{{r.noStyle}}">{{r.no}}</span>
+              <span style="{{r.av}}">{{r.ini}}</span>
+              <div style="flex: 1; min-width: 0">
+                <div style="font-weight: 600">{{r.name}}</div>
+                <div style="font-size: 12.5px; color: #6b6b73">{{r.doctor}} · {{r.pay}}</div>
+              </div>
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #3a3a40; white-space: nowrap"><span aria-hidden="true" style="{{r.dot}}"></span>{{r.status}}</span>
+              <span style="font-size: 12px; color: #8a8a93; width: 64px; text-align: right; font-variant-numeric: tabular-nums">{{r.since}}</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <aside class="kp-right" aria-labelledby="h-pt" style="flex: 0 0 360px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="position: relative; padding: 22px 22px 18px; background: radial-gradient(120% 140% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%); color: #ffffff">
+            <div aria-hidden="true" style="position: absolute; right: -50px; top: -60px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.25), rgba(255,255,255,0) 70%)"></div>
+            <div style="display: flex; align-items: center; gap: 12px">
+              <div style="width: 52px; height: 52px; border-radius: 18px; background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px">NH</div>
+              <div><h2 id="h-pt" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.015em">Nor Hidayah</h2><div style="font-size: 13px; opacity: 0.85">KP-10219 · 34 y · Female</div></div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap">
+              <span style="font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.2); border-radius: 999px; padding: 3px 10px">A-029 · waiting 41 min</span>
+            </div>
+          </div>
+          <div style="padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; align-items: center; gap: 10px; background: #fff1f0; color: #a1281c; border-radius: 14px; padding: 10px 12px; font-size: 13px; font-weight: 600"><span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 0 4px rgba(255,59,48,0.15)"></span>Allergy: Penicillin</div>
+            <div style="display: flex; flex-direction: column">
+              <sc-for list="{{facts}}" as="f" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f1f1f4; font-size: 13.5px"><span style="color: #6b6b73">{{f.k}}</span><span style="font-weight: 500; text-align: right">{{f.v}}</span></div>
+              </sc-for>
+            </div>
+            <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 16px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Call in to Room 1</button>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+              <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 14px; min-height: 42px; font: inherit; cursor: pointer">Not ready</button>
+              <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 14px; min-height: 42px; font: inherit; cursor: pointer">Edit visit</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
+              <span style="font-size: 12px; font-weight: 600; color: #8a8a93">TODAY</span>
+              <sc-for list="{{timeline}}" as="t" hint-placeholder-count="3">
+                <div style="display: flex; gap: 10px; align-items: center; font-size: 13px"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #c4c4cc"></span><span style="flex: 1">{{t.what}}</span><span style="color: #8a8a93; font-variant-numeric: tabular-nums">{{t.at}}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"statusStyle":{"editor":"enum","options":["Pipeline","Segmented","Flow bar","Tiles"],"default":"Pipeline"},"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const dot = c => 'width:9px;height:9px;border-radius:50%;flex:none;background:' + c + ';box-shadow:0 0 0 4px ' + c + '22;';
+    const tile = on => 'display:flex;flex-direction:column;gap:6px;border:0;cursor:pointer;font:inherit;color:#111114;text-align:left;border-radius:22px;padding:16px 18px;' + (on ? 'background:#ffffff;box-shadow:0 0 0 2px #111114;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);');
+    const tiles = [['All visits', '34', '#8a8a93', true], ['Waiting', '12', '#ff9f0a'], ['With doctor', '4', '#0a84ff'], ['Done', '18', '#34c759']].map(([label, n, c, on]) => ({ label, n, dot: dot(c), style: tile(on) }));
+    const av = (bg, fg) => 'flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const card = sel => 'display:flex;align-items:center;gap:14px;padding:7px 14px;min-height:44px;border-radius:18px;background:#ffffff;' + (sel ? 'box-shadow:0 0 0 2px ' + accent + ',0 10px 24px rgba(194,24,91,0.10);' : 'box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);');
+    const no = 'flex:none;min-width:58px;text-align:center;font-weight:700;font-size:14px;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;background:#f4f4f6;border-radius:12px;padding:8px 0;';
+    const C = { wait: '#ff9f0a', long: '#ff3b30', serv: '#0a84ff', hold: '#bf5af2', med: '#5e5ce6', done: '#34c759' };
+    const rows = [
+      ['A-031', 'Aminah Yusof', 'AY', av('#e8f0fe', '#1a4fa0'), 'Dr. Lim', 'Self-pay', 'Waiting', C.wait, '9 min'],
+      ['A-030', 'Raj Kumar', 'RK', av('#fff4e5', '#8a4b00'), 'Dr. Lim', 'Panel · AIA', 'Waiting', C.wait, '22 min'],
+      ['A-029', 'Nor Hidayah', 'NH', av('#fde7ef', '#8e0f44'), 'Dr. Farah', 'Self-pay', 'Long wait', C.long, '41 min', true],
+      ['A-028', 'Tan Wei Ming', 'TW', av('#e7f6ea', '#1f6b33'), 'Dr. Farah', 'Panel · PMCare', 'With doctor', C.serv, '10:02'],
+      ['A-027', 'Siti Khadijah', 'SK', av('#f1ecfd', '#5b3fa6'), 'Dr. Lim', 'Self-pay', 'On hold · nebuliser', C.hold, '09:48'],
+      ['B-012', 'Ahmad Faiz', 'AF', av('#e8f0fe', '#1a4fa0'), 'Pharmacy', 'Self-pay', 'Medicine only', C.med, '10:10'],
+      ['A-026', 'Lee Mei Ling', 'LM', av('#f4f4f6', '#3a3a40'), 'Dr. Farah', 'Self-pay', 'Done', C.done, '09:40'],
+      ['A-025', 'Mohd Hafiz', 'MH', av('#e7f6ea', '#1f6b33'), 'Dr. Lim', 'Panel · Etiqa', 'Payment', '#c2185b', '09:36'],
+      ['A-024', 'Priya Devi', 'PD', av('#fff4e5', '#8a4b00'), 'Dr. Farah', 'Self-pay', 'Pharmacy', C.med, '09:31'],
+      ['A-023', 'Wong Kar Hoe', 'WK', av('#e8f0fe', '#1a4fa0'), 'Dr. Lim', 'Self-pay', 'Done', C.done, '09:20'],
+      ['B-011', 'Zainab Ali', 'ZA', av('#fde7ef', '#8e0f44'), 'Pharmacy', 'Self-pay', 'Done', C.done, '09:15'],
+      ['A-022', 'Kevin Ong', 'KO', av('#f1ecfd', '#5b3fa6'), 'Dr. Farah', 'Panel · AIA', 'Done', C.done, '09:05'],
+      ['A-021', 'Fatimah Zahra', 'FZ', av('#f4f4f6', '#3a3a40'), 'Dr. Lim', 'Self-pay', 'Done', C.done, '08:52']
+    ].map(([n, name, ini, a, doctor, pay, status, c, since, sel]) => ({ no: n, name, ini, av: a, doctor, pay, status, since, dot: dot(c), card: card(sel), noStyle: no }));
+    const style = this.props.statusStyle ?? 'Pipeline';
+    const sel = (this.state && this.state.sel) || 'all';
+    const STAGES = [
+      ['all', 'All visits', '34', '#8a8a93', 'today'],
+      ['wait', 'Waiting', '12', '#ff9f0a', 'avg 24 min · 1 long', true],
+      ['doc', 'With doctor', '4', '#0a84ff', '2 rooms busy'],
+      ['tr', 'Treatment', '1', '#bf5af2', 'nebuliser'],
+      ['ph', 'Pharmacy', '3', '#5e5ce6', 'next B-012'],
+      ['pay', 'Payment', '2', '#c2185b', 'RM 156 due'],
+      ['done', 'Done', '18', '#34c759', 'RM 2,340 paid']
+    ];
+    const total = 34;
+    const stages = STAGES.map(([k, label, n, c, note, warn], i) => {
+      const on = sel === k;
+      return {
+        label, n, note, pressed: on ? 'true' : 'false', pick: () => this.setState({ sel: k }),
+        dot: dot(c), dotSmall: 'width:8px;height:8px;border-radius:50%;flex:none;background:' + c + ';',
+        style: 'flex:1 0 128px;display:flex;flex-direction:column;gap:6px;border:0;cursor:pointer;font:inherit;color:#111114;text-align:left;border-radius:20px;padding:14px 16px;' + (on ? 'background:#111114;color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'),
+        noteStyle: 'font-size:12px;white-space:nowrap;' + (on ? 'color:rgba(255,255,255,0.75);' : warn ? 'color:#b25e00;font-weight:600;' : 'color:#8a8a93;'),
+        arrow: i === 0 ? 'align-self:center;color:#c4c4cc;font-size:18px;padding:0 2px;' : (i === STAGES.length - 1 ? 'display:none;' : 'align-self:center;color:#c4c4cc;font-size:18px;'),
+        seg: 'display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:transparent;color:#3a3a40;'),
+        segCount: 'font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;' + (on ? 'background:rgba(255,255,255,0.2);color:#ffffff;' : 'background:#f4f4f6;color:#3a3a40;')
+      };
+    });
+    const barStages = STAGES.slice(1).map(([k, label, n, c]) => {
+      const on = sel === k;
+      return {
+        label, n, pressed: on ? 'true' : 'false', pick: () => this.setState({ sel: on ? 'all' : k }),
+        dotSmall: 'width:9px;height:9px;border-radius:50%;flex:none;background:' + c + ';',
+        seg: 'flex:' + n + ';background:' + c + ';' + (sel !== 'all' && !on ? 'opacity:0.25;' : ''),
+        legend: 'display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;font:inherit;font-size:13px;color:#3a3a40;cursor:pointer;padding:4px 8px;border-radius:999px;' + (on ? 'background:#f4f4f6;' : '')
+      };
+    });
+    const titles = { all: 'All visits', wait: 'Waiting', doc: 'With doctor', tr: 'In treatment room', ph: 'At pharmacy', pay: 'Waiting to pay', done: 'Done today' };
+    return {
+      accent, tiles, rows, stages, barStages, listTitle: titles[sel],
+      isPipeline: style === 'Pipeline', isSegmented: style === 'Segmented', isBar: style === 'Flow bar', isTiles: style === 'Tiles',
+      facts: [{ k: 'Doctor', v: 'Dr. Farah N. · Room 1' }, { k: 'Payment', v: 'Self-pay' }, { k: 'Reason', v: 'Fever, 2 days' }, { k: 'Phone', v: '•••• 4417' }],
+      timeline: [{ at: '09:34', what: 'Registered' }, { at: '09:35', what: 'Sent to waiting' }, { at: '10:12', what: 'Marked long wait' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

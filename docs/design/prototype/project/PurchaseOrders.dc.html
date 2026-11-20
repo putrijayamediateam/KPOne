@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Purchase orders</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:420px !important}
+  .kp-work.kp-3>.kp-mid{min-height:640px !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-act{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:05" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Purchasing · requests and orders</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">No payment in KPOne · estimates only, to confirm with the clinic's accountant</span><button type="button" style="border: 0; background: #ffffff; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; box-shadow: 0 0 0 1px rgba(17,17,26,0.08); cursor: pointer">New request</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 14px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div role="tablist" aria-label="Requests or orders" style="display: flex; gap: 4px; padding: 4px; background: #f4f4f6; border-radius: 999px; margin: 0 4px 10px">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+        </div>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 6px">{{listHint}}</span>
+        <sc-for list="{{list}}" as="r" hint-placeholder-count="12">
+          <button type="button" onClick="{{r.pick}}" aria-current="{{r.cur}}" style="{{r.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{r.no}} · {{r.sup}}</span><span style="font-size: 12px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.chip}}">{{r.state}}</span></button>
+        </sc-for>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.open}}" aria-controls="xp-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.plain}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" role="region" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="max-height: 300px; overflow: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xpHeadRow}}"><sc-for list="{{xpHead}}" as="xh" hint-placeholder-count="5"><span role="columnheader" style="{{xh.s}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="xr" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="5"><span role="cell" style="{{xc.s}}">{{xc.t}}</span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 4px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em">PO/CHR/2026/0118 · Medipharm Supplies</h1>
+            <span style="font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; background: #fff4dc; color: #8a5a00">Waiting for approval</span>
+          </div>
+          <span style="font-size: 12.5px; color: #8a8a93; margin: 0 6px 10px">From request PR-0331 by Hafiz · draft order prepared by Siti, 17 Nov · deliver to Cheras store room</span>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em">
+            <span style="flex: 1 1 220px">ITEM</span><span style="flex: none; width: 110px; text-align: right">QUANTITY</span><span style="flex: none; width: 140px; text-align: right">EST. PER UNIT (RM)</span><span style="flex: none; width: 120px; text-align: right">EST. TOTAL (RM)</span>
+          </div>
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="10">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8; font-variant-numeric: tabular-nums">
+              <span style="flex: 1 1 220px; min-width: 0"><span style="display: block; font-weight: 500">{{l.name}}</span><span style="font-size: 12px; color: #8a8a93">{{l.sub}}</span></span>
+              <span style="flex: none; width: 110px; text-align: right">{{l.qty}}</span>
+              <span style="{{l.unitStyle}}">{{l.unit}}</span>
+              <span style="flex: none; width: 120px; text-align: right; font-weight: 600">{{l.total}}</span>
+            </div>
+          </sc-for>
+          <div style="display: flex; justify-content: flex-end; gap: 24px; padding: 12px 10px 4px; font-variant-numeric: tabular-nums"><span style="color: #6b6b73">Estimated total · 1 line has no price yet</span><span style="font-weight: 700">RM {{grand}}</span></div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Approval</h2>
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 44px"><span style="{{p.av}}">{{p.ini}}</span><span style="flex: 1"><span style="display: block; font-weight: 500">{{p.role}}</span><span style="font-size: 12px; color: #6b6b73">{{p.who}}</span></span><span style="{{p.chip}}">{{p.state}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">The person who prepared an order never approves it. You did not prepare this one.</span>
+        </section>
+        <section aria-label="Printable order preview" style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Printable order</h2><button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer">Print preview</button></div>
+          <div style="position: relative; border-radius: 12px; border: 1px solid #e6e6ea; background: #ffffff; padding: 14px; font-size: 11px; line-height: 1.5; color: #3a3a40; overflow: hidden">
+            <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: rgba(194,24,91,0.10); transform: rotate(-18deg)">NOT AN ORDER</div>
+            <div style="font-weight: 700; font-size: 12px; color: #111114">KLINIK PUTRIJAYA (CHERAS)</div>
+            <div>No. 12, Jalan Contoh 3, 56000 Kuala Lumpur · Tel: 03-2000 0001</div>
+            <div style="text-align: center; font-weight: 700; margin: 8px 0 6px; text-decoration: underline">PURCHASE ORDER</div>
+            <div style="display: flex; justify-content: space-between"><span>Supplier: Medipharm Supplies</span><span>PO No: PO/CHR/2026/0118</span></div>
+            <div style="display: flex; justify-content: space-between"><span>Deliver to: Cheras store room</span><span>Date: 17/11/2026</span></div>
+            <div style="border-top: 1px solid #e6e6ea; margin-top: 6px; padding-top: 6px">7 lines · Estimated total RM {{grand}}</div>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px"><span>Prepared by: Siti</span><span>Approved by: ________</span></div>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Until approved the print says "Not an order". KPOne makes no payment: the supplier invoice is matched to the delivery later, and paid outside KPOne.</span>
+        </section>
+        <div class="kp-act" style="margin-top: auto; display: flex; gap: 10px">
+          <button type="button" style="flex: 1; border: 0; background: #ffffff; color: #111114; border-radius: 999px; min-height: 44px; padding: 0 18px; font: inherit; font-weight: 600; box-shadow: 0 0 0 1px rgba(17,17,26,0.12); cursor: pointer">Return</button>
+          <button type="button" style="flex: 2; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; padding: 0 22px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Approve order</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], blue: ['#e8f0fe', '#1a4fa8'], grey: ['#f4f4f6', '#6b6b73'], violet: ['#f1ecfd', '#5a32a8'], teal: ['#e3f6f5', '#0b6f69'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const ic = t => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const rowStyle = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border:0;border-radius:14px;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const tabStyle = on => 'border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(17,17,26,0.08),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const av = t => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+
+    const tab = st.tab || 'orders';
+    const sel = st.sel || 'PO/CHR/2026/0118';
+    const tabs = [['requests', 'Requests · 4'], ['orders', 'Orders · 9']].map(([k, label]) => ({ label, on: String(tab === k), pick: () => this.setState({ tab: k }), style: 'flex:1;' + tabStyle(tab === k) }));
+    const tone = { 'Waiting for approval': 'amber', 'Waiting for review': 'amber', 'Approved': 'green', 'Sent to supplier': 'blue', 'Part received': 'violet', 'Received': 'green', 'Draft': 'grey', 'Converted': 'green', 'Rejected': 'red', 'Withdrawn': 'grey', 'Returned': 'red' };
+    const ORD = [
+      ['PO/CHR/2026/0118', 'Medipharm Supplies', '7 lines · prepared by Siti · 17 Nov', 'Waiting for approval'],
+      ['PO/CHR/2026/0117', 'Sinar Farma', '3 lines · prepared by Siti · 16 Nov', 'Waiting for approval'],
+      ['PO/CHR/2026/0116', 'Medipharm Supplies', '5 lines · approved by Farid · 14 Nov', 'Sent to supplier'],
+      ['PO/CHR/2026/0115', 'Klang Medical Trading', '4 lines · 2 of 4 delivered', 'Part received'],
+      ['PO/CHR/2026/0114', 'Sinar Farma', '6 lines · delivered 12 Nov', 'Received'],
+      ['PO/CHR/2026/0113', 'Teguh Surgical', '2 lines · asked to change quantity', 'Returned'],
+      ['PO/CHR/2026/0112', 'Medipharm Supplies', '8 lines · delivered 8 Nov', 'Received'],
+      ['PO/CHR/2026/0111', 'Klang Medical Trading', '1 line · delivered 6 Nov', 'Received'],
+      ['PO/CHR/2026/0119', 'Teguh Surgical', '2 lines · not sent for approval', 'Draft']
+    ];
+    const REQ = [
+      ['PR-0334', 'Paracetamol 500 mg', 'Hafiz · low stock · 18 Nov', 'Waiting for review'],
+      ['PR-0333', 'Gauze swab 10 x 10', 'Aina · treatment room · 18 Nov', 'Waiting for review'],
+      ['PR-0332', 'Salbutamol inhaler', 'Hafiz · 17 Nov', 'Waiting for review'],
+      ['PR-0331', 'Amoxicillin 250 mg', 'Hafiz · in PO/CHR/2026/0118', 'Converted'],
+      ['PR-0330', 'Loratadine 10 mg', 'Aina · stock available at Puchong', 'Rejected'],
+      ['PR-0329', 'Normal saline 500 ml', 'Kamal · 15 Nov', 'Waiting for review'],
+      ['PR-0328', 'Cetirizine 10 mg', 'Kamal · in PO/CHR/2026/0116', 'Converted'],
+      ['PR-0327', 'Diclofenac gel 1%', 'Aina · not needed', 'Withdrawn']
+    ];
+    const src = tab === 'orders' ? ORD : REQ;
+    const list = src.map(([no, sup, sub, state]) => ({ no, sup, sub, state, chip: chip(tone[state]), cur: String(sel === no), pick: () => this.setState({ sel: no }), row: rowStyle(sel === no) }));
+    const L = [
+      ['Amoxicillin 250 mg capsule', 'From PR-0331 · stock unit capsule', '1,000 capsule', 0.18],
+      ['Paracetamol 500 mg tablet', 'Reorder level 500 · on hand 180', '2,000 tablet', 0.04],
+      ['Cetirizine 10 mg tablet', 'On hand 118', '500 tablet', 0.09],
+      ['Omeprazole 20 mg capsule', 'On hand 84', '300 capsule', 0.21],
+      ['Chlorpheniramine 4 mg tablet', 'On hand 210', '1,000 tablet', 0.03],
+      ['Metformin 500 mg tablet', 'On hand 460', '1,000 tablet', 0.06],
+      ['Diclofenac gel 1% 20 g', 'New supplier price not entered', '24 tube', null]
+    ];
+    let grand = 0;
+    const lines = L.map(([name, sub, qty, unit]) => { const n = parseInt(qty.replace(/[^0-9]/g, ''), 10); const t = unit == null ? 0 : n * unit; grand += t; return { name, sub, qty, unit: unit == null ? 'No price' : unit.toFixed(2), unitStyle: 'flex:none;width:140px;text-align:right;' + (unit == null ? 'color:#8a5a00;font-size:12.5px;font-weight:600;' : 'color:#3a3a40;'), total: unit == null ? '—' : t.toFixed(2) }; });
+    const g = grand.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const XPMAP = ['wait', 'req', 'part', null];
+    const XPD = {
+      wait: { title: 'Orders waiting for you · 2', note: 'Cheras · prepared by someone else', cols: [['ORDER', '150px'], ['SUPPLIER', 'minmax(140px,1.4fr)'], ['LINES', '60px', 'r'], ['PREPARED BY', '120px'], ['STATUS', 'minmax(150px,1fr)']], rows: [
+        ['PO/CHR/2026/0118', 'Medipharm Supplies', '7', 'Siti · 17 Nov', ['w', 'Waiting for approval']],
+        ['PO/CHR/2026/0117', 'Sinar Farma', '3', 'Siti · 16 Nov', ['w', 'Waiting for approval']]
+      ], foot: 'You did not prepare these, so you may approve them. Estimated costs are shown to the Director only.' },
+      req: { title: 'Requests to review · 4', note: 'A request becomes a draft order made by someone else', cols: [['REQUEST', '80px'], ['ITEM', 'minmax(150px,1.5fr)'], ['ASKED BY', '120px'], ['REASON', '120px'], ['STATUS', 'minmax(140px,1fr)']], rows: [
+        ['PR-0334', 'Paracetamol 500 mg', 'Hafiz · 18 Nov', 'Low stock', ['w', 'Waiting for review']],
+        ['PR-0333', 'Gauze swab 10 x 10', 'Aina · 18 Nov', 'Treatment room', ['w', 'Waiting for review']],
+        ['PR-0332', 'Salbutamol inhaler', 'Hafiz · 17 Nov', 'Low stock', ['w', 'Waiting for review']],
+        ['PR-0329', 'Normal saline 500 ml', 'Kamal · 15 Nov', 'Low stock', ['w', 'Waiting for review']]
+      ], foot: 'Paracetamol already has 2,000 tablets on order in PO/CHR/2026/0118: check before converting.' },
+      part: { title: 'Part received · 1', note: 'PO/CHR/2026/0115 · Klang Medical Trading · 2 of 4 lines delivered', cols: [['LINE', 'minmax(170px,1.8fr)'], ['ORDERED', '90px', 'r'], ['RECEIVED', '90px', 'r'], ['STATUS', 'minmax(130px,1fr)']], rows: [
+        ['IV cannula 22G', '100 piece', '100', ['ok', 'Received']],
+        ['Syringe 3 ml', '500 piece', '500', ['ok', 'Received']],
+        ['Gloves, medium', '20 box', '0', ['w', 'Not delivered']],
+        ['Crepe bandage 7.5 cm', '50 roll', '0', ['w', 'Not delivered']]
+      ], foot: 'The rest is received against the same order in Receiving, with a new delivery reference.' }
+    };
+    // Click to expand (same technique as the Director dashboard "On duty" card): one panel open at a time.
+    const xst = this.state || {};
+    const xpOpen = xst.xp || null;
+    const xpKey = xpOpen || xst.xpLast || Object.keys(XPD)[0];
+    const xpF = xst.xpF || 'all';
+    const xd = XPD[xpKey];
+    const xpChip = t => 'justify-self:start;display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ w: 'background:#fff4dc;color:#8a5a00;', d: 'background:#fde7ef;color:#c2185b;', ok: 'background:#e9f8ee;color:#1d7a3a;', i: 'background:#e8f0fe;color:#1a4fa0;', q: 'background:#f1ecfd;color:#5a32a8;', n: 'background:#f4f4f6;color:#6b6b73;' })[t];
+    const xpTag = r => { const last = r[r.length - 1]; return typeof last === 'string' && last.charAt(0) === '#' ? last.slice(1) : null; };
+    const xpCells = r => xpTag(r) ? r.slice(0, -1) : r;
+    const xpCols = 'display:grid;grid-template-columns:' + xd.cols.map(c => c[1]).join(' ') + ';gap:12px;align-items:center;padding:0 10px;';
+    const xpRight = j => xd.cols[j][2] === 'r';
+    const xpHead = xd.cols.map((c, j) => ({ t: c[0], s: 'font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;white-space:nowrap;' + (xpRight(j) ? 'text-align:right;' : '') }));
+    const xpRows = xd.rows.filter(r => xpF === 'all' || xpTag(r) === xpF).map(r => ({ cells: xpCells(r).map((v, j) => Array.isArray(v) ? { t: v[1], s: xpChip(v[0]) } : { t: v, s: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (j === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (xpRight(j) ? 'text-align:right;font-variant-numeric:tabular-nums;' : '') }) }));
+    const xpFilters = (xd.filters || []).map(([k, label]) => ({ label, n: String(k === 'all' ? xd.rows.length : xd.rows.filter(r => xpTag(r) === k).length), pressed: String(xpF === k), pick: () => this.setState({ xp: xpKey, xpLast: xpKey, xpF: k }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;' + (xpF === k ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;') }));
+    const xpWrap = items => items.map((it, i) => {
+      const k = XPMAP[i] || null;
+      const on = !!k && xpOpen === k;
+      const hot = String(it.style).indexOf('gradient') >= 0;
+      return Object.assign({}, it, {
+        x: !!k, plain: !k, open: on ? 'true' : 'false',
+        toggle: () => this.setState({ xp: on ? null : k, xpLast: k || xpKey, xpF: 'all' }),
+        bstyle: it.style + 'border:0;font:inherit;text-align:left;cursor:pointer;min-height:44px;box-sizing:border-box;color:' + (hot ? '#ffffff' : '#111114') + ';' + (on ? 'box-shadow:0 0 0 2px #111114;' : ''),
+        chev: 'margin-left:auto;align-self:center;font-size:15px;line-height:1;color:' + (hot ? 'rgba(255,255,255,0.85)' : '#6b6b73') + ';transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');'
+      });
+    });
+    const xpVals = {
+      xpTitle: xd.title, xpNote: xd.note || '', xpFoot: xd.foot || '',
+      xpHidden: xpOpen ? 'false' : 'true', xpHead, xpRows, xpFilters,
+      xpHeadRow: xpCols + 'position:sticky;top:0;z-index:1;background:#ffffff;padding-bottom:8px;',
+      xpRow: xpCols + 'min-height:44px;border-top:1px solid #f1f1f4;',
+      xpPanel: 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (xpOpen ? '460px' : '0px') + ';opacity:' + (xpOpen ? '1' : '0') + ';transform:translateY(' + (xpOpen ? '0' : '-8px') + ');margin-top:' + (xpOpen ? '0' : '-14px') + ';visibility:' + (xpOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (xpOpen ? '0s' : '420ms') + ';'
+    };
+    return {
+      ...xpVals,
+      accent, tabs, list, lines, grand: g,
+      listHint: tab === 'orders' ? 'Cheras · newest first' : 'Requests turn into a draft order, made by someone else',
+      strip: xpWrap([stripItem('2', 'orders waiting for you', true), stripItem('4', 'requests to review'), stripItem('1', 'part received'), stripItem('RM ' + g, 'this order, estimated')]),
+      people: [
+        { role: 'Requested', who: 'Hafiz (CA) · PR-0331', ini: 'HF', av: av('teal'), state: 'Done', chip: chip('green') },
+        { role: 'Prepared the order', who: 'Siti (CA Supervisor)', ini: 'SI', av: av('violet'), state: 'Done', chip: chip('green') },
+        { role: 'Approve', who: 'You · Director', ini: 'DR', av: av('red'), state: 'Waiting', chip: chip('amber') }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

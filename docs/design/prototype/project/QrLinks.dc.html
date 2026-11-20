@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QR check-in links</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">QR check-in links</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">One active link per branch · links expire after 90 days</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Create branch link</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 250px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; padding: 0 8px 4px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Branches</h2>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 8px">Choose a branch to see its QR</span>
+        <sc-for list="{{branches}}" as="b" hint-placeholder-count="3">
+          <button type="button" onClick="{{b.pick}}" aria-pressed="{{b.pressed}}" style="{{b.row}}"><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500">{{b.name}}</span><span style="font-size: 12px; color: #8a8a93">{{b.sub}}</span></span><span style="{{b.chipStyle}}">{{b.chip}}</span></button>
+        </sc-for>
+        <div style="margin-top: auto; padding: 12px 8px 4px; font-size: 12px; color: #8a8a93">Managing links needs the QR link permission for that branch. A CA Supervisor sees only their own branches.</div>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span></div></sc-for>
+          <sc-for list="{{stripX}}" as="s" hint-placeholder-count="3"><button type="button" aria-expanded="{{s.exp}}" aria-controls="{{s.pid}}" onClick="{{s.tog}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span><span aria-hidden="true" data-xp="1" style="{{s.chev}}">⌄</span></button></sc-for>
+        </div>
+        <sc-for list="{{stripP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section style="flex: none; background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; gap: 22px; align-items: center; flex-wrap: wrap">
+          <div aria-label="QR code preview" role="img" style="flex: none; width: 210px; height: 210px; padding: 12px; box-sizing: border-box; border-radius: 18px; background: #ffffff; box-shadow: inset 0 0 0 1px #e6e6ea; display: grid; grid-template-columns: repeat(21, 1fr); gap: 0">
+            <sc-for list="{{qr}}" as="c" hint-placeholder-count="21"><span style="{{c.s}}"></span></sc-for>
+          </div>
+          <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 12px; font-weight: 600; color: #1d7a3a; background: #e9f8ee; border-radius: 999px; padding: 3px 10px; align-self: flex-start">Active QR ready</span>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{cur.name}} · {{cur.label}}</h1>
+            <span style="color: #6b6b73">Created {{cur.created}} by {{cur.by}} · expires {{cur.expires}}</span>
+            <div style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #3a3a40; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; overflow: hidden; white-space: nowrap">https://kpone.example.test/check-in#••••••••••••{{cur.tail}}</div>
+            <span style="font-size: 12px; color: #8a8a93">The code travels after the # and never reaches server logs. Patients see the form in Bahasa Melayu.</span>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Link history · {{cur.name}}</h2><span style="font-size: 12.5px; color: #8a8a93">newest first · kept for audit</span></div>
+          <div style="display: flex; gap: 14px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.04em"><span style="flex: 1 1 200px">LABEL</span><span style="flex: none; width: 150px">CREATED</span><span style="flex: none; width: 110px">EXPIRES</span><span style="flex: none; width: 90px; text-align: center">STATUS</span></div>
+          <sc-for list="{{history}}" as="h" hint-placeholder-count="8">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 6px 10px; min-height: 44px; border-bottom: 1px solid #f6f6f8">
+              <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 500">{{h.label}}</span><span style="font-size: 12px; color: #8a8a93">{{h.note}}</span></span>
+              <span style="flex: none; width: 150px; color: #3a3a40">{{h.created}}</span>
+              <span style="flex: none; width: 110px; color: #3a3a40">{{h.expires}}</span>
+              <span style="{{h.stStyle}}">{{h.st}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Use this QR</h2>
+          <sc-for list="{{uses}}" as="u" hint-placeholder-count="4">
+            <button type="button" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: #f4f4f6; color: #111114; font: inherit; font-weight: 500; cursor: pointer"><span style="flex: 1; text-align: left">{{u.k}}</span><span style="font-size: 12px; color: #8a8a93">{{u.v}}</span></button>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Print gives an A4 poster titled "Branch check-in QR" with the branch name.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Change the link</h2>
+          <button type="button" style="min-height: 44px; border: 0; border-radius: 999px; background: #f4f4f6; color: #111114; font: inherit; font-weight: 600; cursor: pointer">Rotate link</button>
+          <span style="font-size: 12.5px; color: #6b6b73">Makes a new code at once. Posters with the old QR stop working, so reprint them.</span>
+          <button type="button" style="min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: #c2185b; font: inherit; font-weight: 600; cursor: pointer; box-shadow: inset 0 0 0 1px #f5c4d5">Revoke link</button>
+          <span style="font-size: 12.5px; color: #6b6b73">Stops QR check-in at this branch until a new link is created. Both ask to confirm.</span>
+        </section>
+        <section style="background: #fff4dc; border-radius: 22px; padding: 14px 16px; color: #8a5a00; font-size: 12.5px">Public QR intake is switched off in this environment. Before real patients: set trusted proxies, run the scheduler and reprint every QR.</section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const sel = (this.state && this.state.sel) || 'CHR';
+    const chip = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const B = {
+      CHR: { name: 'Cheras', label: 'Front counter', created: '14 Oct 2026, 9:12 AM', by: 'Dr. Director', expires: '12 Jan 2027', tail: 'a7Q2', days: '55 days left', st: 'Active' },
+      SGB: { name: 'Sungai Besi', label: 'Waiting area', created: '2 Nov 2026, 8:40 AM', by: 'Siti (CA Supervisor)', expires: '31 Jan 2027', tail: 'k9Lm', days: '74 days left', st: 'Active' },
+      PCG: { name: 'Puchong', label: 'Entrance door', created: '28 Aug 2026, 10:05 AM', by: 'Dr. Director', expires: '26 Nov 2026', tail: 'Zp41', days: '8 days left', st: 'Expires soon' }
+    };
+    const branches = Object.keys(B).map(k => ({
+      name: B[k].name, sub: B[k].label + ' · ' + B[k].days, chip: B[k].st, pressed: String(sel === k), pick: () => this.setState({ sel: k }),
+      chipStyle: B[k].st === 'Active' ? chip('#e9f8ee', '#1d7a3a') : chip('#fff4dc', '#8a5a00'),
+      row: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 10px;border:0;border-radius:14px;font:inherit;color:#111114;cursor:pointer;' + (sel === k ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;')
+    }));
+    const cur = B[sel];
+    let seed = sel.charCodeAt(0) * 31 + sel.charCodeAt(2);
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const finder = (r, c) => { const f = (r0, c0) => { const y = r - r0, x = c - c0; if (y < 0 || y > 6 || x < 0 || x > 6) return null; return (y === 0 || y === 6 || x === 0 || x === 6 || (y >= 2 && y <= 4 && x >= 2 && x <= 4)); }; const a = f(0, 0); if (a !== null) return a; const b = f(0, 14); if (b !== null) return b; const d = f(14, 0); if (d !== null) return d; return undefined; };
+    const qr = [];
+    for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) { const fv = finder(r, c); const on = fv === undefined ? rnd() > 0.52 : fv; qr.push({ s: 'display:block;aspect-ratio:1;background:' + (on ? '#111114' : 'transparent') + ';' }); }
+    const stc = s => 'flex:none;width:90px;text-align:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 0;' + (s === 'Active' ? 'background:#e9f8ee;color:#1d7a3a;' : s === 'Revoked' ? 'background:#fde7ef;color:#c2185b;' : 'background:#f4f4f6;color:#6b6b73;');
+    const H = [
+      [cur.label, 'Current link', cur.created, cur.expires, 'Active'],
+      [cur.label, 'Rotated: poster was photographed', '16 Jul 2026, 8:58 AM', '14 Oct 2026', 'Revoked'],
+      ['Front counter', 'Replaced after 90 days', '17 Apr 2026, 9:30 AM', '16 Jul 2026', 'Expired'],
+      ['Waiting area (trial)', 'Trial poster removed', '2 Apr 2026, 2:15 PM', '1 Jul 2026', 'Revoked'],
+      ['Front counter', 'Replaced after 90 days', '17 Jan 2026, 9:02 AM', '17 Apr 2026', 'Expired'],
+      ['Front counter', 'First link for this branch', '19 Oct 2025, 11:40 AM', '17 Jan 2026', 'Expired']
+    ];
+    const history = H.map(([label, note, created, expires, st]) => ({ label, note, created, expires, st, stStyle: stc(st) }));
+    const sItem = (v, k) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' });
+    const XD = {
+      exp: { title: 'Expires within 14 days · 1', note: 'Rotate before it ends, then reprint the poster', cols: ['BRANCH', 'CREATED', 'EXPIRES', 'STATUS'], rows: [['Puchong', 'Entrance door', '28 Aug 2026 by Dr. Director', '26 Nov 2026', ['Expires in 8 days', 'warn']]] },
+      today: { title: 'QR check-ins today · 47', note: 'Counts by branch · names stay on the review page', cols: ['BRANCH', 'CHECK-INS', 'OUTCOME', 'LINK'], rows: [
+        ['Cheras', 'Front counter', '23 check-ins', '22 accepted · 1 waiting', ['Active', 'ok']], ['Sungai Besi', 'Waiting area', '12 check-ins', '11 accepted · 1 waiting', ['Active', 'ok']], ['Puchong', 'Entrance door', '12 check-ins', '11 accepted · 1 rejected', ['Expires soon', 'warn']]] },
+      wait: { title: 'Waiting for CA review · 2', note: 'Nothing is a patient or visit until a CA accepts it', cols: ['FROM THE FORM', 'BRANCH', 'SUBMITTED', 'STATUS'], rows: [['Raj Kumar', 'See a doctor · Panel reported', 'Cheras', '8 min ago', ['Waiting', 'warn']], ['Hasnah Ali', 'Medicine only', 'Sungai Besi', '3 min ago', ['Waiting', 'warn']]] }
+    };
+    return {
+      accent, branches, cur, qr, history,
+      strip: [sItem('3 of 3', 'branches with an active QR')],
+      stripX: [['exp', sItem('1', 'expires within 14 days')], ['today', sItem('47', 'QR check-ins today')], ['wait', sItem('2', 'waiting for CA review')]].map(([id, it]) => Object.assign(it, xBtn(id, 'strip-xpanel', it.style + 'color:#111114;'))),
+      stripP: xPanel('strip-xpanel', ['exp', 'today', 'wait'], XD, 14),
+      uses: [{ k: 'Print', v: 'A4 poster' }, { k: 'Download', v: 'PNG' }, { k: 'Copy link', v: 'for testing' }, { k: 'Open', v: 'new tab' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

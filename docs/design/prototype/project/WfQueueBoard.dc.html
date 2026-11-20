@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Queue board, new workflow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button:focus-visible{outline:2px solid #0a56d1;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1080px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; background: #f4f4f6"><dc-import name="Sidebar" active="front" accent="#c2185b" branch="Cheras" user-name="Aina R." user-role="Clinic Assistant" user-ini="AR" duty="07:55" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <span style="font-size: 13px; color: #6b6b73">Front desk</span><span aria-hidden="true" style="color: #c4c4cc">/</span><span style="font-size: 13px; font-weight: 600">Queue board</span>
+      <span style="font-size: 12px; font-weight: 600; color: #8e0f44; background: #fde7ef; border-radius: 999px; padding: 3px 10px">Proposal</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Live · every 3 seconds</span>
+    </header>
+
+    <div style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px">
+      <div role="alert" style="display: flex; align-items: center; gap: 14px; background: #fff1f0; border-radius: 22px; padding: 14px 18px; box-shadow: inset 0 0 0 2px #e5383b">
+        <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #e5383b; box-shadow: 0 0 0 5px rgba(229,56,59,0.18)"></span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 700; color: #a1281c">Red zone · A-041 · chest pain · at treatment room</span><span style="font-size: 13px; color: #6b2a24">All 3 doctors at Cheras were alerted at 10:42. Dr. Farah N. pressed "I'll take it" at 10:43.</span></span>
+        <span style="font-size: 12.5px; font-weight: 600; color: #1d7a3a; background: #e9f8ee; border-radius: 999px; padding: 5px 12px">Taken by Dr. Farah</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{counts}}" as="c" hint-placeholder-count="4">
+          <div style="background: #ffffff; border-radius: 22px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b6b73"><span aria-hidden="true" style="{{c.dot}}"></span>{{c.label}}</span>
+            <span style="font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1">{{c.n}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <section aria-labelledby="h-wait" style="flex: 1; min-height: 0; background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; justify-content: space-between"><h2 id="h-wait" style="margin: 0; font-size: 17px; font-weight: 600">Waiting</h2><span style="font-size: 12.5px; color: #8a8a93">Red first, then yellow, then green; oldest first within each zone</span></div>
+        <div role="table" aria-label="Waiting patients" style="display: flex; flex-direction: column">
+          <div role="row" style="display: grid; grid-template-columns: 70px 110px minmax(0, 1.4fr) minmax(0, 1fr) 150px 130px 110px; gap: 12px; padding: 0 12px 8px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #8a8a93">
+            <span role="columnheader">NO.</span><span role="columnheader">ZONE</span><span role="columnheader">PATIENT</span><span role="columnheader">DOCTOR</span><span role="columnheader">VITALS</span><span role="columnheader">WAITING</span><span role="columnheader">ACTION</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+            <div role="row" style="display: grid; grid-template-columns: 70px 110px minmax(0, 1.4fr) minmax(0, 1fr) 150px 130px 110px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px; border-top: 1px solid #f1f1f4">
+              <span role="cell" style="font-weight: 700; font-variant-numeric: tabular-nums">{{r.no}}</span>
+              <span role="cell"><span style="{{r.zone}}"><span aria-hidden="true" style="{{r.dot}}"></span>{{r.zoneLabel}}</span></span>
+              <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 600">{{r.name}}</span><span style="font-size: 12px; color: #6b6b73">{{r.reason}}</span></span>
+              <span role="cell" style="color: #3a3a40">{{r.doc}}</span>
+              <span role="cell"><span style="{{r.vit}}">{{r.vitLabel}}</span></span>
+              <span role="cell" style="font-variant-numeric: tabular-nums; color: #3a3a40">{{r.wait}}</span>
+              <span role="cell"><button type="button" style="{{r.btn}}">{{r.act}}</button></span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const Z = { red: ['Red', '#e5383b', '#fff1f0', '#a1281c'], yellow: ['Yellow', '#c98a00', '#fff6dc', '#7a5300'], green: ['Green', '#1f9d55', '#e9f8ee', '#1d6b3a'] };
+    const dot = c => 'display:inline-block;width:9px;height:9px;border-radius:50%;background:' + c + ';';
+    const zoneChip = z => 'display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;background:' + Z[z][2] + ';color:' + Z[z][3] + ';';
+    const vit = done => 'font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;' + (done ? 'background:#e8f0fe;color:#1a4fa0;' : 'background:#f4f4f6;color:#6b6b73;');
+    const btn = primary => 'border:0;border-radius:999px;min-height:36px;padding:0 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;' + (primary ? 'background:#111114;color:#ffffff;' : 'background:#f4f4f6;color:#111114;');
+    const row = (no, z, name, reason, doc, done, by, wait, act) => ({
+      no, zoneLabel: Z[z][0], zone: zoneChip(z), dot: dot(Z[z][1]), name, reason, doc,
+      vitLabel: done ? 'Done · ' + by : 'Not yet', vit: vit(done), wait, act, btn: btn(!done)
+    });
+    return {
+      counts: [
+        { label: 'Red', n: '1', dot: dot('#e5383b') },
+        { label: 'Yellow', n: '2', dot: dot('#c98a00') },
+        { label: 'Green', n: '4', dot: dot('#1f9d55') },
+        { label: 'Vitals not yet taken', n: '3', dot: dot('#8a8a93') }
+      ],
+      rows: [
+        row('A-041', 'red', 'Lim Chee Keong', 'Chest pain', 'Dr. Farah N.', true, 'CA 10:42', '2 min', 'Open'),
+        row('A-038', 'yellow', 'Siti Aminah', 'Fever 38.4 °C, BP high', 'Dr. Farah N.', true, 'CA 10:31', '14 min', 'Open'),
+        row('A-039', 'yellow', 'Muthu Raj', 'Asthma, wheezing', 'Dr. Hafiz', false, '', '9 min', 'Take vitals'),
+        row('A-033', 'green', 'Kavitha M.', 'Follow-up, BP check', 'Dr. Hafiz', true, 'CA 10:05', '38 min', 'Open'),
+        row('A-035', 'green', 'Daniel Ong', 'Sore throat', 'Dr. Farah N.', false, '', '31 min', 'Take vitals'),
+        row('A-036', 'green', 'Nor Hidayah', 'Skin rash', 'Dr. Lee', true, 'CA 10:20', '25 min', 'Open'),
+        row('A-040', 'green', 'Tan Wei Ming', 'MC follow-up', 'Dr. Lee', false, '', '6 min', 'Take vitals')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

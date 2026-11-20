@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HR</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls^="x-"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-wrap: wrap">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="hr" accent="{{accent}}" branch="Cheras" user-name="Puan HR" user-role="HR Manager" user-ini="HR" duty="08:15" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">HR</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Roster · 16 to 22 Nov</div>
+      <span style="display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">Draft · not sent</span>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Search staff, leave, claims<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Send for approval</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <!-- Left: people -->
+      <aside class="kp-left" style="flex: 0 0 260px; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 16px">
+        <div style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 18px 14px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 6px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Team · Cheras</h2><span style="font-size: 12.5px; color: #8a8a93">{{peopleCount}}</span></div>
+          <div style="display: flex; gap: 6px; padding: 0 4px; flex-wrap: wrap">
+            <sc-for list="{{filters}}" as="f" hint-placeholder-count="3"><span style="{{f.style}}">{{f.label}}</span></sc-for>
+          </div>
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+            <a href="#" style="{{p.row}}">
+              <span style="{{p.av}}">{{p.ini}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{p.name}}</span><span style="font-size: 12px; color: #8a8a93">{{p.role}}</span></span>
+              <span style="{{p.dotStyle}}" title="{{p.state}}"></span>
+            </a>
+          </sc-for>
+          <button type="button" style="margin: 4px 4px 0; border: 0; background: #f4f4f6; color: #111114; border-radius: 14px; min-height: 40px; font: inherit; font-weight: 500; cursor: pointer">+ Add staff or locum</button>
+        </div>
+      </aside>
+
+      <!-- Middle: roster week -->
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="x-panel" onClick="{{s.toggle}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.tile}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if></sc-for>
+        </div>
+        <section id="x-panel" aria-label="{{xTitle}}" aria-hidden="{{xHidden}}" style="{{xPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 4px">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                <sc-for list="{{xFilters}}" as="xf" hint-placeholder-count="3"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for>
+                <button type="button" onClick="{{xClose}}" style="border: 0; background: transparent; color: #6b6b73; font: inherit; font-size: 12.5px; font-weight: 600; min-height: 32px; padding: 0 8px; cursor: pointer">Hide</button>
+              </span>
+            </div>
+            <div role="table" aria-label="{{xTitle}}" style="max-height: 320px; overflow-y: auto; padding: 4px; display: flex; flex-direction: column">
+              <div role="row" style="{{xHeadStyle}}"><sc-for list="{{xHead}}" as="xh" hint-placeholder-count="4"><span role="columnheader" style="{{xh.style}}">{{xh.t}}</span></sc-for></div>
+              <sc-for list="{{xRows}}" as="xr" hint-placeholder-count="5">
+                <div role="row" style="{{xr.style}}"><sc-for list="{{xr.cells}}" as="xc" hint-placeholder-count="4"><span role="cell" style="{{xc.box}}"><span style="{{xc.style}}">{{xc.t}}</span></span></sc-for></div>
+              </sc-for>
+              <p style="{{xEmptyStyle}}">{{xEmpty}}</p>
+            </div>
+            <p style="{{xFootStyle}}">{{xFoot}}</p>
+          </div>
+        </section>
+
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 18px 18px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 4px 12px; flex-wrap: wrap">
+            <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Roster</h2>
+            <span style="display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 3px">
+              <span style="padding: 4px 12px; border-radius: 999px; background: #ffffff; font-size: 12.5px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.08)">Week</span><span style="padding: 4px 12px; font-size: 12.5px; color: #6b6b73">Month</span>
+            </span>
+            <span style="margin-left: auto; display: flex; gap: 12px; font-size: 12px; color: #6b6b73; flex-wrap: wrap">
+              <sc-for list="{{legend}}" as="l" hint-placeholder-count="4"><span style="display: inline-flex; align-items: center; gap: 6px"><span style="{{l.sw}}"></span>{{l.k}}</span></sc-for>
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: 150px repeat(7, minmax(78px, 1fr)); gap: 6px; min-width: 720px">
+            <span></span>
+            <sc-for list="{{days}}" as="d" hint-placeholder-count="7"><span style="{{d.style}}"><span style="display: block; font-size: 11px; letter-spacing: 0.05em">{{d.dow}}</span><span style="font-size: 15px">{{d.n}}</span></span></sc-for>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <span style="display: flex; flex-direction: column; justify-content: center; padding: 0 6px; min-height: 46px"><span style="font-weight: 500; font-size: 13px">{{r.name}}</span><span style="font-size: 11.5px; color: #8a8a93">{{r.hours}}</span></span>
+              <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="7"><span style="{{c.style}}"><span style="display: block; font-weight: 600">{{c.t}}</span><span style="font-size: 11px; opacity: 0.8">{{c.s}}</span></span></sc-for>
+            </sc-for>
+            <span style="display: flex; align-items: center; padding: 0 6px; font-size: 12px; color: #8a8a93; min-height: 40px">Doctors on</span>
+            <sc-for list="{{cover}}" as="c" hint-placeholder-count="7"><span style="{{c.style}}">{{c.t}}</span></sc-for>
+          </div>
+        </section>
+      </main>
+
+      <!-- Right: to decide -->
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">To decide</h2><span style="font-size: 12px; font-weight: 600; color: #c2185b; background: #fde7ef; border-radius: 999px; padding: 2px 9px">{{todoCount}}</span></div>
+          <sc-for list="{{todo}}" as="t" hint-placeholder-count="4">
+            <div style="display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 16px; background: #f8f8fa">
+              <span style="{{t.ic}}">{{t.k}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{t.title}}</span><span style="font-size: 12.5px; color: #6b6b73">{{t.note}}</span></span>
+              <span style="font-size: 12.5px; font-weight: 600; color: #111114; white-space: nowrap">Review ›</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Clocked in now</h2>
+          <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em">9</span><span style="color: #6b6b73">of 10 rostered</span></div>
+          <div style="height: 8px; border-radius: 999px; background: #f1f1f4; overflow: hidden"><div style="width: 90%; height: 100%; background: #34c759; border-radius: 999px"></div></div>
+          <span style="font-size: 12.5px; color: #8a5a00">1 not clocked in: Dr. Locum B (shift 09:00)</span>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">November payroll</h2><span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 2px 9px">Not run</span></div>
+          <sc-for list="{{pay}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #3a3a40">{{p.k}}</span><span style="font-weight: 500">{{p.v}}</span></div>
+          </sc-for>
+          <span style="font-size: 11.5px; color: #8a8a93; margin-top: 4px">To confirm with the clinic's accountant before real use. Synthetic data only.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const XD = {
+      'gaps to fill': { t: 'Gaps to fill this week', n: 'Cheras · shifts with no doctor on the draft roster', c: ['Day', 'Shift', 'Who was planned', 'Who could cover', 'Status'], w: 'minmax(110px,1fr) 110px minmax(130px,1.2fr) minmax(160px,1.4fr) 140px',
+        r: [['Fri 20 Nov', '08:00–14:00', 'Dr. Locum B (unavailable)', 'Dr. Mei · Dr. Aiman', ['Needs a doctor', 'bad']], ['Sat 21 Nov', '08:00–14:00', 'Dr. Locum B (unavailable)', 'Dr. Aiman', ['Needs a doctor', 'bad']]],
+        foot: 'A gap is a warning only. Nothing refuses a save or a send.' },
+      'on leave': { t: 'On leave this week', n: 'Approved leave only · type shown to HR', c: ['Staff', 'Dates', 'Days', 'Type', 'Status'], w: 'minmax(140px,1.4fr) minmax(120px,1fr) 60px minmax(110px,1fr) 110px',
+        r: [['Nadia · Clinic assistant', '20–21 Nov', '2', 'Annual leave', ['Approved', 'ok']]],
+        foot: 'Staff see "On leave" only on the team calendar, never the type or reason.' }
+    };
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const accent = this.props.accent ?? '#c2185b';
+    const kinds = {
+      M: { t: '08–14', s: 'Morning', bg: '#e8f0fe', fg: '#1a4fa8' },
+      E: { t: '14–22', s: 'Evening', bg: '#f1ecfd', fg: '#5a32a8' },
+      F: { t: '09–18', s: 'Full day', bg: '#e3f6f5', fg: '#0b6f69' },
+      L: { t: 'Leave', s: 'Annual', bg: '#fff4dc', fg: '#8a5a00' },
+      O: { t: 'On call', s: 'Night', bg: '#eef0f3', fg: '#3a3a40' },
+      G: { t: 'Gap', s: 'Needs a doctor', bg: '#ffffff', fg: '#c2185b' },
+      '-': { t: 'Off', s: '', bg: 'transparent', fg: '#b4b4bc' }
+    };
+    const cell = k => {
+      const c = kinds[k];
+      const border = k === 'G' ? 'border:1.5px dashed #e88aab;' : k === '-' ? 'border:1px solid #f1f1f4;' : 'border:0;';
+      return { t: c.t, s: c.s, style: 'display:flex;flex-direction:column;justify-content:center;min-height:46px;padding:3px 8px;border-radius:12px;font-size:12px;background:' + c.bg + ';color:' + c.fg + ';' + border };
+    };
+    const row = (name, hours, pattern) => ({ name, hours, cells: pattern.split('').map(cell) });
+    const today = 3;
+    const dows = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const dot = c => 'flex:none;width:9px;height:9px;border-radius:50%;background:' + c + ';';
+    const av = (c, f) => 'flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + c + ';color:' + f + ';';
+    const person = (name, role, ini, state, c, f, on) => ({ name, role, ini, state, av: av(c, f), dotStyle: dot(state === 'On shift' ? '#34c759' : state === 'On leave' ? '#ffb020' : '#d4d4da'), row: 'display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;' + (on ? 'background:#f4f4f6;' : '') });
+    const pill = on => 'font-size:12px;padding:4px 10px;border-radius:999px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const ic = (bg, fg) => 'flex:none;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const todo = [
+      { k: 'LV', title: 'Leave · Nadia (CA)', note: '24–25 Nov · 2 days · MC attached', ic: ic('#fff4dc', '#8a5a00') },
+      { k: 'OT', title: 'Overtime · Hafiz (CA)', note: '1 h 30 min on 14 Nov', ic: ic('#f1ecfd', '#5a32a8') },
+      { k: 'CL', title: '3 staff claims', note: 'RM 186.40 in total', ic: ic('#e3f6f5', '#0b6f69') },
+      { k: 'PR', title: 'Permit ends soon', note: 'Locum B · APC ends 30 Nov', ic: ic('#fde7ef', '#c2185b') }
+    ];
+    const __base = {
+      accent,
+      peopleCount: '10 people',
+      filters: [{ label: 'All', style: pill(true) }, { label: 'Doctors', style: pill(false) }, { label: 'CAs', style: pill(false) }, { label: 'Locums', style: pill(false) }],
+      people: [
+        person('Dr. Aiman', 'Resident doctor', 'DA', 'On shift', '#e8f0fe', '#1a4fa8', true),
+        person('Dr. Locum B', 'Locum doctor', 'LB', 'Not clocked in', '#eef0f3', '#3a3a40'),
+        person('Nadia', 'Clinic assistant', 'NA', 'On leave', '#fff4dc', '#8a5a00'),
+        person('Hafiz', 'Clinic assistant', 'HF', 'On shift', '#e3f6f5', '#0b6f69'),
+        person('Siti', 'CA supervisor', 'SI', 'On shift', '#f1ecfd', '#5a32a8'),
+        person('Kamal', 'Clinic assistant', 'KM', 'Off today', '#fde7ef', '#c2185b'),
+        person('Dr. Mei', 'Resident doctor', 'DM', 'On shift', '#e8f0fe', '#1a4fa8'),
+        person('Aisha', 'Clinic assistant', 'AI', 'On shift', '#e3f6f5', '#0b6f69'),
+        person('Ravi', 'Clinic assistant', 'RV', 'On shift', '#f1ecfd', '#5a32a8'),
+        person('Lina', 'Clinic assistant', 'LN', 'Off today', '#fff4dc', '#8a5a00')
+      ],
+      strip: [stripItem('412 h', 'planned this week', true), stripItem('2', 'gaps to fill'), stripItem('1', 'on leave'), stripItem('0', 'rule breaks')],
+      legend: [
+        { k: 'Morning', sw: 'width:10px;height:10px;border-radius:3px;background:#e8f0fe;' },
+        { k: 'Evening', sw: 'width:10px;height:10px;border-radius:3px;background:#f1ecfd;' },
+        { k: 'Leave', sw: 'width:10px;height:10px;border-radius:3px;background:#fff4dc;' },
+        { k: 'Gap', sw: 'width:10px;height:10px;border-radius:3px;border:1.5px dashed #e88aab;box-sizing:border-box;' }
+      ],
+      days: dows.map((dow, i) => ({ dow, n: String(16 + i), style: 'text-align:center;padding:6px 0;border-radius:12px;font-weight:600;' + (i === today - 1 ? 'background:#111114;color:#ffffff;' : 'color:#6b6b73;') })),
+      rows: [
+        row('Dr. Aiman', '40 h', 'MMMEE-O'),
+        row('Dr. Locum B', '24 h', 'EE-MGG-'),
+        row('Nadia', '24 h', 'FFF-LL-'),
+        row('Hafiz', '42 h', 'MMEEFF-'),
+        row('Siti', '40 h', 'FFFFF--'),
+        row('Kamal', '36 h', '-EEMMF-'),
+        row('Dr. Mei', '40 h', 'EEMMM-O'),
+        row('Aisha', '40 h', 'MM-EEFF'),
+        row('Ravi', '38 h', 'EEFF-MM'),
+        row('Lina', '32 h', '-MMEE--')
+      ],
+      cover: [2, 2, 1, 2, 0, 0, 1].map(n => ({ t: n === 0 ? '0 · short' : String(n), style: 'display:flex;align-items:center;justify-content:center;min-height:40px;border-radius:12px;font-size:12.5px;font-weight:600;' + (n === 0 ? 'background:#fde7ef;color:#c2185b;' : 'background:#f8f8fa;color:#3a3a40;') })),
+      todoCount: String(todo.length),
+      todo,
+      pay: [{ k: 'Staff in this run', v: '8' }, { k: 'Locum hours to pay', v: '64 h' }, { k: 'Run date', v: '25 Nov' }]
+    };
+    const __x = this.xWire(__base, XD);
+    return {
+      accent: __x.accent,
+      peopleCount: __x.peopleCount,
+      filters: __x.filters,
+      people: __x.people,
+      strip: __x.strip,
+      legend: __x.legend,
+      days: __x.days,
+      rows: __x.rows,
+      cover: __x.cover,
+      todoCount: __x.todoCount,
+      todo: __x.todo,
+      pay: __x.pay,
+      xTitle: __x.xTitle,
+      xNote: __x.xNote,
+      xFoot: __x.xFoot,
+      xFootStyle: __x.xFootStyle,
+      xHidden: __x.xHidden,
+      xClose: __x.xClose,
+      xHeadStyle: __x.xHeadStyle,
+      xHead: __x.xHead,
+      xRows: __x.xRows,
+      xEmpty: __x.xEmpty,
+      xEmptyStyle: __x.xEmptyStyle,
+      xFilters: __x.xFilters,
+      xPanel: __x.xPanel
+    };
+  }
+  xWire(b, XD) {
+    const st = this.state || {};
+    const shown = Array.isArray(b.strip) ? b.strip.map(s => s.k) : [];
+    const open = st.xOpen && XD[st.xOpen] && (XD[st.xOpen].m || shown.indexOf(st.xOpen) >= 0) ? st.xOpen : null;
+    const flt = st.xFilter || 'all';
+    const TONE = { ok: ['#e9f8ee', '#1d7a3a'], warn: ['#fff4dc', '#8a5a00'], bad: ['#fde7ef', '#c2185b'], info: ['#e8f0fe', '#1a4fa0'], mute: ['#f4f4f6', '#5a5a62'], strong: ['#ffe2b8', '#7a4300'] };
+    const chipS = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const toggle = k => () => this.setState({ xOpen: open === k ? null : k, xFilter: 'all' });
+    const chev = on => 'flex:none;margin-left:auto;align-self:center;font-size:15px;line-height:1;opacity:0.75;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');';
+    const ease = 'cubic-bezier(.22,.8,.24,1)';
+    const slide = (on, max, gap) => 'overflow:hidden;max-height:' + (on ? max : '0px') + ';opacity:' + (on ? '1' : '0') + ';transform:translateY(' + (on ? '0' : '-8px') + ');margin-top:' + (on ? '0' : '-' + gap + 'px') + ';visibility:' + (on ? 'visible' : 'hidden') + ';transition:max-height 420ms ' + ease + ',opacity 260ms ease,transform 420ms ' + ease + ',margin-top 420ms ' + ease + ',visibility 0s linear ' + (on ? '0s' : '420ms') + ';';
+    if (Array.isArray(b.strip)) {
+      b.strip = b.strip.map(s => {
+        const k = XD[s.k] && !XD[s.k].m ? s.k : null;
+        const on = !!k && open === k;
+        const base = s.style || XD.__tile || '';
+        const hot = /gradient/.test(base);
+        return Object.assign({}, s, { x: !!k, nx: !k, exp: String(on), toggle: k ? toggle(k) : () => {}, chev: chev(on), tile: base, bstyle: base + 'border:0;font:inherit;text-align:left;cursor:pointer;' + (hot ? '' : 'color:#111114;') + (on ? 'box-shadow:0 0 0 2px #111114;' : '') });
+      });
+    }
+    const d = open && !XD[open].m ? XD[open] : null;
+    const toneOf = r => { const c = r.find(x => Array.isArray(x)); return c ? (c[2] || c[1]) : ''; };
+    const all = d ? d.r : [];
+    const rowsIn = d && d.f && flt !== 'all' ? all.filter(r => toneOf(r) === flt) : all;
+    const cols = d ? d.c : [];
+    const grid = d ? d.w : '1fr';
+    const right = cols.map(c => c.charAt(0) === '>');
+    const rowStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;';
+    const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#111114;color:#ffffff;font-weight:600;' : 'background:#f4f4f6;color:#3a3a40;');
+    const gap = XD.__gap || 14;
+    b.xTitle = d ? d.t : '';
+    b.xNote = d ? d.n : '';
+    b.xFoot = d && d.foot ? d.foot : '';
+    b.xFootStyle = d && d.foot ? 'margin:0;font-size:12px;color:#8a8a93;' : 'display:none;';
+    b.xHidden = d ? 'false' : 'true';
+    b.xClose = () => this.setState({ xOpen: null, xFilter: 'all' });
+    b.xHeadStyle = 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;';
+    b.xHead = cols.map((c, i) => ({ t: c.replace(/^>/, '').toUpperCase(), style: right[i] ? 'text-align:right;' : '' }));
+    b.xRows = rowsIn.map(r => ({ style: rowStyle, cells: r.map((x, i) => Array.isArray(x)
+      ? { t: x[0], box: 'min-width:0;', style: chipS(x[1]) }
+      : { t: x, box: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;' + (i === 0 ? 'font-weight:500;color:#111114;' : 'color:#3a3a40;') + (right[i] ? 'text-align:right;' : ''), style: '' }) }));
+    b.xEmpty = d && rowsIn.length === 0 ? 'Nothing here.' : '';
+    b.xEmptyStyle = d && rowsIn.length === 0 ? 'margin:0;padding:12px 10px;color:#6b6b73;' : 'display:none;';
+    b.xFilters = d && d.f ? [['all', 'All', all.length]].concat(d.f.map(([k, label]) => [k, label, all.filter(r => toneOf(r) === k).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(flt === k), pick: () => this.setState({ xOpen: open, xFilter: k }), style: fpill(flt === k) })) : [];
+    b.xPanel = 'flex:none;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);' + slide(!!d, '460px', gap);
+    Object.keys(XD).filter(k => XD[k] && XD[k].m).forEach(k => {
+      const m = XD[k]; const on = open === k;
+      b[k + 'Exp'] = String(on);
+      b[k + 'Hidden'] = on ? 'false' : 'true';
+      b[k + 'Toggle'] = toggle(k);
+      b[k + 'Chev'] = chev(on).replace('margin-left:auto;', '');
+      b[k + 'Hint'] = on ? (m.hide || 'Hide list') : (m.show || 'See list');
+      b[k + 'Mini'] = 'display:flex;flex-direction:column;' + slide(on, '520px', m.gap || 10);
+      b[k + 'Items'] = m.r.map(([a, s, t, tone]) => ({ a, s, t, style: chipS(tone) }));
+    });
+    return b;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Receiving</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="stock" accent="{{accent}}" branch="Cheras" user-name="Siti" user-role="CA Supervisor" user-ini="SI" duty="07:55" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Stock</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Receiving · PO-00318 from Supplier A</div>
+      <button type="button" style="margin-left: auto; display: flex; align-items: center; gap: 10px; border: 0; background: #ffffff; border-radius: 999px; padding: 0 14px; min-height: 38px; font: inherit; color: #6b6b73; box-shadow: 0 0 0 1px rgba(17,17,26,0.06); cursor: pointer">Scan a box to find its line<span style="font-size: 11.5px; background: #f4f4f6; border-radius: 6px; padding: 1px 6px">⌘K</span></button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Post receipt</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 260px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <nav aria-label="Deliveries" style="background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 6px">TO RECEIVE</span>
+          <sc-for list="{{orders}}" as="o" hint-placeholder-count="5">
+            <a href="#" style="{{o.row}}"><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{o.k}}</span><span style="font-size: 12px; color: #8a8a93">{{o.v}}</span></span><span style="{{o.tagStyle}}">{{o.tag}}</span></a>
+          </sc-for>
+        </nav>
+        <section style="background: #ffffff; border-radius: 26px; padding: 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">This delivery</h2>
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12.5px; font-weight: 500; color: #3a3a40">{{f.k}}</span><span style="{{f.style}}">{{f.v}}</span></label>
+          </sc-for>
+        </section>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-for>
+        </div>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 14px 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <h1 style="margin: 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Lines on the order</h1>
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="5">
+            <div style="{{l.card}}">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+                <span style="flex: 1 1 200px; min-width: 0"><span style="display: block; font-weight: 600">{{l.name}}</span><span style="font-size: 12px; color: #8a8a93">Ordered {{l.ordered}} · est. {{l.est}} per unit</span></span>
+                <span style="{{l.sumStyle}}">{{l.sum}}</span>
+              </div>
+              <sc-for list="{{l.lots}}" as="t" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) repeat(3, minmax(0, 0.8fr)) minmax(0, 1fr); gap: 8px; align-items: end">
+                  <sc-for list="{{t.cells}}" as="c" hint-placeholder-count="6">
+                    <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font-size: 11.5px; color: #8a8a93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.k}}</span><span style="{{c.style}}">{{c.v}}</span></label>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <span style="{{l.addStyle}}">+ Split into another lot</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Exceptions</h2><span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 2px 9px">2</span></div>
+          <sc-for list="{{exceptions}}" as="e" hint-placeholder-count="2">
+            <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 4px">
+              <span style="display: flex; gap: 8px; align-items: center"><span style="{{e.tagStyle}}">{{e.tag}}</span><span style="font-weight: 500; font-size: 13px">{{e.k}}</span></span>
+              <span style="font-size: 12.5px; color: #6b6b73">{{e.v}}</span>
+            </div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Stock for these lines posts only after someone other than the receiver approves them.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Rules on this page</h2>
+          <sc-for list="{{rules}}" as="r" hint-placeholder-count="3"><span style="font-size: 12.5px; color: #3a3a40; display: flex; gap: 8px"><span aria-hidden="true" style="color: #34c759">✓</span>{{r}}</span></sc-for>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const tag = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const input = 'display:flex;align-items:center;min-height:40px;padding:0 12px;border-radius:12px;background:#f4f4f6;white-space:nowrap;overflow:hidden;';
+    const empty = 'display:flex;align-items:center;min-height:40px;padding:0 12px;border-radius:12px;background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;color:#b4b4bc;white-space:nowrap;overflow:hidden;';
+    const orders = [['PO-00318 · Supplier A', 'Arrived 09:40 · 4 lines', 'Now', true], ['Transfer from Puchong', 'Sent yesterday · 2 lines', 'Waiting'], ['PO-00315 · Supplier B', 'Expected 20 Nov', 'Open'], ['PO-00309 · Supplier A', '1 line still short', 'Part']].map(([k, v, t, on]) => ({ k, v, tag: t, tagStyle: t === 'Now' ? tag('#111114', '#ffffff') : t === 'Part' ? tag('#fff4dc', '#8a5a00') : tag('#f4f4f6', '#6b6b73'), row: 'display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;' : '') }));
+    const lot = (batch, exp, acc, quar, rej, paid) => ({ cells: [
+      { k: 'Batch', v: batch, style: batch ? input : empty },
+      { k: 'Expiry (from the box)', v: exp || 'dd/mm/yyyy', style: exp ? input : empty },
+      { k: 'Accepted', v: acc, style: input + 'font-weight:600;' },
+      { k: 'Quarantined', v: quar, style: quar === '0' ? empty : input + 'font-weight:600;color:#8a5a00;' },
+      { k: 'Rejected', v: rej, style: rej === '0' ? empty : input + 'font-weight:600;color:#c2185b;' },
+      { k: 'Total paid for this lot (RM)', v: paid || 'optional', style: paid ? input : empty }
+    ] });
+    const line = (name, ordered, est, lots, sum, state) => ({
+      name, ordered, est, lots, sum,
+      sumStyle: 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:4px 10px;' + (state === 'ok' ? 'background:#e9f8ee;color:#1d7a3a;' : state === 'warn' ? 'background:#fff4dc;color:#8a5a00;' : 'background:#f4f4f6;color:#6b6b73;'),
+      card: 'display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:20px;background:#ffffff;' + (state === 'warn' ? 'box-shadow:inset 0 0 0 1.5px #f5c46a;' : 'box-shadow:inset 0 0 0 1px #ececf0;'),
+      addStyle: 'align-self:flex-start;font-size:12.5px;font-weight:600;color:#3a3a40;'
+    });
+    return {
+      accent, orders,
+      fields: [
+        { k: 'Delivery reference (DO no.)', v: 'DO-2231', style: input + 'box-shadow:inset 0 0 0 2px #111114;' },
+        { k: 'Received by', v: 'Siti · 18 Nov, 09:52', style: input },
+        { k: 'Into location', v: 'Store room  ⌄', style: input }
+      ],
+      strip: [stripItem('4', 'lines on this order', true), stripItem('2', 'ready'), stripItem('2', 'need approval'), stripItem('1,180', 'units counted')],
+      lines: [
+        line('Paracetamol 500 mg · tablet', '1,000 tab', 'RM 0.05', [lot('PC-0627', '30/06/2028', '1,000', '0', '0', '48.00')], '1,000 of 1,000 · adds up', 'ok'),
+        line('Amoxicillin 250 mg · capsule', '200 cap', 'RM 0.18', [lot('AM-2301', '31/01/2028', '100', '0', '0', '18.00'), lot('AM-2302', '28/02/2028', '80', '0', '20', '')], '200 of 200 · 20 rejected (damaged)', 'warn'),
+        line('Salbutamol inhaler · unit', '6 unit', 'RM 9.50', [lot('SB-0712', '31/10/2027', '4', '0', '0', '')], '4 of 6 · 2 short', 'warn'),
+        line('Normal saline 0.9% 500 ml · bag', '10 bag', 'RM 3.20', [lot('', '', '0', '0', '0', '')], 'Not entered yet', 'none')
+      ],
+      exceptions: [
+        { tag: 'DAMAGED', k: 'Amoxicillin 250 mg · 20 rejected', v: 'Box crushed. Rejected stock never enters the shelf.', tagStyle: tag('#fde7ef', '#c2185b') },
+        { tag: 'SHORT', k: 'Salbutamol inhaler · 2 short', v: 'Supplier will send the rest. Line stays open on the order.', tagStyle: tag('#fff4dc', '#8a5a00') }
+      ],
+      rules: ['A delivery reference is required', 'Every lot needs the real expiry from the box', 'Accepted + quarantined + rejected must equal what arrived', 'A wrong item is rejected, never swapped in']
+    };
+  }
+}
+</script>
+</body>
+</html>

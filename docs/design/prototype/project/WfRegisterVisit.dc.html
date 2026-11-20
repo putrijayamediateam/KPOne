@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Register visit, new workflow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+input:focus,textarea:focus{outline:none;box-shadow:0 0 0 2px #111114}
+button:focus-visible{outline:2px solid #0a56d1;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1080px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; background: #f4f4f6"><dc-import name="Sidebar" active="front" accent="#c2185b" branch="Cheras" user-name="Aina R." user-role="Clinic Assistant" user-ini="AR" duty="07:55" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <span style="font-size: 13px; color: #6b6b73">Front desk</span><span aria-hidden="true" style="color: #c4c4cc">/</span><span style="font-size: 13px; font-weight: 600">Register visit</span>
+      <span style="font-size: 12px; font-weight: 600; color: #8e0f44; background: #fde7ef; border-radius: 999px; padding: 3px 10px">Proposal</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Find patient, visit and zone, vitals if you can, who pays</span>
+    </header>
+
+    <div style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px">
+      <aside aria-labelledby="h-find" style="flex: 0 0 300px; background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+        <h2 id="h-find" style="margin: 0; font-size: 17px; font-weight: 600">1 · Patient</h2>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: #f7f7f9; box-shadow: inset 0 0 0 2px #111114">
+          <span style="width: 40px; height: 40px; border-radius: 14px; background: #fde7ef; color: #8e0f44; display: flex; align-items: center; justify-content: center; font-weight: 700">SA</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600">Siti Aminah</span><span style="font-size: 12px; color: #6b6b73">KP-10342 · 58 y · Female</span></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; background: #fff1f0; color: #a1281c; border-radius: 14px; padding: 10px 12px; font-size: 12.5px; font-weight: 600"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #ff3b30"></span>Allergy: Penicillin</div>
+
+        <section aria-labelledby="h-ec" style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #f1f1f4; padding-top: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h3 id="h-ec" style="margin: 0; font-size: 14px; font-weight: 600">Emergency contact</h3><span style="font-size: 11.5px; font-weight: 600; color: #1a4fa0; background: #e8f0fe; border-radius: 999px; padding: 2px 8px">New</span></div>
+          <label for="ec-name" style="font-size: 12px; color: #6b6b73">Name</label>
+          <input id="ec-name" value="Ahmad Faiz" style="border: 0; background: #f4f4f6; border-radius: 12px; padding: 0 12px; min-height: 44px; font: inherit">
+          <label for="ec-rel" style="font-size: 12px; color: #6b6b73">Relationship</label>
+          <input id="ec-rel" value="Son" style="border: 0; background: #f4f4f6; border-radius: 12px; padding: 0 12px; min-height: 44px; font: inherit">
+          <label for="ec-phone" style="font-size: 12px; color: #6b6b73">Phone</label>
+          <input id="ec-phone" value="012-000 0000" style="border: 0; background: #f4f4f6; border-radius: 12px; padding: 0 12px; min-height: 44px; font: inherit">
+          <p style="margin: 0; font-size: 12px; color: #6b6b73">Used only to reach someone in an emergency. Never used for search, matching or messages.</p>
+        </section>
+      </aside>
+
+      <main style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+        <section aria-labelledby="h-zone" style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><h2 id="h-zone" style="margin: 0; font-size: 17px; font-weight: 600">2 · Visit and triage zone</h2><span style="font-size: 12px; color: #8a8a93">Replaces the Urgent switch</span></div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{zones}}" as="z" hint-placeholder-count="3">
+              <button type="button" aria-pressed="{{z.pressed}}" onClick="{{z.pick}}" style="{{z.style}}">
+                <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="{{z.dot}}"></span><span style="font-weight: 600; font-size: 15px">{{z.label}}</span></span>
+                <span style="font-size: 12.5px; color: #3a3a40">{{z.note}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{isRed}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="display: flex; align-items: center; gap: 12px; background: #fff1f0; color: #a1281c; border-radius: 16px; padding: 12px 14px; font-size: 13px">
+              <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 0 4px rgba(255,59,48,0.18)"></span>
+              <span style="flex: 1"><b>Red zone.</b> Registering sends an alert to every doctor at Cheras. Start first response within your training and the clinic SOP.</span>
+            </div>
+          </sc-if>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #3a3a40">Reason for visit</span>
+            <div style="min-height: 44px; display: flex; align-items: center; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Fever and cough for 3 days</div>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: #8a8a93">Zone criteria come from the clinic's triage list, approved by a named doctor.</p>
+        </section>
+
+        <section aria-labelledby="h-vit" style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><h2 id="h-vit" style="margin: 0; font-size: 17px; font-weight: 600">3 · Vital signs <span style="font-size: 13px; font-weight: 500; color: #6b6b73">(optional)</span></h2><span style="font-size: 12px; color: #8a8a93">Shown to the doctor at Call In</span></div>
+          <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{vitals}}" as="v" hint-placeholder-count="6">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <label for="{{v.id}}" style="font-size: 12px; color: #6b6b73">{{v.k}}</label>
+                <input id="{{v.id}}" value="{{v.v}}" style="{{v.box}}">
+                <span style="{{v.flag}}">{{v.note}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: #6b6b73">No time now? Skip it. The doctor can enter vitals in the consultation. Each reading records who took it and when.</p>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; align-items: center; gap: 16px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600">4 · Who pays</h2>
+          <span style="display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 4px; gap: 4px"><span style="background: #ffffff; border-radius: 999px; padding: 6px 14px; font-weight: 600; box-shadow: 0 1px 2px rgba(17,17,26,0.08)">Self-pay</span><span style="padding: 6px 14px; color: #6b6b73">Panel</span></span>
+          <button type="button" style="margin-left: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 22px; min-height: 46px; font: inherit; font-weight: 600; cursor: pointer">Register and send to waiting</button>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const pick = s.zone || 'yellow';
+    const Z = [
+      { id: 'green', label: 'Green', note: 'Stable. Normal queue order.', c: '#1f9d55', bg: '#e9f8ee' },
+      { id: 'yellow', label: 'Yellow', note: 'Needs to be seen sooner. Goes ahead of green.', c: '#c98a00', bg: '#fff6dc' },
+      { id: 'red', label: 'Red', note: 'Emergency. CA responds now and all doctors are alerted.', c: '#e5383b', bg: '#fff1f0' }
+    ];
+    const zones = Z.map(z => {
+      const on = z.id === pick;
+      return {
+        label: z.label, note: z.note, pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ zone: z.id }),
+        dot: 'width:12px;height:12px;border-radius:50%;background:' + z.c + ';',
+        style: 'display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;border:0;cursor:pointer;font:inherit;color:#111114;border-radius:18px;padding:14px 16px;min-height:88px;background:' + (on ? z.bg : '#f7f7f9') + ';box-shadow:' + (on ? 'inset 0 0 0 2px ' + z.c : 'inset 0 0 0 1px rgba(17,17,26,0.06)') + ';'
+      };
+    });
+    const box = 'border:0;background:#f4f4f6;border-radius:12px;padding:0 10px;min-height:44px;font:inherit;font-weight:600;width:100%;box-sizing:border-box;';
+    const flag = hot => 'font-size:11.5px;font-weight:600;' + (hot ? 'color:#b25e00;' : 'color:#1f7a3d;');
+    return {
+      zones, isRed: pick === 'red',
+      vitals: [
+        { id: 'v-t', k: 'Temp (°C)', v: '38.4', note: 'High', flag: flag(true), box },
+        { id: 'v-bp', k: 'BP (mmHg)', v: '142/90', note: 'High', flag: flag(true), box },
+        { id: 'v-p', k: 'Pulse (bpm)', v: '96', note: 'Normal', flag: flag(false), box },
+        { id: 'v-s', k: 'SpO2 (%)', v: '97', note: 'Normal', flag: flag(false), box },
+        { id: 'v-w', k: 'Weight (kg)', v: '64', note: '', flag: flag(false), box },
+        { id: 'v-h', k: 'Height (cm)', v: '156', note: '', flag: flag(false), box }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

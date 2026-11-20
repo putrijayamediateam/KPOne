@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>Public QR check-in form</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 900px; overflow: auto; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; padding: 24px; box-sizing: border-box">
+
+  <!-- Note beside the phone (board notes, English) -->
+  <aside style="flex: 0 1 320px; min-width: 260px; display: flex; flex-direction: column; gap: 14px">
+    <span style="align-self: flex-start; font-size: 12px; font-weight: 600; color: #6b6b73; background: #ffffff; border-radius: 999px; padding: 4px 10px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Public page · phone only · Bahasa Melayu</span>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em">QR check-in form</h1>
+    <p style="margin: 0; color: #6b6b73">The patient scans the branch QR code. Nothing becomes a patient, visit or queue entry until a CA reviews and accepts it. The server stays the only check; the form only helps.</p>
+    <div style="background: #ffffff; border-radius: 22px; padding: 10px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 4px 8px">STEPS · TAP TO PREVIEW</span>
+      <sc-for list="{{stepTabs}}" as="t" hint-placeholder-count="5">
+        <button type="button" onClick="{{t.pick}}" style="{{t.style}}"><span style="{{t.numStyle}}">{{t.n}}</span><span style="flex: 1; text-align: left">{{t.label}}</span></button>
+      </sc-for>
+    </div>
+    <div style="background: #ffffff; border-radius: 22px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; align-items: center; justify-content: space-between; gap: 12px">
+      <span><span style="display: block; font-weight: 500">Show the 3-minute warning</span><span style="font-size: 12.5px; color: #6b6b73">15-minute session; a late clock never blocks sending</span></span>
+      <button type="button" role="switch" aria-checked="{{warnOn}}" aria-label="Show the 3-minute warning" onClick="{{toggleWarn}}" style="{{warnTrack}}"><span style="width: 24px; height: 24px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.2)"></span></button>
+    </div>
+    <ul style="margin: 0; padding: 0 0 0 18px; color: #6b6b73; font-size: 12.5px; display: flex; flex-direction: column; gap: 4px">
+      <li>Under-18s must be registered by a guardian (step 3).</li>
+      <li>"Beli ubat sahaja" skips the purpose and joins the pharmacy list (B number).</li>
+      <li>Nothing is kept in browser storage. Privacy notice is still a UAT draft.</li>
+    </ul>
+  </aside>
+
+  <!-- Phone -->
+  <div style="flex: none; width: 390px; height: 844px; border-radius: 52px; background: #111114; padding: 10px; box-sizing: border-box; box-shadow: 0 30px 60px rgba(17,17,26,0.18)">
+    <div style="width: 100%; height: 100%; border-radius: 42px; background: #f4f4f6; overflow: hidden; display: flex; flex-direction: column">
+      <div style="flex: none; display: flex; justify-content: space-between; align-items: center; padding: 14px 28px 6px; font-size: 13px; font-weight: 600"><span>10:41</span><span aria-hidden="true" style="width: 110px; height: 28px; border-radius: 999px; background: #111114"></span><span>5G</span></div>
+
+      <header style="flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 20px 10px">
+        <span style="width: 34px; height: 34px; border-radius: 11px; background: #c2185b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px">KP</span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600">Klinik Putrijaya</span><span style="font-size: 12px; color: #6b6b73">Cawangan Cheras</span></span>
+      </header>
+
+      <div style="flex: none; padding: 0 20px 10px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; color: #6b6b73"><span>Langkah {{step}} daripada 5</span><span role="timer" aria-label="{{timerAria}}" style="{{timerStyle}}">⏱ {{timer}}</span></div>
+        <div style="height: 6px; border-radius: 999px; background: #e3e3e8; overflow: hidden"><div style="{{barStyle}}"></div></div>
+        <sc-if value="{{warnOn}}" hint-placeholder-val="{{ false }}">
+          <p role="status" style="margin: 0; padding: 10px 12px; border-radius: 14px; background: #fff4dc; color: #8a5a00; font-size: 12.5px">Sesi pendaftaran akan tamat tidak lama lagi. Sila lengkapkan dan hantar borang ini.</p>
+        </sc-if>
+      </div>
+
+      <main style="flex: 1; min-height: 0; overflow: auto; padding: 4px 16px 12px; display: flex; flex-direction: column; gap: 12px">
+
+        <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+          <section style="background: #ffffff; border-radius: 24px; padding: 18px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Siapa yang mengisi borang?</h2>
+            <p style="margin: 0; font-size: 13px; color: #6b6b73">Pesakit bawah 18 tahun mesti didaftarkan oleh penjaga.</p>
+            <sc-for list="{{who}}" as="w" hint-placeholder-count="2">
+              <button type="button" aria-pressed="{{w.pressed}}" onClick="{{w.pick}}" style="{{w.style}}"><span style="font-weight: 600; font-size: 15px">{{w.label}}</span><span style="font-size: 12.5px; color: #6b6b73">{{w.note}}</span></button>
+            </sc-for>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #ffffff; border-radius: 24px; padding: 18px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Maklumat pesakit</h2>
+            <sc-for list="{{fields2}}" as="f" hint-placeholder-count="4">
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{f.k}}</span><span style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">{{f.v}}</span></label>
+            </sc-for>
+            <span style="font-size: 13px; font-weight: 500; color: #3a3a40">Anda datang untuk</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+              <sc-for list="{{visitTypes}}" as="v" hint-placeholder-count="2">
+                <button type="button" aria-pressed="{{v.pressed}}" onClick="{{v.pick}}" style="{{v.style}}"><span style="font-weight: 600">{{v.label}}</span><span style="{{v.noteStyle}}">{{v.note}}</span></button>
+              </sc-for>
+            </div>
+            <sc-if value="{{isDoctor}}" hint-placeholder-val="{{ true }}">
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Tujuan lawatan *</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Demam / batuk / selsema<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Sejak bila? <span style="color: #8a8a93; font-weight: 400">(pilihan)</span></span><span style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">2 hari</span></label>
+            </sc-if>
+            <sc-if value="{{isOtc}}" hint-placeholder-val="{{ false }}">
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Ubat apa yang anda perlukan? <span style="color: #8a8a93; font-weight: 400">(pilihan)</span></span><span style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">cth. ubat selsema</span></label>
+            </sc-if>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #ffffff; border-radius: 24px; padding: 18px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Maklumat penjaga</h2>
+            <sc-if value="{{isGuardian}}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{fields3}}" as="f" hint-placeholder-count="3">
+                <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{f.k}}</span><span style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">{{f.v}}</span></label>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{isSelfFill}}" hint-placeholder-val="{{ false }}">
+              <p style="margin: 0; padding: 12px; border-radius: 14px; background: #e6f6ea; color: #1d6b34; font-size: 13px">Tiada maklumat penjaga diperlukan.</p>
+            </sc-if>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #ffffff; border-radius: 24px; padding: 18px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Maklumat perlindungan</h2>
+            <p style="margin: 0; font-size: 13px; color: #6b6b73">Maklumat ini diberikan oleh anda dan akan disahkan oleh staf sebelum pendaftaran.</p>
+            <div style="display: inline-flex; align-self: flex-start; background: #f4f4f6; border-radius: 999px; padding: 4px">
+              <sc-for list="{{pays}}" as="p" hint-placeholder-count="2"><button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button></sc-for>
+            </div>
+            <sc-if value="{{isPanel}}" hint-placeholder-val="{{ true }}">
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Panel *</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">Panel Contoh Sdn Bhd<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></label>
+              <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Nombor ahli panel (jika ada)</span><span style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">PC-55120-08</span></label>
+            </sc-if>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{s5}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #ffffff; border-radius: 24px; padding: 18px; box-shadow: 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Persetujuan &amp; hantar</h2>
+            <p style="margin: 0; font-size: 13px; color: #6b6b73">Staf akan menyemak maklumat sekali sebelum pendaftaran dan queue dicipta.</p>
+            <span style="font-weight: 600; margin-top: 4px">Semak maklumat anda</span>
+            <sc-for list="{{review}}" as="r" hint-placeholder-count="6">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f1f1f4">
+                <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 12px; color: #8a8a93">{{r.k}}</span><span style="font-weight: 500">{{r.v}}</span></span>
+                <button type="button" aria-label="{{r.aria}}" onClick="{{r.go}}" style="border: 0; background: transparent; color: #c2185b; font: inherit; font-weight: 600; min-height: 40px; padding: 0 6px; cursor: pointer">Ubah</button>
+              </div>
+            </sc-for>
+            <div style="padding: 12px; border-radius: 14px; background: #f8f8fa; font-size: 12.5px; color: #3a3a40"><b>Notis privasi — draf UAT.</b> Teks ini masih memerlukan kelulusan privasi/undang-undang. Maklumat yang belum disahkan disulitkan dan dipadam selepas 30 hari.</div>
+            <button type="button" role="checkbox" aria-checked="{{consent}}" onClick="{{toggleConsent}}" style="display: flex; align-items: flex-start; gap: 10px; border: 0; background: #ffffff; text-align: left; font: inherit; font-size: 13px; padding: 12px; border-radius: 14px; box-shadow: inset 0 0 0 1px #e6e6ea; cursor: pointer"><span style="{{consentBox}}">{{consentTick}}</span><span>Saya bersetuju maklumat ini digunakan untuk pendaftaran lawatan di Klinik Putrijaya Cheras.</span></button>
+          </section>
+        </sc-if>
+      </main>
+
+      <footer style="flex: none; display: flex; gap: 10px; padding: 12px 16px 22px; background: rgba(244,244,246,0.92); border-top: 1px solid rgba(17,17,20,0.05)">
+        <button type="button" aria-label="Kembali" onClick="{{back}}" style="flex: none; width: 52px; min-height: 52px; border: 0; border-radius: 999px; background: #e9e9ee; color: #111114; font: inherit; font-size: 18px; cursor: pointer">←</button>
+        <button type="button" onClick="{{next}}" style="flex: 1; min-height: 52px; border: 0; border-radius: 999px; background: #111114; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{nextLabel}}</button>
+      </footer>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const step = st.step || 1;
+    const who = st.who || 'guardian';
+    const vt = st.vt || 'doc';
+    const pay = st.pay || 'panel';
+    const warnOn = !!st.warn;
+    const consent = !!st.consent;
+    const go = n => () => this.setState({ step: n });
+    const labels = ['Siapa yang mengisi', 'Maklumat pesakit', 'Maklumat penjaga', 'Maklumat perlindungan', 'Persetujuan & hantar'];
+    const stepTabs = labels.map((label, i) => ({ n: String(i + 1), label, pick: go(i + 1), style: 'display:flex;align-items:center;gap:10px;border:0;font:inherit;min-height:44px;padding:0 8px;border-radius:12px;cursor:pointer;' + (step === i + 1 ? 'background:#f4f4f6;font-weight:600;color:#111114;box-shadow:inset 3px 0 0 #c2185b;' : 'background:transparent;color:#3a3a40;'), numStyle: 'flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;' + (step > i + 1 ? 'background:#e6f6ea;color:#1d6b34;' : step === i + 1 ? 'background:#111114;color:#ffffff;' : 'background:#f4f4f6;color:#6b6b73;') }));
+    const card = on => 'display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:0;cursor:pointer;font:inherit;text-align:left;border-radius:18px;padding:14px 16px;min-height:72px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:#ffffff;box-shadow:inset 0 0 0 1px #e6e6ea;');
+    const seg = on => 'border:0;border-radius:999px;padding:8px 18px;min-height:40px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const isGuardian = who === 'guardian';
+    const timer = warnOn ? '02:48' : '11:42';
+    return {
+      accent, step: String(step), stepTabs, warnOn, timer, timerAria: "Masa sesi berbaki " + timer,
+      toggleWarn: () => this.setState({ warn: !warnOn }),
+      warnTrack: 'flex:none;width:46px;height:28px;border:0;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;cursor:pointer;' + (warnOn ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'),
+      timerStyle: warnOn ? 'font-weight:600;color:#8a5a00;background:#fff4dc;border-radius:999px;padding:1px 8px;' : 'color:#6b6b73;',
+      barStyle: 'height:100%;border-radius:999px;background:#c2185b;width:' + (step * 20) + '%;transition:width 300ms ease;',
+      s1: step === 1, s2: step === 2, s3: step === 3, s4: step === 4, s5: step === 5,
+      who: [['patient', 'Saya pesakit', 'Saya mengisi maklumat sendiri'], ['guardian', 'Saya penjaga', 'Saya mengisi untuk anak atau orang di bawah jagaan saya']].map(([k, label, note]) => ({ label, note, pressed: String(who === k), pick: () => this.setState({ who: k }), style: card(who === k) })),
+      fields2: [{ k: 'Nama penuh *', v: 'Nur Aisyah binti Contoh' }, { k: 'No. IC *', v: '••••••-••-6212' }, { k: 'Tarikh lahir *', v: '14/03/2019' }, { k: 'Nombor telefon anak (pilihan)', v: '—' }],
+      visitTypes: [['doc', 'Jumpa doktor', 'Nombor A'], ['otc', 'Beli ubat sahaja', 'Nombor B · farmasi']].map(([k, label, note]) => ({ label, note, pressed: String(vt === k), pick: () => this.setState({ vt: k }), style: card(vt === k), noteStyle: 'font-size:12px;color:#6b6b73;' })),
+      isDoctor: vt === 'doc', isOtc: vt === 'otc',
+      isGuardian, isSelfFill: !isGuardian,
+      fields3: [{ k: 'Nama penjaga *', v: 'Rahmah binti Contoh' }, { k: 'Hubungan *', v: 'Ibu' }, { k: 'Nombor telefon penjaga *', v: '012-345 6789' }],
+      pays: [['self', 'Bayar sendiri'], ['panel', 'Panel']].map(([k, label]) => ({ label, pressed: String(pay === k), pick: () => this.setState({ pay: k }), style: seg(pay === k) })),
+      isPanel: pay === 'panel',
+      review: [
+        { k: 'Diisi oleh', aria: 'Ubah Diisi oleh', v: isGuardian ? 'Penjaga' : 'Pesakit', go: go(1) },
+        { k: 'Nama penuh', aria: 'Ubah Nama penuh', v: 'Nur Aisyah binti Contoh', go: go(2) },
+        { k: 'No. IC', aria: 'Ubah No. IC', v: '••••6212', go: go(2) },
+        { k: 'Lawatan', aria: 'Ubah Lawatan', v: vt === 'doc' ? 'Jumpa doktor · Demam / batuk' : 'Beli ubat sahaja', go: go(2) },
+        { k: 'Penjaga', aria: 'Ubah Penjaga', v: isGuardian ? 'Rahmah binti Contoh · Ibu' : '—', go: go(3) },
+        { k: 'Bayaran', aria: 'Ubah Bayaran', v: pay === 'panel' ? 'Panel Contoh Sdn Bhd' : 'Bayar sendiri', go: go(4) }
+      ],
+      consent: String(consent),
+      toggleConsent: () => this.setState({ consent: !consent }),
+      consentBox: 'flex:none;width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;' + (consent ? 'background:#111114;color:#ffffff;' : 'box-shadow:inset 0 0 0 1.5px #c4c4cc;color:transparent;'),
+      consentTick: '✓',
+      back: () => this.setState({ step: Math.max(1, step - 1) }),
+      next: () => this.setState({ step: Math.min(5, step + 1) }),
+      nextLabel: step === 5 ? 'Hantar maklumat' : step === 4 ? 'Semak persetujuan →' : 'Seterusnya →'
+    };
+  }
+}
+</script>
+</body>
+</html>

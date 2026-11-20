@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Website doctor profiles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Nadia H." user-role="HR Manager" user-ini="NH" duty="08:10" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Website drafts</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Doctor profiles</div>
+      <span style="font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">DRAFT · nothing is public</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director and HR Manager edit · Marketing and Administrator view</span>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save draft</button>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+
+      <aside class="kp-left" style="flex: 0 0 290px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; padding: 16px 12px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Profiles</h2><button type="button" style="border: 0; background: #f4f4f6; border-radius: 999px; padding: 0 12px; min-height: 34px; font: inherit; font-weight: 600; cursor: pointer">+ New</button></div>
+        <label style="display: flex; align-items: center; gap: 8px; background: #f4f4f6; border-radius: 14px; padding: 0 12px; min-height: 40px; margin: 0 4px 8px; color: #8a8a93">Search by name</label>
+        <sc-for list="{{profiles}}" as="p" hint-placeholder-count="8">
+          <a href="#" onClick="{{p.pick}}" style="{{p.row}}"><span style="{{p.av}}">{{p.ini}}</span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 500">{{p.name}}</span><span style="font-size: 12px; color: #8a8a93">{{p.sub}}</span></span><span style="{{p.tagStyle}}">{{p.tag}}</span></a>
+        </sc-for>
+        <label style="display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 10px 8px 2px; font-size: 13px; color: #6b6b73"><span style="width: 18px; height: 18px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px #c4c4cc"></span>Show archived</label>
+      </aside>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em">{{selName}}</h1>
+            <div style="display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 4px; margin-left: auto">
+              <sc-for list="{{langs}}" as="l" hint-placeholder-count="2"><button type="button" aria-pressed="{{l.pressed}}" onClick="{{l.pick}}" style="{{l.style}}">{{l.label}}</button></sc-for>
+            </div>
+          </div>
+          <span style="font-size: 12.5px; color: #8a8a93">Manual entries only. Registration text and consent references are typed by a person and are not checked or filled by KPOne. No automatic translation.</span>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <sc-for list="{{fields}}" as="f" hint-placeholder-count="6">
+              <label style="{{f.wrap}}"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">{{f.k}} <span style="color: #8a8a93; font-weight: 400">{{f.hint}}</span></span><span style="{{f.box}}">{{f.v}}</span></label>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Registration and consent</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Public registration text <span style="color: #8a8a93; font-weight: 400">· optional</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">Left empty: stays private</span></label>
+            <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Approval reference <span style="color: #8a8a93; font-weight: 400">· needed only if text is shown</span></span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #8a8a93">—</span></label>
+            <label style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Profile consent reference *</span><span style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">CONSENT-DOC-2026-014 (signed form on file)</span></label>
+          </div>
+        </section>
+
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Portrait and branches</h2>
+          <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
+            <span aria-hidden="true" style="flex: none; width: 88px; height: 88px; border-radius: 22px; background: #e8f0fe; color: #1a4fa0; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700">{{selIni}}</span>
+            <span style="flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Portrait <span style="color: #8a8a93; font-weight: 400">· only images with a consent reference can be chosen</span></span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">portrait-doctor-03.jpg · consent on file<span aria-hidden="true" style="color: #8a8a93">⌄</span></span></span>
+            <a href="WebsiteMedia.dc.html" style="font-weight: 600; color: #c2185b">Open media library</a>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            <span style="font-size: 13px; font-weight: 500; color: #3a3a40; margin-right: 4px">Works at</span>
+            <sc-for list="{{branches}}" as="b" hint-placeholder-count="3"><button type="button" aria-pressed="{{b.pressed}}" onClick="{{b.pick}}" style="{{b.style}}">{{b.label}}</button></sc-for>
+            <span style="font-size: 12px; color: #8a8a93">Branches apply to both languages</span>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 320px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Completeness</h2><span style="{{readyStyle}}">{{readyText}}</span></div>
+          <sc-for list="{{checks}}" as="c" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 10px; min-height: 36px"><span style="{{c.dot}}">{{c.mark}}</span><span style="flex: 1">{{c.k}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">A release includes a profile only when both English and Bahasa Melayu are complete. Releases are approved by the Director.</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Revisions</h2>
+          <sc-for list="{{revisions}}" as="r" hint-placeholder-count="4">
+            <div style="padding: 10px 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{r.k}}</span><span style="font-size: 12.5px; color: #6b6b73">{{r.v}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Revisions are never edited; each save adds one.</span>
+          <button type="button" style="align-self: flex-start; border: 0; background: transparent; color: #8e0f44; font: inherit; font-weight: 600; min-height: 36px; padding: 0; cursor: pointer">Archive profile</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const sel = st.sel ?? 2;
+    const lang = st.lang || 'en';
+    const br = st.br || { cheras: true, sgb: false, pcg: true };
+    const chip = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + bg + ';color:' + fg + ';';
+    const list = [
+      ['Dr. Lim Wei Han', 'LW', 'Cheras · Puchong', 'Complete'],
+      ['Dr. Farah Contoh', 'FC', 'Sungai Besi', 'Complete'],
+      ['Dr. Arif Hakimi', 'AH', 'Cheras · Puchong', 'BM missing'],
+      ['Dr. Priya Raman', 'PR', 'Puchong', 'Complete'],
+      ['Dr. Tan Siew Mei', 'TS', 'Cheras', 'Incomplete'],
+      ['Dr. Syafiq Contoh', 'SC', 'Sungai Besi', 'Complete'],
+      ['Dr. Nurul Izzah', 'NI', 'All branches', 'No consent ref'],
+      ['Dr. Kumar Samy', 'KS', 'Cheras', 'Complete']
+    ];
+    const tagFor = t => t === 'Complete' ? chip('#e6f6ea', '#1d6b34') : t === 'No consent ref' ? chip('#fde7ef', '#8e0f44') : chip('#fff4dc', '#8a5a00');
+    const profiles = list.map(([name, ini, sub, tag], i) => ({ name, ini, sub, tag, tagStyle: tagFor(tag), pick: () => this.setState({ sel: i }), av: 'flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;background:#e8f0fe;color:#1a4fa0;', row: 'display:flex;align-items:center;gap:10px;padding:6px 8px;min-height:44px;border-radius:14px;cursor:pointer;' + (i === sel ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') }));
+    const seg = on => 'border:0;border-radius:999px;padding:6px 16px;min-height:34px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#6b6b73;');
+    const box = 'display:flex;align-items:center;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6;';
+    const tall = 'display:block;min-height:96px;padding:12px 14px;border-radius:14px;background:#f4f4f6;box-sizing:border-box;';
+    const half = 'display:flex;flex-direction:column;gap:6px;';
+    const full = 'grid-column:1/-1;display:flex;flex-direction:column;gap:6px;';
+    const bmMissing = list[sel][3] === 'BM missing' && lang === 'bm';
+    const en = [
+      ['Display name *', '· max 150', list[sel][0], half, box],
+      ['Professional title *', '· max 100', 'General Practitioner', half, box],
+      ['Qualifications', '· up to 8', 'MBBS (Example University)', half, box],
+      ['Languages spoken', '· up to 6', 'English, Bahasa Melayu, Mandarin', half, box],
+      ['Areas of practice', '· up to 8', 'Family medicine, child health, vaccination', full, box],
+      ['Biography *', '· max 1,500', 'A family doctor who enjoys caring for children and older patients at the clinic. (Sample text.)', full, tall]
+    ];
+    const bm = [
+      ['Display name *', '· max 150', list[sel][0], half, box],
+      ['Professional title *', '· max 100', bmMissing ? '—' : 'Pengamal Perubatan Am', half, box],
+      ['Qualifications', '· up to 8', 'MBBS (Example University)', half, box],
+      ['Languages spoken', '· up to 6', 'Bahasa Inggeris, Bahasa Melayu, Mandarin', half, box],
+      ['Areas of practice', '· up to 8', bmMissing ? '—' : 'Perubatan keluarga, kesihatan kanak-kanak, vaksinasi', full, box],
+      ['Biography *', '· max 1,500', bmMissing ? 'Not written yet' : 'Doktor keluarga yang menjaga kanak-kanak dan warga emas di klinik. (Teks contoh.)', full, tall]
+    ];
+    const fields = (lang === 'en' ? en : bm).map(([k, hint, v, wrap, b]) => ({ k, hint, v, wrap, box: b + (v === '—' || v === 'Not written yet' ? 'color:#8a8a93;' : '') }));
+    const ok = { dot: 'flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:#e6f6ea;color:#1d6b34;', mark: '✓' };
+    const no = { dot: 'flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:#fff4dc;color:#8a5a00;', mark: '!' };
+    const bmDone = list[sel][3] !== 'BM missing';
+    const branchList = [['cheras', 'Cheras'], ['sgb', 'Sungai Besi'], ['pcg', 'Puchong']].map(([k, label]) => ({ label, pressed: String(!!br[k]), pick: () => this.setState({ br: Object.assign({}, br, { [k]: !br[k] }) }), style: 'border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (br[k] ? 'background:#f4f4f6;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.16);' : 'background:#ffffff;color:#6b6b73;box-shadow:inset 0 0 0 1px #e6e6ea;') }));
+    return {
+      accent, profiles, fields, branches: branchList,
+      selName: list[sel][0], selIni: list[sel][1],
+      langs: [['en', 'English'], ['bm', 'Bahasa Melayu']].map(([k, label]) => ({ label, pressed: String(lang === k), pick: () => this.setState({ lang: k }), style: seg(lang === k) })),
+      checks: [
+        Object.assign({ k: 'English draft complete' }, ok),
+        Object.assign({ k: 'Bahasa Melayu draft complete' }, bmDone ? ok : no),
+        Object.assign({ k: 'Profile consent reference' }, ok),
+        Object.assign({ k: 'Portrait with consent' }, ok),
+        Object.assign({ k: 'At least one branch' }, ok)
+      ],
+      readyStyle: bmDone ? 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:#e6f6ea;color:#1d6b34;' : 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:#fff4dc;color:#8a5a00;',
+      readyText: bmDone ? 'Ready for a release' : 'Not ready',
+      revisions: [
+        { k: 'EN revision 4', v: '12 Nov · Nadia H. · biography' },
+        { k: 'BM revision 3', v: '12 Nov · Nadia H. · branches (shared)' },
+        { k: 'EN revision 3', v: '5 Nov · Dr. Director · portrait' },
+        { k: 'EN revision 1', v: '28 Oct · Nadia H. · created' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

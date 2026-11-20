@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payment methods</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Settings</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Payment methods</div>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Director, Finance Officer and Administrator · every change is recorded</span>
+    </header>
+
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <nav class="kp-left" aria-label="Settings sections" style="flex: 0 0 240px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{sections}}" as="g" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 11px; font-weight: 600; color: #8a8a93; letter-spacing: 0.05em; padding: 0 8px 4px">{{g.title}}</span>
+            <sc-for list="{{g.items}}" as="t" hint-placeholder-count="4">
+              <a href="#" aria-current="{{t.cur}}" style="{{t.style}}"><span style="{{t.ic}}">{{t.k}}</span><span>{{t.label}}</span></a>
+            </sc-for>
+          </div>
+        </sc-for>
+      </nav>
+
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for>
+        </div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section style="flex: 1; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Payment methods · {{count}}</h1>
+            <span style="font-size: 12.5px; color: #8a8a93">for the whole organisation, in till order</span>
+            <button type="button" style="margin-left: auto; border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 16px; min-height: 38px; font: inherit; font-weight: 500; cursor: pointer">+ Add payment method</button>
+          </div>
+          <div aria-hidden="true" style="display: flex; gap: 12px; padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; color: #8a8a93; letter-spacing: 0.03em; border-bottom: 1px solid #f1f1f4"><span style="width: 28px">#</span><span style="flex: 1">NAME</span><span style="width: 130px">CODE</span><span style="width: 120px">REFERENCE</span><span style="width: 120px">CLASS</span><span style="width: 56px; text-align: right">ACTIVE</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+            <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="{{r.row}}">
+              <span style="width: 28px; color: #8a8a93; font-variant-numeric: tabular-nums">{{r.n}}</span>
+              <span style="flex: 1; min-width: 0; font-weight: 500">{{r.name}}</span>
+              <span style="width: 130px; font-size: 12.5px; color: #3a3a40; font-family: ui-monospace, monospace">{{r.code}}</span>
+              <span style="width: 120px; font-size: 12.5px; color: #6b6b73">{{r.ref}}</span>
+              <span style="width: 120px"><span style="{{r.chip}}">{{r.cls}}</span></span>
+              <span style="width: 56px; display: flex; justify-content: flex-end"><span role="switch" aria-checked="{{r.on}}" aria-label="{{r.name}} active" style="{{r.track}}"><span style="{{r.knob}}"></span></span></span>
+            </button>
+          </sc-for>
+        </section>
+      </main>
+
+      <aside class="kp-right" aria-labelledby="h-pm" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div><span style="display: block; font-size: 12px; color: #6b6b73">Edit method</span><h2 id="h-pm" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{cur.name}}</h2></div>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Name</span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6">{{cur.name}}</span></label>
+          <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Code <span style="color: #8a8a93; font-weight: 400">· fixed once used</span></span><span style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #f4f4f6; color: #6b6b73; font-family: ui-monospace, monospace">{{cur.code}}<span aria-hidden="true">🔒</span></span></label>
+          <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500; color: #3a3a40">Counts in reports as</span>
+            <div role="radiogroup" aria-label="Classification" style="display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #f4f4f6">
+              <sc-for list="{{classes}}" as="c" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button></sc-for>
+            </div>
+          </div>
+          <sc-if value="{{changed}}" hint-placeholder-val="{{ false }}"><div style="padding: 10px 12px; border-radius: 14px; background: #fff4dc; color: #8a5a00; font-size: 12.5px">Changing this moves every past {{cur.name}} receipt between the Cash and Non-cash columns in reports made from now on, including past months. No payment or receipt is changed.</div></sc-if>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-top: 1px solid #f1f1f4">
+            <span><span style="display: block">Ask for a reference</span><span style="font-size: 12.5px; color: #6b6b73">e.g. approval code on the slip</span></span>
+            <span role="switch" aria-checked="{{refSw.on}}" aria-label="Ask for a reference" style="{{refSw.track}}"><span style="{{refSw.knob}}"></span></span>
+          </div>
+          <span style="font-size: 12px; color: #8a8a93">Cash counts in the daily cash closing. Card, QR and e-wallet methods are checked on Terminal reconciliation. Provider fees are reconciled outside KPOne.</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Save classification</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || defs._gap || '-14px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ unc: { title: 'Not classified', note: 'Counted as Non-cash in reports until set', cols: 'minmax(0,1.3fr) 130px 120px 110px auto', head: ['METHOD','CODE','RECEIPTS (NOV)','RM','STATUS'], align: ['l','l','r','r','l'],
+  rows: [['Bank transfer','BANK_TRANSFER','12','1,480.00',['Active','ok']],['Voucher (old)','VOUCHER','0','0.00',['Inactive','mute']]],
+  foot: 'Pick a method on the left and choose Cash or Non-cash. Reports use the new class from then on.' } });
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const ic = (bg, fg) => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:' + bg + ';color:' + fg + ';';
+    const TONE = { amber: ['#fff4dc', '#8a5a00'], red: ['#fde7ef', '#c2185b'], green: ['#e9f8ee', '#1d7a3a'], grey: ['#f4f4f6', '#6b6b73'], blue: ['#e8f0fe', '#1a4fa8'], violet: ['#f1ecfd', '#5a32a8'] };
+    const chip = t => 'flex:none;white-space:nowrap;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;background:' + TONE[t][0] + ';color:' + TONE[t][1] + ';';
+    const selRow = on => 'display:flex;align-items:center;gap:12px;padding:7px 10px;min-height:44px;border:0;width:100%;box-sizing:border-box;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:16px;' + (on ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : 'background:transparent;');
+    const navRow = on => 'display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border:0;border-radius:12px;font:inherit;cursor:pointer;width:100%;box-sizing:border-box;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'background:transparent;color:#3a3a40;');
+    const stripItem = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const seg = on => 'flex:1;border:0;border-radius:999px;min-height:38px;padding:0 12px;font:inherit;font-weight:500;cursor:pointer;' + (on ? 'background:#ffffff;color:#111114;box-shadow:0 1px 3px rgba(17,17,26,0.12),0 0 0 1px rgba(17,17,26,0.06);' : 'background:transparent;color:#6b6b73;');
+    const sw = on => ({ on: on ? 'true' : 'false', track: 'flex:none;width:46px;height:28px;border-radius:999px;padding:2px;box-sizing:border-box;display:flex;' + (on ? 'background:#34c759;justify-content:flex-end;' : 'background:#e3e3e8;justify-content:flex-start;'), knob: 'width:24px;height:24px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);' });
+    const fmt = n => n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const CUR = 'pm';
+    const setIc = c => 'flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#ffffff;background:' + c + ';';
+    const mk = (label, k, c, on) => ({ label, k, ic: setIc(c), cur: on ? 'page' : 'false', style: 'display:flex;align-items:center;gap:10px;min-height:40px;padding:0 8px;border-radius:12px;' + (on ? 'background:#f4f4f6;font-weight:600;color:#111114;' : 'color:#3a3a40;') });
+    const sections = [
+      { title: 'CLINIC', items: [mk('Business details', 'Bz', '#111114'), mk('Registration', 'Rg', '#ff9f0a'), mk('Consultation', 'Cn', '#0a84ff'), mk('QR check-in', 'QR', '#5e5ce6'), mk('Waiting-room TV', 'TV', '#30b0c7')] },
+      { title: 'MONEY', items: [mk('Payment methods', 'Pm', '#34c759', CUR === 'pm'), mk('Panels', 'Pn', '#bf5af2', CUR === 'pn'), mk('Approval limits', 'Lm', '#ff375f', CUR === 'lm')] },
+      { title: 'CATALOGUE', items: [mk('Medicines', 'Md', '#ff9f0a'), mk('Services', 'Sv', '#0a84ff'), mk('Prices', 'RM', '#34c759'), mk('Suppliers', 'Sp', '#8a8a93')] }
+    ];
+
+    const sel = st.sel ?? 2;
+    const M = [
+      ['Cash', 'CASH', 'No', 'cash', true], ['Card terminal', 'CARD', 'Yes', 'non', true], ['DuitNow QR', 'DUITNOW_QR', 'Yes', 'non', true],
+      ['Debit card (MyDebit)', 'MYDEBIT', 'Yes', 'non', true], ['Touch ’n Go eWallet', 'TNG_EWALLET', 'Yes', 'non', true], ['GrabPay', 'GRABPAY', 'Yes', 'non', true],
+      ['ShopeePay', 'SHOPEEPAY', 'Yes', 'non', true], ['Bank transfer', 'BANK_TRANSFER', 'Yes', 'none', true], ['Cheque', 'CHEQUE', 'Yes', 'non', false], ['Voucher (old)', 'VOUCHER', 'No', 'none', false]
+    ];
+    const CL = { cash: ['Cash', 'green'], non: ['Non-cash', 'blue'], none: ['Not classified', 'amber'] };
+    const picked = st.cls || {};
+    const clsOf = i => picked[i] || M[i][3];
+    const rows = M.map((m, i) => Object.assign({ n: String(i + 1), name: m[0], code: m[1], ref: m[2] === 'Yes' ? 'Reference asked' : '—', cls: CL[clsOf(i)][0], chip: chip(CL[clsOf(i)][1]), pressed: String(i === sel), pick: () => this.setState({ sel: i }), row: selRow(i === sel) }, sw(m[4])));
+    const m = M[sel];
+    const classes = [['cash', 'Cash'], ['non', 'Non-cash']].map(([k, label]) => ({ label, on: String(clsOf(sel) === k), pick: () => this.setState({ cls: Object.assign({}, picked, { [sel]: k }) }), style: seg(clsOf(sel) === k) }));
+    const unc = M.filter((x, i) => clsOf(i) === 'none').length;
+    return {
+      ...XP.holes,
+      accent, sections, rows, classes, count: String(M.length),
+      cur: { name: m[0], code: m[1] },
+      changed: clsOf(sel) !== m[3],
+      refSw: sw(m[2] === 'Yes'),
+      strip: XP.strip([stripItem(String(unc), 'not classified, counted as Non-cash', true), stripItem('1', 'Cash'), stripItem(String(M.filter((x, i) => clsOf(i) === 'non').length), 'Non-cash'), stripItem('8', 'active')], { 0: 'unc' }),
+    };
+
+  }
+}
+</script>
+</body>
+</html>

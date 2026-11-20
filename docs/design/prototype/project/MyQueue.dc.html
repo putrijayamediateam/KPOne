@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My queue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+.card{background:#ffffff;border-radius:26px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04)}
+.h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.lbl{font-size:13px;font-weight:500;color:#3a3a40}
+.field{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;background:#f4f4f6}
+.muted{font-size:12.5px;color:#6b6b73}
+.ghost{border:0;background:#f4f4f6;color:#111114;border-radius:999px;padding:0 16px;min-height:40px;font:inherit;font-weight:500;cursor:pointer}
+.primary{border:0;background:#111114;color:#ffffff;border-radius:999px;min-height:52px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+button[aria-controls="xp-panel"]{cursor:pointer}
+button[aria-controls="xp-panel"]:focus-visible{outline:2px solid #0a56d1 !important;outline-offset:3px !important}
+@media (prefers-reduced-motion: reduce){#xp-panel,[data-xp-chev]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="consult" accent="{{accent}}" branch="Cheras" user-name="Dr. Farah N." user-role="Doctor" user-ini="FN" duty="08:00" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Consultation</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">My queue</div><span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Room 2 · live, refreshes every 3 seconds</span>
+    </header>
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap"><sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><sc-if value="{{s.nx}}" hint-placeholder-val="{{ false }}"><div style="{{s.style}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span></div></sc-if><sc-if value="{{s.x}}" hint-placeholder-val="{{ true }}"><button type="button" aria-expanded="{{s.exp}}" aria-controls="xp-panel" onClick="{{s.open}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="{{s.kStyle}}">{{s.k}}</span><span data-xp-chev="" aria-hidden="true" style="{{s.chev}}">⌄</span></button></sc-if></sc-for></div>
+        <section id="xp-panel" aria-label="{{xpTitle}}" aria-hidden="{{xpHidden}}" style="{{xpPanel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xpTitle}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xpNote}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xpFilters}}" as="f" hint-placeholder-count="3"><button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.7">{{f.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xpTitle}}" style="display: flex; flex-direction: column; overflow: auto; max-height: 340px; padding: 4px; margin: -4px">
+              <div role="row" style="{{xpGrid}}"><sc-for list="{{xpHead}}" as="h" hint-placeholder-count="4"><span role="columnheader" style="{{h.cs}}">{{h.t}}</span></sc-for></div>
+              <sc-for list="{{xpRows}}" as="r" hint-placeholder-count="5"><div role="row" style="{{xpRow}}"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4"><span role="cell" style="{{c.cs}}"><span style="{{c.st}}">{{c.t}}</span></span></sc-for></div></sc-for>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #8a8a93">{{xpFoot}}</p>
+          </div>
+        </section>
+        <section class="card" style="flex: 1; min-height: 0; overflow: auto; padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 8px; flex-wrap: wrap">
+            <h1 class="h2">My queue · Waiting</h1><span class="muted">Urgent first, then by arrival</span>
+            <span style="margin-left: auto; display: inline-flex; background: #f4f4f6; border-radius: 999px; padding: 3px">
+              <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><span style="{{t.style}}">{{t.label}}</span></sc-for>
+            </span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+            <div style="{{r.row}}">
+              <span style="flex: none; min-width: 58px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; background: #f4f4f6; border-radius: 12px; padding: 7px 0">{{r.no}}</span>
+              <span style="{{r.av}}">{{r.ini}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600">{{r.name}}</span><span class="muted">{{r.sub}}</span></span>
+              <span style="{{r.flagStyle}}">{{r.flag}}</span>
+              <span style="{{r.waitStyle}}">{{r.wait}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </main>
+      <aside class="kp-right" style="flex: 0 0 340px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 class="h2">On hold</h2>
+          <sc-for list="{{held}}" as="h" hint-placeholder-count="2">
+            <div style="padding: 12px; border-radius: 16px; background: #f8f8fa; display: flex; flex-direction: column; gap: 8px">
+              <span style="display: flex; align-items: center; gap: 10px"><span style="font-weight: 700">{{h.no}}</span><span style="flex: 1; font-weight: 500">{{h.name}}</span><span class="muted">held {{h.mins}}</span></span>
+              <span style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{h.steps}}" as="s" hint-placeholder-count="2"><span style="{{s.style}}">{{s.label}}</span></sc-for></span>
+              <span style="font-size: 12.5px; font-weight: 600">Resume ›</span>
+            </div>
+          </sc-for>
+        </section>
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 class="h2">My room today</h2>
+          <div class="field"><span>Consultation Room 2</span><span aria-hidden="true" style="color: #8a8a93">⌄</span></div>
+          <span class="muted">Shown on the waiting-room TV when you call.</span>
+        </section>
+        <section class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <span class="muted">Next patient</span>
+          <div style="display: flex; align-items: center; gap: 12px"><span style="font-size: 30px; font-weight: 700; letter-spacing: -0.035em">A-028</span><span><span style="display: block; font-weight: 600">Nor Hidayah</span><span class="muted">Urgent · waiting 41 min</span></span></div>
+          <span style="font-size: 12px; color: #8a8a93">Skips A-030, marked not ready (awaiting Panel confirmation).</span>
+        </section>
+        <button type="button" class="primary" style="margin-top: auto">Call next · A-028 Nor Hidayah</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const xpKit = (self, defs) => {
+      const s = self.state || {};
+      const open = s.xp && defs[s.xp] ? s.xp : null;
+      const d = open ? defs[open] : { title: '', note: '', head: [], cols: '1fr', rows: [] };
+      const f = s.xpf || 'all';
+      const tones = { ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', bad: 'background:#fde7ef;color:#c2185b;', info: 'background:#e8f0fe;color:#1a4fa0;', mute: 'background:#f4f4f6;color:#6b6b73;' };
+      const chip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + (tones[t] || tones.mute);
+      const txt = c => Array.isArray(c) ? c[0] : c;
+      const fc = d.filterCol == null ? null : d.filterCol;
+      const al = i => (d.align && d.align[i] === 'r') ? 'text-align:right;justify-self:end;' : '';
+      const grid = 'display:grid;grid-template-columns:' + d.cols + ';gap:10px;align-items:center;';
+      const rows = d.rows.filter(r => f === 'all' || fc === null || txt(r[fc]) === f).map(r => ({
+        cells: r.map((c, i) => ({ t: txt(c), cs: 'min-width:0;' + al(i), st: Array.isArray(c) ? chip(c[1]) : (i === 0 ? 'display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : 'display:block;color:#3a3a40;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;') }))
+      }));
+      const fpill = on => 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (on ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1.5px #111114;' : 'background:#f4f4f6;color:#3a3a40;');
+      const opts = fc === null ? [] : [...new Set(d.rows.map(r => txt(r[fc])))];
+      const filters = fc === null ? [] : [['all', 'All', d.rows.length]].concat(opts.map(o => [o, o, d.rows.filter(r => txt(r[fc]) === o).length])).map(([k, label, n]) => ({ label, n: String(n), pressed: String(f === k), pick: () => self.setState({ xp: open, xpf: k }), style: fpill(f === k) }));
+      const tile = key => {
+        const on = open === key;
+        return {
+          open: () => self.setState({ xp: on ? null : key, xpf: 'all' }),
+          exp: on ? 'true' : 'false',
+          chev: 'margin-left:auto;display:inline-block;font-size:14px;line-height:1;color:#8a8a93;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (on ? '180deg' : '0deg') + ');',
+          ring: on ? 'box-shadow:0 0 0 2px #111114;' : '',
+          hint: on ? 'Hide' : 'Show'
+        };
+      };
+      const strip = (items, map) => items.map((it, i) => { const k = map[i]; if (!k) return Object.assign({}, it, { x: false, nx: true }); const t = tile(k); return Object.assign({}, it, { x: true, nx: false, exp: t.exp, open: t.open, chev: t.chev, bstyle: (it.style || '') + 'border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;' + t.ring }); });
+      const isOpen = !!open;
+      return {
+        tile, strip,
+        holes: {
+          xpTitle: d.title, xpNote: d.note || '', xpFoot: d.foot || '', xpHead: d.head.map((t, i) => ({ t, cs: al(i) })), xpRows: rows, xpFilters: filters,
+          xpGrid: grid + 'padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+          xpRow: grid + 'min-height:44px;padding:0 10px;border-top:1px solid #f1f1f4;font-size:13px;',
+          xpHidden: isOpen ? 'false' : 'true',
+          xpPanel: 'flex:none;grid-column:1 / -1;box-sizing:border-box;width:100%;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (isOpen ? '460px' : '0px') + ';opacity:' + (isOpen ? '1' : '0') + ';transform:translateY(' + (isOpen ? '0' : '-8px') + ');margin-top:' + (isOpen ? '0' : (d.gap || '-12px')) + ';visibility:' + (isOpen ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (isOpen ? '0s' : '420ms') + ';',
+          xpClose: () => self.setState({ xp: null })
+        }
+      };
+    };
+    const XP = xpKit(this, {
+ seen: { title: 'Seen today', note: '15 consultations · Room 2', cols: '64px minmax(0,1.6fr) 70px 80px minmax(0,1.2fr)', head: ['NO.','PATIENT','CALLED','WAITED','OUTCOME'], align: ['l','l','l','r','l'], filterCol: 4, gap: '-14px',
+  rows: [['A-001','Mohd Azlan','08:31','8 min',['Sent to pharmacy','ok']],
+  ['A-002','Chong Mei Yee','08:44','12 min',['Sent to pharmacy','ok']],
+  ['A-004','Rosnah Ali','08:58','15 min',['Completed','ok']],
+  ['A-005','Vijay Raman','09:10','17 min',['Sent to pharmacy','ok']],
+  ['A-007','Tan Soo Lin','09:22','20 min',['Sent to pharmacy','ok']],
+  ['A-008','Hafizah Omar','09:35','24 min',['MC issued','info']],
+  ['A-010','Kumar Pillai','09:47','26 min',['Sent to pharmacy','ok']],
+  ['A-011','Wong Kar Yan','09:59','28 min',['Referral issued','info']],
+  ['A-013','Nurul Ain','10:10','25 min',['Sent to pharmacy','ok']],
+  ['A-014','Ahmad Fikri','10:22','27 min',['Sent to pharmacy','ok']],
+  ['A-016','Lau Pei Shan','10:33','31 min',['Sent to pharmacy','ok']],
+  ['A-018','Zainal Abidin','10:45','29 min',['MC issued','info']],
+  ['A-020','Priya Devi','10:57','26 min',['Sent to pharmacy','ok']],
+  ['A-022','Ong Jia Hui','11:08','22 min',['Completed','ok']],
+  ['A-024','Hamidah Saad','11:19','21 min',['Sent to pharmacy','ok']]], foot: 'Outcome is what happened after the consultation, in words.' },
+ wait: { title: 'Average wait by hour', note: 'Time from queue to Call In · today', cols: 'minmax(0,1fr) 90px 100px 100px minmax(0,1fr)', head: ['HOUR','PATIENTS','AVERAGE','LONGEST','AGAINST TARGET'], align: ['l','r','r','r','l'], gap: '-14px',
+  rows: [['08:00–09:00','3','12 min','15 min',['Under 30 min','ok']],['09:00–10:00','5','23 min','28 min',['Under 30 min','ok']],['10:00–11:00','4','27 min','31 min',['Near 30 min','warn']],['11:00–now','3','23 min','41 min',['1 long wait','bad']]],
+  foot: 'Waits over 30 min turn amber and over 60 min red on the board. Average of the 15 seen today: 22 min.' }
+});
+    const accent = this.props.accent ?? '#c2185b';
+    const st = this.state || {};
+    const strip = (v, k, hot) => ({ v, k, style: 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;' + (hot ? 'background:linear-gradient(120deg,#e0457f,#c2185b 45%,#7a2bd1);color:#ffffff;' : 'background:#ffffff;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'), kStyle: 'font-size:12.5px;' + (hot ? 'opacity:0.85;' : 'color:#6b6b73;') });
+    const av = (bg, fg, s) => 'flex:none;width:' + (s || 36) + 'px;height:' + (s || 36) + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:' + bg + ';color:' + fg + ';';
+    const pill = (bg, fg) => 'flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;background:' + bg + ';color:' + fg + ';';
+    const P = { red: pill('#fde7ef', '#c2185b'), amber: pill('#fff4dc', '#8a5a00'), green: pill('#e9f8ee', '#1d7a3a'), grey: pill('#f4f4f6', '#6b6b73'), blue: pill('#e8f0fe', '#1a4fa8'), purple: pill('#f1ecfd', '#5a32a8'), none: 'display:none;' };
+    const tab = on => 'padding:4px 12px;border-radius:999px;font-size:12.5px;' + (on ? 'background:#ffffff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'color:#6b6b73;');
+    const wait = m => m >= 60 ? P.red : m >= 30 ? P.amber : P.grey;
+    const row = (no, name, ini, a, sub, mins, flag, flagKind, next) => ({ no, name, ini, sub, av: av(a[0], a[1]), wait: mins + ' min', waitStyle: wait(mins), flag: flag || '', flagStyle: flag ? P[flagKind] : P.none, row: 'display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 10px;border-radius:16px;' + (next ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,inset 0 0 0 1px rgba(17,17,20,0.12);' : '') });
+    const step = (label, done) => ({ label, style: done ? P.green : P.blue });
+    return {
+      ...XP.holes,
+      accent,
+      strip: XP.strip([strip('7', 'waiting for you', true), strip('1', 'on hold'), strip('15', 'seen today'), strip('22 min', 'average wait')], { 2: 'seen', 3: 'wait' }),
+      tabs: [{ label: 'Waiting', style: tab(true) }, { label: 'Serving', style: tab(false) }, { label: 'Done', style: tab(false) }],
+      rows: [
+        row('A-028', 'Nor Hidayah', 'NH', ['#fde7ef', '#8e0f44'], 'Self-pay · fever, vomiting', 41, 'Urgent', 'red', true),
+        row('A-030', 'Raj Kumar', 'RK', ['#fff4e5', '#8a4b00'], 'Panel · AIA · follow-up', 35, 'Not ready to call', 'amber'),
+        row('A-031', 'Aminah Yusof', 'AY', ['#e8f0fe', '#1a4fa0'], 'Self-pay · fever since yesterday', 22),
+        row('A-033', 'Daniel Teo', 'DT', ['#e7f6ea', '#1f6b33'], 'Panel · PMCare · cough', 18),
+        row('A-034', 'Siti Hajar', 'SH', ['#f1ecfd', '#5b3fa6'], 'Self-pay · medical check-up', 12),
+        row('A-035', 'Lim Ah Kow', 'LK', ['#f4f4f6', '#3a3a40'], 'Self-pay · wound dressing', 8),
+        row('A-036', 'Farid Hassan', 'FH', ['#fde7ef', '#8e0f44'], 'Panel · Etiqa · back pain', 4),
+        row('A-019', 'Grace Wong', 'GW', ['#e8f0fe', '#1a4fa0'], 'Yesterday · carried over', 64, 'Carried over', 'grey')
+      ],
+      held: [{ no: 'A-027', name: 'Siti Khadijah', mins: '18 min', steps: [step('Nebuliser · done', true), step('Observation · started', false)] }]
+    };
+  }
+}
+</script>
+</body>
+</html>

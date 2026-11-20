@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Little Shield</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-left{flex:1 1 100% !important;max-height:340px !important}
+  .kp-work.kp-3>.kp-mid{flex:1 1 100% !important;min-height:auto !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important;box-shadow:0 10px 28px rgba(17,17,20,0.22)}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="set" accent="{{accent}}" branch="All branches" user-name="Aleesya" user-role="Marketing" user-ini="AL" duty="09:01" start-collapsed="{{true}}" hint-size="100px,1080px"></dc-import></div>
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05); flex-wrap: wrap">
+      <div style="font-size: 13px; color: #6b6b73">Website</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Little Shield</div>
+      <span style="display: inline-flex; align-items: center; margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4dc; border-radius: 999px; padding: 4px 10px">DRAFT · nothing here is public</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">{{savedNote}}</span>
+      <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; min-height: 38px">Preview saved draft</button>
+      <button type="button" style="border: 0; background: #111114; color: #ffffff; border-radius: 999px; padding: 0 20px; min-height: 38px; font: inherit; font-weight: 600; cursor: pointer">Save draft</button>
+    </header>
+    <nav aria-label="Website sections" style="display: flex; gap: 4px; padding: 10px 20px 0; overflow-x: auto; flex: none">
+      <sc-for list="{{secs}}" as="s" hint-placeholder-count="10"><a href="#" aria-current="{{s.cur}}" style="{{s.style}}">{{s.label}}</a></sc-for>
+    </nav>
+    <div class="kp-work kp-3" style="flex: 1; min-height: 0; padding: 12px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <aside class="kp-left" style="flex: 0 0 280px; min-width: 0; min-height: 0; overflow: auto; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">{{listTitle}}</h2><span style="font-size: 12px; font-weight: 600; color: #6b6b73; background: #f4f4f6; border-radius: 999px; padding: 1px 8px">{{count}}</span></div>
+        <div style="display: flex; gap: 6px; padding: 0 4px 8px; flex-wrap: wrap">
+          <span style="flex: 1 1 140px; display: flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 12px; background: #f4f4f6; color: #8a8a93; font-size: 13px">Search</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 10px; border-radius: 12px; background: #f4f4f6; font-size: 12.5px; color: #3a3a40"><span aria-hidden="true" style="width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #b4b4bc; background: #ffffff"></span>Show archived</span>
+        </div>
+        <span style="font-size: 12px; color: #8a8a93; padding: 0 8px 6px">{{listNote}}</span>
+        <sc-for list="{{items}}" as="d" hint-placeholder-count="10">
+          <button type="button" aria-current="{{d.cur}}" onClick="{{d.pick}}" style="{{d.row}}"><span style="flex: 1; min-width: 0; text-align: left"><span style="display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.t}}</span><span style="display: block; font-size: 12px; color: #8a8a93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.sub}}</span></span><span style="{{d.tagStyle}}">{{d.status}}</span></button>
+        </sc-for>
+        <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; margin: 8px 4px 0; min-height: 40px">{{addLabel}}</button>
+      </aside>
+
+      <main class="kp-mid" aria-labelledby="h-item" style="flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <div style="position: relative; overflow: hidden; flex: none; border-radius: 26px; padding: 18px 22px; color: #ffffff; background: radial-gradient(120% 160% at 0% 0%, #e0457f 0%, #c2185b 40%, #7a2bd1 100%); display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+          <div aria-hidden="true" style="position: absolute; right: -60px; top: -70px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.25), rgba(255,255,255,0) 70%)"></div>
+          <div style="flex: 1; min-width: 220px; position: relative"><span style="font-size: 12px; opacity: 0.85">{{kind}}</span><h1 id="h-item" style="margin: 2px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{selT}}</h1><p style="margin: 2px 0 0; font-size: 13px; opacity: 0.85">{{selBm}}</p></div>
+          <span style="position: relative; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 10px">{{selStatus}}</span>
+        </div>
+
+        <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <div role="tablist" aria-label="Language" style="display: flex; gap: 2px; background: #f4f4f6; border-radius: 999px; padding: 3px">
+              <sc-for list="{{langs}}" as="l" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{l.sel}}" onClick="{{l.pick}}" style="{{l.style}}">{{l.label}}<span style="{{l.dotStyle}}">{{l.state}}</span></button></sc-for>
+            </div>
+            <span style="font-size: 12.5px; color: #8a8a93">Each language is saved as its own revision. No automatic translation.</span>
+          </div>
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="5">
+            <label style="display: flex; flex-direction: column; gap: 5px"><span style="display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; font-weight: 500; color: #3a3a40"><span>{{f.k}}</span><span style="font-weight: 400; color: #8a8a93">{{f.hint}}</span></span><span style="{{f.box}}">{{f.v}}</span></label>
+          </sc-for>
+        </section>
+
+        <sc-for list="{{lists}}" as="g" hint-placeholder-count="2">
+          <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+            <div style="display: flex; align-items: center; gap: 10px"><h2 style="margin: 0; font-size: 15px; font-weight: 600">{{g.title}}</h2><span style="font-size: 12px; color: #8a8a93">{{g.limit}}</span><span style="margin-left: auto; font-size: 13px; font-weight: 500; color: #c2185b">+ Add</span></div>
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 14px; background: #f8f8fa"><span style="flex: none; width: 22px; font-size: 12px; color: #8a8a93; font-variant-numeric: tabular-nums">{{r.n}}</span><span style="flex: 1; min-width: 0">{{r.v}}</span><span aria-hidden="true" style="flex: none; color: #b4b4bc; font-size: 13px; letter-spacing: 4px">↑↓×</span></div>
+            </sc-for>
+          </section>
+        </sc-for>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 300px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{side}}" as="s" hint-placeholder-count="3">
+          <section style="background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+            <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">{{s.title}}</h2>
+            <sc-for list="{{s.rows}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f1f1f4"><span style="min-width: 0"><span style="display: block; font-size: 13px">{{r.k}}</span><span style="font-size: 11.5px; color: #8a8a93">{{r.sub}}</span></span><span style="{{r.chipStyle}}">{{r.v}}</span></div>
+            </sc-for>
+            <span style="font-size: 11.5px; color: #8a8a93; margin-top: 6px">{{s.note}}</span>
+          </section>
+        </sc-for>
+        <button type="button" style="border: 0; background: #f4f4f6; color: #111114; border-radius: 999px; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 500; cursor: pointer; min-height: 44px">{{archiveLabel}}</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const D = {"listTitle":"Programme page","count":"1 page","listNote":"One Little Shield page for the clinic. No sign-up form, no parent or child data, no school list.","addLabel":"Reload saved drafts","kind":"Little Shield · section","savedNote":"Saved 10:05 AM by Aleesya","archiveLabel":"Hide page from website","items":[{"t":"Introduction","bm":"Pengenalan","sub":"Title, tagline and overview","status":"Ready","kind":"Little Shield · section","fieldsEn":[["Title","Little Shield","up to 150 characters"],["Tagline","Helping children stay protected, one visit at a time","up to 200 characters"],["Introduction","Little Shield is our children's health programme. It helps families keep up with check-ups and vaccines in a friendly, child-sized way.","up to 1,000 characters",true]],"fieldsBm":[["Tajuk","Little Shield"],["Slogan","Membantu kanak-kanak kekal terlindung, satu lawatan pada satu masa"],["Pengenalan","Little Shield ialah program kesihatan kanak-kanak kami. Ia membantu keluarga mengikuti pemeriksaan dan vaksin dengan cara yang mesra kanak-kanak.","",true]],"lists":[{"title":"Overview paragraphs","limit":"up to 6","en":["Why we started Little Shield","How it works with your family doctor"],"bm":["Mengapa kami memulakan Little Shield","Cara ia berfungsi bersama doktor keluarga anda"]}]},{"t":"Programme pillars","bm":"Tonggak program","sub":"4 pillars, in order","status":"Ready","kind":"Little Shield · section","fieldsEn":[["Section heading","Our four pillars"]],"fieldsBm":[["Tajuk bahagian","Empat tonggak kami"]],"lists":[{"title":"Pillars","limit":"up to 8, in order","en":["Check-ups on time","Vaccines explained simply","Healthy habits at home","A doctor who knows your child"],"bm":["Pemeriksaan tepat pada masa","Vaksin diterangkan dengan mudah","Tabiat sihat di rumah","Doktor yang mengenali anak anda"]}]},{"t":"Programme flow","bm":"Aliran program","sub":"3 steps","status":"Ready","kind":"Little Shield · section","fieldsEn":[["Section heading","How it works"]],"fieldsBm":[["Tajuk bahagian","Bagaimana ia berfungsi"]],"lists":[{"title":"Steps","limit":"up to 8, in order","en":["Visit any branch with your child","The doctor checks and explains","Come back when the next check is due"],"bm":["Kunjungi mana-mana cawangan bersama anak","Doktor memeriksa dan menerangkan","Kembali apabila pemeriksaan seterusnya tiba"]}]},{"t":"Medical safeguards","bm":"Langkah keselamatan perubatan","sub":"3 safeguards","status":"BM missing","kind":"Little Shield · section","fieldsEn":[["Section heading","Keeping children safe"]],"fieldsBm":[["Tajuk bahagian",""]],"lists":[{"title":"Safeguards","limit":"up to 8","en":["Every vaccine is given by a doctor","We check allergies before every vaccine","A parent or guardian is always present"],"bm":["Not written yet"]}]},{"t":"Partner types","bm":"Jenis rakan kongsi","sub":"3 partner types","status":"Ready","kind":"Little Shield · section","fieldsEn":[["Partnership introduction","We welcome partners who care about children's health.","",true]],"fieldsBm":[["Pengenalan perkongsian","Kami mengalu-alukan rakan kongsi yang mengambil berat tentang kesihatan kanak-kanak.","",true]],"lists":[{"title":"Partner types","limit":"up to 8","en":["Kindergartens","Community centres","Parent groups"],"bm":["Tadika","Pusat komuniti","Kumpulan ibu bapa"]}]},{"t":"How to take part","bm":"Cara menyertai","sub":"Text only, no form","status":"Ready","kind":"Little Shield · section","fieldsEn":[["How to take part","Ask at the counter of any branch. There is no online sign-up.","text only",true]],"fieldsBm":[["Cara menyertai","Tanya di kaunter mana-mana cawangan. Tiada pendaftaran dalam talian.","",true]],"lists":[]},{"t":"Cover and posters","bm":"Muka depan dan poster","sub":"1 cover, 4 posters","status":"Ready","kind":"Little Shield · section","fieldsEn":[["Cover image (optional)","little-shield-cover.jpg"]],"fieldsBm":[["Imej muka depan (pilihan)","little-shield-cover.jpg"]],"lists":[{"title":"Posters","limit":"up to 8, in order","en":["poster-checkups.jpg","poster-vaccines.jpg","poster-habits.jpg","poster-doctor.jpg"],"bm":["poster-checkups.jpg","poster-vaccines.jpg","poster-habits.jpg","poster-doctor.jpg"]}]}],"side":[{"title":"Page status","note":"Programme wording, consent steps and image rights need review before publishing.","rows":[["English","Ready","All sections written"],["Bahasa Melayu","BM missing","Medical safeguards"],["Coverage branches","All 3","Saved for both languages"]]},{"title":"What this page never has","note":"","rows":[["Sign-up or contact form","Not built",""],["Parent or child details","Never stored",""],["Schools list or impact numbers","Not shown",""]]},{"title":"Revisions","note":"Revisions are never changed. An older one can be opened, not edited.","rows":[["EN revision 6","Today, 9:58 AM","Aleesya"],["BM revision 5","15 Nov, 2:40 PM","Aleesya"],["EN revision 5","12 Nov, 4:12 PM","Director"]]}]};
+    const secs = [["profiles","Branch profiles"],["doctors","Doctors"],["careers","Careers"],["services","Services"],["promotions","Promotions"],["activities","Activities"],["faqs","FAQs"],["shield","Little Shield"],["media","Media"],["releases","Releases"]].map(([k, label]) => ({ label, cur: k === 'shield' ? 'page' : 'false', style: 'flex:none;display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:999px;font-size:13px;white-space:nowrap;' + (k === 'shield' ? 'background:#ffffff;color:#111114;font-weight:600;box-shadow:0 0 0 1px rgba(17,17,26,0.08);' : 'color:#6b6b73;') }));
+    const sel = (this.state && this.state.sel) || 0;
+    const lang = (this.state && this.state.lang) || 'en';
+    const tag = (bg, fg) => 'flex:none;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:' + bg + ';color:' + fg + ';';
+    const tones = { 'Ready': ['#e9f8ee', '#1d7a3a'], 'BM missing': ['#fff4dc', '#8a5a00'], 'EN missing': ['#fff4dc', '#8a5a00'], 'Draft': ['#f4f4f6', '#6b6b73'], 'Archived': ['#ffffff', '#8a8a93'], 'Hidden': ['#f4f4f6', '#6b6b73'], 'Needs fixing': ['#fde7ef', '#b0144f'] };
+    const tone = s => tones[s] || ['#f4f4f6', '#6b6b73'];
+    const items = D.items.map((it, i) => ({ t: it.t, sub: it.sub, status: it.status, cur: i === sel ? 'true' : 'false', pick: () => this.setState({ sel: i }), tagStyle: tag(tone(it.status)[0], tone(it.status)[1]) + (it.status === 'Archived' ? 'box-shadow:inset 0 0 0 1px #e6e6ea;' : ''), row: 'display:flex;align-items:center;gap:10px;min-height:52px;padding:4px 10px;border:0;border-radius:12px;font:inherit;color:inherit;cursor:pointer;width:100%;' + (i === sel ? 'background:#f4f4f6;box-shadow:inset 3px 0 0 #c2185b,0 0 0 1px rgba(17,17,26,0.05);' : 'background:transparent;') }));
+    const it = D.items[sel];
+    const sub = s => String(s).split('{t}').join(it.t).split('{b}').join(it.bm);
+    const fEn = it.fieldsEn || D.fieldsEn, fBm = it.fieldsBm || D.fieldsBm;
+    const bmMissing = it.status === 'BM missing';
+    const box = (v, multi, empty) => 'display:block;min-height:' + (multi ? '84px' : '40px') + ';padding:' + (multi ? '10px 12px' : '0 12px') + ';line-height:' + (multi ? '1.5' : '40px') + ';border-radius:12px;font-size:13.5px;' + (empty ? 'background:#ffffff;box-shadow:inset 0 0 0 1px #f0c36b;color:#8a5a00;' : 'background:#f4f4f6;color:#111114;');
+    const src = lang === 'en' ? fEn : fBm;
+    const fields = src.map(([k, v, hint, multi]) => { const empty = lang === 'bm' && bmMissing && multi; return { k, hint: hint || '', v: empty ? 'Not written yet. Both languages are needed before a release.' : sub(v), box: box(v, multi, empty) }; });
+    const lsrc = it.lists || D.lists || [];
+    const lists = lsrc.map(g => ({ title: g.title, limit: g.limit, rows: (lang === 'en' ? g.en : g.bm).map((v, i) => ({ n: String(i + 1), v: sub(v) })) }));
+    const langs = [['en', 'English (EN)'], ['bm', 'Bahasa Melayu (BM)']].map(([k, label]) => { const miss = (k === 'bm' && bmMissing); return { label, sel: lang === k ? 'true' : 'false', pick: () => this.setState({ lang: k }), state: miss ? 'Missing' : 'Done', dotStyle: 'margin-left:8px;font-size:11px;font-weight:600;border-radius:999px;padding:1px 6px;' + (miss ? 'background:#fff4dc;color:#8a5a00;' : 'background:#e9f8ee;color:#1d7a3a;'), style: 'display:inline-flex;align-items:center;border:0;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:13px;cursor:pointer;' + (lang === k ? 'background:#ffffff;font-weight:600;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.08);' : 'background:transparent;color:#6b6b73;') }; });
+    const chip = v => { const tt = tones[v]; return tt ? tag(tt[0], tt[1]) : 'flex:none;font-size:12.5px;color:#6b6b73;text-align:right;'; };
+    const side = (it.side || D.side).map(s => ({ title: s.title, note: sub(s.note || ''), rows: s.rows.map(([k, v, sb]) => ({ k: sub(k), v: sub(v), sub: sub(sb || ''), chipStyle: chip(v) })) }));
+    return {
+      accent, secs, items, fields, lists, langs, side,
+      listTitle: D.listTitle, count: String(D.count || D.items.length), listNote: D.listNote, addLabel: D.addLabel, kind: sub(it.kind || D.kind),
+      selT: lang === 'en' ? it.t : it.bm, selBm: lang === 'en' ? it.bm : it.t, selStatus: it.status === 'Ready' ? 'Both languages complete' : it.status,
+      savedNote: sub(D.savedNote), archiveLabel: D.archiveLabel
+    };
+  }
+}
+</script>
+</body>
+</html>

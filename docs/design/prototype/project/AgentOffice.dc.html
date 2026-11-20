@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent office</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+[style*="overflow: auto"]:not([style*="padding"]),[style*="overflow:auto"]:not([style*="padding"]),[style*="overflow-y: auto"]:not([style*="padding"]),[style*="overflow-x: auto"]:not([style*="padding"]){padding:4px;margin:-4px}
+.kp-page{container-type:inline-size;container-name:kppage}
+.kp-work>*{min-width:0}
+@container kppage (max-width: 1180px){
+  .kp-work.kp-3{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-3>.kp-left,.kp-work.kp-3>.kp-mid{max-height:none !important}
+  .kp-work.kp-3>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;align-items:start !important}
+  .kp-work.kp-3>.kp-right>button,.kp-work.kp-3>.kp-right>.kp-actions{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin-top:0 !important}
+}
+@container kppage (max-width: 900px){
+  .kp-work.kp-2{flex-wrap:wrap !important;overflow-y:auto !important;align-content:flex-start !important}
+  .kp-work.kp-2>.kp-right{flex:1 1 100% !important;min-height:auto !important;overflow:visible !important}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+body{margin:0;background:#f4f4f6}
+a{color:inherit;text-decoration:none}
+button[aria-controls$="-xpanel"]:focus-visible{outline:2px solid #0a56d1;outline-offset:3px}
+@media (prefers-reduced-motion: reduce){[data-xp]{transition:none !important}}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 720px; overflow: hidden; background: #f4f4f6; color: #111114; font-family: Geist, Inter, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.45; display: flex">
+  <div style="flex: none; position: sticky; top: 0; align-self: flex-start; background: #f4f4f6"><dc-import name="Sidebar" active="today" accent="{{accent}}" branch="Cheras" user-name="Dr. Director" user-role="Director" user-ini="DR" duty="08:02" hint-size="350px,1080px"></dc-import></div>
+
+  <div class="kp-page" style="flex: 1 1 0; min-width: 0; height: 100vh; min-height: 720px; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: rgba(244,244,246,0.78); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(17,17,20,0.05)">
+      <div style="font-size: 13px; color: #6b6b73">Today</div><span aria-hidden="true" style="color: #c4c4cc">/</span><div style="font-size: 13px; font-weight: 600">Agent office</div>
+      <span style="margin-left: 8px; font-size: 12px; font-weight: 600; color: #6b6b73; background: #ffffff; border-radius: 999px; padding: 4px 10px; box-shadow: 0 0 0 1px rgba(17,17,26,0.06)">Read only · refreshes every 10 s</span>
+      <span style="margin-left: auto; font-size: 12.5px; color: #8a8a93">Agents propose, people approve. KPOne calls no AI service.</span>
+    </header>
+
+    <div class="kp-work kp-2" style="flex: 1; min-height: 0; padding: 16px 20px 20px; display: flex; gap: 16px; align-items: stretch">
+      <main class="kp-mid" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <sc-for list="{{strip}}" as="s" hint-placeholder-count="4"><div style="flex: 1 1 140px; display: flex; align-items: baseline; gap: 8px; border-radius: 18px; padding: 10px 16px; background: #ffffff; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span></div></sc-for>
+          <sc-for list="{{stripX}}" as="s" hint-placeholder-count="3"><button type="button" aria-expanded="{{s.exp}}" aria-controls="{{s.pid}}" onClick="{{s.tog}}" style="{{s.bstyle}}"><span style="flex: none; white-space: nowrap; font-size: 18px; font-weight: 600; letter-spacing: -0.02em">{{s.v}}</span><span style="font-size: 12.5px; color: #6b6b73">{{s.k}}</span><span aria-hidden="true" data-xp="1" style="{{s.chev}}">⌄</span></button></sc-for>
+        </div>
+        <sc-for list="{{stripP}}" as="xp" hint-placeholder-count="1">
+        <section id="{{xp.pid}}" aria-label="{{xp.title}}" aria-hidden="{{xp.hid}}" data-xp="1" style="{{xp.panel}}">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 18px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em">{{xp.title}}</h2>
+              <span style="font-size: 12.5px; color: #8a8a93">{{xp.note}}</span>
+              <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{xp.filters}}" as="xf" hint-placeholder-count="0"><button type="button" aria-pressed="{{xf.pressed}}" onClick="{{xf.pick}}" style="{{xf.style}}">{{xf.label}} <span style="opacity: 0.7">{{xf.n}}</span></button></sc-for></span>
+            </div>
+            <div role="table" aria-label="{{xp.title}}" style="display: flex; flex-direction: column; max-height: 360px; overflow: auto; padding: 4px">
+              <div role="row" style="{{xp.headS}}"><sc-for list="{{xp.cols}}" as="xc" hint-placeholder-count="4"><span role="columnheader" style="{{xc.s}}">{{xc.label}}</span></sc-for></div>
+              <sc-for list="{{xp.rows}}" as="xr" hint-placeholder-count="4">
+                <div role="row" style="{{xr.s}}">
+                  <span role="cell" style="min-width: 0"><span style="display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{xr.a}}</span><span style="display: block; font-size: 12px; color: #8a8a93">{{xr.b}}</span></span>
+                  <span role="cell" style="{{xr.cs}}">{{xr.c}}</span>
+                  <span role="cell" style="{{xr.ds}}">{{xr.d}}</span>
+                  <span role="cell" style="text-align: right"><span style="{{xr.chip}}">{{xr.status}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="{{xp.footS}}">{{xp.foot}}</span>
+          </div>
+        </section>
+        </sc-for>
+        <section aria-label="Agent office floor" style="flex: 1; min-height: 520px; position: relative; overflow: hidden; background: #ffffff; border-radius: 26px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04)">
+          <div aria-hidden="true" style="position: absolute; left: 50%; top: 52%; width: 440px; height: 440px; margin: -220px 0 0 -220px; transform: rotateX(60deg) rotateZ(-45deg); display: grid; grid-template-columns: repeat(8, 1fr); border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px #e6e6ea">
+            <sc-for list="{{tiles}}" as="t" hint-placeholder-count="64"><span style="{{t.s}}"></span></sc-for>
+          </div>
+          <sc-for list="{{desks}}" as="d" hint-placeholder-count="5">
+            <div style="{{d.pos}}">
+              <div aria-hidden="true" style="position: absolute; left: -44px; top: 6px; width: 88px; height: 56px; transform: rotateX(60deg) rotateZ(-45deg); background: #ffffff; border-radius: 10px; box-shadow: 0 0 0 1px #d9d9e0, 6px 6px 0 #e6e6ea"></div>
+              <sc-if value="{{d.hasBubble}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; left: -110px; bottom: 74px; width: 220px; padding: 10px 12px; border-radius: 16px; background: #ffffff; color: #111114; font-size: 12.5px; line-height: 1.4; box-shadow: 0 0 0 1px rgba(17,17,26,0.10), 0 8px 22px rgba(17,17,20,0.14)">{{d.bubble}}</div></sc-if>
+              <button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" aria-label="{{d.aria}}" style="{{d.btn}}">
+                <span style="{{d.av}}">{{d.ini}}</span>
+                <span style="display: flex; align-items: center; gap: 6px; white-space: nowrap"><span style="{{d.light}}"></span><span style="font-weight: 600; font-size: 13px">{{d.name}}</span></span>
+                <span style="{{d.tagStyle}}">{{d.tag}}</span>
+              </button>
+            </div>
+          </sc-for>
+          <div style="position: absolute; left: 16px; bottom: 14px; display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #6b6b73">
+            <sc-for list="{{legend}}" as="l" hint-placeholder-count="4"><span style="display: flex; align-items: center; gap: 6px"><span style="{{l.dot}}"></span>{{l.k}}</span></sc-for>
+          </div>
+        </section>
+      </main>
+
+      <aside class="kp-right" style="flex: 0 0 360px; min-width: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px">
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 12px; align-items: center">
+            <span style="flex: none; width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #7a2bd1, #c2185b); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px">{{cur.ini}}</span>
+            <span style="min-width: 0"><span style="display: block; font-size: 12px; color: #6b6b73">{{cur.title}}</span><h1 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em">{{cur.name}} <span style="font-size: 12px; font-weight: 600; color: #5a32a8; background: #f1ecfd; border-radius: 999px; padding: 2px 8px; vertical-align: middle">AI agent</span></h1></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; min-height: 40px; align-items: center; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73">Status</span><span style="{{cur.stStyle}}">{{cur.st}}</span></div>
+          <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid #f1f1f4"><span style="color: #6b6b73; font-size: 12.5px">Doing now</span><span style="font-weight: 500">{{cur.task}}</span></div>
+          <h2 style="margin: 4px 0 0; font-size: 15px; font-weight: 600">Last steps</h2>
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+            <div style="display: flex; gap: 10px; align-items: flex-start; min-height: 36px"><span style="flex: none; width: 46px; font-size: 12px; color: #8a8a93; font-variant-numeric: tabular-nums; padding-top: 1px">{{s.t}}</span><span style="font-size: 13px; color: #3a3a40">{{s.k}}</span></div>
+          </sc-for>
+        </section>
+        <section style="background: #ffffff; border-radius: 26px; padding: 18px 16px; box-shadow: 0 1px 2px rgba(17,17,26,0.05), 0 0 0 1px rgba(17,17,26,0.04); display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Suggestions waiting · Cheras</h2>
+          <sc-for list="{{pending}}" as="p" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; border-bottom: 1px solid #f1f1f4"><span>{{p.k}}</span><span style="{{p.style}}">{{p.v}}</span></div>
+          </sc-for>
+          <span style="font-size: 12px; color: #8a8a93">Counts only. Details open in the approval inbox for people who may decide them. Approving records the decision; nothing changes in stock.</span>
+        </section>
+        <button type="button" style="margin-top: auto; border: 0; background: #111114; color: #ffffff; border-radius: 999px; min-height: 48px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Open approval inbox</button>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#c2185b","options":["#c2185b","#111114","#0a66d8"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#c2185b';
+    const XS = this.state || {};
+    const XO = XS.xo || '';
+    const XF = XS.xf || 'all';
+    const xset = o => this.setState(Object.assign({}, XS, o));
+    const xChip = t => 'display:inline-flex;align-items:center;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;' + ({ ok: 'background:#e9f8ee;color:#1d7a3a;', warn: 'background:#fff4dc;color:#8a5a00;', info: 'background:#e8f0fe;color:#1a4fa0;', bad: 'background:#fde7ef;color:#c2185b;', mute: 'background:#f4f4f6;color:#6b6b73;', violet: 'background:#f1ecfd;color:#5a32a8;' })[t || 'mute'];
+    const xBtn = (id, pid, base) => { const o = XO === id; return { exp: o ? 'true' : 'false', pid, tog: () => xset({ xo: o ? '' : id, xf: 'all', dutyOpen: false }), chev: 'display:inline-block;flex:none;margin-left:auto;font-size:15px;line-height:1;opacity:0.7;transition:transform 300ms cubic-bezier(.22,.8,.24,1);transform:rotate(' + (o ? '180deg' : '0deg') + ');', bstyle: (base || '') + 'cursor:pointer;font:inherit;text-align:left;border:0;' + (o ? 'box-shadow:0 0 0 2px #111114;' : '') }; };
+    const xPanel = (pid, ids, D, gap, compact) => {
+      const id = ids.indexOf(XO) >= 0 ? XO : ''; const o = !!id; const d = D[id || ids[0]]; const fl = d.filters || [];
+      const keep = r => XF === 'all' || !fl.length || r[5] === XF;
+      const grid = compact ? 'minmax(0,1fr) auto' : (d.grid || 'minmax(170px,2.2fr) minmax(90px,1fr) minmax(80px,1fr) minmax(110px,auto)');
+      const rowS = 'display:grid;grid-template-columns:' + grid + ';gap:12px;align-items:center;min-height:44px;padding:4px 10px;border-top:1px solid #f1f1f4;';
+      return [{
+        pid, hid: o ? 'false' : 'true', title: d.title, note: d.note || '', foot: d.foot || '', footS: d.foot ? 'font-size:12px;color:#8a8a93;' : 'display:none;',
+        headS: compact ? 'display:none;' : 'display:grid;grid-template-columns:' + grid + ';gap:12px;padding:0 10px 8px;font-size:11.5px;font-weight:600;color:#8a8a93;letter-spacing:0.04em;',
+        cols: d.cols.map((label, i) => ({ label, s: i === 3 ? 'text-align:right;' : '' })),
+        rows: d.rows.filter(keep).map(r => ({ a: r[0], b: compact ? [r[1], r[2], r[3]].filter(Boolean).join(' · ') : (r[1] || ''), c: r[2] || '', d: r[3] || '', cs: compact ? 'display:none;' : 'min-width:0;color:#3a3a40;', ds: compact ? 'display:none;' : 'min-width:0;color:#6b6b73;font-variant-numeric:tabular-nums;', status: r[4] ? r[4][0] : '', chip: r[4] ? xChip(r[4][1]) : 'display:none;', s: rowS })),
+        filters: fl.map(([k, label]) => ({ label, n: String(k === 'all' ? d.rows.length : d.rows.filter(r => r[5] === k).length), pressed: String(XF === k), pick: () => xset({ xo: id, xf: k, dutyOpen: false }), style: 'border:0;cursor:pointer;font:inherit;font-size:12.5px;border-radius:999px;padding:6px 12px;min-height:32px;' + (XF === k ? 'background:#e6e6ec;color:#111114;font-weight:600;box-shadow:inset 0 0 0 1px rgba(17,17,20,0.2);' : 'background:#f4f4f6;color:#3a3a40;') })),
+        panel: 'grid-column:1 / -1;flex:none;width:100%;box-sizing:border-box;background:#ffffff;border-radius:22px;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);overflow:hidden;max-height:' + (o ? '640px' : '0px') + ';opacity:' + (o ? '1' : '0') + ';transform:translateY(' + (o ? '0' : '-8px') + ');margin-top:' + (o ? '0' : '-' + (gap || 14) + 'px') + ';visibility:' + (o ? 'visible' : 'hidden') + ';transition:max-height 420ms cubic-bezier(.22,.8,.24,1),opacity 260ms ease,transform 420ms cubic-bezier(.22,.8,.24,1),margin-top 420ms cubic-bezier(.22,.8,.24,1),visibility 0s linear ' + (o ? '0s' : '420ms') + ';'
+      }];
+    };
+    const sel = (this.state && this.state.sel) || 'hana';
+    const tiles = [];
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) tiles.push({ s: 'display:block;background:' + ((r + c) % 2 ? '#f6f6f8' : '#fbfbfc') + ';box-shadow:inset 0 0 0 0.5px #ececf0;' });
+    const S = { working: ['Working', '#34c759', '#e9f8ee', '#1d7a3a'], idle: ['Idle', '#c4c4cc', '#f4f4f6', '#6b6b73'], waiting: ['Waiting for people', '#ff9f0a', '#fff4dc', '#8a5a00'], error: ['Needs attention', '#ff375f', '#fde7ef', '#c2185b'] };
+    const A = {
+      hana: { name: 'Hana', title: 'Inventory analyst (AI agent)', ini: 'H', x: -175, y: -20, st: 'waiting', c: ['#f1ecfd', '#5a32a8'], bubble: '6 stock suggestions are waiting in the inbox for Cheras.', task: 'Waiting for people to decide the 07:00 suggestions', steps: [['14:00', 'Read stock review (Cheras)'], ['14:00', 'Read dispensing activity'], ['14:01', 'Proposed 1 new restock (Ibuprofen 400 mg)'], ['14:01', 'Skipped 5 already proposed today'], ['14:01', 'Run finished']] },
+      rizal: { name: 'Rizal', title: 'Stocktake officer (AI agent)', ini: 'R', x: -55, y: -95, st: 'idle', c: ['#e3f6f5', '#0b6f69'], task: 'Nothing right now · next run 07:00', steps: [['14:02', 'Read stock counts (Cheras)'], ['14:02', 'Counted 12 pairs due'], ['14:02', '1 open count case, 2 unresolved differences'], ['14:02', 'Recorded counts-only note'], ['14:02', 'Run finished']] },
+      lina: { name: 'Lina', title: 'Report assistant (AI agent)', ini: 'L', x: 75, y: -65, st: 'working', c: ['#e8f0fe', '#1a4fa8'], task: 'Updating the 14:00 daily summary', steps: [['14:03', 'Read clinic day (all branches)'], ['14:03', 'Read money day'], ['14:04', 'Read Panel claims summary'], ['14:04', 'Writing summary sections'], ['—', 'In progress']] },
+      faris: { name: 'Faris', title: 'System health (AI agent)', ini: 'F', x: 185, y: 15, st: 'error', c: ['#fde7ef', '#c2185b'], task: 'Found 1 failed queue job since 07:00', steps: [['14:05', 'Counted error log lines: 0'], ['14:05', 'Failed scheduled agent runs: 0'], ['14:05', 'Pending migrations: 0'], ['14:05', 'Failed queue jobs: 1'], ['14:05', 'Run finished']] }
+    };
+    const desks = Object.keys(A).map(k => {
+      const a = A[k]; const s = S[a.st]; const on = sel === k;
+      return {
+        name: a.name, ini: a.ini, tag: 'AI agent', pressed: String(on), pick: () => this.setState({ sel: k }), aria: a.name + ', ' + a.title + ', ' + s[0],
+        hasBubble: on && !!a.bubble, bubble: a.bubble || '',
+        pos: 'position:absolute;left:calc(50% + ' + a.x + 'px);top:calc(52% + ' + a.y + 'px);width:0;height:0;',
+        btn: 'position:absolute;left:-58px;bottom:-4px;width:116px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border:0;border-radius:18px;font:inherit;color:#111114;cursor:pointer;' + (on ? 'background:rgba(244,244,246,0.95);box-shadow:inset 0 0 0 1px rgba(17,17,20,0.14),0 6px 18px rgba(17,17,20,0.10);' : 'background:transparent;'),
+        av: 'width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;background:' + a.c[0] + ';color:' + a.c[1] + ';box-shadow:0 4px 10px rgba(17,17,20,0.10);',
+        light: 'flex:none;width:9px;height:9px;border-radius:50%;background:' + s[1] + ';',
+        tagStyle: 'font-size:10.5px;font-weight:600;color:#5a32a8;background:#f1ecfd;border-radius:999px;padding:1px 7px;'
+      };
+    });
+    desks.push({ name: 'Director', ini: 'DR', tag: 'Inbox tray · 6', pressed: 'false', pick: () => {}, aria: 'Director desk, inbox tray with 6 suggestions', hasBubble: false, bubble: '', pos: 'position:absolute;left:calc(50% + 10px);top:calc(52% + 105px);width:0;height:0;', btn: 'position:absolute;left:-58px;bottom:-4px;width:116px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border:0;border-radius:18px;font:inherit;color:#111114;background:transparent;cursor:default;', av: 'width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;background:#111114;color:#ffffff;', light: 'display:none;', tagStyle: 'font-size:10.5px;font-weight:600;color:#8a5a00;background:#fff4dc;border-radius:999px;padding:1px 7px;' });
+    const a = A[sel]; const s = S[a.st];
+    const cur = { name: a.name, title: a.title, ini: a.ini, task: a.task, st: s[0], stStyle: 'font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;background:' + s[2] + ';color:' + s[3] + ';' };
+    const pc = hot => 'font-size:12px;font-weight:600;border-radius:999px;padding:1px 9px;' + (hot ? 'background:#fff4dc;color:#8a5a00;' : 'background:#f4f4f6;color:#6b6b73;');
+    return {
+      accent, tiles, desks, cur,
+      steps: a.steps.map(([t, k]) => ({ t, k })),
+      pending: [{ k: 'Restock', v: '3', style: pc(true) }, { k: 'Expiry warning', v: '1', style: pc(true) }, { k: 'Transfer', v: '1', style: pc(true) }, { k: 'Slow-moving', v: '1', style: pc(true) }],
+      legend: ['working', 'idle', 'waiting', 'error'].map(k => ({ k: S[k][0], dot: 'width:9px;height:9px;border-radius:50%;background:' + S[k][1] + ';' })),
+      strip: [{ v: '4', k: 'agents enabled' }, { v: '1', k: 'working now' }, { v: '6', k: 'suggestions waiting' }],
+      stripX: [Object.assign({ v: '14:00', k: 'last scheduled run' }, xBtn('runs', 'strip-xpanel', 'flex:1 1 140px;display:flex;align-items:baseline;gap:8px;border-radius:18px;padding:10px 16px;background:#ffffff;color:#111114;box-shadow:0 1px 2px rgba(17,17,26,0.05),0 0 0 1px rgba(17,17,26,0.04);'))],
+      stripP: xPanel('strip-xpanel', ['runs'], { runs: { title: 'Scheduled runs today · 07:00 and 14:00', note: 'Runs read allowlisted aggregates as "system" · counts only', cols: ['AGENT', 'RUN', 'RESULT', 'STATUS'], rows: [
+        ['Hana', 'Inventory analyst (AI agent)', '14:00', '1 new restock · 5 already proposed', ['Finished', 'ok']], ['Rizal', 'Stocktake officer (AI agent)', '14:02', '12 counts due · 2 differences', ['Finished', 'ok']],
+        ['Lina', 'Report assistant (AI agent)', '14:03', 'Writing summary sections', ['In progress', 'info']], ['Faris', 'System health (AI agent)', '14:05', '1 failed queue job', ['Needs attention', 'bad']],
+        ['Hana', 'Inventory analyst (AI agent)', '07:00', '5 suggestions for Cheras', ['Finished', 'ok']], ['Rizal', 'Stocktake officer (AI agent)', '07:01', '12 counts due', ['Finished', 'ok']],
+        ['Lina', 'Report assistant (AI agent)', '07:02', 'Morning summary built', ['Finished', 'ok']], ['Faris', 'System health (AI agent)', '07:04', 'Nothing found', ['Finished', 'ok']]] } }, 14)
+    };
+  }
+}
+</script>
+</body>
+</html>
