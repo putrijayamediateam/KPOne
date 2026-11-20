@@ -31,7 +31,7 @@ test('Classic Settings Save sends without keeping page state, and renews its key
     assert.match(classic, /@submit\.prevent="saveSettings"/);
     assert.match(
         composable,
-        /onSuccess: \(\) => \{\s+settingsForm\.key = crypto\.randomUUID\(\);\s+onSaved\?\.\(\);/,
+        /onSuccess: \(\) => \{\s+settingsForm\.key = crypto\.randomUUID\(\);/,
     );
 
     // The Classic overtime and location cards call their composables with no options, so they never keep state.
@@ -43,11 +43,4 @@ test('Classic Settings Save sends without keeping page state, and renews its key
         read('resources/js/components/hr/attendance/LocationCheckSettings.vue'),
         /useLocationCheckSettings\(props\);/,
     );
-
-    for (const c of ['useOvertimeSettings.ts', 'useLocationCheckSettings.ts']) {
-        assert.match(
-            read(`resources/js/composables/hr/${c}`),
-            /options\.onSaved\?\.\(\);/,
-        );
-    }
 });

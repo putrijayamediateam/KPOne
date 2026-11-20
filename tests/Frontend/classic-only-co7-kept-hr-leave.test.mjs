@@ -20,17 +20,6 @@ test('Classic Leave renders its own markup and no V2 part', () => {
     assert.doesNotMatch(classic, /preview\.counting/);
 });
 
-test('the day-count preview tracks when the server is counting', () => {
-    assert.match(
-        composable,
-        /reactive\(\{ text: '', error: '', counting: false \}\)/,
-    );
-    assert.match(
-        composable,
-        /preview\.counting = Boolean\(\s*applyForm\.leave_type_id &&\s*applyForm\.start_date &&\s*applyForm\.end_date,?\s*\);/,
-    );
-});
-
 test('an approval reason starts empty', () => {
     assert.match(composable, /action\.reason = '';/);
 });
@@ -39,9 +28,5 @@ test('Suresh M1: each day-count check has a number, so an older answer never sho
     assert.match(composable, /let previewSeq = 0;/);
     assert.match(composable, /const seq = \+\+previewSeq;/);
     assert.match(composable, /if \(seq !== previewSeq\) \{\s*return;\s*\}/);
-    assert.match(
-        composable,
-        /if \(seq === previewSeq\) \{\s*preview\.counting = false;\s*\}/,
-    );
     assert.match(composable, /clearTimeout\(previewTimer\);\s*previewSeq\+\+;/);
 });

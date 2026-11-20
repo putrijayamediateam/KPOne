@@ -43,5 +43,5 @@ test('Classic card: same figures and words, read only, totals only, in Classic s
     }
 
     assert.match(classicTemplate, /` · \$\{card\.basis\}`/);
-    assert.doesNotMatch(classicSource, / /);
+    assert.doesNotMatch(classicSource, /\u00A0/);
 });
