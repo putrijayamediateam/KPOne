@@ -158,6 +158,9 @@ function stays tested in Classic.
 5. **CO-10 Remove the machinery:** `config/v2-pages.php`, `UiVersionResolver`, the transform, `V2Layout`,
    `V2AppShell` and the other shell parts, `useUiVersion`, `data-ui`/`data-look`, the CSS blocks and every `v2:` class,
    the shared props, the V2 docs marked retired.
+   Also (CO-4 note, owner-approved 20 Nov): the optional `beforeStart` hook on the Classic
+   `components/queue/CallNextControl.vue` and `HeldCallNext.vue` existed only for the V2 consultation page (deleted in
+   CO-4); Classic passes none, so remove the hook and its plumbing here, after checking nothing else passes it.
 6. **CO-11 (only if Q4 = yes)** drop `user_space_preferences` with a reversible migration.
 
 ## 5. Risks
