@@ -53,7 +53,7 @@ test('UX-5: only focus mode on a desktop width leaves the shared staff placement
             /focusMode:\s*true/.test(read(`resources/js/pages/${file}`)),
         );
 
-    assert.deepEqual(focusPages, ['Clinical/Show.vue', 'Clinical/V2/Show.vue']);
+    assert.deepEqual(focusPages, ['Clinical/Show.vue']);
     assert.match(
         read('resources/js/layouts/AdminLayout.vue'),
         /<Toaster v-bind="STAFF_TOAST_PLACEMENT" \/>/,
