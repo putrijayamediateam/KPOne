@@ -56,6 +56,8 @@ final class ClinicManagementNavigation
             [$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'],
             [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'QR check-in links', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
             [$settings, 'Consultation settings', 'Manage preset diagnoses for consultations.', 'diagnosis-presets.index'],
+            // TRI-1b: the triage guideline (Director and HR Manager enter and approve, two people).
+            [$actor->can('triage.guideline.manage.organisation'), 'Triage guideline', 'Enter and approve the signed triage guideline: red flags, yellow signs and limits.', 'triage-guideline.index'],
             [$panels, 'Checkout settings', 'Manage Panels, verification details and claim due rules.', 'panel-settings.index'],
             [$actor->can('payment_methods.manage.organisation'), 'Payment Methods', 'Configure the payment methods available at checkout.', 'payment-methods.index'],
             [$actor->can('billing.approval_limits.manage.organisation'), 'Billing Approval Limits', 'Manage the existing Panel and pay-later approval limits.', 'billing-approval-limits.index'],
@@ -148,6 +150,7 @@ final class ClinicManagementNavigation
             [$actor->can('hr.incidents.report.own') || $actor->can('hr.incidents.manage.organisation'), 'KPOne HR incidents', 'Report a workplace incident, and handle reports for HR.', 'hr.incidents.index'],
             [$actor->can('hr.open_shifts.request.own') || $actor->can('hr.open_shifts.manage.organisation'), 'KPOne HR open shifts', 'Post shifts for locums, or ask for one as a locum.', 'hr.open-shifts.index'],
             [$actor->can('hr.locum_pay.view.own') || $actor->can('hr.locum_pay.manage.organisation') || $actor->can('hr.locum_pay.finance.organisation'), 'KPOne HR locum pay', 'Locum pay statements from approved shifts and confirmed rates; payment is recorded, never made.', 'hr.locum-pay.index'],
+            [$actor->can('hr.labour_cost.view.organisation'), 'KPOne HR labour cost', 'Pay, employer contributions and locum pay by branch and month, from approved pay runs. Read only.', 'hr.labour-cost.index'],
             [$actor->can('hr.discipline.manage.organisation'), 'KPOne HR discipline', 'Restricted discipline cases: allegation, show-cause letters, replies and outcome.', 'hr.discipline.index'],
             [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
             [$actor->can('hr.payroll.prepare.organisation') || $actor->can('hr.payroll.export.organisation'), 'KPOne HR payroll', 'Payroll runs, pay profiles, statutory tables and exports, each checked by a second person.', 'hr.payroll.index'],

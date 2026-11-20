@@ -201,8 +201,8 @@ class TriageServiceTest extends TriageTestCase
         $this->refused(fn () => $this->triage($ca, $visit, [...$input, 'chosen_zone' => 'green', 'override_reason_code' => 'device_error_confirmed']), 'Take the readings again');
         $this->refused(fn () => $this->triage($ca, $visit, ['systolic_bp' => null, 'diastolic_bp' => null, 'pulse_bpm' => null, 'temperature_celsius' => null, 'spo2_percent' => null, 'weight_kg' => null, 'height_cm' => null, 'red_flag_codes' => ['rf_01'], 'chosen_zone' => 'green', 'override_reason_code' => 'doctor_reviewed_at_triage']), 'Take the readings again');
         $this->refused(fn () => $this->triage($ca, $visit, ['temperature_celsius' => '39.90', 'chosen_zone' => 'green']), 'Choose a reason to give a lower zone');
-        $row = $this->triage($ca, $visit, ['temperature_celsius' => '39.90', 'chosen_zone' => 'yellow', 'override_reason_code' => 'doctor_reviewed_at_triage']);
-        $this->assertSame(['red', 'yellow', 'doctor_reviewed_at_triage', 2], [$row->suggested_zone, $row->chosen_zone, $row->override_reason_code, $row->sequence]);
+        $this->refused(fn () => $this->triage($ca, $visit, ['temperature_celsius' => '39.90', 'chosen_zone' => 'yellow', 'override_reason_code' => 'doctor_reviewed_at_triage']), 'within limits'); // TRI-1b owner rule 1, approved 2026-11-20
+        $this->assertSame(['green', 'green', null, 2], [($row = $this->triage($ca, $visit, ['temperature_celsius' => '37.00']))->suggested_zone, $row->chosen_zone, $row->override_reason_code, $row->sequence]);
     }
 
     public function test_higher_zone_with_and_without_reason_and_a_same_zone_reason_is_refused(): void

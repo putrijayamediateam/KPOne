@@ -6,6 +6,11 @@ namespace App\Domain\Clinical\Triage;
  * TRI-1 section 5.1: fixed rules, no AI and no scoring. Any red flag ticked, or a reading at or past a threshold the
  * guideline marks red: red. Otherwise any yellow sign or a yellow threshold: yellow. Otherwise green. A blank reading
  * never counts as normal and never crosses a threshold. Numbers are compared in whole hundredths, never floats.
+ *
+ * TRI-1b (owner, 20 Nov 2026): a reading may have a yellow and a red limit for one age group and direction; past the
+ * red limit is red, otherwise past the yellow limit is yellow. The same rules exist in TypeScript
+ * (resources/js/lib/triage-zone.ts) and SQL (kp_triage_assess); tests/Fixtures/triage-zone-cases.json keeps all three
+ * in step.
  */
 final class TriageZoneRules
 {
@@ -16,13 +21,14 @@ final class TriageZoneRules
      * @param  list<string>  $redFlags
      * @param  list<string>  $yellowSigns
      * @param  list<array{reading:string, age_band:string, direction:string, limit_value:string, zone:string}>  $thresholds
-     * @return array{zone:string, highlights:array<string, string>, missing:list<string>}
+     * @return array{zone:string, highlights:array<string, string>, crossed:array<string, array{direction:string, zone:string}>, missing:list<string>}
      */
     public static function suggest(array $readings, array $redFlags, array $yellowSigns, string $ageBand, array $thresholds): array
     {
         $bands = $ageBand === 'unknown' ? ['adult', 'child'] : [$ageBand];
         $zone = 'green';
         $highlights = [];
+        $crossed = [];
         foreach ($thresholds as $threshold) {
             if (! in_array($threshold['age_band'], $bands, true)) {
                 continue;
@@ -33,11 +39,15 @@ final class TriageZoneRules
             }
             $reading = self::hundredths($value);
             $limit = self::hundredths($threshold['limit_value']);
-            $crossed = $threshold['direction'] === 'very_high' ? $reading >= $limit : $reading <= $limit;
-            if (! $crossed) {
+            $past = $threshold['direction'] === 'very_high' ? $reading >= $limit : $reading <= $limit;
+            if (! $past) {
                 continue;
             }
             $highlights[$threshold['reading']] = $threshold['direction'];
+            $previous = $crossed[$threshold['reading']]['zone'] ?? 'green';
+            if (self::rank($threshold['zone']) > self::rank($previous)) {
+                $crossed[$threshold['reading']] = ['direction' => $threshold['direction'], 'zone' => $threshold['zone']];
+            }
             $zone = self::higher($zone, $threshold['zone']);
         }
         if ($yellowSigns !== []) {
@@ -51,8 +61,9 @@ final class TriageZoneRules
             fn (string $field): bool => ($readings[$field] ?? null) === null || $readings[$field] === '',
         ));
         ksort($highlights);
+        ksort($crossed);
 
-        return ['zone' => $zone, 'highlights' => $highlights, 'missing' => $missing];
+        return ['zone' => $zone, 'highlights' => $highlights, 'crossed' => $crossed, 'missing' => $missing];
     }
 
     public static function rank(string $zone): int

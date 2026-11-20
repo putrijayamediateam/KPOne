@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Patient\Services\PatientGuardianService;
 use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Patient\Services\RegistrationSettingsService;
@@ -26,7 +27,9 @@ class RegistrationController extends Controller
         $this->authorize('viewAny', Visit::class);
 
         return Inertia::render('Registration/Index', [
-            'visits' => $directory->search($request->user(), []),
+            // TRI-1b: after a triage save the CA comes back to the Triage tab.
+            'visits' => $directory->search($request->user(), $request->query('tab') === 'triage'
+                && $request->user()->can(TriagePermissions::RECORD_BRANCH) ? ['board_status' => 'triage'] : []),
             'options' => $directory->consoleOptions($request->user()),
             'canCreate' => $request->user()->can('create', Visit::class),
             'qrIntakes' => $request->user()->can('public_intakes.review.branch')

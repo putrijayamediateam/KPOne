@@ -46,6 +46,7 @@ use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
 use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
+use App\Http\Controllers\HR\LabourCostController as HrLabourCostController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
@@ -120,6 +121,8 @@ use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
+use App\Http\Controllers\TriageController;
+use App\Http\Controllers\TriageGuidelineController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
@@ -213,6 +216,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');
+    // TRI-1b: the triage form (CA, CA Supervisor) and the guideline settings (Director, HR Manager). Classic only.
+    Route::middleware(['sensitive.no-store', 'permission:visits.triage.record.branch'])->group(function (): void {
+        Route::get('visits/{visit}/triage', [TriageController::class, 'show'])->name('visits.triage.show');
+        Route::post('visits/{visit}/triage', [TriageController::class, 'store'])->middleware('throttle:30,1')->name('visits.triage.store');
+    });
+    Route::prefix('triage-guideline')->controller(TriageGuidelineController::class)
+        ->middleware(['sensitive.no-store', 'permission:triage.guideline.manage.organisation'])->group(function (): void {
+            Route::get('/', 'index')->name('triage-guideline.index');
+            Route::post('/', 'store')->middleware('throttle:20,1')->name('triage-guideline.store');
+            Route::post('{version}/approve', 'approve')->whereNumber('version')->middleware('throttle:20,1')->name('triage-guideline.approve');
+            Route::post('{version}/discard', 'discard')->whereNumber('version')->middleware('throttle:20,1')->name('triage-guideline.discard');
+        });
 
     // HR-1 roster planner (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Roster.
     Route::prefix('hr/roster')->controller(RosterController::class)->middleware('sensitive.no-store')->group(function (): void {
@@ -240,6 +255,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // HR-9 HR dashboard (docs/teams/hr/HR-9-DESIGN.md). Read-only aggregates; each section needs its own existing HR permission.
     Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
         ->middleware(['permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
+
+    // HR-18 labour cost (owner, 18 and 20 Nov 2026). Read-only branch-by-month aggregates; rules in app/Domain/HR/LabourCost.
+    Route::get('hr/labour-cost', [HrLabourCostController::class, 'index'])
+        ->middleware(['permission:hr.labour_cost.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.labour-cost.index');
 
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {

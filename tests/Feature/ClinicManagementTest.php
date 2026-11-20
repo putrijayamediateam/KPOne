@@ -43,6 +43,7 @@ class ClinicManagementTest extends VisitTestCase
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/registration-settings' => ['catalogue.settings.manage.organisation'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
+            '/triage-guideline' => ['triage.guideline.manage.organisation'], // TRI-1b, owner approved 2026-11-20
             '/checkout-settings' => ['panels.manage.organisation'],
             '/payment-methods' => ['payment_methods.manage.organisation'],
             '/billing-approval-limits' => ['billing.approval_limits.manage.organisation'],
@@ -84,6 +85,7 @@ class ClinicManagementTest extends VisitTestCase
             '/hr/incidents' => ['hr.incidents.report.own', 'hr.incidents.manage.organisation'],
             '/hr/open-shifts' => ['hr.open_shifts.request.own', 'hr.open_shifts.manage.organisation'],
             '/hr/locum-pay' => ['hr.locum_pay.view.own', 'hr.locum_pay.manage.organisation', 'hr.locum_pay.finance.organisation'],
+            '/hr/labour-cost' => ['hr.labour_cost.view.organisation'],
             '/hr/discipline' => ['hr.discipline.manage.organisation'],
             '/hr/claims' => ['hr.claims.submit.own', 'hr.claims.approve.organisation', 'hr.claims.pay.organisation', 'hr.claims.manage.organisation'],
             '/hr/payroll' => ['hr.payroll.prepare.organisation', 'hr.payroll.export.organisation'],
