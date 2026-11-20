@@ -10,7 +10,7 @@ import { CompactPagination } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 import { formatDate } from '@/lib/presentation';
 
 /**

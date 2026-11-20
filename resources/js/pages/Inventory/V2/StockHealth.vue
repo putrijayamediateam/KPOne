@@ -10,7 +10,7 @@ import V2Stat from '@/components/v2/V2Stat.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { quantityWithUnit } from '@/lib/inventory-v2-words';
+import { quantityWithUnit } from '@/lib/inventory-words';
 
 /**
  * Version 2 Stock health (inventory V2 page 10a). Everything from `type Row` to `visit`, and `plural`, are verbatim copies
