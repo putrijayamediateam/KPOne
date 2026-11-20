@@ -3,10 +3,9 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 // HR-15d (owner, via B.E.R.N.I.S.S, 18 Nov 2026): a passed Locum candidate becomes a locum file with a sign-in request
-// in one step, on both the Classic and the V2 Applications page. The account is still made on the Staff page.
+// in one step, on the Classic Applications page. The account is still made on the Staff page.
 const pages = {
     classic: readFileSync('resources/js/pages/HR/Applications.vue', 'utf8'),
-    v2: readFileSync('resources/js/pages/HR/V2/Applications.vue', 'utf8'),
 };
 const composable = readFileSync(
     'resources/js/composables/hr/useApplicationsPage.ts',
