@@ -42,6 +42,16 @@ class TriageService
         'patient_appears_unwell' => 'Patient appears unwell',
     ];
 
+    public const READING_NAMES = [
+        'systolic_bp' => 'blood pressure (systolic)',
+        'diastolic_bp' => 'blood pressure (diastolic)',
+        'pulse_bpm' => 'pulse',
+        'temperature_celsius' => 'temperature',
+        'spo2_percent' => 'SpO2',
+        'weight_kg' => 'weight',
+        'height_cm' => 'height',
+    ];
+
     public function __construct(
         private TransactionalActorAuthority $authority,
         private TriageGuidelineService $guidelines,
@@ -64,6 +74,8 @@ class TriageService
         $hash = hash_hmac('sha256', json_encode(['triage', $actor->organisation_id, $actor->id, $visit->id, $branch->id, $data], JSON_THROW_ON_ERROR), (string) config('app.key'));
 
         return DB::transaction(function () use ($actor, $visit, $branch, $data, $hash): VisitTriageAssessment {
+            // One instant for the age group and recorded_at, so PostgreSQL works out the same age group.
+            $now = CarbonImmutable::now('UTC');
             ConsultationLocks::users($actor->organisation_id, [$actor->id, $visit->assigned_doctor_user_id]);
             $actor = $this->authority->lock($actor, $branch, TriagePermissions::RECORD_BRANCH);
             $originalDoctorId = $visit->assigned_doctor_user_id;
@@ -115,19 +127,11 @@ class TriageService
                 if ($data['chosen_zone'] === null) {
                     $this->refuse('chosen_zone', 'Confirm the suggested zone or choose another.');
                 }
-                $ageBand = $this->ageBand($lockedVisit, $branch->timezone, $guideline->child_age_limit_years);
-                $suggested = TriageZoneRules::suggest(
-                    $readings,
-                    $data['red_flag_codes'],
-                    $data['yellow_sign_codes'],
-                    $ageBand,
-                    array_values($guideline->thresholds->map(fn (TriageGuidelineThreshold $t): array => [
-                        'reading' => $t->reading, 'age_band' => $t->age_band, 'direction' => $t->direction,
-                        'limit_value' => (string) $t->limit_value, 'zone' => $t->zone,
-                    ])->all()),
-                )['zone'];
+                $ageBand = $this->ageBand($lockedVisit, $branch->timezone, $guideline->child_age_limit_years, $now);
+                $assessment = TriageZoneRules::suggest($readings, $data['red_flag_codes'], $data['yellow_sign_codes'], $ageBand, self::limits($guideline));
+                $suggested = $assessment['zone'];
                 $chosen = $data['chosen_zone'];
-                $this->assertZoneChoice($suggested, $chosen, $data['override_reason_code'], $latest, $readings);
+                $this->assertZoneChoice($lockedVisit, $suggested, $chosen, $data, $readings, $assessment['crossed']);
             }
 
             $row = new VisitTriageAssessment;
@@ -146,7 +150,7 @@ class TriageService
                 'chosen_zone' => $chosen,
                 'override_reason_code' => $data['override_reason_code'],
                 'recorded_by_user_id' => $actor->id,
-                'recorded_at' => CarbonImmutable::now('UTC'),
+                'recorded_at' => $now,
                 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash,
             ])->save();
@@ -243,9 +247,55 @@ class TriageService
         }
     }
 
-    /** @param array<string, int|string|null> $readings */
-    private function assertZoneChoice(string $suggested, string $chosen, ?string $reason, ?VisitTriageAssessment $latest, array $readings): void
+    /**
+     * The limits of a guideline version in the shape TriageZoneRules reads.
+     *
+     * @return list<array{reading:string, age_band:string, direction:string, limit_value:string, zone:string}>
+     */
+    public static function limits(TriageGuidelineVersion $guideline): array
     {
+        return array_values($guideline->thresholds->map(fn (TriageGuidelineThreshold $t): array => [
+            'reading' => $t->reading, 'age_band' => $t->age_band, 'direction' => $t->direction,
+            'limit_value' => (string) $t->limit_value, 'zone' => $t->zone,
+        ])->all());
+    }
+
+    /**
+     * The readings that crossed a limit in any earlier triage of a visit, each judged by that row's own guideline
+     * version and age band (TRI-1b, owner rule 1). A row with no guideline never crossed anything.
+     *
+     * @return list<string>
+     */
+    public function readingsToRetake(Visit $visit): array
+    {
+        $rows = VisitTriageAssessment::query()->where('visit_id', $visit->id)->whereNotNull('guideline_version_id')->orderBy('sequence')->get();
+        $versions = TriageGuidelineVersion::query()->whereIn('id', $rows->pluck('guideline_version_id')->unique()->all())->with('thresholds')->get()->keyBy('id');
+        $crossed = [];
+        foreach ($rows as $row) {
+            $readings = [];
+            foreach (VisitTriageAssessment::READINGS as $field) {
+                $value = $row->getAttribute($field);
+                $readings[$field] = $value === null ? null : (string) $value;
+            }
+            $result = TriageZoneRules::suggest($readings, [], [], (string) $row->age_band, self::limits($versions[$row->guideline_version_id]));
+            $crossed = [...$crossed, ...array_keys($result['crossed'])];
+        }
+
+        return array_values(array_filter(VisitTriageAssessment::READINGS, fn (string $field): bool => in_array($field, $crossed, true)));
+    }
+
+    /**
+     * TRI-1b, owner rule 1 (20 Nov 2026): a zone is lowered only after the reading that crossed its limit has been
+     * retaken and is within limits, and never while a red flag is ticked. A save lowers the zone when it chooses a zone
+     * below the suggestion, or below the zone of the visit's latest earlier triage.
+     *
+     * @param  array{red_flag_codes:list<string>, override_reason_code:string|null}  $data
+     * @param  array<string, int|string|null>  $readings
+     * @param  array<string, array{direction:string, zone:string}>  $crossedNow
+     */
+    private function assertZoneChoice(Visit $visit, string $suggested, string $chosen, array $data, array $readings, array $crossedNow): void
+    {
+        $reason = $data['override_reason_code'];
         $difference = TriageZoneRules::rank($chosen) <=> TriageZoneRules::rank($suggested);
         if ($difference === 0 && $reason !== null) {
             $this->refuse('override_reason_code', 'A reason is needed only when you choose another zone.');
@@ -253,34 +303,61 @@ class TriageService
         if ($difference > 0 && $reason !== null && ! array_key_exists($reason, self::HIGHER_REASONS)) {
             $this->refuse('override_reason_code', 'Choose a reason for a higher zone.');
         }
-        if ($difference < 0) {
-            if ($reason === null || ! array_key_exists($reason, self::LOWER_REASONS)) {
-                $this->refuse('override_reason_code', 'Choose a reason to give a lower zone than suggested.');
-            }
-            if (! $latest || array_filter($readings, fn ($value): bool => $value !== null) === [] || $this->sameReadings($latest, $readings)) {
-                $this->refuse('chosen_zone', 'Take the readings again before choosing a lower zone than suggested.');
-            }
+        if ($difference < 0 && ($reason === null || ! array_key_exists($reason, self::LOWER_REASONS))) {
+            $this->refuse('override_reason_code', 'Choose a reason to give a lower zone than suggested.');
+        }
+        $previous = VisitTriageAssessment::query()->where('visit_id', $visit->id)->whereNotNull('chosen_zone')->orderByDesc('sequence')->value('chosen_zone');
+        $lowersVisit = is_string($previous) && TriageZoneRules::rank($chosen) < TriageZoneRules::rank($previous);
+        if ($difference >= 0 && ! $lowersVisit) {
+            return;
+        }
+        $earlier = VisitTriageAssessment::query()->where('visit_id', $visit->id)->exists();
+        if (! $earlier || array_filter($readings, fn ($value): bool => $value !== null) === []) {
+            $this->refuse('chosen_zone', 'Take the readings again before choosing a lower zone.');
+        }
+        if ($data['red_flag_codes'] !== []) {
+            $this->refuse('chosen_zone', 'A zone cannot be lowered while a red flag is ticked.');
+        }
+        if ($chosen !== 'red' && $this->hadRedFlag($visit)) {
+            $this->refuse('chosen_zone', 'A red flag was ticked at this visit, so the zone stays red.');
+        }
+        // Past a limit of a zone above the one chosen: any limit for green, a red limit for yellow, none for red.
+        $above = array_values(array_filter(VisitTriageAssessment::READINGS, fn (string $field): bool => isset($crossedNow[$field])
+            && TriageZoneRules::rank($crossedNow[$field]['zone']) > TriageZoneRules::rank($chosen)));
+        $notRetaken = array_values(array_filter(
+            $this->readingsToRetake($visit),
+            fn (string $field): bool => ($readings[$field] ?? null) === null || in_array($field, $above, true),
+        ));
+        if ($notRetaken !== []) {
+            $this->refuse('chosen_zone', 'Take the readings again: '.self::readingNames($notRetaken).' must be retaken and within limits before the zone is lowered.');
+        }
+        if ($difference < 0 && $above !== []) {
+            $this->refuse('chosen_zone', 'Take the readings again: '.self::readingNames($above).' must be within limits before choosing a lower zone than suggested.');
         }
     }
 
-    /** @param array<string, int|string|null> $readings */
-    private function sameReadings(VisitTriageAssessment $latest, array $readings): bool
+    /** Whether any triage of this visit ticked a red flag (TRI-1b R1: then the zone stays red). */
+    public function hadRedFlag(Visit $visit): bool
     {
-        foreach (VisitTriageAssessment::READINGS as $field) {
-            $old = $latest->getAttribute($field);
-            $new = $readings[$field] ?? null;
-            $old = $old === null ? null : TriageZoneRules::hundredths((string) $old);
-            $new = $new === null ? null : TriageZoneRules::hundredths((string) $new);
-            if ($old !== $new) {
-                return false;
-            }
-        }
-
-        return true;
+        return VisitTriageAssessment::query()->where('visit_id', $visit->id)->get(['red_flag_codes'])
+            ->contains(fn (VisitTriageAssessment $row): bool => $row->red_flag_codes !== []);
     }
 
-    /** Adult, child or unknown on the branch-local date; an unknown date of birth with an adult confirmation is adult. */
-    private function ageBand(Visit $visit, string $timezone, int $childAgeLimit): string
+    /** @param list<string> $fields */
+    public static function readingNames(array $fields): string
+    {
+        $names = array_map(fn (string $field): string => self::READING_NAMES[$field], $fields);
+        $last = array_pop($names);
+
+        return ucfirst($names === [] ? $last : implode(', ', $names).' and '.$last);
+    }
+
+    /**
+     * Adult, child or unknown on the branch-local date of $now; an unknown date of birth with an adult confirmation is
+     * adult. Whole years as PostgreSQL's age() counts them (the birthday is reached on the same month and day), so the
+     * insert trigger works out the same group.
+     */
+    public function ageBand(Visit $visit, string $timezone, int $childAgeLimit, ?CarbonImmutable $now = null): string
     {
         $patient = Patient::query()->whereKey($visit->patient_id)->where('organisation_id', $visit->organisation_id)->first(['id', 'date_of_birth']);
         if ($patient?->date_of_birth === null) {
@@ -289,10 +366,14 @@ class TriageService
 
             return $confirmed ? 'adult' : 'unknown';
         }
-        $today = CarbonImmutable::now($timezone)->startOfDay();
-        $born = CarbonImmutable::parse($patient->date_of_birth->format('Y-m-d'), $timezone);
+        $today = ($now ?? CarbonImmutable::now('UTC'))->setTimezone($timezone);
+        $born = $patient->date_of_birth;
+        $years = $today->year - (int) $born->format('Y');
+        if ([$today->month, $today->day] < [(int) $born->format('n'), (int) $born->format('j')]) {
+            $years--;
+        }
 
-        return (int) $born->diffInYears($today) < $childAgeLimit ? 'child' : 'adult';
+        return $years < $childAgeLimit ? 'child' : 'adult';
     }
 
     private function refuse(string $field, string $message): never

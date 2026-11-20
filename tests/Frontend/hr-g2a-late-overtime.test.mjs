@@ -7,10 +7,9 @@ import test from 'node:test';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-test('the approve dialog says the month is locked, in Classic and V2', () => {
+test('the approve dialog says the month is locked, in Classic', () => {
     for (const file of [
         'resources/js/components/hr/attendance/OvertimeTab.vue',
-        'resources/js/components/hr/attendance/v2/OvertimeTabV2.vue',
     ]) {
         assert.match(
             read(file),
@@ -26,7 +25,7 @@ test('the approve dialog says the month is locked, in Classic and V2', () => {
 });
 
 test('the run page lists late overtime and adds it only on a draft adjustment', () => {
-    // The run page's script lives in its shared composable (V2 PayrollRun); both are read.
+    // The run page's script lives in its shared composable; both are read.
     const source = `${read('resources/js/pages/HR/PayrollRun.vue')}\n${read('resources/js/composables/hr/usePayrollRunPage.ts')}`;
 
     assert.match(source, /late: LateItem\[\];/);

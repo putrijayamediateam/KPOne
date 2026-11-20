@@ -51,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([
             'password',
+            // TRI-1b: triage and vitals readings are clinical values and never flashed into the session
+            'systolic_bp', 'diastolic_bp', 'pulse_bpm', 'temperature_celsius', 'spo2_percent', 'weight_kg', 'height_cm',
             'file_password', // PDPA 14: the password of a downloaded payroll file is never flashed
             'file_password_confirmation',
             'clock_position', // HR-16a: a person's position at a press is never flashed

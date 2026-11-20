@@ -121,6 +121,8 @@ use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
+use App\Http\Controllers\TriageController;
+use App\Http\Controllers\TriageGuidelineController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
@@ -214,6 +216,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');
+    // TRI-1b: the triage form (CA, CA Supervisor) and the guideline settings (Director, HR Manager). Classic only.
+    Route::middleware(['sensitive.no-store', 'permission:visits.triage.record.branch'])->group(function (): void {
+        Route::get('visits/{visit}/triage', [TriageController::class, 'show'])->name('visits.triage.show');
+        Route::post('visits/{visit}/triage', [TriageController::class, 'store'])->middleware('throttle:30,1')->name('visits.triage.store');
+    });
+    Route::prefix('triage-guideline')->controller(TriageGuidelineController::class)
+        ->middleware(['sensitive.no-store', 'permission:triage.guideline.manage.organisation'])->group(function (): void {
+            Route::get('/', 'index')->name('triage-guideline.index');
+            Route::post('/', 'store')->middleware('throttle:20,1')->name('triage-guideline.store');
+            Route::post('{version}/approve', 'approve')->whereNumber('version')->middleware('throttle:20,1')->name('triage-guideline.approve');
+            Route::post('{version}/discard', 'discard')->whereNumber('version')->middleware('throttle:20,1')->name('triage-guideline.discard');
+        });
 
     // HR-1 roster planner (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Roster.
     Route::prefix('hr/roster')->controller(RosterController::class)->middleware('sensitive.no-store')->group(function (): void {
