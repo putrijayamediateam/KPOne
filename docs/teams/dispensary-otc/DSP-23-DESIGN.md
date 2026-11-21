@@ -111,6 +111,8 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
 - **The switch is read under lock at Complete (Hakim).**
   - Complete locks the branch's settings row. If the check is now on, a page opened while it was off is refused:
     "This branch now needs the doctor's check. Reload the page." A stale page cannot skip the check.
+  - The reverse also holds. A page opened while the check was on, which presses "Send to doctor" after the switch was
+    turned off, is refused with the same message, unless the case already needs the check from an earlier Send.
   - `doctor_check_required`, once set on Send, stays for the life of the case. After Send back, the next submit is
     again Send to doctor, even if the switch was turned off meanwhile.
 
@@ -120,7 +122,7 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
 |---|---|---|
 | `DrugLabelService` (completed, or dispensing for its handler) | 404 while waiting | A read-only preview is allowed for the CA and CA Supervisor. Printing stays allowed, because the doctor may ask for a reprint after a label problem; each print is logged as today. |
 | `VisitDirectoryService` "Open Dispensary" (pending or dispensing) | the link disappears | The new status is added: the link opens the waiting case read-only. |
-| `RoomCallService` dispensary call (pending or dispensing) | refused | The new status is added, so the CA may call the patient while the case waits. |
+| `RoomCallService` dispensary call (pending or dispensing) | refused | The new status is added, so the CA may call the patient while the case waits. The waiting banner says "Do not hand over the medicine until the doctor has checked it", and the call button's help line repeats it. Wording is for Daniel. |
 | `ReopenConsultationCheckoutService`, `CompleteConsultationService` (need `returned_to_doctor`) | refused while waiting | Intended. The doctor acts through Verify or Send back. |
 | `DispensaryDirectoryService::detail` `can` flags | dispensing or completed | A waiting case shows the open-case page read-only: no edit, no Complete, the waiting banner, and Print and Call still allowed. |
 | `DoctorDispensaryAttentionService::forEncounter`, `hasPendingForVisit`, `pendingForVisits` | pending or dispensing, plus a patient-declined exception | A waiting case counts too, so the Queue board hint shows "Medicine ready for your check" on the doctor's board. The doctor has usually moved on to the next patient by then, and this is how they find the case. |
