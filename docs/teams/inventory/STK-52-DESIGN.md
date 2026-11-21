@@ -4,7 +4,8 @@ Owner item 17 (20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-prop
 Owner answer 14 = A (21 Nov): the pilot is **Paracetamol syrup, bottle to ml**, built with Dispensary & OTC (Aisyah,
 DSP-24). This slice is the Inventory half: the conversion record, who sets and checks it, and a read service. DSP-24
 (Dispensary's note) uses it to let a CA dispense in whole bottles. **Classic layout only.** Synthetic data only.
-Revision 3: the owner's answer on who checks (a new narrow permission for CA Supervisor and Director). Revision 2, after Mei Ling's review (OK with changes, 21 Nov): STK-1's untouched path spelled out, the old pack fields,
+Revision 4: Daniel's look (OK with changes, 21 Nov): the checker never sees the proposed number, and the block's layout
+and wording. Revision 3: the owner's answer on who checks (a new narrow permission for CA Supervisor and Director). Revision 2, after Mei Ling's review (OK with changes, 21 Nov): STK-1's untouched path spelled out, the old pack fields,
 one waiting version and withdraw, a blind check, the stale-page guard, the read service's lock and cap, the ml-entry
 limit, and more race and unit tests. Agreed in outline with Aisyah on 21 Nov.
 
@@ -110,16 +111,44 @@ checked conversion above.").
   landing at the same moment is either fully seen or not seen. **Lock order (agreed with DSP-24):** case, then line,
   then SKU, then batch.
 
-## Screen (Classic only)
+## Screen (Classic only; Daniel's look, 21 Nov)
 
-- **The SKU edit screen (STK-14) gains a "Pack conversion" block:**
-  - The current conversion: "1 bottle = 60 ml · version 2 · checked by <name> on <date>", or "None".
-  - A version waiting: "Waiting for a check: 1 bottle = 50 ml, proposed by <name>", with **Check** and **Refuse** for
-    anyone allowed except the proposer.
-  - **Propose a change**: pack unit and "how many <base unit> in one pack".
-  - Plain help: "Stock stays counted in <base unit>. This only lets Dispensary hand out whole packs."
-- **Pilot readiness** gains a line for any SKU with a conversion waiting for a check.
-- Names follow the staff-visibility rule ("Staff member" otherwise).
+**The checker never sees the proposed number.** For a holder of the verify permission who is not the proposer, the
+waiting line reads "Waiting for a check: a change to the bottle size, proposed by <name> on <date>." There is no number
+anywhere: not on screen, not in a tooltip, an aria-label, the page props or an error message. A wrong count is recorded
+as refused with "That does not match the proposal. It was refused. Ask the proposer to check the number and propose
+again." The proposer sees the full line with the number and a Withdraw button (outline, with its own confirm). Anyone
+else who can open the screen sees the full line with no buttons.
+
+The "Pack conversion" block on the SKU edit screen (STK-14), under "Code and units" and above "Expiry alert":
+
+1. **Current:** "1 bottle = 60 ml" as the main line, then muted "Version 2 · checked by <name> on <date>", or "None".
+   Beside it, a collapsed "Show earlier versions" lists every version with a dot and a word (Checked, Refused,
+   Withdrawn) and who and when. Nothing is deleted, so people can see it.
+2. **Propose a change:**
+   - Two boxes: pack unit (text, placeholder "bottle"), and "How many ml in one bottle?" (a whole number from 2 to
+     100,000, with a numeric keyboard on phones).
+   - A live line under them: "Dispensary will hand out whole bottles of 60 ml, once someone else has checked this."
+   - Propose is the block's one filled button. It stays off until both boxes are valid, with "Enter the number of ml to
+     continue." beside it.
+3. **Stop using pack conversion:** an outline button with its own confirm sheet ("Dispensary will go back to ml for this
+   item once this is checked."), never an empty-form trick.
+4. **Check (blind):**
+   - A number box labelled "How many ml are in one bottle? Count them yourself and type the number." It has no default
+     and no spinner, and Check stays off until a number is typed.
+   - Refuse is an outline button. It opens a sheet whose reason picker starts empty ("Pick a reason to continue."), with
+     the confirm off until a reason is picked. Red appears only in the confirm.
+5. **The limit is on the screen:** a muted line "Stock stays counted in ml. Receiving, opening balances and counts are
+   typed in ml: 10 bottles is 600 ml." It shows on the block and again under the Propose boxes.
+6. **Legacy pack fields:** the note stays muted and below.
+7. **Pilot readiness:** "N pack conversions waiting for a check", with a link to the SKU and the same warning dot as
+   other waiting items.
+8. **General:**
+   - Names follow the staff-visibility rule ("Staff member" otherwise).
+   - All targets are 44 px below 1024 px, and the two boxes stack at 390 px.
+   - Shots for Daniel at 1440 and 390, light and dark: None; current only; a waiting version as the checker, as the
+     proposer and as a third person; the blind check with a wrong count refused; Refuse with the empty and the picked
+     reason; the earlier-versions list; the Pilot readiness line.
 
 ## Known limits
 
@@ -154,7 +183,9 @@ checked conversion above.").
   (one check); a check against a withdraw; a check against a reader using `checkedForShare` (it sees the old or the new
   version, never a mix).
 - **Audit:** ids and codes only.
-- **Classic frontend:** the block, the waiting state, Check and Refuse hidden from the proposer, and the help line.
+- **Classic frontend and props:** the block in every state above. A test pins that a checker's page props, the
+  rendered page and every refusal message never contain the proposed number or pack unit's count; the proposer and a
+  third person see it. Check and Refuse are hidden from the proposer, and Withdraw is shown only to them.
 - **Existing assertions:** adding a permission changes any test that pins the exact permission catalogue or a role's
   exact grants. Each is listed for the owner before and after, none is edited without approval, and the PR does not
   open until each is approved. Otherwise none expected to change. The Pilot readiness line may change that page's props; if an
