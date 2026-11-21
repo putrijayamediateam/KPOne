@@ -164,7 +164,7 @@ test('Creation preserves legacy routes, uses shared snapshots and exposes photo 
     assert.match(routes, /name\('panel-claims\.prepare'\)/);
     assert.match(routes, /name\('panel-claims\.submit'\)/);
     assert.match(service, /private function buildLockedSnapshot/);
-    assert.equal((service.match(/\$this->buildLockedSnapshot\(/g) ?? []).length, 2);
+    assert.equal((service.match(/\$this->buildLockedSnapshot\(/g) ?? []).length, 3);
     assert.match(controller, /if \(\$claim->wasRecentlyCreated\)/);
     assert.match(controller, /claim was created, but a photo could not be uploaded/);
     assert.match(show, /error \|\| uploadRecoveryError/);

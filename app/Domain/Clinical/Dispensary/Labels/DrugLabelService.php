@@ -147,12 +147,20 @@ final class DrugLabelService
                     'name' => $item->medicine_name_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed),
                     'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'instruction' => $item->effective('administration_instruction'),
                     'precaution' => $item->effective('precaution'), 'duration' => $item->effective('duration'), 'indication' => $medicine?->default_indication];
+                // DSP-24: whole packs print "QTY: 2 BTL" and a "Quantity: 2 bottles (120 ml)" row; an ml-only line is unchanged.
+                $conversion = $item->pack_conversion_id !== null ? DB::table('inventory_pack_conversions')->where('id', $item->pack_conversion_id)->first(['id', 'version', 'pack_unit', 'base_unit']) : null;
+                if ($conversion !== null && $item->packs_dispensed !== null) {
+                    $fields['quantity'] = DrugLabelLayout::packShortQuantity($item->packs_dispensed, (string) $conversion->pack_unit);
+                    $fields['packs'] = DrugLabelLayout::packQuantity($item->packs_dispensed, (string) $conversion->pack_unit, (string) $item->quantity_dispensed, (string) $conversion->base_unit);
+                }
                 $expiry = $batch ? CarbonImmutable::parse($batch->expiry_date)->format('d/m/Y') : null;
                 $controlled = (bool) $medicine?->is_controlled;
                 $at = $completed ? $handoff->completed_at : $item->handled_at;
                 $date = $at ? CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y') : '-';
                 $render = $this->layout->render($fields, $date, $expiry, $controlled);
-                $manifest[] = [$item->id, $item->lock_version, $fields, $date, $expiry, $controlled, $render['errors']];
+                $manifest[] = $conversion === null
+                    ? [$item->id, $item->lock_version, $fields, $date, $expiry, $controlled, $render['errors']]
+                    : [$item->id, $item->lock_version, $fields, $date, $expiry, $controlled, $render['errors'], $conversion->id, $conversion->version];
                 if ($render['errors'] !== []) {
                     $blocked[] = ['name' => $item->medicine_name_snapshot, 'errors' => $render['errors']];
                 } else {
