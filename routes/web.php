@@ -80,6 +80,7 @@ use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\OpeningImportController;
 use App\Http\Controllers\PanelClaimAdjustmentController;
+use App\Http\Controllers\PanelClaimPackCopiesController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
@@ -828,6 +829,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
         Route::get('panel-claims/follow-up', [PanelClaimsController::class, 'followUp'])->name('panel-claims.follow-up');
         Route::get('panel-claims/pack', [PanelClaimsController::class, 'pack'])->middleware('throttle:30,1')->name('panel-claims.pack');
+        // PNL-25: recorded, frozen claim packs (the live pack above stays as a preview).
+        Route::post('panel-claims/pack/issue', [PanelClaimPackCopiesController::class, 'issue'])->middleware('throttle:30,1')->name('panel-claims.pack.issue');
+        Route::post('panel-claims/pack/copies/{document}/reprint', [PanelClaimPackCopiesController::class, 'reprint'])->whereUuid('document')->middleware('throttle:30,1')->name('panel-claims.pack.reprint');
+        Route::get('panel-claims/pack/copies/{print}', [PanelClaimPackCopiesController::class, 'show'])->whereUuid('print')->middleware('throttle:60,1')->name('panel-claims.pack.copy');
         Route::get('panel-claims/pack/logo/{asset}', [PanelClaimsController::class, 'packLogo'])->whereUuid('asset')->name('panel-claims.letterhead-logo');
         Route::get('panel-claims/allocations/{allocation}/create', [PanelClaimsController::class, 'create'])->name('panel-claims.create');
         Route::post('panel-claims/allocations/{allocation}', [PanelClaimsController::class, 'store'])->middleware('throttle:20,1')->name('panel-claims.store');
