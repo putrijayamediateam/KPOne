@@ -239,7 +239,21 @@ const begin = (row: Proposal, kind: 'approve' | 'reject' | 'withdraw') => {
     open.value = { id: row.id, kind };
     rejectReason.value = '';
     rejectNote.value = '';
-    nextTick(() => document.getElementById(`confirm-${row.id}`)?.focus());
+    nextTick(() => {
+        const first = document.getElementById(
+            kind === 'reject' ? `reason-${row.id}` : `confirm-${row.id}`,
+        );
+
+        first?.closest('form')?.scrollIntoView({ block: 'center' });
+        first?.focus();
+    });
+};
+
+const cancel = (row: Proposal) => {
+    const kind = open.value?.kind;
+
+    open.value = null;
+    nextTick(() => document.getElementById(`start-${row.id}-${kind}`)?.focus());
 };
 
 const act = (row: Proposal) => {
@@ -274,6 +288,25 @@ const act = (row: Proposal) => {
         },
     );
 };
+
+const changeOf = (row: Proposal) => {
+    if (row.oldAmountSen === null) {
+        return null;
+    }
+
+    const diff = row.newAmountSen - row.oldAmountSen;
+    const pct = row.oldAmountSen === 0 ? null : (diff / row.oldAmountSen) * 100;
+
+    return {
+        diff,
+        pct,
+        large: pct !== null && Math.abs(pct) > 25,
+    };
+};
+const pctText = (value: number) =>
+    Math.abs(value) >= 1000
+        ? Math.round(Math.abs(value)).toLocaleString('en-MY')
+        : Math.abs(value).toFixed(1);
 
 const statusWord = (status: Proposal['status']) =>
     ({
@@ -468,7 +501,7 @@ const turnPage = (value: number) =>
                 >
             </label>
 
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid items-start gap-3 sm:grid-cols-2">
                 <div class="grid gap-1 text-sm">
                     <label for="price-start-date">Starts on *</label>
                     <DateField id="price-start-date" v-model="form.date" />
@@ -484,7 +517,7 @@ const turnPage = (value: number) =>
                         >{{ errors.effective_date }}</span
                     >
                 </div>
-                <label class="grid gap-1 text-sm">
+                <label class="grid content-start gap-1 text-sm">
                     Time
                     <input
                         v-model="form.time"
@@ -569,28 +602,60 @@ const turnPage = (value: number) =>
                     </p>
                     <p class="flex items-center gap-2 text-xs">
                         <span
-                            class="size-2 rounded-full"
+                            class="size-2 shrink-0 rounded-full"
                             :class="statusDot(row.status)"
                             aria-hidden="true"
                         />
                         <span class="font-medium">{{
                             statusWord(row.status)
                         }}</span>
-                        <span v-if="row.decidedBy" class="text-muted-foreground"
-                            >by {{ row.decidedBy }}, {{ row.decidedAtLabel
-                            }}<template v-if="row.reasonLabel">
-                                · {{ row.reasonLabel }}</template
-                            ><template
-                                v-if="
-                                    row.status === 'approved' &&
-                                    row.appliedLabel
-                                "
-                            >
-                                · applies from {{ row.appliedLabel }}</template
-                            ></span
-                        >
                     </p>
 
+                    <p
+                        v-if="row.decidedBy"
+                        class="text-xs wrap-anywhere text-muted-foreground"
+                    >
+                        By {{ row.decidedBy }}, {{ row.decidedAtLabel
+                        }}<template v-if="row.reasonLabel">
+                            · {{ row.reasonLabel }}</template
+                        ><template
+                            v-if="row.status === 'approved' && row.appliedLabel"
+                        >
+                            · applies from {{ row.appliedLabel }}</template
+                        >
+                    </p>
+                    <template v-if="changeOf(row)">
+                        <p
+                            class="text-xs text-muted-foreground tabular-nums"
+                            data-testid="row-change"
+                        >
+                            Change: {{ sign(changeOf(row)!.diff)
+                            }}{{ myr(Math.abs(changeOf(row)!.diff))
+                            }}<template v-if="changeOf(row)!.pct !== null"
+                                >, {{ sign(changeOf(row)!.diff)
+                                }}{{ pctText(changeOf(row)!.pct!) }}%</template
+                            >
+                        </p>
+                        <p
+                            v-if="
+                                row.status === 'proposed' &&
+                                changeOf(row)!.large
+                            "
+                            class="flex items-center gap-2 text-xs text-warning"
+                        >
+                            <span
+                                class="size-2 shrink-0 rounded-full bg-warning"
+                                aria-hidden="true"
+                            />
+                            Large change. Check the agreement reference.
+                        </p>
+                    </template>
+                    <p
+                        v-if="row.status === 'proposed' && row.effectivePassed"
+                        class="text-xs text-muted-foreground"
+                    >
+                        Start has passed: takes effect at approval.
+                    </p>
                     <template v-if="row.status === 'proposed'">
                         <p
                             v-if="row.mine"
@@ -608,6 +673,7 @@ const turnPage = (value: number) =>
                                 variant="outline"
                                 size="sm"
                                 class="max-sm:min-h-11"
+                                :id="`start-${row.id}-approve`"
                                 @click="begin(row, 'approve')"
                                 >Approve</Button
                             >
@@ -617,6 +683,7 @@ const turnPage = (value: number) =>
                                 variant="outline"
                                 size="sm"
                                 class="max-sm:min-h-11"
+                                :id="`start-${row.id}-reject`"
                                 @click="begin(row, 'reject')"
                                 >Reject</Button
                             >
@@ -626,6 +693,7 @@ const turnPage = (value: number) =>
                                 variant="outline"
                                 size="sm"
                                 class="max-sm:min-h-11"
+                                :id="`start-${row.id}-withdraw`"
                                 @click="begin(row, 'withdraw')"
                                 >Withdraw</Button
                             >
@@ -642,6 +710,16 @@ const turnPage = (value: number) =>
                                     >{{ myr(row.oldAmountSen) }} → </template
                                 >{{ myr(row.newAmountSen) }}, starting
                                 {{ row.effectiveLabel }}.
+                                <template v-if="changeOf(row)?.large"
+                                    ><strong class="text-warning"
+                                        >Large change{{
+                                            changeOf(row)!.pct !== null
+                                                ? ` (${sign(changeOf(row)!.diff)}${pctText(changeOf(row)!.pct!)}%)`
+                                                : ''
+                                        }}.</strong
+                                    >
+                                    Check the agreement reference.
+                                </template>
                                 <template v-if="row.effectivePassed"
                                     >This will take effect now, at
                                     approval.</template
@@ -651,6 +729,7 @@ const turnPage = (value: number) =>
                                 <label class="grid gap-1 text-xs">
                                     Reason *
                                     <select
+                                        :id="`reason-${row.id}`"
                                         v-model="rejectReason"
                                         class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
                                     >
@@ -713,7 +792,7 @@ const turnPage = (value: number) =>
                                     size="sm"
                                     class="max-sm:min-h-11"
                                     :disabled="acting"
-                                    @click="open = null"
+                                    @click="cancel(row)"
                                     >Cancel</Button
                                 >
                             </div>

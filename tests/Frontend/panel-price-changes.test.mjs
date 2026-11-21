@@ -50,3 +50,11 @@ test('routes and the Clinic management row use the two Panel price permissions',
     assert.match(nav, /'Panel price changes'/);
     assert.doesNotMatch(routes, /panel-price-changes[^\n]*return back/);
 });
+
+test('every row shows the size of the change and a start that has passed, and sheets manage focus', () => {
+    assert.match(page, /data-testid="row-change"/);
+    assert.match(page, /Start has passed: takes effect at approval\./);
+    assert.match(page, /scrollIntoView\(\{ block: 'center' \}\)/);
+    assert.match(page, /start-\$\{row\.id\}-\$\{kind\}/);
+    assert.match(page, /size-2 shrink-0 rounded-full/);
+});
