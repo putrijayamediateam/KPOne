@@ -22,27 +22,41 @@ builds nothing. Written by Syafiq (Panel Lead), 21 Nov 2026.
 
 ### 3.1 Automatic Prepared claim (system step)
 
-- After the approval transaction **commits** (never inside Billing's transaction, so a claim problem can never undo or
-  delay an approval), `ResponsibilityService::approve()` dispatches `PanelClaimAutoCreator::forAllocation($allocationId,
-  $approverUserId)` for `kind = panel` only.
-- `PanelClaimAutoCreator` (new, `app/Domain/Visit/Billing/Services`) runs its own `DB::transaction` with no actor
-  permission check, because there is no acting person: it is a system step. It checks the same invariants as a person
-  would (organisation and branch of the allocation, `requireClaimable`, no `original` claim yet) under the same row
-  locks (invoice, then allocation) and reuses `buildLockedSnapshot()` unchanged. `created_by_user_id` is the approver, so
-  the claim snapshot is the same shape as today's.
-- Idempotency: the unique `original` claim per allocation already refuses a second claim. The key is deterministic
-  (`auto:{allocation_id}`), so a retry, a queue replay or the button in 3.3 finds the existing claim and returns it.
-- Audit `panel_claim.auto_created` with the claim id, allocation id, amount and `approved_by_user_id`
-  (ids and codes only, no patient values). Event `prepared` is written exactly as for `prepare()`.
-- Failure is isolated: if the step throws, the approval stays, the failure is logged, nothing is half-written
-  (own transaction), and the invoice stays in Pending, where 3.3 picks it up. No retry loop in v1.
+- `ResponsibilityService::approve()` wraps its work in `DB::transaction(..., 3)`, which can retry on deadlock. The
+  creator is therefore called **after `DB::transaction` returns** (not inside the closure, so it can never run twice
+  from a retry and a claim problem can never undo the approval), for `kind = panel` only, as
+  `PanelClaimAutoCreator::forAllocation($allocationId, $approverUserId)`, inside `try/catch (Throwable)` with a log, so a
+  claim failure can never turn the approval response into a 500. It runs inline in the approver's request (adds a
+  little latency, no queue in v1).
+- `PanelClaimAutoCreator` (new, `app/Domain/Visit/Billing/Services`) runs its own `DB::transaction`. There is no acting
+  person, so it skips `TransactionalActorAuthority::lock()` (the actor and permission check). **This deviates openly
+  from the AGENTS.md rule of a permission check on every state change:** the authority is the approval's own
+  `coverage.approve.branch` check and Panel approval limit, already passed. To keep the deviation small and tested,
+  `PanelClaimService` gets one explicit entry point, `prepareForApprovedAllocation(User $approver, CoverageAllocation)`,
+  which loads the branch from the allocation (organisation and branch must match the approver's), runs
+  `requireClaimable` and the same row locks (invoice, then allocation, the order `approve()` uses), and reuses
+  `buildLockedSnapshot()` after its `$actor`/`$branch` inputs are supplied by that entry point. A test fails if any other
+  caller reaches it.
+- `created_by_user_id` stays the approver (the column is NOT NULL with a foreign key to users, the identity trigger
+  compares it, and the event, `PanelShare::recordVersion` and audit all take a `User`). Because the approver did not
+  press anything, the audit row and event carry `system_step: true` and `approved_by_user_id`, so nobody misreads them.
+- Idempotency: the guard is the unique `original` claim per allocation (`coverage_allocation_id`) and the exists-check in
+  `buildLockedSnapshot`. No idempotency key is written (`creation_idempotency_key` is a `uuid` column and belongs to
+  `create()`, not `prepare()`). "A claim already exists" and a unique violation on `coverage_allocation_id` are
+  treated as **skip (`already_claimed`)**, not an error, so the button and a double approval race cleanly.
+- Audit `panel_claim.auto_created` with the claim id, allocation id, amount, `system_step`, `approved_by_user_id`
+  (ids and codes only, no patient values). Event `prepared` is written as for `prepare()`.
+- Failure is isolated and **visible**: if the step throws, the approval stays, nothing is half-written, an audit row
+  `panel_claim.auto_create_failed` (allocation id and error code only) is written in a separate transaction, and the
+  Pending tab shows "N approved invoices have no claim yet" with the button from 3.3. No retry loop in v1.
 - **No new permission.** The claim is created by the system, not by the approver, so the CA gains nothing.
 
 ### 3.2 Invoices that must not get an automatic claim
 
 `requireClaimable()` already refuses these and the creator treats each refusal as "skip, no claim, no error":
 voided or reissued invoices (the allocation is no longer the current guard), `correction_hold`, `source_stale`, an
-allocation that is not `approved`, a Panel share that is zero or above the invoice total. A later reissue produces a
+allocation that is not `approved`, a Panel share that is zero or above the invoice total, and a claim that already
+exists (`already_claimed`, including a lost race). Each has a reason code. A later reissue produces a
 new allocation and so a new automatic claim; the old claim path (PCA-2 supplementary claims) is untouched.
 A test per case proves no claim row appears.
 
@@ -51,24 +65,34 @@ A test per case proves no claim row appears.
 - On the Pending tab, for `panel.claims.manage.branch` holders, one button creates Prepared claims for every approved
   Panel allocation at the active branch that has none (the ones the system step skipped or failed on, and everything
   approved before this change).
-- At most 50 at a time (as the pack limit), oldest first, each in its own transaction through the same creator, so
-  one bad invoice never blocks the rest. The result says how many were created and how many were skipped, with the
-  reason code per skipped invoice. Audit `panel_claim.bulk_auto_created` with count and the actor.
+- At most 50 at a time (the existing bulk create limit is 20 and the pack limit 50; 50 is chosen because each claim is
+  its own transaction), oldest first, each through the same creator, so one bad invoice never blocks the rest. The
+  result says how many were created, how many were skipped (reason code per invoice) and "N still waiting, press
+  again". Nothing is silently left behind. Audit `panel_claim.bulk_auto_created` with count and the actor.
 - Existing Create claim (Submitted at once, photos) stays as it is for officers who want to submit in one step.
 
 ### 3.4 Overdue
 
 - A claim is **Overdue** when it is `prepared`, has not been submitted, and the Panel's due date (existing
   `PanelClaimDueRule` for the visit date and the Panel's rule) is in the past in the branch time zone.
-- Pending and Overdue today list invoices with no claim. After 3.1 most invoices have a claim straight away, so the
-  Pending tab keeps only invoices without one and the Overdue tab lists Prepared claims past due. A Submitted claim is
-  never Overdue. Counts, filters and the claim page's due line follow the same rule. Panel summary's
-  "unclaimed" column counts Prepared and no-claim invoices together, so its figures do not change meaning (test).
+- **This redefines Overdue, it does not refine it.** Today Overdue is invoice-only (`PanelClaimDirectoryService`
+  `INVOICE_TABS`, the Overdue count and `summary()`), and the claims tabs have no prepared or overdue filter. After
+  3.1 most invoices have a claim straight away, so: Pending lists only approved invoices with no claim (and carries
+  the "N have no claim yet" line); Overdue becomes a claims query on `status = 'prepared'` with
+  `PanelClaimDueRule::isOverdue`; its count and `summary()` switch with it. A Submitted claim is never Overdue. The
+  claims list gains a Prepared status label so many Prepared rows read clearly.
+- Panel summary already treats a Prepared claim with no `submitted` event as unclaimed
+  (`PanelSummaryReportService`), so its figures keep their meaning; a test pins it.
+- **Follow-up list changes:** it counts `prepared` as open with Prepared events as actions, so an auto-created claim
+  nobody touches would appear there after the Panel's follow-up days. Decision proposed: the Follow-up list excludes a
+  Prepared claim that was never submitted (that is Overdue's job, not follow-up's), so Follow-up keeps its meaning of
+  "submitted and waiting on the Panel". The owner may overrule.
 
 ### 3.5 Submit
 
-- The Submit action on a Prepared claim records today's branch-local date as the submitted date (no date picker), with
-  the existing version check and idempotency key. Photos and remarks stay editable on the claim page afterwards.
+- `submit()` already takes no date: the submitted date is the event's `occurred_at` (now), so "today's branch date"
+  needs no code change. The note only names it; the claim page shows it in branch time. Photos and remarks stay
+  editable on the claim page afterwards.
 - Create claim keeps its date field (an officer may back-date within the visit date to today).
 
 ## 4. Rules that stay the same
@@ -88,25 +112,34 @@ Farah's invoice-side Panel claim button. No migration expected. If the Overdue l
 - Overdue list: a Prepared claim past due appears; a Submitted one never does; a Panel's rule (days, daily, weekly,
   monthly) is honoured.
 - Submit records today's branch date; photos and remarks can be added afterwards.
-- Panel summary, Follow-up list and Insights Payments figures are identical before and after for the same data.
+- Panel summary and Insights Payments figures are identical before and after for the same data. The Follow-up list
+  excludes never-submitted Prepared claims (a deliberate change, tested).
+- Approval still returns normally when the creator throws, and `auto_create_failed` is audited.
+- The new entry point cannot be called from anywhere but the approval path and the button (source test).
 
 ## 6. Existing assertions expected to change (for the owner, through B.E.R.N.I.S.S, before any code)
 
 To be confirmed by running the suite on a spike, but these are the likely ones:
 
-1. `PanelClaimsTest`: tests that approve a Panel allocation and then expect the Pending list to hold the invoice, or
-   expect no claim row before an officer presses Create claim, now see a Prepared claim already there.
+1. Any test that approves a Panel allocation and then calls `prepare()` or `create()` now meets "A claim pack already
+   exists": the PC-02 create tests, the PNL-2 bulk claim tests, `PanelClaimsTest` generally.
 2. `PanelClaimsTest` and `panel-claims` frontend tests that pin the Pending and Overdue tab contents.
-3. Any Panel summary or Follow-up fixture that counts claims after approval (expected to need setup changes only).
+3. Likely setup-only changes: the PNL-9 contention tests, `PanelClaimAdjustment` tests, the Panel claim-pack tests,
+   the Follow-up list tests and the Insights and agent Panel tool fixtures.
+
+The exact list comes from a spike run of the full suite after the change, and goes to the owner before the PR.
+For fixtures that only need to start without an automatic claim, the preferred fix is a setup flag (approve through
+the service with the creator disabled), not edited expectations.
 
 No assertion will be loosened: each changes only in what exists after approval, with the new expected value pinned.
 
-## 7. Questions for Priya
+## 7. Priya's review (21 Nov) and what changed
 
-1. Is dispatching after commit from `approve()` safe against a rollback of the caller, or should it be an
-   `afterCommit` listener?
-2. Should the creator write `created_by_user_id` as the approver, or null with a system marker?
-3. Is a 50 limit on the button right, or should it page?
+Answers: call the creator after `DB::transaction` returns, in try/catch (section 3.1); `created_by_user_id` stays
+non-null and is the approver, marked as a system step; 50 is fine if the "N still waiting" message exists. Findings
+taken in: the idempotency key was dropped (uuid column); the entry point is explicit and tested; the race counts as a
+skip; Follow-up no longer floods; Overdue is stated as a redefinition; failures are visible; Submit needs no code
+change; the existing-assertion list is widened and comes from a spike run.
 
 ## 8. Order
 
