@@ -58,6 +58,8 @@ final class SkuEditDirectoryService
         $codes = array_values(array_filter(array_map(fn (\stdClass $row): ?string => $row->barcode === null ? null : (string) $row->barcode, $items)));
         $shared = $codes === [] ? [] : DB::table('inventory_skus')->where('organisation_id', $actor->organisation_id)->whereIn('barcode', $codes)
             ->groupBy('barcode')->havingRaw('count(*) > 1')->pluck('barcode')->map(fn ($code) => (string) $code)->all();
+        // STK-52: each SKU's pack conversion block (a checker never receives a waiting change's number).
+        $conversions = app(PackConversionDirectory::class)->blocks($actor, $items, (string) $branch->timezone);
 
         return [
             'branchName' => $branch->name,
@@ -76,6 +78,7 @@ final class SkuEditDirectoryService
                 'onHand' => in_array((int) $row->id, $onHand, true), 'barcodeShared' => $row->barcode !== null && in_array((string) $row->barcode, $shared, true),
                 'item' => ['publicId' => $row->item_public_id, 'code' => $row->item_code, 'genericName' => $row->generic_name, 'brandName' => $row->brand_name,
                     'active' => (bool) $row->item_active, 'lockVersion' => (int) $row->item_lock_version],
+                'packConversion' => $conversions[(int) $row->id],
             ], $items),
             'page' => $rows->currentPage(), 'lastPage' => $rows->lastPage(), 'total' => $rows->total(),
         ];

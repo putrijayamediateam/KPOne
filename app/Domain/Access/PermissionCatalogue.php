@@ -180,6 +180,7 @@ final class PermissionCatalogue
             'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
             'inventory.valuation.view.organisation',
+            'inventory.pack_conversions.verify.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -550,6 +551,12 @@ final class PermissionCatalogue
         // STK-28 (owner programme 2026-11-11; owner decision 2026-11-15: Director only): the stock value, cost of
         // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
         $roles['director'][] = 'inventory.valuation.view.organisation';
+
+        // STK-52 (owner decision 2026-11-21, "A for the bottle check"): only a CA Supervisor or the Director does the blind
+        // check of a pack conversion; anyone who manages inventory references proposes one. Never the proposer.
+        foreach (['ca_supervisor', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.pack_conversions.verify.organisation';
+        }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {

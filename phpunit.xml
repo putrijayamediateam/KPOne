@@ -36,6 +36,7 @@
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresPackConversionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresProposalPrepareTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresSupplierReturnTest.php</exclude>
@@ -97,6 +98,7 @@
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPackConversionTest.php</file>
             <file>tests/Feature/Inventory/PostgresProposalPrepareTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
@@ -177,6 +179,7 @@
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPackConversionTest.php</file>
             <file>tests/Feature/Inventory/PostgresProposalPrepareTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>

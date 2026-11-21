@@ -118,7 +118,12 @@ final class InventoryReadinessService
             'sharedBarcodes' => app(InventoryCodeLookupService::class)->sharedCodes($actor->organisation_id),
             'canFixBarcodes' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
             // STK-35: the opening import is for CA Supervisors, as recording an opening is.
-            'canImportOpening' => $actor->can(OpeningImportService::PERMISSION) && $actor->hasRole('ca_supervisor')];
+            'canImportOpening' => $actor->can(OpeningImportService::PERMISSION) && $actor->hasRole('ca_supervisor'),
+            // STK-52: SKUs whose pack conversion change waits for a check (the line links to the SKU edit screen).
+            'packConversionsWaiting' => DB::table('inventory_pack_conversions as c')->join('inventory_skus as s', 's.id', '=', 'c.inventory_sku_id')
+                ->where('c.organisation_id', $actor->organisation_id)
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_pack_conversion_outcomes as o')->whereColumn('o.pack_conversion_id', 'c.id'))
+                ->orderBy('s.sku_code')->limit(50)->get(['s.sku_code as skuCode'])->map(fn ($row): string => (string) $row->skuCode)->all()];
     }
 
     /**

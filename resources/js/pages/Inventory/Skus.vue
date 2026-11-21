@@ -3,6 +3,8 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Lock } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PackConversionBlock from '@/components/inventory/PackConversionBlock.vue';
+import type { PackConversion } from '@/components/inventory/PackConversionBlock.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +34,7 @@ type Sku = {
     unitsLocked: boolean;
     onHand: boolean;
     barcodeShared: boolean;
+    packConversion: PackConversion;
     item: {
         publicId: string;
         code: string;
@@ -657,6 +660,13 @@ const errorFor = (field: string) =>
                         >
                     </div>
                 </form>
+                <!-- STK-52: saves on its own (never with Save above), so it sits outside the SKU form. -->
+                <div v-if="editing === sku.publicId" class="mt-4 border-t pt-4">
+                    <PackConversionBlock
+                        :sku-public-id="sku.publicId"
+                        :block="sku.packConversion"
+                    />
+                </div>
             </li>
         </ul>
         <CompactPagination
