@@ -174,7 +174,11 @@ b) (answer 7 = A) A proposal whose effective time has passed at approval takes e
 c) (answer 8 = A) The first Panel price for a new medicine or service is also a proposal; until then billing uses the default Panel price.
 d) (answer Q9 = B) **The Director can also approve**, so the approve permission goes to the Finance Officer and the Director. Changed from the draft default.
 Permissions approved (P1, P2): `panel.prices.propose.organisation` (Panel Officer) and `panel.prices.approve.organisation` (Finance Officer, Director).
-Open for Syafiq: the agreement reference format and whether a proposal may cover several charges (default: one per proposal; bulk later).
+Syafiq's Panel-side review (21 Nov): nothing blocking. Closed items:
+e) Agreement reference: 3 to 120 characters, plain text, no format check, never in audit.
+f) Several charges per proposal: one per proposal for now. A bounded bulk follow-up (shared reference and effective date, up to about 50 lines, each decided on its own) is a possible later slice, not for the pilot.
+g) Claims, claim packs and the Panel summary never change retroactively, because invoice lines keep their entry.
+h) The PNL-26 visit-limit estimate uses the same `PriceResolutionService::select` rule, so future-dated prices are ignored until they take effect.
 
 ## 11. Risks
 
