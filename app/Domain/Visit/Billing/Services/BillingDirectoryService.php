@@ -61,6 +61,8 @@ class BillingDirectoryService
                 'backLink' => $this->backLink($actor),
                 'billTo' => $printing ? null : app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
                 'notes' => $printing ? null : app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
+                // BIL-35: straight to the Panel claim, or Create claim, for Panel Claims users only (read-only navigation).
+                'panelClaim' => $printing ? null : app(PanelClaimLink::class)->for($actor, $visit, $invoice, 'billing'),
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id, $invoice, false),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
