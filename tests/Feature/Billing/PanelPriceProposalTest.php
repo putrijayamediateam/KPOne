@@ -195,6 +195,7 @@ class PanelPriceProposalTest extends ClinicalTestCase
         foreach ([
             ['effective_date' => CarbonImmutable::now($this->branch->timezone)->subDay()->toDateString()],
             ['agreement_reference' => '   '],
+            ['agreement_reference' => 'ab'],
             ['agreement_reference' => str_repeat('x', 121)],
             ['amount_sen' => ''],
             ['amount_sen' => '-1'],
@@ -299,7 +300,7 @@ class PanelPriceProposalTest extends ClinicalTestCase
         $selfPay = app(PricingReferenceAdministrationService::class)->createPriceBook($this->supervisor, null, ['name' => 'Synthetic self-pay', 'price_tier' => 'self_pay']);
         try {
             $this->service->propose($this->officer, $selfPay, $this->charge, [
-                'expected_branch_id' => $this->branch->id, 'expected_version' => 0, 'amount_sen' => 500, 'agreement_reference' => 'X',
+                'expected_branch_id' => $this->branch->id, 'expected_version' => 0, 'amount_sen' => 500, 'agreement_reference' => 'XYZ',
                 'effective_date' => CarbonImmutable::now($this->branch->timezone)->toDateString(), 'idempotency_key' => (string) Str::uuid(),
             ]);
             $this->fail('Self-pay prices are not proposed.');
@@ -367,7 +368,7 @@ class PanelPriceProposalTest extends ClinicalTestCase
         $selfPay = app(PricingReferenceAdministrationService::class)->createPriceBook($this->supervisor, null, ['name' => 'Synthetic self-pay two', 'price_tier' => 'self_pay']);
         $row = fn (int $bookId, int $userId) => [
             'public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'price_book_id' => $bookId, 'charge_definition_id' => $this->charge->id,
-            'proposed_unit_price_sen' => 100, 'agreement_reference' => 'X', 'effective_at' => now(), 'base_version' => 0, 'status' => 'proposed',
+            'proposed_unit_price_sen' => 100, 'agreement_reference' => 'XYZ', 'effective_at' => now(), 'base_version' => 0, 'status' => 'proposed',
             'proposed_by_user_id' => $userId, 'proposed_at' => now(), 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'lock_version' => 1,
             'created_at' => now(), 'updated_at' => now(),
         ];

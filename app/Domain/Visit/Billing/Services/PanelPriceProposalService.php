@@ -62,8 +62,8 @@ final class PanelPriceProposalService
         }
         $amount = ExactMoney::sen($a['amount_sen'], 'amount_sen');
         $reference = trim((string) preg_replace('/\s+/u', ' ', (string) $a['agreement_reference']));
-        if ($reference === '' || mb_strlen($reference) > 120) {
-            throw ValidationException::withMessages(['agreement_reference' => 'Enter the agreement reference, up to 120 characters.']);
+        if (mb_strlen($reference) < 3 || mb_strlen($reference) > 120) {
+            throw ValidationException::withMessages(['agreement_reference' => 'Enter the agreement reference, 3 to 120 characters.']);
         }
         $time = (string) ($a['effective_time'] ?? '00:00') ?: '00:00';
         $hash = hash('sha256', json_encode([$routeBook->id, $routeCharge->id, $amount, $reference, $a['effective_date'], $time, (int) $a['expected_version']], JSON_THROW_ON_ERROR));

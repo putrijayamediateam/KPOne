@@ -65,7 +65,7 @@ return new class extends Migration
         DB::unprepared(<<<'SQL'
 ALTER TABLE price_change_proposals ADD CONSTRAINT price_change_proposal_shape CHECK (
  proposed_unit_price_sen BETWEEN 0 AND 999999999999
- AND length(btrim(agreement_reference)) BETWEEN 1 AND 120
+ AND length(btrim(agreement_reference)) BETWEEN 3 AND 120
  AND base_version>=0 AND lock_version>0
  AND ((status='proposed' AND decided_by_user_id IS NULL AND decided_at IS NULL AND reason_code IS NULL AND decision_note IS NULL AND price_entry_id IS NULL AND applied_effective_at IS NULL)
   OR (status='approved' AND decided_by_user_id IS NOT NULL AND decided_at IS NOT NULL AND reason_code IS NULL AND decision_note IS NULL AND price_entry_id IS NOT NULL AND applied_effective_at IS NOT NULL AND applied_effective_at>=effective_at AND decided_by_user_id<>proposed_by_user_id)
