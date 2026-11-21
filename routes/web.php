@@ -831,6 +831,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-claims/pack/logo/{asset}', [PanelClaimsController::class, 'packLogo'])->whereUuid('asset')->name('panel-claims.letterhead-logo');
         Route::get('panel-claims/allocations/{allocation}/create', [PanelClaimsController::class, 'create'])->name('panel-claims.create');
         Route::post('panel-claims/allocations/{allocation}', [PanelClaimsController::class, 'store'])->middleware('throttle:20,1')->name('panel-claims.store');
+        Route::post('panel-claims/auto-create', [PanelClaimsController::class, 'autoCreate'])->middleware('throttle:10,1')->name('panel-claims.auto-create');
         Route::post('panel-claims/bulk', [PanelClaimsController::class, 'bulkStore'])->middleware('throttle:10,1')->name('panel-claims.bulk-store');
         Route::post('panel-claims/allocations/{allocation}/prepare', [PanelClaimsController::class, 'prepare'])->name('panel-claims.prepare');
         Route::get('panel-claims/{claim}', [PanelClaimsController::class, 'show'])->name('panel-claims.show');
