@@ -100,6 +100,8 @@ test('DSP-24: the page sends the packs with the conversion version it showed, an
     assert.ok(page.includes('data-field="quantity"'));
     assert.ok(page.includes('data-field="add-quantity"'));
     assert.match(page, /packMode: item\.packsDispensed \? 'packs' : 'base'/);
+    // Daniel: the doctor's quantity beside the new warning drops trailing zeros ("60 ml", never "60.000 ml").
+    assert.match(page, /\{\{ displayQuantity\(item\.quantityOrdered\) \}\}/);
 });
 
 test('DSP-24: the doctor, Completed, Invoices and returns screens show "2 bottles (120 ml)" when the line used bottles', () => {

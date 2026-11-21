@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import {
+    displayQuantity,
     packsOnHand,
     parsePacks,
     usablePackConversion,
@@ -1698,7 +1699,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             >
                                 Doctor ordered
                                 <strong class="text-foreground"
-                                    >{{ item.quantityOrdered }}
+                                    >{{ displayQuantity(item.quantityOrdered) }}
                                     {{ item.unit }}</strong
                                 >
                             </p>
