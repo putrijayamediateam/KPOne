@@ -10,9 +10,7 @@ const versions = read('resources/js/components/billing/PanelClaimVersions.vue');
 const classicBilling = read(
     'resources/js/components/billing/BillingWorkspace.vue',
 );
-const v2Billing = read('resources/js/pages/Billing/V2/Show.vue');
 const classicClaim = read('resources/js/pages/PanelClaims/Show.vue');
-const v2Claim = read('resources/js/pages/PanelClaims/V2/Show.vue');
 
 test('PCA-2: the panel posts the request with its idempotency key, invoice version and page', () => {
     for (const key of [
@@ -62,18 +60,11 @@ test('PCA-2: the wording says which button changes the invoice and that the pati
         assert.ok(text.includes(wanted), wanted);
     }
 
-    // Syafiq's V2 label for the claim-only edit stays as it is.
-    assert.ok(
-        v2Claim.includes(
-            'Change claim amount only: the invoice stays the same',
-        ),
-    );
 });
 
 test('PCA-2: Classic and Version 2 Billing and claim pages show the panel (a new rule, so both layouts)', () => {
     for (const [name, src] of [
         ['Classic Billing', classicBilling],
-        ['V2 Billing', v2Billing],
     ]) {
         assert.match(src, /<PanelAdjustmentPanel/, name);
         assert.match(src, /billing\.panelAdjustment/, name);
@@ -81,7 +72,6 @@ test('PCA-2: Classic and Version 2 Billing and claim pages show the panel (a new
 
     for (const [name, src] of [
         ['Classic claim', classicClaim],
-        ['V2 claim', v2Claim],
     ]) {
         assert.match(src, /<PanelAdjustmentPanel/, name);
         assert.match(src, /<PanelClaimVersions/, name);
@@ -112,15 +102,11 @@ test('PCA-2: a cancelled supplementary claim is explained on its page and under 
         ),
     );
     assert.match(classicClaim, /claim\.adjustmentClaim\?\.cancelledNote/);
-    assert.match(v2Claim, /adjustmentClaim\?\.cancelledNote/);
 });
 
 test('PCA-2: claim logs name the adjustment events in words on Classic and Version 2', () => {
-    const composable = read(
-        'resources/js/composables/panel-claims/usePanelClaimShow.ts',
-    );
 
-    for (const src of [classicClaim, composable]) {
+    for (const src of [classicClaim]) {
         assert.match(src, /panel_adjusted: 'Panel amount changed'/);
         assert.match(
             src,
@@ -131,7 +117,7 @@ test('PCA-2: claim logs name the adjustment events in words on Classic and Versi
 });
 
 test('PCA-2: the claim page shows the Panel adjustment as its own line and a supplementary claim points to the original', () => {
-    for (const src of [classicClaim, v2Claim]) {
+    for (const src of [classicClaim]) {
         const text = flat(src);
         assert.ok(text.includes('Panel adjustment (confirmed)'));
         assert.match(src, /claim\.panelAdjustmentSen !== 0/);
@@ -156,10 +142,8 @@ test('PCA-2 (Daniel): a supplementary claim page shows only that claim, one card
         panel.indexOf('data-testid="panel-adjustment-waiting"') >
             panel.indexOf('</section>'),
     );
-    // V2 pages use the V2 money input; Classic keeps its own input with an "RM" prefix.
-    assert.match(panel, /<V2MoneyInput\s+v-if="v2"/);
-    assert.match(v2Claim, /<PanelAdjustmentPanel[\s\S]*?\bv2\b/);
-    assert.match(v2Billing, /<PanelAdjustmentPanel\s+v2/);
+    assert.doesNotMatch(panel, /V2MoneyInput|\bv2\?: boolean/);
+    assert.match(panel, /<Label for="panel-adjustment-amount"\s*>Amount \(RM\)<\/Label/);
     assert.doesNotMatch(classicClaim, /<PanelAdjustmentPanel[^>]*\bv2\b/);
     // Add and Deduct show which one is chosen.
     assert.match(panel, /direction === choice\.value/);

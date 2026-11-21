@@ -11,7 +11,12 @@ import V2Layout from '@/layouts/V2Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { installAuthenticationHistoryBoundary } from '@/lib/inertia-auth-history-boundary';
 import { readInitialInertiaPage } from '@/lib/inertia-bootstrap';
-import { applyUiVersion, isV2Page, uiVersionFor } from '@/lib/ui-version';
+import {
+    applyNewLook,
+    applyUiVersion,
+    isV2Page,
+    uiVersionFor,
+} from '@/lib/ui-version';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const initialPage = readInitialInertiaPage();
@@ -24,6 +29,7 @@ if (authenticationHistory.ready) {
     router.on('navigate', (event) => {
         authenticationHistory.boundary?.acceptServerPage(event.detail.page);
         applyUiVersion(uiVersionFor(event.detail.page));
+        applyNewLook(event.detail.page);
     });
 
     createInertiaApp({
@@ -61,6 +67,8 @@ if (authenticationHistory.ready) {
                 case name.startsWith('Dispensary/'):
                 case name.startsWith('Billing/'):
                 case name.startsWith('Clinic/'):
+                // Classic only (CO-1): the department spaces and the Me home sit in the Classic clinic layout.
+                case name.startsWith('Spaces/'):
                     return ClinicLayout;
                 default:
                     return AdminLayout;

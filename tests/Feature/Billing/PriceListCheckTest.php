@@ -18,6 +18,7 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Clinical\ClinicalTestCase;
+use Tests\Support\PanelPriceFixture;
 
 /**
  * CAT-2 (owner decision 2026-11-05): a read-only price list check that flags what would make billing refuse a
@@ -66,7 +67,11 @@ class PriceListCheckTest extends ClinicalTestCase
     {
         $version = (int) DB::table('price_entries')->where('price_book_id', $book->id)
             ->where('charge_definition_id', $charge->id)->max('version');
-        $this->publication->publish($this->supervisor, $book, $charge, $sen, $version, $this->branch->id);
+        if ($book->price_tier === 'panel') {
+            PanelPriceFixture::insert($book, $charge, $sen, $this->supervisor);
+        } else {
+            $this->publication->publish($this->supervisor, $book, $charge, $sen, $version, $this->branch->id);
+        }
     }
 
     /** @return array<string, array<string, mixed>> rows keyed by code */

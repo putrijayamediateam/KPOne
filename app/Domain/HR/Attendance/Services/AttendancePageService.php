@@ -8,6 +8,7 @@ use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
 use App\Domain\HR\Attendance\Photos\ClockPhotoStorageReport;
+use App\Domain\HR\Payroll\Services\LateAfterLock;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -15,6 +16,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /** HR-3a page props for /hr/attendance: My attendance, Review and Settings. Read only. */
 final class AttendancePageService
@@ -107,6 +109,7 @@ final class AttendancePageService
             'state' => $state,
             'clockedInLabel' => $state === 'in' ? 'Clocked in at '.AttendanceSupport::time($open->clock_in_at, $open->timezone) : null,
             'doneLabel' => $done,
+            'undo' => $this->undoOffer($actor, $now),
             'staleLabel' => $stale ? 'Your clock-in on '.AttendanceSupport::day($open->local_date).' has no clock-out. Add your clock-out time below.' : null,
             'todayShift' => $todayShifts->isEmpty() ? null : $todayShifts->map(fn (RosterShift $s): string => (RosterRules::SESSIONS[$s->session_type] ?? 'Other')
                 .', '.AttendanceSupport::time($s->starts_at, $s->timezone).' to '.AttendanceSupport::time($s->ends_at, $s->timezone).', '.$s->version->week->branch->name)->implode('; '),
@@ -123,6 +126,32 @@ final class AttendancePageService
             // HR-16a: the check at the branch the next press goes to (the open session's branch for a clock-out).
             'location' => $this->location->forPerson($actor, $state === 'in' ? (int) $open->branch_id : $branch?->id),
         ];
+    }
+
+    /**
+     * Undo clock-out (owner, 16 Nov 2026): the person's own latest clock-out, pressed within the last 15 minutes and not
+     * yet used by a correction or an overtime request, can be taken back. The server checks everything again on press.
+     *
+     * @return array{sessionId: string, lockVersion: int, pressedAt: string, until: string}|null
+     */
+    private function undoOffer(User $actor, CarbonImmutable $now): ?array
+    {
+        $latest = ClockSession::query()->where('user_id', $actor->id)->orderByDesc('clock_in_at')->orderByDesc('id')->first();
+        if ($latest === null || $latest->status !== 'closed' || $latest->clock_out_at === null
+            || $latest->clock_out_at->lessThan($now->subMinutes(ClockService::UNDO_MINUTES))) {
+            return null;
+        }
+        $press = DB::table('hr_clock_events')->where('clock_session_id', $latest->id)->where('kind', 'out')->orderByDesc('id')->first();
+        if ($press === null || $press->method !== 'button' || (int) $press->recorded_by_user_id !== $actor->id
+            || DB::table('hr_attendance_corrections')->where('clock_session_id', $latest->id)->exists()
+            || DB::table('hr_overtime_requests')->where('clock_session_id', $latest->id)->exists()
+            || ClockService::inSentPayroll($actor, $latest)) { // never offer what the server refuses (Suresh m1)
+            return null;
+        }
+
+        return ['sessionId' => $latest->public_id, 'lockVersion' => (int) $latest->lock_version,
+            'pressedAt' => AttendanceSupport::time($latest->clock_out_at, $latest->timezone),
+            'until' => AttendanceSupport::time($latest->clock_out_at->addMinutes(ClockService::UNDO_MINUTES), $latest->timezone)];
     }
 
     /**
@@ -174,10 +203,18 @@ final class AttendancePageService
         $sessionIds = $sessions->pluck('id', 'public_id');
         // HR-PHOTO: other people's photos stay behind Show (needsShow); nothing is opened or recorded until it is pressed.
         $photos = app(ClockPhotoLabels::class)->forSessions($sessions, $actor);
+        // Undo clock-out: HR sees on the day that a clock-out was taken back, and when it had been pressed.
+        $undone = [];
+        foreach (DB::table('hr_clock_events')->whereIn('clock_session_id', $sessions->pluck('id')->all())->where('kind', 'out_undone')->orderBy('id')->get() as $e) {
+            $zone = (string) ($sessions->firstWhere('id', (int) $e->clock_session_id)->timezone ?? 'UTC');
+            $times = isset($undone[(int) $e->clock_session_id]) ? $undone[(int) $e->clock_session_id].', ' : 'Clock-out undone at ';
+            $undone[(int) $e->clock_session_id] = $times.AttendanceSupport::time(CarbonImmutable::parse((string) $e->occurred_at), $zone);
+        }
         $rows = array_map(fn (array $r): array => [...$r, 'person' => (string) (isset($people[$r['userId']]) ? $people[$r['userId']]->name : 'Staff member'),
             'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null,
             'location' => $r['session'] === null ? null : ($locations[(int) ($sessionIds[$r['session']['publicId']] ?? 0)] ?? null),
-            'photos' => $r['session'] === null ? null : ($photos[$r['session']['publicId']] ?? null)], $rows);
+            'photos' => $r['session'] === null ? null : ($photos[$r['session']['publicId']] ?? null),
+            'undoneLabel' => $r['session'] === null ? null : ($undone[(int) ($sessionIds[$r['session']['publicId']] ?? 0)] ?? null)], $rows);
         $pending = AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')->orderBy('id')->limit(100)->get();
         $flagged = count(array_filter($rows, fn (array $r): bool => $r['flags'] !== []));
         $staffIds = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $date->toDateString())
@@ -245,11 +282,20 @@ final class AttendancePageService
         $branches = Branch::query()->whereIn('id', $corrections->pluck('branch_id')->unique())->get()->keyBy('id');
         $names = User::query()->whereIn('id', $corrections->pluck('user_id')->merge($corrections->pluck('proposed_by_user_id'))->unique())->pluck('name', 'id');
         $statuses = ['pending' => 'Correction waiting', 'approved' => 'Approved', 'rejected' => 'Rejected', 'cancelled' => 'Withdrawn'];
+        $dayOf = function (AttendanceCorrection $c) use ($sessions, $branches): mixed {
+            $session = $c->clock_session_id === null ? null : $sessions[$c->clock_session_id] ?? null;
 
-        return $corrections->map(function (AttendanceCorrection $c) use ($sessions, $branches, $names, $statuses, $actor): array {
+            return $session !== null ? $session->local_date : $c->proposed_in_at?->setTimezone($branches[$c->branch_id]->timezone ?? 'UTC')->startOfDay();
+        };
+        // G2b: an hourly person's correction in a month whose payroll is already locked is paid only on an adjustment run.
+        $lockedMonths = app(LateAfterLock::class)->lockedMonths($actor->organisation_id, $corrections
+            ->filter(fn (AttendanceCorrection $c): bool => $c->status === 'pending' && $actor->can(ClockPermissions::REVIEW) && $dayOf($c) !== null)
+            ->mapWithKeys(fn (AttendanceCorrection $c): array => [(int) $c->id => ['userId' => (int) $c->user_id, 'date' => CarbonImmutable::parse($dayOf($c))->toDateString()]])->all(), 'hourly');
+
+        return $corrections->map(function (AttendanceCorrection $c) use ($sessions, $branches, $names, $statuses, $actor, $dayOf, $lockedMonths): array {
             $zone = $branches[$c->branch_id]->timezone ?? 'UTC';
             $session = $c->clock_session_id === null ? null : $sessions[$c->clock_session_id] ?? null;
-            $day = $session !== null ? $session->local_date : $c->proposed_in_at?->setTimezone($zone)->startOfDay();
+            $day = $dayOf($c);
             $new = match ($c->kind) {
                 'change_in' => AttendanceSupport::time($c->proposed_in_at, $zone),
                 'set_out' => AttendanceSupport::time($c->proposed_out_at, $zone),
@@ -280,6 +326,7 @@ final class AttendancePageService
                 'lockVersion' => $c->lock_version,
                 // When the correction was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
                 'sentAt' => CarbonImmutable::parse($c->created_at)->utc()->toIso8601String(),
+                'lockedMonth' => $lockedMonths[(int) $c->id] ?? null,
             ];
         })->values()->all();
     }

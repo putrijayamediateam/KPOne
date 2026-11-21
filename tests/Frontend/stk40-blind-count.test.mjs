@@ -7,15 +7,13 @@ const read = (p) =>
 const flat = (s) => s.replace(/\s+/g, ' ');
 const pages = {
     classic: read('resources/js/pages/Inventory/ControlledRegisterShow.vue'),
-    v2: read('resources/js/pages/Inventory/V2/ControlledRegisterShow.vue'),
 };
 const lists = {
     classic: read('resources/js/pages/Inventory/ControlledRegister.vue'),
-    v2: read('resources/js/pages/Inventory/V2/ControlledRegister.vue'),
 };
 const script = (s) => s.slice(0, s.indexOf('</script>'));
 
-test('STK-40b: in both layouts the count is always recorded and nothing says it differs before it is saved', () => {
+test('STK-40b: on the Classic pages the count is always recorded and nothing says it differs before it is saved', () => {
     for (const [name, source] of Object.entries(pages)) {
         const s = flat(script(source));
         // The record form sends the count only; the server never answers "differs" before it is saved.
@@ -40,7 +38,7 @@ test('STK-40b: in both layouts the count is always recorded and nothing says it 
     }
 });
 
-test('STK-40: in both layouts the page says the balance comes after the count, with no print until then', () => {
+test('STK-40: on the Classic pages the page says the balance comes after the count, with no print until then', () => {
     for (const [name, source] of Object.entries(pages)) {
         const t = flat(source.slice(source.indexOf('<template>')));
         assert.match(t, /on hand shown after your count/, name);
@@ -91,7 +89,7 @@ test('STK-40: while blind the In, Out and Balance columns are left out, the diff
     }
 });
 
-test('STK-40: in both layouts the list shows "Shown after your count" for a blind row', () => {
+test('STK-40: on the Classic pages the list shows "Shown after your count" for a blind row', () => {
     for (const [name, source] of Object.entries(lists)) {
         assert.match(source, /Shown after your count/, name);
         assert.match(
@@ -102,7 +100,7 @@ test('STK-40: in both layouts the list shows "Shown after your count" for a blin
     }
 });
 
-test('STK-40: in both layouts a check shows "N earlier attempts" only when there were refused tries (kept for older checks, STK-40b)', () => {
+test('STK-40: on the Classic pages a check shows "N earlier attempts" only when there were refused tries (kept for older checks, STK-40b)', () => {
     for (const [name, source] of Object.entries(pages)) {
         const t = flat(source.slice(source.indexOf('<template>')));
         assert.match(

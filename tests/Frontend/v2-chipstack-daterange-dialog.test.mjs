@@ -14,16 +14,6 @@ test('V2ChipStack: wraps, one column in a phone card, built from V2Chip', () => 
     assert.match(s, /<V2Chip/);
 });
 
-test('V2DateRange: a named From and To pair with an announced order error, 44px', () => {
-    const s = v2('V2DateRange');
-    assert.match(s, /<fieldset/);
-    assert.match(s, /<legend/);
-    assert.match(s, /type="date"/);
-    assert.match(s, /From must be on or before To\./);
-    assert.match(s, /role="alert"/);
-    assert.match(s, /h-11[^'"]*lg:h-9/);
-});
-
 test('V2Dialog: 18px corners, a phone bottom sheet, a pinned footer, a required reason, focus trap from reka-ui', () => {
     const s = v2('V2Dialog');
     assert.match(s, /from 'reka-ui'/);
@@ -46,7 +36,7 @@ test('V2Dialog: 18px corners, a phone bottom sheet, a pinned footer, a required 
 });
 
 test('The new blocks import nothing from the Classic ui components', () => {
-    for (const n of ['V2ChipStack', 'V2DateRange', 'V2Dialog']) {
+    for (const n of ['V2ChipStack', 'V2Dialog']) {
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
 });
@@ -133,26 +123,6 @@ test('V2Dialog: Confirm stays at full opacity when aria-disabled; aria-described
         /:aria-describedby="[^"]*'v2-dialog-reason-error'[^"]*undefined/,
     );
     assert.doesNotMatch(s, /\n\s*aria-describedby="v2-dialog-reason-error"/);
-});
-
-test('V2DateRange: a plain-date echo ("1 Nov 2026 to 13 Nov 2026") on by default, announced politely, formatted without a time zone', () => {
-    const s = v2('V2DateRange');
-    assert.match(s, /echo\?: boolean/);
-    assert.match(s, /echo: true/);
-    assert.match(s, /data-slot="v2-date-range-echo"/);
-    assert.match(s, /role="status"\s+aria-live="polite"/);
-    assert.match(s, /data-slot="v2-date-range-spoken"/);
-    assert.match(s, /setTimeout\(speakNow, 1200\)/);
-    assert.match(s, /@focusout="speakNow"/);
-    // The visible echo is not itself a live region: only the delayed spoken copy is.
-    assert.match(
-        s,
-        /data-slot="v2-date-range-echo"[^>]*aria-hidden="true"|aria-hidden="true"[^>]*data-slot="v2-date-range-echo"/s,
-    );
-    assert.match(s, /`\$\{from\} to \$\{to\}`/);
-    assert.match(s, /`From \$\{from\}`/);
-    assert.match(s, /`Up to \$\{to\}`/);
-    assert.doesNotMatch(s, /new Date|Intl\.|toLocale/);
 });
 
 test('V2Dialog size="tall": full height on a phone, 42rem from 640px, 56rem from 1024px, up to 90dvh', () => {
@@ -275,22 +245,4 @@ test('V2Dialog: the footer-note slot is in the pinned footer, outside the scroll
     assert.ok(bodyClose > body && bodyClose < note);
     // pinned: it never shrinks, and the footer border is dropped so there is one divider
     assert.match(d, /data-slot="v2-dialog-footer-note"[\s\S]*?shrink-0/);
-});
-
-test('V2Tabs: the selected tab is brought to the middle of a scrolling strip on load and change, smooth unless reduced motion, never moving the page', () => {
-    const t = read('resources/js/components/v2/V2Tabs.vue');
-    assert.match(t, /const reveal = \(\) =>/);
-    assert.match(t, /el\.scrollWidth <= el\.clientWidth/);
-    assert.match(
-        t,
-        /tab\.offsetLeft - \(el\.clientWidth - tab\.offsetWidth\) \/ 2/,
-    );
-    assert.match(t, /el\.scrollTo\(\{/);
-    assert.match(t, /behavior: reduced \? 'auto' : 'smooth'/);
-    assert.match(t, /prefers-reduced-motion: reduce/);
-    // on mount and whenever the selected value changes
-    assert.match(t, /onMounted\(\(\) => \{\s*reveal\(\);/);
-    assert.match(t, /watch\(\(\) => props\.modelValue, reveal\)/);
-    // the strip scrolls, not the page: no element scrollIntoView any more
-    assert.doesNotMatch(t, /scrollIntoView/);
 });

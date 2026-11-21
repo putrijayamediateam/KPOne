@@ -41,7 +41,7 @@ final class UnifiedCatalogueSetupService
                 'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
                 'generic_name', 'category', 'group_name', 'default_dosage_amount',
                 'default_dosage_unit', 'default_instruction', 'default_precaution',
-                'default_frequency', 'default_duration', 'default_indication',
+                'default_frequency', 'default_duration', 'default_indication', 'usual_quantity',
             ]));
             $sku = $this->ensureMedicineSku($actor, $medicine, $attributes);
             $this->publishPrices($actor, $medicine, $attributes['prices'] ?? [], $attributes['expected_branch_id'] ?? null);
@@ -59,7 +59,7 @@ final class UnifiedCatalogueSetupService
                 'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
                 'generic_name', 'category', 'group_name', 'default_dosage_amount',
                 'default_dosage_unit', 'default_instruction', 'default_precaution',
-                'default_frequency', 'default_duration', 'default_indication',
+                'default_frequency', 'default_duration', 'default_indication', 'usual_quantity',
             ]));
 
             $mapping = MedicineCatalogueInventorySku::query()

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
 // retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight, TriangleAlert } from '@lucide/vue';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
@@ -25,796 +24,86 @@ import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 
-type Tab = 'applications' | 'pool' | 'positions' | 'settings';
-type Option = { value: string; label: string };
-type Application = {
-    id: string;
-    position: string;
-    status: string;
-    statusLabel: string;
-    next: Option[];
-    name: string | null;
-    /** Masked on the list; Show records each view. */
-    phoneMask: string | null;
-    emailMask: string | null;
-    message: string | null;
-    type: string;
-    details: { label: string; value: string }[];
-    screening: {
-        outcome: 'pass' | 'reject';
-        rating: number;
-        reason: string | null;
-        note: string | null;
-        items: { text: string; ticked: boolean }[];
-        by: string;
-        at: string;
-    } | null;
-    hasCv: boolean;
-    cvKb: number;
-    privacyNoticeVersion: string;
-    submittedAt: string;
-    closedAt: string | null;
-    purged: boolean;
-    lockVersion: number;
-    // HR-17b: the fixed messages the candidate (or the hiring mailbox) got, and when the daily check closes it.
-    messages: {
-        template: string;
-        label: string;
-        recipient: 'candidate' | 'mailbox';
-        status: string;
-        statusLabel: string;
-        subject: string;
-        body: string;
-        atLabel: string;
-    }[];
-    autoRejectOn: string | null;
-    autoRejectSoon: boolean;
-    extendDays: number;
-    extensionsUsed: number;
-    extensionsMax: number;
-    // HR-17c: the candidate's three times at Scheduling, or the confirmed one at Interview.
-    interview: {
-        round: number;
-        branch: string | null;
-        picks: {
-            start: string;
-            label: string;
-            taken: boolean;
-            past: boolean;
-        }[];
-        confirmed: string | null;
-        // HR-17d: which interview documents the candidate has downloaded.
-        documents?: { title: string; downloadedAt: string | null }[];
-    } | null;
-    // HR-17e: the talent pool and the staff-account request.
-    poolUntil?: string | null;
-    poolConsent?: boolean;
-    accountRequest?: {
-        id: string;
-        status: 'open' | 'done' | 'cancelled';
-        statusLabel: string;
-        at: string;
-        lockVersion: number;
-    } | null;
-};
-type PoolMember = {
-    id: string;
-    name: string;
-    position: string;
-    type: string;
-    result: string;
-    resultLabel: string;
-    closedOn: string;
-    until: string;
-    lockVersion: number;
-    invitedTo: string[];
-    positions: Option[];
-};
-type InterviewDocumentGroup = {
-    type: string;
-    label: string;
-    documents: {
-        id: string;
-        title: string;
-        size: string;
-        uploadedOn: string;
-        uploadedBy: string;
-        candidates: number;
-        lockVersion: number;
-    }[];
-};
-type NeedsYouRow = {
-    id: string;
-    status: string;
-    name: string;
-    position: string;
-    why: string;
-};
-type Position = {
-    id: string;
-    title: string;
-    type: string;
-    typeLabel: string;
-    branchId: string | null;
-    branch: string | null;
-    isOpen: boolean;
-    openApplications: number;
-    applications: number;
-    lockVersion: number;
-};
+import { useApplicationsPage } from '@/composables/hr/useApplicationsPage';
+import type { ApplicationsPageProps } from '@/composables/hr/useApplicationsPage';
 
-const props = defineProps<{
-    applications: {
-        tab: Tab;
-        tabs: Tab[];
-        form: {
-            enabled: boolean;
-            state: 'off' | 'needs_retention' | 'on';
-            url: string;
-            privacyNoticeVersion: string;
-        };
-        options: {
-            statuses: Option[];
-            branches: Option[];
-            positions: Option[];
-            graceDays: number;
-            types: Option[];
-            rejectReasons: Option[];
-            cancelReasons: Option[];
-        };
-        positions: Position[];
-        applications: {
-            filters: { status: string; position: string; focus: string };
-            page: number;
-            perPage: number;
-            total: number;
-            rows: Application[];
-        } | null;
-        settings: {
-            version: number;
-            retentionDays: number | null;
-            pending: { days: number | null; from: string } | null;
-        };
-        checklist: { version: number; items: string[] };
-        interviewDocuments: InterviewDocumentGroup[];
-        pool: {
-            version: number;
-            days: number | null;
-            pending: { days: number | null; from: string } | null;
-            members: PoolMember[];
-        };
-        needsYou: {
-            picks: { count: number; rows: NeedsYouRow[] };
-            today: { count: number; rows: NeedsYouRow[] };
-            closing: { count: number; rows: NeedsYouRow[] };
-            new: { count: number; rows: NeedsYouRow[] };
-            noWorkingDays: boolean;
-        };
-        email: { enabled: boolean; mailbox: boolean };
-    };
-}>();
+const props = defineProps<ApplicationsPageProps>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(
-    () =>
-        errors.value.applications ??
-        errors.value.records ??
-        errors.value.position,
-);
-const tabLabels: Record<Tab, string> = {
-    applications: 'Applications',
-    pool: 'Talent pool',
-    positions: 'Positions',
-    settings: 'Settings',
-};
-const tabs = computed(() =>
-    props.applications.tabs.map((value) => ({
-        value,
-        label: tabLabels[value],
-    })),
-);
-const selectTab = (value: string | number) =>
-    router.get('/hr/applications', { tab: value }, { preserveScroll: true });
-
-// ---- Applications ----
-const list = computed(() => props.applications.applications);
-const statusFilter = computed(() => [
-    { value: 'open', label: 'Open (New to Interview)' },
-    ...props.applications.options.statuses,
-]);
-const positionFilter = computed(() => [
-    { value: 'all', label: 'All positions' },
-    ...props.applications.options.positions,
-]);
-const filter = (changes: Record<string, string | number>) => {
-    const current = list.value?.filters ?? { status: 'open', position: '' };
-    const next = { ...current, page: 1, ...changes };
-    router.get(
-        '/hr/applications',
-        {
-            tab: 'applications',
-            status: next.status,
-            ...(changes.focus ? { focus: changes.focus } : {}),
-            ...(next.position && next.position !== 'all'
-                ? { position: next.position }
-                : {}),
-            ...(Number(next.page) > 1 ? { page: next.page } : {}),
-        },
-        { preserveScroll: true },
-    );
-};
-const pages = computed(() =>
-    list.value
-        ? Math.max(1, Math.ceil(list.value.total / list.value.perPage))
-        : 1,
-);
-const tone = (status: string) =>
-    (
-        ({
-            // Each open step its own tone (Daniel, HR-13).
-            new: 'accent',
-            phone_screening: 'neutral',
-            scheduling: 'neutral',
-            interview: 'warning',
-            passed: 'success',
-            failed: 'danger',
-            not_taken_forward: 'danger',
-            auto_rejected: 'danger',
-            withdrawn: 'neutral',
-            shortlisted: 'neutral',
-            offered: 'success',
-        }) as const
-    )[status] ?? 'neutral';
-
-// HR-17b "Needs you": a row opens just that application.
-const needsYouCount = computed(
-    () =>
-        props.applications.needsYou.picks.count +
-        props.applications.needsYou.today.count +
-        props.applications.needsYou.closing.count +
-        props.applications.needsYou.new.count,
-);
-// HR-17c: interview actions. Each is one POST with the row's lock version and a fresh key.
-const interviewAction = reactive({
-    processing: false,
-    cancelOpen: false,
-    reason: '',
-});
-const interviewPost = (path: string, data: Record<string, string> = {}) => {
-    if (!viewing.value) {
-        return;
-    }
-
-    interviewAction.processing = true;
-    router.post(
-        `/hr/applications/${viewing.value.id}/interview/${path}`,
-        {
-            ...data,
-            expected_lock_version: viewing.value.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-            ...(list.value?.filters ?? {}),
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                viewing.value = null;
-                interviewAction.cancelOpen = false;
-                confirming.value = null;
-            },
-            onFinish: () => (interviewAction.processing = false),
-        },
-    );
-};
-const extending = ref(false);
-const extendError = ref<string | undefined>(undefined);
-const extendDeadline = () => {
-    if (!viewing.value) {
-        return;
-    }
-
-    extending.value = true;
-    extendError.value = undefined;
-    router.post(
-        `/hr/applications/${viewing.value.id}/extend-deadline`,
-        {
-            expected_lock_version: viewing.value.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-            ...(list.value?.filters ?? {}),
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (viewing.value = null),
-            onError: (errors) =>
-                (extendError.value =
-                    errors.extend ?? errors.expected_lock_version),
-            onFinish: () => (extending.value = false),
-        },
-    );
-};
-const focusOn = (row: NeedsYouRow) =>
-    router.get(
-        '/hr/applications',
-        { tab: 'applications', status: row.status, focus: row.id },
-        { preserveScroll: true },
-    );
-const showAll = () => filter({ status: 'open' });
-
-const viewing = ref<Application | null>(null);
-const moving = reactive({
-    to: '',
-    key: '',
-    processing: false,
-    confirm: false,
-});
-// Opens the application "Needs you" pointed at, on first load and after an Inertia visit to the same page.
-watch(
-    () => list.value?.filters.focus,
-    (focus) => {
-        const focused = focus ? list.value?.rows[0] : null;
-
-        if (focused) {
-            openApplication(focused);
-        }
-    },
-    { flush: 'post' },
-);
-onMounted(() => {
-    const focused = list.value?.filters.focus ? list.value.rows[0] : null;
-
-    if (focused) {
-        openApplication(focused);
-    }
-});
-const openApplication = (application: Application) => {
-    viewing.value = application;
-    Object.assign(moving, {
-        to: '',
-        key: '',
-        processing: false,
-        confirm: false,
-    });
-    Object.assign(screening, {
-        outcome: '',
-        rating: '',
-        ticked: [],
-        note: '',
-        key: crypto.randomUUID(),
-        processing: false,
-    });
-};
-
-// ---- Phone screening (HR-17a) ----
-const screening = reactive({
-    outcome: '' as '' | 'pass' | 'reject',
-    rating: '',
-    ticked: [] as number[],
-    note: '',
-    key: '',
-    processing: false,
-});
-// Pass is the primary action; Reject asks first and needs a reason (Daniel, HR-17a).
-const rejecting = reactive({ open: false, reason: '' });
-const recordPass = () => {
-    screening.outcome = 'pass';
-    saveScreening();
-};
-const askReject = () => {
-    Object.assign(rejecting, { open: true, reason: '' });
-};
-const confirmReject = () => {
-    screening.outcome = 'reject';
-    saveScreening();
-};
-const saveScreening = () => {
-    const application = viewing.value;
-
-    if (!application) {
-        return;
-    }
-
-    screening.processing = true;
-    router.post(
-        `/hr/applications/${application.id}/screening`,
-        {
-            outcome: screening.outcome,
-            rating: screening.rating,
-            ticked: screening.ticked,
-            note: screening.note,
-            reject_reason:
-                screening.outcome === 'reject' ? rejecting.reason : null,
-            expected_lock_version: application.lockVersion,
-            idempotency_key: screening.key,
-            ...(list.value?.filters ?? {}),
-            page: list.value?.page ?? 1,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                viewing.value = null;
-                rejecting.open = false;
-            },
-            onFinish: () => (screening.processing = false),
-        },
-    );
-};
-// HR-17c (Daniel): at Scheduling, "Interview" means an interview arranged outside KPOne, and it is hidden once the
-// candidate has picked times, so Confirm is the one path.
-const arrangedOutside = (to: string) =>
-    viewing.value?.status === 'scheduling' && to === 'interview';
-const moveSteps = computed(() =>
-    (viewing.value?.next ?? []).filter(
-        (step) =>
-            !(
-                arrangedOutside(step.value) &&
-                (viewing.value?.interview?.picks.length ?? 0) > 0
-            ),
-    ),
-);
-// Confirming tells the candidate, so it asks first (Daniel, HR-17c).
-const confirming = ref<{ start: string; label: string } | null>(null);
-
-const askMove = (to: string) => {
-    if (!viewing.value) {
-        return;
-    }
-
-    if (moving.to !== to) {
-        Object.assign(moving, { to, key: crypto.randomUUID() });
-    }
-
-    // A step that closes the application asks first.
-    if (['passed', 'failed', 'not_taken_forward', 'withdrawn'].includes(to)) {
-        moving.confirm = true;
-
-        return;
-    }
-
-    move();
-};
-const move = () => {
-    const application = viewing.value;
-
-    if (!application || !moving.to) {
-        return;
-    }
-
-    moving.processing = true;
-    router.post(
-        `/hr/applications/${application.id}/move`,
-        {
-            to: moving.to,
-            expected_lock_version: application.lockVersion,
-            idempotency_key: moving.key,
-            ...(list.value?.filters ?? {}),
-            page: list.value?.page ?? 1,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                viewing.value = null;
-                moving.confirm = false;
-            },
-            onFinish: () => (moving.processing = false),
-        },
-    );
-};
-const label = (value: string) =>
-    props.applications.options.statuses.find((s) => s.value === value)?.label ??
-    value;
-
-// ---- Positions ----
-const positionForm = reactive({
-    open: false,
-    position: null as Position | null,
-    title: '',
-    type: 'ca',
-    branchId: 'any',
-    isOpen: true,
-    key: '',
-    processing: false,
-});
-const branchOptions = computed(() => [
-    { value: 'any', label: 'Any branch' },
-    ...props.applications.options.branches,
-]);
-const startAdd = () =>
-    Object.assign(positionForm, {
-        open: true,
-        position: null,
-        title: '',
-        type: 'ca',
-        branchId: 'any',
-        isOpen: true,
-        key: crypto.randomUUID(),
-    });
-const startEdit = (position: Position) =>
-    Object.assign(positionForm, {
-        open: true,
-        position,
-        title: position.title,
-        type: position.type,
-        branchId: position.branchId ?? 'any',
-        isOpen: position.isOpen,
-        key: crypto.randomUUID(),
-    });
-const savePosition = () => {
-    positionForm.processing = true;
-    const position = positionForm.position;
-    router.post(
-        position
-            ? `/hr/applications/positions/${position.id}`
-            : '/hr/applications/positions',
-        {
-            title: positionForm.title,
-            position_type: positionForm.type,
-            branch_id: positionForm.branchId,
-            ...(position
-                ? {
-                      is_open: positionForm.isOpen,
-                      expected_lock_version: position.lockVersion,
-                  }
-                : {}),
-            idempotency_key: positionForm.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (positionForm.open = false),
-            onFinish: () => (positionForm.processing = false),
-        },
-    );
-};
-
-// ---- Settings: the phone-screening call checklist (HR-17a) ----
-const checklist = reactive({
-    text: props.applications.checklist.items.join('\n'),
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const saveChecklist = () => {
-    checklist.processing = true;
-    router.post(
-        '/hr/applications/checklist',
-        {
-            items: checklist.text
-                .split('\n')
-                .map((line) => line.trim())
-                .filter((line) => line !== ''),
-            expected_version: props.applications.checklist.version,
-            idempotency_key: checklist.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (checklist.key = crypto.randomUUID()),
-            onFinish: () => (checklist.processing = false),
-        },
-    );
-};
-
-// Save is the primary button only while its card has unsaved changes (Daniel, HR-17a).
-const checklistDirty = computed(
-    () =>
-        JSON.stringify(
-            checklist.text
-                .split('\n')
-                .map((line) => line.trim())
-                .filter((line) => line !== ''),
-        ) !== JSON.stringify(props.applications.checklist.items),
-);
-const retentionDirty = computed(
-    () =>
-        retention.days.trim() !==
-        (props.applications.settings.retentionDays?.toString() ?? ''),
-);
-
-// ---- Settings ----
-const retention = reactive({
-    days: props.applications.settings.retentionDays?.toString() ?? '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const saveRetention = () => {
-    retention.processing = true;
-    router.post(
-        '/hr/applications/retention',
-        {
-            retention_days:
-                retention.days.trim() === '' ? null : retention.days.trim(),
-            expected_version: props.applications.settings.version,
-            idempotency_key: retention.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (retention.key = crypto.randomUUID()),
-            onFinish: () => (retention.processing = false),
-        },
-    );
-};
-
-// HR-17e: the talent pool period, invitations and the staff-account request (HR-PLAN 19.8).
-const poolDays = reactive({
-    days: props.applications.pool.days?.toString() ?? '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const poolDaysDirty = computed(
-    () =>
-        poolDays.days.trim() !==
-        (props.applications.pool.days?.toString() ?? ''),
-);
-const savePoolDays = () => {
-    poolDays.processing = true;
-    router.post(
-        '/hr/applications/pool-days',
-        {
-            pool_days:
-                poolDays.days.trim() === '' ? null : poolDays.days.trim(),
-            expected_version: props.applications.pool.version,
-            idempotency_key: poolDays.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (poolDays.key = crypto.randomUUID()),
-            onFinish: () => (poolDays.processing = false),
-        },
-    );
-};
-const invitePick = reactive<Record<string, string>>({});
-const inviting = ref<{ member: PoolMember; position: Option } | null>(null);
-const inviteKey = ref(crypto.randomUUID());
-const inviteProcessing = ref(false);
-const askInvite = (member: PoolMember) => {
-    const position = member.positions.find(
-        (p) => p.value === invitePick[member.id],
-    );
-
-    if (position) {
-        inviting.value = { member, position };
-    }
-};
-const sendInvite = () => {
-    const target = inviting.value;
-
-    if (!target) {
-        return;
-    }
-
-    inviteProcessing.value = true;
-    router.post(
-        `/hr/applications/${target.member.id}/invite`,
-        {
-            position: target.position.value,
-            expected_lock_version: target.member.lockVersion,
-            idempotency_key: inviteKey.value,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                inviting.value = null;
-                inviteKey.value = crypto.randomUUID();
-            },
-            onFinish: () => (inviteProcessing.value = false),
-        },
-    );
-};
-const invitationLink = computed(
-    () =>
-        (page as unknown as { flash?: { invitationLink?: string } }).flash
-            ?.invitationLink ?? null,
-);
-const linkCopied = ref<'copied' | 'select' | null>(null);
-const copyInvitationLink = async (event: Event) => {
-    try {
-        await navigator.clipboard.writeText(invitationLink.value ?? '');
-        linkCopied.value = 'copied';
-    } catch {
-        const input = (event.currentTarget as HTMLElement)
-            .closest('[data-test="pool-invitation-link"]')
-            ?.querySelector('input');
-        input?.select();
-        linkCopied.value = 'select';
-    }
-};
-const accountAction = reactive({ key: crypto.randomUUID(), processing: false });
-const accountPost = (path: string, lockVersion: number) => {
-    accountAction.processing = true;
-    router.post(
-        path,
-        {
-            expected_lock_version: lockVersion,
-            idempotency_key: accountAction.key,
-            ...(list.value?.filters ?? {}),
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                accountAction.key = crypto.randomUUID();
-                viewing.value = null;
-            },
-            onFinish: () => (accountAction.processing = false),
-        },
-    );
-};
-
-// HR-17d: interview documents per position type (HR-PLAN 19.7).
-const DOCS_MAX = 10;
-const documentForm = reactive({
-    type: props.applications.options.types[0]?.value ?? 'ca',
-    title: '',
-    file: null as File | null,
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const documentPicker = ref<InstanceType<typeof FileChooseButton> | null>(null);
-const documentGroup = computed(() =>
-    props.applications.interviewDocuments.find(
-        (g) => g.type === documentForm.type,
-    ),
-);
-const documentFull = computed(
-    () => (documentGroup.value?.documents.length ?? 0) >= DOCS_MAX,
-);
-const chooseDocument = (event: Event) => {
-    documentForm.file = (event.target as HTMLInputElement).files?.[0] ?? null;
-};
-const uploadDocument = () => {
-    documentForm.processing = true;
-    router.post(
-        '/hr/applications/interview-documents',
-        {
-            position_type: documentForm.type,
-            title: documentForm.title,
-            file: documentForm.file,
-            idempotency_key: documentForm.key,
-        },
-        {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                Object.assign(documentForm, {
-                    title: '',
-                    file: null,
-                    key: crypto.randomUUID(),
-                });
-                documentPicker.value?.clear();
-            },
-            onFinish: () => (documentForm.processing = false),
-        },
-    );
-};
-const removingDocument = ref<{
-    id: string;
-    title: string;
-    lockVersion: number;
-} | null>(null);
-const removeDocumentKey = ref(crypto.randomUUID());
-const removeDocumentProcessing = ref(false);
-const removeDocument = () => {
-    const doc = removingDocument.value;
-
-    if (!doc) {
-        return;
-    }
-
-    removeDocumentProcessing.value = true;
-    router.post(
-        `/hr/applications/interview-documents/${doc.id}/remove`,
-        {
-            expected_lock_version: doc.lockVersion,
-            idempotency_key: removeDocumentKey.value,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                removingDocument.value = null;
-                removeDocumentKey.value = crypto.randomUUID();
-            },
-            onFinish: () => (removeDocumentProcessing.value = false),
-        },
-    );
-};
+const {
+    errors,
+    failure,
+    tabs,
+    selectTab,
+    list,
+    statusFilter,
+    positionFilter,
+    filter,
+    pages,
+    tone,
+    needsYouCount,
+    interviewAction,
+    interviewPost,
+    extending,
+    extendError,
+    extendDeadline,
+    focusOn,
+    showAll,
+    viewing,
+    moving,
+    openApplication,
+    screening,
+    rejecting,
+    recordPass,
+    askReject,
+    confirmReject,
+    arrangedOutside,
+    moveSteps,
+    confirming,
+    meeting,
+    askConfirm,
+    confirmInterview,
+    askMove,
+    move,
+    label,
+    positionForm,
+    branchOptions,
+    startAdd,
+    startEdit,
+    savePosition,
+    checklist,
+    saveChecklist,
+    checklistDirty,
+    retentionDirty,
+    retention,
+    saveRetention,
+    poolDays,
+    poolDaysDirty,
+    savePoolDays,
+    invitePick,
+    inviting,
+    inviteProcessing,
+    askInvite,
+    sendInvite,
+    invitationLink,
+    linkCopied,
+    copyInvitationLink,
+    accountAction,
+    accountPost,
+    locumConfirm,
+    locumAnnounce,
+    locumError,
+    askLocumFile,
+    makeLocumFile,
+    DOCS_MAX,
+    documentForm,
+    documentPicker,
+    documentFull,
+    chooseDocument,
+    uploadDocument,
+    removingDocument,
+    removeDocumentProcessing,
+    removeDocument,
+} = useApplicationsPage(props);
 </script>
 
 <template>
@@ -1700,7 +989,7 @@ const removeDocument = () => {
                 </SheetHeader>
                 <div v-if="viewing" class="flex flex-col gap-4 px-4 pb-6">
                     <ErrorState
-                        v-if="errors.to || failure"
+                        v-if="(errors.to || failure) && !locumConfirm"
                         :message="errors.to ?? failure ?? ''"
                     />
                     <div class="flex flex-wrap items-center gap-2">
@@ -1810,6 +1099,22 @@ const removeDocument = () => {
                                 }}</strong
                                 >.
                             </p>
+                            <p
+                                v-if="viewing.interview.online"
+                                class="text-sm break-all"
+                                data-test="interview-online"
+                            >
+                                Online:
+                                <a
+                                    :href="
+                                        viewing.interview.videoLink ?? undefined
+                                    "
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="underline underline-offset-2"
+                                    >{{ viewing.interview.videoLink }}</a
+                                >
+                            </p>
                             <Button
                                 variant="outline"
                                 class="w-fit max-lg:min-h-11"
@@ -1894,12 +1199,7 @@ const removeDocument = () => {
                                         "
                                         :aria-label="`Confirm ${pick.label}`"
                                         data-test="interview-confirm"
-                                        @click="
-                                            confirming = {
-                                                start: pick.start,
-                                                label: pick.label,
-                                            }
-                                        "
+                                        @click="askConfirm(pick)"
                                         >Confirm</Button
                                     >
                                 </li>
@@ -2109,15 +1409,64 @@ const removeDocument = () => {
                                       : 'Not in the talent pool.'
                             }}
                         </p>
+                        <p
+                            class="sr-only"
+                            role="status"
+                            data-test="application-locum-announce"
+                        >
+                            {{ locumAnnounce }}
+                        </p>
                         <template v-if="viewing.status === 'passed'">
+                            <div
+                                v-if="viewing.locumHire"
+                                class="flex flex-col gap-2"
+                                data-test="application-locum-hire"
+                            >
+                                <p class="text-sm">
+                                    Locum file: {{ viewing.locumHire.name }}
+                                </p>
+                                <p
+                                    class="flex items-center gap-2 text-sm text-muted-foreground"
+                                >
+                                    <span
+                                        class="size-2 shrink-0 rounded-full bg-warning"
+                                        :class="{
+                                            'bg-success':
+                                                viewing.locumHire.signIn ===
+                                                'Sign-in made',
+                                        }"
+                                        aria-hidden="true"
+                                    />
+                                    {{ viewing.locumHire.signIn }}
+                                </p>
+                                <Button
+                                    as-child
+                                    variant="outline"
+                                    class="min-h-11 w-full sm:min-h-9 sm:w-auto sm:self-start"
+                                >
+                                    <Link
+                                        :href="`/hr/records/${viewing.locumHire.workerId}`"
+                                        data-test="application-locum-open"
+                                        >Open the locum file</Link
+                                    >
+                                </Button>
+                            </div>
                             <p
-                                v-if="viewing.accountRequest"
+                                v-else-if="viewing.accountRequest"
                                 class="text-sm"
                                 data-test="application-account-request"
                             >
                                 Staff account:
                                 {{ viewing.accountRequest.statusLabel }} ·
                                 {{ viewing.accountRequest.at }}
+                            </p>
+                            <p
+                                v-else-if="viewing.type === 'locum'"
+                                class="text-sm text-muted-foreground"
+                            >
+                                No offer is made in KPOne. When they accept,
+                                make the locum file. KPOne then asks the account
+                                administrator for their sign-in.
                             </p>
                             <p v-else class="text-sm text-muted-foreground">
                                 No offer is made in KPOne. When they accept, ask
@@ -2126,6 +1475,25 @@ const removeDocument = () => {
                             <div class="flex flex-wrap gap-2">
                                 <Button
                                     v-if="
+                                        viewing.type === 'locum' &&
+                                        !viewing.locumHire &&
+                                        viewing.accountRequest?.status !==
+                                            'open' &&
+                                        viewing.accountRequest?.status !==
+                                            'done' &&
+                                        !viewing.purged
+                                    "
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :disabled="accountAction.processing"
+                                    data-test="application-locum-make"
+                                    @click="askLocumFile"
+                                    >Make the locum file and ask for a
+                                    sign-in</Button
+                                >
+                                <Button
+                                    v-if="
+                                        viewing.type !== 'locum' &&
                                         viewing.accountRequest?.status !==
                                             'open' &&
                                         viewing.accountRequest?.status !==
@@ -2365,6 +1733,18 @@ const removeDocument = () => {
         </Sheet>
 
         <OperationalConfirmDialog
+            :open="locumConfirm"
+            :title="`Make the locum file for ${viewing?.name ?? ''} and ask for a sign-in?`"
+            description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
+            confirm-label="Make file and ask"
+            :processing="accountAction.processing"
+            :error="locumError"
+            data-test="application-locum-confirm"
+            @update:open="(open) => !open && (locumConfirm = false)"
+            @confirm="makeLocumFile"
+        />
+
+        <OperationalConfirmDialog
             :open="inviting !== null"
             :title="`Invite ${inviting?.member.name ?? ''} to ${inviting?.position.label ?? ''}?`"
             description="A new application starts at phone screening with the same answers and CV, and the candidate gets a new private link. Call them soon: like any application at phone screening, the daily check closes it as Auto-rejected after 3 working days without a decision."
@@ -2390,17 +1770,71 @@ const removeDocument = () => {
         <OperationalConfirmDialog
             :open="confirming !== null"
             :title="`Confirm ${confirming?.label ?? ''}?`"
-            description="The candidate is told the date, time and branch."
+            :description="
+                meeting.mode === 'online'
+                    ? 'The candidate is told the date, time and video link.'
+                    : 'The candidate is told the date, time and branch.'
+            "
             confirm-label="Confirm interview"
             :processing="interviewAction.processing"
-            :error="errors.start"
+            :error="errors.start ?? errors.mode"
             data-test="interview-confirm-dialog"
             @update:open="(open) => !open && (confirming = null)"
-            @confirm="
-                confirming &&
-                interviewPost('confirm', { start: confirming.start })
-            "
-        />
+            @confirm="confirmInterview"
+        >
+            <fieldset
+                class="flex flex-col gap-1"
+                data-test="interview-meeting-modes"
+            >
+                <legend class="mb-1 text-sm font-medium">
+                    How does it happen?
+                </legend>
+                <label
+                    v-for="m in applications.options.meetingModes"
+                    :key="m.value"
+                    class="flex min-h-11 items-center gap-3 text-sm"
+                >
+                    <input
+                        v-model="meeting.mode"
+                        type="radio"
+                        name="interview-meeting-mode"
+                        :value="m.value"
+                        class="size-5"
+                    />
+                    {{ m.label }}
+                </label>
+            </fieldset>
+            <div v-if="meeting.mode === 'online'" class="flex flex-col gap-1.5">
+                <Label for="interview-video-link">Video link</Label>
+                <Input
+                    id="interview-video-link"
+                    v-model="meeting.videoLink"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    maxlength="500"
+                    placeholder="https://"
+                    :aria-describedby="
+                        errors.video_link
+                            ? 'interview-video-link-help interview-video-link-error'
+                            : 'interview-video-link-help'
+                    "
+                    :aria-invalid="errors.video_link ? true : undefined"
+                    data-test="interview-video-link"
+                />
+                <p
+                    id="interview-video-link-help"
+                    class="text-sm text-muted-foreground"
+                >
+                    The candidate sees it on their private page and in the
+                    email. KPOne does not make the meeting.
+                </p>
+                <InputError
+                    id="interview-video-link-error"
+                    :message="errors.video_link"
+                />
+            </div>
+        </OperationalConfirmDialog>
 
         <OperationalConfirmDialog
             :open="interviewAction.cancelOpen"

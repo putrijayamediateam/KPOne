@@ -89,6 +89,8 @@ final class MoneyDaySummaryTool implements SystemReadableTool
                 'nonCashNetSen' => $nonCash,
                 'totalReceivedSen' => $cash + $nonCash,
                 'panelApprovedSen' => $panel,
+                // PCA-3: confirmed Panel claim adjustments on their confirmation day (Panel approved keeps the original share).
+                'panelAdjustmentSen' => (int) $sales['reconciliation']['panelAdjustmentsSen'],
                 'payLaterDueSen' => $due,
             ];
         }

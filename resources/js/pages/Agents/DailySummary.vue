@@ -58,6 +58,8 @@ type HanaCount = { total: number; pending: number };
 type Hana = Stamp & {
     date: string;
     counts: Record<'restock' | 'expiry' | 'transfer' | 'slowMoving', HanaCount>;
+    // Transfers the receiving branch asked for: the sending branch decides them, so this is read only.
+    transferFrom?: { branch: string; total: number; pending: number }[];
 };
 type Rizal = Stamp & {
     countsDue: number;
@@ -237,6 +239,12 @@ const moneyRows = (lina: Lina) => {
         },
     ];
 };
+// What this branch still has to decide itself: transfers it asked for are decided at the sending branch.
+const ownWaiting = (hana: Hana) =>
+    Object.values(hana.counts).reduce((sum, count) => sum + count.pending, 0) -
+    (hana.transferFrom ?? []).reduce((sum, row) => sum + row.pending, 0);
+const fromLine = (row: { branch: string; total: number; pending: number }) =>
+    `From ${row.branch}: ${row.total} ${row.total === 1 ? 'suggestion' : 'suggestions'}, ${row.pending} waiting for a decision there.`;
 const hanaLabels: Record<keyof Hana['counts'], string> = {
     restock: 'Restock',
     expiry: 'Expiry warning',
@@ -571,6 +579,14 @@ const RIZAL_SHOWN = 5;
                             decision
                         </li>
                     </ul>
+                    <p
+                        v-for="sender in branch.hana.transferFrom ?? []"
+                        :key="sender.branch"
+                        class="mt-1 text-xs text-muted-foreground"
+                        data-test="summary-transfer-from"
+                    >
+                        {{ fromLine(sender) }}
+                    </p>
                     <div
                         v-if="summary.canInbox"
                         class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"
@@ -589,7 +605,12 @@ const RIZAL_SHOWN = 5;
                             </Link>
                         </Button>
                         <span class="text-xs text-muted-foreground"
-                            >The inbox lists your active branch.</span
+                            >The inbox lists your active branch.
+                            {{
+                                ownWaiting(branch.hana) === 0
+                                    ? ' Nothing is waiting here.'
+                                    : ''
+                            }}</span
                         >
                     </div>
                 </div>

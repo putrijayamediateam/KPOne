@@ -97,6 +97,7 @@ const {
     removalReasons,
     action,
     actionText,
+    actionPayrollLine,
     openAction,
     confirmAction,
     typeOpen,
@@ -1964,6 +1965,13 @@ const {
                 />
                 <CalendarX v-else class="size-5" />
             </template>
+            <p
+                v-if="actionPayrollLine"
+                class="text-sm"
+                data-test="leave-locked-month"
+            >
+                {{ actionPayrollLine }}
+            </p>
             <div
                 v-if="action.kind === 'approve' && action.evidenceNeeded"
                 class="flex min-h-11 items-center gap-2"

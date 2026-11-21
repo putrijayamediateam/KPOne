@@ -70,13 +70,6 @@ class V2PublicPagesSwitchTest extends VisitTestCase
         }
     }
 
-    public function test_with_the_switch_on_a_patient_gets_the_v2_page_with_the_same_props(): void
-    {
-        config(['v2-pages.public' => true]);
-
-        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicCheckIn/V2/Status', false)->where('x', 1));
-    }
-
     public function test_with_the_switch_on_a_page_without_a_v2_file_stays_classic(): void
     {
         config(['v2-pages.public' => true]);
@@ -91,24 +84,5 @@ class V2PublicPagesSwitchTest extends VisitTestCase
 
         $this->assertSame('PublicCheckIn/Status', $resolver->pageFor('PublicCheckIn/Status'));
         $this->assertSame('PublicCheckIn/Show', $resolver->pageFor('PublicCheckIn/Show'));
-    }
-
-    public function test_with_the_switch_on_the_real_status_and_show_pages_get_their_v2_pages(): void
-    {
-        $resolver = app(UiVersionResolver::class);
-        config(['v2-pages.public' => true, 'v2-pages.public_pages' => (require base_path('config/v2-pages.php'))['public_pages']]);
-
-        $this->assertSame('PublicCheckIn/V2/Status', $resolver->pageFor('PublicCheckIn/Status'));
-        $this->assertSame('PublicCheckIn/V2/Show', $resolver->pageFor('PublicCheckIn/Show'));
-    }
-
-    public function test_the_staff_pages_dispatch_is_unchanged(): void
-    {
-        config(['v2-pages.pages' => ['Pricing/Index'], 'v2-pages.public' => true]);
-        $user = $this->actor('ca');
-        $this->selectBranch($user);
-
-        $this->switchOn($user);
-        $this->assertSame('Pricing/V2/Index', app(UiVersionResolver::class)->pageFor('Pricing/Index', $user));
     }
 }

@@ -27,6 +27,9 @@ use Illuminate\Validation\ValidationException;
  */
 final class ClockService
 {
+    /** Undo clock-out (owner, 16 Nov 2026): how long after their own clock-out a person may take it back. */
+    public const UNDO_MINUTES = 15;
+
     public function __construct(private AttendanceSupport $support, private BranchAccessService $branches, private AttendanceDays $days,
         private LocationCheckService $location, private ClockPhotoService $photos) {}
 
@@ -109,6 +112,86 @@ final class ClockService
 
             return $session;
         });
+    }
+
+    /**
+     * Undo clock-out (owner, 16 Nov 2026; staff only, HR uses the correction): the person's own latest clock-out, pressed
+     * by mistake, is taken back within 15 minutes and the same session reopens. Nothing is deleted: the undone press keeps
+     * its event and photo, an `out_undone` event records the undo, and the next Clock out is a new attempt with its own
+     * photo. Refused once a correction or an overtime request points at the session, once a payroll run for that month
+     * that includes the person has been sent, or once they have clocked in again. No photo is taken to undo.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function undoClockOut(User $actor, array $input): ClockSession
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+
+        try {
+            return $this->undoInTransaction($actor, $key, $input);
+        } catch (QueryException $e) {
+            // PostgreSQL judges the 15 minutes by its own clock; a press in the last seconds can fall just outside (Suresh m2).
+            if (($e->errorInfo[0] ?? null) === 'P0001' && str_contains($e->getMessage(), 'never reopens')) {
+                throw ValidationException::withMessages(['clock' => 'The time to undo has passed. Ask for a correction instead.']);
+            }
+            throw $e;
+        }
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private function undoInTransaction(User $actor, string $key, array $input): ClockSession
+    {
+        return DB::transaction(function () use ($actor, $key, $input): ClockSession {
+            $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
+            $hash = $this->support->hash([$actor->id, 'undo_out', $input['session_id'] ?? null]);
+            if (($replay = $this->support->replay($actor, $key, 'clock_out_undo', $hash)) !== null) {
+                return $this->find($actor, $replay);
+            }
+            $session = ClockSession::query()->where('user_id', $actor->id)->orderByDesc('clock_in_at')->orderByDesc('id')->lockForUpdate()->first();
+            if ($session === null || ! is_string($input['session_id'] ?? null) || $session->public_id !== $input['session_id']) {
+                throw ValidationException::withMessages(['clock' => 'Only your latest clock-out can be undone. Reload the page.']);
+            }
+            if ($session->status === 'open') {
+                throw ValidationException::withMessages(['clock' => 'You are clocked in. Reload the page.']);
+            }
+            $out = $session->clock_out_at;
+            $now = CarbonImmutable::now('UTC');
+            if ($session->status !== 'closed' || $out === null || $out->lessThan($now->subMinutes(self::UNDO_MINUTES))) {
+                throw ValidationException::withMessages(['clock' => 'The time to undo has passed. Ask for a correction instead.']);
+            }
+            $this->support->assertLock($session, $input);
+            $press = DB::table('hr_clock_events')->where('clock_session_id', $session->id)->where('kind', 'out')->orderByDesc('id')->first();
+            if ($press === null || $press->method !== 'button' || (int) $press->recorded_by_user_id !== $actor->id
+                || ! CarbonImmutable::parse((string) $press->occurred_at)->equalTo($out)) {
+                throw ValidationException::withMessages(['clock' => 'This clock-out was not your own press. Ask for a correction instead.']);
+            }
+            if (DB::table('hr_attendance_corrections')->where('clock_session_id', $session->id)->exists()
+                || DB::table('hr_overtime_requests')->where('clock_session_id', $session->id)->exists()) {
+                throw ValidationException::withMessages(['clock' => 'A correction or overtime request already uses this day. Ask HR instead.']);
+            }
+            if (self::inSentPayroll($actor, $session)) {
+                throw ValidationException::withMessages(['clock' => 'Payroll for this month is already with the approver. Ask HR for a correction.']);
+            }
+            DB::table('hr_clock_events')->insert(['organisation_id' => $session->organisation_id, 'clock_session_id' => $session->id, 'kind' => 'out_undone',
+                'occurred_at' => $out, 'method' => 'button', 'correction_id' => null, 'recorded_by_user_id' => $actor->id, 'created_at' => $now]);
+            // The one reopen path PostgreSQL allows: this transaction names the session, within the window, after the event.
+            DB::statement("SELECT set_config('kpone.hr_undo_clock_out', ?, true)", [(string) $session->id]);
+            $session->forceFill(['clock_out_at' => null, 'status' => 'open', 'lock_version' => $session->lock_version + 1])->save();
+            DB::statement("SELECT set_config('kpone.hr_undo_clock_out', '', true)");
+            $this->support->remember($actor, $key, 'clock_out_undo', $hash, $session->public_id);
+            $this->support->audit->record('hr.attendance.clock_out_undone', $session, ['seconds_after' => (int) $out->diffInSeconds($now)], $actor,
+                Branch::query()->find($session->branch_id));
+
+            return $session;
+        }, 3);
+    }
+
+    /** Whether a payroll run for the session's month that includes this person has left Draft. */
+    public static function inSentPayroll(User $actor, ClockSession $session): bool
+    {
+        return DB::table('hr_payroll_runs as r')->join('hr_payroll_run_people as p', 'p.run_id', '=', 'r.id')->join('hr_workers as w', 'w.id', '=', 'p.worker_id')
+            ->where('r.organisation_id', $actor->organisation_id)->whereIn('r.status', ['sent', 'approved', 'locked'])
+            ->where('r.month', $session->local_date->startOfMonth()->toDateString())->where('w.user_id', $actor->id)->exists();
     }
 
     private function markMissingOut(User $actor, ClockSession $session): void

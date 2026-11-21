@@ -83,6 +83,7 @@ const props = defineProps<{
             displayName: string;
         }>;
         branches: Array<{ id: number; name: string }>;
+        canViewStockValue?: boolean;
     };
     errors?: Record<string, unknown>;
 }>();
@@ -343,6 +344,13 @@ const clearFilters = () => {
                             class="min-h-9"
                             >Pilot readiness</ActionLink
                         >
+                        <ActionLink
+                            href="/inventory/stock-value"
+                            variant="outline"
+                            v-if="referenceData.canViewStockValue"
+                            class="min-h-9"
+                            >Stock value and cost</ActionLink
+                        >
                     </div>
                 </section>
             </div>
@@ -457,7 +465,8 @@ const clearFilters = () => {
                     <summary
                         class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
-                        Reports and checks · 3
+                        Reports and checks ·
+                        {{ referenceData.canViewStockValue ? 4 : 3 }}
                         <ChevronDown
                             class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
                             aria-hidden="true"
@@ -481,6 +490,13 @@ const clearFilters = () => {
                             variant="outline"
                             class="min-h-11"
                             >Pilot readiness</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/stock-value"
+                            variant="outline"
+                            v-if="referenceData.canViewStockValue"
+                            class="min-h-11"
+                            >Stock value and cost</ActionLink
                         >
                     </div>
                 </details>

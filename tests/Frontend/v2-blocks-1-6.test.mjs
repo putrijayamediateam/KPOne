@@ -18,62 +18,16 @@ test('V2WorkLayout: title row, main panel and a right rail that drops below 1024
     assert.match(s, /v2-page-title/);
 });
 
-test('V2Toolbar: a named search box, More filters disclosure with Reset, 44px below 1024px', () => {
-    const s = v2('V2Toolbar');
-    assert.match(s, /searchLabel/);
-    assert.match(s, /inputId\?: string/);
-    assert.match(s, /:id="inputId"/);
-    assert.match(s, /:aria-expanded="open"/);
-    assert.match(s, /emit\('reset'\)/);
-    assert.match(s, /h-11[^"]*lg:h-9/);
-    assert.match(s, /focus-visible:ring-2 focus-visible:ring-ring/);
-});
-
-test('V2Tabs: tablist with roving tabindex, arrow keys, trailing slot and the selected tab scrolled into view', () => {
-    const s = v2('V2Tabs');
-    assert.match(s, /role="tablist"/);
-    assert.match(s, /:tabindex="tab\.value === modelValue \? 0 : -1"/);
-    assert.match(s, /ArrowRight/);
-    assert.match(s, /Home/);
-    assert.match(s, /el\.scrollTo\(/);
-    assert.match(s, /name="trailing"|\$slots\.trailing/);
-    assert.match(s, /rounded-full/);
-    assert.match(s, /h-11[^"]*lg:h-9/);
-});
-
-test('V2Table: 14px frame, 52px default and 44px dense rows, fade, sticky first column, phone cards', () => {
-    const s = v2('V2Table');
-    assert.match(s, /rounded-\[14px\]/);
-    assert.match(s, /\[&_td\]:py-3\.5/);
-    assert.match(s, /\[&_td\]:py-2/);
-    assert.match(s, /mask-image:linear-gradient/);
-    assert.match(s, /\[&_td:first-child\]:sticky/);
-    assert.match(s, /ResizeObserver/);
-    assert.match(css, /\.v2-cards-lg td\[data-label\]::before/);
-    assert.match(css, /\.v2-cards-xl td\[data-actions\]/);
-    assert.match(css, /td\[data-select\] > label/);
-});
-
 test('V2 blocks are V2-only and import nothing from the Classic ui components', () => {
-    for (const n of [
-        'V2WorkLayout',
-        'V2Toolbar',
-        'V2Tabs',
-        'V2Table',
-        'V2Chip',
-        'WaitRing',
-    ]) {
+    for (const n of ['V2WorkLayout', 'V2Chip']) {
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
 });
 
-test('Debt carried into V2: wrapping chips, balanced titles, reduced motion, "min" beside the ring', () => {
+test('Debt carried into V2: wrapping chips and balanced titles', () => {
     assert.doesNotMatch(v2('V2Chip'), /whitespace-nowrap/);
     assert.match(v2('V2Chip'), /text-balance/);
     assert.match(css, /\.v2-page-title \{\s*text-wrap: balance;/);
-    assert.match(v2('V2Tabs'), /motion-reduce:transition-none/);
-    assert.match(v2('V2Toolbar'), /motion-reduce:transition-none/);
-    assert.match(v2('WaitRing'), /min(<template|\s*<\/span)/);
 });
 
 test('v2.css only matches V2 classes, so Classic is untouched', () => {
@@ -98,15 +52,10 @@ test('v2.css only matches V2 classes, so Classic is untouched', () => {
     }
 });
 
-test("Daniel's notes: words beside the ring from 30 minutes, primary field first in cards, fade on a cut-off tab strip", () => {
-    assert.match(v2('WaitRing'), /words\?: boolean/);
-    assert.match(v2('WaitRing'), /v-if="words && level !== 'ok'"/);
-    assert.match(v2('WaitRing'), /very long wait/);
+test("Daniel's notes: primary field first in cards", () => {
     assert.match(css, /td\[data-primary\]/);
     assert.match(css, /td\[data-actions\] \{\s*order: 99;/);
     assert.match(css, /td\[data-select\] \{\s*order: -2;/);
-    assert.match(v2('V2Tabs'), /mask-image:linear-gradient/);
-    assert.match(v2('V2Tabs'), /ResizeObserver/);
 });
 
 test('V2 muted text reaches 4.5:1 on the muted fill and on the page, light and dark', () => {
@@ -172,24 +121,6 @@ test('V2WorkLayout: railFrom puts the rail beside the main panel from lg or from
     assert.match(s, /lg:grid-cols-\[minmax\(0,1fr\)_21rem\]/);
 });
 
-test('V2DisclosureBar: a 44px button tied to its panel with aria-expanded and aria-controls', () => {
-    const s = v2('V2DisclosureBar');
-    assert.match(s, /:aria-expanded="open"/);
-    assert.match(s, /:aria-controls="id"/);
-    assert.match(s, /min-h-11[^"]*lg:min-h-9/);
-    assert.match(s, /motion-reduce:transition-none/);
-    assert.doesNotMatch(s, /from '@\/components\/ui\//);
-});
-
-test('V2DisclosureBar: tone warning adds an aria-hidden amber dot, neutral by default', () => {
-    const s = v2('V2DisclosureBar');
-    assert.match(s, /tone\?: 'neutral' \| 'warning'/);
-    assert.match(s, /tone: 'neutral'/);
-    assert.match(s, /v-if="tone === 'warning'"/);
-    assert.match(s, /bg-warning/);
-    assert.match(s, /aria-hidden="true"\n?\s*><\/span>/);
-});
-
 test('V2 page title is 24px on phones and 30px from lg', () => {
     const css = read('resources/css/v2.css');
     assert.match(
@@ -208,21 +139,6 @@ test('V2WorkLayout: eyebrow is a muted line above the title, outside the heading
     assert.match(s, /v-if="eyebrow"/);
     assert.match(s, /text-muted-foreground"\s*>\s*\{\{ eyebrow \}\}/);
     assert.ok(s.indexOf('{{ eyebrow }}') < s.indexOf('<h1'));
-});
-
-test('V2DisclosureBar: keepMounted keeps the panel in the DOM, hidden, while closed', () => {
-    const s = v2('V2DisclosureBar');
-    assert.match(s, /keepMounted\?: boolean/);
-    assert.match(s, /keepMounted: false/);
-    assert.match(s, /v-if="keepMounted \|\| open"/);
-    assert.match(s, /:hidden="!open"/);
-    assert.doesNotMatch(s, /v-show/);
-});
-
-test('V2Table: the empty state cell has no padding and the empty block is never wider than its cell', () => {
-    const s = v2('V2Table');
-    assert.match(s, /<td :colspan="columns" class="!p-0">/);
-    assert.match(s, /sticky left-0 flex min-h-28 max-w-full flex-col/);
 });
 
 test('V2 table cards: the card grid column can shrink (minmax(0, 1fr)), so an empty state cannot widen the page', () => {
@@ -253,7 +169,6 @@ test('V2 table cards: only a cell marked data-wrap breaks a long unbreakable val
         /\.v2-cards-xl td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
     );
     assert.doesNotMatch(css, /\.v2-cards-(lg|xl) td \{\s*overflow-wrap/);
-    assert.match(read('resources/js/components/v2/V2Table.vue'), /data-wrap/);
 });
 
 test('V2WorkLayout railBelow: default hide is unchanged; stack-top and stack-bottom keep the rail rendered once', () => {

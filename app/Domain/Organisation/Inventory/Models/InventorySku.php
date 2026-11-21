@@ -24,7 +24,7 @@ class InventorySku extends Model
 
     protected function casts(): array
     {
-        return ['pack_size' => 'decimal:3', 'unit_conversion' => 'decimal:3', 'minimum_temperature' => 'decimal:2', 'maximum_temperature' => 'decimal:2', 'cold_chain_required' => 'boolean', 'do_not_freeze' => 'boolean', 'protect_from_light' => 'boolean', 'batch_tracking_required' => 'boolean', 'expiry_tracking_required' => 'boolean', 'is_active' => 'boolean'];
+        return ['pack_size' => 'decimal:3', 'unit_conversion' => 'decimal:3', 'minimum_temperature' => 'decimal:2', 'maximum_temperature' => 'decimal:2', 'cold_chain_required' => 'boolean', 'do_not_freeze' => 'boolean', 'protect_from_light' => 'boolean', 'batch_tracking_required' => 'boolean', 'expiry_tracking_required' => 'boolean', 'expiry_alert_days' => 'integer', 'is_active' => 'boolean'];
     }
 
     public function getRouteKeyName(): string

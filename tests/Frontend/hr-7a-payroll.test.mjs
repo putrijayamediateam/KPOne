@@ -13,11 +13,25 @@ const files = {
     rm: 'resources/js/components/hr/payroll/RmInput.vue',
     note: 'resources/js/components/hr/payroll/AccountantNote.vue',
 };
+// The page's script lives in its shared composable (V2 Payroll); the template is still read from the page.
+// The sheets' scripts live in shared composables (V2 Payroll); their templates are still read from the .vue files.
+const sheetComposables = {
+    profile: 'resources/js/composables/hr/useProfileSheet.ts',
+    table: 'resources/js/composables/hr/useTableSheet.ts',
+    sheet: 'resources/js/composables/hr/useMtdScheduleSheet.ts',
+};
 const source = Object.fromEntries(
-    Object.entries(files).map(([k, p]) => [k, read(p)]),
+    Object.entries(files).map(([k, p]) => [
+        k,
+        k === 'page'
+            ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollPage.ts')}`
+            : sheetComposables[k]
+              ? `${read(p)}\n${read(sheetComposables[k])}`
+              : read(p),
+    ]),
 );
 const types = read('resources/js/components/hr/payroll/types.ts');
-const template = (key) => parse(source[key]).descriptor.template.content;
+const template = (key) => parse(read(files[key])).descriptor.template.content;
 
 test('the new page and components compile', () => {
     for (const [key, path] of Object.entries(files)) {
@@ -33,7 +47,7 @@ test('the new page and components compile', () => {
 test('every payroll page carries the accountant line, and nothing is red', () => {
     assert.match(
         template('note'),
-        /Set\s+by\s+KPOne\s+defaults\s+at\s+the\s+owner's\s+instruction;\s+check\s+against\s+current\s+law\s+\(official\s+KWSP\/PERKESO\/HRD\s+Corp\/LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
+        /Statutory\s+figures\s+come\s+from\s+the\s+tables\s+the\s+clinic\s+entered\s+and\s+checked\s+in\s+KPOne\.\s+Check\s+them\s+against\s+current\s+law\s+\(official\s+KWSP\/EPF,\s+PERKESO\/SOCSO,\s+HRD\s+Corp\s+and\s+LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
     );
     assert.match(template('page'), /<AccountantNote \/>/);
     assert.match(

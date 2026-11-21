@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Domain\Access\ClinicManagementNavigation;
-use App\Domain\DepartmentSpace\V2ShellNavigation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -54,37 +53,6 @@ class V2ClinicHubTest extends VisitTestCase
         });
         // A Classic title the V2 labels would change is still sent unchanged.
         $this->assertContains('QR Intake', array_column(array_merge(...array_column($hub, 'links')), 'title'));
-    }
-
-    public function test_version_2_gets_the_v2_page_with_the_same_links_in_sentence_case(): void
-    {
-        foreach (['ca', 'director', 'finance_officer'] as $role) {
-            $actor = $this->actor($role);
-            $this->selectBranch($actor);
-            $this->turnOn($actor);
-            $hub = app(ClinicManagementNavigation::class)->groups($actor);
-            foreach ($hub as &$group) {
-                foreach ($group['links'] as &$link) {
-                    $link['title'] = V2ShellNavigation::label($link['title']);
-                }
-                unset($link);
-            }
-            unset($group);
-
-            $this->actingAs($actor)->get('/clinic-management')->assertOk()->assertInertia(function (Assert $page) use ($hub, $role): void {
-                $page->component('ClinicManagement/V2/Index');
-                $this->assertSame($this->rows($hub), $this->rows($this->groupsOf($page)), $role);
-            });
-        }
-
-        $ca = $this->actor('ca');
-        $this->selectBranch($ca);
-        $this->turnOn($ca);
-        $this->get('/clinic-management')->assertInertia(function (Assert $page): void {
-            $titles = array_column(array_merge(...array_column($this->groupsOf($page), 'links')), 'title');
-            $this->assertContains('QR intake', $titles);
-            $this->assertNotContains('QR Intake', $titles);
-        });
     }
 
     public function test_version_2_grants_nothing_a_person_without_hub_links_still_gets_403(): void

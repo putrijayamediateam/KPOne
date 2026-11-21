@@ -23,6 +23,10 @@ type Row = {
     onOrder: string;
     incoming: string;
     averageDailyUse: string;
+    // STK-43: quantity dispensed from this location in the last 7, 14 and 30 days (null when none).
+    sold7: string | null;
+    sold14: string | null;
+    sold30: string | null;
     supplier: {
         name: string;
         leadTimeDays: number;
@@ -61,6 +65,14 @@ const visit = (page = 1) =>
 
 const quantity = (value: string, unit: string) =>
     `${trimQuantity(value)} ${unit}`;
+
+// STK-43: "7 d 12 · 14 d 20 · 30 d 41 tablets"; a dash when nothing was dispensed in that window.
+const soldWindows = [7, 14, 30] as const;
+const soldText = (row: Row, days: (typeof soldWindows)[number]) => {
+    const value = row[`sold${days}`];
+
+    return value === null ? '—' : trimQuantity(value);
+};
 
 // STK-18: tick suggestions of one location and send them as a purchase request (checked and sent on the next page).
 const needsOrder = (row: Row) =>
@@ -111,6 +123,16 @@ const requestThese = () => {
             {{ suggestions.lookBackDays }}-day average use × lead time, rounded
             up to whole packs and at least the supplier's minimum order. Where a
             maximum is set, the maximum is used instead of the reorder level.
+        </p>
+        <p
+            class="text-sm text-muted-foreground"
+            data-testid="reorder-sold-note"
+        >
+            Sold counts what was dispensed to patients from this location, OTC
+            included. Treatment-room use is not a sale and is not counted.
+            Medicine returned after dispensing is not taken off. The suggested
+            quantity still uses the {{ suggestions.lookBackDays }}-day average
+            of dispensing and treatment use, as before.
         </p>
         <p
             v-if="!suggestions.canSeeCost"
@@ -306,6 +328,45 @@ const requestThese = () => {
                         </dt>
                         <dd class="tabular-nums">
                             {{ quantity(row.averageDailyUse, row.stockUnit) }}
+                        </dd>
+                    </div>
+                    <div data-testid="reorder-sold">
+                        <dt class="text-muted-foreground">Sold (dispensed)</dt>
+                        <dd
+                            v-if="row.sold30 === null"
+                            class="text-muted-foreground"
+                        >
+                            None in the last 30 days
+                        </dd>
+                        <dd v-else class="tabular-nums">
+                            <!-- Daniel's review: days spelled out; stacked below 640 px so a figure never wraps. -->
+                            <ul
+                                class="sm:hidden"
+                                data-testid="reorder-sold-lines"
+                            >
+                                <li
+                                    v-for="days in soldWindows"
+                                    :key="days"
+                                    class="flex gap-3"
+                                >
+                                    <span class="w-16 text-muted-foreground"
+                                        >{{ days }} days</span
+                                    ><span
+                                        >{{ soldText(row, days) }}
+                                        {{ row.stockUnit }}</span
+                                    >
+                                </li>
+                            </ul>
+                            <span class="hidden sm:inline"
+                                ><template
+                                    v-for="(days, index) in soldWindows"
+                                    :key="days"
+                                    ><template v-if="index > 0"> · </template
+                                    >{{ days }} days:
+                                    {{ soldText(row, days) }}</template
+                                >
+                                {{ row.stockUnit }}</span
+                            >
                         </dd>
                     </div>
                     <template v-if="row.supplier">

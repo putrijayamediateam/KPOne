@@ -138,7 +138,13 @@ final class MeSpace
             'state' => $state,
             'canPress' => (bool) ($my['canPress'] ?? false),
             'refusal' => $my['refusal'] ?? null,
-            'needsAttendancePage' => ($my['location'] ?? null) !== null,
+            // One Clock in (owner, 18 Nov 2026): the Me press runs the branch's location check itself, so it gets the
+            // consent wording here instead of being sent to the Attendance page. Null where the branch checks nothing.
+            'location' => is_array($my['location'] ?? null) ? [
+                'consentNeeded' => (bool) $my['location']['consentNeeded'],
+                'consentEn' => $my['location']['consentEn'] ?? null,
+                'consentBm' => $my['location']['consentBm'] ?? null,
+            ] : null,
             'serverNow' => now()->utc()->toIso8601String(),
             'timezone' => $zone,
             'clockedInAt' => $state === 'in' && $inOpen ? CarbonImmutable::parse((string) $row['session']['inValue'], $zone)->utc()->toIso8601String() : null,

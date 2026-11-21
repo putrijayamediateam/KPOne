@@ -28,7 +28,22 @@ abstract class BranchReportService
 
     abstract public function title(): string;
 
-    abstract public function basis(): string;
+    /**
+     * How the report counts, as short labelled lines (DD-14). A line without a label stands alone, for example a
+     * sentence that already starts with its subject or a formula.
+     *
+     * @return list<array{label:?string,text:string}>
+     */
+    abstract public function basisLines(): array;
+
+    /** One sentence for the closed "How this report counts" row. */
+    abstract public function basisSummary(): string;
+
+    /** The basis as one line of text, for the download's Basis cell. */
+    public function basis(): string
+    {
+        return implode(' ', array_map(fn (array $line): string => $line['label'] === null ? $line['text'] : $line['label'].': '.$line['text'], $this->basisLines()));
+    }
 
     /** @param array<string,mixed> $filters
      * @return array{columns:list<string>,rows:list<list<string>>,totals:array<string,string>}
@@ -125,7 +140,7 @@ abstract class BranchReportService
                 throw ValidationException::withMessages(['to' => 'Choose at most 31 local dates.']);
             }
             $filters['expected_branch_id'] = $branch->id;
-            $base = ['title' => $this->title(), 'basis' => $this->basis(), 'endpoint' => '/reports/'.str_replace('_', '-', $this->key()), 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'timezone' => $branch->timezone], 'canExport' => $grants->contains($export), 'options' => $this->supportsFilters() ? ['methods' => $methods, 'visit_types' => [['value' => 'consultation', 'label' => 'Consultation'], ['value' => 'otc', 'label' => 'Medicine-only (OTC)']]] : null, 'filters' => $filters, 'result' => null];
+            $base = ['title' => $this->title(), 'basis' => $this->basis(), 'basisSummary' => $this->basisSummary(), 'basisLines' => $this->basisLines(), 'endpoint' => '/reports/'.str_replace('_', '-', $this->key()), 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'timezone' => $branch->timezone], 'canExport' => $grants->contains($export), 'options' => $this->supportsFilters() ? ['methods' => $methods, 'visit_types' => [['value' => 'consultation', 'label' => 'Consultation'], ['value' => 'otc', 'label' => 'Medicine-only (OTC)']]] : null, 'filters' => $filters, 'result' => null];
             if (! $run && ! $download) {
                 return $base;
             }

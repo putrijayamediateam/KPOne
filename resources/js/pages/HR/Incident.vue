@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // HR-10d /hr/incidents/{id}: one report. The reporter sees what they sent and its status only. A manager (not the
 // reporter) acknowledges, adds notes and actions, links a staff-conduct report to a discipline case, and closes it.
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -14,192 +13,32 @@ import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
+import { useIncidentPage } from '@/composables/hr/useIncidentPage';
+import type { IncidentPageProps } from '@/composables/hr/useIncidentPage';
 
-type Status = 'reported' | 'acknowledged' | 'closed';
-type Action = {
-    id: string;
-    description: string | null;
-    owner: string;
-    dueOn: string;
-    overdue: boolean;
-    done: boolean;
-    doneOn: string | null;
-    doneBy: string | null;
-    lockVersion: number;
-};
-
-const props = defineProps<{
-    incident: {
-        id: string;
-        manager: boolean;
-        category: string;
-        categoryLabel: string;
-        needsClinicalReview: boolean;
-        directorOnly: boolean;
-        branch: string;
-        occurredAt: string | null;
-        reportedOn: string | null;
-        description: string | null;
-        photos: { id: string; kind: string; bytes: number }[];
-        status: Status;
-        statusLabel: string;
-        acknowledgedOn: string | null;
-        closedOn: string | null;
-        lockVersion: number;
-        reporter?: string;
-        acknowledgedBy?: string | null;
-        closedBy?: string | null;
-        outcome?: string | null;
-        notes?: { body: string | null; by: string; on: string | null }[];
-        actions?: Action[];
-        owners?: { id: number; name: string }[];
-        link?: {
-            linked: boolean;
-            caseId: string | null;
-            options: { value: string; label: string }[];
-            canLink: boolean;
-        } | null;
-        can?: {
-            handle: boolean;
-            acknowledge: boolean;
-            add: boolean;
-            close: boolean;
-        };
-        ownRefusal?: string | null;
-        maxNote?: number;
-        today?: string;
-    };
-}>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(() => errors.value.incident ?? errors.value.records);
-const r = computed(() => props.incident);
-const base = computed(() => `/hr/incidents/${r.value.id}`);
-const tone = computed(() =>
-    r.value.status === 'reported'
-        ? 'warning'
-        : r.value.status === 'acknowledged'
-          ? 'accent'
-          : 'neutral',
-);
-const textareaClass =
-    'w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-[invalid=true]:border-destructive';
-const post = (
-    path: string,
-    data: Record<string, string | number | null>,
-    busy: { processing: boolean },
-    done?: () => void,
-) => {
-    busy.processing = true;
-    router.post(`${base.value}/${path}`, data, {
-        preserveScroll: true,
-        onSuccess: () => done?.(),
-        onFinish: () => (busy.processing = false),
-    });
-};
-
-const ack = reactive({ key: crypto.randomUUID(), processing: false });
-const acknowledge = () =>
-    post(
-        'acknowledge',
-        {
-            expected_lock_version: r.value.lockVersion,
-            idempotency_key: ack.key,
-        },
-        ack,
-    );
-
-const note = reactive({
-    text: '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const addNote = () =>
-    post('notes', { note: note.text, idempotency_key: note.key }, note, () => {
-        note.text = '';
-        note.key = crypto.randomUUID();
-    });
-
-const action = reactive({
-    text: '',
-    owner: '',
-    due: props.incident.today ?? '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const actionMissing = computed(() =>
-    action.text.trim().length < 3
-        ? 'Describe the action first.'
-        : !action.owner
-          ? 'Choose who will do it.'
-          : null,
-);
-const addAction = () =>
-    post(
-        'actions',
-        {
-            description: action.text,
-            owner_id: action.owner,
-            due_on: action.due,
-            idempotency_key: action.key,
-        },
-        action,
-        () => {
-            action.text = '';
-            action.owner = '';
-            action.key = crypto.randomUUID();
-        },
-    );
-const doneBusy = reactive({ processing: false });
-const markDone = (a: Action) =>
-    post(
-        `actions/${a.id}/done`,
-        {
-            expected_lock_version: a.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        doneBusy,
-    );
-
-const link = reactive({
-    caseId: '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const linkCase = () =>
-    post(
-        'link',
-        {
-            case_id: link.caseId,
-            expected_lock_version: r.value.lockVersion,
-            idempotency_key: link.key,
-        },
-        link,
-    );
-
-const closing = reactive({
-    open: false,
-    outcome: '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const openActions = computed(
-    () => (r.value.actions ?? []).filter((a) => !a.done).length,
-);
-const close = () =>
-    post(
-        'close',
-        {
-            outcome: closing.outcome,
-            expected_lock_version: r.value.lockVersion,
-            idempotency_key: closing.key,
-        },
-        closing,
-        () => (closing.open = false),
-    );
+const props = defineProps<IncidentPageProps>();
+const {
+    errors,
+    failure,
+    r,
+    base,
+    tone,
+    textareaClass,
+    ack,
+    acknowledge,
+    note,
+    addNote,
+    action,
+    actionMissing,
+    addAction,
+    doneBusy,
+    markDone,
+    link,
+    linkCase,
+    closing,
+    openActions,
+    close,
+} = useIncidentPage(props);
 </script>
 
 <template>

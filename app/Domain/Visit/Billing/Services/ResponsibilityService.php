@@ -62,6 +62,7 @@ class ResponsibilityService
     public function approve(User $actor, Visit $visit, Invoice $invoice, string $kind, string $publicId, array $a): void
     {
         $class = $this->model($kind);
+        $approver = $actor;
         DB::transaction(function () use ($actor, $visit, $invoice, $kind, $publicId, $a, $class): void {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, $kind === 'panel' ? 'coverage.approve.branch' : 'outstanding.approve.branch');
             // Approval configuration is part of actor authority, before financial locks.
@@ -86,6 +87,11 @@ class ResponsibilityService
             $this->ledger->state($invoice);
             $this->audit->record('billing.responsibility_approved', $invoice, ['record_version' => $invoice->lock_version], $actor, $branch);
         }, 3);
+
+        // PNL-28a: after the approval has committed, the system prepares the Panel claim. It never affects the approval.
+        if ($kind === 'panel') {
+            app(PanelClaimAutoCreator::class)->afterApproval($approver, $publicId);
+        }
     }
 
     /** @return class-string<CoverageAllocation>|class-string<PatientReceivable> */

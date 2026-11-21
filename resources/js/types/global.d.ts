@@ -26,12 +26,14 @@ declare module '@inertiajs/core' {
                 accountMenu?: {
                     links: Array<{ title: string; href: string }>;
                     clock: boolean;
+                    spaces: boolean;
                 };
                 spaces: {
                     offered: boolean;
                     enabled: boolean;
                     lockVersion: number;
                 };
+                newLook?: boolean;
                 shell?: V2Shell | null;
                 navigation: {
                     clinicManagement: boolean;

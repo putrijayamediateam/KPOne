@@ -9,6 +9,7 @@ use App\Domain\HR\Leave\Models\LeaveEvidenceFile;
 use App\Domain\HR\Leave\Models\LeaveOpening;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
+use App\Domain\HR\Payroll\Services\LateAfterLock;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Organisation\Models\Branch;
@@ -115,7 +116,12 @@ final class LeavePageService
         // The warning only counts files, so it is the same for approvers who cannot open them.
         $attached = $pending->isEmpty() ? collect() : LeaveEvidenceFile::query()->whereIn('leave_request_id', $pending->pluck('id'))
             ->where('status', 'active')->selectRaw('leave_request_id, count(*) as n')->groupBy('leave_request_id')->pluck('n', 'leave_request_id');
-        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee, $attached): array {
+        // G2b: unpaid leave whose month's payroll is already locked, so the dialogs say it goes on an adjustment run.
+        $late = app(LateAfterLock::class);
+        $lockedMonths = $late->lockedMonths($actor->organisation_id, $pending->filter(fn (LeaveRequest $r): bool => ! $r->type->is_paid)
+            ->mapWithKeys(fn (LeaveRequest $r): array => [(int) $r->id => ['userId' => (int) $r->user_id, 'date' => $r->start_date->toDateString()]])->all(), 'monthly');
+        $taken = $late->takenOffPay($actor->organisation_id, array_values($approvedRequests->map(fn (LeaveRequest $r): int => (int) $r->id)->all()));
+        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee, $attached, $lockedMonths): array {
             $zone = (string) ($zones[$r->branch_id] ?? 'UTC');
             $warnings = [];
             $shifts = $this->approvedShifts($r, $zone);
@@ -141,12 +147,12 @@ final class LeavePageService
                 'evidenceNeeded' => $r->type->evidence_needed, 'evidenceReference' => $r->evidence_reference_encrypted, 'reason' => $r->reason_encrypted,
                 'leftAfter' => $left === null ? null : LeaveSupport::days($left), 'warnings' => $warnings,
                 // When the request was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
-                'sentAt' => CarbonImmutable::parse($r->created_at)->utc()->toIso8601String(),
+                'sentAt' => CarbonImmutable::parse($r->created_at)->utc()->toIso8601String(), 'lockedMonth' => $lockedMonths[(int) $r->id] ?? null,
                 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, $zone, $files) : null];
         })->values()->all();
 
         $approved = $approvedRequests->map(fn (LeaveRequest $r): array => [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member',
-            'role' => $this->roleLabel($r->person), 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, (string) ($zones[$r->branch_id] ?? 'UTC'), $files) : null])
+            'role' => $this->roleLabel($r->person), 'takenInMonth' => $taken[(int) $r->id] ?? null, 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, (string) ($zones[$r->branch_id] ?? 'UTC'), $files) : null])
             ->values()->all();
 
         return ['pending' => $rows, 'approved' => $approved];

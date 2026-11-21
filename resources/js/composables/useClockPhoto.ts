@@ -13,13 +13,25 @@ export type ClockConfirmation = {
     time: string;
     branch: string;
     chip: {
-        code: 'on_time' | 'late' | 'left_early' | 'no_shift';
+        code: 'on_time' | 'late' | 'left_early' | 'no_shift' | 'on_call';
         label: string;
     };
 };
 
+/**
+ * HR-16a, one Clock in (owner, 18 Nov 2026): a branch that checks location sends this with the clock state, and the Me
+ * press runs the check inside the camera dialog. Consent text is set only while consent is still needed.
+ */
+export type ClockLocation = {
+    consentNeeded: boolean;
+    consentEn: string | null;
+    consentBm: string | null;
+};
+
 export type ClockPhotoStep =
     | 'idle'
+    | 'consent'
+    | 'locating'
     | 'starting'
     | 'notice'
     | 'camera'
@@ -32,6 +44,7 @@ type State = {
     step: ClockPhotoStep;
     kind: ClockKind;
     extra: Record<string, unknown>;
+    location: ClockLocation | null;
     token: string;
     key: string;
     error: string;
@@ -43,6 +56,7 @@ const state = reactive<State>({
     step: 'idle',
     kind: 'in',
     extra: {},
+    location: null,
     token: '',
     key: '',
     error: '',
@@ -61,10 +75,34 @@ export const csrfToken = (): string =>
             ?.split('=')[1] ?? '',
     );
 
+/**
+ * The server's refusals for a capture pass that ran out or cannot be used (ClockPhotoService::TOO_LONG and OPEN_AGAIN).
+ * The photo is then thrown away and the sheet goes back to the camera (owner, 16 Nov 2026).
+ */
+export const PASS_REFUSALS = [
+    'The camera was open too long. Take the photo again.',
+    'Open the camera again and take a new photo.',
+];
+
+export const TOOK_TOO_LONG =
+    'That took too long, so the photo was not used. Take it again.';
+
+/** The pass was already used or not found (OPEN_AGAIN): no time ran out, so the line does not say it took too long. */
+export const PASS_NOT_USABLE =
+    'That photo could not be used, so it was not kept. Take a new one.';
+
+/** The camera line for each pass refusal: only a pass that ran out says it took too long. */
+export const passRefusalNote = (message: string): string =>
+    message === PASS_REFUSALS[0] ? TOOK_TOO_LONG : PASS_NOT_USABLE;
+
 /** Thrown when the person has not yet seen the current "About clock-in photos" notice. */
 export class NoticeNeeded extends Error {}
 
-/** The capture token is taken when the camera opens; it is good for one press of this kind for five minutes. */
+/**
+ * A capture pass, good for one press of this kind for five minutes. The sheet asks for one when the camera opens (which
+ * also shows the notice first if needed) and a fresh one at the shutter, so the five minutes start when the photo is
+ * taken (owner, 16 Nov 2026).
+ */
 export const takeToken = async (kind: ClockKind): Promise<string> => {
     const response = await fetch('/hr/attendance/capture', {
         method: 'POST',
@@ -175,14 +213,59 @@ const appendExtra = (
 
 export const clockPhotoState = state;
 
+/**
+ * HR-16a: the location result for a press, read once, at the press, and never before or after. A refusal, a failure or
+ * "without location" still records the press. `consent` is true when the person has just agreed in the dialog.
+ */
+export const readLocation = (
+    consent: boolean,
+): Promise<Record<string, unknown>> => {
+    const extra: Record<string, unknown> = consent
+        ? { location_consent: true }
+        : {};
+
+    if (!('geolocation' in navigator)) {
+        return Promise.resolve({ ...extra, location_unavailable: 'failed' });
+    }
+
+    return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            (position) =>
+                resolve({
+                    ...extra,
+                    clock_position: {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                    },
+                }),
+            (error) =>
+                resolve({
+                    ...extra,
+                    location_unavailable:
+                        error.code === 1 ? 'denied' : 'failed',
+                }),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        );
+    });
+};
+
+/** "Clock in without location": the press is recorded with the reason, and no position is read. */
+export const WITHOUT_LOCATION = { location_unavailable: 'declined' } as const;
+
 export function useClockPhoto() {
     /**
      * Opens the camera for a press. `extra` carries what the Attendance page adds (for example the HR-16a location
-     * result); `onDone` runs after Done is pressed on the confirmation.
+     * result); `onDone` runs after Done is pressed on the confirmation. `location` (the Me press) makes the dialog run
+     * the branch's location check first: the consent step when it is still needed, then one location read.
      */
     const open = (
         kind: ClockKind,
-        options: { extra?: Record<string, unknown>; onDone?: () => void } = {},
+        options: {
+            extra?: Record<string, unknown>;
+            location?: ClockLocation | null;
+            onDone?: () => void;
+        } = {},
     ): boolean => {
         if (state.step !== 'idle') {
             return false;
@@ -195,7 +278,12 @@ export function useClockPhoto() {
         state.key = crypto.randomUUID();
         state.error = '';
         state.result = null;
-        state.step = 'starting';
+        state.location = options.location ?? null;
+        state.step = state.location
+            ? state.location.consentNeeded
+                ? 'consent'
+                : 'locating'
+            : 'starting';
 
         return true;
     };
@@ -214,5 +302,6 @@ export const resetClockPhoto = (): void => {
     state.error = '';
     state.result = null;
     state.extra = {};
+    state.location = null;
     state.onDone = null;
 };

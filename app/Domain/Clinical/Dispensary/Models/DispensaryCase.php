@@ -6,18 +6,28 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
+/**
+ * @property bool|null $doctor_check_required DSP-23: frozen true when the CA first sends the case for the doctor's check.
+ * @property CarbonImmutable|null $sent_for_check_at
+ * @property int|null $sent_for_check_by_user_id
+ * @property string|null $sent_for_check_retry_key
+ */
 #[Guarded(['*'])]
 class DispensaryCase extends Model
 {
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_DISPENSING = 'dispensing';
+
+    /** DSP-23: the CA sent the prepared medicine to the attending doctor for a check; nothing has been dispensed yet. */
+    public const STATUS_AWAITING_DOCTOR_CHECK = 'awaiting_doctor_check';
 
     public const STATUS_RETURNED = 'returned_to_doctor';
 
@@ -48,6 +58,7 @@ class DispensaryCase extends Model
             'lock_version' => 'integer', 'received_at' => 'immutable_datetime',
             'started_at' => 'immutable_datetime', 'returned_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
+            'doctor_check_required' => 'boolean', 'sent_for_check_at' => 'immutable_datetime',
         ];
     }
 

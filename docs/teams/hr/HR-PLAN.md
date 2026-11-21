@@ -2500,6 +2500,10 @@ The pay group's name and pay day are copied onto the run when it is prepared (Su
   - if the locker is that claim's claimant or approver, the lock is refused and names the claim;
   - a two-process race test covers a lock against a Finance payment of the same claim.
   - This adds `payroll` to the HR-6 payment method CHECK in a new HR migration.
+- **Checking again at approve and lock (G1, owner, 16 Nov 2026).** Approve and Lock work the run out again from today's sources and compare it with the run as prepared. If anything changed since it was sent (for example overtime approved or reversed meanwhile), both are refused with "Something in this run changed after it was sent. Send it back to draft and prepare it again." Send back stays allowed. The check runs when the button is pressed; the run page does not work it out in advance.
+  - "Changed" means anything in the run as worked out, warnings included (for example a bank account confirmed meanwhile), the same as at Send.
+  - Known limit (Suresh): an hourly worker's clock session that is still open is counted up to now, so a run for the current month keeps being refused while such a session is open; it settles once the session closes or is corrected.
+  - Known limit (Suresh): the source rows are not locked during the check, so a change committed a moment after it is not seen. Send has the same window.
 
 ### 16.6 Corrections
 An adjustment run references the locked run and holds only the differences, with the same two-person steps. One open adjustment per run at a time. A locked run and its lines never change.
@@ -2573,6 +2577,17 @@ The existing `hr.payroll.prepare.organisation` and `hr.payroll.approve.organisat
   overtime, unpaid leave and staff claim refunds, so each line knows which schemes it counts for.
 - **Adjustment runs hold manual difference lines only** in v1, with a reason per line. A negative net on an
   adjustment is a warning, never an error, since a recovery is negative by nature (Suresh, S2).
+- **Statutory parts on an adjustment (HR month dry run S3; owner, 16 Nov 2026):** an adjustment run also works out
+  EPF, SOCSO, EIS and HRD on the difference, from the same checked tables as the regular run. For each scheme the
+  person's profile has, the wage is the month's locked runs plus the difference; the line is the table's figure on that
+  wage less what the locked runs already paid ("EPF employee · on the RM 1,000.00 difference (wage now RM 6,000.00)").
+  A correction that lowers a scheme wage gives negative lines and the warning "This correction lowers a scheme wage".
+  When the correction changes the MTD wage of a person with MTD, HR types the MTD (RM 0.00 allowed): until then the
+  person shows "Type the MTD for this correction" and the run is not sent. KPOne does not work out MTD on one-off pay.
+  Suresh's review: contributions count every locked run of the person's month, whichever pay group ran it; a scheme
+  switched on (or a category changed) since the month's run warns that its lines cover the whole month's wage; a person
+  with no confirmed pay profile warns that the correction carries no contributions or MTD. Known limit: a table with
+  no band from RM 0.00 refuses a correction that takes the whole wage back.
 - **Sending back:** a sent or approved run goes back to Draft with a reason; from approved, only its approver sends
   it back (Suresh, B1). The claim checks run before approval as well as at lock, so a run never reaches a lock
   nobody may take.
@@ -2730,7 +2745,7 @@ review. The accountant line stays on every payroll page.
     - **S2:** a run (regular or adjustment) of an earlier month this year that is not locked yet stops the worked figure until it is locked and the run is prepared again, or the MTD is typed.
     - **M1:** a typed MTD always gets past the schedule and band errors, with a warning instead.
 - **Not in HR-7d (later, each with the accountant):**
-  - additional remuneration (bonus, arrears and commission). A manual line that counts for MTD on a monthly run stops the worked figure, and the preparer types that person's MTD. Adjustment runs carry no MTD line in v1, which predates HR-7d (Suresh, M2), so the MTD on a bonus paid through an adjustment run is recorded outside KPOne for now;
+  - additional remuneration (bonus, arrears and commission). A manual line that counts for MTD on a monthly run stops the worked figure, and the preparer types that person's MTD. On an adjustment run that changes the MTD wage, HR types the MTD (RM 0.00 allowed) and KPOne records it on the run (S3, 16 Nov 2026; before S3 adjustment runs carried no MTD line);
   - TP1 (other reliefs and rebates the employee claims);
   - TP3 (pay, EPF, MTD and zakat from a previous employer this year);
   - zakat;
@@ -2843,12 +2858,17 @@ Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
 - Correctness depends entirely on the schedule and reliefs the clinic enters, and on the accountant confirming the method against LHDN's current specification.
 - TP1, TP3, zakat and additional remuneration are not counted in HR-7d, so those people need a typed MTD.
 - Year to date counts only KPOne's own locked runs. Pay from before KPOne payroll began is not counted.
+  - Since the HR month dry run (finding S2, owner decision 16 Nov 2026), the run warns when the person was employed in an
+    earlier month of the year that has no locked KPOne run and the worked-out MTD is the one used: "Employed earlier this
+    year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low". A clinic that
+    starts KPOne payroll mid-year sees it on every run until January. KPOne has no way yet to enter earlier pay of the
+    year; whether HR enters it is a later decision. A locked adjustment run counts as paying its month.
 - Variable overtime is projected over the remaining months like basic pay (an accountant question).
 - Child relief has one rate for every child; LHDN's differs by the child's age, education and disability (Suresh, M4).
 - In a joiner's or leaver's month the part-month pay is projected over the remaining months, so that month's MTD is low; later months catch up through X.
 - Each band's "From" is M; with bands running on by one sen, M is 1 sen from LHDN's figure for later bands (negligible).
 - A worker in two regular runs for one month (a pay group change, from HR-7b) would be counted twice in the year to date.
-- Adjustment runs carry no MTD line in v1.
+- On an adjustment run, the MTD is typed by HR when the correction changes the MTD wage (S3); KPOne never works it out there.
 - The person's MTD details are never flashed into the session (`dontFlash`).
 - Deploy note: drafts prepared before the deploy ask to be prepared again once, because the run fingerprint gains the MTD schedule.
 - An earlier month this year whose run was never prepared is not detected: the year to date silently lacks it.
@@ -3298,7 +3318,7 @@ ring opens the same camera flow).
   five minutes; a hand-built request could send a saved or changed picture. The safeguard is the reviewer seeing the
   photo. Nothing here claims more than that.
 
-## 24. HR-PHOTO-STORAGE: clock-in photo storage report and retention dry run (design note, 2026-11-15; build approved by B.E.R.N.I.S.S for the owner, the three questions in 24.3 wait for the owner)
+## 24. HR-PHOTO-STORAGE: clock-in photo storage report and retention dry run (design note, 2026-11-15; build approved by B.E.R.N.I.S.S for the owner; the owner answered 24.3 on 16 Nov 2026)
 
 ### 24.1 Where things stand today (already on `main`)
 
@@ -3306,18 +3326,18 @@ ring opens the same camera flow).
 - **The delete already exists and runs every day.** `hr-attendance:purge` deletes a clock session once it is more than **7 years and 1 day** old, together with its photos, events, corrections and overtime requests. The encrypted photo files are deleted after the commit. `hr-clock-photos:purge` (daily, 01:30) removes any photo file that no record points at.
   - A session waits while a newer correction, overtime ask or photo hangs on it.
   - PostgreSQL refuses any photo delete the purge did not mark, or one that is not yet past the 7 years.
-- **The 7 years is still a DRAFT** (owner, 2026-11-11 and 2026-11-12: "to confirm", originally "the accountant confirms before real use"). There is no accountant: the wording elsewhere is "check against current law".
+- **The 7 years is the owner's decision, 16 Nov 2026** ("keep 7 years, keep the daily delete on"). Before that it was a draft (owner, 2026-11-11 and 2026-11-12: "to confirm").
 - Nothing can be deleted yet. The first photos are from November 2026, so the earliest possible delete is in **November 2033**, and only for sessions with nothing newer hanging on them.
 
 So HR-PHOTO-STORAGE does **not** add a delete. It adds a way to see what is stored and what the purge would do.
 
 ### 24.2 Build now (no data is deleted, no figure changes)
 
-1. **Storage report**, on the Version 2 attendance Settings tab only (B.E.R.N.I.S.S, 2026-11-15: Classic stays as it is; "the card in Classic too?" is on the owner's list). Director and HR Manager, through the existing `hr.attendance.review.organisation` permission, no new one. A read-only card, "Clock-in photo storage" (Daniel: a neutral warning chip "Retention: 7 years · draft, to confirm", quantities with their units that never split, "Totals only. No names."), showing:
+1. **Storage report**, on the Version 2 attendance Settings tab only (B.E.R.N.I.S.S, 2026-11-15: Classic stays as it is; "the card in Classic too?" is on the owner's list). Director and HR Manager, through the existing `hr.attendance.review.organisation` permission, no new one. A read-only card, "Clock-in photo storage" (Daniel: a chip "Retention: 7 years · draft, to confirm" in warning tone while it was a draft; since 16 Nov 2026 a neutral chip "Retention: 7 years · owner decision 16 Nov 2026", quantities with their units that never split, "Totals only. No names."), showing:
    - the number of photos and their stored size (photo + thumbnail, from the recorded byte counts, with a line saying the encrypted files on disk are about a third larger);
    - the oldest photo's date, and photos added this month and on average per month over the last three full months;
    - a "Rough forecast, from the last three full months": the size after 1 year, and at the 7-year mark when deletes start. Until there are three full months, the card says "A forecast appears after three full months.";
-   - the rule in words: "Photos are kept 7 years (draft, to confirm), then deleted with their attendance record. The earliest delete is <date>."
+   - the rule in words: "Photos are kept with their attendance record, then deleted with it. The earliest delete is <date>."
    - Counts only. No names, no photos and no per-person figures.
 2. **Retention dry run**, as `php artisan hr-attendance:purge --dry-run`. It uses the same selection as the real purge (same cutoff, same "something newer is still hanging on it" rules) and prints:
    - how many sessions, photos, corrections, location consents and photo-notice records would be deleted today, and their total photo size;
@@ -3329,13 +3349,13 @@ So HR-PHOTO-STORAGE does **not** add a delete. It adds a way to see what is stor
    - The storage card's figures are checked on fixed fixtures.
    - Only Director and HR Manager see the card, and nothing in it identifies a person.
 
-### 24.3 Needs the owner's own OK (not built, nothing changed here)
+### 24.3 The owner's answers (16 Nov 2026)
 
-- **Whether the storage card should also appear on the Classic Settings tab.**
-
-- **Confirming or changing the 7 years.** Until then it stays a draft, and every place that shows it says so.
-- **Whether the daily delete should stay switched on.** It is already scheduled. If the owner wants deletes paused until the figure is confirmed, that is a one-line change to switch the schedule off; the dry run keeps working. With synthetic data nothing is deleted before 2033 either way.
-- **Any separate, shorter time for photos than for the attendance record** (for example, deleting the photo after N years but keeping the times). That would be a new delete and is not part of this slice.
+- **The 7 years: confirmed** ("keep 7 years, keep the daily delete on"). The card chip and the dry run say "owner decision 16 Nov 2026"; no figure changed.
+- **The daily delete: stays switched on** as scheduled.
+- **The card in Classic: yes** ("photo card in classic too"). A read-only card in Classic's own style on the Classic attendance Settings tab, with the same figures and words, Director and HR Manager only, nothing written when it opens.
+- **A separate, shorter time for photos:** no answer yet, so nothing is built.
+- **The staff wording** ("Kept for 7 years (to confirm)" on My attendance and in the photo notice) is unchanged until the owner says the PDPA review covers it; changing the notice raises its version (TEAM.md open item).
 
 ### 24.4 Not in this slice
 
@@ -3343,3 +3363,60 @@ So HR-PHOTO-STORAGE does **not** add a delete. It adds a way to see what is stor
 - No export of photos and no per-person storage figures.
 - No notification.
 - Synthetic data only until the PDPA review.
+
+## 25. Undo clock-out, as built (owner, 16 Nov 2026)
+
+The owner asked that someone who presses Clock out by mistake can clock in again. Decided: a **15-minute** window from their own clock-out, by server time; **staff only** (HR uses the correction); the rest of the design note as written.
+
+- **The same session reopens.** There is no new session, no split day and no second break. The person's latest session must be closed by their own button press within the last 15 minutes. The undo is refused once a correction or an overtime request points at the session, once a payroll run for that month that includes the person has left Draft, or once they have clocked in again.
+- **Nothing is deleted or rewritten.** The undone press keeps its event and photo. A new `out_undone` event records the undo, with the time of the undone press. The next Clock out is a new **attempt** with its own photo (and location result where the branch checks location). Photos and location results carry `attempt`, one per session, kind and attempt; screens show the latest attempt.
+- **PostgreSQL** allows exactly one reopen path. Inside the undo's own transaction, a local flag names the session; the session must have been clocked out within 15 minutes; and the `out_undone` event for that clock-out must already exist. Every other reopen is refused as before. A clock-out photo or location result must belong to the current attempt.
+- **No photo is taken to undo**, and the location check isn't asked again.
+- **Screens (Classic and V2):** while the server offers it, the clock card shows an outline "Undo clock-out" with "Clocked out by mistake? You can undo this until 5:17 PM." It asks to confirm first: "Undo your clock-out at 5:02 PM?" Review shows HR "Clock-out undone at 5:02 PM" on that day.
+- **The usual protections:** a fresh permission check under lock, `DB::transaction`, a row lock on the session, `lock_version`, an idempotency key, and an audit row `hr.attendance.clock_out_undone` (ids and seconds only).
+- **Known limit (Suresh):** an undo needs no photo, and the next clock-out's photo proves who pressed, not where. With the location check off, someone could clock out, leave, undo from their phone within 15 minutes and clock out later; this is the same limit HR-PHOTO records. The "Clock-out undone at …" line on Review is the safeguard. The button is offered only when the server would accept it (payroll included), and a press in the last seconds that PostgreSQL judges late gets "The time to undo has passed".
+- **Not in this slice:** the global clock shortcut does not offer the undo (it opens the Attendance page, which does); HR cannot undo for someone (HR uses the correction).
+
+## 26. HR-15d to HR-15g, as built (owner, 2026-11-18)
+
+The locum programme's last four slices, each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on
+its exact head. The decisions are TEAM.md 99 to 102.
+
+| Slice | What | PR |
+|---|---|---|
+| HR-15d | A passed Locum-position candidate becomes a locum file in one step, with the sign-in request opened with the email they applied with. No account is created; `StaffProvisioningService` stays the only way. | #977 |
+| HR-15e | An interview is In person or Online; Online carries an https video link HR types from their own video app. No meeting is created and no video service is called. | #978 |
+| HR-15f | My roster's Week/Month switch; the month shows the person's own approved shifts and their own open-shift asks only. | #979 |
+| HR-15g | Locum pay statement: approved shifts × the confirmed rate on each shift's date, "Not worked" marks and corrections. A rate is confirmed by Finance, never by whoever entered it. Finance records a payment made outside KPOne, which locks the month. KPOne pays nothing. | #980 |
+
+Next (owner, 2026-11-18): HR-21 (credential warning days per type, none shipped), HR-20 (on-call outside the hour
+limits, inside fair rotation), HR-19, then HR-18 (labour cost view for the Director, HR Manager and Finance Officer,
+at least 3 people per branch-month). Each still needs its design note, Daniel's look and a ship-it.
+
+## 27. HR-21 and HR-20, as built (owner, 2026-11-18 to 2026-11-20)
+
+Each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on its exact head. The decisions are TEAM.md
+106 to 109.
+
+| Slice | What | PR |
+|---|---|---|
+| HR-21 | A credential type marked "Work permit" (must expire, never a health item, fixed after creation). An expiring or expired permit shows one warning line on the register and the staff file and a count on the HR dashboard, for credential managers only. No new table or permission. | #992 |
+| HR-20 | An "On call" roster session: outside weekly hours, the weekly limit, days in a row and daily rest; no clinic hours; inside fair rotation (a night when it crosses midnight, starts at 20:00 or later, or starts before 06:00). No Late, Left early or No clock-in; a call-in may all be claimed as overtime. Its own dashboard line and planner count; left out of locum pay for now. | #1006 |
+
+Classic only (owner, 2026-11-20): CO-7 removes the HR Version 2 pages before HR-20 merges, so HR-20 keeps its Classic
+changes only.
+
+HR-19 (Ctrl+K search entries) is paused (owner, 2026-11-20, decision 110).
+
+## 28. HR-18 labour cost, as built (owner, 2026-11-20)
+
+Decisions 111 and 112. Suresh's review, Daniel's look and a green PostgreSQL 18 gate. PR #1011.
+
+| What | Detail |
+|---|---|
+| Page | `/hr/labour-cost`, Classic only, read only, one month from the last 12, an "Estimate" badge; no CSV. |
+| Who | `hr.labour_cost.view.organisation`: Director, HR Manager, Finance Officer (additive migration `007900`). |
+| Source | Approved or locked pay runs (the HR-9b staff-cost basis) and locum months Finance recorded as paid (HR-15g). |
+| Branch | Staff at their primary branch on the month's last day; locum pay at the branch of each paid shift. |
+| Hiding | Every amount covers no one or at least 3 people, per column (staff figures and locum figure); the clinic total less the shown figures never isolates 1 or 2 people; locum corrections never shown as an amount. |
+| Limits | Locum statement lines carry the branch name, not its id (follow-up); comparing months could narrow a figure. |

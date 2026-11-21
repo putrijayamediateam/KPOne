@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // HR-10c /hr/discipline: restricted discipline cases (Director, HR Manager). The list carries no allegation or note;
 // those are shown only on the case page, after the view is recorded. KPOne never ends employment or changes an account.
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -20,76 +19,21 @@ import {
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
+import { useDisciplinePage } from '@/composables/hr/useDisciplinePage';
+import type { DisciplinePageProps } from '@/composables/hr/useDisciplinePage';
 
-type Tab = 'open' | 'closed';
-type CaseRow = {
-    id: string;
-    person: string;
-    incidentOn: string;
-    openedOn: string | null;
-    status: Tab;
-    outcome: string | null;
-    closedOn: string | null;
-    entries: number;
-};
-
-const props = defineProps<{
-    discipline: {
-        tab: Tab;
-        counts: Record<Tab, number>;
-        cases: CaseRow[];
-        workers: { id: string; name: string }[];
-        maxAllegation: number;
-        today: string;
-    };
-}>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(() => errors.value.case ?? errors.value.records);
-const tabs = computed(() => [
-    { value: 'open', label: `Open (${props.discipline.counts.open})` },
-    { value: 'closed', label: `Closed (${props.discipline.counts.closed})` },
-]);
-const selectTab = (value: string | number) =>
-    router.get('/hr/discipline', { tab: value }, { preserveScroll: true });
-
-const form = reactive({
-    open: false,
-    worker: '',
-    incidentOn: '',
-    allegation: '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const startCase = () => {
-    form.worker = '';
-    form.incidentOn = props.discipline.today;
-    form.allegation = '';
-    form.key = crypto.randomUUID();
-    form.open = true;
-};
-const submit = () => {
-    form.processing = true;
-    router.post(
-        '/hr/discipline',
-        {
-            worker_id: form.worker,
-            incident_on: form.incidentOn,
-            allegation: form.allegation,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (form.open = false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
-const textareaClass =
-    'w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-[invalid=true]:border-destructive';
+const props = defineProps<DisciplinePageProps>();
+const {
+    errors,
+    failure,
+    tabs,
+    selectTab,
+    form,
+    startCase,
+    submit,
+    textareaClass,
+    reasonLine,
+} = useDisciplinePage(props);
 </script>
 
 <template>
@@ -252,7 +196,11 @@ const textareaClass =
                             :disabled="
                                 form.processing ||
                                 !form.worker ||
+                                !form.incidentOn ||
                                 form.allegation.trim().length < 10
+                            "
+                            :aria-describedby="
+                                reasonLine ? 'case-save-reason' : undefined
                             "
                             data-test="case-save"
                             >{{
@@ -268,13 +216,11 @@ const textareaClass =
                         >
                     </div>
                     <p
-                        v-if="
-                            !form.worker || form.allegation.trim().length < 10
-                        "
+                        v-if="reasonLine"
+                        id="case-save-reason"
                         class="text-sm text-muted-foreground"
                     >
-                        Open case: choose a staff file and write the allegation
-                        first.
+                        {{ reasonLine }}
                     </p>
                 </form>
             </SheetContent>

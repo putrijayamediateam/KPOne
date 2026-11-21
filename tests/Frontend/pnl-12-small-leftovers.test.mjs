@@ -11,7 +11,7 @@ const read = (path) =>
 const index = read('resources/js/pages/PanelClaims/Index.vue');
 const pack = read('resources/js/pages/PanelClaims/Pack.vue');
 
-test('Summary counts read "1 claim" or "N claims", and Pending and Overdue count invoices', () => {
+test('Summary counts read "1 claim" or "N claims", Pending counts invoices and Overdue counts claims', () => {
     assert.match(
         index,
         /const countLabel = \(count: number, noun: 'claim' \| 'invoice'\) =>\s*`\$\{count\} \$\{noun\}\$\{count === 1 \? '' : 's'\}`;/,
@@ -22,7 +22,7 @@ test('Summary counts read "1 claim" or "N claims", and Pending and Overdue count
     );
     assert.match(
         index,
-        /countLabel\(\s*work\.summary\.overdue\.count,\s*'invoice',?\s*\)/,
+        /countLabel\(\s*work\.summary\.overdue\.count,\s*'claim',?\s*\)/,
     );
     assert.match(
         index,

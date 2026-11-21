@@ -3,6 +3,9 @@
 namespace App\Domain\HR\Records\Services;
 
 use App\Domain\HR\Applications\Services\JobApplicationService;
+use App\Domain\HR\Credentials\CredentialPermissions;
+use App\Domain\HR\Credentials\Services\CredentialService;
+use App\Domain\HR\Credentials\Services\WorkPermits;
 use App\Domain\HR\Payroll\Services\PayslipService;
 use App\Domain\HR\Records\Models\BankDetail;
 use App\Domain\HR\Records\Models\ChecklistItem;
@@ -108,6 +111,10 @@ final class RecordsPageService
                 'recorded' => $this->recordedMask($c->kind, $personal, $confirmed), 'new' => $this->newMask($c),
                 'askedBy' => $names[$c->asked_by_user_id] ?? 'Staff member', 'askedAt' => $c->created_at->toIso8601String(), 'lockVersion' => $c->lock_version,
             ])->values()->all(),
+            // HR-21: a work permit that is expiring or expired, in plain words (credential managers only).
+            'workPermits' => $actor->can(CredentialPermissions::MANAGE)
+                ? array_column(WorkPermits::due((int) $worker->organisation_id, app(CredentialService::class)->today((int) $worker->organisation_id), (int) $worker->id), 'line')
+                : [],
             'canOpenDocuments' => $actor->can(RecordPermissions::DOCUMENTS_VIEW),
             'documents' => $this->documents($worker, $today),
             'checklist' => $tab === 'checklist' ? $this->checklist($worker, $periods) : null,

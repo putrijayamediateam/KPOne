@@ -37,15 +37,6 @@ class V2PageDispatchTest extends VisitTestCase
         $this->get('/_v2-test/registered')->assertInertia(fn (Assert $p) => $p->component('Pricing/Index'));
     }
 
-    public function test_a_person_in_v2_gets_the_v2_page_for_a_registered_page_with_the_same_props(): void
-    {
-        $user = $this->actor('ca');
-        $this->selectBranch($user);
-        $this->switchOn($user);
-
-        $this->get('/_v2-test/registered')->assertInertia(fn (Assert $p) => $p->component('Pricing/V2/Index', false)->where('x', 1));
-    }
-
     public function test_a_page_that_is_not_registered_is_never_replaced_and_its_response_is_identical(): void
     {
         $user = $this->actor('ca');
@@ -73,50 +64,6 @@ class V2PageDispatchTest extends VisitTestCase
         $resolver = app(UiVersionResolver::class);
         $this->assertFalse($resolver->isV2($tv, Request::create('/spaces/me')));
         $this->assertSame('Pricing/Index', $resolver->pageFor('Pricing/Index', $tv, Request::create('/spaces/me')));
-    }
-
-    public function test_a_space_page_is_v2_even_without_the_switch(): void
-    {
-        $user = $this->actor('ca');
-        $resolver = app(UiVersionResolver::class);
-
-        $this->assertTrue($resolver->isV2($user, Request::create('/spaces/me')));
-        $this->assertFalse($resolver->isV2($user, Request::create('/registration')));
-        $this->assertSame('Pricing/V2/Index', $resolver->pageFor('Pricing/Index', $user, Request::create('/spaces/me')));
-    }
-
-    public function test_the_preference_is_read_once_per_request(): void
-    {
-        $user = $this->actor('ca');
-        $this->selectBranch($user);
-        $this->switchOn($user);
-
-        $reads = 0;
-        DB::listen(function ($query) use (&$reads): void {
-            if (str_contains($query->sql, 'user_space_preferences')) {
-                $reads++;
-            }
-        });
-        $this->get('/_v2-test/registered')->assertOk();
-
-        $this->assertSame(1, $reads);
-    }
-
-    public function test_an_unregistered_page_costs_no_extra_read_for_the_dispatch(): void
-    {
-        $user = $this->actor('ca');
-        $this->selectBranch($user);
-
-        $reads = 0;
-        DB::listen(function ($query) use (&$reads): void {
-            if (str_contains($query->sql, 'user_space_preferences')) {
-                $reads++;
-            }
-        });
-        $this->get('/_v2-test/other')->assertOk();
-
-        // The only read is the shared page props': the dispatch checks the registry first and never asks.
-        $this->assertSame(1, $reads);
     }
 
     public function test_every_registered_page_has_its_v2_file_and_every_v2_file_is_registered(): void

@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $id
@@ -45,5 +46,14 @@ class ClockSession extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    /**
+     * Undo clock-out: the attempt a new photo or location result of this kind belongs to. A clock-in is always 1; a
+     * clock-out is 1 plus the session's undone clock-outs (PostgreSQL checks the same).
+     */
+    public static function attemptFor(int $sessionId, string $kind): int
+    {
+        return $kind === 'out' ? 1 + DB::table('hr_clock_events')->where('clock_session_id', $sessionId)->where('kind', 'out_undone')->count() : 1;
     }
 }

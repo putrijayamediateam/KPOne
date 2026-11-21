@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/vue3';
-import type { ComputedRef, InjectionKey } from 'vue';
 import { computed, reactive, watch } from 'vue';
+import type { ClockLocation } from '@/composables/useClockPhoto';
 import { clockPhotoState, useClockPhoto } from '@/composables/useClockPhoto';
 import { requestJson } from '@/lib/json-client';
 
@@ -9,38 +9,25 @@ type ClockState = {
     label: string | null;
     canPress: boolean;
     refusal: string | null;
-    needsAttendancePage: boolean;
+    location: ClockLocation | null;
 };
 
 const ATTENDANCE = '/hr/attendance';
 
-// UX-24 (Daniel, 2026-11-13): pages that already carry their own Clock in as the page's button, so the V2 top bar
-// leaves its shortcut out there and a page never shows it twice.
-const OWN_CLOCK = ['/spaces/me', '/hr/roster', ATTENDANCE];
-/**
- * UX-24: the V2 shell tells the account menu whether its top-bar clock button is drawn right now (from 1024 px, not on
- * pages with their own Clock in, not in focus mode). The menu row hides only then, so exactly one of them shows.
- */
-export const TOP_BAR_CLOCK: InjectionKey<ComputedRef<boolean>> =
-    Symbol('v2-top-bar-clock');
-
-export const pageHasOwnClock = (url: string): boolean => {
-    const path = url.split('?')[0];
-
-    return OWN_CLOCK.some((own) => path === own || path.startsWith(`${own}/`));
-};
-
-// One shared state for the top-bar button and the phone menu row (DS-12).
+// One shared state for the Clock in on Me home and the Classic account menu row.
 const clock = reactive({
     loaded: false,
     state: 'out' as ClockState['state'],
     canPress: false,
-    needsAttendancePage: false,
+    location: null as ClockLocation | null,
 });
 
 /**
- * The clock shortcut reads the same state as My attendance. HR-PHOTO: a press opens the shared camera dialog (the
- * dialog posts the press with its photo); a branch that checks location still goes to the Attendance page first.
+ * One Clock in (owner, 18 Nov 2026): in the new layout the one Clock in button is on Me home (MeHome.vue); the top bar, the
+ * account menu and the space pages have none there. Classic keeps its own account menu row. This reads the same state as
+ * My attendance. HR-PHOTO: a press opens the shared camera dialog (the
+ * dialog posts the press with its photo). One Clock in (owner, 18 Nov 2026): a branch that checks location is handled
+ * in that dialog too (consent once, then one location read), so a press never sends anyone to the Attendance page.
  */
 export function useClockShortcut() {
     const load = async () => {
@@ -51,7 +38,7 @@ export function useClockShortcut() {
 
             clock.state = data.state;
             clock.canPress = data.canPress;
-            clock.needsAttendancePage = data.needsAttendancePage;
+            clock.location = data.location ?? null;
             clock.loaded = true;
         } catch {
             clock.loaded = false;
@@ -61,16 +48,43 @@ export function useClockShortcut() {
     const { open } = useClockPhoto();
     /**
      * `returnFocusTo` (UX-24, Daniel): where focus goes once the photo dialog has closed (Not now, Done or the close
-     * button). The account menu row passes its menu button, because the row itself is gone by then.
+     * button), for the control that opened it. The Classic account menu row passes its menu button, because the row itself is
+     * gone by then.
      */
     const press = (returnFocusTo?: HTMLElement | null) => {
-        if (clock.needsAttendancePage) {
-            router.visit(ATTENDANCE);
+        void pressFresh(returnFocusTo);
+    };
+    const pressFresh = async (returnFocusTo?: HTMLElement | null) => {
+        // Read the state fresh at the press: it must know in or out and whether the branch checks location, and a
+        // press or consent made elsewhere since the last read (the Attendance page, another tab) must count.
+        // If that read fails, the last state read still serves, but only where the branch checks no location: an old
+        // "already agreed" could skip a consent the Director has since asked for again (Suresh, m1).
+        const known = {
+            state: clock.state,
+            canPress: clock.canPress,
+            location: clock.location,
+        };
+        const hadState = clock.loaded;
+        await load();
+
+        if (!clock.loaded) {
+            if (!hadState || known.location !== null) {
+                return;
+            }
+
+            Object.assign(clock, known, { loaded: true });
+        }
+
+        // The fresh state says no press is possible now (done for today, or a refusal): the page shows why instead of
+        // opening a camera the server would refuse (Suresh, m3).
+        if (!clock.canPress || clock.state === 'done') {
+            router.reload();
 
             return;
         }
 
         const opened = open(clock.state === 'in' ? 'out' : 'in', {
+            location: clock.location,
             onDone: () => {
                 void load();
                 router.reload();

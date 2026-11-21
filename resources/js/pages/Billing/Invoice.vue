@@ -123,7 +123,7 @@ const totals = computed(() => {
                 :context="invoice.links.activity"
                 :notes-context="invoice.notes"
             />
-            <span class="ml-auto text-[11px] text-muted-foreground"
+            <span class="ml-auto text-xs text-muted-foreground"
                 >{{ invoice.visit.branch }} ·
                 {{ invoice.visit.visitNumber }}</span
             >
@@ -408,7 +408,7 @@ const totals = computed(() => {
                                     }}</span>
                                 </div>
                                 <div
-                                    class="mt-1 text-[11px] break-words text-muted-foreground"
+                                    class="mt-1 text-xs break-words text-muted-foreground"
                                 >
                                     {{ payment.receiptNumber }} ·
                                     {{ payment.receivedAt }}
@@ -441,7 +441,7 @@ const totals = computed(() => {
                                     kept
                                 </p>
                                 <p
-                                    class="mt-1 text-[11px] break-words text-muted-foreground"
+                                    class="mt-1 text-xs break-words text-muted-foreground"
                                     data-testid="payment-recorded-by"
                                 >
                                     Recorded by {{ payment.recordedBy }}

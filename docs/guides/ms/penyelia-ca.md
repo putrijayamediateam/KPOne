@@ -151,3 +151,74 @@ Lajur “Current price” menunjukkan harga yang berkuat kuasa sekarang; harga b
 ## Sejarah perubahan pesakit
 
 Pada halaman pesakit, bahagian “Change history” menunjukkan siapa menukar bahagian rekod dan bila. Nilai lama dan baharu tidak dipaparkan. Pilih “Show older changes” untuk melihat perubahan lebih awal.
+
+## Permintaan pembelian (“Purchase requests”)
+
+Gunakan halaman ini untuk meminta stok; orang lain menukarnya kepada draf pesanan pembelian.
+
+1. Pada “Inventory” > “Orders and suppliers”, buka “Purchase requests”. Tab menunjukkan “Waiting for review”, “Converted”, “Rejected” dan “Withdrawn”.
+2. Pilih “New request”. Dalam “New purchase request”, pilih “Deliver to” (lokasi), dan jika perlu “Preferred supplier (optional)”. Untuk setiap baris, taip nama atau kod dalam “Search SKU for line 1”, pilih “Search”, buka senarai “Select” dan pilih SKU, kemudian isi “Quantity” dan “Note (optional)”. Pilih “Add a line” untuk baris lain.
+3. Pilih “Send for review”. Permintaan muncul di “Waiting for review” dengan nombor seperti PR-…. Anda boleh memilih “Withdraw” sebelum ia disemak. Skrin menyatakan: “You sent this request, so another person must review it.”
+4. Orang lain (CA Supervisor lain atau Finance Officer; hanya orang yang membuat permintaan tidak dibenarkan) memilih “Convert to draft order” atau “Reject”. Dalam “Convert … to a draft order”, pilih “Supplier”, ubah kuantiti “Order” jika perlu (masukkan 0 untuk membiarkan satu baris), kemudian pilih “Create draft order”. Kuantiti yang diminta kekal pada permintaan. Permintaan bertukar kepada “Converted” dengan nombor “Draft order” (PO-…).
+
+## Pesanan pembelian (“Purchase Orders & Receiving”)
+
+1. Pada “Inventory”, bahagian “Purchase Orders & Receiving”, draf PO daripada permintaan muncul dengan status “Draft”. Untuk PO baharu tanpa permintaan, pilih pembekal, destinasi dan baris SKU (kuantiti dan “Estimated cost per stock unit (RM)”; ini kos untuk satu unit stok, contohnya satu biji tablet, bukan satu kotak), kemudian “Create PO draft”.
+2. Pada draf, semak pembekal, lokasi dan kuantiti, pilih “Update draft” jika ada perubahan, kemudian “Submit”. Skrin menyatakan “Purchase Order submitted.” Status menjadi “Submitted”. “Cancel” membatalkan draf.
+3. Finance Officer atau Director memilih “Approve”, kemudian “Approve Purchase Order” untuk mengesahkan. Kelulusan membenarkan penerimaan terhadap PO itu; CA Supervisor tidak meluluskan PO. Finance Officer atau Director yang menyediakan atau menghantar PO itu tidak boleh meluluskannya; orang lain mesti meluluskannya.
+4. Pilih “Print PO” untuk mencetak PO.
+5. Selepas diluluskan, status menjadi “Approved” dan baris menunjukkan “Received 0 tablet · Outstanding 150 tablet”. Terima penghantaran mengikut bahagian “Terima penghantaran” di atas. Untuk penerimaan penuh tanpa pengecualian, isi “Delivery note or supplier invoice reference (required)”, “Batch number (required)”, “Expiry date (required)” (dd/mm/yyyy), “Quantity this receipt” dan, jika ada, “Total paid for this batch (RM, optional)”, kemudian “Post receipt”. Dialog bertanya “Post receipt for PO-…?” dan menyatakan ia menambah stok; pilih “Post receipt” untuk mengesahkan. Skrin menyatakan “Goods Receipt posted.”
+
+## Invois pembekal (“Supplier invoices”)
+
+1. Pada “Inventory” > “Orders and suppliers”, buka “Supplier invoices”. Halaman ini membandingkan setiap baris invois dengan apa yang diterima dan kosnya. KPOne tidak membuat sebarang pembayaran: invois yang “matched” atau “accepted” sedia dibayar di luar KPOne.
+2. Pada “Record an invoice”, pilih “Purchase order (required)” (hanya pesanan yang telah menerima stok dan menunggu invois), isi “Invoice number (required)”, “Invoice date (required)” dan “Invoice total, RM (optional)”. Untuk setiap baris, isi “Invoiced quantity” dan “Line total, RM” seperti pada invois; masukkan 0 untuk baris yang tiada pada invois. Pilih “Record invoice”.
+3. Jika semua sepadan, invois muncul di “Matched”. Jika ada beza, ia menunggu di “Waiting for approval” untuk Finance Officer atau Director yang bukan orang yang merekodnya. Tab lain: “Accepted” dan “Rejected”.
+4. Amaun hanya dipaparkan kepada Director atau Finance Officer.
+
+## Semak daftar ubat terkawal (“Controlled register”)
+
+1. Pada “Inventory” > “Count and adjust”, buka “Controlled register”. Halaman ini ialah draf: skrin menyatakan “Draft register — pending pharmacist review. Not a statutory register until a pharmacist approves its format.”
+2. Ubat muncul hanya jika ditanda terkawal dalam Medicine Catalogue dan dipautkan kepada SKU. Pilih “Open register” pada ubat itu.
+3. Daftar menyenaraikan setiap pergerakan masuk dan keluar. Kuantiti disembunyikan sehingga anda merekod kiraan sendiri supaya semakan tidak bergantung pada daftar.
+4. Kira ubat yang ada di cawangan, isi “Quantity counted”, kemudian pilih “Record check”. Kiraan sentiasa disimpan dan tidak mengubah stok.
+5. Jika kiraan berbeza daripada daftar, skrin menyatakan “Your count differs from the register”. Orang yang mengira menambah sebab di bawah “Earlier checks”: “A governed stock count will follow”, “Stock is held somewhere else”, “Difference to investigate” atau “Other (add a note)”, kemudian “Add reason”. Jangan masukkan butiran pesakit atau preskriber. Sebab hanya ditambah sekali dan tidak boleh diubah. Betulkan stok melalui “Stock count (governed)”. Dalam tampilan baharu, butang “Add the reason” pada panel amaran membuka “Add the reason for the difference”, dan “Add reason” mengesahkannya.
+6. Penyemak mesti orang kedua: bukan sesiapa yang merekod pergerakan sejak semakan terakhir, dan bukan orang yang membuat semakan terakhir. Skrin menyatakan “You did the previous check, so another person must check this register.” Penyemak kemudian mungkin melihat “Check N differs from the register and still waits for its reason from the person who recorded it. You can still record your check.”; anda masih boleh merekod semakan anda.
+
+## Cadangan pesanan, stok cawangan lain dan kesihatan stok
+
+Halaman ini untuk dibaca; tiada apa yang dipesan atau dihantar daripadanya.
+
+- “Reorder suggestions”: menyenaraikan stok pada atau di bawah paras pesanan semula beserta cadangan kuantiti. Gunakan “Show” untuk memilih “Only rows that need ordering” atau “All low-stock rows”. Jika tiada, skrin menyatakan “Nothing needs ordering at this branch.” Untuk memesan, guna “Purchase requests”.
+- “Stock other branches need”: cawangan lain yang berada pada atau di bawah paras pesanan semula, dan stok yang cawangan ini boleh beri. Hantar stok melalui “Stock Requests & Transfers” pada “Inventory”.
+- “Stock health”: berapa lama stok bertahan, kekerapan ia habis digunakan dan kerugian kerana tamat tempoh. Pilih “Period” (“Last 30 days”, “Last 90 days” atau “Last 365 days”). Halaman ini hanya menunjukkan kuantiti, tiada nilai wang.
+- “Stock review”: tiga senarai: “Low stock”, “Expiring soon” (dalam 90 hari) dan “Expired stock still on hand”. Mengakui (acknowledge) sesuatu tidak mengubah stok. Rekod pelupusan melalui “Write-off (governed)”.
+
+## Penerimaan dengan pengecualian (contoh yang diikuti pada skrin)
+
+Bahagian penerimaan, pulangan kepada pembekal dan recall di sini mengikut tampilan Classic. Tampilan baharu menggunakan lembaran terima sendiri; nama butang di sana mungkin berbeza: [PERLU DISAHKAN].
+
+1. Pada “Split lots and delivery exceptions”, isi “Delivery note or supplier invoice reference”, tandakan “Include this order line” hanya untuk baris yang tiba, dan isi “Physical quantity counted”. Nyahtanda baris yang tidak tiba; baris yang ditanda mesti mempunyai kuantiti.
+2. Isi setiap lot: “Batch number”, “Real expiry date”, “Lot quantity” dan “Outcome” (“accepted”, “quarantined” atau “rejected”). Pilih “Add lot” untuk lot lain (contohnya 480 diterima dan 20 rosak).
+3. Untuk lot “quarantined” atau “rejected”, pilih sebab terkawal: “Damaged”, “Wrong item”, “Short expiry”, “Missing documentation” atau “Other approved reason”. Jika sebab tiada, skrin menyatakan “Accepted lots have no exception reason. Quarantined and rejected lots need a controlled reason.”
+4. Pilih “Request exception approval”. Pada “Delivery exceptions and corrections”, orang lain (CA Supervisor lain, Finance Officer atau Director) memilih “Load receiving reviews”, menyemak resit yang “Awaiting independent approval” dan memilih “Approve delivery exception”. Skrin menyatakan “Delivery exception approved. The original receiver may post the unchanged delivery.”
+5. Penerima asal memilih “Load receiving reviews”, kemudian “Post approved delivery”. Skrin menyatakan “Goods Receipt posted.”
+6. Lot yang “quarantined” diletakkan tahanan secara automatik pada “Batch safety holds” (contohnya “Held: Damaged”; untuk sebab lain, tahanan itu menjadi “Held: Other safety concern”). Pelepasan tahanan memerlukan Finance Officer atau Director.
+
+## Pulangan beberapa lot sekali gus
+
+Pada “Supplier returns”, bahagian “Return several lots from one delivery” membolehkan anda memilih satu penghantaran, menanda lot dan menetapkan kuantiti (sehingga 20 lot). Lot itu diluluskan, dihantar dan ditutup bersama dengan satu nota kredit. Lot yang telah “quarantined” juga boleh dipulangkan; skrin menunjukkan “(quarantined)” pada lot itu.
+
+## Recall
+
+1. Buka “Inventory” > “Count and adjust” > “Recalls”. Skrin menyatakan recall menyekat batch yang dinamakan di setiap cawangan, dan tidak menggerakkan stok. Tab menunjukkan “Active” dan “Lifted”.
+2. CA Supervisor hanya melihat senarai. Director memilih “Start a recall”, mencari SKU dan memilih batch, memilih “Reason” (“Supplier recall”, “Regulator notice”, “Quality issue” atau “Other”), boleh mengisi “Notice reference (optional)” dan “Note (optional)” (tanpa nama pesakit atau nombor IC), kemudian “Start recall”. Hanya Director boleh mengangkat recall, dan bukan Director yang memulakannya, jadi mengangkat recall memerlukan Director kedua. Dalam rintis dengan seorang Director sahaja, recall belum dapat diangkat; pemilik akan memutuskan perkara ini sebelum go-live.
+3. Batch yang di bawah recall tidak boleh digunakan sehingga recall diangkat.
+
+## Kiraan yang patut dibuat (“Counts due”)
+
+Pada “Stock count (governed)”, bahagian “Counts due” menyenaraikan SKU dan lokasi yang patut dikira. Kelas A dikira setiap 30 hari, B setiap 60 dan C setiap 90; kelas bergantung pada berapa kerap item dikeluarkan di cawangan ini dalam 90 hari lepas, dan ubat terkawal sentiasa kelas A. Warna kuning bermaksud sudah patut, lewat sehingga 29 hari, atau belum pernah dikira (“Never counted”; baris ini dipaparkan dahulu); merah bermaksud 30 hari atau lebih. Langkah mengira dan mengira semula ada dalam bahagian “Buat kiraan, kiraan semula dan hapus kira” di atas.
+
+## Halaman inventori lain
+
+“Supplier price list” (harga hanya untuk Director atau Finance Officer), “Stock value and cost” (Director sahaja; CA Supervisor mendapat 403) dan “Import opening stock” (CA Supervisor memuat naik fail CSV; skrin menyatakan setiap baris direkod atau tiada langsung, dan setiap stok pembukaan masih perlu disahkan oleh orang lain pada “Pilot readiness”) belum diikuti langkah demi langkah dalam panduan ini: [PERLU DISAHKAN]. Pemindahan antara lokasi (“Stock Requests & Transfers”) dan kiraan semula juga belum diikuti pada skrin untuk panduan ini: [PERLU DISAHKAN]. Jika halaman tiada pada akaun anda, ia tidak dibenarkan untuk anda.

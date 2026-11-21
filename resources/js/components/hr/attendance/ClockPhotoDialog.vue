@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Check, RefreshCcw, X } from '@lucide/vue';
+import { AlertCircle, Check, RefreshCcw, X } from '@lucide/vue';
 import {
     DialogContent,
     DialogDescription,
@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from 'reka-ui';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import ClockLocationConsent from '@/components/hr/attendance/ClockLocationConsent.vue';
 import ClockPhotoNotice, {
     CLOCK_PHOTO_NOTICE_VERSION,
 } from '@/components/hr/attendance/ClockPhotoNotice.vue';
@@ -18,9 +19,13 @@ import {
     clockPhotoState as state,
     markNoticeSeen,
     NoticeNeeded,
+    PASS_REFUSALS,
+    passRefusalNote,
+    readLocation,
     resetClockPhoto,
     sendPress,
     takeToken,
+    WITHOUT_LOCATION,
 } from '@/composables/useClockPhoto';
 
 /**
@@ -35,6 +40,11 @@ const doneButton = ref<HTMLButtonElement | null>(null);
 const facing = ref<'user' | 'environment'>('user');
 const canSwitch = ref(false);
 const preview = ref('');
+// A line on the camera step after a photo was thrown away (the pass ran out).
+const cameraNote = ref('');
+// After any other refusal, "Use photo" turns off and Retake is the one filled action.
+const refused = ref(false);
+const shooting = ref(false);
 let photo: Blob | null = null;
 let stream: MediaStream | null = null;
 
@@ -44,6 +54,12 @@ const dark = computed(() =>
     ['starting', 'camera', 'review', 'sending', 'failed'].includes(state.step),
 );
 const notice = computed(() => state.step === 'notice');
+// HR-16a on the Me press: the consent step and the one location read come before the camera, on a light sheet.
+const consent = computed(
+    () => state.step === 'consent' && state.location !== null,
+);
+const locating = computed(() => state.step === 'locating');
+const light = computed(() => notice.value || consent.value || locating.value);
 
 const stopStream = () => {
     stream?.getTracks().forEach((track) => track.stop());
@@ -116,12 +132,50 @@ const begin = async () => {
     await startCamera();
 };
 
+// The location is read once, at the press; the result rides along with the photo. A flow closed meanwhile ignores it.
+const checkLocation = async (agreed: boolean) => {
+    const key = state.key;
+    state.step = 'locating';
+    const extra = await readLocation(agreed);
+
+    if (state.key !== key || state.step !== 'locating') {
+        return;
+    }
+
+    state.extra = { ...state.extra, ...extra };
+    // Daniel: a read that fails or is refused says so in words on the camera screen; the press still goes ahead.
+    cameraNote.value =
+        extra.location_unavailable === 'denied'
+            ? 'Location is not allowed for KPOne on this device, so this is recorded without it.'
+            : extra.location_unavailable === 'failed'
+              ? 'Your location could not be read in time, so this is recorded without it.'
+              : '';
+    state.step = 'starting';
+    await begin();
+};
+
+const withoutLocation = async () => {
+    state.extra = { ...state.extra, ...WITHOUT_LOCATION };
+    facing.value = 'user';
+    state.step = 'starting';
+    await begin();
+};
+
 watch(
     () => state.step,
     (step, before) => {
-        if (step === 'starting' && before === 'idle') {
+        if (before !== 'idle') {
+            return;
+        }
+
+        if (step === 'starting' || step === 'locating') {
             facing.value = 'user';
+        }
+
+        if (step === 'starting') {
             void begin();
+        } else if (step === 'locating') {
+            void checkLocation(false);
         }
     },
 );
@@ -148,9 +202,11 @@ const switchCamera = async () => {
 const take = async () => {
     const el = video.value;
 
-    if (!el || !el.videoWidth) {
+    if (!el || !el.videoWidth || shooting.value) {
         return;
     }
+
+    shooting.value = true;
 
     const canvas = document.createElement('canvas');
     const scale = Math.min(1, 1280 / Math.max(el.videoWidth, el.videoHeight));
@@ -162,9 +218,33 @@ const take = async () => {
     );
 
     if (!blob) {
+        shooting.value = false;
+
         return;
     }
 
+    // The pass is taken at the shutter, so time on the camera screen never counts against the person.
+    try {
+        state.token = await takeToken(state.kind);
+    } catch (e) {
+        shooting.value = false;
+
+        if (e instanceof NoticeNeeded) {
+            stopStream();
+            state.step = 'notice';
+
+            return;
+        }
+
+        cameraNote.value = 'KPOne could not take the photo. Try again.';
+
+        return;
+    }
+
+    shooting.value = false;
+    cameraNote.value = '';
+    refused.value = false;
+    state.error = '';
     clearPreview();
     photo = blob;
     preview.value = URL.createObjectURL(blob);
@@ -177,13 +257,15 @@ const take = async () => {
 const retake = async () => {
     clearPreview();
     state.error = '';
+    refused.value = false;
+    cameraNote.value = '';
     state.step = 'starting';
     await begin();
 };
 
 // "Use photo": the server records the time now.
 const usePhoto = async () => {
-    if (!photo || state.step !== 'review') {
+    if (!photo || state.step !== 'review' || refused.value) {
         return;
     }
 
@@ -197,8 +279,22 @@ const usePhoto = async () => {
         await nextTick();
         doneButton.value?.focus();
     } catch (e) {
+        const message = e instanceof Error ? e.message : 'Try again.';
+
+        if (PASS_REFUSALS.includes(message)) {
+            // The photo is thrown away and the camera opens again, with one line saying why: no dead "Use photo".
+            clearPreview();
+            state.error = '';
+            state.step = 'starting';
+            await startCamera();
+            cameraNote.value = passRefusalNote(message);
+
+            return;
+        }
+
         state.step = 'review';
-        state.error = e instanceof Error ? e.message : 'Try again.';
+        state.error = message;
+        refused.value = true;
     }
 };
 
@@ -211,6 +307,8 @@ const close = () => {
     const after = state.onDone;
     stopStream();
     clearPreview();
+    refused.value = false;
+    cameraNote.value = '';
     resetClockPhoto();
 
     if (wasDone) {
@@ -239,6 +337,8 @@ const chipTone = computed(() => {
 onBeforeUnmount(() => {
     stopStream();
     clearPreview();
+    refused.value = false;
+    cameraNote.value = '';
     resetClockPhoto();
 });
 </script>
@@ -256,7 +356,7 @@ onBeforeUnmount(() => {
                 data-test="clock-photo-dialog"
                 class="fixed inset-0 z-50 flex flex-col overflow-hidden outline-none sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(44rem,calc(100dvh-4rem))] sm:w-[min(40rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:shadow-2xl"
                 :class="
-                    notice
+                    light
                         ? 'bg-background text-foreground'
                         : dark
                           ? 'bg-[#08080a] text-white'
@@ -266,6 +366,9 @@ onBeforeUnmount(() => {
                     (e: Event) => state.step === 'sending' && e.preventDefault()
                 "
                 @pointer-down-outside="(e: Event) => e.preventDefault()"
+                @open-auto-focus="
+                    (e: Event) => state.step === 'consent' && e.preventDefault()
+                "
             >
                 <!-- The one-time "About clock-in photos" notice -->
                 <ClockPhotoNotice
@@ -273,6 +376,46 @@ onBeforeUnmount(() => {
                     @continue="noticeRead"
                     @cancel="close"
                 />
+
+                <!-- HR-16a: consent, once per version, then one location read -->
+                <ClockLocationConsent
+                    v-else-if="consent && state.location"
+                    :kind="state.kind"
+                    :location="state.location"
+                    @agree="checkLocation(true)"
+                    @without="withoutLocation"
+                    @cancel="close"
+                />
+                <div
+                    v-else-if="locating"
+                    class="relative flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+                    data-test="clock-location-checking"
+                >
+                    <!-- The first screen when consent is already given: a phone has no Escape, so it needs its own way out
+                         (Suresh, m2). Closing records nothing. -->
+                    <button
+                        type="button"
+                        class="absolute top-[max(1.5rem,env(safe-area-inset-top))] right-6 flex size-11 items-center justify-center rounded-full border focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        aria-label="Close"
+                        data-test="clock-location-checking-close"
+                        @click="close"
+                    >
+                        <X class="size-5" aria-hidden="true" />
+                    </button>
+                    <DialogTitle class="text-xl font-semibold">{{
+                        title
+                    }}</DialogTitle>
+                    <DialogDescription
+                        class="flex flex-col gap-1 text-base"
+                        role="status"
+                    >
+                        <span>Checking your location…</span>
+                        <!-- Daniel: no animation, but a line so it never looks frozen. -->
+                        <span class="text-sm text-muted-foreground"
+                            >This can take up to 10 seconds.</span
+                        >
+                    </DialogDescription>
+                </div>
 
                 <!-- Camera and review -->
                 <template v-else-if="dark">
@@ -293,7 +436,7 @@ onBeforeUnmount(() => {
                             {{
                                 state.step === 'review' ||
                                 state.step === 'sending'
-                                    ? 'Check your photo'
+                                    ? `${title} · Check your photo`
                                     : title
                             }}
                         </DialogTitle>
@@ -383,11 +526,28 @@ onBeforeUnmount(() => {
                     >
                         <p
                             v-if="state.error && state.step === 'review'"
-                            class="mb-3 rounded-lg bg-white/10 px-3 py-2 text-center text-sm"
+                            id="clock-photo-error"
+                            class="mb-3 flex items-start justify-center gap-2 text-center text-sm text-white"
                             role="alert"
                             data-test="clock-photo-error"
                         >
-                            {{ state.error }}
+                            <AlertCircle
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span>{{ state.error }}</span>
+                        </p>
+                        <p
+                            v-if="cameraNote && state.step === 'camera'"
+                            class="mb-3 flex items-start justify-center gap-2 text-center text-sm text-white"
+                            role="alert"
+                            data-test="clock-photo-camera-note"
+                        >
+                            <AlertCircle
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span>{{ cameraNote }}</span>
                         </p>
                         <div
                             v-if="state.step === 'camera'"
@@ -399,6 +559,7 @@ onBeforeUnmount(() => {
                                 class="flex size-[84px] items-center justify-center rounded-full border-[5px] border-white focus-visible:ring-4 focus-visible:ring-white/60 focus-visible:outline-none sm:size-[72px] sm:border-4"
                                 aria-label="Take photo"
                                 data-test="clock-photo-shutter"
+                                :disabled="shooting"
                                 @click="take"
                             >
                                 <span
@@ -415,7 +576,12 @@ onBeforeUnmount(() => {
                         >
                             <button
                                 type="button"
-                                class="min-h-14 flex-1 rounded-full border-2 border-white/70 bg-transparent text-[17px] font-bold focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-50"
+                                class="min-h-14 flex-1 rounded-full text-[17px] font-bold focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-50"
+                                :class="
+                                    refused
+                                        ? 'bg-[#6ba6ff] text-[#0b1a33]'
+                                        : 'border-2 border-white/70 bg-transparent'
+                                "
                                 data-test="clock-photo-retake"
                                 :disabled="state.step === 'sending'"
                                 @click="retake"
@@ -425,9 +591,18 @@ onBeforeUnmount(() => {
                             <button
                                 ref="usePhotoButton"
                                 type="button"
-                                class="min-h-14 flex-[1.4] rounded-full bg-[#6ba6ff] text-[17px] font-bold text-[#0b1a33] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-70"
+                                class="min-h-14 flex-[1.4] rounded-full text-[17px] font-bold focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-70"
+                                :class="
+                                    refused
+                                        ? 'border-2 border-white/30 bg-transparent text-white/60'
+                                        : 'bg-[#6ba6ff] text-[#0b1a33]'
+                                "
                                 data-test="clock-photo-use"
                                 :disabled="state.step === 'sending'"
+                                :aria-disabled="refused ? 'true' : undefined"
+                                :aria-describedby="
+                                    refused ? 'clock-photo-error' : undefined
+                                "
                                 @click="usePhoto"
                             >
                                 {{

@@ -128,7 +128,12 @@ const decide = (
             >
                 If the receipt was entered wrongly, use Correct a receipt below.
             </p>
-            <p v-else class="text-xs text-muted-foreground">
+            <!-- One explainer at a time: this one is for an open visit only (a completed visit has its own above). -->
+            <p
+                v-if="!refunds.visitCompleted"
+                class="text-xs text-muted-foreground"
+                data-testid="refund-reversed-note"
+            >
                 Record money handed back to the patient for a reversed receipt.
                 Someone else must approve it. The invoice and receipt do not
                 change.

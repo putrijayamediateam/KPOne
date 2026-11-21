@@ -74,14 +74,14 @@ test("someone else's photo stays hidden until Show; your own shows; a correction
     assert.match(thumb, /Show photo/);
     assert.match(thumb, /photo\.label/);
     assert.match(attendance, /<ClockPhotoThumb/);
-    assert.match(attendance, /useClockPhoto\(\)/);
+    // One Clock in: the camera opens from Me, never from this page.
+    assert.doesNotMatch(attendance, /useClockPhoto\(\)/);
 });
 
 test('the dialog is mounted once in each layout', () => {
     for (const layout of [
         'AdminLayout.vue',
         'ClinicLayout.vue',
-        'SpacePassThroughLayout.vue',
         'V2Layout.vue',
     ]) {
         const source = read(`resources/js/layouts/${layout}`);
@@ -108,13 +108,14 @@ test('the notice version matches the server and comes before the camera', () => 
     assert.match(dialog, /markNoticeSeen\(CLOCK_PHOTO_NOTICE_VERSION\)/);
 });
 
-test('the clock shortcut opens the camera, or the Attendance page where location is checked', () => {
+test('the clock shortcut opens the camera and checks location itself; it never sends to Attendance', () => {
     const shortcut = read('resources/js/composables/useClockShortcut.ts');
     assert.match(shortcut, /useClockPhoto\(\)/);
     assert.match(shortcut, /open\(clock\.state === 'in' \? 'out' : 'in'/);
+    assert.doesNotMatch(shortcut, /router\.visit\(ATTENDANCE\)/);
     assert.match(
         shortcut,
-        /needsAttendancePage[\s\S]*router\.visit\(ATTENDANCE\)/,
+        /open\(clock\.state === 'in' \? 'out' : 'in', \{\s*location: clock\.location,/,
     );
 });
 

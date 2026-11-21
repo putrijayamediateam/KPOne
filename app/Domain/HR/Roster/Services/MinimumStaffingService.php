@@ -72,7 +72,7 @@ final class MinimumStaffingService
     private function normalise(array $stored): array
     {
         $out = [];
-        foreach (array_keys(RosterRules::SESSIONS) as $session) {
+        foreach (array_keys(RosterRules::clinicSessions()) as $session) {
             foreach (array_keys(RosterRules::STAFFING_ROLES) as $role) {
                 $value = is_array($stored[$session] ?? null) ? ($stored[$session][$role] ?? 0) : 0;
                 $out[$session][$role] = is_int($value) ? $value : 0;
@@ -90,7 +90,7 @@ final class MinimumStaffingService
         }
         $out = [];
         $errors = [];
-        foreach (array_keys(RosterRules::SESSIONS) as $session) {
+        foreach (array_keys(RosterRules::clinicSessions()) as $session) {
             foreach (array_keys(RosterRules::STAFFING_ROLES) as $role) {
                 $raw = is_array($input[$session] ?? null) ? ($input[$session][$role] ?? 0) : 0;
                 $value = $raw === '' ? 0 : filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => self::MAX]]);
