@@ -127,7 +127,38 @@ To be confirmed by running the suite on a spike, but these are the likely ones:
 3. Likely setup-only changes: the PNL-9 contention tests, `PanelClaimAdjustment` tests, the Panel claim-pack tests,
    the Follow-up list tests and the Insights and agent Panel tool fixtures.
 
-The exact list comes from a spike run of the full suite after the change, and goes to the owner before the PR.
+**Spike result (21 Nov, throwaway branch, not kept).** A minimal creator hooked after `approve()` was run against
+`tests/Feature/Billing`, `Visit`, `Agents` and `Insights` on PostgreSQL (contention suite excluded), compared with
+the same classes on unmodified `main`. The baseline has 8 errors that are not ours (6 in `PanelClaimsTest` and 2 in
+`DocumentLetterheadTest`, photo and logo tests that need the GD extension, which this container lacks). The spike adds
+**123 new failing tests in 23 classes**. Almost all fail for the one reason in item 1 (a fixture approves a
+Panel allocation and then creates the claim itself). Counts of new failures per class:
+
+| Class | New failures |
+|---|---|
+| PanelClaimsTest | 16 |
+| PanelClaimAdjustmentTest | 13 |
+| PanelBulkClaimTest | 12 |
+| PanelRemittanceTest | 10 |
+| PanelPaymentCorrectionTest | 9 |
+| PanelStatementTest | 7 |
+| PanelShortfallTest | 7 |
+| PanelFollowUpTest | 7 |
+| PostgresPanelPaymentRegressionTest | 6 |
+| InvoiceAdjustmentReportingTest | 6 |
+| PanelClaimPackTest | 5 |
+| PostgresPanelClaimEditRaceTest, PostgresPanelBulkClaimRegressionTest, PostgresPanelAdjustmentRegressionTest | 4 each |
+| PostgresPanelBulkVsDecisionRaceTest, PanelStaffNameVisibilityTest, PanelAdjustedInvoiceTotalsTest, OutstandingBillsTest | 2 each |
+| SalesSummaryExportTest, DailyReportExportTest, MoneyFlowWalkTest, InvoiceBillToTest, InvoiceAdjustmentTest | 1 each |
+
+The shared helper `ApprovedPanelAllocations::approvedAllocation()` (used by the Panel tests) and a few direct
+`ResponsibilityService::approve()` fixtures are where an automatic claim appears. The plan is to fix them **in setup,
+not in expectations**: a test-only way to approve without the creator (for example a container binding the helper
+swaps in), so every existing expectation stays exactly as written. Only the tests that deliberately check the new
+behaviour (Pending and Overdue contents, Follow-up exclusion) get new or changed expectations, and those are listed
+for the owner one by one once built. Frontend tests were not part of the spike. Whether a handful of the 123 need
+expectation changes rather than setup changes is only known after the setup fix; I will report that count before
+the PR.
 For fixtures that only need to start without an automatic claim, the preferred fix is a setup flag (approve through
 the service with the creator disabled), not edited expectations.
 
