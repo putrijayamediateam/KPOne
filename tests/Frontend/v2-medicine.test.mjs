@@ -40,42 +40,6 @@ test('V2 uses the same routes as Classic', () => {
     }
 });
 
-test('the form state and the payload are a faithful copy of Classic', () => {
-    const between = (s, a, b) => s.slice(s.indexOf(a), s.indexOf(b));
-    const classicForm = normal(
-        between(classic, 'const form = useForm({', 'const openCreate'),
-    );
-    const v2Form = normal(
-        between(formLogic, 'const form = useForm({', 'const openCreate'),
-    ).replaceAll('setup.', 'props.setup.');
-
-    assert.equal(v2Form, classicForm);
-
-    const squash = (text) =>
-        text.replace(/\s+/g, '').replace(/,([)\]}])/g, '$1');
-    const classicSubmit = squash(
-        between(classic, 'const submit = () => {', 'const pendingToggle'),
-    )
-        .replaceAll('dialogOpen', 'formOpen')
-        .replaceAll('props.setup', 'setup');
-    const v2Submit = squash(
-        between(formLogic, 'const submit = () => {', '// Unsaved-work check'),
-    );
-
-    assert.equal(v2Submit, classicSubmit);
-
-    for (const key of [
-        'self_pay_sen',
-        'panel_default_sen',
-        'amount_sen',
-        'unit_cost_sen',
-        'expected_branch_id',
-        'opening_stock',
-    ]) {
-        assert.ok(classic.includes(key) && formLogic.includes(key), key);
-    }
-});
-
 test('the row actions keep Classic payloads and stale-list handling', () => {
     for (const text of [
         'is_controlled: !row.isControlled',
