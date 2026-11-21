@@ -230,6 +230,29 @@ class DoctorDispensaryAttentionService
             ->pluck('visit_id')->mapWithKeys(fn ($id): array => [(int) $id => true])->all();
     }
 
+    /**
+     * Q-15 (owner decision 21 Nov 2026): how many dispensary cases wait for THIS doctor's check, for the "N to check" count on
+     * the Queue tab. One aggregate count over all of the doctor's cases at $branch (not only the rows a page lists), with the
+     * same case rules as checksForVisits(). The caller (the Queue page) has already authorised the actor for $branch, so the
+     * branch checks are not repeated here (they cost four queries a poll); the count is still limited to the actor's own cases.
+     * Returns 0 without a query for anyone who is not that doctor.
+     */
+    public function checksWaitingCount(User $actor, Branch $branch): int
+    {
+        if (! $actor->is_active || ! $actor->hasRole('resident_doctor') || $branch->organisation_id !== $actor->organisation_id
+            || ! $actor->can('dispensary.doctor_check.own') || ! $actor->can('encounters.view.own')) {
+            return 0;
+        }
+
+        return DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK)
+            ->whereHas('encounter', fn ($q) => $q->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('attending_clinician_user_id', $actor->id))
+            ->whereHas('visit', fn ($q) => $q->where('status', Visit::STATUS_REGISTERED)->where('assigned_doctor_user_id', $actor->id)
+                ->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_REMOVED)->where('removal_reason', 'sent_to_dispensary')))
+            ->whereHas('handoffs', fn ($h) => $h->where('status', DispensaryHandoff::STATUS_OPEN))
+            ->count();
+    }
+
     /** @return list<array<string, mixed>> */
     public function forEncounter(User $actor, ClinicalEncounter $encounter): array
     {
