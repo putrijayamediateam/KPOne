@@ -167,6 +167,21 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
    details, under Dispensary.
 9. **At 390 px:** the doctor's row becomes a card, with the lines stacked and both buttons full width at 44 px.
 
+### 7b. Daniel's look at the build (OK with changes, 21 Nov), applied
+
+- **Allergy line.** The doctor's panel names its source: "Allergy profile on record: No known allergies (updated
+  <date>)". With no recorded profile it warns: "Allergies not recorded. Ask the patient before you verify."
+  - The consultation page's own banner ("Allergy information is unavailable for this consultation") stays. It is
+    about this consultation's review, which is not loaded once the case is with Dispensary.
+  - Agreed with B.E.R.N.I.S.S as case (2a), and passed to Amirul.
+- **Labels.** Quantity and dose are labelled in the doctor's panel ("Quantity 9 tablet · Dose 1 tablet · …").
+- **Supervisor sheets** read "Verify instead of <doctor>?" and "Send back instead of <doctor>".
+- **After a supervisor check,** the completed case, the CA's sent-back box and the doctor's consultation page show a
+  note with a dot and words: "Checked and verified by <supervisor> (CA Supervisor) instead of <doctor>, <time>.
+  Reason: <reason>."
+  - The Registration chip shows the billing state after Verify, so it does not carry the note. A follow-up with
+    Patients & Registration is offered if Daniel wants it there.
+
 ## 8. Tests
 
 - Feature tests:
