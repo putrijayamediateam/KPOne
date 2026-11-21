@@ -36,14 +36,17 @@ class PanelSummaryReportTest extends BillingTestCase
     {
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
             $allowed = in_array($role, ['director', 'finance_officer', 'panel_officer'], true);
-            $this->assertSame($allowed, in_array('reports.panel_summary.view.branch', $permissions, true));
+            // ROLE-1: the Account Assistant may view (not download) the Panel summary.
+            $this->assertSame($allowed || $role === 'account_assistant', in_array('reports.panel_summary.view.branch', $permissions, true));
             $this->assertSame($allowed, in_array('reports.panel_summary.export.branch', $permissions, true));
             $actor = $this->actor($role);
             $this->selectBranch($actor);
+            $mayView = $allowed || $role === 'account_assistant';
+            $mayDownload = $allowed;
             $response = $this->postJson(route('reports.panel-summary.run'), $this->filters());
-            $allowed ? $response->assertOk() : $response->assertForbidden();
+            $mayView ? $response->assertOk() : $response->assertForbidden();
             $response = $this->postJson(route('reports.panel-summary.download'), $this->filters());
-            $allowed ? $response->assertOk() : $response->assertForbidden();
+            $mayDownload ? $response->assertOk() : $response->assertForbidden();
         }
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);

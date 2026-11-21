@@ -54,10 +54,13 @@ class WorkspaceTest extends VisitTestCase
             'ca' => [true, true, true, false, false, false, false, false],
             'resident_doctor' => [true, true, true, false, false, false, false, false],
             'ca_supervisor' => [true, true, true, false, false, false, false, false],
-            'panel_officer' => [false, false, false, true, true, false, false, false],
+            'panel_officer' => [false, false, false, true, true, false, false, true],
             // PCA-1 (owner decision 2026-11-13): Finance Officer and Director handle Panel claims too.
-            'finance_officer' => [false, false, false, false, true, true, false, false],
+            'finance_officer' => [false, false, false, false, true, true, false, true],
             'technical_admin' => [false, false, false, false, false, false, true, true],
+            // ROLE-1: the Account Assistant reads the audit log without administering access.
+            'account_assistant' => [false, false, false, false, false, false, false, true],
+            'store_admin' => [false, false, false, false, false, false, false, false],
             'director' => [true, true, true, true, true, true, true, true],
         ];
 

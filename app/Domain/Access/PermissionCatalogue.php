@@ -62,6 +62,18 @@ final class PermissionCatalogue
     /** The clinic manager's operational settings account; never patient, clinical or finance-approval access. */
     public const ADMINISTRATOR_ROLE = 'administrator';
 
+    /**
+     * ROLE-1 (owner decisions 20-21 Nov 2026; permission table approved 21 Nov, plan docs/teams/staff-experience/ROLE-1-PLAN.md).
+     * Branch Manager (per branch: views, daily-close approval, own-branch reports; void and refund approval come with Billing's
+     * slices), Account Assistant (HQ finance: records and views, never approves) and Store Admin (central store: stock and
+     * purchasing only). None holds anything in AUTHORITY_OVER_PEOPLE_AND_ACCESS.
+     */
+    public const BRANCH_MANAGER_ROLE = 'branch_manager';
+
+    public const ACCOUNT_ASSISTANT_ROLE = 'account_assistant';
+
+    public const STORE_ADMIN_ROLE = 'store_admin';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -397,6 +409,41 @@ final class PermissionCatalogue
                 'public_checkin_links.manage.organisation',
                 'queue_display.manage.organisation',
             ],
+            self::BRANCH_MANAGER_ROLE => [
+                ...$branch,
+                'visits.view.branch',
+                'visits.history.view.branch',
+                'queue.view.branch',
+                'billing.view.branch',
+                'billing.summary.branch',
+                'outstanding.view.branch',
+                'payments.cash_closing.approve.branch',
+                'inventory.view.branch',
+            ],
+            self::ACCOUNT_ASSISTANT_ROLE => [
+                ...$organisation,
+                'inventory.view.branch',
+                'inventory.supplier_invoices.record.branch',
+                'inventory.cost.view.organisation',
+                'audit.view.organisation',
+            ],
+            self::STORE_ADMIN_ROLE => [
+                ...$own,
+                'staff.view.branch',
+                'branches.view.organisation',
+                'branch_context.switch.organisation',
+                'inventory.view.branch',
+                'inventory.receiving.branch',
+                'inventory.stocktake.branch',
+                'inventory.stock_reviews.manage.branch',
+                'inventory.warehouse.organisation',
+                'inventory.purchase_orders.create.organisation',
+                'inventory.purchase_requests.create.branch',
+                'inventory.stock_requests.approve.branch',
+                'inventory.transfers.dispatch.branch',
+                'inventory.transfer.organisation',
+                'inventory.cost.view.organisation',
+            ],
             'business_development' => $organisation,
             'marketing' => $organisation,
             'hr_manager' => [
@@ -427,6 +474,12 @@ final class PermissionCatalogue
             foreach ($grants as $role) {
                 $roles[$role][] = $permission;
             }
+        }
+
+        // ROLE-1 (owner decision 21 Nov 2026, "33 = A"): the audit log, read only, for the Finance Officer and the Panel
+        // Officer as well (the Account Assistant has it above); Director, HR Manager and Technical Admin keep it.
+        foreach (['finance_officer', 'panel_officer'] as $role) {
+            $roles[$role][] = 'audit.view.organisation';
         }
 
         foreach (['director', 'finance_officer'] as $role) {

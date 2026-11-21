@@ -45,7 +45,7 @@ final class PurchaseRequestTest extends VisitTestCase
     public function test_only_the_ca_and_ca_supervisor_may_send_requests(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array(PurchaseRequestService::CREATE, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['ca', 'ca_supervisor'], $holders);
+        $this->assertSame(['ca', 'ca_supervisor', 'store_admin'], $holders);
         $this->assertTrue(Role::findByName('ca')->hasPermissionTo(PurchaseRequestService::CREATE));
         $this->assertFalse(Role::findByName('finance_officer')->hasPermissionTo(PurchaseRequestService::CREATE));
     }
