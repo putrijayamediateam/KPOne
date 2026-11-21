@@ -56,8 +56,12 @@ test('Classic QR status keeps every Malay string and the privacy lines, word for
 
 test('Classic QR status shows identity only with a queue number', () => {
     const t = tight(template(classic));
+    const from = t.indexOf('v-if="status.queueNumber"');
+    const to = t.indexOf('{{status.queueNumber}}');
 
-    assert.ok(t.includes('v-if="status.queueNumber"'));
-    assert.ok(t.includes('{{status.queueNumber}}'));
-    assert.ok(t.includes('{{status.firstName}}'));
+    assert.ok(from >= 0 && to > from, 'queue-number block');
+    // The first name sits inside the queue-number block, behind its own v-if.
+    const block = t.slice(from, to);
+    assert.ok(block.includes('v-if="status.firstName"'));
+    assert.ok(block.includes('{{status.firstName}}'));
 });
