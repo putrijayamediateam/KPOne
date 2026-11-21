@@ -152,7 +152,7 @@ final class WeightedAverageCostService
     }
 
     /** value x part / whole, exactly, rounded half up, without overflowing 64 bits for clinic-sized numbers. */
-    private static function share(int $value, int $part, int $whole): int
+    public static function share(int $value, int $part, int $whole): int
     {
         if ($part === $whole) {
             return $value;

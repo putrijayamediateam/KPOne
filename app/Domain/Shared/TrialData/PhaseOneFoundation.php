@@ -33,11 +33,15 @@ use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PanelClaimMessageTemplate;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingApprovalLimitAdministrationService;
 use App\Domain\Visit\Billing\Services\ConsultationTariffAdministrationService;
 use App\Domain\Visit\Billing\Services\PanelClaimMessageService;
+use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentMethodClassificationService;
+use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\VisitReason;
 use App\Domain\Visit\Services\PanelSettingsService;
@@ -151,6 +155,7 @@ final class PhaseOneFoundation
             $this->branchSetUp($code, $branch);
         }
         $this->catalogue();
+        $this->panelPrices();
         $this->panels();
         $this->stock();
         $this->patients();
@@ -408,8 +413,8 @@ final class PhaseOneFoundation
                 'code' => self::CONSULTATION['code'],
                 'display_name' => self::CONSULTATION['display_name'],
                 'expected_branch_id' => $main->id,
-                'prices' => ['self_pay_sen' => self::CONSULTATION['self_pay_sen'], 'panel_default_sen' => self::CONSULTATION['panel_default_sen']],
-                'expected_versions' => ['self_pay' => 0, 'panel_default' => 0],
+                'prices' => ['self_pay_sen' => self::CONSULTATION['self_pay_sen']],
+                'expected_versions' => ['self_pay' => 0],
             ]);
             $this->count('consultation_tariff');
         }
@@ -424,7 +429,7 @@ final class PhaseOneFoundation
                 'order_unit' => $service['order_unit'],
                 'category' => $service['category'],
                 'expected_branch_id' => $main->id,
-                'prices' => ['self_pay_sen' => $service['self_pay_sen'], 'panel_default_sen' => $service['panel_default_sen']],
+                'prices' => ['self_pay_sen' => $service['self_pay_sen']],
             ]);
             $this->count('services');
         }
@@ -451,13 +456,48 @@ final class PhaseOneFoundation
                         'dispensing_unit' => $medicine['order_unit'],
                         'unit_conversion' => '1',
                     ],
-                    'prices' => ['self_pay_sen' => $medicine['self_pay_sen'], 'panel_default_sen' => $medicine['panel_default_sen']],
+                    'prices' => ['self_pay_sen' => $medicine['self_pay_sen']],
                 ]);
                 $this->count('medicines');
             }
             if (($medicine['controlled'] ?? false) && ! $existing->is_controlled) {
                 app(MedicineAdministrationService::class)->setControlled($this->context->as($supervisor), $existing, true, false);
             }
+        }
+    }
+
+    /**
+     * Panel prices change only by proposal and approval (owner decision 27): the Panel Officer proposes each default
+     * Panel price and the Finance Officer approves it. The default Panel price book is created first.
+     */
+    private function panelPrices(): void
+    {
+        $main = $this->context->mainBranch();
+        $organisationId = $this->context->organisation->id;
+        $book = PriceBook::query()->where('organisation_id', $organisationId)->where('scope_key', 'panel:default')->first()
+            ?? app(PricingReferenceAdministrationService::class)->createPriceBook($this->context->as(TrialDataContext::key(TrialDataContext::MAIN_BRANCH, 'supervisor1'), $main), null, [
+                'name' => 'Panel', 'currency' => 'MYR', 'price_tier' => 'panel', 'panel_id' => null,
+            ]);
+        $prices = [self::CONSULTATION['code'] => self::CONSULTATION['panel_default_sen']];
+        foreach ([...self::SERVICES, ...self::MEDICINES] as $item) {
+            $prices[$item['code']] = $item['panel_default_sen'];
+        }
+        $service = app(PanelPriceProposalService::class);
+        foreach ($prices as $code => $sen) {
+            $charge = ChargeDefinition::query()->where('organisation_id', $organisationId)->where('code', $code)->firstOrFail();
+            if (PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->exists()) {
+                continue;
+            }
+            $proposal = $service->propose($this->context->as('panel', $main), $book, $charge, [
+                'expected_branch_id' => $main->id,
+                'expected_version' => 0,
+                'amount_sen' => $sen,
+                'agreement_reference' => 'TRIAL-PANEL-PRICE-LIST',
+                'effective_date' => now($main->timezone)->toDateString(),
+                'idempotency_key' => (string) Str::uuid(),
+            ]);
+            $service->approve($this->context->as('finance', $main), $proposal, ['expected_branch_id' => $main->id, 'lock_version' => $proposal->lock_version]);
+            $this->count('panel_prices');
         }
     }
 

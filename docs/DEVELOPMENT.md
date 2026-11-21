@@ -78,6 +78,8 @@ production database.
 
 1. Create the empty database, then run `php artisan migrate:fresh --seed`.
 2. Run `php artisan kpone:bootstrap-director` in a terminal and choose an appropriate sign-in method.
+   The command also authorises the Director at every active branch. On an existing installation, or after a new
+   branch opens, run `php artisan kpone:director-branches` (idempotent, audited, console only).
 3. Sign in as the Director and provision synthetic `.test` staff accounts needed for the walk: a `ca_supervisor`,
    a `ca`, and a `resident_doctor`. Confirm each has the intended primary branch.
 4. Sign in as the `ca_supervisor` and create a synthetic Medicine and Clinical Service with Self-pay tariffs;
@@ -265,7 +267,7 @@ branch two doctors, two Clinic Assistants, two CA Supervisors and the TV account
 Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing and Technical Admin,
 assigned to every branch), payment methods, visit reasons and preset diagnoses, and for each branch its letterhead,
 footer, approval limits, rooms and verified fictional doctor credentials; 12 generic medicines (one controlled) and
-6 services with Self-pay and Panel prices, two fictional Panels, stock at every branch with real future expiry dates
+6 services with Self-pay prices and Panel prices (proposed by the Panel Officer, approved by Finance), two fictional Panels, stock at every branch with real future expiry dates
 signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
 nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
 counts only). It is never called from a seeder, migration, scheduler or deploy.

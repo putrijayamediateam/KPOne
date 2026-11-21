@@ -28,6 +28,8 @@ export type QueueRow = {
     removalReason: string | null;
     visitStatus: 'registered' | 'cancelled' | 'completed';
     returnedFromDispensary: boolean;
+    /** Q-13: the doctor's own removed row whose dispensary case waits for the doctor's check. */
+    dispensaryCheckWaiting?: boolean;
     waitingMinutes: number | null;
     visitLockVersion: number;
     queueLockVersion: number;
