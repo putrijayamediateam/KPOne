@@ -18,8 +18,9 @@ const {
     parseVitalsFromNote: rawParse,
     planFill: rawPlan,
     noteVitalsKey,
+    isUnusual,
 } = runInNewContext(
-    `${javascript}\n({ parseVitalsFromNote, planFill, noteVitalsKey })`,
+    `${javascript}\n({ parseVitalsFromNote, planFill, noteVitalsKey, isUnusual })`,
 );
 const show = read('resources/js/pages/Clinical/Show.vue');
 // results come from another VM context, so compare plain copies made in this one
@@ -183,9 +184,6 @@ test('the consultation page auto-fills empty boxes after a typing pause, announc
     assert.match(fill, /noteVitalsPlan\.value/);
     assert.match(fill, /appliedFromNote/);
     assert.match(fill, /vitalsExpanded\.value = true/);
-    assert.match(fill, /await nextTick\(\)/);
-    assert.match(fill, /Not filled: /);
-    assert.match(fill, /box already has/);
     assert.match(
         show,
         /watch\(noteForVitals,[\s\S]{0,80}autoFillVitalsFromNote/,
@@ -252,7 +250,7 @@ test('a skipped reading says what the box already holds, before and after Fill (
     ]);
 });
 
-test('the page labels unsaved vitals, announces politely, moves focus to the first filled box and says what was skipped (Daniel)', () => {
+test('the page labels unsaved vitals, announces politely, never moves focus, orders the lines and flags unusual values (Daniel)', () => {
     assert.match(show, /aria-live="polite"/);
     assert.match(show, /data-testid="vitals-unsaved"[\s\S]{0,80}Not saved yet/);
     assert.match(
@@ -281,8 +279,67 @@ test('the page labels unsaved vitals, announces politely, moves focus to the fir
         show.indexOf('const autoFillVitalsFromNote'),
         show.indexOf('const vitalsUnsaved'),
     );
-    assert.match(fill, /await nextTick\(\)/);
-    assert.match(fill, /data-vitals-field=/);
-    assert.match(show, /Not filled:/);
-    assert.match(show, /Not read:/);
+    assert.doesNotMatch(
+        fill,
+        /\.focus\(|nextTick/,
+        'fill never moves focus: the doctor is still typing',
+    );
+    // line order: Filled (with Undo), Check, Not filled, Not read
+    const order = [
+        'Filled from your note:',
+        'note-vitals-check',
+        'Not filled:',
+        'Not read:',
+    ].map((text) =>
+        show.indexOf(
+            text,
+            show.indexOf('data-testid="note-vitals-suggestion"'),
+        ),
+    );
+    assert.deepEqual(
+        [...order].sort((a, b) => a - b),
+        order,
+    );
+    assert.ok(order.every((index) => index > 0));
+    // a box KPOne filled may be updated by a later note change until the doctor edits it or presses Undo
+    assert.match(
+        show,
+        /boxes\[field\] === value[\s\S]{0,40}boxes\[field\] = ''/,
+    );
+    assert.match(
+        show,
+        /Everything KPOne has put in the boxes and the doctor has not changed/,
+    );
+});
+
+test('unusual readings are still filled but flagged "Check", with ranges that live in one table (Daniel)', () => {
+    assert.equal(isUnusual({ systolic_bp: '180', diastolic_bp: '45' }), true);
+    assert.equal(isUnusual({ systolic_bp: '120', diastolic_bp: '80' }), false);
+    assert.equal(isUnusual({ pulse_bpm: '130' }), true);
+    assert.equal(isUnusual({ temperature_celsius: '39.4' }), true);
+    assert.equal(isUnusual({ temperature_celsius: '37.2' }), false);
+    assert.equal(isUnusual({ spo2_percent: '88' }), true);
+    assert.equal(isUnusual({ weight_kg: '62.5' }), false);
+    // the owner's own example is read and flagged, not refused
+    const found = parseVitalsFromNote('bp:180/45');
+    assert.equal(found.readings.length, 1);
+    assert.match(show, /Check:\s*\{\{\s*filledChecks\.join/);
+    assert.match(show, /isUnusual\(reading\.values\)/);
+});
+
+test('Undo clears only the boxes auto-fill filled, whatever else the doctor typed (Daniel)', () => {
+    const undo = show.slice(
+        show.indexOf('const undoNoteVitals'),
+        show.indexOf('const vitalsUnsaved'),
+    );
+    assert.match(
+        undo,
+        /form\.vitals\[field as keyof typeof form\.vitals\] === value/,
+    );
+    assert.match(undo, /= ''/);
+    assert.doesNotMatch(
+        undo,
+        /form\.clinical_note|form\.reset|form\.vitals = /,
+    );
+    assert.match(undo, /delete autoValues/);
 });

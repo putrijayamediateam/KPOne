@@ -1,5 +1,5 @@
 // Vitals the doctor typed into the clinical note (owner decision 2026-11-21). Reading only: the note is never changed, nothing is
-// saved, and the consultation page fills the vitals boxes only when the doctor presses Fill. Anything not clearly a reading, or
+// saved, and the consultation page fills the EMPTY vitals boxes by itself (with Undo); the doctor still has to save. Anything not clearly a reading, or
 // not plausible, is simply not suggested, and a reading written twice with different values is left out as ambiguous.
 
 export type VitalsField =
@@ -25,6 +25,28 @@ export type NoteVitals = {
     /** Readings that are named but written in another unit (°F, lb, inches): never read, only reported. */
     notRead: string[];
 };
+
+// "Check" marks, not judgement: a reading outside these wide ranges is still filled, but the line says "Check: ..." so a typo in the
+// note does not slide into the record unseen. The vitals form itself has no limits (only "above 0"), so these are the only ones.
+const USUAL: Partial<Record<VitalsField, [number, number]>> = {
+    systolic_bp: [90, 179],
+    diastolic_bp: [50, 109],
+    pulse_bpm: [50, 120],
+    temperature_celsius: [35.5, 38.9],
+    spo2_percent: [92, 100],
+};
+
+export const isUnusual = (values: Partial<Record<VitalsField, string>>) =>
+    (Object.keys(values) as VitalsField[]).some((field) => {
+        const range = USUAL[field];
+        const value = Number.parseFloat(values[field] ?? '');
+
+        return (
+            range !== undefined &&
+            Number.isFinite(value) &&
+            (value < range[0] || value > range[1])
+        );
+    });
 
 const num = (text: string) => Number.parseFloat(text.replace(',', '.'));
 const between = (value: number, low: number, high: number) =>

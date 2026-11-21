@@ -13,7 +13,7 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -35,9 +35,11 @@ import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import {
+    isUnusual,
     parseVitalsFromNote,
     planFill,
 } from '@/lib/vitals-from-note';
+import type { NoteReading } from '@/lib/vitals-from-note';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
@@ -160,8 +162,25 @@ watch(
 );
 onBeforeUnmount(() => clearTimeout(noteVitalsTimer));
 const noteVitals = computed(() => parseVitalsFromNote(noteForVitals.value));
-const filledFromNote = ref<string[]>([]);
-const noteVitalsNotice = ref('');
+const filledReadings = ref<NoteReading[]>([]);
+// Only readings whose boxes still hold what KPOne put there: once the doctor edits a box it drops off this line.
+const stillAutoFilled = computed(() =>
+    filledReadings.value.filter((reading) =>
+        Object.entries(reading.values).every(
+            ([field, value]) =>
+                form.vitals[field as keyof typeof form.vitals] === value,
+        ),
+    ),
+);
+const filledFromNote = computed(() =>
+    stillAutoFilled.value.map((reading) => reading.label),
+);
+// Filled readings outside the usual ranges: still filled, but flagged "Check" so a typo in the note is not missed.
+const filledChecks = computed(() =>
+    stillAutoFilled.value
+        .filter((reading) => isUnusual(reading.values))
+        .map((reading) => reading.label),
+);
 // What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
 // a box the doctor changed is theirs and is never touched.
 const autoValues: Partial<Record<keyof typeof form.vitals, string>> = {};
@@ -186,7 +205,7 @@ const showNoteVitals = computed(
         noteVitalsPlan.value.skipped.length > 0 ||
         noteVitals.value.notRead.length > 0,
 );
-const autoFillVitalsFromNote = async () => {
+const autoFillVitalsFromNote = () => {
     const plan = noteVitalsPlan.value;
     const touched: (keyof typeof form.vitals)[] = [];
 
@@ -207,27 +226,21 @@ const autoFillVitalsFromNote = async () => {
         return;
     }
 
-    filledFromNote.value = noteVitals.value.readings
-        .filter((reading) =>
-            Object.keys(reading.values).some((field) =>
-                touched.includes(field as keyof typeof form.vitals),
-            ),
-        )
-        .map((reading) => reading.label);
-    noteVitalsNotice.value = plan.skippedDetails.length
-        ? `Not filled: ${plan.skippedDetails
-              .map((item) => `${item.label} (box already has ${item.current})`)
-              .join(', ')}.`
-        : '';
+    // Everything KPOne has put in the boxes and the doctor has not changed (so a later update never drops an earlier fill).
+    const autoRead = noteVitals.value.readings.filter((reading) =>
+        Object.entries(reading.values).every(
+            ([field, value]) =>
+                autoValues[field as keyof typeof form.vitals] === value &&
+                form.vitals[field as keyof typeof form.vitals] === value,
+        ),
+    );
+    filledReadings.value = autoRead;
+    // Focus is never moved: the doctor is usually still typing in the note.
     vitalsExpanded.value = true;
-    await nextTick();
-    document
-        .querySelector<HTMLInputElement>(`[data-vitals-field="${touched[0]}"]`)
-        ?.focus({ preventScroll: true });
 };
 // Fill only after a typing pause, never on load: a saved record that is reopened is not refilled.
 watch(noteForVitals, () => {
-    void autoFillVitalsFromNote();
+    autoFillVitalsFromNote();
 });
 const undoNoteVitals = () => {
     for (const [field, value] of Object.entries(autoValues)) {
@@ -238,8 +251,7 @@ const undoNoteVitals = () => {
         delete autoValues[field as keyof typeof form.vitals];
     }
 
-    filledFromNote.value = [];
-    noteVitalsNotice.value = '';
+    filledReadings.value = [];
 };
 const vitalsUnsaved = computed(
     () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
@@ -249,8 +261,7 @@ watch(
     () => form.recentlySuccessful,
     (saved) => {
         if (saved) {
-            filledFromNote.value = [];
-            noteVitalsNotice.value = '';
+            filledReadings.value = [];
         }
     },
 );
@@ -1305,21 +1316,53 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             />
                             <InputError :message="form.errors.clinical_note" />
                             <div
-                                v-if="
-                                    showNoteVitals ||
-                                    filledFromNote.length ||
-                                    noteVitalsNotice
-                                "
+                                v-if="showNoteVitals || filledFromNote.length"
                                 role="status"
                                 aria-live="polite"
                                 data-testid="note-vitals-suggestion"
                                 class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
                             >
+                                <div
+                                    v-if="filledFromNote.length"
+                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
+                                >
+                                    <p
+                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                                    >
+                                        Filled from your note:
+                                        {{ filledFromNote.join(' · ') }}. Check
+                                        them, then save.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="max-lg:h-11"
+                                        data-testid="note-vitals-undo"
+                                        @click="undoNoteVitals"
+                                        >Undo</Button
+                                    >
+                                </div>
                                 <p
                                     v-if="
-                                        !filledFromNote.length &&
-                                        noteVitalsPlan.skippedDetails.length
+                                        filledFromNote.length &&
+                                        filledChecks.length
                                     "
+                                    class="flex items-start gap-1.5 font-medium text-warning-strong"
+                                    data-testid="note-vitals-check"
+                                >
+                                    <AlertTriangle
+                                        class="mt-0.5 size-3.5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    <span
+                                        >Check:
+                                        {{ filledChecks.join(', ') }} (unusual
+                                        value; is it a typo in the note?)</span
+                                    >
+                                </p>
+                                <p
+                                    v-if="noteVitalsPlan.skippedDetails.length"
                                     class="text-muted-foreground"
                                 >
                                     Not filled:
@@ -1343,30 +1386,6 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     {{ noteVitals.notRead.join(', ') }}. Enter
                                     them in the vitals boxes in the units KPOne
                                     takes.
-                                </p>
-                                <div
-                                    v-if="filledFromNote.length"
-                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
-                                >
-                                    <p
-                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
-                                    >
-                                        Filled from your note:
-                                        {{ filledFromNote.join(' · ') }}. Check
-                                        them, then save.
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        class="max-lg:h-11"
-                                        data-testid="note-vitals-undo"
-                                        @click="undoNoteVitals"
-                                        >Undo</Button
-                                    >
-                                </div>
-                                <p v-if="noteVitalsNotice">
-                                    {{ noteVitalsNotice }}
                                 </p>
                             </div>
                             <div class="border-t px-3 py-2">
