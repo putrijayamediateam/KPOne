@@ -25,6 +25,13 @@ final class InventoryStockReviewService
     /** STK-42: the read-only "At risk in 6 months" section. It is not one of LISTS, so it is never acknowledged. */
     public const AT_RISK_DAYS = 183;
 
+    /**
+     * STK-42 (Mei Ling's review): above this many at-risk rows the list is not sorted by value, so a cost viewer's page
+     * never loads and costs an unbounded list. It falls back to expiry order and says why. Tests may lower it through
+     * `config('inventory.at_risk_value_sort_limit')`.
+     */
+    public const AT_RISK_VALUE_SORT_LIMIT = 2000;
+
     public const PER_PAGE = 25;
 
     public const LISTS = ['low_stock', 'expiring', 'expired'];
@@ -164,10 +171,15 @@ final class InventoryStockReviewService
         }
         $page = (int) ($data['at_risk_page'] ?? 1);
         $withValue = $actor->can(SupplierTermsService::COST_PERMISSION);
+        // Daniel's review: how many batches of the same SKU the whole list holds, shown in each card's heading.
+        $batchCounts = (clone $query)->groupBy('sku_id')->selectRaw('sku_id, COUNT(*) as batches')->pluck('batches', 'sku_id')->map(fn ($n): int => (int) $n)->all();
         $shape = fn (\stdClass $row): array => ['item_id' => (int) $row->item_id, 'sku_code' => $row->sku_code, 'item' => $row->item, 'location' => $row->location,
             'stock_unit' => $row->stock_unit, 'batch' => $row->batch, 'expiry' => (string) $row->expiry, 'quantity' => (string) $row->quantity,
+            'skuBatches' => $batchCounts[(int) $row->sku_id] ?? 1,
             'daysLeft' => (int) CarbonImmutable::parse($today)->diffInDays(CarbonImmutable::parse((string) $row->expiry), false)];
-        $base = ['days' => self::AT_RISK_DAYS, 'sortedBy' => $withValue ? 'value' : 'expiry'];
+        $tooMany = $withValue && array_sum($batchCounts) > (int) config('inventory.at_risk_value_sort_limit', self::AT_RISK_VALUE_SORT_LIMIT);
+        $withValue = $withValue && ! $tooMany;
+        $base = ['days' => self::AT_RISK_DAYS, 'sortedBy' => $withValue ? 'value' : 'expiry', 'tooManyToValue' => $tooMany];
         if (! $withValue) {
             $p = $query->orderBy('expiry')->orderBy('sku_code')->orderBy('batch')->orderBy('item_id')->paginate(self::PER_PAGE, ['*'], 'at_risk_page', $page);
 
@@ -193,7 +205,8 @@ final class InventoryStockReviewService
             }
             // The costed part of this batch's quantity, at the branch's average: position value x batch qty / position qty.
             $quantity = StockUnitQuantity::scaled($row->quantity, true);
-            $milliSen = intdiv(2 * (int) $position['value_milli_sen'] * $quantity + $total, 2 * $total);
+            // Overflow-safe proportional split, rounded half up (STK-27's own helper).
+            $milliSen = WeightedAverageCostService::share((int) $position['value_milli_sen'], $quantity, $total);
             $sen = WeightedAverageCostService::sen($milliSen);
 
             return [...$out, 'valueSen' => $sen, 'value' => number_format($sen / 100, 2, '.', ','), 'estimate' => (bool) $position['includes_estimate'], 'part' => $costed < $total];

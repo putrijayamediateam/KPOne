@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
@@ -10,6 +11,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryBatchHoldService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService as Reviews;
+use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\StockValuationReportService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -21,6 +23,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\VerifiedReceivingFixture;
 
 /** STK-42: expiry alert days per SKU and the read-only "At risk in 6 months" section of Stock review. */
 class ExpiryAlertDaysTest extends VisitTestCase
@@ -126,6 +129,22 @@ class ExpiryAlertDaysTest extends VisitTestCase
         $f = $this->stock(60);
         $f['sku']->forceFill(['expiry_tracking_required' => false])->save();
         $this->assertNull($this->save($f['sku'], 30)->expiry_alert_days);
+        // Ignored unchecked: a value that would be refused for a tracking SKU is not an error here.
+        $this->assertNull($this->save($f['sku'], 'abc')->expiry_alert_days);
+    }
+
+    public function test_turning_expiry_tracking_off_in_the_same_save_clears_the_saved_days(): void
+    {
+        $item = new InventoryItem;
+        $item->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'code' => 'SYN-TRACK', 'generic_name' => 'Synthetic tracking item', 'is_active' => true])->save();
+        $sku = new InventorySku;
+        $sku->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'inventory_item_id' => $item->id, 'sku_code' => 'SYN-TRACK', 'pack_size' => '1.000', 'purchase_unit' => 'unit', 'stock_unit' => 'unit', 'dispensing_unit' => 'unit', 'unit_conversion' => '1.000', 'expiry_alert_days' => 30, 'is_active' => true])->save();
+        // No batch or stock yet, so tracking may still change.
+        $saved = app(InventoryReferenceAdministrationService::class)->updateSku($this->actor('director'), $sku->refresh(), ['expiry_tracking_required' => false, 'expiry_alert_days' => 45, 'expected_lock_version' => $sku->lock_version]);
+        $this->assertFalse($saved->expiry_tracking_required);
+        $this->assertNull($saved->expiry_alert_days);
+        $audit = DB::table('audit_logs')->where('event', 'inventory_sku.updated')->where('subject_id', $sku->id)->latest('id')->value('metadata');
+        $this->assertStringContainsString('expiry_alert_days', (string) $audit);
     }
 
     public function test_the_expiring_list_uses_each_skus_own_window(): void
@@ -214,6 +233,8 @@ class ExpiryAlertDaysTest extends VisitTestCase
             $this->assertTrue($rows[$partCosted['batch']->batch_number]['part']);
             $this->assertFalse($rows[$dear['batch']->batch_number]['part']);
             $this->assertFalse($rows[$dear['batch']->batch_number]['estimate']);
+            // Daniel's review: each card says how many batches of the same SKU the whole list holds.
+            $this->assertSame([2, 2, 1], [$rows[$partSku['batch']->batch_number]['skuBatches'], $rows[$partCosted['batch']->batch_number]['skuBatches'], $rows[$dear['batch']->batch_number]['skuBatches']]);
             // Equal values break the tie by expiry date, then SKU code and batch: stable across pages.
             $this->assertSame([$cheap['batch']->batch_number, $partSku['batch']->batch_number, $partCosted['batch']->batch_number], array_slice($order, 1, 3));
         }
@@ -221,12 +242,67 @@ class ExpiryAlertDaysTest extends VisitTestCase
         $section = $this->atRisk($this->supervisor);
         $this->assertSame('expiry', $section['sortedBy']);
         $this->assertArrayNotHasKey('banner', $section);
+        $this->assertSame(2, collect($section['rows'])->firstWhere('batch', $partSku['batch']->batch_number)['skuBatches']);
         $this->assertSame([$none['batch']->batch_number, $cheap['batch']->batch_number, $partSku['batch']->batch_number, $partCosted['batch']->batch_number, $dear['batch']->batch_number], array_column($section['rows'], 'batch'));
         foreach ($section['rows'] as $row) {
             foreach (['value', 'valueSen', 'estimate', 'part'] as $key) {
                 $this->assertArrayNotHasKey($key, $row);
             }
         }
+    }
+
+    public function test_a_value_resting_on_an_order_estimate_is_marked_estimate(): void
+    {
+        $f = (new VerifiedReceivingFixture($this->branch))->build('100.000');
+        app(BranchAccessService::class)->select($f['receiver'], $this->branch);
+        $payload = $f['payload'];
+        $payload['lines'][0]['expiry_date'] = $this->today()->addDays(100)->toDateString();
+        // No cost typed: the order's estimate of 125 sen a unit is used and marked as an estimate (STK-10B).
+        app(ProcurementService::class)->receive($f['receiver'], $f['order'], $payload);
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $row = collect($this->atRisk($director)['rows'])->firstWhere('batch', $payload['lines'][0]['batch_number']);
+        $this->assertNotNull($row);
+        $this->assertTrue($row['estimate']);
+        // The fixture already holds other stock of this SKU, so the batch's value is its share of the branch position;
+        // the exact proportional sum is pinned in the value-order test above.
+        $this->assertMatchesRegularExpression('/^\d+\.\d{2}$/', (string) $row['value']);
+    }
+
+    public function test_a_finance_officer_search_keeps_value_order(): void
+    {
+        $this->stock(150, '1.000', unitCostSen: 100, code: 'SYN-FIND-A');
+        $this->stock(160, '1.000', unitCostSen: 900, code: 'SYN-FIND-B');
+        $this->stock(170, '1.000', unitCostSen: 500, code: 'SYN-OTHER');
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $section = $this->atRisk($finance, ['q' => 'syn-find']);
+        $this->assertSame(['SYN-FIND-B', 'SYN-FIND-A'], array_column($section['rows'], 'sku_code'));
+        $this->assertSame('value', $section['sortedBy']);
+    }
+
+    public function test_above_the_limit_the_list_falls_back_to_expiry_order_with_no_value(): void
+    {
+        config(['inventory.at_risk_value_sort_limit' => 1]);
+        $late = $this->stock(170, '1.000', unitCostSen: 900);
+        $soon = $this->stock(150, '1.000', unitCostSen: 100);
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $section = $this->atRisk($director);
+        $this->assertSame(['expiry', true], [$section['sortedBy'], $section['tooManyToValue']]);
+        $this->assertSame([$soon['batch']->batch_number, $late['batch']->batch_number], array_column($section['rows'], 'batch'));
+        $this->assertArrayNotHasKey('banner', $section);
+        $this->assertArrayNotHasKey('value', $section['rows'][0]);
+        // Narrowing the search brings value order back.
+        $this->assertSame('value', $this->atRisk($director, ['q' => $soon['batch']->batch_number])['sortedBy']);
+    }
+
+    public function test_the_supervisor_page_prop_carries_no_cost(): void
+    {
+        $this->stock(100, unitCostSen: 500);
+        $this->actingAs($this->supervisor)->get(route('inventory.stock-review'))->assertOk()
+            ->assertInertia(fn ($page) => $page->where('atRisk.sortedBy', 'expiry')->where('atRisk.tooManyToValue', false)->missing('atRisk.banner')
+                ->missing('atRisk.rows.0.value')->missing('atRisk.rows.0.valueSen')->missing('atRisk.rows.0.estimate')->missing('atRisk.rows.0.part'));
     }
 
     public function test_value_sorting_pages_stably_and_writes_nothing(): void

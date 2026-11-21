@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatDate } from '@/lib/presentation';
+import { trimQuantity } from '@/lib/supplier-terms';
 type Review = {
     id: number;
     version: number;
@@ -50,6 +51,7 @@ type AtRiskRow = {
     expiry: string;
     quantity: string;
     daysLeft: number;
+    skuBatches: number;
     value?: string | null;
     estimate?: boolean;
     part?: boolean;
@@ -57,6 +59,7 @@ type AtRiskRow = {
 type AtRisk = {
     days: number;
     sortedBy: 'value' | 'expiry';
+    tooManyToValue: boolean;
     rows: AtRiskRow[];
     total: number;
     page: number;
@@ -145,6 +148,25 @@ function submit() {
         },
     );
 }
+// Daniel's review: the same words as the legend, for each value's tooltip and screen-reader name.
+const legend = {
+    estimate: "estimate: cost taken from the purchase order's estimate",
+    part: "part: only part of this item's stock at this branch has a cost, so only that part is valued",
+    none: 'No cost recorded: nothing is counted',
+};
+const valueLabel = (row: AtRiskRow) =>
+    row.value
+        ? [
+              `RM ${row.value}`,
+              row.estimate ? legend.estimate : null,
+              row.part ? legend.part : null,
+          ]
+              .filter(Boolean)
+              .join('; ')
+        : legend.none;
+// Under 30 days is "Soon"; 0 or less is "Expired". A dot and a word, never colour alone.
+const urgency = (row: AtRiskRow) =>
+    row.daysLeft <= 0 ? 'Expired' : row.daysLeft < 30 ? 'Soon' : null;
 const page = usePage();
 watch(
     () => page.props.branchContext?.active?.id,
@@ -314,6 +336,14 @@ watch(
                 >
             </p>
             <p
+                v-if="atRisk.tooManyToValue"
+                class="text-sm text-muted-foreground"
+                data-testid="at-risk-too-many"
+            >
+                Too many batches to sort by value. Search to narrow the list,
+                and it sorts by value again.
+            </p>
+            <p
                 v-if="atRisk.banner"
                 class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
                 data-testid="at-risk-banner"
@@ -329,7 +359,15 @@ watch(
                 class="text-sm text-muted-foreground"
             >
                 Value is the quantity times the item's average cost at this
-                branch: an average cost, not what was paid for this batch.
+                branch (or only its costed share, marked "part"): an average
+                cost, not what was paid for this batch.
+            </p>
+            <p
+                v-if="atRisk.sortedBy === 'value'"
+                class="text-sm text-muted-foreground"
+                data-testid="at-risk-legend"
+            >
+                {{ legend.estimate }} · {{ legend.part }} · {{ legend.none }}.
             </p>
             <p class="text-sm text-muted-foreground">
                 {{ atRisk.total }} matching batches · Page {{ atRisk.page }} of
@@ -344,7 +382,14 @@ watch(
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0 flex-1 break-words">
                         <h3 class="font-semibold">
-                            {{ row.sku_code }} · {{ row.item }}
+                            {{ row.sku_code }} · {{ row.item
+                            }}<span
+                                v-if="row.skuBatches > 1"
+                                class="font-normal text-muted-foreground"
+                            >
+                                · {{ row.skuBatches }} batches in this
+                                list</span
+                            >
                         </h3>
                         <p>
                             {{ row.location
@@ -358,13 +403,24 @@ watch(
                                 row.daysLeft === 1
                                     ? '1 day left'
                                     : `${row.daysLeft} days left`
-                            }}
+                            }}<span
+                                v-if="urgency(row)"
+                                class="ml-2 inline-flex items-center gap-1 font-medium whitespace-nowrap text-warning-strong"
+                                data-testid="at-risk-urgency"
+                                ><span
+                                    class="size-2 rounded-full bg-warning"
+                                    aria-hidden="true"
+                                ></span
+                                >{{ urgency(row) }}</span
+                            >
                         </p>
                     </div>
                     <p
                         v-if="atRisk.sortedBy === 'value'"
                         class="text-right tabular-nums"
                         data-testid="at-risk-value"
+                        :title="valueLabel(row)"
+                        :aria-label="`Value: ${valueLabel(row)}`"
                     >
                         <span class="block text-sm text-muted-foreground"
                             >Value (RM)</span
@@ -387,7 +443,10 @@ watch(
                         >
                     </p>
                 </div>
-                <p>On hand: {{ row.quantity }} {{ row.stock_unit }}</p>
+                <p>
+                    On hand: {{ trimQuantity(row.quantity) }}
+                    {{ row.stock_unit }}
+                </p>
             </article>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <button

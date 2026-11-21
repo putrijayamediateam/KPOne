@@ -167,9 +167,9 @@ const save = (sku: Sku) => {
                     ? null
                     : data.maximum_temperature,
             expiry_alert_days:
-                data.expiry_alert_days.trim() === ''
+                String(data.expiry_alert_days ?? '').trim() === ''
                     ? null
-                    : data.expiry_alert_days.trim(),
+                    : String(data.expiry_alert_days).trim(),
         };
 
         // STK-42: the alert days only apply when the SKU tracks expiry.
@@ -566,6 +566,10 @@ const errorFor = (field: string) =>
                             <Input
                                 class="h-11 lg:h-9"
                                 v-model="form.expiry_alert_days"
+                                type="number"
+                                min="7"
+                                max="365"
+                                step="1"
                                 inputmode="numeric"
                                 placeholder="90"
                                 aria-describedby="expiry-alert-help"

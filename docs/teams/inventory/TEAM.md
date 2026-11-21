@@ -398,6 +398,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - Debt (Daniel, V2 page 5 review): supplier-return server messages print quantities as "6.000 unit" (three decimals,
   singular unit), the Classic wording. The V2 page shows them as "6 units" in the browser; the server text and the
   Classic page are unchanged. A server fix would change existing assertions, so it waits for its own approval.
+- **STK-42 limits (Mei Ling's code review):** for a cost viewer, every Stock review load (including searching or
+  paging the other lists) reads every at-risk row and replays the stock history of those SKUs to value them. Fine at
+  clinic scale; above `AT_RISK_VALUE_SORT_LIMIT` (2,000 rows) the list falls back to expiry order and says so. Hana
+  caps a SKU's own alert days at 90, so a SKU set above 90 can be expiring on the page before the analyst sees it.
+  Patient-returns stock is left out of the at-risk list by the same rule as "Expiring soon" (tested by STK-11), not by
+  a test of its own.
 
 ## 8. Rules (every task)
 

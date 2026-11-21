@@ -81,6 +81,8 @@ class AgentDataSourcesTest extends QueueTestCase
         $f['sku']->forceFill(['expiry_alert_days' => 365])->save();
         $f['batch']->forceFill(['expiry_date' => now()->setTimezone($this->branch->timezone)->addDays(120)->toDateString()])->save();
         $this->assertSame(0, $expiring());
+        // The one deliberate difference from the page: Stock review uses the SKU's own 365 days, the analyst stops at 90.
+        $this->assertSame(1, app(InventoryStockReviewService::class)->page($supervisor, [])['lists']['expiring']['total']);
         $this->assertSame(90, $this->read('inventory.stock_review', $supervisor)['expiryWindowDays']);
     }
 

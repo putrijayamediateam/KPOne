@@ -11,7 +11,10 @@ test('STK-42: the SKU edit screen offers alert days only when the SKU tracks exp
     assert.match(ui, /v-if="tracksExpiry\(sku\)"/);
     assert.match(ui, /errorFor\('expiry_alert_days'\)/);
     assert.match(ui, /delete sent\.expiry_alert_days/);
-    assert.match(ui, /data\.expiry_alert_days\.trim\(\) === ''/);
+    assert.match(
+        ui,
+        /String\(data\.expiry_alert_days \?\? ''\)\.trim\(\) === ''/,
+    );
 });
 
 test('STK-42: Stock review rewords the expiring sentence and adds a read-only at-risk section', () => {
@@ -20,7 +23,7 @@ test('STK-42: Stock review rewords the expiring sentence and adds a read-only at
     assert.ok(ui.includes('At risk in 6 months'));
     assert.ok(ui.includes('Sorted by value, highest first.'));
     assert.ok(ui.includes('Sorted by expiry date, soonest first.'));
-    assert.ok(ui.includes('an average cost, not what was paid for this batch'));
+    assert.match(ui, /an average\s+cost, not what was paid for this batch/);
 
     for (const label of [
         '(estimate)',
@@ -61,4 +64,22 @@ test('STK-42: value comes only from the controller, never from page()', () => {
     assert.match(service, /SupplierTermsService::COST_PERMISSION/);
     const tool = read('app/Domain/Agents/Tools/InventoryStockReviewTool.php');
     assert.match(tool, /LEAST\(COALESCE\(s\.expiry_alert_days, \?\), \?\)/);
+});
+
+test("STK-42: Daniel's review — legend, whole quantities, batch count, urgency and a number box", () => {
+    const ui = read('resources/js/pages/Inventory/StockReview.vue');
+    assert.match(ui, /data-testid="at-risk-legend"/);
+    assert.ok(
+        ui.includes("estimate: cost taken from the purchase order's estimate"),
+    );
+    assert.match(ui, /:aria-label="`Value: \$\{valueLabel\(row\)\}`"/);
+    assert.match(ui, /trimQuantity\(row\.quantity\)/);
+    assert.match(ui, /v-if="row\.skuBatches > 1"/);
+    assert.match(
+        ui,
+        /row\.daysLeft <= 0 \? 'Expired' : row\.daysLeft < 30 \? 'Soon' : null/,
+    );
+    assert.match(ui, /data-testid="at-risk-urgency"/);
+    const skus = read('resources/js/pages/Inventory/Skus.vue');
+    assert.match(skus, /type="number"\s+min="7"\s+max="365"/);
 });

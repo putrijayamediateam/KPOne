@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * `inventory.stock_review`: low-stock, expiring (per SKU, up to 90 days) and expired counts per SKU at one branch.
- * Uses the same rules as the Stock review page (InventoryStockReviewService); the list totals are
- * proven equal to that page's totals by test. `rows` (AG-6) lists each low-stock SKU and location with its
+ * Uses the same rules as the Stock review page (InventoryStockReviewService), and the list totals are proven equal to
+ * that page's totals by test, with one deliberate difference (STK-42): a SKU's own expiry alert days above 90 are capped at
+ * 90 here, so such a SKU can be expiring on the page and not yet for the analyst. `rows` (AG-6) lists each low-stock SKU and location with its
  * reorder level (and `maxLevel`, null when none is set, STK-30), and each expiring or expired batch at its location, by public id, for the inventory analyst.
  */
 final class InventoryStockReviewTool implements SystemReadableTool

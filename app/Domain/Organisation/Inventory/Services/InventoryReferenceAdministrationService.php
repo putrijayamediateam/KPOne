@@ -589,7 +589,6 @@ class InventoryReferenceAdministrationService
             'protect_from_light' => fn (mixed $value): bool => $this->boolean($value, 'protect_from_light'),
             'batch_tracking_required' => fn (mixed $value): bool => $this->boolean($value, 'batch_tracking_required'),
             'expiry_tracking_required' => fn (mixed $value): bool => $this->boolean($value, 'expiry_tracking_required'),
-            'expiry_alert_days' => fn (mixed $value): ?int => $this->expiryAlertDays($value),
         ];
         $defaults = [
             'barcode' => null,
@@ -601,7 +600,6 @@ class InventoryReferenceAdministrationService
             'protect_from_light' => false,
             'batch_tracking_required' => true,
             'expiry_tracking_required' => true,
-            'expiry_alert_days' => null,
         ];
         $values = $this->values($attributes, $rules, $partial, ['sku_code', 'pack_size', 'purchase_unit', 'stock_unit', 'dispensing_unit', 'unit_conversion'], $defaults);
         $minimum = array_key_exists('minimum_temperature', $values) ? $values['minimum_temperature'] : $current?->minimum_temperature;
@@ -609,10 +607,17 @@ class InventoryReferenceAdministrationService
         if ($minimum !== null && $maximum !== null && (float) $minimum > (float) $maximum) {
             $this->invalid('maximum_temperature', 'Maximum temperature must be at least the minimum temperature.');
         }
-        // STK-42: the alert days only mean something when the SKU tracks expiry; otherwise a sent value is ignored.
+        // STK-42: the alert days only mean something when the SKU tracks expiry. When it doesn't, a sent value is
+        // ignored unchecked, and turning tracking off clears any saved number (so the change is audited).
         $tracksExpiry = array_key_exists('expiry_tracking_required', $values) ? $values['expiry_tracking_required'] : ($current->expiry_tracking_required ?? true);
-        if (! $tracksExpiry) {
-            unset($values['expiry_alert_days']);
+        if ($tracksExpiry) {
+            if (array_key_exists('expiry_alert_days', $attributes)) {
+                $values['expiry_alert_days'] = $this->expiryAlertDays($attributes['expiry_alert_days']);
+            } elseif (! $partial) {
+                $values['expiry_alert_days'] = null;
+            }
+        } elseif ($current !== null && $current->expiry_alert_days !== null) {
+            $values['expiry_alert_days'] = null;
         }
 
         return $values;
@@ -626,7 +631,7 @@ class InventoryReferenceAdministrationService
         }
         $text = is_int($value) ? (string) $value : (is_string($value) ? trim($value) : '');
         if (preg_match('/^\d{1,3}$/D', $text) !== 1 || (int) $text < 7 || (int) $text > 365) {
-            $this->invalid('expiry_alert_days', 'Enter a whole number of days from 7 to 365, or leave it empty for 90 days.');
+            $this->invalid('expiry_alert_days', '7 to 365 days: enter a whole number, or leave it empty for 90 days.');
         }
 
         return (int) $text;
