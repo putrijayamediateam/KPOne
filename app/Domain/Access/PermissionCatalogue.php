@@ -411,7 +411,6 @@ final class PermissionCatalogue
                 'billing.view.branch',
                 'billing.summary.branch',
                 'outstanding.view.branch',
-                'payments.reconcile.branch',
                 'payments.cash_closing.approve.branch',
                 'inventory.view.branch',
             ],
