@@ -102,7 +102,7 @@ class PanelFollowUpTest extends BillingTestCase
             ->where('claims.data.0.status', 'Accepted, unpaid'));
     }
 
-    public function test_the_list_starts_exactly_at_the_follow_up_days_and_includes_prepared_claims(): void
+    public function test_the_list_starts_exactly_at_the_follow_up_days_and_leaves_out_never_submitted_prepared_claims(): void
     {
         $this->freezeSecond();
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
@@ -111,14 +111,20 @@ class PanelFollowUpTest extends BillingTestCase
         $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $this->branch->id])->assertSessionHasNoErrors();
         $prepared = PanelClaim::query()->sole();
 
+        // PNL-28a: a claim that was never submitted is on the Overdue tab, not on the Follow-up list.
+        $this->travel(30)->days();
+        $this->assertFollowUp([]);
+
+        $this->post(route('panel-claims.submit', $prepared), ['expected_branch_id' => $this->branch->id, 'lock_version' => $prepared->refresh()->lock_version])
+            ->assertSessionHasNoErrors();
         $this->travel(30)->days();
         $this->travel(-1)->seconds();
         $this->assertFollowUp([]);
         $this->travel(1)->seconds();
         $this->assertFollowUp([$prepared->public_id]);
         $this->get(route('panel-claims.follow-up'))->assertInertia(fn (Assert $page) => $page
-            ->where('claims.data.0.status', 'Prepared (not yet submitted)')
-            ->where('claims.data.0.lastAction', 'Claim prepared')
+            ->where('claims.data.0.status', 'Submitted')
+            ->where('claims.data.0.lastAction', 'Submitted to Panel')
             ->where('claims.data.0.daysSinceAction', 30));
     }
 
