@@ -11,6 +11,8 @@ import { PageHeader } from '@/components/ui/page-header';
 
 type Side = {
     quantity: string | null;
+    // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+    packText?: string | null;
     dosage: string | null;
     frequency: string | null;
     duration: string | null;
@@ -252,8 +254,13 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                             Dispensed
                         </p>
                         <p>
-                            {{ qty(medicine.dispensed.quantity) }}
-                            {{ medicine.unit ?? '' }} ·
+                            <template v-if="medicine.dispensed.packText"
+                                >{{ medicine.dispensed.packText }} ·</template
+                            >
+                            <template v-else
+                                >{{ qty(medicine.dispensed.quantity) }}
+                                {{ medicine.unit ?? '' }} ·</template
+                            >
                             {{ directions(medicine.dispensed) }}
                         </p>
                     </div>
