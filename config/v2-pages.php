@@ -21,7 +21,6 @@ return [
         'Agents/Inbox',
         'Agents/Index',
         'ClinicManagement/Index',
-        'RegistrationReview/Show',
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'InventoryServicesSettings/Suppliers',
@@ -40,7 +39,6 @@ return [
         'MedicalCertificates/Index',
         'Referrals/Index',
         'ClinicianCredentials/Index',
-        'PublicCheckInLinks/Index',
         'MedicalCertificateTemplates/Index',
         'AuditLogs/Index',
         'Branches/Index',
@@ -63,8 +61,5 @@ return [
     'public' => false,
 
     // A page is listed here only once its V2 file exists (V2PageDispatchTest checks both ways).
-    'public_pages' => [
-        'PublicCheckIn/Status',
-        'PublicCheckIn/Show',
-    ],
+    'public_pages' => [],
 ];
