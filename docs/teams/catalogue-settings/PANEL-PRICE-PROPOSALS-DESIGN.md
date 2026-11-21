@@ -85,16 +85,42 @@ PostgreSQL checks and triggers (existing repo patterns for append-only evidence)
 
 ## 6. Pages and routes (Classic only)
 
-- One page `PanelPrices/Index.vue` at `/panel-price-changes`, a Clinic management row (Panel group), three tabs:
-  **Propose** (Panel Officer: choose a Panel or the default Panel book, search a charge, shows the current price and
-  last three versions, new price in RM, agreement reference, effective date with the branch time zone shown),
-  **Waiting** (the list; Finance Officer and Director see Approve and Reject, the proposer sees Withdraw) and **Decided**.
-- Approve and Reject use the shared confirm dialog; the page names the old and new price in RM and the effective time.
-- Routes: `GET /panel-price-changes`, `POST` propose, approve, reject, withdraw; throttled like other Pricing writes;
-  explicit redirects back to the page (no bare `back()`).
-- Pricing, the Medicine and Clinical Service forms and the consultation tariff show Panel prices read-only with a
-  link "Propose a change" (PR 3). English labels. 44 px targets below 1024 px; cards on phones (existing table
-  pattern); no new shared components expected.
+Layout and wording follow Daniel's review of the note (OK with changes, 21 Nov); he does a full look once there are
+shots at 1440 and 390 px in light and dark. One new page `PanelPrices/Index.vue` at `/panel-price-changes`, a Clinic
+management row "Panel price changes" with one sentence in the Panel group, and three tabs.
+
+**Propose tab** (Panel Officer; a person with only approve rights does not get this tab)
+- Every field starts empty with "Pick ... to continue." helper lines. One filled button, "Propose price change", off until
+  the Panel (or the default Panel book), the charge, the price, the agreement reference and the date are all filled.
+- A small read-only table above the form shows the current Panel price and the last three versions (right-aligned RM,
+  2 decimals, tabular figures). Panel prices only, never Self-pay.
+- Under the price box the change is shown before sending: "RM 12.00 -> RM 14.50 (+RM 2.50, +20.8%)". Over 25% it adds
+  a warning-token line, with a dot and words, "Large change. Check the agreement reference."
+- Agreement reference help: "Plain text, up to 120 characters. Do not enter patient details."
+- Effective date uses the shared DateField (dd/mm/yyyy) with the time zone beside it ("Cheras time (Asia/Kuala_Lumpur)").
+  Any time box defaults to 00:00 and says so. A past date is refused with a plain line under the field.
+
+**Waiting and Decided tabs** (table from 1024 px, cards below, 44 px targets below 1024 px)
+- Each row or card: Panel, charge, "RM old -> RM new", effective date and time, proposed by, since, and a status as a dot
+  plus a word (Waiting, Approved, Rejected, Withdrawn). The Waiting tab title carries the count. Empty states name the
+  tab ("No proposals are waiting.").
+- Approve and Reject are outline buttons on the row. Approve opens the confirm sheet naming the Panel, charge, old and
+  new price in RM and the effective time; if the proposed time has passed it says "This will take effect now, at
+  approval." Reject opens a reason picker that starts empty ("Pick a reason to continue."), with the confirm off until
+  picked; red appears only inside the Reject sheet.
+- A Director (or anyone holding both permissions) who proposed the row sees "You proposed this. Someone else must
+  decide." in place of the buttons, not disabled buttons. The proposer sees Withdraw (outline, with its own confirm).
+- Default tab: Propose for a Panel Officer, Waiting for an approver.
+- The refusal "The price changed after this was proposed. Propose it again." stays on the page as a toast, with a
+  "Propose again" button that opens the Propose tab with the Panel and charge filled in.
+
+**Routes:** `GET /panel-price-changes`, `POST` propose, approve, reject, withdraw; throttled like other Pricing writes;
+explicit redirects back to the page (no bare `back()`). English labels. Shared components only expected.
+
+**Slice 3 (existing screens):** on the Medicine, Clinical Service, consultation tariff and Pricing screens Panel prices
+show as plain read-only text, not greyed-out inputs, with the line "Panel prices are changed by proposal." and a
+"Propose a change" link shown only to holders of the propose permission. A scheduled price keeps the muted second
+line "From <date and time>: RM x.xx".
 
 ## 7. Tests
 
