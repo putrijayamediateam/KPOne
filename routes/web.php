@@ -37,6 +37,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
+use App\Http\Controllers\DispensaryReviewController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
@@ -1089,6 +1090,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // DSP-7b: the branch list of returns waiting for a check (read only; the check stays on the case page).
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
+        // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
+        Route::get('dispensary/{dispensaryCase}/review', [DispensaryReviewController::class, 'show'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.view_readonly.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.review');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 

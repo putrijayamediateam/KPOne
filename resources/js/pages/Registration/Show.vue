@@ -115,6 +115,14 @@ const submitCancel = () => {
                 consultation.
             </p>
         </template>
+        <!-- DSP-25: the Director's read-only dispensary case; every open is recorded. A plain link, so nothing prefetches it. -->
+        <a
+            v-if="visit.dispensaryReviewUrl"
+            :href="visit.dispensaryReviewUrl"
+            class="inline-flex h-11 items-center justify-center self-start rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+            data-testid="dispensary-review-link"
+            >Open dispensary case (read only)</a
+        >
         <div
             class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
         >
