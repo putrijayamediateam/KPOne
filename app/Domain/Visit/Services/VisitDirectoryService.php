@@ -248,6 +248,12 @@ class VisitDirectoryService
             // UX-2 (S1-005): whether the doctor has opened the consultation, so the visit page offers the
             // Medical certificates link only when that page can work. A boolean only; no clinical content.
             'hasConsultation' => $visit->visit_type === 'consultation' && $visit->clinicalEncounter()->exists(),
+            // DSP-25: the Director's read-only entry to this visit's dispensary case (the review route records every open).
+            'dispensaryReview' => $actor->can('dispensary.view_readonly.organisation')
+                ? (($reviewCase = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('visit_id', $visit->id)->latest('id')->first(['public_id', 'status']))
+                    ? ['url' => route('dispensary.review', $reviewCase->public_id), 'status' => $reviewCase->status]
+                    : null)
+                : null,
             'queue' => $visibleQueueEntry ? [
                 'queueNumber' => QueueNumberFormat::format($visibleQueueEntry->queue_number),
                 'operationalDate' => $visibleQueueEntry->operational_date->toDateString(),
@@ -426,7 +432,7 @@ class VisitDirectoryService
         $consultationCase = $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
             && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])
             ? $cases->first(fn (DispensaryCase $case): bool => $case->case_type === DispensaryCase::TYPE_CONSULTATION
-                && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true))
+                && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true))
             : null;
         $openCase = $otcOpen ? $otcCase : $consultationCase;
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'

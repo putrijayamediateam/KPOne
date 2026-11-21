@@ -43,7 +43,8 @@ class RoomCallService
                 ->where('branch_id', $branch->id)
                 ->lockForUpdate()
                 ->firstOrFail();
-            if (! in_array($lockedCase->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true)) {
+            // DSP-23: the CA may call the patient while the case waits for the doctor's check.
+            if (! in_array($lockedCase->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true)) {
                 throw ValidationException::withMessages([
                     'queue' => 'Only a dispensary case that is waiting or being dispensed can be called. Reload the case.',
                 ]);
