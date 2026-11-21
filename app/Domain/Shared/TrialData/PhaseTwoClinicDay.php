@@ -9,14 +9,12 @@ use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
 use App\Domain\Clinical\Documents\AttendanceService;
 use App\Domain\Clinical\Documents\MedicalCertificateService;
 use App\Domain\Clinical\Documents\ReferralService;
-use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanServiceOrder;
-use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Clinical\Services\PatientAllergyService;
@@ -28,26 +26,19 @@ use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
-use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\QueueDisplayAdministrationService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchDisplaySetting;
 use App\Domain\Queue\Models\BranchRoom;
-use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Readiness\CallHoldService;
 use App\Domain\Queue\Services\OtcQueueService;
-use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Queue\Treatment\TreatmentStep;
 use App\Domain\Queue\Treatment\TreatmentStepService;
 use App\Domain\Visit\Billing\Models\CashClosing;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\Payment;
-use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentReconciliation;
-use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\CashClosingService;
-use App\Domain\Visit\Billing\Services\CompleteVisitationService;
-use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\PaymentReconciliationService;
@@ -55,12 +46,7 @@ use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\PostedReceiptProjection;
 use App\Domain\Visit\Billing\Services\RefundService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
-use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
-use App\Domain\Visit\Services\VisitReasonService;
-use App\Domain\Visit\Services\VisitRegistrationService;
-use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -73,6 +59,8 @@ use Illuminate\Support\Str;
  */
 final class PhaseTwoClinicDay
 {
+    use ClinicFlow;
+
     public const POSTERS_PER_BRANCH = 2;
 
     /** The scenario each of a branch's ten patients gets, by position at the branch (1 to 10). */
@@ -88,9 +76,6 @@ final class PhaseTwoClinicDay
         9 => 'Waiting, triaged, flagged not ready to call',
         10 => 'Being seen, triaged, called to the treatment room',
     ];
-
-    /** @var array<string, int> */
-    private array $created = [];
 
     private PlaceholderFiles $files;
 
@@ -155,7 +140,7 @@ final class PhaseTwoClinicDay
                 continue;
             }
             DB::transaction(function () use ($code, $branch, $patient, $doctors, $position, $step): void {
-                $step($this->register($code, $branch, $patient, $doctors[$position], $position === 3, $position));
+                $step($this->register($code, $branch, $patient, $doctors[$position], $position === 3 ? $this->panel(0) : null, $position, $position === 10));
             });
             $this->count('visits');
         }
@@ -245,7 +230,7 @@ final class PhaseTwoClinicDay
             'lock_version' => $invoice->lock_version,
             'amount_sen' => $this->due($invoice),
             'panel_id' => $panel->id,
-            'member_reference' => 'TRIAL-MEMBER-'.str_pad((string) $visit->patient_id, 4, '0', STR_PAD_LEFT),
+            'member_reference' => $this->memberReference($visit->patient()->firstOrFail()),
             'reason' => 'Fictional trial: covered by the Panel',
         ]);
         $responsibility->approve($this->context->as(TrialDataContext::key($code, 'supervisor1'), $branch), $visit->refresh(), $invoice->refresh(), 'panel', $proposal->public_id, [
@@ -438,77 +423,6 @@ final class PhaseTwoClinicDay
 
     // --- building blocks -------------------------------------------------------------------------------------------
 
-    private function register(string $code, Branch $branch, Patient $patient, ?string $doctor, bool $panel, int $position): Visit
-    {
-        $reasons = $doctor === null ? [] : [app(VisitReasonService::class)->create($this->ca($code, $branch), PhaseOneFoundation::VISIT_REASONS[$position % count(PhaseOneFoundation::VISIT_REASONS)])->public_id];
-
-        return app(VisitRegistrationService::class)->register($this->ca($code, $branch), [
-            'idempotency_key' => (string) Str::uuid(),
-            'expected_branch_id' => $branch->id,
-            'patient_number' => $patient->patient_number,
-            'visit_type' => $doctor === null ? 'otc' : 'consultation',
-            'assigned_doctor_user_id' => $doctor === null ? null : $this->user(TrialDataContext::key($code, $doctor))->id,
-            'visit_reason_public_ids' => $reasons,
-            'priority' => $position === 10 ? 'urgent' : 'normal',
-            'coverage_type' => $panel ? 'panel' : 'self_pay',
-            'panel_id' => $panel ? $this->panel(0)->id : null,
-            'coverage_member_reference' => $panel ? 'TRIAL-MEMBER-'.str_pad((string) $patient->id, 4, '0', STR_PAD_LEFT) : null,
-            'confirm_repeat' => false,
-        ]);
-    }
-
-    private function enterQueue(string $code, Branch $branch, Visit $visit): QueueEntry
-    {
-        return app(QueueEntryService::class)->enter($this->ca($code, $branch), $visit->refresh(), [
-            'expected_branch_id' => $branch->id,
-            'visit_lock_version' => $visit->lock_version,
-        ]);
-    }
-
-    private function queueAndCall(string $code, Branch $branch, Visit $visit, string $doctor): void
-    {
-        $this->enterQueue($code, $branch, $visit);
-        $this->callIn($code, $branch, $visit, $doctor);
-    }
-
-    private function callIn(string $code, Branch $branch, Visit $visit, string $doctor): void
-    {
-        $actor = $this->context->as(TrialDataContext::key($code, $doctor), $branch);
-        $rooms = app(DoctorRoomService::class);
-        if (($rooms->choice($actor)['currentRoomId'] ?? null) === null) {
-            $room = BranchRoom::query()->where('branch_id', $branch->id)->where('kind', BranchRoom::KIND_CONSULTATION)
-                ->where('name', $doctor === 'doctor1' ? 'Consultation Room 1' : 'Consultation Room 2')->firstOrFail();
-            $rooms->select($actor, $room->id, $branch->id);
-            $actor = $this->context->as(TrialDataContext::key($code, $doctor), $branch);
-        }
-        app(QueueEntryService::class)->call($actor, $visit->refresh(), [
-            'expected_branch_id' => $branch->id,
-            'visit_lock_version' => $visit->lock_version,
-            'queue_lock_version' => $this->queue($visit)->lock_version,
-        ]);
-    }
-
-    private function startConsultation(string $code, Branch $branch, Visit $visit, string $doctor, int $diagnosis): ClinicalEncounter
-    {
-        $actor = $this->context->as(TrialDataContext::key($code, $doctor), $branch);
-        $encounters = app(ClinicalEncounterService::class);
-        $encounter = $encounters->start($actor, $visit->refresh(), [
-            'expected_branch_id' => $branch->id,
-            'visit_lock_version' => $visit->lock_version,
-            'queue_lock_version' => $this->queue($visit)->lock_version,
-        ]);
-
-        return $encounters->update($actor, $visit->refresh(), [
-            'expected_branch_id' => $branch->id,
-            'lock_version' => $encounter->refresh()->lock_version,
-            'clinical_note' => 'Fictional trial consultation note. Not a real patient.',
-            'vitals' => ['systolic_bp' => 118 + $diagnosis, 'diastolic_bp' => 76, 'pulse_bpm' => 78, 'temperature_celsius' => 37.2,
-                'spo2_percent' => 98, 'weight_kg' => 62, 'height_cm' => 163],
-            'diagnoses' => [['diagnosis_text' => PhaseOneFoundation::DIAGNOSES[$diagnosis % count(PhaseOneFoundation::DIAGNOSES)],
-                'diagnosis_code' => null, 'code_system' => null, 'is_primary' => true]],
-        ]);
-    }
-
     /**
      * Starts the consultation, records the allergy status and its review, and saves the treatment plan.
      *
@@ -638,14 +552,6 @@ final class PhaseTwoClinicDay
         $dispensary->complete($this->ca($code, $branch), $this->case($visit), ['expected_branch_id' => $branch->id, 'case_lock_version' => $this->case($visit)->lock_version]);
     }
 
-    private function bill(string $code, Branch $branch, Visit $visit): Invoice
-    {
-        $builder = app(BillingBuilderService::class);
-        $invoice = $builder->build($this->ca($code, $branch), $visit->refresh(), ['expected_branch_id' => $branch->id, 'lock_version' => null]);
-
-        return $builder->finalize($this->ca($code, $branch), $visit->refresh(), $invoice, ['expected_branch_id' => $branch->id, 'lock_version' => $invoice->lock_version]);
-    }
-
     /** Pays what is due now with the given method. */
     private function pay(string $code, Branch $branch, Visit $visit, Invoice $invoice, string $actor, string $method, ?string $reference = null): Payment
     {
@@ -660,16 +566,6 @@ final class PhaseTwoClinicDay
         $this->count('payments');
 
         return $payment;
-    }
-
-    private function completeVisit(string $code, Branch $branch, Visit $visit, Invoice $invoice): void
-    {
-        app(CompleteVisitationService::class)->complete($this->ca($code, $branch), $visit->refresh(), [
-            'expected_branch_id' => $branch->id,
-            'visit_lock_version' => $visit->lock_version,
-            'lock_version' => $invoice->refresh()->lock_version,
-        ]);
-        $this->count('completed_visits');
     }
 
     private function triage(string $code, Branch $branch, Visit $visit): void
@@ -701,26 +597,6 @@ final class PhaseTwoClinicDay
         return Patient::query()->where('organisation_id', $this->context->organisation->id)->where('full_name', $name)->firstOrFail();
     }
 
-    private function ca(string $code, Branch $branch): User
-    {
-        return $this->context->as(TrialDataContext::key($code, 'ca1'), $branch);
-    }
-
-    private function user(string $key): User
-    {
-        return User::query()->where('email', TrialDataContext::email($key))->firstOrFail();
-    }
-
-    private function queue(Visit $visit): QueueEntry
-    {
-        return QueueEntry::query()->where('visit_id', $visit->id)->firstOrFail();
-    }
-
-    private function encounter(Visit $visit): ClinicalEncounter
-    {
-        return ClinicalEncounter::query()->where('visit_id', $visit->id)->firstOrFail();
-    }
-
     private function case(Visit $visit): DispensaryCase
     {
         return DispensaryCase::query()->where('visit_id', $visit->id)->firstOrFail();
@@ -729,16 +605,6 @@ final class PhaseTwoClinicDay
     private function medicine(string $medicineCode): MedicineCatalogueItem
     {
         return MedicineCatalogueItem::query()->where('organisation_id', $this->context->organisation->id)->where('code', $medicineCode)->firstOrFail();
-    }
-
-    private function panel(int $index): Panel
-    {
-        return Panel::query()->where('organisation_id', $this->context->organisation->id)->where('code', PhaseOneFoundation::PANELS[$index]['code'])->firstOrFail();
-    }
-
-    private function method(string $methodCode): PaymentMethod
-    {
-        return PaymentMethod::query()->where('organisation_id', $this->context->organisation->id)->where('code', $methodCode)->firstOrFail();
     }
 
     private function room(Branch $branch, string $kind): BranchRoom
@@ -758,20 +624,5 @@ final class PhaseTwoClinicDay
             ->where('batch_number', 'like', 'TRIAL-B%')->firstOrFail();
 
         return [$location, $sku, $batch];
-    }
-
-    private function due(Invoice $invoice): int
-    {
-        return (int) app(FinancialLedger::class)->state($invoice->refresh())['due_now'];
-    }
-
-    private function today(Branch $branch): CarbonImmutable
-    {
-        return CarbonImmutable::now($branch->timezone)->startOfDay();
-    }
-
-    private function count(string $kind, int $by = 1): void
-    {
-        $this->created[$kind] = ($this->created[$kind] ?? 0) + $by;
     }
 }

@@ -244,7 +244,7 @@ It adds no Panels, patients, visits or cost policy. Never run it with real data 
 A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
 run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
 the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
-Phases 1 (foundation) and 2 (a clinic day) are built so far.
+Phases 1 (foundation), 2 (a clinic day) and 3 (Panel claims) are built so far.
 
 Before the first run: migrate and seed the reference data, create the one Director with
 `php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
@@ -256,6 +256,7 @@ KPONE_TRIAL_DATA_ALLOWED=true
 php artisan config:clear
 php artisan kpone:trial-data --phase=1
 php artisan kpone:trial-data --phase=2   # needs phase 1; asks no password
+php artisan kpone:trial-data --phase=3   # needs phase 1
 # afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
 ```
 
@@ -280,6 +281,11 @@ medicine-only (OTC) visit; waiting at the Dispensary; returned to the doctor; he
 waiting, triaged and flagged not ready to call; and being seen, called to the treatment room. It ends with the
 card terminal close and the cash count for the day (approval waits until the day has ended). Each visit is made in
 one transaction and skipped on a rerun when the patient already has a visit.
+
+Phase 3 adds, at every branch, eleven fictional Panel patients with completed Panel visits and claims in every
+stage (prepared, submitted with a confirmed claim adjustment, queried, accepted, partly accepted, rejected, partly
+paid, paid by a remittance, a payment reversed by Finance, and a two-claim bulk claim on the second Panel), plus two
+Panel price changes from tomorrow (one approved, one waiting).
 
 ## Ask KPOne read login (AG-7)
 

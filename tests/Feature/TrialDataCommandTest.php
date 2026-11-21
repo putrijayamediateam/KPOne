@@ -6,6 +6,7 @@ use App\Domain\Identity\Services\DirectorBootstrapService;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
+use App\Domain\Shared\TrialData\PhaseThreePanel;
 use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
 use App\Domain\Shared\TrialData\PlaceholderFiles;
 use App\Domain\Shared\TrialData\TrialDataContext;
@@ -39,7 +40,8 @@ class TrialDataCommandTest extends TestCase
         'business_detail_commands', 'branch_document_footers', 'price_change_proposals', 'branch_display_settings', 'visits',
         'queue_entries', 'otc_queue_entries', 'queue_calls', 'queue_call_holds', 'consultation_holds', 'queue_treatment_steps',
         'visit_triage_assessments', 'dispensary_cases', 'invoices', 'payments', 'payment_refunds', 'medical_certificates',
-        'referral_documents', 'attendance_documents', 'payment_reconciliations', 'cash_closings', 'audit_logs',
+        'referral_documents', 'attendance_documents', 'payment_reconciliations', 'cash_closings', 'coverage_allocations', 'panel_claims', 'panel_claim_payments',
+        'panel_claim_adjustments', 'panel_remittances', 'panel_claim_payment_reversals', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -300,6 +302,39 @@ class TrialDataCommandTest extends TestCase
         $after = $this->counts();
         $this->runPhaseTwo()->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
         $this->assertSame($after, $this->counts());
+    }
+
+    public function test_phase_three_takes_panel_claims_through_every_stage_once(): void
+    {
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('3')->assertExitCode(Command::SUCCESS);
+        $expected = ['prepared' => 1, 'submitted' => 3, 'queried' => 1, 'accepted' => 2, 'partially_accepted' => 1, 'rejected' => 1, 'partially_paid' => 1, 'paid' => 1];
+        foreach (Branch::query()->get() as $branch) {
+            $statuses = DB::table('panel_claims')->where('branch_id', $branch->id)->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all();
+            ksort($statuses);
+            ksort($expected);
+            $this->assertSame($expected, $statuses, $branch->code);
+            $this->assertSame(count(PhaseThreePanel::SCENARIOS), DB::table('visits')->where('branch_id', $branch->id)->where('status', 'completed')->count(), $branch->code);
+            $this->assertSame(1, DB::table('panel_claim_adjustments')->where('branch_id', $branch->id)->where('status', 'confirmed')->count(), $branch->code);
+            $this->assertSame(1, DB::table('panel_remittances')->where('branch_id', $branch->id)->count(), $branch->code);
+        }
+        // A bulk claim (two claims sharing one submission on Panel B) and one corrected payment per branch.
+        $panelB = DB::table('panels')->where('code', PhaseOneFoundation::PANELS[1]['code'])->value('id');
+        $this->assertSame(6, DB::table('panel_claims')->where('panel_id', $panelB)->count());
+        $this->assertSame(3, DB::table('panel_claim_payment_reversals')->count());
+        $this->assertSame(['approved' => 1, 'proposed' => 1], DB::table('price_change_proposals')->where('agreement_reference', PhaseThreePanel::AGREEMENT_REFERENCE)
+            ->selectRaw('status, count(*) as n')->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all());
+
+        $after = $this->counts();
+        $this->runPhase('3')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    private function runPhase(string $phase): PendingCommand
+    {
+        return $this->artisan('kpone:trial-data', ['--phase' => $phase])
+            ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST);
     }
 
     public function test_placeholder_files_are_real_png_and_pdf_marked_fictional(): void

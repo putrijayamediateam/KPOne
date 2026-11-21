@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
+use App\Domain\Shared\TrialData\PhaseThreePanel;
 use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
 use App\Domain\Shared\TrialData\TrialDataContext;
 use App\Models\User;
@@ -22,12 +23,12 @@ use Throwable;
  */
 class TrialData extends Command
 {
-    protected $signature = 'kpone:trial-data {--phase=1 : The phase to run (1 foundation, 2 clinic day)}';
+    protected $signature = 'kpone:trial-data {--phase=1 : The phase to run (1 foundation, 2 clinic day, 3 Panel claims)}';
 
     protected $description = 'Fill a trial server with fictional demo data (locked; read docs/design/TRIAL-DATA-COMMAND.md first)';
 
     /** @var list<string> */
-    private const PHASES = ['1', '2'];
+    private const PHASES = ['1', '2', '3'];
 
     public function handle(AuditRecorder $audit): int
     {
@@ -101,7 +102,8 @@ class TrialData extends Command
         try {
             $created = match ($phase) {
                 '1' => (new PhaseOneFoundation($context))->run($password),
-                default => (new PhaseTwoClinicDay($context))->run(),
+                '2' => (new PhaseTwoClinicDay($context))->run(),
+                default => (new PhaseThreePanel($context))->run(),
             };
         } catch (ValidationException $exception) {
             return $this->refuse('A step was refused: '.implode(' ', $exception->validator->errors()->all()).' Fix it and run the command again; finished steps are kept and not repeated.');

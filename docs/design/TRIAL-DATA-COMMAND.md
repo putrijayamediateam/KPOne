@@ -1,6 +1,6 @@
 # TRIAL-DATA: fictional demo data for the trial server (design note)
 
-Status: **Phases 1 and 2 built** (branch `feature/trial-data-command`); Phases 3 to 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
+Status: **Phases 1 to 3 built** (branch `feature/trial-data-command`); Phases 4 to 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
 the owner in the DEMO-1 session): demo data that uses every function, every user role and every menu module, built
 in phases. Branch `feature/trial-data-command`. No PR until the owner's ship-it.
 
@@ -110,7 +110,18 @@ Menus: Registration, Consultation, QR Intake, Dispensary and Returns to check, P
 Bills to collect, Terminal Reconciliation, Daily cash closing, Panel Responsibility, documents, TV screen, all
 Reports and Insights (for today), department space homes.
 
-### Phase 3 — Panel
+### Phase 3 — Panel (built)
+
+**Built:** at every branch, eleven fictional Panel patients (registered by the branch's first CA), each with one
+completed Panel visit seen by the branch's second doctor, the whole invoice approved for the Panel. Claims, by the
+Panel Officer: (1) prepared; (2) submitted, with a Panel service charge adjustment requested by the Panel Officer and
+confirmed by Finance; (3) queried; (4) accepted; (5) partly accepted; (6) rejected; (7) partly paid; (8) paid by a
+Panel remittance recorded by Finance; (9) paid, then the payment reversed by Finance as recorded twice; (10, 11) a bulk
+claim on Panel B. Two default Panel price changes from tomorrow, proposed by the Panel Officer: one approved by
+Finance, one waiting. A claim already created for an approval (PNL-28a's automatic claims, when switched on) is
+reused, never duplicated.
+
+Design as reviewed:
 
 Claims in every stage (prepared, submitted, queried, accepted, partly accepted, rejected, partly paid, paid), a
 bulk claim, a claim adjustment, a remittance, a payment correction and a Panel price change proposal (one approved,
