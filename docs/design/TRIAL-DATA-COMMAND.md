@@ -235,13 +235,31 @@ summary), a QR check-in link.
 
 ## 6. Tests (per phase, on PostgreSQL 18)
 
+**Committed run (added after the first trial-server run, 21 Nov 2026).** Most trial-data tests run inside one
+rolled-back test transaction, so PostgreSQL's deferred checks, which fire only at COMMIT (for example
+`completed_visit_evidence`), never ran there. On the trial server phase 3 then failed: it completed a Panel visit and,
+in the same transaction, changed that visit's invoice through the claim stage. `TrialDataEndToEndTest` now runs
+phases 1 to 6 in order on a freshly migrated database with every step really committed and PNL-28a's automatic claims
+on. Phase 3 commits each completed visit before its claim stage, and resumes a claim stage left undone. Phase 6
+merges duplicates of patients whose phase 2 visit is completed (a merge is refused while either record has an
+unfinished visit).
+
+
 Refused without the flag; refused with the wrong host name; refused non-interactively; refused when a non-`.test`
 account (other than the Director) exists; refused without exactly one Director; creates the phase's records once;
 a second run changes no table's row count; the password appears in no output, log or audit row; the phase audit
 row has no actor and ids or counts only. No existing assertion is expected to change; any that must will be listed
 for the owner before it is touched.
 
-## 7. Owner answers (21 Nov 2026, relayed by B.E.R.N.I.S.S)
+## 7. First run on the trial server (kpjaya.com, 21 Nov 2026)
+
+Phases 1 and 2 ran; phase 3 stopped on PostgreSQL's commit-time completed-visit check (see section 6), was fixed in
+PR #1051 and resumed without clean-up; then phases 3 to 6 finished. The owner switched trial mode off again afterwards
+(`KPONE_TRIAL_DATA_ALLOWED=false`, config cleared and cached). Data is dated 21 Nov 2026. Agents stay empty until the
+agent registration feature (agent platform team) ships; job applications, locum pay months and open-shift requests
+are empty by design.
+
+## 8. Owner answers (21 Nov 2026, relayed by B.E.R.N.I.S.S)
 
 1. Placeholder files: **generate them**, marked "FICTIONAL TRIAL DATA" (section 5, items 2 and 3).
 2. Payroll: **fictional statutory tables**, entered and checked by two different fictional accounts, labelled as not

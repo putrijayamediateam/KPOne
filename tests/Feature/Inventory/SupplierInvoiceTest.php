@@ -63,7 +63,7 @@ final class SupplierInvoiceTest extends VisitTestCase
     public function test_the_two_permissions_go_to_the_approved_roles(): void
     {
         $holders = fn (string $p) => collect(PermissionCatalogue::roles())->filter(fn (array $perms) => in_array($p, $perms, true))->keys()->sort()->values()->all();
-        $this->assertSame(['ca_supervisor', 'finance_officer'], $holders(SupplierInvoiceService::RECORD));
+        $this->assertSame(['account_assistant', 'ca_supervisor', 'finance_officer'], $holders(SupplierInvoiceService::RECORD));
         $this->assertSame(['director', 'finance_officer'], $holders(SupplierInvoiceService::APPROVE));
     }
 

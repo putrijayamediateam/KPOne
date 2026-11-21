@@ -10,6 +10,7 @@ use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Visit\Billing\Services\PanelVisitLimit;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
@@ -38,7 +39,7 @@ class ClinicalEncounterDirectoryService
                 'visit' => fn ($query) => $query->select([
                     'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_type',
                     'status', 'priority', 'visit_reason', 'assigned_doctor_user_id', 'registered_at', 'lock_version',
-                    'coverage_type', 'coverage_panel_name_snapshot', 'coverage_panel_note',
+                    'coverage_type', 'panel_id', 'coverage_panel_name_snapshot', 'coverage_panel_note',
                 ])->with([
                     'patient:id,organisation_id,patient_number,full_name,date_of_birth,sex',
                     'branch:id,organisation_id,code,name,timezone',
@@ -84,6 +85,13 @@ class ClinicalEncounterDirectoryService
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'
                     ? ($encounter->visit->coverage_panel_name_snapshot ?? 'Panel')
                     : 'Self-pay',
+                // PNL-26c: one line for the doctor, the Panel total of the orders so far against the Panel's limit per visit; never item prices.
+                // PNL-26c: the doctor is told only when the estimate is over the limit; an estimate under it is never sent.
+                'panelEstimate' => (function () use ($encounter): ?array {
+                    $estimate = app(PanelVisitLimit::class)->estimateForEncounter($encounter->visit, $encounter->id);
+
+                    return $estimate !== null && $estimate['over'] ? $estimate : null;
+                })(),
                 'registrationReason' => $this->visitReasons->summary($encounter->visit),
                 'registrationReasons' => $this->visitReasons->presentation($encounter->visit),
                 'registeredAt' => $encounter->visit->registered_at->toIso8601String(),
