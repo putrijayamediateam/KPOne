@@ -18,6 +18,8 @@ export type IssuedPackRow = {
     prints: number;
     viewUrl: string;
     reprintUrl: string;
+    /** False for a copy that prints identity numbers when this viewer's role cannot see them. */
+    canOpen: boolean;
 };
 
 const props = defineProps<{ packs: IssuedPackRow[]; fromClaim: string }>();
@@ -85,7 +87,14 @@ const buttonClass =
                         {{ pack.prints === 1 ? 'print' : 'prints' }}</span
                     >
                 </p>
-                <div class="flex flex-wrap gap-2">
+                <p
+                    v-if="!pack.canOpen"
+                    class="text-xs text-muted-foreground"
+                    data-testid="issued-pack-identity-note"
+                >
+                    This copy shows identity numbers. Your role cannot open it.
+                </p>
+                <div v-else class="flex flex-wrap gap-2">
                     <Link :href="pack.viewUrl" :class="buttonClass"
                         >View copy</Link
                     >

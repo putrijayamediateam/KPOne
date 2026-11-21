@@ -75,7 +75,7 @@ final class PanelClaimPackIssueService
             $document = new PanelClaimPackDocument;
             $document->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id,
                 'panel_id' => (int) DB::table('panel_claims')->where('id', $claimIds[0])->value('panel_id'), 'pack_key' => $packKey, 'claim_ids' => $sorted,
-                'version' => ($latest->version ?? 0) + 1, 'content_sha256' => $contentHash, 'encrypted_snapshot' => $encrypted,
+                'version' => ($latest->version ?? 0) + 1, 'content_sha256' => $contentHash, 'shows_identity' => $this->showsIdentity($content), 'encrypted_snapshot' => $encrypted,
                 'ciphertext_sha256' => hash('sha256', $encrypted), 'issued_by_user_id' => $actor->id, 'issued_at' => now()->utc()])->save();
             $this->audit->record('panel_claim.pack_issued', $document, ['version' => $document->version, 'claim_count' => count($claimIds),
                 'claim_ids' => $claimIds, 'panel_id' => $document->panel_id], $actor, $branch);
@@ -169,6 +169,8 @@ final class PanelClaimPackIssueService
             ->groupBy('panel_claim_pack_document_id')->map(static fn ($rows) => $rows->last());
         $firstLabels = PanelClaimPackPrint::query()->whereIn('panel_claim_pack_document_id', $documents->pluck('id'))->where('label', '!=', 'copy')->pluck('label', 'panel_claim_pack_document_id');
 
+        $canSeeIdentity = $actor->can(PanelClaimPackService::IDENTITY_PERMISSION);
+
         return $documents->map(static fn (PanelClaimPackDocument $d): array => [
             'publicId' => $d->public_id,
             'version' => $d->version,
@@ -179,22 +181,29 @@ final class PanelClaimPackIssueService
             'prints' => $d->prints_count,
             'viewUrl' => route('panel-claims.pack.copy', ['print' => $latestPrints[$d->id]->public_id, 'from' => $claim->public_id], absolute: false),
             'reprintUrl' => route('panel-claims.pack.reprint', ['document' => $d->public_id], absolute: false),
+            'canOpen' => ! $d->shows_identity || $canSeeIdentity,
         ])->values()->all();
     }
 
     /** @param array<string, mixed> $content */
     private function assertCanSee(User $actor, array $content): void
     {
-        $rows = is_array($content['pack']['claims'] ?? null) ? $content['pack']['claims'] : [];
-        $identity = false;
-        foreach ($rows as $row) {
-            if (is_array($row) && ! ($row['identityHidden'] ?? true)) {
-                $identity = true;
-            }
-        }
-        if ($identity && ! $actor->can(PanelClaimPackService::IDENTITY_PERMISSION)) {
+        if ($this->showsIdentity($content) && ! $actor->can(PanelClaimPackService::IDENTITY_PERMISSION)) {
             throw ValidationException::withMessages(['pack' => 'This copy shows patient identity numbers, which your role cannot see.']);
         }
+    }
+
+    /** @param array<string, mixed> $content */
+    private function showsIdentity(array $content): bool
+    {
+        $rows = is_array($content['pack']['claims'] ?? null) ? $content['pack']['claims'] : [];
+        foreach ($rows as $row) {
+            if (is_array($row) && ! ($row['identityHidden'] ?? true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array<string, mixed> */

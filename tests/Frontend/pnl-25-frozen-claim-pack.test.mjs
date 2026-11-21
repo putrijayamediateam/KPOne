@@ -51,3 +51,13 @@ test('the claim page lists the issued packs', () => {
 
     assert.match(classicShow, /issuedPacks\?: IssuedPackRow\[\] \| null/);
 });
+
+test('a copy the viewer cannot open shows one muted line instead of dead-end buttons', () => {
+    assert.match(list, /canOpen: boolean/);
+    assert.match(list, /v-if="!pack\.canOpen"/);
+    assert.match(
+        list.replace(/\s+/g, ' '),
+        /This copy shows identity numbers\. Your role cannot open it\./,
+    );
+    assert.match(list, /v-else class="flex flex-wrap gap-2"/);
+});

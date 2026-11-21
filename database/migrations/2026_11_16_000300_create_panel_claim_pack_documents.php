@@ -27,6 +27,8 @@ return new class extends Migration
             $t->jsonb('claim_ids');
             $t->unsignedInteger('version');
             $t->char('content_sha256', 64);
+            // Whether the frozen content prints an identity number; only a holder of the identity permission may open it.
+            $t->boolean('shows_identity')->default(false);
             $t->longText('encrypted_snapshot');
             $t->char('ciphertext_sha256', 64);
             $t->foreignId('issued_by_user_id')->constrained('users')->restrictOnDelete();

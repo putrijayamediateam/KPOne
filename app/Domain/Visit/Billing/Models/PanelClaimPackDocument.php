@@ -21,6 +21,7 @@ use LogicException;
  * @property list<int> $claim_ids
  * @property int $version
  * @property string $content_sha256
+ * @property bool $shows_identity
  * @property string $encrypted_snapshot
  * @property string $ciphertext_sha256
  * @property int $issued_by_user_id
@@ -45,7 +46,7 @@ class PanelClaimPackDocument extends Model
 
     protected function casts(): array
     {
-        return ['claim_ids' => 'array', 'version' => 'integer', 'issued_by_user_id' => 'integer',
+        return ['claim_ids' => 'array', 'version' => 'integer', 'shows_identity' => 'boolean', 'issued_by_user_id' => 'integer',
             'issued_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];
     }
 }

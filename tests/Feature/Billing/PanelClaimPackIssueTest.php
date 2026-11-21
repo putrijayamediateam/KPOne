@@ -114,9 +114,14 @@ class PanelClaimPackIssueTest extends BillingTestCase
         $print = $this->issue($claims);
         $document = PanelClaimPackDocument::query()->sole();
 
+        $this->assertTrue($document->refresh()->shows_identity);
+        $this->assertTrue(app(PanelClaimPackIssueService::class)->forClaim($this->officer(), $claims[0])[0]['canOpen']);
+
         Role::query()->where('name', 'panel_officer')->firstOrFail()->revokePermissionTo('panel.claims.patient_identity.view.branch');
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $officer = User::query()->findOrFail($this->officer()->id);
+        // The list offers no dead-end buttons for a copy this viewer cannot open.
+        $this->assertFalse(app(PanelClaimPackIssueService::class)->forClaim($officer, $claims[0])[0]['canOpen']);
 
         foreach ([fn () => app(PanelClaimPackIssueService::class)->show($officer, $print->public_id),
             fn () => app(PanelClaimPackIssueService::class)->reprint($officer, $document->public_id, ['idempotency_key' => (string) Str::uuid()])] as $read) {
