@@ -15,8 +15,6 @@ const logic = read(
 );
 const registry = read('config/v2-pages.php');
 const normal = (s) => s.replace(/\s+/g, ' ');
-const squash = (s) => s.replace(/\s+/g, '').replace(/,([)\]}])/g, '$1');
-const between = (s, a, b) => s.slice(s.indexOf(a), s.indexOf(b));
 
 test('ClinicalService/Index is registered for Version 2 and the V2 files exist', () => {
     assert.match(registry, /'ClinicalService\/Index'/);
