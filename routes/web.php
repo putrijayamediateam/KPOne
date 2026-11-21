@@ -37,7 +37,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
+use App\Http\Controllers\DispensaryDoctorCheckController;
 use App\Http\Controllers\DispensaryReviewController;
+use App\Http\Controllers\DispensarySettingsController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
@@ -80,6 +82,7 @@ use App\Http\Controllers\PanelClaimAdjustmentController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
+use App\Http\Controllers\PanelPriceChangesController;
 use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
@@ -787,6 +790,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'store'])->middleware('throttle:10,1')->name('panel-payment-corrections.store');
     });
 
+    Route::middleware(['permission:panel.prices.propose.organisation,panel.prices.approve.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-price-changes', [PanelPriceChangesController::class, 'index'])->name('panel-price-changes.index');
+        Route::post('panel-price-changes', [PanelPriceChangesController::class, 'store'])->middleware('throttle:20,1')->name('panel-price-changes.store');
+        Route::post('panel-price-changes/{proposal}/approve', [PanelPriceChangesController::class, 'approve'])->whereUuid('proposal')->middleware('throttle:20,1')->name('panel-price-changes.approve');
+        Route::post('panel-price-changes/{proposal}/reject', [PanelPriceChangesController::class, 'reject'])->whereUuid('proposal')->middleware('throttle:20,1')->name('panel-price-changes.reject');
+        Route::post('panel-price-changes/{proposal}/withdraw', [PanelPriceChangesController::class, 'withdraw'])->whereUuid('proposal')->middleware('throttle:20,1')->name('panel-price-changes.withdraw');
+    });
+
     Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-invoices', [PanelInvoicesController::class, 'index'])->name('panel-invoices.index');
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
@@ -1088,6 +1099,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('dispensary/{dispensaryCase}/returns/{returnPublicId}/check', [DispensaryController::class, 'checkReturn'])
             ->whereUuid(['dispensaryCase', 'returnPublicId'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:30,1'])->name('dispensary.returns.check');
         // DSP-7b: the branch list of returns waiting for a check (read only; the check stays on the case page).
+        // DSP-23: the doctor's check (owner decision 14; answers 10 to 13).
+        Route::get('dispensary/doctor-checks', [DispensaryDoctorCheckController::class, 'waiting'])
+            ->middleware(['permission:dispensary.doctor_check.override.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.doctor-checks');
+        Route::post('dispensary/{dispensaryCase}/send-for-check', [DispensaryDoctorCheckController::class, 'send'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.send-for-check');
+        Route::post('dispensary/{dispensaryCase}/doctor-check/verify', [DispensaryDoctorCheckController::class, 'verify'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.doctor_check.own,dispensary.doctor_check.override.branch', 'throttle:20,1'])->name('dispensary.doctor-check.verify');
+        Route::post('dispensary/{dispensaryCase}/doctor-check/send-back', [DispensaryDoctorCheckController::class, 'sendBack'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.doctor_check.own,dispensary.doctor_check.override.branch', 'throttle:20,1'])->name('dispensary.doctor-check.send-back');
+        Route::get('dispensary-settings', [DispensarySettingsController::class, 'show'])
+            ->middleware(['permission:dispensary.settings.manage.branch', 'sensitive.no-store'])->name('dispensary-settings.show');
+        Route::put('dispensary-settings', [DispensarySettingsController::class, 'update'])
+            ->middleware(['permission:dispensary.settings.manage.branch', 'throttle:20,1'])->name('dispensary-settings.update');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
