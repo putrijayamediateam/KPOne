@@ -1,0 +1,40 @@
+390 light ca-waiting {"overflow":0}
+390 light ca-sent-back {"overflow":0,"sendLabel":"Send to doctor for check"}
+390 light registration-chip {"overflow":0}
+390 light supervisor-list {"overflow":0}
+390 light supervisor-case {"overflow":0}
+390 light supervisor-verify-sheet {"overflow":0}
+390 light doctor-panel {"overflow":0,"panel":true,"buttonHeights":[44,44]}
+390 light doctor-send-back-sheet {"overflow":0}
+390 light doctor-verify-sheet {"overflow":0}
+390 light settings {"overflow":0,"switchHeight":44}
+390 dark ca-waiting {"overflow":0}
+390 dark ca-sent-back {"overflow":0,"sendLabel":"Send to doctor for check"}
+390 dark registration-chip {"overflow":0}
+390 dark supervisor-list {"overflow":0}
+390 dark supervisor-case {"overflow":0}
+390 dark supervisor-verify-sheet {"overflow":0}
+390 dark doctor-panel {"overflow":0,"panel":true,"buttonHeights":[44,44]}
+390 dark doctor-send-back-sheet {"overflow":0}
+390 dark doctor-verify-sheet {"overflow":0}
+390 dark settings {"overflow":0,"switchHeight":44}
+1440 light ca-waiting {"overflow":0}
+1440 light ca-sent-back {"overflow":0,"sendLabel":"Send to doctor for check"}
+1440 light registration-chip {"overflow":0}
+1440 light supervisor-list {"overflow":0}
+1440 light supervisor-case {"overflow":0}
+1440 light supervisor-verify-sheet {"overflow":0}
+1440 light doctor-panel {"overflow":0,"panel":true,"buttonHeights":[36,36]}
+1440 light doctor-send-back-sheet {"overflow":0}
+1440 light doctor-verify-sheet {"overflow":0}
+1440 light settings {"overflow":0,"switchHeight":44}
+1440 dark ca-waiting {"overflow":0}
+1440 dark ca-sent-back {"overflow":0,"sendLabel":"Send to doctor for check"}
+1440 dark registration-chip {"overflow":0}
+1440 dark supervisor-list {"overflow":0}
+1440 dark supervisor-case {"overflow":0}
+1440 dark supervisor-verify-sheet {"overflow":0}
+1440 dark doctor-panel {"overflow":0,"panel":true,"buttonHeights":[36,36]}
+1440 dark doctor-send-back-sheet {"overflow":0}
+1440 dark doctor-verify-sheet {"overflow":0}
+1440 dark settings {"overflow":0,"switchHeight":44}
