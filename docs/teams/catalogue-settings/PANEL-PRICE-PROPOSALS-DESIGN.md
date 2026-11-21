@@ -27,14 +27,14 @@ the effective date; history kept."
    and time (entered as a branch-local date, stored UTC; today or later at proposal time), and the base version (the
    highest version of that book and charge when the proposal was made, 0 if none).
 4. **One open proposal per (book, charge).** A second is refused with the first one's status shown.
-5. **Approve** (Finance Officer, not the proposer): under locks and a fresh permission check, if the base version is
+5. **Approve** (Finance Officer or Director, not the proposer): under locks and a fresh permission check, if the base version is
    still the current highest version, write the `PriceEntry`. Otherwise refuse: "The price changed after this was
    proposed. Propose it again."
 6. **Effective time at approval:** the entry takes `effective_at = max(proposed effective time, approval time)` (default
    b). It is never earlier than the latest existing entry's `effective_at` for that book and charge (otherwise the
    highest-version rule and the effective order would disagree); if it would be, approval is refused with the reason
    and the proposer proposes again.
-7. **Reject** (Finance Officer, not the proposer): a controlled reason code (wrong amount, wrong Panel, no agreement
+7. **Reject** (Finance Officer or Director, not the proposer): a controlled reason code (wrong amount, wrong Panel, no agreement
    seen, other) and an optional short note (encrypted, never audited). **Withdraw**: the proposer, while open.
 8. A first-ever Panel price for a medicine or service is also a proposal (default c). Until approved, billing falls
    back to the default Panel book, as it does today.
