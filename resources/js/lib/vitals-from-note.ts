@@ -27,7 +27,10 @@ export type NoteVitals = {
 };
 
 // "Check" marks, not judgement: a reading outside these wide ranges is still filled, but the line says "Check: ..." so a typo in the
-// note does not slide into the record unseen. The vitals form itself has no limits (only "above 0"), so these are the only ones.
+// note does not slide into the record unseen.
+// PENDING DOCTOR CONFIRMATION: these ranges are a placeholder, not clinical limits. The approved source is the TRI-1a triage guideline
+// (TriageGuidelineService, yellow limits per reading and age group). The doctor's consultation page does not receive it today (it is
+// served to the triage form only, and needs the patient's age group), so reading it here is a separate slice. Until then, one table.
 const USUAL: Partial<Record<VitalsField, [number, number]>> = {
     systolic_bp: [90, 179],
     diastolic_bp: [50, 109],
