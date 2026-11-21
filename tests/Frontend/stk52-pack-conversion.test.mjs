@@ -71,3 +71,18 @@ test('STK-52: the block sits outside the SKU form and Pilot readiness shows wait
     const readiness = read('resources/js/pages/Inventory/Readiness.vue');
     assert.match(readiness, /data-testid="pack-conversions-waiting"/);
 });
+
+test('STK-52: a checker sees no legacy pack fields while a check waits', () => {
+    const skus = read('resources/js/pages/Inventory/Skus.vue').replace(
+        /\s+/g,
+        ' ',
+    );
+    assert.match(
+        skus,
+        /<p v-if="sku\.legacyHidden" class="text-sm sm:col-span-2" data-testid="legacy-hidden" > Hidden while a pack check is waiting\. <\/p>/,
+    );
+    assert.match(
+        skus,
+        /if \(sku\.legacyHidden\) \{ delete sent\.pack_size; delete sent\.purchase_unit; \}/,
+    );
+});

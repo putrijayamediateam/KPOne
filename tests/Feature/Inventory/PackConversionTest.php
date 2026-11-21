@@ -166,6 +166,23 @@ class PackConversionTest extends VisitTestCase
         $this->assertSame(55, $third['history'][0]['basePerPack']);
     }
 
+    public function test_a_checker_never_receives_the_legacy_pack_fields_while_a_check_waits(): void
+    {
+        $row = function (User $viewer): array {
+            $this->selectBranch($viewer);
+
+            return $this->get(route('inventory.skus', ['q' => $this->sku->sku_code]))->assertOk()->viewData('page')['props']['skus']['rows'][0];
+        };
+        $this->assertSame(['60.000', 'bottle', false], [$row($this->checker)['packSize'], $row($this->checker)['purchaseUnit'], $row($this->checker)['legacyHidden']]);
+        $this->propose(60);
+        $checker = $row($this->checker);
+        $this->assertSame([null, null, true], [$checker['packSize'], $checker['purchaseUnit'], $checker['legacyHidden']]);
+        $this->assertStringNotContainsString('60', json_encode([$checker['packSize'], $checker['purchaseUnit'], $checker['packConversion']], JSON_THROW_ON_ERROR));
+        // The proposer and a third person keep them.
+        $this->assertSame(['60.000', false], [$row($this->proposer)['packSize'], $row($this->proposer)['legacyHidden']]);
+        $this->assertSame(['60.000', false], [$row($this->actor('administrator'))['packSize'], $row($this->actor('administrator'))['legacyHidden']]);
+    }
+
     public function test_only_a_ca_supervisor_or_director_checks_and_never_the_proposer(): void
     {
         $id = $this->propose(60, by: $this->actor('administrator'));

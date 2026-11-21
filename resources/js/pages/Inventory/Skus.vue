@@ -16,8 +16,9 @@ type Sku = {
     publicId: string;
     skuCode: string;
     barcode: string | null;
-    packSize: string;
-    purchaseUnit: string;
+    packSize: string | null;
+    purchaseUnit: string | null;
+    legacyHidden: boolean;
     stockUnit: string;
     dispensingUnit: string;
     unitConversion: string;
@@ -111,8 +112,8 @@ const startEdit = (sku: Sku) => {
         brand_name: sku.item.brandName ?? '',
         sku_code: sku.skuCode,
         barcode: sku.barcode ?? '',
-        pack_size: sku.packSize,
-        purchase_unit: sku.purchaseUnit,
+        pack_size: sku.packSize ?? '',
+        purchase_unit: sku.purchaseUnit ?? '',
         stock_unit: sku.stockUnit,
         dispensing_unit: sku.dispensingUnit,
         unit_conversion: sku.unitConversion,
@@ -160,6 +161,12 @@ const save = (sku: Sku) => {
                     ? null
                     : data.maximum_temperature,
         };
+
+        // Hidden legacy fields (a pack check is waiting) are never sent either.
+        if (sku.legacyHidden) {
+            delete sent.pack_size;
+            delete sent.purchase_unit;
+        }
 
         // Locked unit fields are never sent, so the server never sees a change to them.
         if (sku.unitsLocked) {
@@ -545,7 +552,14 @@ const errorFor = (field: string) =>
                             Kept from before verified stock units. Supplier pack
                             sizes and prices belong on the Supplier price list.
                         </p>
-                        <template v-if="!sku.unitsLocked">
+                        <p
+                            v-if="sku.legacyHidden"
+                            class="text-sm sm:col-span-2"
+                            data-testid="legacy-hidden"
+                        >
+                            Hidden while a pack check is waiting.
+                        </p>
+                        <template v-else-if="!sku.unitsLocked">
                             <label class="grid min-w-0 gap-1 text-sm"
                                 >Pack size
                                 <Input

@@ -67,7 +67,12 @@ final class SkuEditDirectoryService
             'filters' => ['q' => $data['q'] ?? '', 'status' => $status],
             'rows' => array_map(fn (\stdClass $row): array => [
                 'publicId' => $row->public_id, 'skuCode' => $row->sku_code, 'barcode' => $row->barcode,
-                'packSize' => (string) $row->pack_size, 'purchaseUnit' => $row->purchase_unit, 'stockUnit' => $row->stock_unit,
+                // STK-52 (Daniel): a person who may check a waiting pack change never receives the legacy pack fields,
+                // which would give away the answer to the blind check.
+                ...(($conversions[(int) $row->id]['waiting']['canCheck'] ?? false)
+                    ? ['packSize' => null, 'purchaseUnit' => null, 'legacyHidden' => true]
+                    : ['packSize' => (string) $row->pack_size, 'purchaseUnit' => $row->purchase_unit, 'legacyHidden' => false]),
+                'stockUnit' => $row->stock_unit,
                 'dispensingUnit' => $row->dispensing_unit, 'unitConversion' => (string) $row->unit_conversion,
                 'storageType' => $row->storage_type,
                 'minimumTemperature' => $row->minimum_temperature === null ? null : (string) $row->minimum_temperature,
