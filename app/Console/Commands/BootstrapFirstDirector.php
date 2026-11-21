@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Identity\Services\BranchAssignmentService;
 use App\Domain\Identity\Services\DirectorBootstrapService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
@@ -18,7 +19,7 @@ class BootstrapFirstDirector extends Command
 
     protected $description = 'Interactively create the one-time first Director account.';
 
-    public function handle(DirectorBootstrapService $bootstrap): int
+    public function handle(DirectorBootstrapService $bootstrap, BranchAssignmentService $assignments): int
     {
         if (! $this->input->isInteractive()
             || (! app()->runningUnitTests() && (! defined('STDIN') || ! stream_isatty(STDIN)))) {
@@ -115,8 +116,10 @@ class BootstrapFirstDirector extends Command
             return self::FAILURE;
         }
 
+        $assignments->ensureDirectorCoverage($director);
+
         $this->components->info(
-            "First Director created for {$director->staffProfile->branchAssignments->first()->branch->name}.",
+            "First Director created for {$director->staffProfile->branchAssignments->firstWhere('is_primary', true)->branch->name} and authorised at every active branch.",
         );
 
         return self::SUCCESS;

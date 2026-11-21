@@ -154,7 +154,7 @@ const onOpenAutoFocus = (event: Event) => {
                 {{ error }}
             </p>
 
-            <DialogFooter class="gap-2 sm:gap-2">
+            <DialogFooter class="gap-2 sm:flex-wrap sm:gap-2">
                 <Button
                     type="button"
                     variant="outline"

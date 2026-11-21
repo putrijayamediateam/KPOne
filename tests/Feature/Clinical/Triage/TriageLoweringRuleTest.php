@@ -188,7 +188,7 @@ class TriageLoweringRuleTest extends TriageTestCase
         [$ca, $visit] = $this->redVisit();
         $first = VisitTriageAssessment::query()->where('visit_id', $visit->id)->sole();
         $insert = fn (array $set): string => "INSERT INTO visit_triage_assessments (organisation_id, branch_id, visit_id, queue_entry_id, sequence, recorded_by_user_id, recorded_at, idempotency_key, payload_hash, created_at, temperature_celsius, red_flag_codes, age_band, guideline_version_id, suggested_zone, chosen_zone, override_reason_code)
-             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, now(), gen_random_uuid(), repeat('a', 64), now(), "
+             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, recorded_at + interval '1 second', gen_random_uuid(), repeat('a', 64), now(), "
             .($set['temp'] ?? 'NULL').', '.($set['flags'] ?? "'{}'").', '.($set['band'] ?? 'age_band').", guideline_version_id, '"
             .$set['suggested']."', '".$set['chosen']."', ".($set['reason'] ?? 'NULL')." FROM visit_triage_assessments WHERE id = {$first->id}";
         $this->assertDatabaseRefuses($insert(['temp' => '40', 'suggested' => 'green', 'chosen' => 'green']), 'follow the readings');
@@ -211,7 +211,7 @@ class TriageLoweringRuleTest extends TriageTestCase
         $first = $this->triage($ca, $child, ['red_flag_codes' => ['rf_01'], 'chosen_zone' => 'red']);
         $this->assertSame('child', $first->age_band);
         $sql = "INSERT INTO visit_triage_assessments (organisation_id, branch_id, visit_id, queue_entry_id, sequence, recorded_by_user_id, recorded_at, idempotency_key, payload_hash, created_at, temperature_celsius, age_band, guideline_version_id, suggested_zone, chosen_zone)
-             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, now(), gen_random_uuid(), repeat('a', 64), now(), 36.5, %s, guideline_version_id, 'green', 'green' FROM visit_triage_assessments WHERE id = {$first->id}";
+             SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, recorded_at + interval '1 second', gen_random_uuid(), repeat('a', 64), now(), 36.5, %s, guideline_version_id, 'green', 'green' FROM visit_triage_assessments WHERE id = {$first->id}";
         $this->assertDatabaseRefuses(sprintf($sql, "'adult'"), 'age group');
         $this->assertDatabaseRefuses(sprintf($sql, "'child'"), 'stays red');
     }
