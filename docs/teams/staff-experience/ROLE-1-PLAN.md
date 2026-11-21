@@ -167,7 +167,16 @@ affected suites on the branch **before** changing any test, and send that list f
   **not** included; say if you want any added.
 - **D3** Store Admin: narrow (2.3) or wide (2.3b); reference-data authoring and opening balances; supplier records (`suppliers.manage`).
 - **D5** (from Zulkifli) Does the Finance Officer lose `inventory.purchase_orders.approve.organisation` (owner item 20, "the Director approves every PO")? Today the Finance Officer approves POs (STK-19, owner decision 11 Nov 2026). **ROLE-1 removes no permission from any existing role**; any removal belongs to Inventory's slice (20) after the owner's explicit word. The Director keeps `supplier_invoices.approve.branch` (with the Finance Officer; STK-22).
-- **D4** Audit log: `audit.view.organisation` for Finance Officer, Account Assistant and Panel Officer as read only. Please confirm
+- **D4** Audit log (checked in the code, 21 Nov): `audit.view.organisation` gives (1) the **Audit logs** page (`/audit-logs`):
+  organisation-wide, **all branches**, newest first, 25 a page, no filter. Each row shows only: the event name (for example
+  `billing.payment_added`), the actor's name, the branch code, a generic subject label ("Patient record", "Financial record"…),
+  the time and the actor's role names. For financial and clinical-safety events the actor shows as "Authorized user" or "Clinical
+  user", the role names are empty, and the subject id is hidden for every patient, visit, queue, clinical, dispensary, stock and
+  check-in record. **No metadata, values, amounts, names of patients or free text are shown** (the only extra is a one-line note
+  on Call next events). (2) A second, easy-to-miss effect: the **staff page** shows each staff member's **15 most recent access
+  and branch-assignment events** (event, actor, role names, time) to any viewer holding `audit.view.organisation` who can open
+  that page. So Finance Officer, Account Assistant and Panel Officer would also see staff access history through the staff page
+  where they can open it. Please confirm they may read all of this.
   they may read every audit row (not just their own area).
 - **Not decided here, for Billing:** the exact Branch Manager permissions for void, refund and day lock, and whether a Branch
   Manager at one branch may approve another branch's items (I assume not: `.branch` scope).
