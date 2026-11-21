@@ -78,16 +78,6 @@ for (const [path, model, name] of [
         'name',
         'New supplier name',
     ],
-    [
-        'resources/js/components/catalogue/PanelTariffEditor.vue',
-        'panelCode',
-        'New Panel code',
-    ],
-    [
-        'resources/js/components/catalogue/PanelTariffEditor.vue',
-        'panelName',
-        'New Panel name',
-    ],
     ...[
         ['address_line_1', 'Address line 1'],
         ['address_line_2', 'Address line 2'],
