@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
+import {
+    AlertTriangle,
+    Clock3,
+    Ellipsis,
+    LoaderCircle,
+    UserRound,
+} from '@lucide/vue';
 import { ref } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
@@ -293,6 +299,24 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                 class="inline-flex rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-normal text-foreground"
                                 >Returned</span
                             >
+                            <!-- Q-13 (Daniel): the doctor's own row whose dispensary case waits for the doctor's check. Plain text
+                                 under the status; not interactive (the row's open-consultation action is the only way in). -->
+                            <span
+                                v-if="row.dispensaryCheckWaiting"
+                                class="block w-full rounded-md border border-warning/25 bg-warning/10 p-2 text-xs break-words text-warning-strong"
+                                data-testid="dispensary-check-waiting"
+                            >
+                                <span
+                                    class="flex items-start gap-1.5 font-medium"
+                                    ><AlertTriangle
+                                        class="mt-0.5 size-3.5 shrink-0"
+                                        aria-hidden="true"
+                                    />Medicine ready for your check</span
+                                >
+                                <span class="mt-1 block text-warning-strong/80"
+                                    >Open the consultation to verify.</span
+                                >
+                            </span>
                             <span
                                 v-if="row.completedAt"
                                 class="text-[11px] text-muted-foreground"

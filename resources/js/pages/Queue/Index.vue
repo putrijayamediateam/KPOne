@@ -269,6 +269,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                 : null,
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
+        dispensaryCheckWaiting: row.dispensaryCheckWaiting,
         statusLabel: row.isHeld
             ? row.isHeldTooLong
                 ? 'On Hold · 30+ min'
