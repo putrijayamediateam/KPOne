@@ -68,7 +68,8 @@ final class RosterRules
 
     public const ROLE_LABELS = ['director' => 'Director', 'resident_doctor' => 'Resident Doctor', 'ca' => 'CA', 'ca_supervisor' => 'CA Supervisor',
         'panel_officer' => 'Panel Officer', 'finance_officer' => 'Finance Officer', 'administrator' => 'Administrator',
-        'business_development' => 'Business Development', 'marketing' => 'Marketing', 'hr_manager' => 'HR Manager', 'technical_admin' => 'Technical Admin'];
+        'business_development' => 'Business Development', 'marketing' => 'Marketing', 'hr_manager' => 'HR Manager', 'technical_admin' => 'Technical Admin',
+        'branch_manager' => 'Branch Manager', 'account_assistant' => 'Account Assistant', 'store_admin' => 'Store Admin'];
 
     public const MAX_SHIFT_MINUTES = 16 * 60;
 

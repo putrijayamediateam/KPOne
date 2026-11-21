@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentTool;
+use App\Domain\Agents\Registry\AgentCatalogue;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use Illuminate\Database\Seeder;
@@ -16,15 +17,8 @@ use LogicException;
  */
 class KPOneAgentSeeder extends Seeder
 {
-    /** @var array<string, array{0: string, 1: string, 2: string, 3: string, 4: list<string>}> code => [name, title, department code, kind, tools] */
-    public const AGENTS = [
-        'director_assistant' => ["Dato' Arif", 'Chief of Staff (AI agent)', 'LEADERSHIP', 'runtime', ['insights.today', 'insights.sales_summary', 'inventory.stock_review', 'clinic.day_summary', 'money.day_summary', 'panel.claims_summary']],
-        'inventory_analyst' => ['Hana', 'Inventory Analyst (AI agent)', 'CLINIC_OPERATIONS', 'runtime', ['inventory.stock_review', 'inventory.branch_balances', 'inventory.dispensing_activity']],
-        'stocktake_officer' => ['Rizal', 'Stocktake Officer (AI agent)', 'CLINIC_OPERATIONS', 'runtime', ['inventory.stock_counts']],
-        'report_assistant' => ['Lina', 'Management Assistant (AI agent)', 'LEADERSHIP', 'runtime', ['clinic.day_summary', 'money.day_summary', 'panel.claims_summary', 'inventory.stock_review']],
-        'technical_admin_agent' => ['Faris', 'Technical Admin (AI agent)', 'TECHNOLOGY', 'runtime', ['system.health']],
-        'qa_reviewer' => ['Nadia', 'QA Reviewer (AI agent)', 'TECHNOLOGY', 'build', []],
-    ];
+    /** @var array<string, array{0: string, 1: string, 2: string, 3: string, 4: list<string>}> code => [name, title, department code, kind, tools]; see AgentCatalogue */
+    public const AGENTS = AgentCatalogue::AGENTS;
 
     public function run(): void
     {

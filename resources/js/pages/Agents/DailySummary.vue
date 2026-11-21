@@ -551,8 +551,8 @@ const RIZAL_SHOWN = 5;
                         >
                             Stock, as of this run:
                             {{ lina.stock.lowStock }} low,
-                            {{ lina.stock.expiring }} expiring within 90 days,
-                            {{ lina.stock.expired }} expired on hand.
+                            {{ lina.stock.expiring }} expiring soon (up to 90
+                            days), {{ lina.stock.expired }} expired on hand.
                         </p>
                     </div>
                 </template>
