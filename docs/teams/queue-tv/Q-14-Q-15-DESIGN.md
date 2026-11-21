@@ -49,3 +49,8 @@ Q-12 (vitals "Check" limits from the TRI-1a guideline) is on hold; it is going b
 ## For Daniel
 - Q-14: wording "Save and continue / Discard and continue / Cancel", and whether "Continue" is clear enough.
 - Q-15: the pill's position on the tab at 390 (the tab strip scrolls) and its tone.
+
+## Daniel's decisions (21 Nov, from the note; build shots needed)
+- Q-14: keep "Continue". The list line reads "Not saved yet: vitals and clinical note." (a list when it names more than one thing, such as the plan draft). After "Save and continue", when the service dispositions were reset, the confirm dialog shows one muted line: "Services changed. Please confirm each one again." Buttons follow the Hold dialog: Save and continue filled, Discard and continue outline (not red), Cancel ghost; at 390 they stack full width at 44 px; Cancel reachable by keyboard and Escape.
+- Q-15: warning-token pill after the tab label, only when N is above 0, aria-hidden visible text plus an sr-only label, not interactive, same neutral-to-warning tone as the Q-13 block; a dot or icon is optional ("N to check" carries the meaning). It may sit off-screen at 390 when another tab is active (the Q-13 block is on the row). The pill appearing or changing on a 3 s poll must not jump the strip's scroll position or shift the other tabs: check at 390 with N = 1 and N = 12.
+- Shots: the Q-14 dialog at 1440 and 390, light and dark; the tabs with the pill at 1440 and 390, both themes.
