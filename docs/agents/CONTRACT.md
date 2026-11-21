@@ -110,7 +110,7 @@ request has its own approval, dispatch and receiving steps.
 
 **Fixed rules (computed in PHP, never guessed):**
 - Restock: reorder level minus current quantity, rounded up, for SKUs at or below their reorder level.
-- Expiry: batches with positive quantity expiring within 90 days of the branch-local date; `use_first` when
+- Expiry: batches with positive quantity expiring within the SKU's own alert window (STK-42; 7 to 365 days, none set means 90) capped at 90 days, of the branch-local date; `use_first` when
   60 to 90 days remain, `write_off_review` under 60 days or already expired.
 - Transfer: suggested only when the receiving branch is below its reorder level and the sending branch would
   stay at or above its own reorder level after sending; quantity is the smaller of the shortage and that
@@ -144,6 +144,12 @@ wave 1 (owner decision 2026-11-05).
 as it is until then. Names are the owner's draft and can be renamed in the registry.
 
 Seeded by a local and testing seeder only (fictional data), never by a migration.
+
+**Registering them on a real server (AG-36, owner decision 2026-11-21).** The agents are listed once in `App\Domain\Agents\Registry\AgentCatalogue`,
+read by the local and testing seeder and by `php artisan kpone:register-agents` (`--dry-run`, `--force` in production, `--enable`,
+`--add-missing-tools`). The command is idempotent, creates agents disabled, never changes an existing agent's code, name, title,
+enabled state or lock version, never removes a tool, and writes one `ai_agents.registered` audit row. Design:
+[AGENT-REGISTRATION-DESIGN.md](AGENT-REGISTRATION-DESIGN.md).
 
 ## 9. Knowledge pack files
 
