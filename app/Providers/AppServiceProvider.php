@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Agents\Connector\ConnectorTools;
 use App\Domain\Agents\Health\SystemHealthTool;
 use App\Domain\Agents\Proposals\ProposalPreparers;
 use App\Domain\Agents\Tools\AgentToolRegistry;
@@ -46,6 +47,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\Compilers\BladeCompiler;
 use Inertia\Inertia;
+use Laravel\Passport\Passport;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -66,6 +68,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);
         // STK-41: approving a transfer or restock suggestion may prepare an Inventory record (behind agents.prepare_enabled).
         $this->app->tag([InventoryProposalPreparer::class], ProposalPreparers::TAG);
+        // CN-1: the connector's data sources join the registry by tag (AgentToolRegistry stays unchanged).
+        $this->app->tag(ConnectorTools::classes(), AgentToolRegistry::TAG);
+        // CN-1: Passport's own routes are off; routes/ai.php registers the few OAuth routes behind the kill switch and
+        // the connector permission. This must run before any provider boots.
+        Passport::ignoreRoutes();
     }
 
     /**
@@ -84,12 +91,21 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
+    /** CN-1: the consent screen and token lifetimes (design note section 4): 1 hour access, 30 days refresh. */
+    private function configureConnectorOAuth(): void
+    {
+        Passport::authorizationView(fn (array $parameters) => response()->view('connector.authorize', $parameters));
+        Passport::tokensExpireIn(now()->addHour());
+        Passport::refreshTokensExpireIn(now()->addDays(30));
+    }
+
     /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
         $this->registerInertiaBladeComponents();
+        $this->configureConnectorOAuth();
         RateLimiter::for('patient-report-views', fn (Request $request) => Limit::perMinute(60)->by('patient-reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         RateLimiter::for('patient-whatsapp', fn (Request $request) => Limit::perMinute(20)->by('patient-whatsapp:'.$request->user()?->id));
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
