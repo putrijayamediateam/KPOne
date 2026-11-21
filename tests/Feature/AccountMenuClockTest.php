@@ -26,11 +26,11 @@ class AccountMenuClockTest extends VisitTestCase
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('workspace.accountMenu.clock', true)
-            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['My space', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
+            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['Me', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
 
         // The waiting-room TV account gets no own pages and no clock.
         $tv = $this->actor('queue_display');
-        $this->assertSame(['links' => [], 'clock' => false], app(AccountMenuLinks::class)->for($tv));
+        $this->assertSame(['links' => [], 'clock' => false, 'spaces' => false], app(AccountMenuLinks::class)->for($tv));
         $this->actingAs($tv)->get('/spaces/me')->assertForbidden();
     }
 
@@ -51,7 +51,7 @@ class AccountMenuClockTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->getJson(route('hr.attendance.clock-state'))->assertOk()
-            ->assertJson(['state' => 'out', 'canPress' => true, 'needsAttendancePage' => false]);
+            ->assertJson(['state' => 'out', 'canPress' => true, 'location' => null]);
 
         $this->actingAs($this->actor('queue_display'))->getJson(route('hr.attendance.clock-state'))->assertForbidden();
     }

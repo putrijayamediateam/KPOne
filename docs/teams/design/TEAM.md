@@ -25,6 +25,28 @@ Team designers (each works inside their own builder team and follows Daniel's gu
 | HR | Hui Min (team set up 2026-11-05: Liyana, Lead; Suresh, Reviewer; KPOne HR) |
 | Staff Experience | Kavitha's team is itself the UX team; it builds the shared shell to Daniel's guide |
 
+Mock-up designers (owner request, 2026-11-18; added to the Design team by Daniel). Four named helper sessions that
+B.E.R.N.I.S.S starts when a batch of new-look boards is needed. They draw boards on the new-look canvas
+(`https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ`) from `docs/design/NEWLOOK-PILOT.md` and never touch the code or the
+repository. Role: **mock-up designer (canvas only)**. Daniel's look still decides every real screen; a board is a
+picture to compare against, not an approved design.
+
+| Mock-up designer | Boards |
+|---|---|
+| Zara | Today and Front desk: Approvals, Me, QR check-ins, Patient profile |
+| Jun Hao | Consultation, Pharmacy and Billing: My queue, Issue MC, Dispensary case, Cash closing |
+| Deepa | Panel and Stock: Claims, Panel payments, Stock count, Receiving |
+| Haikal | HR, Reports and Settings: Leave, Payroll, Reports, Staff and access |
+
+Rules for the mock-up designers: fictional data only (no real names, numbers or figures as if real); follow the pilot
+note's tokens, one black button per view, status words with dots, contrast, and the space rules; mark any content that
+is not an existing feature as "idea, not built"; never copy the mock-up's rejected patterns (section 7 of the note).
+Boards go to Daniel through B.E.R.N.I.S.S for a look before the owner sees them as a proposal.
+
+**Update 2026-11-20:** the New look pilot these boards were for was retired with Version 2 (owner decision 19 Nov,
+"Classic only"). The four mock-up designer roles stay on the team for any later mock-up work the owner asks for;
+until then they have no open boards.
+
 All are Claude builder sessions or roles working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Daniel is
 the "Daniel, UI Designer" shown in the agent office. The Patients & Registration reviewer formerly called Daniel is
 now **Hafiz** (renamed 2026-11-05 to avoid two Daniels).

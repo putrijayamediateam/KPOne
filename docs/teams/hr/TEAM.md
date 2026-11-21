@@ -43,6 +43,50 @@ memos, the HR dashboard, appraisal, letters and discipline records, and the clin
 | Controllers | `app/Http/Controllers/HR/*` |
 | Tests | `tests/Feature/HR/*`, `tests/Frontend/hr-*.test.mjs` |
 
+### V2 pages (the Version 2 look)
+
+Each HR page that has a Version 2 look keeps one shared composable in `resources/js/composables/hr/`, which holds the
+page's state and every request. The Classic page and the V2 page both use it, so they send exactly the same requests,
+fields, idempotency keys and lock versions. The Classic `<template>` stays unchanged, the V2 page sends no request of
+its own, and props, routes and permissions are the same. Each page is registered in `config/v2-pages.php`.
+
+| Page | Composable | V2 page | By |
+|---|---|---|---|
+| `HR/Roster` | `useRosterPage.ts` | `pages/HR/V2/Roster.vue` | HR team |
+| `HR/Attendance` | `useAttendancePage.ts`, with `useOvertimeTab.ts`, `useSummaryTab.ts`, `useOvertimeSettings.ts` and `useLocationCheckSettings.ts` | `pages/HR/V2/Attendance.vue` | HR team |
+| `HR/Leave` | `useLeavePage.ts` | `pages/HR/V2/Leave.vue` | HR team (PR #841; Settings in four sub-tabs in PR #925) |
+| `HR/Sops` | `useSopsPage.ts` | `pages/HR/V2/Sops.vue` | Nurul's team (PR #872) |
+| `HR/Memos` | `useMemosPage.ts` | `pages/HR/V2/Memos.vue` | Nurul's team (PR #874) |
+| `HR/Messages` | `useMessagesPage.ts` | `pages/HR/V2/Messages.vue` | Nurul's team (PR #880) |
+| `HR/OpenShifts` | `useOpenShiftsPage.ts` | `pages/HR/V2/OpenShifts.vue` | Nurul's team (PR #889) |
+| `HR/Applications` | `useApplicationsPage.ts` | `pages/HR/V2/Applications.vue` | Nurul's team (PR #895) |
+| `HR/Credentials` | `useCredentialsPage.ts`, with `useCredentialRecordSheet.ts` for the record sheet | `pages/HR/V2/Credentials.vue` | Nurul's team (PR #902) |
+| `HR/Claims` | `useClaimsPage.ts`, with `useClaimSheet.ts` for the claim sheet | `pages/HR/V2/Claims.vue` | Nurul's team (PR #904) |
+| `HR/Records` | `useRecordsPage.ts`, with `useCorrectionSheet.ts`, `useOutsideExport.ts` and `useChecklistTab.ts` (the checklist one not used by V2 yet) | `pages/HR/V2/Records.vue` | Nurul's team (PR #910) |
+| `HR/StaffFile` | `useStaffFilePage.ts`; the audited Show is one shared function, `lib/hr-show-value.ts`, used by Classic's `MaskedValue` and V2 alike | `pages/HR/V2/StaffFile.vue` | Nurul's team (PR #915) |
+| `HR/Dashboard` | `useDashboardPage.ts` (the month request); read only | `pages/HR/V2/Dashboard.vue` | Nurul's team (PR #922) |
+| `HR/Letters` | `useLettersPage.ts`; the A4 print page `Letter.vue` stays Classic only | `pages/HR/V2/Letters.vue` | Nurul's team (PR #926) |
+| `HR/Appraisals` | `useAppraisalsPage.ts` | `pages/HR/V2/Appraisals.vue` | Nurul's team (PR #928) |
+| `HR/Appraisal` | `useAppraisalPage.ts` (one appraisal) | `pages/HR/V2/Appraisal.vue` | Nurul's team (PR #932) |
+| `HR/Incidents` | `useIncidentsPage.ts` | `pages/HR/V2/Incidents.vue` | Nurul's team (PR #929) |
+| `HR/Incident` | `useIncidentPage.ts` (one report) | `pages/HR/V2/Incident.vue` | Nurul's team (PR #938) |
+| `HR/Discipline` | `useDisciplinePage.ts` | `pages/HR/V2/Discipline.vue` | Nurul's team (PR #931) |
+| `HR/DisciplineCase` | `useDisciplineCasePage.ts` (one restricted case; no case text in a title or label, files only through the recorded links) | `pages/HR/V2/DisciplineCase.vue` | Nurul's team (PR #942) |
+| `HR/Payroll` | `usePayrollPage.ts`, with `useRunsTab.ts` and `useExportsTab.ts`; the profile, table and MTD schedule forms use `useProfileSheet.ts`, `useTableSheet.ts` and `useMtdScheduleSheet.ts`, shared by the Classic sheets and the V2 dialogs in `components/hr-v2/payroll/` | `pages/HR/V2/Payroll.vue` | HR team (Runs, Exports and Settings in PR #947; Pay profiles and Tables in PR #951) |
+| `HR/PayrollRun` | `usePayrollRunPage.ts` | `pages/HR/V2/PayrollRun.vue` | HR team (PR #952) |
+
+`HR/Payslip` stays Classic by plan.
+
+- Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team.
+- A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
+  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs`, `hr-15b-needs-posting.test.mjs` seven Applications tests `hr-5a-credentials.test.mjs` `hr-6-claims.test.mjs`, six Records-related tests, and `hr-4a-records`, `hr-4b-documents` and `hr-15a-locum-sign-in` for the Staff file, `hr-9-dashboard` for the Dashboard, `hr-10a-letters` for Letters, `hr-10b-appraisals` for both Appraisal pages, `hr-10d-incidents` for both Incident pages, `hr-10c-discipline` for both Discipline pages, and, for Payroll, `hr-7a-payroll`, `hr-7b-payroll-runs`, `hr-7c-payslips-exports`, `hr-7c-protected-exports`, `hr-7d-mtd`, `hr-g2a-late-overtime` and `hr-g2b-late-leave-hours`).
+- Design debt DD-79 is closed for HR: the V2 Open shifts Post sheet (PR #935) and the V2 Roster shift times (PR #949)
+  use `V2TimeField`.
+- A V2 page or dialog that blocks an action says in words what is missing, naming every missing item, and the
+  blocked button looks off (`aria-disabled`), so the look and the words agree (Daniel, Payroll V2 PRs #951 and #952).
+- When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
+  reaches main, the V2 SOPs page takes the same binding from `useSopsPage.ts`, so the two match (Suresh, PR #872).
+
 ## 4. Permissions
 
 New permissions use the `hr.` prefix and explicit `.own` or `.organisation` scope, are added by additive migrations
@@ -468,8 +512,84 @@ check items, keep them"). The rest stand unless the owner changes them.
     (the 7-year face-photo retention is flagged as a PDPA risk). AGENTS.md's "optional selfie" wording is changed by
     B.E.R.N.I.S.S. HR-16a's location check stays separate and off (PDPA 16). Screens wait for Daniel's sketch, which the
     owner sees first.
+97. HR-PHOTO-STORAGE retention (owner, 16 Nov 2026, relayed by B.E.R.N.I.S.S): "keep 7 years, keep the daily delete
+    on". The 7 years for attendance records and clock-in photos is the owner's decision, no longer a draft, and the daily
+    `hr-attendance:purge` stays scheduled. The storage card chip and the dry run say "owner decision 16 Nov 2026"; no
+    figure or schedule changed. The owner also asked for the read-only storage card in Classic ("photo card in classic
+    too"), in Classic's own style, Director and HR Manager only. A shorter photo-only time is still unanswered: not built.
+    The staff wording "(to confirm)" stays until the owner says the PDPA review covers it (see the open item below).
+98. One Clock in (owner, 2026-11-18): every clock-in and clock-out is pressed on Me. Step 1 moved the location check and
+    the camera onto the Me button; step 3 (PR #976, merged as `86d61da`) replaced the presses on My attendance and My
+    roster (Classic and V2) with outline links, "Clock in on Me" and "Clock out on Me". Someone clocked in with no branch
+    to work at now reads "Ask HR to add your clock-out time as a correction." The owner approved the changed frontend
+    assertions A to J of the plan one by one.
+99. HR-15d (owner, via B.E.R.N.I.S.S, 2026-11-18; PR #977, merged as `47d1dc8`): a passed candidate for a Locum position
+    becomes a locum file in one step, with the HR-15a sign-in request opened with the email they applied with. Nothing
+    there creates an account; the account administrator still creates it through `StaffProvisioningService`.
+100. HR-15e (owner, via B.E.R.N.I.S.S, 2026-11-18; PR #978, merged as `a731de3`): an interview is In person or Online;
+    an online interview carries an https video link that HR types from their own video app. KPOne creates no meeting
+    and calls no video service; the link is stored as typed and the audit records the mode only. The owner approved the
+    changed `hr-17c-interview-slots` assertion.
+101. HR-15f (owner, via B.E.R.N.I.S.S, 2026-11-18; layout by Daniel; PR #979, merged as `e949df2`): My roster gains a
+    Week/Month switch; the month shows only the person's own approved shifts and their own open-shift asks.
+102. HR-15g locum pay statement (the owner himself, 2026-11-18, about 08:30 UTC; his ship-it about 13:01 UTC; PR #980,
+    merged as `e657106`; migrations `2026_11_10_007500` and `007600`). Permissions: `hr.locum_pay.view.own` (locum),
+    `hr.locum_pay.manage.organisation` (Director, HR Manager), `hr.locum_pay.finance.organisation` (Finance Officer,
+    Director). (a) Per hour = hours after the break × the rate, rounded half up to the sen; per session = one rate per
+    approved shift; the confirmed rate in force on the shift's own date. (b) A rate counts once a Finance Officer or
+    Director who did not enter it confirms it (service and PostgreSQL); the Director may confirm, never their own entry.
+    (c) A paid month is locked; a correction for it goes into a later month; no undo in v1. KPOne pays nothing; Finance
+    records the paid date and an optional reference (encrypted, last 4 characters shown). A missing rate reads "Rate
+    missing" and "RM —", never RM 0.00 (Daniel). A "Not worked" mark left on a shift the roster replaced blocks payment
+    until HR removes it (Suresh, M1). CHECK THIS (owner, via B.E.R.N.I.S.S): the locum sees corrections to an unpaid
+    month as HR enters them, labelled "Total so far (not final until paid)".
+103. HR-18, HR-20 and HR-21 (owner, 2026-11-18, before the build): HR-18 adds `hr.labour_cost.view.organisation` for the
+    Director, the HR Manager and the Finance Officer only, by an additive migration, keeping the minimum of 3 people per
+    branch-month before a figure shows. HR-20: on-call time does not count in weekly hours, the 48 h limit or days in a
+    row, but does count in fair rotation. HR-21: the clinic sets the credential warning days per credential type; KPOne
+    ships no number.
+104. Ctrl+K (owner, 2026-11-18): the keyboard search is Version 2 only.
+105. Order after the locum slices (owner, 2026-11-18): the HR docs PR, then HR-21, HR-20, HR-19 and HR-18.
+106. HR-21 foreign worker permits (owner's plan 2026-11-18; ship-it by B.E.R.N.I.S.S for the owner; PR #992, merged as
+    `505c391`; migration `2026_11_10_007700`). A clinic-added credential type may be marked "Work permit": it must expire,
+    is never a health item, and the flag never changes after creation (service, PostgreSQL CHECK and the type guard
+    trigger). No new table or permission (`hr.credentials.manage.organisation`). An accepted permit inside the type's
+    warning days, or expired, shows one line in words, warning tone and never red ("Work permit expires on 2 Jan 2027 (in
+    45 days)"), on the credentials register, the staff file and as a count on the HR dashboard, for credential managers
+    only; names, type and date only, never a permit number or nationality; people who have left are not counted (the
+    register's rule). Daniel: the Work permit answer starts unpicked and saving one asks once more in a confirm dialog;
+    in-sentence links are always underlined.
+107. HR-20 "On call" (owner's slice rules 2026-11-18 and the eight defaults the owner approved himself the same day;
+    ship-it by B.E.R.N.I.S.S for the owner; PR #1006; migration `2026_11_10_007800`). A new session `on_call` for roster
+    shifts and open shifts. Outside weekly hours, the weekly limit, days in a row and daily rest; no clinic hours (not in
+    minimum staffing or cover gaps, no consultation room from the roster); inside fair rotation. No Late, Left early or No
+    clock-in; a call-in is clocked as usual, keeps all its time (no break taken off), has no rostered minutes and may all
+    be claimed as overtime. The HR dashboard shows on-call people on their own line, never as the doctor on duty. Left out
+    of locum pay for now, and cannot be marked not worked. It can be an open shift; overlapping leave still warns. Suresh:
+    on call is never the next shift of a split day (M1), and a clinic shift wins over on call when one session overlaps
+    both (m1). Daniel: the planner footer reads "0 on shift · 1 on call", never folding on call into "on shift"; the label
+    is plain text in the grid, no colour.
+108. HR-20 night rule (B.E.R.N.I.S.S for the owner, 2026-11-18, CHECK THIS on the owner's list): an on-call shift counts
+    as a night for fair rotation when it crosses midnight, starts at 20:00 or later, or starts before 06:00.
+109. Classic only for HR (owner, 2026-11-20): CO-7 deletes every HR and Attendance Version 2 page and merges before HR-20;
+    HR-20 drops its V2 edits and the V2 reads in its frontend test (part of this decision); its Classic changes stay.
+110. HR-19 paused (owner, 2026-11-20, option (b)): the Ctrl+K search entries wait; nothing is built.
+111. HR-18 labour cost (owner, 2026-11-20): the design note is approved with (a) locum pay in its own column; (b) staff
+    count at their primary branch on the month's last day, locum pay at the branch of each paid shift; (c) extra hiding
+    so a small branch cannot be worked out; (d) read only, no CSV. The Clinic management hub line ("KPOne HR labour
+    cost") and its one ClinicManagementTest map line are approved. PR #1011, merged; Daniel OK, Suresh OK.
+112. HR-18 per-figure rule (owner, 2026-11-20, "confirm the HR-18 rule"): every amount on the page covers no one or at
+    least 3 people, checked separately for the staff figures (pay, employer contributions) and the locum figure. A
+    branch with 1 or 2 people is not shown; a column with 1 or 2 people reads "Not shown"; while the clinic total less
+    the shown figures would leave 1 or 2 people in a column, the next smallest branch's figure in that column is
+    withheld, and with nothing left the clinic total of that column is withheld. Locum corrections are never shown as
+    an amount; one line says they are in the clinic total, only when at least 3 locums had one.
 
 ## 7. Open items and known limits
+
+- HR-18: HR-15g locum statement lines store the branch name, not its id, so a renamed branch's locum pay counts outside
+  the branches (follow-up: store the branch id). Comparing two months could narrow a figure down; the page shows one
+  month at a time.
 
 - Every statutory and policy question in `docs/reports/ANALYSIS-HR.md` section 8 is open and is for the clinic's
   accountant, HR adviser or lawyer, not the team.
@@ -577,6 +697,18 @@ check items, keep them"). The rest stand unless the owner changes them.
   says "Kept for 7 years (to confirm)." (Daniel and B.E.R.N.I.S.S, 2026-11-12). Remove both "to confirm" phrases from the
   staff text, and from the `hr-photo-clock-in` and `hr-3a-attendance` frontend pins, once the owner has the PDPA answer
   on retention; raise the notice version with the wording.
+- HR-15e note: the video link is stored exactly as typed (only its shape is checked: https, no spaces or `<>{}"`, at
+  most 500 characters, no `@` in the address part).
+- HR-15f note (Daniel, m2): where the start date of a long shift sits in a month cell is left as built.
+- HR-21 note: a work permit's warning line counts accepted records only, so a renewal still waiting for a check does
+  not hide an expiring permit. The dashboard count reads once per page view and each staff file view (one query).
+- HR-20 notes: on-call shifts are left out of locum pay for now (an on-call rate for locums is a later owner decision);
+  a call-in on an on-call shift counts as worked minutes for payroll, as any clocked session does.
+- HR-15g known limits: the Statements tab builds each locum's statement separately (about 6 queries a locum); batch it
+  if the list grows. A paid month has no undo in v1. Locum pay stays synthetic-only until the PDPA review.
+- Payroll note go-live item (M4, Daniel, 2026-11-16): the payroll pages, the payslip footer and the accountant CSV end
+  with "Synthetic data only." Remove it together with the PDPA review, in `AccountantNote.vue`, `Payslip.vue` and
+  `PayrollExportService`, and in the `hr-7a-payroll`, `hr-7c-payslips-exports` and `PayrollRunsTest` pins.
 
 ## 8. Rules (every task)
 

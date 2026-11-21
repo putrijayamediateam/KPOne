@@ -12,10 +12,26 @@ const files = {
     payroll: 'resources/js/pages/HR/Payroll.vue',
     run: 'resources/js/pages/HR/PayrollRun.vue',
 };
+// The page's script lives in its shared composable (V2 Payroll); the template is still read from the page.
+// The sheets' scripts live in shared composables (V2 Payroll); their templates are still read from the .vue files.
+const sheetComposables = {
+    profile: 'resources/js/composables/hr/useProfileSheet.ts',
+    table: 'resources/js/composables/hr/useTableSheet.ts',
+    sheet: 'resources/js/composables/hr/useMtdScheduleSheet.ts',
+};
 const source = Object.fromEntries(
-    Object.entries(files).map(([k, p]) => [k, read(p)]),
+    Object.entries(files).map(([k, p]) => [
+        k,
+        k === 'payroll'
+            ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollPage.ts')}`
+            : k === 'run'
+              ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollRunPage.ts')}`
+              : sheetComposables[k]
+                ? `${read(p)}\n${read(sheetComposables[k])}`
+                : read(p),
+    ]),
 );
-const template = (key) => parse(source[key]).descriptor.template.content;
+const template = (key) => parse(read(files[key])).descriptor.template.content;
 
 test('the MTD schedule sheet, the profile sheet and the pages using them compile', () => {
     for (const [key, path] of Object.entries(files)) {

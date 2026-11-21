@@ -1145,6 +1145,40 @@ class TreatmentPlanTest extends ClinicalTestCase
         }
     }
 
+    /** Q-9 (owner decision 2026-11-18): the search carries the catalogue defaults a new order row is prefilled from. */
+    public function test_medicine_search_carries_the_catalogue_defaults_and_the_usual_quantity(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $medicine = $this->medicineCatalogue($doctor);
+        $medicine->forceFill([
+            'display_name' => 'Synthetic prefill medicine',
+            'default_dosage_amount' => '1.000', 'default_dosage_unit' => 'tablet', 'default_frequency' => 'Three times daily',
+            'default_duration' => '5 days', 'default_instruction' => 'After food', 'default_precaution' => 'Drowsiness',
+            'default_indication' => 'Fever', 'usual_quantity' => '15.000',
+        ])->save();
+        $bare = $this->medicineCatalogue($doctor);
+        $bare->forceFill(['code' => 'SYN-MED-BARE', 'display_name' => 'Synthetic prefill bare medicine'])->save();
+        $this->selectBranch($doctor, $visit->branch);
+
+        $rows = collect($this->postJson(route('encounters.treatment-plan.catalogue.medicines', $visit), [
+            'expected_branch_id' => $visit->branch_id,
+            'query' => 'synthetic prefill',
+        ])->assertOk()->json('data'))->keyBy('publicId');
+
+        $this->assertSame([
+            'defaultDosageAmount' => '1.000', 'defaultDosageUnit' => 'tablet', 'defaultFrequency' => 'Three times daily',
+            'defaultDuration' => '5 days', 'defaultInstruction' => 'After food', 'defaultPrecaution' => 'Drowsiness',
+            'defaultIndication' => 'Fever', 'usualQuantity' => '15.000',
+        ], collect($rows[$medicine->public_id])->only([
+            'defaultDosageAmount', 'defaultDosageUnit', 'defaultFrequency', 'defaultDuration',
+            'defaultInstruction', 'defaultPrecaution', 'defaultIndication', 'usualQuantity',
+        ])->all());
+        // A medicine with no defaults returns them as null, so the order row keeps its blank start and quantity of 1.
+        $this->assertNull($rows[$bare->public_id]['usualQuantity']);
+        $this->assertNull($rows[$bare->public_id]['defaultFrequency']);
+    }
+
     public function test_catalogue_search_is_bounded_tenant_scoped_wildcard_safe_and_minimized(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();

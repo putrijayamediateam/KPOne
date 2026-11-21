@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
+import { ArrowRight, CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
@@ -8,9 +8,11 @@ import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
 import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
 import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
+import PhotoStorageCard from '@/components/hr/attendance/PhotoStorageCard.vue';
 import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
 import type {
     LocationCheckCard,
+    PhotoStorageCard as PhotoStorageData,
     MyOvertime,
     OvertimeOptions,
     OvertimeSettingsCard,
@@ -68,6 +70,12 @@ const props = defineProps<{
             state: 'out' | 'in' | 'done';
             clockedInLabel: string | null;
             doneLabel: string | null;
+            undo: {
+                sessionId: string;
+                lockVersion: number;
+                pressedAt: string;
+                until: string;
+            } | null;
             staleLabel: string | null;
             todayShift: string | null;
             todayHasBreak: boolean;
@@ -122,6 +130,8 @@ const props = defineProps<{
             }[];
             overtime: OvertimeSettingsCard;
             location: LocationCheckCard | null;
+            /** HR-PHOTO-STORAGE (owner, 16 Nov 2026): the read-only storage card, Director and HR Manager only. */
+            photoStorage?: PhotoStorageData;
         } | null;
         overtime: OvertimeTabData | null;
         summary: SummaryTabData | null;
@@ -142,10 +152,7 @@ const {
     serverTime,
     serverDate,
     announcement,
-    clock,
-    press,
-    locate,
-    withoutLocation,
+    clockOnMe,
     correction,
     correctionErrors,
     kindOptions,
@@ -156,6 +163,9 @@ const {
     withdrawing,
     cancelCorrection,
     decision,
+    undo,
+    openUndo,
+    confirmUndo,
     openDecision,
     confirmDecision,
     ask,
@@ -254,38 +264,65 @@ const {
                     >
                         {{ attendance.my.doneLabel }}
                     </p>
-                    <Button
-                        v-if="attendance.my.state === 'out'"
-                        class="min-h-14 w-full text-base"
-                        :disabled="!attendance.my.canPress || clock.processing"
-                        data-test="clock-in"
-                        @click="press('in')"
+                    <!-- Undo clock-out (owner, 16 Nov 2026): for 15 minutes after the person's own clock-out. -->
+                    <div
+                        v-if="attendance.my.undo"
+                        class="flex flex-col gap-1"
+                        data-test="undo-clock-out"
                     >
-                        <Clock class="size-5" />
-                        {{
-                            clock.locating
-                                ? 'Checking location…'
-                                : clock.processing
-                                  ? 'Clocking in…'
-                                  : 'Clock in'
-                        }}
+                        <Button
+                            variant="outline"
+                            class="min-h-11 self-start"
+                            data-test="undo-clock-out-button"
+                            @click="openUndo"
+                        >
+                            Undo clock-out
+                        </Button>
+                        <p class="text-xs text-muted-foreground">
+                            Clocked out by mistake? You can undo this until
+                            {{ attendance.my.undo.until }}.
+                        </p>
+                    </div>
+                    <!-- One Clock in (owner, 18 Nov 2026): every press is on Me, with the photo and any location check. An
+                         outline link with a 44 px target, shown only when a press is possible (Daniel). -->
+                    <Button
+                        v-if="
+                            attendance.my.state === 'out' &&
+                            attendance.my.canPress
+                        "
+                        as-child
+                        variant="outline"
+                        class="min-h-11 w-full sm:w-auto sm:self-start"
+                    >
+                        <Link :href="clockOnMe" data-test="clock-in-on-me"
+                            >Clock in on Me
+                            <ArrowRight class="size-4" aria-hidden="true"
+                        /></Link>
                     </Button>
                     <Button
+                        v-else-if="
+                            attendance.my.state === 'in' && attendance.my.branch
+                        "
+                        as-child
+                        variant="outline"
+                        class="min-h-11 w-full sm:w-auto sm:self-start"
+                    >
+                        <Link :href="clockOnMe" data-test="clock-out-on-me"
+                            >Clock out on Me
+                            <ArrowRight class="size-4" aria-hidden="true"
+                        /></Link>
+                    </Button>
+                    <!-- Me shows no clock without an active branch, so a person still clocked in with none is pointed to a
+                         correction instead of a link that leads nowhere (Suresh, m1). -->
+                    <p
                         v-else-if="attendance.my.state === 'in'"
-                        class="min-h-14 w-full text-base"
-                        :disabled="clock.processing"
-                        data-test="clock-out"
-                        @click="clock.confirmOut = true"
+                        class="text-sm text-muted-foreground"
+                        data-test="clock-out-no-branch"
                     >
-                        <Clock class="size-5" />
-                        {{
-                            clock.locating
-                                ? 'Checking location…'
-                                : clock.processing
-                                  ? 'Clocking out…'
-                                  : 'Clock out'
-                        }}
-                    </Button>
+                        You are clocked in, but you have no branch to work at
+                        now, so Me cannot clock you out. Ask HR to add your
+                        clock-out time as a correction.
+                    </p>
                     <InputError :message="errors.clock" />
                     <p
                         v-if="attendance.my.location"
@@ -799,6 +836,13 @@ const {
                                         >
                                             {{ r.location.out }}
                                         </p>
+                                        <p
+                                            v-if="r.undoneLabel"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-undone"
+                                        >
+                                            {{ r.undoneLabel }}
+                                        </p>
                                     </td>
                                     <td class="tabular-nums">
                                         {{ r.worked ?? '–' }}
@@ -924,6 +968,13 @@ const {
                                 class="text-xs text-muted-foreground"
                             >
                                 Clock out: {{ r.location.out }}
+                            </p>
+                            <p
+                                v-if="r.undoneLabel"
+                                class="text-xs text-muted-foreground"
+                                data-test="review-undone"
+                            >
+                                {{ r.undoneLabel }}
                             </p>
                             <div
                                 v-if="r.flags.length > 0 || r.correctionWaiting"
@@ -1197,92 +1248,27 @@ const {
                 v-if="attendance.settings.location"
                 :card="attendance.settings.location"
             />
+            <PhotoStorageCard
+                v-if="attendance.settings.photoStorage"
+                :card="attendance.settings.photoStorage"
+            />
         </section>
 
         <!-- Clock out confirm (Daniel: only Clock out asks) -->
         <OperationalConfirmDialog
-            v-model:open="clock.confirmOut"
-            title="Clock out now?"
-            description="Your clock-out time is the server time when you confirm."
-            confirm-label="Clock out"
-            processing-label="Clocking out…"
-            :processing="clock.processing"
-            @confirm="press('out')"
+            v-model:open="undo.open"
+            :title="`Undo your clock-out at ${attendance.my?.undo?.pressedAt ?? ''}?`"
+            description="You stay clocked in from your clock-in. Clock out again when you leave; that takes a new photo."
+            confirm-label="Undo clock-out"
+            processing-label="Undoing…"
+            :processing="undo.processing"
+            :error="undo.error"
+            @confirm="confirmUndo"
         >
             <template #icon>
                 <Clock class="size-5" />
             </template>
         </OperationalConfirmDialog>
-
-        <!-- HR-16a: consent once per version, before the first press at this branch -->
-        <Sheet
-            :open="clock.consentFor !== null"
-            @update:open="(open: boolean) => !open && (clock.consentFor = null)"
-        >
-            <SheetContent
-                side="bottom"
-                class="flex max-h-[90dvh] flex-col sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
-                data-test="location-consent"
-            >
-                <SheetHeader>
-                    <SheetTitle>Location check at this branch</SheetTitle>
-                    <SheetDescription>
-                        Read this once. You can clock
-                        {{ clock.consentFor === 'out' ? 'out' : 'in' }} without
-                        it.
-                    </SheetDescription>
-                    <p
-                        class="text-xs text-muted-foreground"
-                        data-test="location-consent-draft"
-                    >
-                        Draft wording until the clinic's PDPA review. Synthetic
-                        data only.
-                    </p>
-                </SheetHeader>
-                <!-- Closing with X records nothing and gives no consent; the sheet opens again at the next press (Daniel). -->
-                <div
-                    class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 text-sm"
-                    data-test="location-consent-text"
-                >
-                    <section class="flex flex-col gap-1">
-                        <h3 class="font-medium">English</h3>
-                        <p class="whitespace-pre-line">
-                            {{ attendance.my?.location?.consentEn }}
-                        </p>
-                    </section>
-                    <section class="flex flex-col gap-1" lang="ms">
-                        <h3 class="font-medium">Bahasa Melayu</h3>
-                        <p class="whitespace-pre-line">
-                            {{ attendance.my?.location?.consentBm }}
-                        </p>
-                    </section>
-                </div>
-                <!-- Pinned below the text; two equal choices, neither preselected (Daniel). -->
-                <div
-                    class="grid shrink-0 gap-2 border-t p-4 sm:grid-cols-2"
-                    data-test="location-consent-actions"
-                >
-                    <Button
-                        variant="outline"
-                        class="min-h-11"
-                        data-test="location-without"
-                        @click="withoutLocation(clock.consentFor ?? 'in')"
-                    >
-                        Clock
-                        {{ clock.consentFor === 'out' ? 'out' : 'in' }}
-                        without location
-                    </Button>
-                    <Button
-                        variant="outline"
-                        class="min-h-11"
-                        data-test="location-agree"
-                        @click="locate(clock.consentFor ?? 'in', true)"
-                    >
-                        I understand, check my location
-                    </Button>
-                </div>
-            </SheetContent>
-        </Sheet>
 
         <!-- Decision -->
         <OperationalConfirmDialog
@@ -1309,6 +1295,14 @@ const {
                 <CalendarCheck v-if="decision.approve" class="size-5" />
                 <CalendarX v-else class="size-5" />
             </template>
+            <p
+                v-if="decision.approve && decision.target?.lockedMonth"
+                class="text-sm"
+                data-test="correction-locked-month"
+            >
+                {{ decision.target.lockedMonth }}'s payroll is already locked:
+                after approving, add the hours on an adjustment run.
+            </p>
             <div v-if="!decision.approve" class="grid gap-2">
                 <Label for="decision-reason">Reason *</Label>
                 <OperationalSelect

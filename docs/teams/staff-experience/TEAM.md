@@ -10,6 +10,10 @@ the same PR as the code.
 |---|---|---|
 | Lead | **Kavitha** | Plans each piece, builds it, keeps this file current |
 | Reviewer | **Aiman** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| Classic-only Lead | **Haris** | Removes the Version 2 (V2) layout slice by slice so everyone sees Classic (CO-1 merged in PR #1000; CO-3 to CO-10 next), losing no function |
+| Classic-only Reviewer | **Nadiah** | Reviews every Classic-only plan and slice for missed files, broken links, permission gaps and lost functions |
+
+**Added 2026-11-20 (owner request):** Haris and Nadiah joined this team from a short-term session run on 19 and 20 Nov 2026. The shared shell and layouts are this team's area, so retiring V2 (plan: `docs/design/CLASSIC-ONLY-PLAN.md` on branch `feature/classic-only-plan`) sits here.
 
 Both are Claude builder sessions working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Names chosen by
 the coordinator (2026-11-05).
@@ -278,3 +282,4 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (`bg-brand/10 text-brand-strong dark:bg-brand/15`), which carry their own dark values. It looks almost the
    same: the icon's contrast on its tile is 5.2:1 in light and 6.9:1 in dark (3:1 needed for an icon). A
    destructive question keeps its red tile. No assertion changed.
+17. **Classic leave warning on long forms (not built yet).** Recorded with the owner's approval on 2026-11-20 (CO-3): an unsaved-changes prompt built fresh on Classic's `OperationalConfirmDialog` (not ported from V2), on chosen pages only (consultation note, Register visit, Billing adjustments, HR forms), with the Lead UI/UX Designer's look, as its own slice after CO-10.

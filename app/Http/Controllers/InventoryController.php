@@ -72,7 +72,7 @@ class InventoryController extends Controller
 
         return [
             'canManage' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
-            // STK-28: the V2 home links "Stock value and cost" for its holders only (the Director); Classic ignores it.
+            // STK-28: both Inventory homes link "Stock value and cost" for its holders only (the Director).
             'canViewStockValue' => $actor->can(StockValuationReportService::PERMISSION),
             'expectedBranchId' => $activeBranch->id,
             'items' => $picker->choices($actor, $activeBranch, 'items'),

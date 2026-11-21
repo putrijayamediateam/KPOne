@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\DepartmentSpace\MeSpace;
+use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Models\OvertimeRequest;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
@@ -15,6 +17,7 @@ use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
+use App\Domain\HR\Payroll\Services\LateNotices;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -58,6 +61,13 @@ class AttendanceController extends Controller
     public function clockOut(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
     {
         return $this->press($request, 'out', fn () => $clock->clockOut($request->user(), $this->pressInput($request)), $result);
+    }
+
+    /** Undo clock-out (owner, 16 Nov 2026): the person's own clock-out, within 15 minutes; the same session reopens. */
+    public function undoClockOut(Request $request, ClockService $clock): RedirectResponse
+    {
+        return $this->run($request, 'my', 'Clock-out undone. You are clocked in again.',
+            fn () => $clock->undoClockOut($request->user(), $request->only(['session_id', 'expected_lock_version', 'idempotency_key'])));
     }
 
     /**
@@ -123,7 +133,10 @@ class AttendanceController extends Controller
 
     public function decide(Request $request, CorrectionService $corrections, string $correction, string $decision): RedirectResponse
     {
-        return $this->run($request, 'review', $decision === 'approve' ? 'Correction approved.' : 'Correction rejected.',
+        // G2b: an hourly person's hours corrected after the month's payroll was locked are paid only on an adjustment run.
+        return $this->run($request, 'review', $decision === 'approve'
+            ? fn (mixed $done): string => 'Correction approved.'.(($line = $done instanceof AttendanceCorrection ? app(LateNotices::class)->correctionApproved($done) : null) === null ? '' : ' '.$line)
+            : 'Correction rejected.',
             fn () => $corrections->decide($request->user(), $correction, $decision, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 
@@ -177,7 +190,11 @@ class AttendanceController extends Controller
 
     public function decideOvertime(Request $request, OvertimeService $overtime, string $overtimeRequest, string $decision): RedirectResponse
     {
-        return $this->run($request, 'overtime', $decision === 'approve' ? 'Overtime approved.' : 'Overtime rejected.',
+        // G2a: overtime approved after its month's payroll was locked is not paid by that run, so the notice says what to do.
+        return $this->run($request, 'overtime', $decision === 'approve'
+            ? fn (OvertimeRequest $approved): string => ($month = $overtime->lockedMonth($approved)) === null ? 'Overtime approved.'
+                : "Overtime approved. {$month}'s payroll is already locked: add it on an adjustment run."
+            : 'Overtime rejected.',
             fn () => $overtime->decide($request->user(), $overtimeRequest, $decision, $request->only(['expected_lock_version', 'minutes', 'reason', 'idempotency_key'])));
     }
 
@@ -190,8 +207,10 @@ class AttendanceController extends Controller
 
     public function reverseOvertime(Request $request, OvertimeService $overtime, string $overtimeRequest): RedirectResponse
     {
-        return $this->run($request, 'overtime', 'Overtime reversed.', fn () => $overtime->reverse($request->user(), $overtimeRequest,
-            $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
+        // M1: overtime a locked payroll run already paid stays paid there, so the notice says where to recover it.
+        return $this->run($request, 'overtime', fn (OvertimeRequest $reversed): string => ($paid = $overtime->paidIn($reversed)) === null ? 'Overtime reversed.'
+            : "Overtime reversed. It was paid in the locked {$paid}: add a recovery on an adjustment run.",
+            fn () => $overtime->reverse($request->user(), $overtimeRequest, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 
     public function saveOvertimeSettings(Request $request, OvertimeSettingsService $settings): RedirectResponse
@@ -201,13 +220,17 @@ class AttendanceController extends Controller
                 'roles' => $request->input('roles', []), 'effective_from' => $request->input('overtime_effective_from')]));
     }
 
-    private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse
+    /** @param  string|(\Closure(mixed): string)|null  $message  a closure is given the action's result */
+    private function run(Request $request, string $tab, string|\Closure|null $message, callable $action): RedirectResponse
     {
         $back = $this->back($request, $tab);
         try {
-            $action();
+            $result = $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        }
+        if ($message instanceof \Closure) {
+            $message = $message($result);
         }
         if ($message !== null) {
             Inertia::flash('toast', ['type' => 'success', 'message' => $message]);

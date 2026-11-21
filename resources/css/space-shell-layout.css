@@ -152,33 +152,6 @@
     gap: 8px;
     cursor: pointer;
 }
-/* DS-12: a small outline Clock in / Clock out beside the branch switcher, from 1024 px; phones use the account menu row. */
-.space-shell .space-clock {
-    display: none;
-    align-items: center;
-    min-height: 36px;
-    padding: 0 12px;
-    border-radius: var(--space-radius-control);
-    border: 1px solid var(--space-line);
-    background: transparent;
-    color: var(--space-fg);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-.space-shell .space-clock:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-.space-shell .space-clock:focus-visible {
-    outline: 2px solid var(--space-accent);
-    outline-offset: 2px;
-}
-@media (min-width: 1024px) {
-    .space-shell .space-clock {
-        display: inline-flex;
-    }
-}
 /* DS-12: the name sits beside the avatar from 1024 px; below that the avatar stands alone. */
 @media (max-width: 1023px) {
     .space-shell .space-account {
@@ -472,7 +445,7 @@
         font-size: 18px;
     }
     .space-shell .space-stats .space-muted {
-        font-size: 12px;
+        font-size: 13px;
     }
 }
 
@@ -693,6 +666,8 @@
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
+    /* The ring is drawn over the Clock in button and is only decoration: clicks and taps go through to the button. */
+    pointer-events: none;
 }
 .space-shell .me-ring-track,
 .space-shell .me-ring-fill {
@@ -991,5 +966,87 @@
 @media (min-width: 1024px) {
     .space-shell[data-v2-frame] .space-main {
         padding: 24px 32px;
+    }
+}
+
+/* UX-24 part 2 (Daniel): the roster week shows its status as a chip beside the date, and the short-days note on the
+   right stays on one line. */
+.space-shell .space-roster-head {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+.space-shell .space-roster-short {
+    white-space: nowrap;
+}
+
+/* Classic only (CO-1, owner 19 Nov 2026): a space home inside the Classic clinic layout and PageFrame. The layout draws
+   the top bar, so the space is a plain block, and its own tokens follow the Classic theme (light and dark) instead of the
+   DS-0 cobalt look. The Me home's gradient and tile tints are kept: they are that page's own accents. */
+.space-shell[data-classic-frame] {
+    display: block;
+    min-height: 0;
+    background: transparent;
+    font-family: inherit;
+    color: var(--foreground);
+    color-scheme: inherit;
+
+    --space-bg: var(--background);
+    --space-surface: var(--card);
+    --space-surface-2: var(--muted);
+    --space-side: var(--muted);
+    --space-fg: var(--foreground);
+    --space-muted: var(--muted-foreground);
+    --space-line: var(--border);
+    --space-hover: var(--accent);
+    --space-accent: var(--brand-strong);
+    --space-accent-fg: var(--brand-foreground);
+    --space-accent-tint: color-mix(in srgb, var(--brand) 12%, transparent);
+    --space-ok: var(--success);
+    --space-warn: var(--warning);
+    --space-bad: var(--destructive);
+    --space-radius-card: 14px;
+}
+.space-shell[data-classic-frame] .space-main {
+    padding: 0;
+}
+/* Dark: the light pink accent needs dark text (white on it measures about 2.5:1; near-black is above 8:1). */
+.space-shell[data-classic-frame]:is(.dark *) {
+    --space-accent-fg: var(--primary-foreground);
+}
+.space-shell[data-classic-frame] .space-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+}
+.space-shell[data-classic-frame] .space-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    color: var(--muted-foreground);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.space-shell[data-classic-frame] .space-tab:hover {
+    color: var(--foreground);
+}
+.space-shell[data-classic-frame] .space-tab.is-on {
+    border-bottom-color: var(--brand);
+    color: var(--foreground);
+}
+.space-shell[data-classic-frame] .space-tab:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+@media (min-width: 1024px) {
+    .space-shell[data-classic-frame] .space-tab {
+        min-height: 36px;
     }
 }

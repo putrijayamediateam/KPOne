@@ -20,7 +20,6 @@ import type {
     SummaryTabData,
     WeekHours,
 } from '@/components/hr/attendance/types';
-import { useClockPhoto } from '@/composables/useClockPhoto';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 
 /**
@@ -58,6 +57,8 @@ export type Row = {
     week?: WeekHours | null;
     /** HR-PHOTO: each press's photo; anyone else's needs Show. */
     photos?: { in: ClockPhotoEntry | null; out: ClockPhotoEntry | null } | null;
+    /** Undo clock-out: "Clock-out undone at 5:02 PM" on Review when the person took a clock-out back. */
+    undoneLabel?: string | null;
     /** HR-16a: each press's location result in plain words; never a position. */
     location?: {
         in: string | null;
@@ -82,6 +83,8 @@ export type Correction = {
     canDecide: boolean;
     canCancel: boolean;
     lockVersion: number;
+    // G2b: an hourly person's correction in a month whose payroll is already locked.
+    lockedMonth?: string | null;
 };
 
 export type AttendanceProps = {
@@ -105,6 +108,13 @@ export type AttendanceProps = {
             state: 'out' | 'in' | 'done';
             clockedInLabel: string | null;
             doneLabel: string | null;
+            // Undo clock-out (owner, 16 Nov 2026): the latest own clock-out, for 15 minutes; null otherwise.
+            undo: {
+                sessionId: string;
+                lockVersion: number;
+                pressedAt: string;
+                until: string;
+            } | null;
             staleLabel: string | null;
             todayShift: string | null;
             todayHasBreak: boolean;
@@ -319,82 +329,9 @@ export const useAttendancePage = (props: AttendanceProps) => {
     );
 
     // ---- Clock in and out ----
-    const clock = reactive({
-        processing: false,
-        confirmOut: false,
-        key: '',
-        locating: false,
-        consentFor: null as 'in' | 'out' | null,
-    });
-    // HR-16a: where the branch checks location, the browser reads it once, at the press, and never before or after. A
-    // refusal, a failure or "without location" still records the press.
-    const press = (kind: 'in' | 'out') => {
-        const location = props.attendance.my?.location;
-
-        if (!location) {
-            send(kind, {});
-
-            return;
-        }
-
-        if (location.consentNeeded) {
-            clock.confirmOut = false;
-            clock.consentFor = kind;
-
-            return;
-        }
-
-        locate(kind, false);
-    };
-    const locate = (kind: 'in' | 'out', consent: boolean) => {
-        clock.consentFor = null;
-        const extra: Record<string, unknown> = consent
-            ? { location_consent: true }
-            : {};
-
-        if (!('geolocation' in navigator)) {
-            send(kind, { ...extra, location_unavailable: 'failed' });
-
-            return;
-        }
-
-        clock.locating = true;
-        clock.processing = true;
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                clock.locating = false;
-                send(kind, {
-                    ...extra,
-                    clock_position: {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                    },
-                });
-            },
-            (error) => {
-                clock.locating = false;
-                // One line, as when this lived in the Classic page (the hr-16a test reads it).
-                // prettier-ignore
-                send(kind, { ...extra, location_unavailable: error.code === 1 ? 'denied' : 'failed' });
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-        );
-    };
-    const withoutLocation = (kind: 'in' | 'out') => {
-        clock.consentFor = null;
-        send(kind, { location_unavailable: 'declined' });
-    };
-    // HR-PHOTO: every press goes through the camera; the location result (HR-16a) rides along with the photo.
-    const { open: openCamera } = useClockPhoto();
-    const send = (kind: 'in' | 'out', extra: Record<string, unknown>) => {
-        clock.confirmOut = false;
-        clock.processing = false;
-        openCamera(kind, {
-            extra,
-            onDone: () => router.reload({ preserveScroll: true } as never),
-        });
-    };
+    // One Clock in (owner, 18 Nov 2026): every press is on Me, through the shared camera dialog, which also runs the
+    // branch's location check. This page links there and keeps the history, corrections, overtime and HR tabs.
+    const clockOnMe = '/spaces/me';
 
     // ---- Corrections ----
     const correction = reactive({
@@ -531,6 +468,46 @@ export const useAttendancePage = (props: AttendanceProps) => {
                 idempotency_key: crypto.randomUUID(),
             },
             { preserveScroll: true, onFinish: () => (withdrawing.value = '') },
+        );
+    };
+
+    // ---- Undo clock-out (owner, 16 Nov 2026): within 15 minutes, staff only; asks to confirm first ----
+    const undo = reactive({
+        open: false,
+        processing: false,
+        key: '',
+        error: '',
+    });
+    const openUndo = () =>
+        Object.assign(undo, {
+            open: true,
+            processing: false,
+            key: crypto.randomUUID(),
+            error: '',
+        });
+    const confirmUndo = () => {
+        const offer = props.attendance.my?.undo;
+
+        if (!offer || undo.processing) {
+            return;
+        }
+
+        undo.processing = true;
+        router.post(
+            '/hr/attendance/clock-out/undo',
+            {
+                session_id: offer.sessionId,
+                expected_lock_version: offer.lockVersion,
+                idempotency_key: undo.key,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => (undo.open = false),
+                onError: (e: Record<string, string>) =>
+                    (undo.error =
+                        e.clock ?? e.attendance ?? 'This did not go through.'),
+                onFinish: () => (undo.processing = false),
+            },
         );
     };
 
@@ -713,10 +690,7 @@ export const useAttendancePage = (props: AttendanceProps) => {
         serverTime,
         serverDate,
         announcement,
-        clock,
-        press,
-        locate,
-        withoutLocation,
+        clockOnMe,
         correction,
         correctionErrors,
         kindOptions,
@@ -730,6 +704,9 @@ export const useAttendancePage = (props: AttendanceProps) => {
         decision,
         openDecision,
         confirmDecision,
+        undo,
+        openUndo,
+        confirmUndo,
         ask,
         myChoices,
         choiceFor,

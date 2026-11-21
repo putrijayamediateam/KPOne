@@ -78,7 +78,7 @@ class TabCountsTest extends ClinicalTestCase
         $this->selectBranch($ca);
         $response = $this->postJson(route('registration.search'))->assertOk();
         $this->assertSame(['data', 'tabCounts', 'total', 'currentPage', 'lastPage'], array_keys($response->json()));
-        $this->assertSame(['all' => 1, 'waiting' => 1, 'serving' => 0, 'completed' => 0, 'cancelled' => 0, 'billing' => 0, 'dispensary' => 0], $response->json('tabCounts'));
+        $this->assertSame(['all' => 1, 'waiting' => 1, 'serving' => 0, 'completed' => 0, 'cancelled' => 0, 'billing' => 0, 'triage' => 1, 'dispensary' => 0], $response->json('tabCounts'));
         foreach ($response->json('tabCounts') as $count) {
             $this->assertIsInt($count);
         }

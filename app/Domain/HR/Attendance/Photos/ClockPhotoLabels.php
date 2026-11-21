@@ -31,7 +31,8 @@ final class ClockPhotoLabels
             return [];
         }
         $ids = array_values(array_map('intval', $sessions->pluck('id')->all()));
-        $photos = ClockPhoto::query()->whereIn('clock_session_id', $ids)->get(['id', 'public_id', 'user_id', 'clock_session_id', 'kind'])
+        // Undo clock-out: a reopened session can hold an earlier clock-out photo; the latest attempt is the one in view.
+        $photos = ClockPhoto::query()->whereIn('clock_session_id', $ids)->orderBy('attempt')->get(['id', 'public_id', 'user_id', 'clock_session_id', 'kind'])
             ->keyBy(fn (ClockPhoto $p): string => $p->clock_session_id.'|'.$p->kind);
         $methods = DB::table('hr_clock_events')->whereIn('clock_session_id', $ids)->orderBy('id')->get(['clock_session_id', 'kind', 'method'])
             ->mapWithKeys(fn ($e): array => [$e->clock_session_id.'|'.$e->kind => (string) $e->method]); // the latest event of each kind wins

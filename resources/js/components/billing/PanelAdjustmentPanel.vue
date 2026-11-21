@@ -14,7 +14,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import V2MoneyInput from '@/components/v2/V2MoneyInput.vue';
 import { formatStatusLabel } from '@/lib/presentation';
 import type { PanelAdjustment, PanelAdjustmentClaim } from '@/types/billing';
 import { myr, toSen } from '@/types/billing';
@@ -31,8 +30,6 @@ const props = defineProps<{
     adjustment: PanelAdjustment;
     claim?: PanelAdjustmentClaim | null;
     canClaimOnly?: boolean;
-    /** Version 2 pages pass this, so the amount uses the V2 money input. */
-    v2?: boolean;
 }>();
 const emit = defineEmits<{ claimOnly: [] }>();
 const page = usePage();
@@ -413,13 +410,7 @@ const signed = (dir: string, value: number) =>
                                 </label>
                             </div>
                         </fieldset>
-                        <V2MoneyInput
-                            v-if="v2"
-                            v-model="amount"
-                            label="Amount"
-                            :error="errors.amount_sen"
-                        />
-                        <div v-else class="grid gap-2">
+                        <div class="grid gap-2">
                             <Label for="panel-adjustment-amount"
                                 >Amount (RM)</Label
                             >

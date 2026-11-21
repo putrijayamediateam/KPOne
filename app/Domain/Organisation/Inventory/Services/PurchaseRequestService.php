@@ -34,8 +34,19 @@ final class PurchaseRequestService
 
     public function __construct(private InventoryAuthorityService $authority, private AuditRecorder $audit, private StaffAccessService $staff, private ProcurementService $procurement) {}
 
+    /**
+     * STK-41: the purchase request an approved agent restock suggestion prepares. The same checks, locks and audit as `send`, as
+     * the approving person; the suggestion's id is kept as a trail only. Converting it still needs someone other than the requester.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function sendFromProposal(User $approver, int $aiProposalId, array $input): string
+    {
+        return $this->send($approver, $input, $aiProposalId);
+    }
+
     /** @param array<string, mixed> $input */
-    public function send(User $actor, array $input): string
+    public function send(User $actor, array $input, ?int $aiProposalId = null): string
     {
         $data = Validator::make($input, [
             'expected_branch_id' => ['required', 'integer'], 'idempotency_key' => ['required', 'uuid'],
@@ -60,7 +71,7 @@ final class PurchaseRequestService
         $key = strtolower((string) $data['idempotency_key']);
         $hash = hash('sha256', json_encode([strtolower((string) $data['destination_location_public_id']), strtolower((string) ($data['preferred_supplier_public_id'] ?? '')), $lines], JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($actor, $branch, $data, $lines, $key, $hash): string {
+        return DB::transaction(function () use ($actor, $branch, $data, $lines, $key, $hash, $aiProposalId): string {
             $actor = $this->authority->lockForBranch($actor, $branch, self::CREATE);
             $existing = DB::table('inventory_purchase_requests')->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->first(['public_id', 'request_hash', 'requested_by_user_id']);
             if ($existing !== null) {
@@ -93,11 +104,13 @@ final class PurchaseRequestService
                 'public_id' => $publicId, 'request_number' => 'PR-'.now()->utc()->format('Ym').'-'.Str::upper(Str::random(6)), 'organisation_id' => $actor->organisation_id,
                 'branch_id' => $branch->id, 'destination_location_id' => $location->id, 'preferred_supplier_id' => $supplierId, 'status' => 'waiting',
                 'requested_by_user_id' => $actor->id, 'requested_at' => now()->utc(), 'lock_version' => 1, 'idempotency_key' => $key, 'request_hash' => $hash,
+                'ai_proposal_id' => $aiProposalId,
             ]);
             DB::table('inventory_purchase_request_lines')->insert(array_map(fn (array $line): array => ['organisation_id' => $actor->organisation_id, 'purchase_request_id' => $id,
                 'inventory_sku_id' => (int) $skus[$line['sku']], 'requested_quantity' => StockUnitQuantity::format($line['quantity']), 'note' => $line['note']], $lines));
             $this->action($actor, $id, 'sent');
-            abort_if($this->audit->record('inventory.purchase_request.sent', null, ['purchase_request_id' => $id, 'lines' => count($lines)], $actor, $branch) === null,
+            abort_if($this->audit->record('inventory.purchase_request.sent', null, ['purchase_request_id' => $id, 'lines' => count($lines),
+                ...($aiProposalId === null ? [] : ['source' => 'ai_proposal', 'ai_proposal_id' => $aiProposalId])], $actor, $branch) === null,
                 503, 'The request could not be recorded, so nothing was saved.');
 
             return $publicId;

@@ -23,6 +23,7 @@ export type CredentialTypeHead = {
     name: string;
     expires: boolean;
     healthItem: boolean;
+    workPermit: boolean;
     warnFromDays: number;
     roles: string[];
     version: number;
@@ -78,3 +79,13 @@ export const statusTone = (
         : code === 'valid' || code === 'done' || code === 'no_expiry'
           ? 'success'
           : 'neutral';
+
+/** HR-21: a work permit that expires soon or has expired, in words. */
+export type WorkPermitDue = {
+    person: string;
+    workerId: string;
+    type: string;
+    expired: boolean;
+    expiresOn: string;
+    line: string;
+};

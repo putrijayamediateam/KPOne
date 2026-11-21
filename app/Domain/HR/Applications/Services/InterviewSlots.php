@@ -38,6 +38,13 @@ final class InterviewSlots
         'other' => 'Other',
     ];
 
+    /** @var array<string, string> HR-15e: how the interview happens */
+    public const MODES = ['in_person' => 'In person', 'online' => 'Online'];
+
+    public const VIDEO_LINK_MAX = 500;
+
+    public const LOOKALIKE = 'This link has an @ in the address, so it may go somewhere else. Use the meeting link exactly as your video app gives it.';
+
     private const HORIZON_DAYS = 60;
 
     public function __construct(private RecordSupport $support, private HiringMessenger $messenger) {}
@@ -127,7 +134,7 @@ final class InterviewSlots
     {
         $starts = array_values(array_unique(array_filter(is_array($input['starts'] ?? null) ? $input['starts'] : [], 'is_string')));
         if (count($starts) !== self::PICKS) {
-            throw ValidationException::withMessages(['starts' => 'Choose exactly three times. / Pilih tepat tiga masa.']);
+            throw ValidationException::withMessages(['starts' => 'Choose exactly three times.']);
         }
         DB::transaction(function () use ($token, $starts, $links): void {
             $row = $links->resolve($token, true);
@@ -135,16 +142,16 @@ final class InterviewSlots
                 throw ValidationException::withMessages(['link' => CandidateLink::INVALID]);
             }
             if ($row->status !== 'scheduling') {
-                throw ValidationException::withMessages(['starts' => 'Times can be chosen only while the clinic is arranging your interview. / Masa boleh dipilih hanya semasa klinik mengatur temu duga anda.']);
+                throw ValidationException::withMessages(['starts' => 'Times can be chosen only while the clinic is arranging your interview.']);
             }
             if (DB::table('hr_job_interview_picks')->where('application_id', $row->id)->where('round', $row->interview_round)->exists()) {
-                throw ValidationException::withMessages(['starts' => 'Your times are already with the clinic. / Masa anda sudah dihantar kepada klinik.']);
+                throw ValidationException::withMessages(['starts' => 'Your times are already with the clinic.']);
             }
             $branch = $this->branchFor($row);
             $offered = collect($this->available($row))->flatMap(fn (array $d): array => array_column($d['slots'], 'start'))->flip()->all();
             foreach ($starts as $start) {
                 if (! isset($offered[$start])) {
-                    throw ValidationException::withMessages(['starts' => 'One of those times is no longer free. Choose again. / Salah satu masa itu tidak lagi kosong. Pilih semula.']);
+                    throw ValidationException::withMessages(['starts' => 'One of those times is no longer free. Choose again.']);
                 }
             }
             sort($starts);
@@ -167,10 +174,11 @@ final class InterviewSlots
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
         $start = is_string($input['start'] ?? null) ? $input['start'] : '';
+        [$mode, $videoLink] = self::meeting($input);
         try {
-            DB::transaction(function () use ($actor, $applicationId, $input, $key, $start): void {
+            DB::transaction(function () use ($actor, $applicationId, $input, $key, $start, $mode, $videoLink): void {
                 $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
-                $hash = $this->support->hash([$actor->id, 'job_interview_confirm', $applicationId, $start]);
+                $hash = $this->support->hash([$actor->id, 'job_interview_confirm', $applicationId, $start, $mode, $videoLink]);
                 if ($this->support->replay($actor, $key, 'job_interview_confirm', $hash) !== null) {
                     return;
                 }
@@ -200,7 +208,7 @@ final class InterviewSlots
                 $now = now()->utc();
                 DB::table('hr_job_interviews')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id, 'pick_id' => $pick->id,
                     'round' => $application->interview_round, 'branch_id' => $pick->branch_id, 'starts_at' => $at, 'status' => 'confirmed',
-                    'confirmed_by_user_id' => $actor->id, 'confirmed_at' => $now]);
+                    'confirmed_by_user_id' => $actor->id, 'confirmed_at' => $now, 'mode' => $mode, 'video_link' => $videoLink]);
                 DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => 'interview', 'stage_entered_at' => $now,
                     'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
                 DB::table('hr_job_application_events')->insert([
@@ -211,7 +219,7 @@ final class InterviewSlots
                 ]);
                 $this->support->remember($actor, $key, 'job_interview_confirm', $hash, $applicationId);
                 $this->support->audit->record('hr.applications.interview_confirmed', null, ['application_id' => (int) $application->id,
-                    'round' => (int) $application->interview_round], $actor, null, $actor->organisation_id);
+                    'round' => (int) $application->interview_round, 'mode' => $mode], $actor, null, $actor->organisation_id);
                 $this->messenger->record($application, 'interview_confirmed', 'interview', null, [], (int) $application->interview_round);
             }, 3);
         } catch (UniqueConstraintViolationException) {
@@ -303,6 +311,38 @@ final class InterviewSlots
     {
         DB::table('hr_job_interviews')->where('application_id', $applicationId)->where('status', 'confirmed')->update(['status' => 'cancelled',
             'cancelled_by_user_id' => $actorId, 'cancelled_at' => now()->utc(), 'cancel_reason' => 'withdrawn']);
+    }
+
+    /**
+     * HR-15e: how the interview happens, checked before any lock. In person needs nothing more; online needs one https
+     * link of at most 500 characters with no spaces. The link is never audited.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{0: string, 1: ?string}
+     */
+    public static function meeting(array $input): array
+    {
+        $mode = is_string($input['mode'] ?? null) && $input['mode'] !== '' ? $input['mode'] : 'in_person';
+        if (! isset(self::MODES[$mode])) {
+            throw ValidationException::withMessages(['mode' => 'Choose In person or Online.']);
+        }
+        if ($mode === 'in_person') {
+            return [$mode, null];
+        }
+        $link = is_string($input['video_link'] ?? null) ? trim($input['video_link']) : '';
+        if ($link === '') {
+            throw ValidationException::withMessages(['video_link' => 'Type the video link for the online interview.']);
+        }
+        if (mb_strlen($link) > self::VIDEO_LINK_MAX || preg_match('/\Ahttps:\/\/[^\s<>{}"]+\z/u', $link) !== 1
+            || filter_var($link, FILTER_VALIDATE_URL) === false || parse_url($link, PHP_URL_HOST) === null) {
+            throw ValidationException::withMessages(['video_link' => 'Type the full link, starting with https://, with no spaces.']);
+        }
+        // A name before an "@" could make another site look like the meeting's (Suresh, m1); its own line (Daniel).
+        if (parse_url($link, PHP_URL_USER) !== null || parse_url($link, PHP_URL_PASS) !== null) {
+            throw ValidationException::withMessages(['video_link' => self::LOOKALIKE]);
+        }
+
+        return [$mode, $link];
     }
 
     /** Whether a slot's day is still a working day, not a public holiday, at the interview branch. */

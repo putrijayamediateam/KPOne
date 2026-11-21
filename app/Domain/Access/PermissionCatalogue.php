@@ -6,6 +6,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
 use App\Domain\HR\Attendance\ClockPermissions;
@@ -13,8 +14,10 @@ use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Discipline\DisciplinePermissions;
 use App\Domain\HR\Incidents\IncidentPermissions;
+use App\Domain\HR\LabourCost\LabourCostPermissions;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Letters\LetterPermissions;
+use App\Domain\HR\LocumPay\LocumPayPermissions;
 use App\Domain\HR\Memos\MemoPermissions;
 use App\Domain\HR\Messages\MessagePermissions;
 use App\Domain\HR\OpenShifts\OpenShiftPermissions;
@@ -65,6 +68,7 @@ final class PermissionCatalogue
         return [
             ...array_keys(CallHoldPermissions::grants()),
             ...array_keys(TreatmentStepPermissions::grants()),
+            ...array_keys(TriagePermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -84,6 +88,8 @@ final class PermissionCatalogue
             ...array_keys(DisciplinePermissions::grants()),
             ...array_keys(IncidentPermissions::grants()),
             ...array_keys(OpenShiftPermissions::grants()),
+            ...array_keys(LocumPayPermissions::grants()),
+            ...array_keys(LabourCostPermissions::grants()),
             ...array_keys(ClaimPermissions::grants()),
             ...array_keys(PayrollPermissions::grants()),
             ...array_keys(ApplicationPermissions::grants()),
@@ -161,6 +167,11 @@ final class PermissionCatalogue
             'dispensary.return_to_doctor.branch',
             'dispensary.otc.create.branch',
             'dispensary.acknowledge_partial.own',
+            'dispensary.doctor_check.own',
+            'dispensary.doctor_check.override.branch',
+            'dispensary.settings.manage.branch',
+            'dispensary.view_readonly.organisation',
+            'consultations.view_readonly.organisation',
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
@@ -174,6 +185,7 @@ final class PermissionCatalogue
             'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
             'inventory.valuation.view.organisation',
+            'inventory.pack_conversions.verify.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -439,6 +451,14 @@ final class PermissionCatalogue
             }
         }
 
+        // TRI-1 (owner decisions 19 Nov 2026): triage readings for CA and CA Supervisor; the guideline for the
+        // Director and the HR Manager only (the HR Manager never sees triage readings).
+        foreach (TriagePermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
         foreach (WebsitePermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
@@ -537,6 +557,29 @@ final class PermissionCatalogue
         // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
         $roles['director'][] = 'inventory.valuation.view.organisation';
 
+        // STK-52 (owner decision 2026-11-21, "A for the bottle check"): only a CA Supervisor or the Director does the blind
+        // check of a pack conversion; anyone who manages inventory references proposes one. Never the proposer.
+        foreach (['ca_supervisor', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.pack_conversions.verify.organisation';
+        }
+
+        // DSP-23 (owner answers 21 Nov 2026: P3, 12 = A, 13 = B): the attending doctor checks the prepared medicine; a
+        // CA Supervisor may check instead with a reason; the Director and CA Supervisor turn the branch switch on or off.
+        $roles['resident_doctor'][] = 'dispensary.doctor_check.own';
+        $roles['ca_supervisor'][] = 'dispensary.doctor_check.override.branch';
+        foreach (['director', 'ca_supervisor'] as $holder) {
+            $roles[$holder][] = 'dispensary.settings.manage.branch';
+        }
+
+        // DSP-25 (owner decision 4 of 20-21 Nov 2026; answer P5): the Director's read-only view of a dispensary case at
+        // any branch, every open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never
+        // implies a Dispensary write permission.
+        $roles['director'][] = 'dispensary.view_readonly.organisation';
+
+        // Item 4 (owner decision P4 of 20-21 Nov 2026): the Director's read-only view of a consultation at any branch, every
+        // open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never implies a write permission.
+        $roles['director'][] = 'consultations.view_readonly.organisation';
+
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
@@ -544,7 +587,7 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...LocumPayPermissions::grants(), ...LabourCostPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }

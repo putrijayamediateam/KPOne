@@ -7,7 +7,8 @@ Panduan ini menerangkan langkah yang disokong oleh skrin KPOne semasa. Nama hala
 1. [Pembantu Klinik](./ca.md)
 2. [Doktor Residen](./doktor.md)
 3. [Penyelia CA](./penyelia-ca.md)
-4. [Apabila ada masalah](./bila-ada-masalah.md)
+4. [Semua kakitangan](./semua-kakitangan.md)
+5. [Apabila ada masalah](./bila-ada-masalah.md)
 
 Ikut hanya tindakan yang dipaparkan untuk akaun anda. Jika butang tiada atau tindakan ditolak, jangan gunakan akaun orang lain atau cuba jalan lain. Rujuk panduan masalah dan pengendali klinik.
 

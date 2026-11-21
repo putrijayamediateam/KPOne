@@ -90,7 +90,7 @@ class JobApplicationsTest extends VisitTestCase
 
         $this->get(route('hr-applications.show'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Careers/Apply')
             ->where('positions', [['id' => $position, 'title' => 'Synthetic Clinic Assistant', 'branch' => null, 'type' => 'ca']])
-            ->where('privacyNoticeVersion', 'draft-hr17-applications-v1')->has('formToken'));
+            ->where('privacyNoticeVersion', 'draft-hr17-applications-en-v2')->has('formToken'));
 
         $token = JobApplicationIntake::issueToken();
         $this->travel(30)->seconds();
@@ -107,7 +107,7 @@ class JobApplicationsTest extends VisitTestCase
         $this->assertIsString($stored);
         $this->assertStringNotContainsString('SYNTHETIC-CV-CONTENT', $stored);
         $this->assertStringNotContainsString('cv.pdf', (string) $row->cv_path);
-        $this->assertSame('draft-hr17-applications-v1', $row->privacy_notice_version);
+        $this->assertSame('draft-hr17-applications-en-v2', $row->privacy_notice_version);
         $this->assertSame(['submitted'], DB::table('hr_job_application_events')->pluck('action')->all());
         $this->assertSame($users, User::query()->count());
 
@@ -166,7 +166,7 @@ class JobApplicationsTest extends VisitTestCase
             ->assertSessionHasErrors('cv');
         $this->apply(['form_token' => $token, 'position' => $position], UploadedFile::fake()->createWithContent('cv.pdf', "%PDF-1.4\n".str_repeat('a', 5 * 1024 * 1024)."\n%%EOF\n"))
             ->assertSessionHasErrors('cv');
-        $this->apply(['form_token' => $token, 'position' => $position], false)->assertSessionHasErrors(['cv' => 'Attach your CV as a PDF. / Lampirkan CV anda dalam bentuk PDF.']);
+        $this->apply(['form_token' => $token, 'position' => $position], false)->assertSessionHasErrors(['cv' => 'Attach your CV as a PDF.']);
         $this->apply(['form_token' => $token, 'position' => $position, 'privacy_accepted' => '0'])->assertSessionHasErrors('privacy_accepted');
         $this->apply(['form_token' => $token, 'position' => $position, 'name' => 'A', 'phone' => 'call me', 'email' => 'nope', 'message' => str_repeat('x', 1001)])
             ->assertSessionHasErrors(['name', 'phone', 'email', 'message']);

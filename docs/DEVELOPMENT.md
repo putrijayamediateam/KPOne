@@ -37,6 +37,19 @@ for testing. A local SQLite skip is not PostgreSQL release evidence.
    composer run dev
    ```
 
+### Database time zone (`DB_TIMEZONE`)
+
+KPOne stores every time in UTC and shows it in the branch's time zone. The `pgsql` connection runs
+`SET TIME ZONE 'UTC'` on every connection (`DB_TIMEZONE`, default `UTC` in `config/database.php`). Keep it `UTC`.
+
+Why it is pinned: Laravel writes dates to PostgreSQL without an offset (`2026-11-17 16:15:33`). A
+`timestamptz` column reads such a value in the session's time zone. A PostgreSQL installed on a laptop (Herd,
+DBngin, Postgres.app) usually takes the computer's own time zone, for example `Asia/Kuala_Lumpur`, so without the
+pin every stored time was 8 hours early. Every window that compares a stored time with now went wrong: a
+clock-in photo was refused as "took too long" (owner report, 17 November 2026). Times already written on such a
+server before the pin stay 8 hours early; on a synthetic local database, `php artisan migrate:fresh --seed` starts
+clean. `tests/Feature/DatabaseTimezoneTest.php` checks the pin against a database whose default is Kuala Lumpur.
+
 The repository defaults to PostgreSQL. The default local PHPUnit configuration overrides the connection to an in-memory SQLite database to keep the routine test workflow fast and isolated; SQLite is not a supported deployed database. GitHub Actions deliberately supplies `DB_CONNECTION=pgsql` and an isolated PostgreSQL 18 service database, so the complete suite also covers production-database semantics.
 
 ## First Director bootstrap
@@ -65,6 +78,8 @@ production database.
 
 1. Create the empty database, then run `php artisan migrate:fresh --seed`.
 2. Run `php artisan kpone:bootstrap-director` in a terminal and choose an appropriate sign-in method.
+   The command also authorises the Director at every active branch. On an existing installation, or after a new
+   branch opens, run `php artisan kpone:director-branches` (idempotent, audited, console only).
 3. Sign in as the Director and provision synthetic `.test` staff accounts needed for the walk: a `ca_supervisor`,
    a `ca`, and a `resident_doctor`. Confirm each has the intended primary branch.
 4. Sign in as the `ca_supervisor` and create a synthetic Medicine and Clinical Service with Self-pay tariffs;
@@ -195,6 +210,66 @@ services as a named demo account, so permissions, branch checks, locks and audit
 
 It creates no patients beyond the presentation seeder's, and no visits, payment methods, Panels or bills; those
 are entered through the screens during the demo. Never run it with real data or in production.
+
+## Inventory walk addition (DEMO-2)
+
+For walking the pilot CA Supervisor's Inventory screens (purchase orders, receiving, supplier invoices, counts,
+recalls, transfers and the controlled register), run one more seeder after DEMO-1, on the same disposable
+database:
+
+```bash
+php artisan db:seed --class=KPOneInventoryWalkSeeder
+```
+
+It has the same safety rules as DEMO-1: `local` and `testing` only, it stops if any user email does not end in
+`.test`, and it stops with "Run KPOneDemoSetupSeeder first" when the CHERAS demo dispensary is missing. A rerun
+adds nothing. Every change goes through the domain services as a named demo account:
+
+- As `demo.ca_supervisor@kpone.test`: creates a "Cheras Store (Demo)" branch store; adds a controlled medicine,
+  Codeine phosphate 15 mg tablet (its own SKU, base unit verified, 100 on hand at the demo dispensary in batch
+  `DEMO-C001`), and marks it controlled, so the controlled register has a row; records a second Paracetamol batch,
+  `DEMO-B101`, 300 in the store, expiring about 8 months ahead (earlier than the dispensary batch), so FEFO,
+  recalls and transfers have something to show.
+- As `demo.ca_supervisor2@kpone.test`: signs off both new opening counts.
+- As `demo.finance_officer@kpone.test`: creates two fictional suppliers, "Demo Pharma Supplies (fictional)" and
+  "Demo Medical Trading (fictional)" (a contact name, no phone number).
+- As `demo.ca_supervisor@kpone.test`, then `demo.finance_officer@kpone.test`: raises, submits and approves one
+  purchase order from the first supplier into the store (Amoxicillin 500 and Cetirizine 300, with estimated
+  unit costs), so receiving can start at once. Nothing is received.
+
+It adds no Panels, patients, visits or cost policy. Never run it with real data or in production.
+
+## Trial server demo data (TRIAL-DATA)
+
+A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
+run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
+the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
+Phase 1 (foundation) is built so far.
+
+Before the first run: migrate and seed the reference data, create the one Director with
+`php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
+(run `php artisan kpone:director-branches` if it exists on your version). Then, on the trial server only:
+
+```bash
+# in the server environment, for this run only
+KPONE_TRIAL_DATA_ALLOWED=true
+php artisan config:clear
+php artisan kpone:trial-data --phase=1
+# afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
+```
+
+The command stops before changing anything unless the switch is on, it runs in an interactive terminal, there is
+exactly one active Director, every other account has a `.test` email, and the operator types the site's host name
+(the host of `APP_URL`). It asks once, hidden, for one shared password for the fictional `@kpjaya.test` accounts;
+the password is hashed at once and never printed, logged or audited. Phase 1 fills all three branches: 28 accounts (at each
+branch two doctors, two Clinic Assistants, two CA Supervisors and the TV account; once for the organisation the
+Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing and Technical Admin,
+assigned to every branch), payment methods, visit reasons and preset diagnoses, and for each branch its letterhead,
+footer, approval limits, rooms and verified fictional doctor credentials; 12 generic medicines (one controlled) and
+6 services with Self-pay prices and Panel prices (proposed by the Panel Officer, approved by Finance), two fictional Panels, stock at every branch with real future expiry dates
+signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
+nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
+counts only). It is never called from a seeder, migration, scheduler or deploy.
 
 ## Ask KPOne read login (AG-7)
 

@@ -36,7 +36,8 @@ branch Director** do the two-person steps, including deciding agent suggestions 
 - A decider must be assigned to that branch now and hold the decide permission for the suggestion; otherwise the inbox
   shows why they cannot decide.
 - An approval records the decision only. It changes no stock and sends nothing; the restock, expiry or transfer is still
-  done by hand through the normal stock screens.
+  done by hand through the normal stock screens. (CONTRACT section 15 plans approval that can also prepare a stock
+  request or purchase request, behind the switch `agents.prepare_enabled`, which stays off until the owner turns it on.)
 - **Week one of the pilot (owner decision, relayed by the coordinator, 2026-11-15):** agents are on, with the **Daily
   summary only**, so staff learn it without relying on it. Do not tell branch staff to base stock or money decisions on
   it. The scheduled run proof (the 07:00 and 14:00 runs on the pilot server) is a pilot item.

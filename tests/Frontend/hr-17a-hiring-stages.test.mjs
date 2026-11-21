@@ -13,6 +13,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's script now lives in the composable (setup only): read both.
+source.hr += read('resources/js/composables/hr/useApplicationsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('both pages compile', () => {
@@ -26,7 +28,7 @@ test('both pages compile', () => {
     }
 });
 
-test('the form asks each position type its own questions, in both languages', () => {
+test('the form asks each position type its own questions, in English', () => {
     for (const key of [
         'preferred_branch',
         'start_date',
@@ -48,8 +50,8 @@ test('the form asks each position type its own questions, in both languages', ()
     assert.match(source.apply, /positionType\.value === 'intern'/);
     assert.match(source.apply, /positionType\.value === 'resident_doctor'/);
     assert.match(template('apply'), /positionType === 'locum'/);
-    assert.match(template('apply'), /Tentang anda/);
-    assert.match(template('apply'), /Mana-mana cawangan/);
+    assert.match(template('apply'), /About you/);
+    assert.match(template('apply'), /Any branch/);
     // Nothing about pay or identity is asked: neither the fields sent nor the page mention them.
     const fields = source.apply.slice(
         source.apply.indexOf('useForm({'),
@@ -105,7 +107,7 @@ test('the public form has three steps, checks each before Next and uses the shar
         template('apply'),
         /Step \{\{ step \}\} of \{\{ STEP_COUNT \}\}/,
     );
-    assert.match(template('apply'), /Langkah \{\{ step \}\} daripada/);
+    assert.match(template('apply'), /Step \{\{ step \}\} of/);
     assert.match(template('apply'), /data-test="apply-next"/);
     assert.match(template('apply'), /data-test="apply-back"/);
     assert.match(template('apply'), /data-test="apply-error-summary"/);

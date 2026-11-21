@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimDocument;
+use App\Domain\Visit\Billing\Services\PanelClaimAutoCreator;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
 use App\Domain\Visit\Billing\Services\PanelClaimPackIssueService;
@@ -138,6 +139,22 @@ class PanelClaimsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('panel-claims.index', ['tab' => 'submitted']);
+    }
+
+    /** PNL-28a: create Prepared claims for the oldest approved Panel shares that have no claim yet. */
+    public function autoCreate(Request $request, PanelClaimAutoCreator $creator): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $data = Validator::make($request->only(['expected_branch_id']), ['expected_branch_id' => ['required', 'integer', 'min:1']])->validate();
+        try {
+            $result = $creator->createWaiting($actor, (int) $data['expected_branch_id']);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('panel-claims.index', ['tab' => 'pending']));
+        }
+        Inertia::flash('autoClaimResult', $result);
+
+        return to_route('panel-claims.index', ['tab' => 'pending']);
     }
 
     public function prepare(Request $request, CoverageAllocation $allocation, PanelClaimService $claims): RedirectResponse

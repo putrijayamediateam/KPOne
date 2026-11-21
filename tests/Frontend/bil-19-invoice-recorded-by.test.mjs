@@ -36,7 +36,7 @@ test('each receipt row shows the received time and a muted Recorded by line', ()
         .split('<p')
         .at(-1);
 
-    for (const cls of ['text-[11px]', 'break-words', 'text-muted-foreground']) {
+    for (const cls of ['text-xs', 'break-words', 'text-muted-foreground']) {
         assert.ok(line.includes(cls), cls);
     }
 

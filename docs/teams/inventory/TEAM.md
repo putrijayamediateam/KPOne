@@ -300,9 +300,32 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     reason from the person who recorded it. You can still record your check." The owner then decided (16 Nov, his
     own choice): **only the recorder adds the reason, for now**; a missing reason keeps showing "Difference: reason
     needed" to everyone, and later checks still go ahead.
+45. DEMO-2 (owner, 16 Nov 2026: "build the inventory walk seeder", for Kavitha's Malay CA Supervisor guide):
+    `KPOneInventoryWalkSeeder`, run after DEMO-1 on a disposable database, adds a Cheras store, two fictional
+    suppliers, a controlled medicine with stock, a second, earlier-expiring Paracetamol batch, and one approved
+    purchase order waiting to be received, all through the domain services as demo accounts (recorder and
+    verifier, raiser and approver kept apart). Local and testing only; `.test` accounts only; reruns add nothing.
+    Commands and details in `docs/DEVELOPMENT.md`.
+46. STK-41 (owner, 18 Nov 2026, "Approve prepares real work"; plan agreed with Irfan and approved by B.E.R.N.I.S.S for the
+    owner): approving Hana's transfer suggestion may prepare a governed stock request, and a restock suggestion a purchase
+    request, through `InventoryProposalPreparer` (the agent platform's `PreparesWork`, behind `agents.prepare_enabled`,
+    OFF by default). The record is made by the normal service as the approver (`createFromProposal`, `sendFromProposal`),
+    so every permission, branch, lock, spare-stock and audit rule applies; the audit row gains `source: ai_proposal` and
+    the proposal id, and `ai_proposal_id` on the request is a trail only (unique, never changed). Owner decisions: a
+    Finance Officer or Director decides these types as a decision only (preparing needs the create permission, so in
+    practice a CA Supervisor); an agent-prepared stock request is never approved by its requester (service and
+    PostgreSQL); the approver may lower the quantity and change the locations. A transfer is prepared only at the branch
+    that sends the stock (STK-31); a restock is refused when the live Stock review row shows stock back above the level,
+    and the inbox may warn when an open purchase request or order already holds the item for that location.
 
 ## 7. Open items and known limits
 
+- **Recall lifting with one Director (owner, 16 Nov 2026: "note it, decide before go-live"):** only a Director
+  holds `inventory.recalls.lift.organisation`, and the Director who started a recall can never lift it (STK-25:
+  service and PostgreSQL). With one Director, a recall started in the pilot cannot be lifted. Options to decide
+  before go-live: (a) a second Director account; or (b) let a Finance Officer lift a recall a Director started,
+  which grants a new permission and needs the owner's approval. Found while checking Kavitha's guide (#906); the
+  guide says it plainly.
 - **Planned, not built:** STK-10 valuation (accountant policy first). STK-10B (cost evidence) is merged; its
   limits: opening balances still take a whole-sen cost per stock unit with no cost source; the legacy goods
   receipt line keeps only `unit_cost_sen`; Ask KPOne does not show `cost_total_sen` or `cost_source` until the
@@ -375,6 +398,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - Debt (Daniel, V2 page 5 review): supplier-return server messages print quantities as "6.000 unit" (three decimals,
   singular unit), the Classic wording. The V2 page shows them as "6 units" in the browser; the server text and the
   Classic page are unchanged. A server fix would change existing assertions, so it waits for its own approval.
+- **STK-42 limits (Mei Ling's code review):** for a cost viewer, every Stock review load (including searching or
+  paging the other lists) reads every at-risk row and replays the stock history of those SKUs to value them. Fine at
+  clinic scale; above `AT_RISK_VALUE_SORT_LIMIT` (2,000 rows) the list falls back to expiry order and says so. Hana
+  caps a SKU's own alert days at 90, so a SKU set above 90 can be expiring on the page before the analyst sees it.
+  Patient-returns stock is left out of the at-risk list by the same rule as "Expiring soon" (tested by STK-11), not by
+  a test of its own.
 
 ## 8. Rules (every task)
 
