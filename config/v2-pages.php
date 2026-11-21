@@ -13,10 +13,7 @@
 */
 
 return [
-    'pages' => [
-        'RegistrationReview/Show',
-        'PublicCheckInLinks/Index',
-    ],
+    'pages' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -34,8 +31,5 @@ return [
     'public' => false,
 
     // A page is listed here only once its V2 file exists (V2PageDispatchTest checks both ways).
-    'public_pages' => [
-        'PublicCheckIn/Status',
-        'PublicCheckIn/Show',
-    ],
+    'public_pages' => [],
 ];
