@@ -45,6 +45,7 @@ type PriceBookRow = {
     branchId: number | null;
     scopeKey: string;
     isActive: boolean;
+    isPanel: boolean;
 };
 
 const props = defineProps<{
@@ -62,7 +63,7 @@ const activeBranchId = page.props.branchContext?.active?.id ?? null;
 const bookOptions = () => [
     { value: '', label: 'Select a price book' },
     ...props.priceBooks
-        .filter((book) => book.isActive)
+        .filter((book) => book.isActive && !book.isPanel)
         .map((book) => ({
             value: book.publicId,
             label: `${book.name} (${book.branchId === null ? 'Organisation-wide' : 'Branch'})`,
@@ -133,7 +134,14 @@ const publishForms = reactive<
 const publishForm = (charge: ChargeRow) => {
     if (!publishForms[charge.publicId]) {
         publishForms[charge.publicId] = {
-            priceBook: charge.currentPrice?.priceBookPublicId ?? '',
+            // Panel prices are not published here; they change by proposal.
+            priceBook: props.priceBooks.some(
+                (book) =>
+                    book.isPanel &&
+                    book.publicId === charge.currentPrice?.priceBookPublicId,
+            )
+                ? ''
+                : (charge.currentPrice?.priceBookPublicId ?? ''),
             amount:
                 charge.currentPrice && charge.currentPrice.amountSen !== null
                     ? (charge.currentPrice.amountSen / 100).toFixed(2)
@@ -227,10 +235,13 @@ const toggleCharge = (charge: ChargeRow) => {
     <main
         class="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-6"
     >
-        <PageHeader
-            title="Pricing"
-            description="Manage charge definitions, price books and published prices."
-        >
+        <PageHeader title="Pricing">
+            <template #description>
+                Manage charge definitions, price books and published prices.
+                Current price is the Self-pay price. Panel prices are changed by
+                proposal. A Panel Officer proposes them in Clinic management,
+                Panel price changes.
+            </template>
             <template #actions>
                 <Button variant="outline" size="sm" as-child>
                     <Link href="/pricing/price-check">Check price list</Link>

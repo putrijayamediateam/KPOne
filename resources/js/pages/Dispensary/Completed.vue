@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import type { DispensaryReturnsPanel } from '@/lib/dispensary-returns';
+import type { DispensarySupervisorCheck } from '@/types';
 import MedicineReturnsSection from './Partials/MedicineReturnsSection.vue';
 
 defineProps<{
@@ -16,6 +18,8 @@ defineProps<{
     };
     // DSP-7: a separate prop, so the completed-case payload keeps its keys.
     returns?: DispensaryReturnsPanel;
+    // DSP-23: set when a CA Supervisor checked the case instead of the doctor.
+    supervisorCheck?: DispensarySupervisorCheck | null;
 }>();
 </script>
 
@@ -51,6 +55,11 @@ defineProps<{
                 >
             </template>
         </PageHeader>
+        <SupervisorCheckNote
+            v-if="supervisorCheck"
+            class="mb-4"
+            :check="supervisorCheck"
+        />
         <p v-if="dispensary.completedAt" class="mt-3 text-sm">
             Completed {{ dispensary.completedAt }}
         </p>
