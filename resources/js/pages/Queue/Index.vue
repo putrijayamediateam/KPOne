@@ -94,8 +94,22 @@ const chooseRoom = (value: string | number) => {
     );
 };
 type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
+const toCheckBadge = (
+    count: number,
+): { text: string; srLabel: string } | undefined =>
+    count > 0
+        ? {
+              text: `${count} to check`,
+              srLabel: `${count} medicine ${count === 1 ? 'check' : 'checks'} waiting for you`,
+          }
+        : undefined;
 const tabs = computed<
-    Array<{ value: QueueTab; label: string; count?: number }>
+    Array<{
+        value: QueueTab;
+        label: string;
+        count?: number;
+        badge?: { text: string; srLabel: string };
+    }>
 >(() => [
     { value: 'all', label: 'All active', count: live.value.tabCounts?.all },
     {
@@ -112,6 +126,8 @@ const tabs = computed<
         value: 'removed',
         label: 'Consultation Completed',
         count: live.value.tabCounts?.removed,
+        // Q-15: the doctor's own medicine checks waiting (only when above 0; not a second control, the tab is the control).
+        badge: toCheckBadge(live.value.checksWaiting ?? 0),
     },
 ]);
 const live = ref(props.snapshot);

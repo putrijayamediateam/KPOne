@@ -170,6 +170,8 @@ class QueueDirectoryService
 
         $dynamic = [
             'tabCounts' => $counts['tabs'],
+            // Q-15: every dispensary case waiting for this doctor's check (0 for anyone else); a top-level key, so tabCounts keeps its shape.
+            'checksWaiting' => $this->dispensaryAttention->checksWaitingCount($actor),
             'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
             'serverNow' => $now->toIso8601String(),
             'operationalDate' => $today,
