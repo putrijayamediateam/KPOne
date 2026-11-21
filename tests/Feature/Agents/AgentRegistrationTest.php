@@ -52,13 +52,16 @@ class AgentRegistrationTest extends VisitTestCase
     public function test_an_existing_agent_keeps_its_code_title_enabled_state_and_version(): void
     {
         $this->artisan('kpone:register-agents')->assertSuccessful();
+        $disabled = AiAgent::query()->where('code', 'qa_reviewer')->firstOrFail();
         $hana = AiAgent::query()->where('code', 'inventory_analyst')->firstOrFail();
         $hana->forceFill(['display_name' => 'Hana Renamed', 'job_title' => 'Custom title (AI agent)', 'is_enabled' => true, 'lock_version' => 4])->save();
 
-        $this->artisan('kpone:register-agents', ['--enable' => false, '--add-missing-tools' => true])->assertSuccessful();
+        $this->artisan('kpone:register-agents', ['--add-missing-tools' => true])->assertSuccessful();
+        $this->artisan('kpone:register-agents', ['--enable' => true])->assertSuccessful();
 
         $hana->refresh();
         $this->assertSame(['Hana Renamed', 'Custom title (AI agent)', true, 4], [$hana->display_name, $hana->job_title, $hana->is_enabled, $hana->lock_version]);
+        $this->assertFalse($disabled->refresh()->is_enabled, '--enable only applies to agents it creates.');
     }
 
     public function test_missing_tools_are_added_only_on_request_and_never_removed(): void
@@ -79,17 +82,18 @@ class AgentRegistrationTest extends VisitTestCase
 
     public function test_a_dry_run_writes_nothing(): void
     {
-        $this->artisan('kpone:register-agents', ['--dry-run' => true])->expectsOutputToContain('Would create director_assistant (disabled)')->assertSuccessful();
+        $this->artisan('kpone:register-agents', ['--dry-run' => true, '--add-missing-tools' => true])->expectsOutputToContain('Would create director_assistant (disabled)')->assertSuccessful();
 
         $this->assertSame(0, AiAgent::query()->count());
+        $this->assertSame(0, AiAgentTool::query()->count());
         $this->assertSame(0, AuditLog::query()->where('event', 'ai_agents.registered')->count());
     }
 
-    public function test_production_needs_force_and_a_dry_run_does_not(): void
+    public function test_a_real_server_needs_force_and_a_dry_run_does_not(): void
     {
-        $this->app['env'] = 'production';
+        $this->app['env'] = 'staging';
 
-        $this->artisan('kpone:register-agents')->assertFailed();
+        $this->artisan('kpone:register-agents')->expectsOutputToContain('--dry-run first, then add --force')->assertFailed();
         $this->assertSame(0, AiAgent::query()->count());
         $this->artisan('kpone:register-agents', ['--dry-run' => true])->assertSuccessful();
         $this->artisan('kpone:register-agents', ['--force' => true])->assertSuccessful();

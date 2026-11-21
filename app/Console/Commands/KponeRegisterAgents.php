@@ -14,7 +14,7 @@ final class KponeRegisterAgents extends Command
 {
     protected $signature = 'kpone:register-agents
         {--dry-run : Show what would be created and change nothing}
-        {--force : Needed to write in production}
+        {--force : Needed to write outside local and testing}
         {--enable : Create new agents enabled (default: disabled; the Director enables each on the Agents page)}
         {--add-missing-tools : Add tools missing from existing agents (never removes a tool)}';
 
@@ -23,8 +23,8 @@ final class KponeRegisterAgents extends Command
     public function handle(AgentRegistrar $registrar): int
     {
         $dry = (bool) $this->option('dry-run');
-        if (! $dry && app()->isProduction() && ! $this->option('force')) {
-            $this->error('This writes to a production database. Run with --dry-run first, then add --force.');
+        if (! $dry && ! app()->environment(['local', 'testing']) && ! $this->option('force')) {
+            $this->error('This writes to a real database. Run with --dry-run first, then add --force.');
 
             return self::FAILURE;
         }
@@ -48,7 +48,7 @@ final class KponeRegisterAgents extends Command
             $this->warn($code.' lacks '.implode(', ', $tools).' (use --add-missing-tools to add)');
         }
         if ($report['created'] === [] && $report['tools_added'] === []) {
-            $this->info('Nothing to do.');
+            $this->info($report['tools_missing'] === [] ? 'Nothing to do.' : 'Nothing was changed.');
         }
 
         return self::SUCCESS;
