@@ -263,7 +263,8 @@ final class PhaseFiveHr
 
     private function credentials(): void
     {
-        if (DB::table('hr_credential_records')->where('organisation_id', $this->org())->exists()) {
+        // Only the credentials module reads its own tables (HR decision 4), so the audit trail tells whether this ran.
+        if (DB::table('audit_logs')->where('organisation_id', $this->org())->where('event', 'hr.credentials.record_sent')->exists()) {
             return;
         }
         $service = app(CredentialService::class);
@@ -275,7 +276,7 @@ final class PhaseFiveHr
                 'issuing_body' => 'Trial Medical Council (fictional)', 'reference' => 'TRIAL-APC-'.strtoupper($role), 'idempotency_key' => $this->k(),
             ]);
             if ($accept) {
-                $service->decide($this->director(), $record->public_id, ['decision' => 'accept', 'expected_lock_version' => (int) DB::table('hr_credential_records')->where('public_id', $record->public_id)->value('lock_version'), 'idempotency_key' => $this->k()]);
+                $service->decide($this->director(), $record->public_id, ['decision' => 'accept', 'expected_lock_version' => (int) $record->lock_version, 'idempotency_key' => $this->k()]);
             }
             $this->count('credentials');
         }
