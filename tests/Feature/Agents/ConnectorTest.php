@@ -218,6 +218,16 @@ class ConnectorTest extends VisitTestCase
         $this->assertSame(['mcp:use'], array_keys(Passport::scopes()->mapWithKeys(fn ($scope) => [$scope->id => true])->all()));
     }
 
+    public function test_a_stale_consent_shows_the_plain_expired_page(): void
+    {
+        $director = $this->director();
+        $this->actingAs($director)->post('/oauth/authorize', ['auth_token' => 'old', 'client_id' => 'x', 'state' => 's'])
+            ->assertStatus(419)->assertSee('This request expired')->assertSee('Start again from the app')->assertHeader('Cache-Control');
+        $this->actingAs($director)->delete('/oauth/authorize', ['auth_token' => 'old', 'client_id' => 'x'])
+            ->assertStatus(419)->assertSee('This request expired');
+        $this->actingAs($this->actor('ca'))->post('/oauth/authorize', ['auth_token' => 'old'])->assertForbidden();
+    }
+
     public function test_the_revoke_command_revokes_one_users_tokens_or_everyones(): void
     {
         $a = $this->director();

@@ -16,6 +16,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Laravel\Passport\Exceptions\InvalidAuthTokenException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -193,6 +195,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // CN-1: a stale connector consent (the tab was left open, the session ended or the token no longer matches) shows one
+        // plain page instead of a fault. Only the consent's own Allow and Cancel posts; 403s and 404s keep their own pages.
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            $status = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 500;
+            if ($request->is('oauth/authorize') && in_array($request->method(), ['POST', 'DELETE'], true)
+                && ($exception instanceof InvalidAuthTokenException || $exception->getPrevious() instanceof InvalidAuthTokenException || (! $exception instanceof AuthorizationException && ! in_array($status, [403, 404], true)))) {
+                return response()->view('connector.expired', [], 419)->header('Cache-Control', 'no-store');
+            }
+
+            return null;
+        });
 
         $exceptions->render(function (AuthorizationException $exception, Request $request) {
             app(AuditRecorder::class)->record('authorization.denied', $request->user(), [

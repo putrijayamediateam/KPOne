@@ -24,7 +24,7 @@
             ul { margin: 0 0 16px; padding-left: 20px; }
             li { margin-bottom: 4px; }
             .who { color: var(--fg); font-weight: 600; word-break: break-word; }
-            .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+            .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
             form { flex: 1 1 8rem; margin: 0; }
             button { width: 100%; min-height: 44px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
             button.allow { background: var(--brand); border-color: var(--brand); color: var(--brand-fg); }
