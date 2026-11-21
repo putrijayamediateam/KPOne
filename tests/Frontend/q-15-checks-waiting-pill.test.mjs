@@ -75,10 +75,24 @@ test('the Queue page gives the Consultation Completed tab a badge only when chec
 
 test('the count rides the poll as its own top-level key and tabCounts keeps its shape', () => {
     assert.match(types, /checksWaiting\?: number;/);
+    // the payload key is the value worked out above it: reused from the flags already read when the Completed tab shows every
+    // removed entry, otherwise one aggregate count for the active branch
+    assert.match(service, /'checksWaiting' => \$checksWaiting,/);
     assert.match(
         service,
-        /'checksWaiting' => \$this->dispensaryAttention->checksWaitingCount\(\$actor\)/,
+        /\$checksWaiting = \$showsAllRemoved\s*\?\s*count\(\$checkWaiting\)\s*:\s*\$this->dispensaryAttention->checksWaitingCount\(\$actor, \$branch\);/,
     );
+    assert.match(
+        service,
+        /\$showsAllRemoved = \$status === QueueEntry::STATUS_REMOVED/,
+    );
+    assert.match(service, /! filled\(\$criteria\['priority'\] \?\? null\)/);
+    assert.match(
+        service,
+        /\$removedEntries->count\(\) >= \$counts\['tabs'\]\['removed'\]/,
+    );
+    // tabCounts keeps its shape: the key is separate from it
+    assert.match(service, /'tabCounts' => \$counts\['tabs'\],/);
     const dynamic = service.slice(
         service.indexOf("'tabCounts' => $counts['tabs']"),
     );
