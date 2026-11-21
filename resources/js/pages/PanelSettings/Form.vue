@@ -245,42 +245,60 @@ const submit = () => {
                 </label>
                 <fieldset class="grid gap-2 text-xs">
                     <legend class="mb-1 font-medium">Address</legend>
-                    <Input
-                        v-model="form.address_line_1"
-                        maxlength="255"
-                        placeholder="Address line 1"
-                        aria-label="Address line 1"
-                    />
-                    <Input
-                        v-model="form.address_line_2"
-                        maxlength="255"
-                        placeholder="Address line 2"
-                        aria-label="Address line 2"
-                    />
-                    <Input
-                        v-model="form.postcode"
-                        maxlength="16"
-                        placeholder="Postcode"
-                        aria-label="Postcode"
-                    />
-                    <Input
-                        v-model="form.city"
-                        maxlength="100"
-                        placeholder="City"
-                        aria-label="City"
-                    />
-                    <Input
-                        v-model="form.state"
-                        maxlength="100"
-                        placeholder="State"
-                        aria-label="State"
-                    />
-                    <Input
-                        v-model="form.country"
-                        maxlength="100"
-                        placeholder="Country"
-                        aria-label="Country"
-                    />
+                    <label class="grid gap-1 text-xs">
+                        Address line 1
+                        <Input
+                            v-model="form.address_line_1"
+                            maxlength="255"
+                            aria-label="Address line 1"
+                        />
+                        <InputError :message="form.errors.address_line_1" />
+                    </label>
+                    <label class="grid gap-1 text-xs">
+                        Address line 2
+                        <Input
+                            v-model="form.address_line_2"
+                            maxlength="255"
+                            aria-label="Address line 2"
+                        />
+                        <InputError :message="form.errors.address_line_2" />
+                    </label>
+                    <label class="grid gap-1 text-xs">
+                        Postcode
+                        <Input
+                            v-model="form.postcode"
+                            maxlength="16"
+                            aria-label="Postcode"
+                        />
+                        <InputError :message="form.errors.postcode" />
+                    </label>
+                    <label class="grid gap-1 text-xs">
+                        City
+                        <Input
+                            v-model="form.city"
+                            maxlength="100"
+                            aria-label="City"
+                        />
+                        <InputError :message="form.errors.city" />
+                    </label>
+                    <label class="grid gap-1 text-xs">
+                        State
+                        <Input
+                            v-model="form.state"
+                            maxlength="100"
+                            aria-label="State"
+                        />
+                        <InputError :message="form.errors.state" />
+                    </label>
+                    <label class="grid gap-1 text-xs">
+                        Country
+                        <Input
+                            v-model="form.country"
+                            maxlength="100"
+                            aria-label="Country"
+                        />
+                        <InputError :message="form.errors.country" />
+                    </label>
                 </fieldset>
             </section>
 
@@ -379,61 +397,69 @@ const submit = () => {
                         days after the visit
                     </span>
                     <InputError :message="form.errors.claim_due_days" />
-                    <div
-                        v-if="scheduled"
-                        class="flex flex-wrap items-center gap-2 text-sm"
-                    >
-                        Submit
-                        <select
-                            v-model="form.claim_due_rule"
-                            class="h-9 rounded-md border bg-background px-2"
-                            aria-label="Frequency"
-                            @change="form.claim_due_offset = ''"
-                        >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                        by
-                        <Input
-                            v-model="form.claim_due_time"
-                            type="time"
-                            class="w-32"
-                            aria-label="Time"
-                        />
-                        <select
-                            v-model="form.claim_due_offset"
-                            class="h-9 rounded-md border bg-background px-2"
-                            aria-label="Day"
-                        >
-                            <option value="" disabled>Select day</option>
-                            <template v-if="form.claim_due_rule === 'daily'">
-                                <option :value="0">Same day</option>
-                                <option :value="1">Next day</option>
-                                <option :value="2">2 days after</option>
-                                <option :value="3">3 days after</option>
-                            </template>
-                            <template
-                                v-else-if="form.claim_due_rule === 'weekly'"
+                    <div v-if="scheduled" class="grid gap-3 text-xs">
+                        <label class="grid content-start gap-1">
+                            Frequency
+                            <select
+                                v-model="form.claim_due_rule"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                                aria-label="Frequency"
+                                @change="form.claim_due_offset = ''"
                             >
-                                <option
-                                    v-for="(name, index) in weekdays"
-                                    :key="name"
-                                    :value="index + 1"
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </label>
+                        <label class="grid content-start gap-1">
+                            Time
+                            <Input
+                                v-model="form.claim_due_time"
+                                type="time"
+                                aria-label="Time"
+                            />
+                            <span class="text-muted-foreground"
+                                >Submit by this time.</span
+                            >
+                        </label>
+                        <label class="grid content-start gap-1">
+                            Day
+                            <select
+                                v-model="form.claim_due_offset"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                                aria-label="Day"
+                            >
+                                <option value="" disabled>Select day</option>
+                                <template
+                                    v-if="form.claim_due_rule === 'daily'"
                                 >
-                                    Next {{ name }}
-                                </option>
-                            </template>
-                            <template v-else>
-                                <option
-                                    v-for="day in monthDays"
-                                    :key="day.value"
-                                    :value="day.value"
+                                    <option :value="0">Same day</option>
+                                    <option :value="1">Next day</option>
+                                    <option :value="2">2 days after</option>
+                                    <option :value="3">3 days after</option>
+                                </template>
+                                <template
+                                    v-else-if="form.claim_due_rule === 'weekly'"
                                 >
-                                    {{ day.label }}
-                                </option>
-                            </template>
-                        </select>
+                                    <option
+                                        v-for="(name, index) in weekdays"
+                                        :key="name"
+                                        :value="index + 1"
+                                    >
+                                        Next {{ name }}
+                                    </option>
+                                </template>
+                                <template v-else>
+                                    <option
+                                        v-for="day in monthDays"
+                                        :key="day.value"
+                                        :value="day.value"
+                                    >
+                                        {{ day.label }}
+                                    </option>
+                                </template>
+                            </select>
+                        </label>
                     </div>
                     <InputError :message="form.errors.claim_due_time" />
                     <InputError :message="form.errors.claim_due_offset" />
