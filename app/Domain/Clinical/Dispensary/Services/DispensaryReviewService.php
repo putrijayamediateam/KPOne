@@ -2,6 +2,7 @@
 
 namespace App\Domain\Clinical\Dispensary\Services;
 
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -60,6 +61,7 @@ final class DispensaryReviewService
         $items = $handoff
             ? DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->with('allocations.batch:id,batch_number,expiry_date')->get()
             : collect();
+        $packs = DispensaryPackDisplay::forItems($items);
         $profile = PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $case->visit->patient_id)->first();
         // Daniel: the latest 10 returns, newest first, with the full count for a "Showing the latest 10 of N" line.
         $returnsTotal = DispensaryReturn::query()->where('dispensary_case_id', $case->id)->count();
@@ -99,6 +101,7 @@ final class DispensaryReviewService
                 ],
                 'dispensed' => [
                     'quantity' => $item->quantity_dispensed,
+                    'packText' => $packs[$item->id]['text'] ?? null,
                     'dosage' => $item->effective('dosage'),
                     'frequency' => $item->effective('frequency'),
                     'duration' => $item->effective('duration'),

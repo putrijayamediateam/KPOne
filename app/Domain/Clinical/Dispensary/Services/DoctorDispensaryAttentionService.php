@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
@@ -175,6 +176,7 @@ class DoctorDispensaryAttentionService
     private function checkLines(DispensaryHandoff $handoff): array
     {
         $lines = [];
+        $packs = DispensaryPackDisplay::forItems($handoff->items);
         foreach ($handoff->items as $item) {
             $batches = [];
             foreach ($item->allocations as $allocation) {
@@ -191,7 +193,7 @@ class DoctorDispensaryAttentionService
                 'changeState' => $item->change_state,
                 'source' => $item->source,
                 'ordered' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration],
-                'prepared' => ['quantity' => $item->quantity_dispensed, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction')],
+                'prepared' => ['quantity' => $item->quantity_dispensed, 'packText' => $packs[$item->id]['text'] ?? null, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction')],
                 'batches' => $batches,
             ];
         }

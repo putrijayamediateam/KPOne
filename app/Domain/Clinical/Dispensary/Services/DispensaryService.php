@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Dispensary\Labels\DrugLabelLayout;
 use App\Domain\Clinical\Dispensary\Models\DispensaryAllergyConfirmation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
@@ -33,6 +34,7 @@ use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReadinessService;
+use App\Domain\Organisation\Inventory\Services\PackConversionReader;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
@@ -48,6 +50,9 @@ class DispensaryService
 {
     /** DSP-23: the pseudo-permission key for Verify and Send back (doctor or CA Supervisor; see lockChecker). */
     private const CHECK = 'dispensary.doctor_check';
+
+    /** DSP-24: at most 99 whole packs on one line, so the label's QTY cell always fits (Daniel, Hakim). */
+    public const MAX_PACKS = 99;
 
     public function __construct(private DispensaryAuthorityService $authority, private DispensarySafetyValidator $safety, private InventoryMovementService $inventory, private AuditRecorder $audit, private DispensaryAllergyMatcher $allergyMatcher, private PatientAllergyService $allergies) {}
 
@@ -90,7 +95,7 @@ class DispensaryService
                 $exception->forceFill(['status' => DispensaryItemException::STATUS_SUPERSEDED])->save();
             });
             DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $locked->id)->delete();
-            $locked->forceFill(['quantity_dispensed' => $quantity, 'status' => $status, 'reason' => $reason, 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
+            $locked->forceFill([...$this->clearedPacks($locked), 'quantity_dispensed' => $quantity, 'status' => $status, 'reason' => $reason, 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
             $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $locked, $profile, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
             foreach (($attributes['allocations'] ?? []) as $allocation) {
                 $this->allocation($actor, $case, $locked, $allocation);
@@ -171,6 +176,10 @@ class DispensaryService
                 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(), 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => 1,
             ])->save();
             $this->replaceAllocations($actor, $case, $line, $quantity, $attributes['allocations'] ?? []);
+            $packs = $this->packFields($actor, $line, $quantity, $attributes);
+            if (($packs['packs_dispensed'] ?? null) !== null) {
+                $line->forceFill($packs)->save();
+            }
             $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $line, $profile, $matches, DispensaryAllergyConfirmation::ACTION_ADD);
             $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
             $this->audit->record('dispensary.item_added', $case, ['record_version' => $case->lock_version], $actor, $branch);
@@ -195,6 +204,7 @@ class DispensaryService
             DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $locked->id)->delete();
             $locked->forceFill([
                 'quantity_dispensed' => '0.000', 'status' => DispensaryItem::STATUS_NOT_DISPENSED, 'reason' => DispensaryItem::REASON_CA_REMOVED,
+                ...$this->clearedPacks($locked),
                 'change_state' => DispensaryItem::CHANGE_REMOVED, 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(),
                 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1,
             ])->save();
@@ -314,7 +324,7 @@ class DispensaryService
         $this->supersedeExceptions($line);
         $this->replaceAllocations($actor, $case, $line, $quantity, $attributes['allocations'] ?? []);
         $line->forceFill([
-            ...$finals, 'quantity_dispensed' => $quantity, 'status' => DispensaryItem::STATUS_DISPENSED, 'reason' => null,
+            ...$finals, ...$this->packFields($actor, $line, $quantity, $attributes), 'quantity_dispensed' => $quantity, 'status' => DispensaryItem::STATUS_DISPENSED, 'reason' => null,
             'change_state' => $caLine ? DispensaryItem::CHANGE_ADDED : ($changed ? DispensaryItem::CHANGE_EDITED : DispensaryItem::CHANGE_UNCHANGED),
             'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(), 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(),
             'lock_version' => $line->lock_version + 1,
@@ -340,6 +350,55 @@ class DispensaryService
         if (number_format($sum, 3, '.', '') !== $quantity) {
             throw ValidationException::withMessages(['allocations' => 'Choose batches that add up to the quantity to dispense.']);
         }
+    }
+
+    /**
+     * DSP-24: clears the packs only on a line that has them, so a save in the base unit writes no pack column at all
+     * (and still works against an older schema, as the historical migration tests run today's code).
+     *
+     * @return array<string, null>
+     */
+    private function clearedPacks(DispensaryItem $line): array
+    {
+        return $line->pack_conversion_id !== null || $line->packs_dispensed !== null
+            ? ['pack_conversion_id' => null, 'packs_dispensed' => null]
+            : [];
+    }
+
+    /**
+     * DSP-24: when the CA dispensed whole packs (bottles), check them against the SKU's checked STK-52 conversion and
+     * return the two columns to store; otherwise clear them. Called after replaceAllocations(), so allocation() has
+     * already locked the SKU FOR UPDATE in the usual order and checkedForShare() adds no new lock (Hakim, Zulkifli).
+     *
+     * @param  array<string,mixed>  $attributes
+     * @return array{pack_conversion_id?: ?int, packs_dispensed?: ?int}
+     */
+    private function packFields(User $actor, DispensaryItem $line, string $quantity, array $attributes): array
+    {
+        if (($attributes['packs'] ?? null) === null || $attributes['packs'] === '') {
+            return $this->clearedPacks($line);
+        }
+        $skuIds = DispensaryItemBatchAllocation::query()->where('dispensary_item_id', $line->id)->distinct()->pluck('inventory_sku_id');
+        $sku = $skuIds->count() === 1 ? InventorySku::query()->where('organisation_id', $actor->organisation_id)->whereKey($skuIds->first())->first() : null;
+        $conversion = $sku ? app(PackConversionReader::class)->checkedForShare($actor->organisation_id, $sku->id) : null;
+        // Hakim: the message names the pack unit ("Whole boxes only") when the conversion is known.
+        $packs = filter_var($attributes['packs'], FILTER_VALIDATE_INT);
+        if ($packs === false || $packs < 1 || $packs > self::MAX_PACKS) {
+            $plural = $conversion ? DrugLabelLayout::packCount(2, $conversion->packUnit) : '2 packs';
+            throw ValidationException::withMessages(['packs' => 'Whole '.mb_substr($plural, 2).' only, 1 to '.self::MAX_PACKS.'.']);
+        }
+        if (! $conversion
+            || $conversion->publicId !== (string) ($attributes['pack_conversion_public_id'] ?? '')
+            || $conversion->version !== (int) ($attributes['pack_conversion_version'] ?? 0)
+            || $conversion->baseUnit !== $sku->stock_unit
+            || $conversion->baseUnit !== $line->unit_snapshot) {
+            throw ValidationException::withMessages(['packs' => 'The bottle size for this medicine changed. Reload the page.']);
+        }
+        if (app(PackConversionReader::class)->toBase($conversion, $packs) !== $quantity) {
+            throw ValidationException::withMessages(['packs' => 'The bottles do not match the quantity. Reload the page.']);
+        }
+
+        return ['pack_conversion_id' => $conversion->id, 'packs_dispensed' => $packs];
     }
 
     private function positiveQuantity(mixed $raw): string
@@ -993,6 +1052,19 @@ class DispensaryService
                 $verifying ? $this->batchGone() : throw ValidationException::withMessages(['allocations' => 'A selected inventory reference is no longer eligible for dispensing.']);
             }
             $checked[] = [$allocation, $location, $sku, $batch];
+        }
+        // DSP-24: a line dispensed in packs must still use the SKU's checked conversion (the SKUs are locked above).
+        $reader = app(PackConversionReader::class);
+        foreach ($items as $item) {
+            if ($item->pack_conversion_id === null) {
+                continue;
+            }
+            $skuId = $allocations->firstWhere('dispensary_item_id', $item->id)?->inventory_sku_id;
+            if ($skuId === null || $reader->checkedForShare($actor->organisation_id, (int) $skuId)?->id !== $item->pack_conversion_id) {
+                throw ValidationException::withMessages(['allocations' => $verifying
+                    ? 'The bottle size for this medicine changed. Send the case back so the CA can save the line again.'
+                    : 'The bottle size for this medicine changed. Save the line again.']);
+            }
         }
 
         return $checked;

@@ -21,6 +21,8 @@ export type VisitHistoryMedicine = {
     source: 'doctor' | 'ca';
     changeState: VisitHistoryChangeState;
     dispensedQuantity: string | null;
+    // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+    dispensedPacks?: string | null;
     dispensedStatus: string | null;
     dispensed: {
         dosage: string | null;
