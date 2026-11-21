@@ -55,6 +55,8 @@ class ClinicManagementTest extends VisitTestCase
             '/inventory-services-settings/suppliers' => ['catalogue.settings.manage.organisation'],
             '/inventory' => ['inventory.view.branch'],
             '/dispensary/returns-to-check' => ['inventory.variances.approve.branch'],
+            '/dispensary/doctor-checks' => ['dispensary.doctor_check.override.branch'],
+            '/dispensary-settings' => ['dispensary.settings.manage.branch'],
             '/patients' => ['patients.search.organisation'],
             '/financial-work' => ['finance.work.view.branch'],
             '/pay-later-collections' => ['outstanding.view.branch'],
