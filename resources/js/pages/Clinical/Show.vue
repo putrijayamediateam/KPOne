@@ -35,7 +35,6 @@ import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import {
-    noteVitalsKey,
     parseVitalsFromNote,
     planFill,
 } from '@/lib/vitals-from-note';
@@ -145,8 +144,9 @@ const form = useForm({
     diagnoses: diagnosesFromProps(),
 });
 
-// Q-11 (owner decision 2026-11-21): vitals the doctor typed into the note are suggested for the vitals boxes. Reading only: the note is
-// never edited, nothing is saved, and the boxes change only when the doctor presses Fill (then the usual Save clinical record).
+// Q-11 (owner decisions 2026-11-21): vitals the doctor typed into the note are filled straight into the EMPTY vitals boxes (rule-based, in the
+// browser; no AI service). The note is never edited, a box that already has a value is never overwritten, and nothing is saved until the
+// doctor presses Save clinical record. Undo clears what was auto-filled.
 const noteForVitals = ref(form.clinical_note);
 let noteVitalsTimer: ReturnType<typeof setTimeout> | undefined;
 watch(
@@ -160,55 +160,90 @@ watch(
 );
 onBeforeUnmount(() => clearTimeout(noteVitalsTimer));
 const noteVitals = computed(() => parseVitalsFromNote(noteForVitals.value));
-const noteVitalsPlan = computed(() => planFill(noteVitals.value, form.vitals));
-const noteVitalsNow = computed(() => noteVitalsKey(noteVitals.value));
-const dismissedNoteVitals = ref('');
 const filledFromNote = ref<string[]>([]);
 const noteVitalsNotice = ref('');
-const showNoteVitals = computed(
-    () =>
-        (noteVitalsPlan.value.filled.length > 0 ||
-            noteVitalsPlan.value.skipped.length > 0 ||
-            noteVitals.value.notRead.length > 0) &&
-        dismissedNoteVitals.value !== noteVitalsNow.value,
-);
-const fillVitalsFromNote = async () => {
-    const plan = noteVitalsPlan.value;
+// What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
+// a box the doctor changed is theirs and is never touched.
+const autoValues: Partial<Record<keyof typeof form.vitals, string>> = {};
+// Field and value pairs already applied once, so Undo (or clearing a box) is not undone by the next typing pause.
+const appliedFromNote = new Set<string>();
+const boxesForPlan = () => {
+    const boxes = { ...form.vitals } as Record<string, string>;
 
-    for (const [field, value] of Object.entries(plan.fill)) {
-        form.vitals[field as keyof typeof form.vitals] = value;
+    for (const [field, value] of Object.entries(autoValues)) {
+        if (boxes[field] === value) {
+            boxes[field] = '';
+        }
     }
 
-    filledFromNote.value = plan.filled;
+    return boxes as typeof form.vitals;
+};
+const noteVitalsPlan = computed(() =>
+    planFill(noteVitals.value, boxesForPlan()),
+);
+const showNoteVitals = computed(
+    () =>
+        noteVitalsPlan.value.skipped.length > 0 ||
+        noteVitals.value.notRead.length > 0,
+);
+const autoFillVitalsFromNote = async () => {
+    const plan = noteVitalsPlan.value;
+    const touched: (keyof typeof form.vitals)[] = [];
+
+    for (const [field, value] of Object.entries(plan.fill)) {
+        const key = `${field}:${value}`;
+
+        if (appliedFromNote.has(key)) {
+            continue;
+        }
+
+        appliedFromNote.add(key);
+        form.vitals[field as keyof typeof form.vitals] = value;
+        autoValues[field as keyof typeof form.vitals] = value;
+        touched.push(field as keyof typeof form.vitals);
+    }
+
+    if (touched.length === 0) {
+        return;
+    }
+
+    filledFromNote.value = noteVitals.value.readings
+        .filter((reading) =>
+            Object.keys(reading.values).some((field) =>
+                touched.includes(field as keyof typeof form.vitals),
+            ),
+        )
+        .map((reading) => reading.label);
     noteVitalsNotice.value = plan.skippedDetails.length
         ? `Not filled: ${plan.skippedDetails
               .map((item) => `${item.label} (box already has ${item.current})`)
               .join(', ')}.`
         : '';
+    vitalsExpanded.value = true;
+    await nextTick();
+    document
+        .querySelector<HTMLInputElement>(`[data-vitals-field="${touched[0]}"]`)
+        ?.focus({ preventScroll: true });
+};
+// Fill only after a typing pause, never on load: a saved record that is reopened is not refilled.
+watch(noteForVitals, () => {
+    void autoFillVitalsFromNote();
+});
+const undoNoteVitals = () => {
+    for (const [field, value] of Object.entries(autoValues)) {
+        if (form.vitals[field as keyof typeof form.vitals] === value) {
+            form.vitals[field as keyof typeof form.vitals] = '';
+        }
 
-    if (plan.filled.length > 0) {
-        vitalsExpanded.value = true;
+        delete autoValues[field as keyof typeof form.vitals];
     }
 
-    dismissedNoteVitals.value = noteVitalsNow.value;
-
-    // The Fill button goes away once it is pressed: keep focus in the form, on the first box that was filled.
-    const first = Object.keys(plan.fill)[0];
-
-    if (first) {
-        await nextTick();
-        document
-            .querySelector<HTMLInputElement>(`[data-vitals-field="${first}"]`)
-            ?.focus();
-    }
+    filledFromNote.value = [];
+    noteVitalsNotice.value = '';
 };
 const vitalsUnsaved = computed(
     () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
 );
-const dismissNoteVitals = () => {
-    dismissedNoteVitals.value = noteVitalsNow.value;
-    noteVitalsNotice.value = '';
-};
 // Once the record is saved the "check them" line has done its job.
 watch(
     () => form.recentlySuccessful,
@@ -1280,47 +1315,14 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 data-testid="note-vitals-suggestion"
                                 class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
                             >
-                                <div
-                                    v-if="showNoteVitals"
-                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
-                                >
-                                    <p
-                                        v-if="noteVitals.readings.length"
-                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
-                                    >
-                                        Vitals found in your note:
-                                        <span class="font-medium">{{
-                                            noteVitals.readings
-                                                .map((reading) => reading.label)
-                                                .join(' · ')
-                                        }}</span>
-                                    </p>
-                                    <Button
-                                        v-if="noteVitalsPlan.filled.length"
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        class="max-lg:h-11"
-                                        @click="fillVitalsFromNote"
-                                        >Fill vitals boxes</Button
-                                    >
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        class="max-lg:h-11"
-                                        @click="dismissNoteVitals"
-                                        >Dismiss</Button
-                                    >
-                                </div>
                                 <p
                                     v-if="
-                                        showNoteVitals &&
+                                        !filledFromNote.length &&
                                         noteVitalsPlan.skippedDetails.length
                                     "
                                     class="text-muted-foreground"
                                 >
-                                    Will not fill:
+                                    Not filled:
                                     {{
                                         noteVitalsPlan.skippedDetails
                                             .map(
@@ -1342,11 +1344,27 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     them in the vitals boxes in the units KPOne
                                     takes.
                                 </p>
-                                <p v-if="filledFromNote.length">
-                                    Filled from your note:
-                                    {{ filledFromNote.join(' · ') }}. Check
-                                    them, then save.
-                                </p>
+                                <div
+                                    v-if="filledFromNote.length"
+                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
+                                >
+                                    <p
+                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                                    >
+                                        Filled from your note:
+                                        {{ filledFromNote.join(' · ') }}. Check
+                                        them, then save.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="max-lg:h-11"
+                                        data-testid="note-vitals-undo"
+                                        @click="undoNoteVitals"
+                                        >Undo</Button
+                                    >
+                                </div>
                                 <p v-if="noteVitalsNotice">
                                     {{ noteVitalsNotice }}
                                 </p>

@@ -156,29 +156,49 @@ test('the suggestion key changes only when the readings change', () => {
     );
 });
 
-test('the consultation page suggests, announces, fills only on Fill and never edits the note or saves', () => {
+test('the owner\'s own example "bp:180/45" is read (colon, no space)', () => {
+    const found = parseVitalsFromNote('pt c/o headache. bp:180/45 noted');
+    assert.deepEqual(
+        found.readings.map((reading) => ({ ...reading.values })),
+        [{ systolic_bp: '180', diastolic_bp: '45' }],
+    );
+});
+
+test('the consultation page auto-fills empty boxes after a typing pause, announces it, offers Undo and never edits the note or saves', () => {
     assert.match(show, /parseVitalsFromNote\(/);
     assert.match(
         show,
         /data-testid="note-vitals-suggestion"[\s\S]{0,200}role="status"|role="status"[\s\S]{0,200}data-testid="note-vitals-suggestion"/,
     );
-    assert.match(show, /Vitals found in your note/);
-    assert.match(show, /Fill vitals boxes/);
-    const fill = show.slice(
-        show.indexOf('const fillVitalsFromNote'),
-        show.indexOf('const dismissNoteVitals'),
+    assert.doesNotMatch(
+        show,
+        /Fill vitals boxes/,
+        'no button: fills by itself',
     );
-    assert.match(show, /planFill\(\s*noteVitals\.value,\s*form\.vitals/);
+    const fill = show.slice(
+        show.indexOf('const autoFillVitalsFromNote'),
+        show.indexOf('const vitalsUnsaved'),
+    );
+    assert.match(show, /planFill\(\s*noteVitals\.value,\s*boxesForPlan\(\)/);
     assert.match(fill, /noteVitalsPlan\.value/);
+    assert.match(fill, /appliedFromNote/);
     assert.match(fill, /vitalsExpanded\.value = true/);
+    assert.match(fill, /await nextTick\(\)/);
+    assert.match(fill, /Not filled: /);
+    assert.match(fill, /box already has/);
+    assert.match(
+        show,
+        /watch\(noteForVitals,[\s\S]{0,80}autoFillVitalsFromNote/,
+        'fires on the debounced note, not on load (no immediate)',
+    );
     assert.doesNotMatch(
         fill,
         /form\.clinical_note\s*=|form\.post|form\.put|form\.patch|router\./,
         'filling never edits the note or saves',
     );
-    // nothing fills by itself: the only writers of form.vitals from the note are inside fillVitalsFromNote
-    assert.equal((show.match(/form\.vitals\[/g) ?? []).length <= 3, true);
-    assert.match(show, /Not filled/);
+    assert.match(show, /data-testid="note-vitals-undo"/);
+    assert.match(show, /const undoNoteVitals/);
+    assert.match(show, /Filled from your note:/);
 });
 
 test('a unit KPOne does not take is never read or converted, only reported as not read (Daniel)', () => {
@@ -258,13 +278,11 @@ test('the page labels unsaved vitals, announces politely, moves focus to the fir
     }
 
     const fill = show.slice(
-        show.indexOf('const fillVitalsFromNote'),
+        show.indexOf('const autoFillVitalsFromNote'),
         show.indexOf('const vitalsUnsaved'),
     );
     assert.match(fill, /await nextTick\(\)/);
     assert.match(fill, /data-vitals-field=/);
-    assert.match(fill, /Not filled: /);
-    assert.match(fill, /box already has/);
-    assert.match(show, /Will not fill:/);
+    assert.match(show, /Not filled:/);
     assert.match(show, /Not read:/);
 });
