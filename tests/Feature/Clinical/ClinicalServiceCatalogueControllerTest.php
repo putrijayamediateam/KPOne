@@ -9,8 +9,10 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
+use Tests\Support\PanelPriceFixture;
 
 class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
 {
@@ -74,18 +76,19 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
         $this->post(route('clinical-services.store'), [
             ...$this->attributes(['code' => 'EDIT-PRICED-SVC']),
             'expected_branch_id' => $this->branch->id,
-            'prices' => [
-                'self_pay_sen' => 100,
-                'panel_default_sen' => 120,
-                'panel_overrides' => [[
-                    'panel_id' => $panel->id,
-                    'amount_sen' => 110,
-                ]],
-            ],
+            'prices' => ['self_pay_sen' => 100],
         ])->assertRedirect(route('clinical-services.index'));
         $service = ClinicalServiceCatalogueItem::query()
             ->where('code', 'EDIT-PRICED-SVC')
             ->sole();
+        // Panel prices are not saved from this form (owner decision 27): they are put in place the way an approved
+        // proposal leaves them.
+        $charge = ChargeDefinition::query()->where('clinical_service_catalogue_item_id', $service->id)->sole();
+        $references = app(PricingReferenceAdministrationService::class);
+        $defaultBook = $references->createPriceBook($actor, null, ['name' => 'Panel', 'price_tier' => 'panel', 'panel_id' => null]);
+        $ownBook = $references->createPriceBook($actor, null, ['name' => 'Own', 'price_tier' => 'panel', 'panel_id' => $panel->id]);
+        PanelPriceFixture::insert($defaultBook, $charge, 120, $actor);
+        PanelPriceFixture::insert($ownBook, $charge, 110, $actor);
 
         $this->get(route('clinical-services.edit-setup', $service))
             ->assertOk()
@@ -97,19 +100,8 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
 
         $this->patch(route('clinical-services.update', $service), [
             'expected_branch_id' => $this->branch->id,
-            'prices' => [
-                'self_pay_sen' => 150,
-                'panel_default_sen' => 120,
-                'panel_overrides' => [[
-                    'panel_id' => $panel->id,
-                    'amount_sen' => 115,
-                ]],
-            ],
+            'prices' => ['self_pay_sen' => 150],
         ])->assertRedirect(route('clinical-services.index'));
-
-        $charge = ChargeDefinition::query()
-            ->where('clinical_service_catalogue_item_id', $service->id)
-            ->sole();
         $selfPayBook = PriceBook::query()->where('scope_key', 'organisation')->sole();
         $panelDefaultBook = PriceBook::query()->where('scope_key', 'panel:default')->sole();
         $overrideBook = PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->sole();
@@ -129,10 +121,17 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
         $this->assertDatabaseHas('price_entries', [
             'charge_definition_id' => $charge->id,
             'price_book_id' => $overrideBook->id,
-            'unit_price_sen' => 115,
-            'version' => 2,
+            'unit_price_sen' => 110,
+            'version' => 1,
         ]);
-        $this->assertSame(5, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
+        $this->assertSame(4, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
+
+        // A save that carries a changed Panel price is refused whole; nothing is written.
+        $this->patch(route('clinical-services.update', $service), [
+            'expected_branch_id' => $this->branch->id,
+            'prices' => ['self_pay_sen' => 160, 'panel_default_sen' => 125],
+        ])->assertSessionHasErrors('prices');
+        $this->assertSame(4, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
 
         $this->get(route('clinical-services.index'))->assertInertia(fn ($page) => $page
             ->where('services.data.0.selfPayAmountRm', '1.50')
@@ -165,19 +164,8 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
             'code' => 'CONSULTATION',
             'display_name' => 'Consultation fee',
             'expected_branch_id' => $this->branch->id,
-            'prices' => [
-                'self_pay_sen' => 2500,
-                'panel_default_sen' => 2000,
-                'panel_overrides' => [[
-                    'panel_id' => $panel->id,
-                    'amount_sen' => 1800,
-                ]],
-            ],
-            'expected_versions' => [
-                'self_pay' => 0,
-                'panel_default' => 0,
-                'panel_overrides' => [(string) $panel->id => 0],
-            ],
+            'prices' => ['self_pay_sen' => 2500],
+            'expected_versions' => ['self_pay' => 0, 'panel_default' => 0],
         ];
 
         $this->get(route('clinical-services.index'))->assertOk()
@@ -192,10 +180,12 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
         $charge = ChargeDefinition::query()->where('source_key', 'consultation')->sole();
         $selfPayBook = PriceBook::query()
             ->where('scope_key', 'organisation')->sole();
-        $panelBook = PriceBook::query()
-            ->where('scope_key', 'panel:default')->sole();
-        $overrideBook = PriceBook::query()
-            ->where('scope_key', 'panel:'.$panel->id)->sole();
+        // Panel prices are not saved from this form (owner decision 27): put in place as an approved proposal leaves them.
+        $references = app(PricingReferenceAdministrationService::class);
+        $panelBook = $references->createPriceBook($supervisor, null, ['name' => 'Panel', 'price_tier' => 'panel', 'panel_id' => null]);
+        $overrideBook = $references->createPriceBook($supervisor, null, ['name' => 'Own', 'price_tier' => 'panel', 'panel_id' => $panel->id]);
+        PanelPriceFixture::insert($panelBook, $charge, 2000, $supervisor);
+        PanelPriceFixture::insert($overrideBook, $charge, 1800, $supervisor);
         $this->assertDatabaseHas('price_entries', [
             'charge_definition_id' => $charge->id,
             'price_book_id' => $selfPayBook->id,
@@ -216,13 +206,17 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
         ]);
         $this->assertSame(3, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
 
-        $payload['expected_versions'] = [
-            'self_pay' => 1,
-            'panel_default' => 1,
-            'panel_overrides' => [(string) $panel->id => 1],
-        ];
+        $payload['expected_versions'] = ['self_pay' => 1, 'panel_default' => 1];
         $this->post(route('clinical-services.consultation-tariffs.store'), $payload)
             ->assertRedirect(route('clinical-services.index'));
+        $this->assertSame(3, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
+
+        // A save that carries a changed Panel price is refused whole; nothing is written.
+        $this->post(route('clinical-services.consultation-tariffs.store'), [
+            ...$payload,
+            'prices' => ['self_pay_sen' => 2500, 'panel_default_sen' => 2100],
+            'expected_versions' => ['self_pay' => 1, 'panel_default' => 1],
+        ])->assertSessionHasErrors('prices');
         $this->assertSame(3, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
 
         $this->get(route('clinical-services.index'))->assertInertia(fn ($page) => $page

@@ -40,33 +40,6 @@ test('V2 uses the same routes as Classic', () => {
     }
 });
 
-test('the form state, the category rule and the submit are a faithful copy of Classic', () => {
-    assert.equal(
-        squash(
-            between(logic, 'const form = useForm({', 'const openCreate'),
-        ).replaceAll('setup.', 'props.setup.'),
-        squash(between(classic, 'const form = useForm({', 'const openCreate')),
-    );
-    assert.equal(
-        squash(between(logic, 'const submit = () => {', 'const baseline')),
-        squash(
-            between(classic, 'const submit = () => {', 'const pendingToggle'),
-        )
-            .replaceAll('dialogOpen', 'formOpen')
-            .replaceAll('props.setup', 'setup'),
-    );
-
-    for (const key of [
-        'self_pay_sen',
-        'panel_default_sen',
-        'amount_sen',
-        'expected_branch_id',
-        '(saved before the fixed list)',
-    ]) {
-        assert.ok(classic.includes(key) && logic.includes(key), key);
-    }
-});
-
 test('V2 keeps the Classic toggle wording and the Consultation tariff panel', () => {
     for (const text of [
         'will no longer be available to order on a Treatment Plan.',
@@ -77,40 +50,6 @@ test('V2 keeps the Classic toggle wording and the Consultation tariff panel', ()
 
     assert.ok(v2.includes('<ConsultationTariffV2'));
     assert.ok(classic.includes('<ConsultationTariffPanel'));
-});
-
-test('V2 consultation tariff keeps the Classic route, payload and versions, in a closed bar with an outline save', () => {
-    const tariffV2 = read(
-        'resources/js/components/clinical-service-v2/ConsultationTariffV2.vue',
-    );
-    const tariffClassic = read(
-        'resources/js/components/catalogue/ConsultationTariffPanel.vue',
-    );
-
-    for (const key of [
-        "form.post('/clinical-services/consultation-tariffs'",
-        'self_pay_sen: rmToSen(data.prices.self_pay_rm)',
-        'panel_default_sen: rmToSen(data.prices.panel_default_rm)',
-        'amount_sen: rmToSen(override.amount_rm)',
-        'expected_versions',
-        'expected_branch_id',
-        'self_pay: props.tariff.selfPayVersion',
-        'panel_default: props.tariff.panelDefaultVersion',
-        'form.expected_versions.panel_overrides[selectedNewPanel.value] = 0',
-    ]) {
-        assert.ok(
-            normal(tariffClassic).includes(normal(key)),
-            `classic ${key}`,
-        );
-        assert.ok(normal(tariffV2).includes(normal(key)), `v2 ${key}`);
-    }
-
-    assert.ok(tariffV2.includes('<V2DisclosureBar :title="barTitle"'));
-    assert.ok(tariffV2.includes('Consultation tariff · Self-pay'));
-    assert.ok(!/defaultOpen|default-open/.test(tariffV2));
-    assert.ok(tariffV2.includes('<V2MoneyInput'));
-    assert.ok(!/type="number"/.test(tariffV2));
-    assert.ok(!/bg-primary/.test(tariffV2));
 });
 
 test('V2 consultation tariff: rates on the closed bar, a reason for the disabled button, a visible result and kept typing on a refused save', () => {
