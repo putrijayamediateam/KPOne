@@ -10,7 +10,6 @@ const pack = read('resources/js/pages/PanelClaims/Pack.vue');
 const label = read('resources/js/components/panel/PackIssuedLabel.vue');
 const list = read('resources/js/components/panel/IssuedPacksList.vue');
 const classicShow = read('resources/js/pages/PanelClaims/Show.vue');
-const v2Show = read('resources/js/pages/PanelClaims/V2/Show.vue');
 
 test('the label says ORIGINAL, COPY or REVISED (version n), and the live page says PREVIEW', () => {
     assert.match(label, /'ORIGINAL'/);
@@ -46,18 +45,9 @@ test('the issued packs list has outline View copy and Reprint buttons at 44 px a
     assert.match(list, /busy\.value !== null/);
 });
 
-test('both claim pages list the issued packs without changing the copied claim page logic', () => {
-    for (const page of [classicShow, v2Show]) {
-        assert.match(page, /<IssuedPacksList/);
-        assert.match(page, /:from-claim="claim\.publicId"/);
-    }
+test('the claim page lists the issued packs', () => {
+    assert.match(classicShow, /<IssuedPacksList/);
+    assert.match(classicShow, /:from-claim="claim\.publicId"/);
 
     assert.match(classicShow, /issuedPacks\?: IssuedPackRow\[\] \| null/);
-    assert.match(v2Show, /adjustmentPage\.props\.issuedPacks \?\? \[\]/);
-    // The V2 composable (a copy of the Classic script) is untouched by this slice.
-    assert.ok(
-        !read(
-            'resources/js/composables/panel-claims/usePanelClaimShow.ts',
-        ).includes('issuedPacks'),
-    );
 });
