@@ -78,6 +78,8 @@ production database.
 
 1. Create the empty database, then run `php artisan migrate:fresh --seed`.
 2. Run `php artisan kpone:bootstrap-director` in a terminal and choose an appropriate sign-in method.
+   The command also authorises the Director at every active branch. On an existing installation, or after a new
+   branch opens, run `php artisan kpone:director-branches` (idempotent, audited, console only).
 3. Sign in as the Director and provision synthetic `.test` staff accounts needed for the walk: a `ca_supervisor`,
    a `ca`, and a `resident_doctor`. Confirm each has the intended primary branch.
 4. Sign in as the `ca_supervisor` and create a synthetic Medicine and Clinical Service with Self-pay tariffs;
@@ -236,6 +238,38 @@ adds nothing. Every change goes through the domain services as a named demo acco
   unit costs), so receiving can start at once. Nothing is received.
 
 It adds no Panels, patients, visits or cost policy. Never run it with real data or in production.
+
+## Trial server demo data (TRIAL-DATA)
+
+A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
+run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
+the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
+Phase 1 (foundation) is built so far.
+
+Before the first run: migrate and seed the reference data, create the one Director with
+`php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
+(run `php artisan kpone:director-branches` if it exists on your version). Then, on the trial server only:
+
+```bash
+# in the server environment, for this run only
+KPONE_TRIAL_DATA_ALLOWED=true
+php artisan config:clear
+php artisan kpone:trial-data --phase=1
+# afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
+```
+
+The command stops before changing anything unless the switch is on, it runs in an interactive terminal, there is
+exactly one active Director, every other account has a `.test` email, and the operator types the site's host name
+(the host of `APP_URL`). It asks once, hidden, for one shared password for the fictional `@kpjaya.test` accounts;
+the password is hashed at once and never printed, logged or audited. Phase 1 fills all three branches: 28 accounts (at each
+branch two doctors, two Clinic Assistants, two CA Supervisors and the TV account; once for the organisation the
+Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing and Technical Admin,
+assigned to every branch), payment methods, visit reasons and preset diagnoses, and for each branch its letterhead,
+footer, approval limits, rooms and verified fictional doctor credentials; 12 generic medicines (one controlled) and
+6 services with Self-pay prices and Panel prices (proposed by the Panel Officer, approved by Finance), two fictional Panels, stock at every branch with real future expiry dates
+signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
+nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
+counts only). It is never called from a seeder, migration, scheduler or deploy.
 
 ## Ask KPOne read login (AG-7)
 

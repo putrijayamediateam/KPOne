@@ -243,7 +243,10 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                           label:
                               visit.dispensaryStatus === 'pending'
                                   ? 'Pending'
-                                  : 'Dispensing',
+                                  : visit.dispensaryStatus ===
+                                      'awaiting_doctor_check'
+                                    ? "Waiting for doctor's check"
+                                    : 'Dispensing',
                           tone:
                               visit.dispensaryStatus === 'pending'
                                   ? ('waiting' as const)

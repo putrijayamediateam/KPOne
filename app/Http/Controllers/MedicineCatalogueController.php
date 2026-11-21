@@ -15,6 +15,7 @@ use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\CurrentCatalogueTariffReader;
+use App\Domain\Visit\Billing\Services\PanelPriceLines;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Http\Requests\MedicineCatalogueStoreRequest;
@@ -291,6 +292,8 @@ class MedicineCatalogueController extends Controller
                 'panel_default_rm' => $panelDefault instanceof PriceBook ? $toRm($latestFor($panelDefault)) : null,
                 'panel_overrides' => $overrides,
             ],
+            // Panel prices are read-only here: the price in effect now and any later one, for every Panel that has one.
+            'panel_prices' => app(PanelPriceLines::class)->forCharge($actor->organisation_id, $charge?->id, (string) app(BranchAccessService::class)->activeBranch($actor)->timezone),
         ]);
     }
 
