@@ -1,6 +1,6 @@
 # TRIAL-DATA: fictional demo data for the trial server (design note)
 
-Status: **Phase 1 built** (branch `feature/trial-data-command`); Phases 2 to 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
+Status: **Phases 1 and 2 built** (branch `feature/trial-data-command`); Phases 3 to 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
 the owner in the DEMO-1 session): demo data that uses every function, every user role and every menu module, built
 in phases. Branch `feature/trial-data-command`. No PR until the owner's ship-it.
 
@@ -83,7 +83,21 @@ Menus that come alive: Staff, Branches, Access, Business details, Payment Method
 Service catalogues, Pricing, Checkout settings, Suppliers, Medicine details, Registration and Consultation settings,
 Queue Display settings, Clinician credentials, Patient Records, Inventory (stock, readiness).
 
-### Phase 2 — a clinic day
+### Phase 2 — a clinic day (built)
+
+**Built:** at every branch, two TV posters (generated placeholder images) and ten scenario visits, one per patient:
+(1) completed, cash, a discount by the CA Supervisor, MC, referral and attendance letter, an allergy recorded;
+(2) completed, card receipt reversed by Finance and refunded (recorded by a CA Supervisor, approved by Finance), then
+paid in cash; (3) completed Panel visit, first invoice voided by Finance and reissued, Panel share approved;
+(4) completed, part pay later (approved), part cash; (5) completed OTC visit with a B number, called to the
+dispensary; (6) handed off and waiting at the Dispensary, called to the counter; (7) returned to the doctor and held;
+(8) held with a nebuliser step done; (9) waiting, triaged, not ready to call; (10) urgent, triaged, being seen and
+called to the treatment room. Day end: the card terminal close and the cash count (left waiting for approval,
+because approval needs the day to have ended). Triage has no zone until the guideline is approved in phase 6.
+**Not yet in phase 2:** a QR intake (only when public intake is switched on; left for phase 6 with the QR link),
+receipt and invoice prints (issued copies), and the department-space checks; they need no extra data.
+
+Design as reviewed:
 
 Scenario visits through the real flow (register → queue → consultation → dispensary → billing → complete), ending in
 different states: waiting, not-ready-to-call, serving, held, waiting at dispensary, returned to doctor, treatment-room

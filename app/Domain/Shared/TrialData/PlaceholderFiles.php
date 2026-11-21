@@ -168,7 +168,7 @@ final class PlaceholderFiles
         return strlen($text) > $max ? substr($text, 0, $max) : $text;
     }
 
-    /** @param list<string> $canvas */
+    /** @param array<int, string> $canvas */
     private function fill(array &$canvas, int $x, int $y, int $w, int $h, string $rgb): void
     {
         $width = intdiv(strlen($canvas[0]), 3);
@@ -183,7 +183,7 @@ final class PlaceholderFiles
         }
     }
 
-    /** @param list<string> $canvas */
+    /** @param array<int, string> $canvas */
     private function text(array &$canvas, string $text, int $left, int $top, int $scale, string $rgb): void
     {
         foreach (str_split($text) as $position => $character) {
@@ -198,7 +198,7 @@ final class PlaceholderFiles
         }
     }
 
-    /** @param list<string> $canvas */
+    /** @param array<int, string> $canvas */
     private function png(array $canvas, int $width, int $height): string
     {
         $raw = '';

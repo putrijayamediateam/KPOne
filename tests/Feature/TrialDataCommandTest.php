@@ -36,7 +36,10 @@ class TrialDataCommandTest extends TestCase
         'charge_definitions', 'price_books', 'price_entries', 'inventory_unit_contracts', 'inventory_opening_verifications',
         'payment_methods', 'panels', 'branch_rooms', 'diagnosis_presets', 'clinician_professional_profiles', 'patients',
         'inventory_suppliers', 'billing_approval_limits', 'visit_reason_catalogue_items', 'panel_claim_message_templates',
-        'business_detail_commands', 'branch_document_footers', 'branch_display_settings', 'audit_logs',
+        'business_detail_commands', 'branch_document_footers', 'branch_display_settings', 'visits', 'queue_entries',
+        'otc_queue_entries', 'queue_calls', 'queue_call_holds', 'consultation_holds', 'queue_treatment_steps',
+        'visit_triage_assessments', 'dispensary_cases', 'invoices', 'payments', 'payment_refunds', 'medical_certificates',
+        'referral_documents', 'attendance_documents', 'payment_reconciliations', 'cash_closings', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -248,17 +251,48 @@ class TrialDataCommandTest extends TestCase
             ->assertExitCode(Command::FAILURE);
     }
 
-    public function test_phase_two_adds_marked_posters_once_at_every_branch(): void
+    public function test_phase_two_runs_one_clinic_day_at_every_branch_once(): void
     {
         Storage::fake('local');
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
 
         $this->runPhaseTwo()->assertExitCode(Command::SUCCESS);
         foreach (Branch::query()->get() as $branch) {
-            $posters = DB::table('branch_display_settings')->where('branch_id', $branch->id)->value('posters');
-            $this->assertCount(PhaseTwoClinicDay::POSTERS_PER_BRANCH, json_decode((string) $posters, true), $branch->code);
+            $at = fn (string $table) => DB::table($table)->where('branch_id', $branch->id);
+            $code = $branch->code;
+            $posters = $at('branch_display_settings')->value('posters');
+            $this->assertCount(PhaseTwoClinicDay::POSTERS_PER_BRANCH, json_decode((string) $posters, true), $code);
+
+            // Every scenario patient has one visit: five completed, five still open in different states.
+            $this->assertSame(count(PhaseTwoClinicDay::SCENARIOS), $at('visits')->count(), $code);
+            $this->assertSame(5, $at('visits')->where('status', 'completed')->count(), $code);
+            $this->assertSame(1, $at('visits')->where('visit_type', 'otc')->count(), $code);
+            $this->assertSame(1, $at('dispensary_cases')->where('status', 'pending')->count(), $code);
+            $this->assertSame(1, $at('dispensary_cases')->where('status', 'returned_to_doctor')->count(), $code);
+            $this->assertSame(2, $at('consultation_holds')->whereNull('resumed_at')->count(), $code);
+            $this->assertSame(1, $at('queue_call_holds')->count(), $code);
+            $this->assertSame(1, $at('queue_entries')->where('status', 'waiting')->count(), $code);
+            $this->assertSame(1, $at('queue_entries')->where('status', 'serving')->whereNotIn('visit_id', DB::table('consultation_holds')->whereNull('resumed_at')->select('visit_id'))->count(), $code);
+            $this->assertSame(1, $at('queue_treatment_steps')->count(), $code);
+            $this->assertSame(2, $at('visit_triage_assessments')->count(), $code);
+            $this->assertGreaterThanOrEqual(3, $at('queue_calls')->whereIn('service', ['dispensary', 'treatment'])->count(), $code);
+
+            // Billing: one voided invoice, one approved refund, Panel and pay later, and nothing left to pay.
+            $this->assertSame(1, $at('invoices')->where('status', 'voided')->count(), $code);
+            $this->assertSame(1, $at('payment_refunds')->count(), $code);
+            $this->assertSame(1, DB::table('coverage_allocations')->whereIn('invoice_id', $at('invoices')->select('id'))->where('status', 'approved')->count(), $code);
+            $this->assertSame(1, DB::table('patient_receivables')->whereIn('invoice_id', $at('invoices')->select('id'))->where('status', 'approved')->count(), $code);
+
+            // Documents on the first patient's consultation, and the day-end records.
+            $this->assertSame(1, $at('medical_certificates')->count(), $code);
+            $this->assertSame(1, $at('referral_documents')->count(), $code);
+            $this->assertSame(1, $at('attendance_documents')->count(), $code);
+            $this->assertSame(1, $at('payment_reconciliations')->count(), $code);
+            $this->assertSame(1, $at('cash_closings')->count(), $code);
         }
-        $this->assertSame(1, DB::table('audit_logs')->where('event', 'trial_data.phase_completed')->whereRaw("metadata::jsonb->>'phase' = '2'")->count());
+        $audit = DB::table('audit_logs')->where('event', 'trial_data.phase_completed')->whereRaw("metadata::jsonb->>'phase' = '2'")->sole();
+        $this->assertNull($audit->actor_user_id);
+        $this->assertSame(30, json_decode((string) $audit->metadata, true)['created']['visits']);
 
         $after = $this->counts();
         $this->runPhaseTwo()->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);

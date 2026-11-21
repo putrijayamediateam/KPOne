@@ -242,7 +242,7 @@ It adds no Panels, patients, visits or cost policy. Never run it with real data 
 A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
 run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
 the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
-Phase 1 (foundation) is built so far.
+Phases 1 (foundation) and 2 (a clinic day) are built so far.
 
 Before the first run: migrate and seed the reference data, create the one Director with
 `php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
@@ -253,6 +253,7 @@ Before the first run: migrate and seed the reference data, create the one Direct
 KPONE_TRIAL_DATA_ALLOWED=true
 php artisan config:clear
 php artisan kpone:trial-data --phase=1
+php artisan kpone:trial-data --phase=2   # needs phase 1; asks no password
 # afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
 ```
 
@@ -268,6 +269,15 @@ footer, approval limits, rooms and verified fictional doctor credentials; 12 gen
 signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
 nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
 counts only). It is never called from a seeder, migration, scheduler or deploy.
+
+Phase 2 runs one clinic day at every branch, dated the day it runs: two waiting-room TV posters (plain placeholder
+images marked "FICTIONAL TRIAL DATA") and one visit for each of the branch's ten patients, each ending in a different
+state: completed with cash, a discount, an MC, a referral and an attendance letter; a card receipt reversed and
+refunded, then paid in cash; a Panel visit whose first invoice was voided and reissued; part pay later; a
+medicine-only (OTC) visit; waiting at the Dispensary; returned to the doctor; held with a nebuliser step done;
+waiting, triaged and flagged not ready to call; and being seen, called to the treatment room. It ends with the
+card terminal close and the cash count for the day (approval waits until the day has ended). Each visit is made in
+one transaction and skipped on a rerun when the patient already has a visit.
 
 ## Ask KPOne read login (AG-7)
 
