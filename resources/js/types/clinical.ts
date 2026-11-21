@@ -141,6 +141,55 @@ export type DoctorDispensaryAttention = {
     acknowledgeUrl: string;
 };
 
+// DSP-23: a case waiting for the attending doctor's check (null when there is none).
+export type DoctorDispensaryCheck = {
+    caseLockVersion: number;
+    expectedBranchId: number;
+    sentAt: string | null;
+    sentBy: string | null;
+    allergies: { status: string; records: string[]; updatedOn: string | null };
+    lines: Array<{
+        name: string;
+        strength: string | null;
+        unit: string;
+        changeState: 'unchanged' | 'edited' | 'added' | 'removed';
+        source: 'doctor' | 'ca';
+        ordered: {
+            quantity: string;
+            dosage: string | null;
+            frequency: string | null;
+            duration: string | null;
+        };
+        prepared: {
+            quantity: string | null;
+            // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+            packText?: string | null;
+            dosage: string | null;
+            frequency: string | null;
+            duration: string | null;
+            instruction: string | null;
+        };
+        batches: Array<{
+            batchNumber: string | null;
+            expiryDate: string | null;
+            quantity: string;
+        }>;
+    }>;
+    reasons: string[];
+    verifyUrl: string;
+    sendBackUrl: string;
+};
+
+// DSP-23: a CA Supervisor checked the case instead of the attending doctor (owner answer 13 = B).
+export type DispensarySupervisorCheck = {
+    outcome: 'verified' | 'sent_back';
+    by: string | null;
+    doctor: string | null;
+    at: string | null;
+    overrideReason: 'doctor_off_shift' | 'doctor_emergency' | 'other' | null;
+    overrideNote: string | null;
+};
+
 export type ClinicalEncounterPage = {
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
@@ -194,6 +243,8 @@ export type ClinicalEncounterPage = {
     problems: ClinicalProblemList | null;
     treatmentPlan: TreatmentPlanPage;
     dispensaryAttention: DoctorDispensaryAttention[];
+    dispensaryCheck?: DoctorDispensaryCheck | null;
+    dispensaryCheckedInstead?: DispensarySupervisorCheck | null;
     history: ClinicalHistorySummary[];
 };
 

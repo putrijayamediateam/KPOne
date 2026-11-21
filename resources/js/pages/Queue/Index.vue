@@ -95,7 +95,12 @@ const chooseRoom = (value: string | number) => {
 };
 type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
 const tabs = computed<
-    Array<{ value: QueueTab; label: string; count?: number }>
+    Array<{
+        value: QueueTab;
+        label: string;
+        count?: number;
+        badge?: { text: string; srLabel: string };
+    }>
 >(() => [
     { value: 'all', label: 'All active', count: live.value.tabCounts?.all },
     {
@@ -112,6 +117,14 @@ const tabs = computed<
         value: 'removed',
         label: 'Consultation Completed',
         count: live.value.tabCounts?.removed,
+        // Q-15: the doctor's own medicine checks waiting (only when above 0; not a second control, the tab is the control).
+        badge:
+            (live.value.checksWaiting ?? 0) > 0
+                ? {
+                      text: `${live.value.checksWaiting} to check`,
+                      srLabel: `${live.value.checksWaiting} medicine ${live.value.checksWaiting === 1 ? 'check' : 'checks'} waiting for you`,
+                  }
+                : undefined,
     },
 ]);
 const live = ref(props.snapshot);
@@ -269,6 +282,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                 : null,
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
+        dispensaryCheckWaiting: row.dispensaryCheckWaiting,
         statusLabel: row.isHeld
             ? row.isHeldTooLong
                 ? 'On Hold · 30+ min'
