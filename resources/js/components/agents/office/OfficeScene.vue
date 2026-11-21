@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useUiVersion } from '@/composables/useUiVersion';
+
 import AgentFigure from './AgentFigure.vue';
 import type { FeedAgent, OfficeFeed, Rect, TagRequest } from './office-layout';
 import {
@@ -410,7 +410,7 @@ onBeforeUnmount(() => {
 });
 const tagFactor = computed(() => VIEW_W / Math.max(sceneWidth.value, 1));
 // Classic (the default look) draws the office as it always did; the control room look is Version 2 only.
-const { isV2 } = useUiVersion();
+const isV2 = computed(() => false); // SCRATCH
 const tagLayout = computed(() => {
     if (!isV2.value) {
         return {

@@ -1049,23 +1049,16 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
-                                <span class="v2:hidden"
+                                <span
                                     >·
                                     <span class="capitalize">{{
                                         receipt.status
                                     }}</span></span
                                 >
                             </div>
-                            <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
-                            <div class="mt-1 hidden v2:block">
-                                <StatusBadge
-                                    :status="receipt.status"
-                                    :tone="receiptTone(receipt.status)"
-                                />
-                            </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="text-xs text-muted-foreground tabular-nums v2:mt-1"
+                                class="text-xs text-muted-foreground tabular-nums"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -1076,7 +1069,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-xs break-words text-muted-foreground v2:mt-1"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
