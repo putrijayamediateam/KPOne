@@ -39,9 +39,19 @@ test('STK-52: propose shows a live line, stays off until valid and keeps the ml 
         /Dispensary will hand out whole \{\{ packWord \}\}s of \{\{ count \}\} \{\{ unit \}\}, once someone else has checked this\./,
     );
     assert.match(flat, /:disabled="!proposalValid \|\| proposal\.processing"/);
+    // One merged sentence (Daniel): under the Propose boxes, or on the block when there is no Propose form.
     assert.match(
         flat,
-        /Stock stays counted in \{\{ unit \}\}\. Receiving, opening balances and counts are typed in \{\{ unit \}\}/,
+        /Stock stays counted in \{\{ unit \}\}: 10 bottles is 600 \{\{ unit \}\} when a bottle holds 60\. This only lets Dispensary hand out whole packs\./,
+    );
+    assert.match(
+        flat,
+        /<p v-if="!block\.canPropose" class="text-sm text-muted-foreground" data-testid="pack-conversion-limit"/,
+    );
+    assert.match(flat, /This saves on its own, not with Save\./);
+    assert.match(
+        flat,
+        /name === 'You' \? 'you' : \(name \?\? 'Staff member'\)/,
     );
     assert.match(flat, /Stop using pack conversion/);
     assert.match(flat, /Show earlier versions/);

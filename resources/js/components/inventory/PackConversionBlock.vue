@@ -101,6 +101,9 @@ const describe = (packUnit?: string | null, basePerPack?: number | null) =>
         : '';
 
 const fresh = () => crypto.randomUUID();
+// A name inside a sentence: "you" in lower case (Daniel), "Staff member" when the viewer may not see it.
+const person = (name: string | null) =>
+    name === 'You' ? 'you' : (name ?? 'Staff member');
 const propose = () =>
     proposal
         .transform((data) => ({
@@ -177,6 +180,12 @@ const withdraw = () =>
 <template>
     <fieldset class="grid gap-3" data-testid="pack-conversion">
         <legend class="mb-1 text-sm font-semibold">Pack conversion</legend>
+        <p
+            class="-mt-2 text-sm text-muted-foreground"
+            data-testid="pack-conversion-saves-alone"
+        >
+            This saves on its own, not with Save.
+        </p>
         <!-- A wrong blind count refuses the change, so its form is gone: the message shows here instead. -->
         <p
             v-if="!block.waiting && check.errors.checked_base_per_pack"
@@ -202,7 +211,7 @@ const withdraw = () =>
                     </p>
                     <p class="text-sm text-muted-foreground">
                         Version {{ block.current.version }} · checked by
-                        {{ block.current.checkedBy ?? 'Staff member' }} on
+                        {{ person(block.current.checkedBy) }} on
                         {{ block.current.checkedOn }}
                     </p>
                 </template>
@@ -256,17 +265,17 @@ const withdraw = () =>
                     >· {{ describe(entry.packUnit, entry.basePerPack) }}</span
                 >
                 <span class="text-muted-foreground"
-                    >· {{ entry.by ?? 'Staff member' }} on {{ entry.on }}</span
+                    >· {{ person(entry.by) }} on {{ entry.on }}</span
                 >
             </li>
         </ul>
         <p
+            v-if="!block.canPropose"
             class="text-sm text-muted-foreground"
             data-testid="pack-conversion-limit"
         >
-            Stock stays counted in {{ unit }}. Receiving, opening balances and
-            counts are typed in {{ unit }}: 10 bottles is 600 {{ unit }} when a
-            bottle holds 60.
+            Stock stays counted in {{ unit }}: 10 bottles is 600 {{ unit }} when
+            a bottle holds 60. This only lets Dispensary hand out whole packs.
         </p>
 
         <!-- A change waiting for a check. -->
@@ -391,12 +400,13 @@ const withdraw = () =>
             >
                 <template v-if="proposalValid"
                     >Dispensary will hand out whole {{ packWord }}s of
-                    {{ count }} {{ unit }}, once someone else has checked
-                    this.</template
-                >
-                <template v-else
-                    >Stock stays counted in {{ unit }}. This only lets
-                    Dispensary hand out whole packs.</template
+                    {{ count }} {{ unit }}, once someone else has checked this. </template
+                ><span
+                    class="text-muted-foreground"
+                    data-testid="pack-conversion-limit"
+                    >Stock stays counted in {{ unit }}: 10 bottles is 600
+                    {{ unit }} when a bottle holds 60. This only lets Dispensary
+                    hand out whole packs.</span
                 >
             </p>
             <InputError
