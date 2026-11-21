@@ -53,7 +53,7 @@ export type VisitRow = {
     visitLockVersion: number;
     queueLockVersion: number | null;
     returnedFromDispensary?: boolean;
-    dispensaryStatus?: 'pending' | 'dispensing';
+    dispensaryStatus?: 'pending' | 'dispensing' | 'awaiting_doctor_check';
     medicineCount?: number;
     dispensaryUrl?: string;
     billingUrl?: string | null;
