@@ -1,6 +1,6 @@
 # DSP-23: the doctor checks prepared medicine before payment (design note)
 
-Status: **draft for Hakim's review.** Not built. Owner decision 14 of 20-21 Nov 2026
+Status: **draft for Hakim's review.** Not built. Classic only (V2 retired 19 Nov). Written on the recommended answers to section 9, which are with the owner. Owner decision 14 of 20-21 Nov 2026
 (`docs/decisions/2026-11-20-finance-inventory-proposals.md`): "Doctor checks prepared medicine before payment:
 a per-branch switch (on or off)." Synthetic data only. Open questions for the owner are in section 9.
 
@@ -86,11 +86,11 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
 
 ## 7. Screens (Daniel's look before the build)
 
-- **Dispensary case page, V2 and Classic:**
+- **Dispensary case page (Classic only; V2 was retired on 19 Nov):**
   - the Complete button reads "Send to doctor for check" when the case needs it;
   - a waiting case shows a read-only banner, "Waiting for Dr …'s check since 10:42";
   - a sent-back case shows the doctor's reason at the top.
-- **Doctor's Dispensary attention panel, V2 and Classic:**
+- **Doctor's Dispensary attention panel (Classic):**
   - a new row kind, "Medicine ready for your check", with the lines, quantities, batches and expiry, and the CA's
     changes beside the order;
   - an outline Verify button, and a Send back button that opens a reason picker;
@@ -116,7 +116,7 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
   - append-only check rows;
   - a two-process race between two Verify presses, and between Verify and Send back. Both join the serial Contention
     suite.
-- Frontend tests for both pages, in V2 and Classic.
+- Frontend tests for both Classic pages.
 - Existing assertions are expected to stay unchanged, because the switch defaults to off. Any that do change will be
   listed and left failing for the owner.
 
