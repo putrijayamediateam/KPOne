@@ -22,6 +22,8 @@ export type NoteVitals = {
     readings: NoteReading[];
     /** Readings written more than once with different values: not suggested. */
     ambiguous: string[];
+    /** Readings that are named but written in another unit (°F, lb, inches): never read, only reported. */
+    notRead: string[];
 };
 
 const num = (text: string) => Number.parseFloat(text.replace(',', '.'));
@@ -88,6 +90,31 @@ const single = (
     return hits;
 };
 
+// Named but written in a unit KPOne does not take: reported so the doctor sees nothing was read, and never converted or filled.
+const unitsNotRead = (note: string) => {
+    const found: string[] = [];
+    const add = (label: string, pattern: RegExp) => {
+        if (pattern.test(note) && !found.includes(label)) {
+            found.push(label);
+        }
+    };
+
+    add(
+        'temperature in °F',
+        /\b(?:temp(?:erature)?|suhu)\s*[:=-]?\s*\d{2,3}(?:[.,]\d)?\s*(?:°|º)?\s*(?:f\b|fahrenheit)|(?<![\d.,])\d{2,3}(?:[.,]\d)?\s*(?:°|º)\s*f\b/i,
+    );
+    add(
+        'weight in lb',
+        /\b(?:wt|weight|bb|berat(?:\s+badan)?)\s*[:=-]?\s*\d{1,3}(?:[.,]\d)?\s*(?:lbs?|pounds?)\b/i,
+    );
+    add(
+        'height in inches or feet',
+        /\b(?:ht|height|tb|tinggi)\s*[:=-]?\s*\d{1,3}(?:[.,]\d)?\s*(?:in\b|inch(?:es)?\b|ft\b|feet\b|')/i,
+    );
+
+    return found;
+};
+
 export const parseVitalsFromNote = (note: string): NoteVitals => {
     const text = note.normalize('NFKC');
     const hits: Hit[] = [
@@ -95,7 +122,7 @@ export const parseVitalsFromNote = (note: string): NoteVitals => {
         ...single(
             text,
             'temperature',
-            /\b(?:temp(?:erature)?|suhu)\s*[:=-]?\s*(\d{2}(?:[.,]\d)?)(?!\d)|(?<![\d.,])(\d{2}(?:[.,]\d)?)\s*(?:°|º|deg(?:rees?)?\s*)\s*c\b/gi,
+            /\b(?:temp(?:erature)?|suhu)\s*[:=-]?\s*(\d{2}(?:[.,]\d)?)(?!\d|[.,]\d)(?!\s*(?:°|º)?\s*(?:f\b|fahrenheit))|(?<![\d.,])(\d{2}(?:[.,]\d)?)\s*(?:°|º|deg(?:rees?)?\s*)\s*c\b/gi,
             30,
             45,
             'temperature_celsius',
@@ -167,12 +194,15 @@ export const parseVitalsFromNote = (note: string): NoteVitals => {
         }
     }
 
-    return { readings, ambiguous };
+    return { readings, ambiguous, notRead: unitsNotRead(text) };
 };
 
 /** Stable text for one suggestion, so a dismissed one stays dismissed until the readings in the note change. */
 export const noteVitalsKey = (vitals: NoteVitals) =>
-    vitals.readings.map((reading) => reading.label).join('|');
+    [
+        ...vitals.readings.map((reading) => reading.label),
+        ...vitals.notRead.map((text) => `not read: ${text}`),
+    ].join('|');
 
 type Boxes = Partial<Record<VitalsField, string | number | null | undefined>>;
 
@@ -190,6 +220,7 @@ export const planFill = (vitals: NoteVitals, boxes: Boxes) => {
     const fill: Partial<Record<VitalsField, string>> = {};
     const filled: string[] = [];
     const skipped: string[] = [];
+    const skippedDetails: { label: string; current: string }[] = [];
 
     for (const reading of vitals.readings) {
         const fields = Object.keys(reading.values) as VitalsField[];
@@ -210,8 +241,15 @@ export const planFill = (vitals: NoteVitals, boxes: Boxes) => {
             filled.push(reading.label);
         } else {
             skipped.push(reading.label);
+            skippedDetails.push({
+                label: reading.label,
+                current: fields
+                    .map((field) => boxes[field])
+                    .filter((value) => !isEmpty(value))
+                    .join('/'),
+            });
         }
     }
 
-    return { fill, filled, skipped };
+    return { fill, filled, skipped, skippedDetails };
 };

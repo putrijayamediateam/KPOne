@@ -180,3 +180,91 @@ test('the consultation page suggests, announces, fills only on Fill and never ed
     assert.equal((show.match(/form\.vitals\[/g) ?? []).length <= 3, true);
     assert.match(show, /Not filled/);
 });
+
+test('a unit KPOne does not take is never read or converted, only reported as not read (Daniel)', () => {
+    for (const [note, reported] of [
+        ['temp 98.6 F', 'temperature in °F'],
+        ['Temperature: 101°F', 'temperature in °F'],
+        ['suhu 99.5 fahrenheit', 'temperature in °F'],
+        ['wt 140 lbs', 'weight in lb'],
+        ['weight: 154 pounds', 'weight in lb'],
+        ['ht 5 ft', 'height in inches or feet'],
+        ['height 66 inches', 'height in inches or feet'],
+    ]) {
+        const parsed = parseVitalsFromNote(note);
+        assert.deepEqual(parsed.readings, [], note);
+        assert.deepEqual(parsed.notRead, [reported], note);
+    }
+
+    // a Celsius temperature next to a Fahrenheit one is still read, and the other is reported
+    const both = parseVitalsFromNote('temp 38.2 C (100.8 F)');
+    assert.deepEqual(
+        both.readings.map((r) => r.label),
+        ['Temp 38.2 °C'],
+    );
+    assert.equal(
+        noteVitalsKey(parseVitalsFromNote('temp 98.6 F')) !==
+            noteVitalsKey(parseVitalsFromNote('temp 99.1 F')),
+        false,
+    );
+    assert.notEqual(
+        noteVitalsKey(parseVitalsFromNote('temp 98.6 F')),
+        '',
+        'the not-read text is part of the key',
+    );
+
+    // "temp 3 days" and similar are simply not readings
+    for (const note of ['temp 3 days', 'fever for 3 days, temp x', 'T 3']) {
+        const parsed = parseVitalsFromNote(note);
+        assert.deepEqual([parsed.readings, parsed.notRead], [[], []], note);
+    }
+});
+
+test('a skipped reading says what the box already holds, before and after Fill (Daniel)', () => {
+    const plan = planFill(parseVitalsFromNote('temp 38.1, BP 120/80'), {
+        temperature_celsius: '37.0',
+        systolic_bp: '118',
+        diastolic_bp: '',
+    });
+    assert.deepEqual(plan.skippedDetails, [
+        { label: 'BP 120/80', current: '118' },
+        { label: 'Temp 38.1 °C', current: '37.0' },
+    ]);
+});
+
+test('the page labels unsaved vitals, announces politely, moves focus to the first filled box and says what was skipped (Daniel)', () => {
+    assert.match(show, /aria-live="polite"/);
+    assert.match(show, /data-testid="vitals-unsaved"[\s\S]{0,80}Not saved yet/);
+    assert.match(
+        show,
+        /const vitalsUnsaved = computed\(\s*\(\) => JSON\.stringify\(form\.vitals\) !== JSON\.stringify\(vitalsFromProps\(\)\)/,
+    );
+
+    for (const field of [
+        'systolic_bp',
+        'diastolic_bp',
+        'pulse_bpm',
+        'temperature_celsius',
+        'spo2_percent',
+        'weight_kg',
+        'height_cm',
+    ]) {
+        assert.match(
+            show,
+            new RegExp(
+                `v-model="form\\.vitals\\.${field}"\\s+data-vitals-field="${field}"`,
+            ),
+        );
+    }
+
+    const fill = show.slice(
+        show.indexOf('const fillVitalsFromNote'),
+        show.indexOf('const vitalsUnsaved'),
+    );
+    assert.match(fill, /await nextTick\(\)/);
+    assert.match(fill, /data-vitals-field=/);
+    assert.match(fill, /Not filled: /);
+    assert.match(fill, /box already has/);
+    assert.match(show, /Will not fill:/);
+    assert.match(show, /Not read:/);
+});

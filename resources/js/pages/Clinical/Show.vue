@@ -13,7 +13,7 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -168,10 +168,11 @@ const noteVitalsNotice = ref('');
 const showNoteVitals = computed(
     () =>
         (noteVitalsPlan.value.filled.length > 0 ||
-            noteVitalsPlan.value.skipped.length > 0) &&
+            noteVitalsPlan.value.skipped.length > 0 ||
+            noteVitals.value.notRead.length > 0) &&
         dismissedNoteVitals.value !== noteVitalsNow.value,
 );
-const fillVitalsFromNote = () => {
+const fillVitalsFromNote = async () => {
     const plan = noteVitalsPlan.value;
 
     for (const [field, value] of Object.entries(plan.fill)) {
@@ -179,8 +180,10 @@ const fillVitalsFromNote = () => {
     }
 
     filledFromNote.value = plan.filled;
-    noteVitalsNotice.value = plan.skipped.length
-        ? `Not filled (the box already has a different value): ${plan.skipped.join(', ')}.`
+    noteVitalsNotice.value = plan.skippedDetails.length
+        ? `Not filled: ${plan.skippedDetails
+              .map((item) => `${item.label} (box already has ${item.current})`)
+              .join(', ')}.`
         : '';
 
     if (plan.filled.length > 0) {
@@ -188,7 +191,20 @@ const fillVitalsFromNote = () => {
     }
 
     dismissedNoteVitals.value = noteVitalsNow.value;
+
+    // The Fill button goes away once it is pressed: keep focus in the form, on the first box that was filled.
+    const first = Object.keys(plan.fill)[0];
+
+    if (first) {
+        await nextTick();
+        document
+            .querySelector<HTMLInputElement>(`[data-vitals-field="${first}"]`)
+            ?.focus();
+    }
 };
+const vitalsUnsaved = computed(
+    () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
+);
 const dismissNoteVitals = () => {
     dismissedNoteVitals.value = noteVitalsNow.value;
     noteVitalsNotice.value = '';
@@ -1020,6 +1036,12 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"
                             data-testid="vitals-summary"
                         >
+                            <span
+                                v-if="vitalsUnsaved"
+                                class="font-medium text-warning-strong"
+                                data-testid="vitals-unsaved"
+                                >Not saved yet</span
+                            >
                             <span class="inline-flex items-baseline gap-1"
                                 ><span
                                     class="text-muted-foreground"
@@ -1107,6 +1129,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Systolic BP
                                 <input
                                     v-model="form.vitals.systolic_bp"
+                                    data-vitals-field="systolic_bp"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1120,6 +1143,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Diastolic BP
                                 <input
                                     v-model="form.vitals.diastolic_bp"
+                                    data-vitals-field="diastolic_bp"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1135,6 +1159,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Pulse (bpm)
                                 <input
                                     v-model="form.vitals.pulse_bpm"
+                                    data-vitals-field="pulse_bpm"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1148,6 +1173,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Temperature (°C)
                                 <input
                                     v-model="form.vitals.temperature_celsius"
+                                    data-vitals-field="temperature_celsius"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1166,6 +1192,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >SpO₂ (%)
                                 <input
                                     v-model="form.vitals.spo2_percent"
+                                    data-vitals-field="spo2_percent"
                                     inputmode="decimal"
                                     type="number"
                                     min="0"
@@ -1183,6 +1210,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Weight (kg)
                                 <input
                                     v-model="form.vitals.weight_kg"
+                                    data-vitals-field="weight_kg"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1197,6 +1225,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Height (cm)
                                 <input
                                     v-model="form.vitals.height_cm"
+                                    data-vitals-field="height_cm"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1247,6 +1276,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     noteVitalsNotice
                                 "
                                 role="status"
+                                aria-live="polite"
                                 data-testid="note-vitals-suggestion"
                                 class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
                             >
@@ -1255,6 +1285,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     class="flex flex-wrap items-center gap-x-3 gap-y-2"
                                 >
                                     <p
+                                        v-if="noteVitals.readings.length"
                                         class="min-w-0 basis-full sm:flex-1 sm:basis-0"
                                     >
                                         Vitals found in your note:
@@ -1285,13 +1316,31 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 <p
                                     v-if="
                                         showNoteVitals &&
-                                        !noteVitalsPlan.filled.length
+                                        noteVitalsPlan.skippedDetails.length
                                     "
                                     class="text-muted-foreground"
                                 >
-                                    The vitals boxes already hold different
-                                    values, so nothing can be filled from the
-                                    note.
+                                    Will not fill:
+                                    {{
+                                        noteVitalsPlan.skippedDetails
+                                            .map(
+                                                (item) =>
+                                                    `${item.label} (box already has ${item.current})`,
+                                            )
+                                            .join(', ')
+                                    }}.
+                                </p>
+                                <p
+                                    v-if="
+                                        showNoteVitals &&
+                                        noteVitals.notRead.length
+                                    "
+                                    class="text-muted-foreground"
+                                >
+                                    Not read:
+                                    {{ noteVitals.notRead.join(', ') }}. Enter
+                                    them in the vitals boxes in the units KPOne
+                                    takes.
                                 </p>
                                 <p v-if="filledFromNote.length">
                                     Filled from your note:
