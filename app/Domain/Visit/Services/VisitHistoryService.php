@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\StaffAccessService;
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -256,6 +257,7 @@ class VisitHistoryService
                 'source' => 'doctor',
                 'changeState' => $item->change_state ?? 'unchanged',
                 'dispensedQuantity' => $item?->quantity_dispensed,
+                'dispensedPacks' => $item ? DispensaryPackDisplay::text($item) : null,
                 'dispensedStatus' => $item?->status,
                 'dispensed' => $item ? $this->dispensedText($item) : null,
             ];
@@ -277,6 +279,7 @@ class VisitHistoryService
                 'source' => 'ca',
                 'changeState' => $item->change_state,
                 'dispensedQuantity' => $item->quantity_dispensed,
+                'dispensedPacks' => DispensaryPackDisplay::text($item),
                 'dispensedStatus' => $item->status,
                 'dispensed' => $this->dispensedText($item),
             ];

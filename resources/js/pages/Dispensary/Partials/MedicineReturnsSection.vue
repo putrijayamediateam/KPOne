@@ -303,7 +303,12 @@ const onChecked = async (row: ReturnRow, message: string) => {
                             class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-xs tabular-nums"
                         >
                             <dt class="text-muted-foreground">Dispensed</dt>
-                            <dd>{{ line.dispensed }} {{ line.unit }}</dd>
+                            <dd>
+                                {{
+                                    line.dispensedPacks ??
+                                    `${line.dispensed} ${line.unit}`
+                                }}
+                            </dd>
                             <dt class="text-muted-foreground">
                                 Returned so far
                             </dt>
