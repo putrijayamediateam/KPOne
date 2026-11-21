@@ -37,6 +37,10 @@ class EditDispensaryItemRequest extends FormRequest
             'allocations.*.batch_public_id' => ['required', 'uuid'],
             'allocations.*.fefo_exception_reason' => ['nullable', Rule::in(InventoryBatchEligibility::FEFO_REASONS)], 'allocations.*.quantity' => ['required', 'regex:/^\d{1,9}(?:\.\d{1,3})?$/'],
             // DSP-1: public ids of the matched allergy records the CA ticked "I have checked with the patient/doctor" for.
+            // DSP-24: whole packs (bottles) through the SKU's checked STK-52 conversion; checked again in the service.
+            'packs' => ['nullable', 'integer', 'min:1', 'max:99'],
+            'pack_conversion_public_id' => ['nullable', 'required_with:packs', 'uuid'],
+            'pack_conversion_version' => ['nullable', 'required_with:packs', 'integer', 'min:1'],
             'allergy_confirmed_record_ids' => ['nullable', 'array', 'max:50'],
             'allergy_confirmed_record_ids.*' => ['uuid'],
         ];
