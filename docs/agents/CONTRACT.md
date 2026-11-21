@@ -62,6 +62,7 @@ the figures are recomputed on demand.
 | `ai_assistant.use.organisation` | `director` | Use the Director quick answers page. |
 | `ai_proposals.view.branch` | `director`, `ca_supervisor`, `finance_officer` | See the approval inbox for their branches. |
 | `ai_daily_summary.view.branch` | `director`, `ca_supervisor`, `finance_officer`, `administrator` | Open the daily summary page for their branches (sections are filtered further, section 14). |
+| `ai_connector.use.organisation` | `director` | Use the KPOne connector (section 16): the Director's own read-only door for the Director's AI app. Added by migration `2026_11_21_100100` (owner decision 2026-11-21). |
 | Decision on a proposal | Holders of the proposal type's domain permission (section 6) | Approve or reject. |
 
 Added by one additive migration in the registry slice (firstOrCreate, give only what is missing, a missing
@@ -122,6 +123,7 @@ request has its own approval, dispatch and receiving steps.
 - KPOne makes no call to any AI service. There is no API key setting and no AI dependency.
 - A guard test fails if any application code references `api.anthropic.com`, `ANTHROPIC_` settings or an
   AI SDK package.
+- The KPOne connector (section 16) is a door that the owner's AI app calls; KPOne still calls nothing and holds no AI key or SDK.
 - Adding AI calls later needs a new owner decision (API key, spending limit and a data review) and a
   contract change.
 
@@ -351,3 +353,26 @@ trail only. No new permission is needed (existing grants are used).
 
 **Not changed:** expiry and slow-moving suggestions stay decision only; no agent changes clinic data; KPOne still calls no AI
 service (section 7; the next-wave design is separate and needs the owner's decision).
+
+## 16. The KPOne connector (CN-1, owner decision 2026-11-21)
+
+Design: [MCP-CONNECTOR-DESIGN.md](MCP-CONNECTOR-DESIGN.md). KPOne exposes one read-only MCP endpoint (`POST /mcp`, Streamable HTTP) that
+the Director's AI app can use as a custom connector. **Claude calls KPOne; KPOne never calls an AI service.**
+
+- **Switch:** `agents.connector_enabled` (`AGENTS_CONNECTOR_ENABLED`), default OFF, read on every request. Off: `/mcp`, the OAuth
+  discovery routes, `/oauth/register`, `/oauth/token` and `/oauth/authorize` answer 404 and no token works.
+- **Sign-in:** OAuth 2.1 with PKCE through `laravel/passport` (pinned `~13.7.6`, the last release that uses phpseclib 3, which
+  `laravel/socialite` needs) and the MCP package `laravel/mcp` (1.2.x). Passport's own routes are off; `routes/ai.php` registers
+  only the routes above. The consent page (`/oauth/authorize`) is an ordinary KPOne page behind the normal sign-in, for a holder of
+  `ai_connector.use.organisation` only. One scope, `mcp:use` (read only; there is no write scope). Access tokens last 1 hour,
+  refresh tokens 30 days. A client may register itself only with a redirect origin in `config/mcp.php` (`MCP_REDIRECT_DOMAINS`).
+- **Every call:** token valid, the person still active and still holding the permission (`ConnectorAccess`), 30 calls a minute and
+  500 a day per person, then one short run of the registered agent `claude_connector` ("(AI agent)", created on first use, disabled
+  by the Director on /agents to refuse every call) through `AgentToolGateway`: the agent's allowlist, the tool's permission, the
+  person's effective branch, input validation and `AggregatePayloadGuard`. A 10-second statement timeout and a 64 KB result cap
+  apply.
+- **Audit:** `ai_connector.tool_called` (tool, branch code, outcome, reason, row count; never the figures), `ai_connector.access_refused`
+  and `ai_connector.tokens_revoked`. If the audit row cannot be written, nothing is returned.
+- **Revoke:** `php artisan agents:connector-revoke {--user=<email>}` (one person, or everyone when left out).
+- **Tools:** CN-1: `list_branches` (data source `connector.list_branches`). CN-2 and CN-3 add the rest (design note section 6).
+- **Data rule:** fictional data only until the PDPA review (design note section 8).
