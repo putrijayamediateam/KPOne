@@ -81,16 +81,16 @@ class GovernedStockTest extends VisitTestCase
             $f = $this->f();
             $actor = $this->actorAt($role);
             $service = app(Service::class);
-            $view = in_array($role, ['director', 'finance_officer', 'ca_supervisor', 'ca', 'administrator'], true);
+            $view = in_array($role, ['director', 'finance_officer', 'ca_supervisor', 'ca', 'administrator', 'branch_manager', 'account_assistant', 'store_admin'], true);
             $this->actingAs($actor)->get(route('inventory.governed-counts'))->assertStatus($view ? 200 : 403);
             $this->get(route('inventory.governed-writeoffs'))->assertStatus($view ? 200 : 403);
             foreach (['count', 'writeoff'] as $kind) {
                 $data = $this->proposal($f, $kind === 'writeoff' ? ['quantity' => '1.000', 'reason' => 'damaged', 'disposal_reference' => 'SYN-LOG-001'] : []);
                 try {
                     $service->propose($actor, $kind, $data);
-                    $this->assertSame('ca_supervisor', $role);
+                    $this->assertContains($role, $kind === 'count' ? ['ca_supervisor', 'store_admin'] : ['ca_supervisor']);
                 } catch (AuthorizationException) {
-                    $this->assertNotSame('ca_supervisor', $role);
+                    $this->assertNotContains($role, $kind === 'count' ? ['ca_supervisor', 'store_admin'] : ['ca_supervisor']);
                 }
             }
             app(BranchAccessService::class)->select($f['proposer'], $this->branch);
@@ -98,17 +98,17 @@ class GovernedStockTest extends VisitTestCase
             app(BranchAccessService::class)->select($actor, $this->branch);
             try {
                 $service->act($actor, $id, 'counted', $this->command(1, '8.000'));
-                $this->assertSame('ca_supervisor', $role);
+                $this->assertContains($role, ['ca_supervisor', 'store_admin']);
             } catch (AuthorizationException) {
-                $this->assertNotSame('ca_supervisor', $role);
+                $this->assertNotContains($role, ['ca_supervisor', 'store_admin']);
                 $service->act($f['proposer'], $id, 'counted', $this->command(1, '8.000'));
             }
             $other = $this->actorAt($role);
             try {
                 $service->act($other, $id, 'recounted', $this->command(2, '8.000'));
-                $this->assertSame('ca_supervisor', $role);
+                $this->assertContains($role, ['ca_supervisor', 'store_admin']);
             } catch (AuthorizationException) {
-                $this->assertNotSame('ca_supervisor', $role);
+                $this->assertNotContains($role, ['ca_supervisor', 'store_admin']);
                 $counter = $this->actorAt('ca_supervisor');
                 $service->act($counter, $id, 'recounted', $this->command(2, '8.000'));
             }

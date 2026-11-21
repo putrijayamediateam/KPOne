@@ -435,6 +435,7 @@ final class PermissionCatalogue
                 'inventory.view.branch',
                 'inventory.receiving.branch',
                 'inventory.stocktake.branch',
+                'inventory.stock_reviews.manage.branch',
                 'inventory.warehouse.organisation',
                 'inventory.purchase_orders.create.organisation',
                 'inventory.purchase_requests.create.branch',
