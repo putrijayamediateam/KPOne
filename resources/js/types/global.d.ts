@@ -1,4 +1,4 @@
-import type { BranchContext, V2Shell } from '@/types';
+import type { BranchContext } from '@/types';
 import type { Auth } from '@/types/auth';
 
 // Extend ImportMeta interface for Vite...
@@ -28,13 +28,6 @@ declare module '@inertiajs/core' {
                     clock: boolean;
                     spaces: boolean;
                 };
-                spaces: {
-                    offered: boolean;
-                    enabled: boolean;
-                    lockVersion: number;
-                };
-                newLook?: boolean;
-                shell?: V2Shell | null;
                 navigation: {
                     clinicManagement: boolean;
                     businessDetails: boolean;
