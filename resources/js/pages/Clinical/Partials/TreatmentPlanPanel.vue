@@ -39,7 +39,12 @@ const props = defineProps<{
     encounterVersion: number;
     allergies: ClinicalAllergySafety | null;
 }>();
+// Q-14: the Complete button only asks; Clinical/Show.vue decides whether unsaved clinical work needs a choice first, then calls
+// the exposed openComplete(). There is no local way to open the dialog, so the guard cannot be bypassed.
+const emit = defineEmits<{ 'request-complete': [] }>();
 const sendOpen = ref(false);
+// After the plan is saved the service dispositions are cleared (the services may have changed), so the doctor confirms each again.
+const servicesReset = ref(false);
 const sendForm = useForm({
     expected_branch_id: props.branchId,
     lock_version: props.plan.lockVersion,
@@ -70,6 +75,9 @@ const sendToDispensary = () => {
 watch(
     () => props.plan.services,
     (services) => {
+        servicesReset.value = sendForm.service_deliveries.some(
+            (row) => row.disposition !== '',
+        );
         sendForm.service_deliveries = services.map((service) => ({
             order_public_id: service.publicId,
             disposition: '',
@@ -77,6 +85,11 @@ watch(
         }));
     },
 );
+watch(sendOpen, (open) => {
+    if (!open) {
+        servicesReset.value = false;
+    }
+});
 const reopenForm = useForm({
     expected_branch_id: props.branchId,
     visit_lock_version: props.visitVersion,
@@ -668,6 +681,19 @@ defineExpose({
 
         save(onSuccess, onError);
     },
+    // Q-14: the same save under a name that does not say Hold (saveForHold stays as it is: two tests pin its call).
+    saveDraft: (onSuccess: () => void, onError: (message: string) => void) => {
+        if (!form.isDirty) {
+            onSuccess();
+
+            return;
+        }
+
+        save(onSuccess, onError);
+    },
+    openComplete: () => {
+        sendOpen.value = true;
+    },
 });
 </script>
 
@@ -1258,7 +1284,7 @@ defineExpose({
                 <Button
                     v-if="plan.canCompleteConsultation"
                     type="button"
-                    @click="sendOpen = true"
+                    @click="emit('request-complete')"
                     >Complete Consultation</Button
                 >
                 <Button
@@ -1326,6 +1352,13 @@ defineExpose({
                             class="ml-2 h-9 w-24 rounded-md border border-input bg-card px-2 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                     /></label>
                 </div>
+                <p
+                    v-if="servicesReset"
+                    class="text-xs text-muted-foreground"
+                    data-testid="services-reconfirm"
+                >
+                    Services changed. Please confirm each one again.
+                </p>
                 <InputError :message="Object.values(sendForm.errors)[0]" />
                 <DialogFooter>
                     <DialogClose as-child
