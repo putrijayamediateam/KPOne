@@ -13,37 +13,7 @@
 */
 
 return [
-    'pages' => [
-        'ClinicalService/Index',
-        'Medicine/Index',
-        'PaymentMethods/Index',
-        'Pricing/Index',
-        'Agents/Inbox',
-        'Agents/Index',
-        'ClinicManagement/Index',
-        'BusinessDetails/Index',
-        'QueueDisplay/Settings',
-        'InventoryServicesSettings/Suppliers',
-        'Staff/Index',
-        'InventoryServicesSettings/MedicineDetails',
-        'RegistrationSettings/Index',
-        'ConsultationSettings/Index',
-        'Pricing/PriceCheck',
-        'Pricing/PriceHistory',
-        'Staff/Show',
-        'Staff/Create',
-        'Staff/Edit',
-        'Agents/Assistant',
-        'Agents/DailySummary',
-        'Agents/Office',
-        'MedicalCertificates/Index',
-        'Referrals/Index',
-        'ClinicianCredentials/Index',
-        'MedicalCertificateTemplates/Index',
-        'AuditLogs/Index',
-        'Branches/Index',
-        'AccessControl/Index',
-    ],
+    'pages' => [],
 
     /*
     |--------------------------------------------------------------------------

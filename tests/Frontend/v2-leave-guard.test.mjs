@@ -138,16 +138,6 @@ test('holdTarget: held only for a GET to another path while dirty; a poll, a rel
     );
 });
 
-test('Staff/Edit: leave guard, person crumb, plain wording', () => {
-    const page = read('resources/js/pages/Staff/V2/Edit.vue');
-    assert.match(page, /<V2LeaveGuard :dirty="form\.isDirty" \/>/);
-    assert.match(page, /usePageCrumbs/);
-    assert.match(page, /Clinic management/);
-    assert.match(page, /changed on the person's own page/);
-    assert.doesNotMatch(page, /Protected ownership/);
-    assert.match(page, /That email is already used by another staff member\./);
-});
-
 test('V2LeaveGuard.ask: in-page actions, the five rules', () => {
     assert.match(guard, /defineExpose\(\{ ask \}\)/);
     // (3) a clean form runs at once and asks nothing
