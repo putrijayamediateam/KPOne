@@ -3,6 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import PanelClaimVersions from '@/components/billing/PanelClaimVersions.vue';
+import IssuedPacksList from '@/components/panel/IssuedPacksList.vue';
+import type { IssuedPackRow } from '@/components/panel/IssuedPacksList.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -101,6 +103,8 @@ const props = defineProps<{
     branch: { id: number; name: string; today: string };
     claim: ClaimData;
     panelAdjustment?: PanelAdjustment | null;
+    /** PNL-25: frozen claim packs that include this claim; null without the claims permission here. */
+    issuedPacks?: IssuedPackRow[] | null;
 }>();
 const page = usePage();
 const busy = ref(false);
@@ -435,6 +439,12 @@ const eventTitle = (type: string) =>
             v-if="claim.adjustmentClaim"
             :claim="claim.adjustmentClaim"
             :public-id="claim.publicId"
+            class="print:hidden"
+        />
+        <IssuedPacksList
+            v-if="issuedPacks && issuedPacks.length > 0"
+            :packs="issuedPacks"
+            :from-claim="claim.publicId"
             class="print:hidden"
         />
         <PanelAdjustmentPanel
