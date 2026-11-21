@@ -37,6 +37,7 @@ import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
+import DispensaryCheckPanel from '@/pages/Clinical/Partials/DispensaryCheckPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
 
@@ -840,6 +841,11 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
+                />
+
+                <DispensaryCheckPanel
+                    v-if="clinical.dispensaryCheck"
+                    :check="clinical.dispensaryCheck"
                 />
 
                 <div

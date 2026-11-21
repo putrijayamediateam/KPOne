@@ -77,6 +77,9 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('inventory.view.branch'), 'Inventory', 'Review stock, batches and movements for this branch.', 'inventory.index'],
             // DSP-7b (B.E.R.N.I.S.S for the owner): only the people who may check a return see the list (v1: a CA Supervisor).
             [$branch && $actor->can('dispensary.view.branch') && app(DispensaryReturnService::class)->canCheckReturns($actor), 'Returns to check', 'Medicine returns at this branch that are waiting for a check, oldest first.', 'dispensary.returns-to-check'],
+            // DSP-23 (owner answers 12 = A and 13 = B): the branch switch, and the list a CA Supervisor checks from instead.
+            [$branch && $actor->can('dispensary.doctor_check.override.branch'), 'Waiting for doctor\'s check', 'Consultation cases waiting for the doctor\'s check at this branch, oldest first.', 'dispensary.doctor-checks'],
+            [$branch && $actor->can('dispensary.settings.manage.branch'), 'Dispensary settings', 'Turn on the doctor\'s check of prepared medicine for this branch.', 'dispensary-settings.show'],
         ]);
         $add('Patients', 'patients', [
             [$actor->can('patients.search.organisation'), 'Patient Records', 'Find patients within your existing access.', 'patients.index'],

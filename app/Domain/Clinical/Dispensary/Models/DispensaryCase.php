@@ -6,12 +6,19 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
+/**
+ * @property bool|null $doctor_check_required DSP-23: frozen true when the CA first sends the case for the doctor's check.
+ * @property CarbonImmutable|null $sent_for_check_at
+ * @property int|null $sent_for_check_by_user_id
+ * @property string|null $sent_for_check_retry_key
+ */
 #[Guarded(['*'])]
 class DispensaryCase extends Model
 {

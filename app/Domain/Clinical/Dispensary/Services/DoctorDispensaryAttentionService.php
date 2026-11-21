@@ -144,7 +144,27 @@ class DoctorDispensaryAttentionService
                 'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN,
                 'records' => $profile ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->pluck('allergen_text')->values()->all() : [],
             ],
-            'lines' => $handoff->items->map(fn (DispensaryItem $item): array => [
+            'lines' => $this->checkLines($handoff),
+            'reasons' => DispensaryDoctorCheck::REASONS,
+            'verifyUrl' => route('dispensary.doctor-check.verify', $case),
+            'sendBackUrl' => route('dispensary.doctor-check.send-back', $case),
+        ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function checkLines(DispensaryHandoff $handoff): array
+    {
+        $lines = [];
+        foreach ($handoff->items as $item) {
+            $batches = [];
+            foreach ($item->allocations as $allocation) {
+                $batches[] = [
+                    'batchNumber' => $allocation->batch?->batch_number,
+                    'expiryDate' => $allocation->batch?->expiry_date ? CarbonImmutable::parse($allocation->batch->expiry_date)->format('j M Y') : null,
+                    'quantity' => (string) $allocation->quantity,
+                ];
+            }
+            $lines[] = [
                 'name' => $item->medicine_name_snapshot,
                 'strength' => $item->strength_snapshot,
                 'unit' => $item->unit_snapshot,
@@ -152,16 +172,11 @@ class DoctorDispensaryAttentionService
                 'source' => $item->source,
                 'ordered' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration],
                 'prepared' => ['quantity' => $item->quantity_dispensed, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction')],
-                'batches' => $item->allocations->map(fn ($allocation): array => [
-                    'batchNumber' => $allocation->batch?->batch_number,
-                    'expiryDate' => $allocation->batch?->expiry_date ? CarbonImmutable::parse($allocation->batch->expiry_date)->format('j M Y') : null,
-                    'quantity' => $allocation->quantity,
-                ])->values()->all(),
-            ])->values()->all(),
-            'reasons' => DispensaryDoctorCheck::REASONS,
-            'verifyUrl' => route('dispensary.doctor-check.verify', $case),
-            'sendBackUrl' => route('dispensary.doctor-check.send-back', $case),
-        ];
+                'batches' => $batches,
+            ];
+        }
+
+        return $lines;
     }
 
     /** @return list<array<string, mixed>> */

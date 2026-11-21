@@ -7,7 +7,6 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 
 /**
  * DSP-23: read-only projections for the doctor's check.
@@ -31,19 +30,24 @@ final class DispensaryDoctorCheckDirectory
             ->with(['visit:id,patient_id,visit_number,assigned_doctor_user_id', 'visit.patient:id,full_name,patient_number', 'visit.assignedDoctor:id,name'])->get();
         $senders = User::query()->whereIn('id', $cases->pluck('sent_for_check_by_user_id')->filter()->unique())->pluck('name', 'id');
 
-        return [
-            'rows' => $cases->map(fn (DispensaryCase $case): array => [
+        $rows = [];
+        foreach ($cases as $case) {
+            $rows[] = [
                 'publicId' => $case->public_id,
                 'url' => route('dispensary.show', $case),
-                'patient' => $case->visit->patient?->full_name,
-                'patientNumber' => $case->visit->patient?->patient_number,
+                'patient' => $case->visit->patient->full_name,
+                'patientNumber' => $case->visit->patient->patient_number,
                 'visitNumber' => $case->visit->visit_number,
                 'doctor' => $case->visit->assignedDoctor?->name,
-                'sentBy' => $senders->get($case->sent_for_check_by_user_id),
+                'sentBy' => $case->sent_for_check_by_user_id === null ? null : (string) $senders->get($case->sent_for_check_by_user_id),
                 'sentAt' => $this->time($case->sent_for_check_at, $branch),
                 'sentAtIso' => $case->sent_for_check_at?->toIso8601String(),
                 'preparedByYou' => $case->sent_for_check_by_user_id === $actor->id || $case->current_handler_user_id === $actor->id,
-            ])->values()->all(),
+            ];
+        }
+
+        return [
+            'rows' => $rows,
             'total' => $total,
         ];
     }
@@ -68,19 +72,13 @@ final class DispensaryDoctorCheckDirectory
         ];
     }
 
-    /** @param Collection<int, int> $caseIds @return array<int, true> */
-    public function waitingCaseIds(Collection $caseIds): array
-    {
-        return DispensaryCase::query()->whereIn('id', $caseIds)->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK)->pluck('id')->mapWithKeys(fn ($id): array => [(int) $id => true])->all();
-    }
-
     /** "10:42" today, otherwise "20 Nov 2026, 10:42" (Daniel, note 5). */
-    public function time(?CarbonImmutable $value, Branch $branch): ?string
+    public function time(mixed $value, Branch $branch): ?string
     {
-        if ($value === null) {
+        if ($value === null || $value === '') {
             return null;
         }
-        $local = $value->setTimezone($branch->timezone);
+        $local = CarbonImmutable::parse($value)->setTimezone($branch->timezone);
 
         return $local->isSameDay(now()->setTimezone($branch->timezone)) ? $local->format('g:i A') : $local->format('j M Y, g:i A');
     }

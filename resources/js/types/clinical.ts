@@ -141,6 +141,43 @@ export type DoctorDispensaryAttention = {
     acknowledgeUrl: string;
 };
 
+// DSP-23: a case waiting for the attending doctor's check (null when there is none).
+export type DoctorDispensaryCheck = {
+    caseLockVersion: number;
+    expectedBranchId: number;
+    sentAt: string | null;
+    sentBy: string | null;
+    allergies: { status: string; records: string[] };
+    lines: Array<{
+        name: string;
+        strength: string | null;
+        unit: string;
+        changeState: 'unchanged' | 'edited' | 'added' | 'removed';
+        source: 'doctor' | 'ca';
+        ordered: {
+            quantity: string;
+            dosage: string | null;
+            frequency: string | null;
+            duration: string | null;
+        };
+        prepared: {
+            quantity: string | null;
+            dosage: string | null;
+            frequency: string | null;
+            duration: string | null;
+            instruction: string | null;
+        };
+        batches: Array<{
+            batchNumber: string | null;
+            expiryDate: string | null;
+            quantity: string;
+        }>;
+    }>;
+    reasons: string[];
+    verifyUrl: string;
+    sendBackUrl: string;
+};
+
 export type ClinicalEncounterPage = {
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
@@ -194,6 +231,7 @@ export type ClinicalEncounterPage = {
     problems: ClinicalProblemList | null;
     treatmentPlan: TreatmentPlanPage;
     dispensaryAttention: DoctorDispensaryAttention[];
+    dispensaryCheck?: DoctorDispensaryCheck | null;
     history: ClinicalHistorySummary[];
 };
 
