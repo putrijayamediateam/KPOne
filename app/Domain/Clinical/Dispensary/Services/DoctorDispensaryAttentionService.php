@@ -140,15 +140,35 @@ class DoctorDispensaryAttentionService
             'expectedBranchId' => $case->branch_id,
             'sentAt' => app(DispensaryDoctorCheckDirectory::class)->time($case->sent_for_check_at, $branch),
             'sentBy' => User::query()->whereKey($case->sent_for_check_by_user_id)->value('name'),
+            // Daniel and B.E.R.N.I.S.S: the line names its source (the patient's allergy profile, not this consultation's
+            // review, which the page's own banner speaks about) and the date it was last reviewed or changed.
             'allergies' => [
                 'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN,
                 'records' => $profile ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->pluck('allergen_text')->values()->all() : [],
+                'updatedOn' => ($profile->reviewed_at ?? $profile?->updated_at)?->setTimezone($branch->timezone)->format('j M Y'),
             ],
             'lines' => $this->checkLines($handoff),
             'reasons' => DispensaryDoctorCheck::REASONS,
             'verifyUrl' => route('dispensary.doctor-check.verify', $case),
             'sendBackUrl' => route('dispensary.doctor-check.send-back', $case),
         ];
+    }
+
+    /**
+     * DSP-23 (Daniel, change 4): after a CA Supervisor checked the case instead of this doctor, the consultation page
+     * says so (who, when, why) while the visit is still open. Null otherwise.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function supervisorCheckForEncounter(User $actor, ClinicalEncounter $encounter): ?array
+    {
+        if (! $actor->can('dispensary.doctor_check.own') || ! $this->eligible($actor, $encounter)) {
+            return null;
+        }
+        $case = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $encounter->branch_id)
+            ->where('visit_id', $encounter->visit->id)->where('clinical_encounter_id', $encounter->id)->latest('id')->first();
+
+        return $case ? app(DispensaryDoctorCheckDirectory::class)->supervisorCheck($case, Branch::query()->findOrFail($case->branch_id)) : null;
     }
 
     /** @return list<array<string, mixed>> */
@@ -177,6 +197,37 @@ class DoctorDispensaryAttentionService
         }
 
         return $lines;
+    }
+
+    /**
+     * DSP-23, for Queue & TV's board chip (Amirul): which of this doctor's visits have a case waiting for their check.
+     * The same guards as pendingForVisits(); structural ids only, one query per page. It reads the case status, not
+     * the branch switch, because a case sent while the switch was on still waits after it is turned off.
+     *
+     * @param  Collection<int,Visit>  $visits
+     * @return array<int,bool>
+     */
+    public function checksForVisits(User $actor, Collection $visits): array
+    {
+        if ($visits->isEmpty() || ! $actor->is_active || ! $actor->hasRole('resident_doctor')
+            || ! $actor->can('dispensary.doctor_check.own') || ! $actor->can('encounters.view.own')) {
+            return [];
+        }
+        $branch = $this->branches->activeBranch($actor);
+        if (! $branch || ! $actor->staffProfile()->exists() || ! $this->branches->canSelect($actor, $branch) || ! $this->branches->hasEffectiveAssignment($actor, $branch)) {
+            return [];
+        }
+        $ids = $visits->filter(fn (Visit $v): bool => $v->organisation_id === $actor->organisation_id && $v->branch_id === $branch->id && $v->assigned_doctor_user_id === $actor->id)->map(fn (Visit $v): int => $v->id)->all();
+        if ($ids === []) {
+            return [];
+        }
+
+        return DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->whereIn('visit_id', $ids)
+            ->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK)
+            ->whereHas('encounter', fn ($q) => $q->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('attending_clinician_user_id', $actor->id))
+            ->whereHas('visit', fn ($q) => $q->where('status', Visit::STATUS_REGISTERED)->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_REMOVED)->where('removal_reason', 'sent_to_dispensary')))
+            ->whereHas('handoffs', fn ($h) => $h->where('status', DispensaryHandoff::STATUS_OPEN))
+            ->pluck('visit_id')->mapWithKeys(fn ($id): array => [(int) $id => true])->all();
     }
 
     /** @return list<array<string, mixed>> */

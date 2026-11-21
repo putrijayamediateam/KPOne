@@ -135,6 +135,7 @@ class DispensaryDirectoryService
             'sentAt' => $waiting ? $directory->time($case->sent_for_check_at, $branch) : null,
             'sentBy' => $waiting ? User::query()->whereKey($case->sent_for_check_by_user_id)->value('name') : null,
             'sentBack' => $directory->latestSendBack($case, $branch),
+            'supervisorCheck' => $directory->supervisorCheck($case, $branch),
             'canCheck' => $waiting && $mayOverride && ! $prepared,
             // Only someone who could otherwise check instead is told why they can't.
             'preparedByYou' => $waiting && $mayOverride && $prepared,

@@ -147,7 +147,7 @@ export type DoctorDispensaryCheck = {
     expectedBranchId: number;
     sentAt: string | null;
     sentBy: string | null;
-    allergies: { status: string; records: string[] };
+    allergies: { status: string; records: string[]; updatedOn: string | null };
     lines: Array<{
         name: string;
         strength: string | null;
@@ -176,6 +176,16 @@ export type DoctorDispensaryCheck = {
     reasons: string[];
     verifyUrl: string;
     sendBackUrl: string;
+};
+
+// DSP-23: a CA Supervisor checked the case instead of the attending doctor (owner answer 13 = B).
+export type DispensarySupervisorCheck = {
+    outcome: 'verified' | 'sent_back';
+    by: string | null;
+    doctor: string | null;
+    at: string | null;
+    overrideReason: 'doctor_off_shift' | 'doctor_emergency' | 'other' | null;
+    overrideNote: string | null;
 };
 
 export type ClinicalEncounterPage = {
@@ -232,6 +242,7 @@ export type ClinicalEncounterPage = {
     treatmentPlan: TreatmentPlanPage;
     dispensaryAttention: DoctorDispensaryAttention[];
     dispensaryCheck?: DoctorDispensaryCheck | null;
+    dispensaryCheckedInstead?: DispensarySupervisorCheck | null;
     history: ClinicalHistorySummary[];
 };
 

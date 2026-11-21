@@ -18,15 +18,16 @@ const registration = read('resources/js/pages/Registration/Index.vue');
 
 test('DSP-23: Verify and Send back are outline buttons; red appears only in the Verify confirm sheet', () => {
     assert.equal((actions.match(/variant="outline"/g) ?? []).length, 2);
-    assert.match(actions, /title="Verify and release to billing\?"/);
+    assert.match(actions, /'Verify and release to billing\?'/);
     assert.match(
         actions,
         /description="The medicine is dispensed when you confirm\."/,
     );
-    assert.match(
-        actions,
-        /title="Verify and release to billing\?"[\s\S]*?\bdestructive\b/,
-    );
+    assert.match(actions, /:title="verifyTitle"[\s\S]*?\bdestructive\b/);
+    // Daniel (change 5): a supervisor's sheets say whose check they replace.
+    assert.match(actions, /`Verify instead of \$\{doctor\.value\}\?`/);
+    assert.match(actions, /`Send back instead of \$\{doctor\.value\}`/);
+    assert.match(show, /:doctor-name="dispensary\.doctor"/);
     assert.doesNotMatch(actions, /variant="destructive"/);
 });
 
@@ -71,7 +72,17 @@ test('DSP-23: the doctor sees "Medicine ready for your check" with the order bes
     assert.match(panel, /Medicine ready for your check/);
     assert.match(panel, /Ordered/);
     assert.match(panel, /Prepared/);
-    assert.match(panel, /'No known allergies'/);
+    // Daniel and B.E.R.N.I.S.S: the line names its source and date; no profile is a warning, never "none".
+    assert.match(panel, /`Allergy profile on record: \$\{what\}\$\{when\}`/);
+    assert.match(
+        panel,
+        /Allergies not recorded\. Ask the patient before you verify\./,
+    );
+    assert.match(
+        panel,
+        /Quantity \{\{ quantity\(line\.prepared\.quantity\) \}\}/,
+    );
+    assert.match(panel, /`Dose \$\{line\.dosage\}`/);
     // Daniel's note 3: CA changes are a dot and a word, not colour alone.
     assert.match(panel, /edited: 'Edited by CA'/);
     assert.match(panel, /added: 'Added by CA'/);
@@ -114,4 +125,33 @@ test('DSP-23: the Registration board names the waiting state, and the branch lis
     assert.match(settings, /class="relative inline-flex h-11/);
     assert.match(settings, /on \? 'On' : 'Off'/);
     assert.match(settings, /retry_key: crypto\.randomUUID\(\)/);
+});
+
+test('DSP-23: a supervisor check says who checked instead of the doctor, when and why, on every page that shows it', () => {
+    const note = read(
+        'resources/js/components/dispensary/SupervisorCheckNote.vue',
+    );
+    const lib = read('resources/js/lib/dispensary-doctor-check.ts');
+    const completed = read('resources/js/pages/Dispensary/Completed.vue');
+    assert.match(
+        lib,
+        /\$\{action\} by \$\{who\} \(CA Supervisor\) instead of \$\{doctor\}/,
+    );
+    assert.match(lib, /Reason: /);
+    assert.match(
+        note,
+        /class="mt-1\.5 size-1\.5 shrink-0 rounded-full bg-foreground\/70"/,
+    );
+    assert.match(
+        completed,
+        /<SupervisorCheckNote[\s\S]*?:check="supervisorCheck"/,
+    );
+    assert.match(
+        clinical,
+        /<SupervisorCheckNote[\s\S]*?clinical\.dispensaryCheckedInstead/,
+    );
+    assert.match(
+        show,
+        /<SupervisorCheckNote[\s\S]*?dispensary\.doctorCheck\.supervisorCheck/,
+    );
 });

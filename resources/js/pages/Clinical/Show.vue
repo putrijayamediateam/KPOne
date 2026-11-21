@@ -17,6 +17,7 @@ import { computed, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
+import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
@@ -846,6 +847,10 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <DispensaryCheckPanel
                     v-if="clinical.dispensaryCheck"
                     :check="clinical.dispensaryCheck"
+                />
+                <SupervisorCheckNote
+                    v-if="clinical.dispensaryCheckedInstead"
+                    :check="clinical.dispensaryCheckedInstead"
                 />
 
                 <div

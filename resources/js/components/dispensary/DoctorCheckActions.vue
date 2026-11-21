@@ -17,8 +17,10 @@ const props = withDefaults(
         caseLockVersion: number;
         expectedBranchId: number;
         asSupervisor?: boolean;
+        // Daniel (change 5): a supervisor's sheet says whose check it replaces.
+        doctorName?: string | null;
     }>(),
-    { asSupervisor: false },
+    { asSupervisor: false, doctorName: null },
 );
 
 const SEND_BACK_REASONS: Array<{ value: string; label: string }> = [
@@ -94,6 +96,17 @@ const submit = (url: string, extra: Record<string, unknown>) => {
     );
 };
 
+const doctor = computed(() => props.doctorName ?? 'the doctor');
+const verifyTitle = computed(() =>
+    props.asSupervisor
+        ? `Verify instead of ${doctor.value}?`
+        : 'Verify and release to billing?',
+);
+const sendBackTitle = computed(() =>
+    props.asSupervisor
+        ? `Send back instead of ${doctor.value}`
+        : 'Send back to the CA',
+);
 const firstError = computed(() => Object.values(errors.value)[0] ?? '');
 
 const verify = () =>
@@ -143,7 +156,7 @@ const sendBack = () =>
 
         <OperationalConfirmDialog
             :open="verifyOpen"
-            title="Verify and release to billing?"
+            :title="verifyTitle"
             description="The medicine is dispensed when you confirm."
             confirm-label="Verify and release"
             processing-label="Verifying…"
@@ -197,7 +210,7 @@ const sendBack = () =>
 
         <OperationalConfirmDialog
             :open="sendBackOpen"
-            title="Send back to the CA"
+            :title="sendBackTitle"
             description="The case returns to the CA as Dispensing, with your reason shown at the top."
             confirm-label="Send back"
             processing-label="Sending back…"

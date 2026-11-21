@@ -8,6 +8,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryDoctorCheckDirectory;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
@@ -61,7 +62,14 @@ class DispensaryController extends Controller
 
         if ($detail['status'] === DispensaryCase::STATUS_COMPLETED) {
             // DSP-7: the returns section is its own prop, so the completed-case payload keeps its keys.
-            return Inertia::render('Dispensary/Completed', ['dispensary' => $detail, 'returns' => app(DispensaryReturnService::class)->panel($request->user(), $dispensaryCase, Branch::query()->findOrFail($dispensaryCase->branch_id))]);
+            $caseBranch = Branch::query()->findOrFail($dispensaryCase->branch_id);
+
+            return Inertia::render('Dispensary/Completed', [
+                'dispensary' => $detail,
+                'returns' => app(DispensaryReturnService::class)->panel($request->user(), $dispensaryCase, $caseBranch),
+                // DSP-23: a separate prop, so the completed-case payload keeps its keys.
+                'supervisorCheck' => app(DispensaryDoctorCheckDirectory::class)->supervisorCheck($dispensaryCase, $caseBranch),
+            ]);
         }
 
         return Inertia::render('Dispensary/Show', ['dispensary' => $detail]);

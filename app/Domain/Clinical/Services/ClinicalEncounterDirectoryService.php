@@ -131,6 +131,7 @@ class ClinicalEncounterDirectoryService
             'treatmentPlan' => $this->treatmentPlans->detail($actor, $encounter),
             'dispensaryAttention' => $this->dispensaryAttention->forEncounter($actor, $encounter),
             'dispensaryCheck' => $this->dispensaryAttention->checkForEncounter($actor, $encounter),
+            'dispensaryCheckedInstead' => $this->dispensaryAttention->supervisorCheckForEncounter($actor, $encounter),
             'history' => $this->history($actor, $encounter),
         ];
     }

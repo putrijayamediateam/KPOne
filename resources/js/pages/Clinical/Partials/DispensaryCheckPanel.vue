@@ -2,7 +2,7 @@
 // DSP-23: "Medicine ready for your check" on the consultation page. Each line shows what the doctor ordered beside
 // what the CA prepared, the batch and expiry, and the patient's allergy status line (Daniel, note 3). CA changes show
 // as a dot and a word, never colour alone. At 390 px the lines stack and both buttons are full width (note 9).
-import { ClipboardCheck } from '@lucide/vue';
+import { ClipboardCheck, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
 import type { DoctorDispensaryCheck } from '@/types';
@@ -14,16 +14,21 @@ const changeLabels: Record<string, string> = {
     added: 'Added by CA',
     removed: 'Removed by CA',
 };
+// Daniel and B.E.R.N.I.S.S: name the source, because the consultation's own banner speaks about this consultation's
+// review, which isn't loaded once the case is with Dispensary. A missing profile is a warning, never "none".
+const allergyRecorded = computed(
+    () =>
+        props.check.allergies.records.length > 0 ||
+        props.check.allergies.status === 'no_known_allergies',
+);
 const allergyLine = computed(() => {
     const allergies = props.check.allergies;
+    const what = allergies.records.length
+        ? allergies.records.join(', ')
+        : 'No known allergies';
+    const when = allergies.updatedOn ? ` (updated ${allergies.updatedOn})` : '';
 
-    if (allergies.records.length) {
-        return `Allergies: ${allergies.records.join(', ')}`;
-    }
-
-    return allergies.status === 'no_known_allergies'
-        ? 'No known allergies'
-        : 'Allergies not recorded';
+    return `Allergy profile on record: ${what}${when}`;
 });
 const quantity = (value: string | null) =>
     value === null ? '—' : String(Number(value));
@@ -32,8 +37,9 @@ const directions = (line: {
     frequency: string | null;
     duration: string | null;
 }) =>
-    [line.dosage, line.frequency, line.duration].filter(Boolean).join(' · ') ||
-    '—';
+    [line.dosage ? `Dose ${line.dosage}` : null, line.frequency, line.duration]
+        .filter(Boolean)
+        .join(' · ') || '—';
 </script>
 
 <template>
@@ -55,10 +61,22 @@ const directions = (line: {
             </p>
         </header>
         <p
+            v-if="allergyRecorded"
             class="border-b px-3 py-2 text-xs"
             data-testid="dispensary-check-allergies"
         >
             {{ allergyLine }}
+        </p>
+        <p
+            v-else
+            class="flex items-start gap-2 border-b border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
+            data-testid="dispensary-check-allergies"
+        >
+            <TriangleAlert
+                class="mt-0.5 size-3.5 shrink-0"
+                aria-hidden="true"
+            />
+            Allergies not recorded. Ask the patient before you verify.
         </p>
         <ul class="divide-y">
             <li
@@ -93,14 +111,15 @@ const directions = (line: {
                             >Not ordered</template
                         >
                         <template v-else
-                            >{{ quantity(line.ordered.quantity) }}
+                            >Quantity {{ quantity(line.ordered.quantity) }}
                             {{ line.unit }} ·
                             {{ directions(line.ordered) }}</template
                         >
                     </dd>
                     <dt class="text-muted-foreground">Prepared</dt>
                     <dd class="font-medium">
-                        {{ quantity(line.prepared.quantity) }} {{ line.unit }} ·
+                        Quantity {{ quantity(line.prepared.quantity) }}
+                        {{ line.unit }} ·
                         {{ directions(line.prepared) }}
                     </dd>
                 </dl>

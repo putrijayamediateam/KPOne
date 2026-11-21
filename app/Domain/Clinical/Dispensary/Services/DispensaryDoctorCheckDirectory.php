@@ -52,6 +52,30 @@ final class DispensaryDoctorCheckDirectory
         ];
     }
 
+    /**
+     * Daniel (DSP-23 look, change 4): after a CA Supervisor checks instead of the doctor, the case, the CA and the
+     * doctor all see who checked, instead of whom, when and why. Null when the doctor checked or nobody has yet.
+     *
+     * @return array{outcome: string, by: ?string, doctor: ?string, at: ?string, overrideReason: ?string, overrideNote: ?string}|null
+     */
+    public function supervisorCheck(DispensaryCase $case, Branch $branch): ?array
+    {
+        $check = DispensaryDoctorCheck::query()->where('dispensary_case_id', $case->id)->where('checked_as', DispensaryDoctorCheck::AS_SUPERVISOR)->orderByDesc('id')->first();
+        if (! $check) {
+            return null;
+        }
+        $case->loadMissing('visit.assignedDoctor:id,name');
+
+        return [
+            'outcome' => $check->outcome,
+            'by' => User::query()->whereKey($check->checked_by_user_id)->value('name'),
+            'doctor' => $case->visit->assignedDoctor?->name,
+            'at' => $this->time($check->checked_at, $branch),
+            'overrideReason' => $check->override_reason,
+            'overrideNote' => $check->override_note_encrypted,
+        ];
+    }
+
     /** @return array{reason: string, note: ?string, by: ?string, at: ?string, checkedAs: string}|null */
     public function latestSendBack(DispensaryCase $case, Branch $branch): ?array
     {

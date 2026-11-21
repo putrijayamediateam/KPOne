@@ -317,6 +317,19 @@ class DispensaryDoctorCheckTest extends ClinicalTestCase
         $check = DispensaryDoctorCheck::query()->sole();
         $this->assertSame([DispensaryDoctorCheck::AS_SUPERVISOR, 'doctor_off_shift'], [$check->checked_as, $check->override_reason]);
         $this->assertSame('doctor_off_shift', AuditLog::query()->where('event', 'dispensary.doctor_verified')->sole()->metadata['override_reason']);
+
+        // Daniel (change 4): the completed case and the doctor both see who checked instead, when and why.
+        $this->selectBranch($f['ca'], $f['visit']->branch);
+        $this->get(route('dispensary.show', $f['case']))->assertInertia(fn (Assert $page) => $page
+            ->component('Dispensary/Completed')
+            ->where('supervisorCheck.outcome', 'verified')
+            ->where('supervisorCheck.by', $f['supervisor']->name)
+            ->where('supervisorCheck.overrideReason', 'doctor_off_shift'));
+        $encounter = $f['visit']->clinicalEncounter()->sole();
+        $encounter->setRelation('visit', $f['visit']->refresh()->load('queueEntry'));
+        $this->selectBranch($f['doctor'], $f['visit']->branch);
+        $instead = app(DoctorDispensaryAttentionService::class)->supervisorCheckForEncounter($f['doctor'], $encounter);
+        $this->assertSame([$f['supervisor']->name, 'doctor_off_shift'], [$instead['by'] ?? null, $instead['overrideReason'] ?? null]);
     }
 
     public function test_a_ca_supervisor_who_sent_the_case_cannot_check_it(): void
@@ -351,6 +364,10 @@ class DispensaryDoctorCheckTest extends ClinicalTestCase
         $this->assertSame('2.000', $check['lines'][0]['prepared']['quantity']);
         $this->assertSame($f['batch']->batch_number, $check['lines'][0]['batches'][0]['batchNumber']);
         $this->assertTrue(app(DoctorDispensaryAttentionService::class)->hasPendingForVisit($f['doctor'], $f['visit']));
+        $this->assertSame([$f['visit']->id => true], app(DoctorDispensaryAttentionService::class)->checksForVisits($f['doctor'], collect([$f['visit']->refresh()])));
+        $this->assertSame([], app(DoctorDispensaryAttentionService::class)->checksForVisits($this->doctor(), collect([$f['visit']])));
+        $this->assertSame('no_known_allergies', $check['allergies']['status']);
+        $this->assertNotNull($check['allergies']['updatedOn']);
         $this->assertNull(app(DoctorDispensaryAttentionService::class)->checkForEncounter($this->doctor(), $encounter));
 
         $this->post(route('dispensary.doctor-check.send-back', $f['case']), $this->base($f))

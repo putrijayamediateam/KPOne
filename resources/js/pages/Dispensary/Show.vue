@@ -13,6 +13,7 @@ import {
 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
+import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -39,6 +40,7 @@ import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import type { Gs1Read, ScannedSku } from '@/lib/scan';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
+import type { DispensarySupervisorCheck } from '@/types';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
@@ -172,6 +174,7 @@ type Page = {
         } | null;
         canCheck: boolean;
         preparedByYou: boolean;
+        supervisorCheck: DispensarySupervisorCheck | null;
     } | null;
 };
 type Medicine = {
@@ -1301,6 +1304,15 @@ const exceptionStatusLabels: Record<string, string> = {
                 <p class="text-xs">
                     Correct the case, then send it to the doctor again.
                 </p>
+                <SupervisorCheckNote
+                    v-if="
+                        dispensary.doctorCheck.sentBack.checkedAs ===
+                            'supervisor' &&
+                        dispensary.doctorCheck.supervisorCheck
+                    "
+                    class="mt-2 text-foreground"
+                    :check="dispensary.doctorCheck.supervisorCheck"
+                />
             </div>
         </section>
 
@@ -2764,6 +2776,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         :send-back-url="`/dispensary/${dispensary.publicId}/doctor-check/send-back`"
                         :case-lock-version="dispensary.lockVersion"
                         :expected-branch-id="branchId()"
+                        :doctor-name="dispensary.doctor"
                         as-supervisor
                     />
                 </section>
