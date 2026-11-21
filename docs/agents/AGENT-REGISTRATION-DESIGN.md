@@ -1,6 +1,6 @@
 # Registering the agents on a real server: design note (AG-36)
 
-Status: **design only. Nothing here is built or authorised.** Written by the Agent platform team (Irfan, Shalini) on 2026-11-21 for
+Status: **owner answered on 2026-11-21 (section 6); built in AG-36.** Written by the Agent platform team (Irfan, Shalini) on 2026-11-21 for
 the owner's answers, after the owner said "yes" to a small feature so the agents can be registered on the live server.
 No code, migration, permission or dependency is added by this note.
 
@@ -53,7 +53,7 @@ keeps its code, title, enabled state and lock version; new agents are disabled u
 production needs `--force`; one audit row, no personal data; refuses when the organisation is missing or ambiguous; the seeder
 and the command share one list (a test fails if they differ); the allowlists only name known data sources.
 
-## 6. Questions for the owner (plain words)
+## 6. Questions for the owner, with the owner's answers (2026-11-21, relayed by the coordinator)
 
 1. **Enabled or disabled after registering?** Recommended: **disabled**, and the Director switches each one on from the Agents
    page one at a time. Or enabled at once with `--enable`.
@@ -70,3 +70,12 @@ and the command share one list (a test fails if they differ); the allowlists onl
 
 One small slice: the command, the shared list (the seeder reads it), tests, a short owner guide, CONTRACT section 8 note. No
 screen, so no design look is needed. Independent review, then the owner's ship-it.
+
+## 8. The owner's answers (2026-11-21)
+
+1. Start disabled: **yes.** 2. All six agents: **yes.** 3. Names: **keep** the contract names. 4. Haziq (server caretaker) runs it:
+**yes.** 5. The same command may add missing tools later (`--add-missing-tools`): **yes.** 6. Fictional data only on kpjaya.com:
+**yup.**
+
+How to run it on the trial server (Haziq): `php artisan kpone:register-agents --dry-run`, read the list, then
+`php artisan kpone:register-agents --force`. Then the Director opens the Agents page and switches each agent on.
