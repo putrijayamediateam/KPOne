@@ -413,6 +413,7 @@ final class PanelClaimDirectoryService
     /**
      * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
      * @param  callable(?string): Builder  $invoices
+     * @param  list<int>  $overdueIds
      * @return array<string, array{count: int, amountSen: int}>
      */
     private function summary(callable $base, callable $invoices, array $overdueIds): array
@@ -469,6 +470,7 @@ final class PanelClaimDirectoryService
      * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
      * @param  callable(?string): Builder  $invoices
      * @param  array<string, mixed>  $filters
+     * @param  list<int>  $overdueIds
      * @return array<string, int>
      */
     private function tabCounts(callable $base, callable $invoices, array $filters, array $overdueIds): array

@@ -92,7 +92,7 @@ final class PanelClaimService
             $this->audit->record('panel_claim.auto_created', $claim, [
                 'claim_amount_sen' => $claim->claim_amount_sen,
                 'system_step' => $systemStep,
-                'approved_by_user_id' => $locked->approved_by_user_id,
+                'approved_by_user_id' => $locked->getAttribute('approved_by_user_id'),
             ], $actor, $branch);
 
             return $claim;
