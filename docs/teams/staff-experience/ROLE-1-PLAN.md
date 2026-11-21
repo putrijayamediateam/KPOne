@@ -180,3 +180,29 @@ affected suites on the branch **before** changing any test, and send that list f
   they may read every audit row (not just their own area).
 - **Not decided here, for Billing:** the exact Branch Manager permissions for void, refund and day lock, and whether a Branch
   Manager at one branch may approve another branch's items (I assume not: `.branch` scope).
+
+## 9. Measured test impact (21 Nov 2026, branch `feature/role-1-roles`, code only, no test touched)
+
+Method: the Unit and Feature suites in parallel on the base commit and on the branch, then the suspect classes again serially on
+both; only what fails on the branch **and not** on the base counts. (The suite has ~320 environment failures on this machine, such
+as missing image libraries; they fail the same on the base.) **22 existing tests fail because of ROLE-1**, all "exact holders"
+pins, as predicted:
+
+- `Tests\Unit\DepartmentSpaceMatrixTest::test_every_catalogue_role_gets_exactly_its_spaces` (needs the owner's space map per new role)
+- `tests/Frontend/nav-02-top-bar.test.mjs` "every standard role gets exactly its approved daily list" (needs the top-bar list per new role)
+- HR "grants are exact" pins (the human-roles list grew from 11 to 14): `AppraisalsTest`, `ClaimsTest`, `CredentialsTest`,
+  `IncidentsTest`, `MemosTest`, `MessagesTest`, `PayrollRunsTest` (locked-run export), `RecordsTest`, `SopsTest`
+- Inventory exact-role pins: `GovernedStockTest`, `StockReviewTest`, `VerifiedReceivingTest`, `PurchaseRequestTest`, `SupplierInvoiceTest`
+- Report holder pins: `DailySummaryReportTest`, `PanelSummaryReportTest`, `StockMovementReportTest`
+- `VisitHistoryTest` (exact holders of the visit-history permission), `FrontDeskExplainersTest` (every other role gets 403),
+  `WorkspaceTest` (the shared audit-log navigation flag now true for Finance Officer, Panel Officer and Account Assistant)
+
+Not failing, so no change needed: the staff-authority tests, the Access-control fixture tests, the permission-catalogue migration tests.
+
+### What the new roles get today by the existing rules (the decisions the two pins need)
+
+- **Spaces** (department spaces follow the permissions): `branch_manager` = Billing, Me; `account_assistant` = Panel, Me (only
+  because of `reports.panel_summary.view.branch`); `store_admin` = **Me only, no Stock space** (the Stock space needs
+  `inventory.stock_reviews.manage.branch` or `inventory.references.manage.organisation`, which the approved narrow table does not give).
+- **Top-bar daily list**: `branch_manager` = Registration, Consultation, Inventory, Clinic management;
+  `account_assistant` = Insights, Inventory, Staff, Clinic management; `store_admin` = Insights, Inventory, Clinic management.
