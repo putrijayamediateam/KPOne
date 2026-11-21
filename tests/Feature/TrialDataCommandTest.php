@@ -5,7 +5,11 @@ namespace Tests\Feature;
 use App\Domain\Identity\Services\DirectorBootstrapService;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Shared\TrialData\PhaseFiveHr;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
+use App\Domain\Shared\TrialData\PhaseThreePanel;
+use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
+use App\Domain\Shared\TrialData\PlaceholderFiles;
 use App\Domain\Shared\TrialData\TrialDataContext;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -14,6 +18,7 @@ use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\PendingCommand;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
@@ -33,7 +38,19 @@ class TrialDataCommandTest extends TestCase
         'charge_definitions', 'price_books', 'price_entries', 'inventory_unit_contracts', 'inventory_opening_verifications',
         'payment_methods', 'panels', 'branch_rooms', 'diagnosis_presets', 'clinician_professional_profiles', 'patients',
         'inventory_suppliers', 'billing_approval_limits', 'visit_reason_catalogue_items', 'panel_claim_message_templates',
-        'business_detail_commands', 'branch_document_footers', 'price_change_proposals', 'audit_logs',
+        'business_detail_commands', 'branch_document_footers', 'price_change_proposals', 'branch_display_settings', 'visits',
+        'queue_entries', 'otc_queue_entries', 'queue_calls', 'queue_call_holds', 'consultation_holds', 'queue_treatment_steps',
+        'visit_triage_assessments', 'dispensary_cases', 'invoices', 'payments', 'payment_refunds', 'medical_certificates',
+        'referral_documents', 'attendance_documents', 'payment_reconciliations', 'cash_closings', 'coverage_allocations', 'panel_claims', 'panel_claim_payments',
+        'panel_claim_adjustments', 'panel_remittances', 'panel_claim_payment_reversals', 'inventory_purchase_requests',
+        'inventory_purchase_orders', 'inventory_goods_receipts', 'inventory_receiving_reviews', 'inventory_supplier_invoices',
+        'inventory_supplier_returns', 'inventory_batch_hold_states', 'inventory_governed_cases', 'inventory_reorder_levels',
+        'inventory_stock_reviews', 'inventory_treatment_usages', 'inventory_controlled_register_checks', 'dispensary_returns',
+        'inventory_stock_requests', 'inventory_recalls', 'inventory_supplier_sku_terms', 'hr_workers', 'hr_bank_details',
+        'hr_leave_requests', 'hr_roster_versions', 'hr_clock_sessions', 'hr_attendance_corrections', 'hr_overtime_requests',
+        'hr_credential_records', 'hr_sops', 'hr_memos', 'hr_letters', 'hr_appraisals', 'hr_incidents', 'hr_discipline_cases',
+        'hr_open_shifts', 'hr_staff_claims', 'hr_job_positions', 'hr_statutory_tables', 'hr_pay_profiles', 'hr_payroll_runs',
+        'hr_payslips', 'hr_payroll_exports', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -238,6 +255,196 @@ class TrialDataCommandTest extends TestCase
         }
         $this->assertSame(0, DB::table('audit_logs')->where('metadata', 'like', '%'.self::PASSWORD.'%')->count());
         $this->assertSame(0, DB::table('users')->where('password', self::PASSWORD)->count());
+    }
+
+    public function test_phase_two_needs_phase_one_first(): void
+    {
+        $this->artisan('kpone:trial-data', ['--phase' => '2'])
+            ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST)
+            ->expectsOutputToContain('Run --phase=1 first')
+            ->assertExitCode(Command::FAILURE);
+    }
+
+    public function test_phase_two_runs_one_clinic_day_at_every_branch_once(): void
+    {
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhaseTwo()->assertExitCode(Command::SUCCESS);
+        foreach (Branch::query()->get() as $branch) {
+            $at = fn (string $table) => DB::table($table)->where('branch_id', $branch->id);
+            $code = $branch->code;
+            $posters = $at('branch_display_settings')->value('posters');
+            $this->assertCount(PhaseTwoClinicDay::POSTERS_PER_BRANCH, json_decode((string) $posters, true), $code);
+
+            // Every scenario patient has one visit: five completed, five still open in different states.
+            $this->assertSame(count(PhaseTwoClinicDay::SCENARIOS), $at('visits')->count(), $code);
+            $this->assertSame(5, $at('visits')->where('status', 'completed')->count(), $code);
+            $this->assertSame(1, $at('visits')->where('visit_type', 'otc')->count(), $code);
+            $this->assertSame(1, $at('dispensary_cases')->where('status', 'pending')->count(), $code);
+            $this->assertSame(1, $at('dispensary_cases')->where('status', 'returned_to_doctor')->count(), $code);
+            $this->assertSame(2, $at('consultation_holds')->whereNull('resumed_at')->count(), $code);
+            $this->assertSame(1, $at('queue_call_holds')->count(), $code);
+            $this->assertSame(1, $at('queue_entries')->where('status', 'waiting')->count(), $code);
+            $this->assertSame(1, $at('queue_entries')->where('status', 'serving')->whereNotIn('visit_id', DB::table('consultation_holds')->whereNull('resumed_at')->select('visit_id'))->count(), $code);
+            $this->assertSame(1, $at('queue_treatment_steps')->count(), $code);
+            $this->assertSame(2, $at('visit_triage_assessments')->count(), $code);
+            $this->assertGreaterThanOrEqual(3, $at('queue_calls')->whereIn('service', ['dispensary', 'treatment'])->count(), $code);
+
+            // Billing: one voided invoice, one approved refund, Panel and pay later, and nothing left to pay.
+            $this->assertSame(1, $at('invoices')->where('status', 'voided')->count(), $code);
+            $this->assertSame(1, $at('payment_refunds')->count(), $code);
+            $this->assertSame(1, DB::table('coverage_allocations')->whereIn('invoice_id', $at('invoices')->select('id'))->where('status', 'approved')->count(), $code);
+            $this->assertSame(1, DB::table('patient_receivables')->whereIn('invoice_id', $at('invoices')->select('id'))->where('status', 'approved')->count(), $code);
+
+            // Documents on the first patient's consultation, and the day-end records.
+            $this->assertSame(1, $at('medical_certificates')->count(), $code);
+            $this->assertSame(1, $at('referral_documents')->count(), $code);
+            $this->assertSame(1, $at('attendance_documents')->count(), $code);
+            $this->assertSame(1, $at('payment_reconciliations')->count(), $code);
+            $this->assertSame(1, $at('cash_closings')->count(), $code);
+        }
+        $audit = DB::table('audit_logs')->where('event', 'trial_data.phase_completed')->whereRaw("metadata::jsonb->>'phase' = '2'")->sole();
+        $this->assertNull($audit->actor_user_id);
+        $this->assertSame(30, json_decode((string) $audit->metadata, true)['created']['visits']);
+
+        $after = $this->counts();
+        $this->runPhaseTwo()->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    public function test_phase_three_reuses_automatic_claims_when_they_are_switched_on(): void
+    {
+        // The live server creates a prepared claim on every Panel approval (PNL-28a, on by default outside tests).
+        config(['panel-claims.auto_create' => true]);
+        $this->test_phase_three_takes_panel_claims_through_every_stage_once();
+        foreach (Branch::query()->get() as $branch) {
+            $this->assertSame(count(PhaseThreePanel::SCENARIOS), DB::table('panel_claims')->where('branch_id', $branch->id)->count(), $branch->code);
+        }
+    }
+
+    public function test_phase_three_takes_panel_claims_through_every_stage_once(): void
+    {
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('3')->assertExitCode(Command::SUCCESS);
+        $expected = ['prepared' => 1, 'submitted' => 3, 'queried' => 1, 'accepted' => 2, 'partially_accepted' => 1, 'rejected' => 1, 'partially_paid' => 1, 'paid' => 1];
+        foreach (Branch::query()->get() as $branch) {
+            $statuses = DB::table('panel_claims')->where('branch_id', $branch->id)->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all();
+            ksort($statuses);
+            ksort($expected);
+            $this->assertSame($expected, $statuses, $branch->code);
+            $this->assertSame(count(PhaseThreePanel::SCENARIOS), DB::table('visits')->where('branch_id', $branch->id)->where('status', 'completed')->count(), $branch->code);
+            $this->assertSame(1, DB::table('panel_claim_adjustments')->where('branch_id', $branch->id)->where('status', 'confirmed')->count(), $branch->code);
+            $this->assertSame(1, DB::table('panel_remittances')->where('branch_id', $branch->id)->count(), $branch->code);
+        }
+        // A bulk claim (two claims sharing one submission on Panel B) and one corrected payment per branch.
+        $panelB = DB::table('panels')->where('code', PhaseOneFoundation::PANELS[1]['code'])->value('id');
+        $this->assertSame(6, DB::table('panel_claims')->where('panel_id', $panelB)->count());
+        $this->assertSame(3, DB::table('panel_claim_payment_reversals')->count());
+        $this->assertSame(['approved' => 1, 'proposed' => 1], DB::table('price_change_proposals')->where('agreement_reference', PhaseThreePanel::AGREEMENT_REFERENCE)
+            ->selectRaw('status, count(*) as n')->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all());
+
+        $after = $this->counts();
+        $this->runPhase('3')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    private function runPhase(string $phase): PendingCommand
+    {
+        return $this->artisan('kpone:trial-data', ['--phase' => $phase])
+            ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST);
+    }
+
+    public function test_phase_four_runs_the_inventory_workflows_once_at_every_branch(): void
+    {
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+        $this->runPhase('2')->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('4')->assertExitCode(Command::SUCCESS);
+        foreach (Branch::query()->get() as $branch) {
+            $code = $branch->code;
+            $invoices = DB::table('inventory_supplier_invoices')->where('branch_id', $branch->id)->orderBy('id')->pluck('status')->all();
+            $this->assertSame(['matched', 'waiting'], $invoices, $code);
+            $this->assertSame(1, DB::table('inventory_receiving_reviews')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(1, DB::table('inventory_supplier_returns')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(['count', 'count', 'writeoff', 'writeoff'], DB::table('inventory_governed_cases')->where('branch_id', $branch->id)->orderBy('kind')->pluck('kind')->all(), $code);
+            $this->assertSame(2, DB::table('inventory_treatment_usages')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(1, DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(1, DB::table('dispensary_returns')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(2, DB::table('inventory_stock_reviews')->where('branch_id', $branch->id)->whereIn('worklist', ['low_stock', 'expiring'])->count(), $code);
+        }
+        $this->assertSame(1, DB::table('inventory_stock_requests')->count());
+        $this->assertSame(1, DB::table('inventory_transfer_differences')->count());
+        $this->assertSame(1, DB::table('inventory_recalls')->count());
+
+        $after = $this->counts();
+        $this->runPhase('4')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
+    {
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('5')->assertExitCode(Command::SUCCESS);
+        $statuses = fn (string $table): array => DB::table($table)->selectRaw('status, count(*) as n')->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all();
+        $this->assertSame(['approved' => 1, 'cancelled' => 1, 'pending' => 1, 'rejected' => 1], $statuses('hr_leave_requests'));
+        $this->assertSame(['approved' => 3, 'draft' => 3], $statuses('hr_roster_versions'));
+        $this->assertSame(['closed' => 1, 'open' => 3], $statuses('hr_clock_sessions'));
+        $this->assertSame(['approved' => 1, 'pending' => 1], $statuses('hr_attendance_corrections'));
+        $this->assertSame(['confirmed' => 2, 'waiting' => 1], $statuses('hr_bank_details'));
+        $this->assertSame(['paid' => 2, 'waiting' => 1], $statuses('hr_staff_claims'));
+        $this->assertSame(['accepted' => 1, 'waiting' => 1], $statuses('hr_credential_records'));
+        $this->assertSame(['locked' => 1], $statuses('hr_payroll_runs'));
+        $this->assertSame(['confirmed' => 19], $statuses('hr_pay_profiles'));
+        $this->assertSame(19, DB::table('hr_payslips')->count());
+        $this->assertSame(2, DB::table('hr_payroll_exports')->count());
+
+        // Every statutory table is marked fictional and was checked by someone other than its entrant.
+        $tables = DB::table('hr_statutory_tables')->get();
+        $this->assertCount(4, $tables);
+        foreach ($tables as $table) {
+            $this->assertStringStartsWith('FICTIONAL', (string) $table->category);
+            $this->assertSame(PhaseFiveHr::FICTIONAL, $table->source_note);
+            $this->assertSame('checked', $table->status);
+            $this->assertNotSame($table->entered_by_user_id, $table->decided_by_user_id);
+        }
+        // The Director's and the HR Manager's own pay stays outside KPOne; the Director has no staff file.
+        $director = User::role('director')->sole();
+        $hr = User::query()->where('email', TrialDataContext::email('hr'))->sole();
+        $this->assertSame(0, DB::table('hr_pay_profiles')->whereIn('worker_id', DB::table('hr_workers')->whereIn('user_id', [$director->id, $hr->id])->select('id'))->count());
+        $this->assertSame(0, DB::table('hr_workers')->where('user_id', $director->id)->count());
+
+        $after = $this->counts();
+        $this->runPhase('5')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    public function test_placeholder_files_are_real_png_and_pdf_marked_fictional(): void
+    {
+        $files = new PlaceholderFiles;
+        $image = $files->image('Poster one', 640, 360);
+        $pdf = $files->pdf('Trial document', 'Detail line');
+        $this->assertSame('image/png', $image->getMimeType());
+        $this->assertSame([640, 360], array_slice((array) getimagesize($image->getPathname()), 0, 2));
+        $this->assertSame('application/pdf', $pdf->getMimeType());
+        $bytes = (string) file_get_contents($pdf->getPathname());
+        $this->assertStringContainsString(PlaceholderFiles::MARK, $bytes);
+        $this->assertStringEndsWith("%%EOF\n", $bytes);
+        $paths = [$image->getPathname(), $pdf->getPathname()];
+        $files->cleanUp();
+        foreach ($paths as $path) {
+            $this->assertFileDoesNotExist($path);
+        }
+    }
+
+    private function runPhaseTwo(): PendingCommand
+    {
+        return $this->artisan('kpone:trial-data', ['--phase' => '2'])
+            ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST);
     }
 
     private function confirmHost(): PendingCommand

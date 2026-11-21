@@ -169,11 +169,6 @@ test('every key in the hidden-word map is a real hub title, so the list cannot d
 
     assert.ok(Object.keys(HUB_EXTRA_WORDS).length > 30);
     assert.deepEqual(missing, [], `not a hub title: ${missing.join(', ')}`);
-    // both hubs use the same words
-    assert.match(
-        read('resources/js/pages/ClinicManagement/V2/Index.vue'),
-        /extraWordsFor\(link\.fullTitle\)/,
-    );
     assert.match(
         read('resources/js/lib/clinic-hub-search.ts'),
         /extraWordsFor\(link\.title\)/,

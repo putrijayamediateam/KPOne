@@ -118,8 +118,13 @@ const directions = (line: {
                     </dd>
                     <dt class="text-muted-foreground">Prepared</dt>
                     <dd class="font-medium">
-                        Quantity {{ quantity(line.prepared.quantity) }}
-                        {{ line.unit }} ·
+                        <template v-if="line.prepared.packText"
+                            >{{ line.prepared.packText }} ·</template
+                        >
+                        <template v-else
+                            >Quantity {{ quantity(line.prepared.quantity) }}
+                            {{ line.unit }} ·</template
+                        >
                         {{ directions(line.prepared) }}
                     </dd>
                 </dl>

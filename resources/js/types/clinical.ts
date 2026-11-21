@@ -162,6 +162,8 @@ export type DoctorDispensaryCheck = {
         };
         prepared: {
             quantity: string | null;
+            // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+            packText?: string | null;
             dosage: string | null;
             frequency: string | null;
             duration: string | null;

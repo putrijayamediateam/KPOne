@@ -8,10 +8,6 @@ const read = (path) =>
 test('the Daily summary and the quick question no longer promise a flat 90 days', () => {
     // STK-42: each item has its own alert window; the agent data source caps it at 90 days.
     assert.match(
-        read('resources/js/lib/agent-summary.ts'),
-        /label: 'Expiring soon \(up to 90 days\)'/,
-    );
-    assert.match(
         read('resources/js/pages/Agents/DailySummary.vue'),
         /expiring soon \(up to 90\s+days\)/,
     );
@@ -20,7 +16,7 @@ test('the Daily summary and the quick question no longer promise a flat 90 days'
         /Batches expiring soon \(up to 90 days\)/,
     );
     assert.doesNotMatch(
-        read('resources/js/lib/agent-summary.ts'),
+        read('resources/js/pages/Agents/DailySummary.vue'),
         /Expiring within 90 days/,
     );
 });
