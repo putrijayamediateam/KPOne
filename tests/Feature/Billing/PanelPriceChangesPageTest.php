@@ -91,7 +91,7 @@ class PanelPriceChangesPageTest extends ClinicalTestCase
     {
         $this->actingAs($this->officer);
         $this->get(route('panel-price-changes.index', ['panel' => (string) $this->panel->id, 'charge' => $this->charge->public_id]))
-            ->assertInertia(fn (Assert $page) => $page->where('selection.version', 0)->where('selection.currentAmountSen', null)->where('selection.openProposal', false));
+            ->assertInertia(fn (Assert $page) => $page->where('selection.hasPriceList', true)->where('selection.version', 0)->where('selection.currentAmountSen', null)->where('selection.openProposal', false));
         $this->post(route('panel-price-changes.store'), $this->payload());
         $this->get(route('panel-price-changes.index', ['panel' => (string) $this->panel->id, 'charge' => $this->charge->public_id]))
             ->assertInertia(fn (Assert $page) => $page->where('selection.openProposal', true));
@@ -103,6 +103,9 @@ class PanelPriceChangesPageTest extends ClinicalTestCase
         $this->actingAs($this->officer);
         $this->get(route('panel-price-changes.index'))->assertInertia(fn (Assert $page) => $page
             ->where('panels', fn ($panels) => collect($panels)->pluck('id')->contains('default') && collect($panels)->pluck('id')->contains((string) $fresh->id)));
+
+        $this->get(route('panel-price-changes.index', ['panel' => (string) $fresh->id, 'charge' => $this->charge->public_id]))
+            ->assertInertia(fn (Assert $page) => $page->where('selection.hasPriceList', false)->where('selection.currentAmountSen', null));
 
         $this->post(route('panel-price-changes.store'), [...$this->payload(), 'panel' => (string) $fresh->id])->assertRedirect(route('panel-price-changes.index'));
         $this->assertSame(0, PriceBook::query()->where('scope_key', 'panel:'.$fresh->id)->count());
