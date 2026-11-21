@@ -19,8 +19,8 @@ class V2PublicPagesSwitchTest extends VisitTestCase
     {
         parent::setUp();
 
-        // No file is ever written under resources/js/pages (a parallel V2PageDispatchTest scans that folder): the
-        // "has a V2 file" case uses the real PublicCheckIn/V2/Status page, the "no V2 file" case a listed page that has none.
+        // No file is ever written under resources/js/pages (a parallel V2PageDispatchTest scans that folder). No real
+        // public page has a V2 file any more (Classic only, CO-9), so both listed pages stay Classic.
         config([
             'v2-pages.public_pages' => ['PublicCheckIn/Status', 'PublicProbe/Missing'],
             'v2-pages.pages' => [],
@@ -36,15 +36,15 @@ class V2PublicPagesSwitchTest extends VisitTestCase
         DB::table('user_space_preferences')->insert(['user_id' => $user->id, 'enabled' => true, 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    public function test_the_switch_ships_off_and_lists_the_public_qr_pages_that_have_a_v2_page(): void
+    public function test_the_switch_ships_off_and_lists_no_public_page(): void
     {
         $config = require base_path('config/v2-pages.php');
 
         $this->assertFalse($config['public']);
-        $this->assertSame(['PublicCheckIn/Status', 'PublicCheckIn/Show'], $config['public_pages']);
+        $this->assertSame([], $config['public_pages']);
     }
 
-    public function test_with_the_switch_off_a_patient_gets_classic_even_when_the_v2_file_exists(): void
+    public function test_with_the_switch_off_a_patient_gets_classic_on_a_listed_page(): void
     {
         config(['v2-pages.public' => false]);
 
