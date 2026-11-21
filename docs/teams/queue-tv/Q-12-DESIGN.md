@@ -1,0 +1,30 @@
+# Q-12: vitals "Check" limits from the TRI-1a triage guideline (design note; owner chose "A then B", 21 Nov 2026)
+
+Stopgap A (Dr Fatin reviews the placeholder table in `resources/js/lib/vitals-from-note.ts`; only the table changes and the "pending" label drops, after her numbers and the owner's ship-it) is separate. B (this note) replaces the table: once Q-12 merges, the placeholder table is removed.
+
+## Today
+- Q-11 fills vitals typed in the clinical note and flags a value outside `USUAL` ranges (my placeholder, "PENDING DOCTOR CONFIRMATION") as "Check: BP 180/45 (unusual value; is it a typo in the note?)".
+- The approved source is the TRI-1a guideline: `TriageGuidelineService::inForce($organisationId)` returns the approved version with `thresholds` (reading, age_band adult|child, direction very_low|very_high, limit_value, zone yellow|red), signed by Dr Fatin Adilah. `TriageGuidelineService::limits()` shapes them. `TriageService::ageBand()` gives adult / child / unknown from the date of birth or the adult confirmation.
+- The doctor's consultation payload carries no triage data today. The guideline reaches the CA's triage form only (`visits.triage.record.branch`); only the Director and HR Manager manage it (`triage.guideline.manage.organisation`).
+- `resources/js/lib/triage-zone.ts` already has the pure comparison used by the triage form: `suggest(readings, redFlags, yellowSigns, ageBand, limits)` returns `crossed` (per reading: direction and zone), in whole hundredths, mirroring PHP and SQL.
+
+## Proposed
+1. **Payload (read only).** `ClinicalEncounterDirectoryService::detail()` adds `vitalLimits`: `null` when no guideline is in force or the doctor lacks the permission, otherwise `{ versionNumber, ageBand, limits: [{reading, age_band, direction, limit_value, zone}] }`. Limits and the age band only: no sign labels, no red flags, no names, no patient data (the date of birth is already on the doctor's page; the age band adds nothing new). Built from `inForce()` and `limits()`, filtered to the readings the vitals form has.
+2. **Rule in the browser.** `isUnusual()` and the `USUAL` table are replaced by a helper that calls `triage-zone.ts`'s comparison with `vitalLimits`: a filled reading "crosses" a limit when `suggest()` reports it. Same filled value, same Fill / Undo / "Not filled" behaviour; only the flag changes. **No guideline in force means no Check flag** (owner rule).
+3. **Wording and tones.** A reading that crosses a **yellow** limit: "Check: BP 180/45 (outside the clinic's usual range; is it a typo in the note?)". One that crosses a **red** limit: the same line with "(outside the clinic's red limit)". Warning tokens for both, the red one with a stronger weight (not the destructive colour, so the note never reads as a diagnosis). Which of the two the owner wants shown is an open question below. The line states the clinic's guideline version ("TRI guideline v3") in small muted text so the doctor knows the source.
+4. **Permission (needs the owner's approval before use).** The narrowest option: `triage.guideline.view_limits.organisation`, **read-only**, **granted to `resident_doctor` only**, added by an additive migration and mirrored in `PermissionCatalogue`/`TriagePermissions`. It exposes reference limits only (no signs, no patient readings), is not people or access authority, and implies no triage write. The consultation service checks it fresh; without it `vitalLimits` is `null` and no Check flag shows. Alternative for the owner (no new permission): gate the payload by the doctor's existing `encounters.view.own`, since it only rides the doctor's own consultation payload.
+5. No new route, page or poll. Frontend change is small (the line's wording and a helper swap); Daniel looks at the line if its wording or tone changes.
+
+## Tests
+- Backend: `vitalLimits` is null with no approved guideline; null without the permission; correct limits for the in-force version; only those keys; the age band follows the date of birth and the adult confirmation; a replaced or draft version is never used; CA, Director and other roles get nothing in the doctor payload.
+- Frontend: the helper flags a reading that crosses a yellow limit, a red limit, the unknown age band (both bands), and flags nothing with no limits; `USUAL`/`isUnusual` removed; the Q-11 page tests keep passing.
+- Permission tests: only `resident_doctor` holds it; not in `AUTHORITY_OVER_PEOPLE_AND_ACCESS`; the migration is additive and grants only that role.
+
+## Existing assertions that will change (to confirm by grep; I will list them and leave them failing for the owner)
+- My own Q-11 tests that pin `isUnusual` and the placeholder ranges (`tests/Frontend/q-11-vitals-from-note.test.mjs`).
+- Any exact doctor-payload key pins in `ClinicalEncounter` feature tests (adding `vitalLimits`), and any exact role-permission list for `resident_doctor` (adding the permission).
+
+## Open questions for the owner
+1. Show Check for **yellow and red** limits (two tones), or **red only**? (Daniel earlier suggested red; B.E.R.N.I.S.S suggested yellow.)
+2. The new permission `triage.guideline.view_limits.organisation` for `resident_doctor`, or no new permission (use `encounters.view.own`)?
+3. Weight and height: the guideline can hold limits for them; flag them too if the guideline has any, or only the five vital signs?
