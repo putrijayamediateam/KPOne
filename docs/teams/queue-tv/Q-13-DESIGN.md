@@ -29,3 +29,12 @@ Owner decision: DSP-23 (the doctor checks prepared medicine before payment, per-
 ## Open questions
 - Aisyah: exact status string and the switch lookup (I only call her helper).
 - Daniel: chip position in the Status column, and whether the chip text wraps at 390 px.
+
+## Daniel's decision on the chip (21 Nov, from the note; contrast to be checked in the build shots)
+- Wrapping full-width warning block in the Status column, under the row's existing status chip (at 390 on the card: its own line under the status, above the actions); never in the Actions column.
+- Title "Medicine ready for your check", muted second line "Open the consultation to verify."; warning tokens with border and the triangle icon, 4.5:1 or better in light and dark; may take three lines, never cut, never widens the column.
+- Not interactive (no hover, no pointer cursor); the row's open-consultation action stays the only action. Plain text, not a live region; no sound, no toast.
+- Build shots needed at 1440 and 390, light and dark, with a row that has the block and a row that does not.
+
+## Follow-up for the owner (not in Q-13)
+The block is on the Removed tab, which a doctor rarely has open. A small "N to check" count next to the Removed tab label would make it findable without sound. Owner to decide.
