@@ -1,7 +1,6 @@
 # DSP-24: dispense a whole bottle of a liquid medicine (design note)
 
-Status: **draft, revised after Hakim's review (OK with changes, three must-fixes applied in sections 3 and 4); for
-Daniel's look.** Not built. **Depends on STK-52 rev 2 (Inventory): DSP-24 is built on top of it and merges only after
+Status: **Hakim OK (21 Nov, after the three must-fixes in sections 3 and 4); for Daniel's look.** Not built. **Depends on STK-52 rev 2 (Inventory): DSP-24 is built on top of it and merges only after
 it.** Classic only (V2 retired 19 Nov). Owner decision 17
 of 20-21 Nov 2026 (`docs/decisions/2026-11-20-finance-inventory-proposals.md`): "Unit conversion per item (for
 example 1 bottle = 60 ml), set once and checked by a second person." Owner answer 14 = A: the pilot item is
@@ -40,7 +39,10 @@ still moves in ml.
 - Both are null for a line dispensed in ml. A PostgreSQL trigger on `dispensary_items` enforces:
   - `packs_dispensed` is null exactly when `pack_conversion_id` is null;
   - when set, `quantity_dispensed` equals `packs_dispensed × base_per_pack` of that conversion row;
-  - the conversion belongs to the SKU of every allocation on the line (Hakim, must-fix 2).
+  - the conversion belongs to the SKU of every allocation on the line (Hakim, must-fix 2). The item row is written
+    before its allocations, so this one rule is a **deferred constraint trigger** (`DEFERRABLE INITIALLY DEFERRED`)
+    on both `dispensary_items` and `dispensary_item_batch_allocations`, checked at commit, as DSP-7 does for its
+    return movements. The other two rules stay an ordinary trigger on the item.
 - **Every path that writes `quantity_dispensed` without bottles sets both columns to null** (Hakim, must-fix 3):
   - `removeItem`, which sets the quantity to 0;
   - the legacy `updateItem`, including partial and patient-declined saves;
@@ -129,6 +131,7 @@ still moves in ml.
   - OTC and consultation lines both work.
 - PostgreSQL:
   - the packs-times-size check refuses a mismatched row;
+  - an allocation from another SKU inserted after a bottle line is saved is refused at commit;
   - a two-process race between a line save and a new STK-52 version being checked, so the save sees either the old or
     the new version, never a mix (in the serial Contention suite).
 - Frontend tests for the unit choice, the conversion line and the label row.
