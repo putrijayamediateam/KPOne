@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
-use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceChangeProposal;
 use App\Domain\Visit\Billing\Services\PanelPriceChangesPage;
 use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
+use App\Domain\Visit\Billing\Services\PanelPriceTarget;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,10 +29,12 @@ class PanelPriceChangesController extends Controller
 
     public function store(Request $request, PanelPriceProposalService $service): RedirectResponse
     {
-        $book = PriceBook::query()->where('public_id', (string) $request->input('price_book'))->where('organisation_id', $this->actor($request)->organisation_id)->firstOrFail();
+        $key = (string) $request->input('panel');
+        abort_unless($key === 'default' || ctype_digit($key), 404);
+        $target = PanelPriceTarget::forPanel($key === 'default' ? null : (int) $key);
         $charge = ChargeDefinition::query()->where('public_id', (string) $request->input('charge'))->where('organisation_id', $this->actor($request)->organisation_id)->firstOrFail();
 
-        return $this->run(fn () => $service->propose($this->actor($request), $book, $charge, $request->only([
+        return $this->run(fn () => $service->propose($this->actor($request), $target, $charge, $request->only([
             'expected_branch_id', 'expected_version', 'amount_sen', 'agreement_reference', 'effective_date', 'effective_time', 'idempotency_key',
         ])), 'Price change proposed. Someone else must approve it before it applies.');
     }

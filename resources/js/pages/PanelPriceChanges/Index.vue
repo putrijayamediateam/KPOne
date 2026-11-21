@@ -11,7 +11,7 @@ import { myr } from '@/types/billing';
 type Proposal = {
     id: string;
     panelName: string;
-    bookId: string;
+    panelKey: string;
     chargeId: string;
     chargeName: string;
     oldAmountSen: number | null;
@@ -34,7 +34,7 @@ const props = defineProps<{
     branch: { id: number; name: string; timezone: string };
     canPropose: boolean;
     canApprove: boolean;
-    books: { id: string; name: string }[];
+    panels: { id: string; name: string }[];
     charges: { id: string; name: string; code: string; type: string }[];
     selection: {
         version: number;
@@ -189,7 +189,7 @@ const propose = () => {
         {
             expected_branch_id: props.branch.id,
             expected_version: props.selection.version,
-            price_book: form.book,
+            panel: form.book,
             charge: form.charge,
             amount_sen: priceSen.value,
             agreement_reference: form.reference,
@@ -216,7 +216,7 @@ const propose = () => {
 };
 
 const proposeAgain = (row: Proposal) => {
-    form.book = row.bookId;
+    form.book = row.panelKey;
     form.charge = row.chargeId;
     tab.value = 'propose';
     loadSelection();
@@ -391,7 +391,7 @@ const turnPage = (value: number) =>
                     @change="loadSelection"
                 >
                     <option value="">Choose a Panel</option>
-                    <option v-for="b in books" :key="b.id" :value="b.id">
+                    <option v-for="b in panels" :key="b.id" :value="b.id">
                         {{ b.name }}
                     </option>
                 </select>
