@@ -56,7 +56,7 @@ test('STK-52: the block sits outside the SKU form and Pilot readiness shows wait
     assert.match(skus, /<\/form> <!-- STK-52: saves on its own/);
     assert.match(
         skus,
-        /<PackConversionBlock :sku-public-id="sku\.publicId" :block="sku\.packConversion" \/>/,
+        /<PackConversionBlock :sku-public-id="sku\.publicId" :block="sku\.packConversion" :filters="skus\.filters" \/>/,
     );
     const readiness = read('resources/js/pages/Inventory/Readiness.vue');
     assert.match(readiness, /data-testid="pack-conversions-waiting"/);

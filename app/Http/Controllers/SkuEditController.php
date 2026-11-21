@@ -36,10 +36,10 @@ final class SkuEditController extends Controller
         try {
             $service->propose($request->user(), $sku, $request->all());
         } catch (ValidationException $e) {
-            throw $e->redirectTo(route('inventory.skus'));
+            throw $e->redirectTo($this->backToList($request));
         }
 
-        return to_route('inventory.skus')->with('success', 'Proposed. Someone else must check it before Dispensary uses it.');
+        return redirect($this->backToList($request))->with('success', 'Proposed. Someone else must check it before Dispensary uses it.');
     }
 
     /** STK-52: the blind check. A wrong count is recorded as refused and never repeats the proposed number. */
@@ -48,13 +48,13 @@ final class SkuEditController extends Controller
         try {
             $result = $service->check($request->user(), $conversion, $request->all());
         } catch (ValidationException $e) {
-            throw $e->redirectTo(route('inventory.skus'));
+            throw $e->redirectTo($this->backToList($request));
         }
         if ($result === 'refused') {
-            return to_route('inventory.skus')->withErrors(['checked_base_per_pack' => PackConversionService::MISMATCH_MESSAGE]);
+            return redirect($this->backToList($request))->withErrors(['checked_base_per_pack' => PackConversionService::MISMATCH_MESSAGE]);
         }
 
-        return to_route('inventory.skus')->with('success', 'Checked. Dispensary can now use this pack conversion.');
+        return redirect($this->backToList($request))->with('success', 'Checked. Dispensary can now use this pack conversion.');
     }
 
     public function refuseConversion(Request $request, string $conversion, PackConversionService $service): RedirectResponse
@@ -62,10 +62,10 @@ final class SkuEditController extends Controller
         try {
             $service->refuse($request->user(), $conversion, $request->all());
         } catch (ValidationException $e) {
-            throw $e->redirectTo(route('inventory.skus'));
+            throw $e->redirectTo($this->backToList($request));
         }
 
-        return to_route('inventory.skus')->with('success', 'Refused. The pack conversion in use is unchanged.');
+        return redirect($this->backToList($request))->with('success', 'Refused. The pack conversion in use is unchanged.');
     }
 
     public function withdrawConversion(Request $request, string $conversion, PackConversionService $service): RedirectResponse
@@ -73,9 +73,18 @@ final class SkuEditController extends Controller
         try {
             $service->withdraw($request->user(), $conversion, $request->all());
         } catch (ValidationException $e) {
-            throw $e->redirectTo(route('inventory.skus'));
+            throw $e->redirectTo($this->backToList($request));
         }
 
-        return to_route('inventory.skus')->with('success', 'Withdrawn.');
+        return redirect($this->backToList($request))->with('success', 'Withdrawn.');
+    }
+
+    /** STK-52: back to the same filtered list, so the SKU (and its message) stays on screen. */
+    private function backToList(Request $request): string
+    {
+        $q = mb_substr(trim((string) $request->input('return_q', '')), 0, 100);
+        $status = in_array($request->input('return_status'), ['active', 'inactive', 'all'], true) ? (string) $request->input('return_status') : null;
+
+        return route('inventory.skus', array_filter(['q' => $q === '' ? null : $q, 'status' => $status]));
     }
 }

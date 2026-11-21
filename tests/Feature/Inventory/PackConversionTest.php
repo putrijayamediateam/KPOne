@@ -132,6 +132,9 @@ class PackConversionTest extends VisitTestCase
         $this->selectBranch($this->checker);
         $response = $this->post(route('inventory.pack-conversions.check', $id), ['idempotency_key' => (string) Str::uuid(), 'checked_base_per_pack' => 50]);
         $response->assertRedirect(route('inventory.skus'))->assertSessionHasErrors(['checked_base_per_pack' => PackConversionService::MISMATCH_MESSAGE]);
+        // The list comes back filtered as it was, so the SKU and the message stay on screen.
+        $this->post(route('inventory.skus.pack-conversions.store', $this->sku->public_id), ['expected_version' => 1, 'idempotency_key' => (string) Str::uuid(), 'pack_unit' => 'bottle', 'base_per_pack' => 60, 'return_q' => 'SYN-SYRUP', 'return_status' => 'active'])
+            ->assertRedirect(route('inventory.skus', ['q' => 'SYN-SYRUP', 'status' => 'active']));
         $this->assertStringNotContainsString('60', PackConversionService::MISMATCH_MESSAGE);
         $this->assertSame(['refused', 'wrong_count', 50], [
             ...array_values((array) DB::table('inventory_pack_conversion_outcomes')->sole(['outcome', 'reason'])),

@@ -665,6 +665,7 @@ const errorFor = (field: string) =>
                     <PackConversionBlock
                         :sku-public-id="sku.publicId"
                         :block="sku.packConversion"
+                        :filters="skus.filters"
                     />
                 </div>
             </li>

@@ -44,7 +44,16 @@ export type PackConversion = {
     legacy: { packSize: string; purchaseUnit: string } | null;
 };
 
-const props = defineProps<{ skuPublicId: string; block: PackConversion }>();
+const props = defineProps<{
+    skuPublicId: string;
+    block: PackConversion;
+    filters?: { q: string; status: string };
+}>();
+// The list comes back filtered as it was, so this SKU and its message stay on screen.
+const back = () => ({
+    return_q: props.filters?.q ?? '',
+    return_status: props.filters?.status ?? 'active',
+});
 
 const proposal = useForm({
     expected_version: props.block.expectedVersion,
@@ -96,21 +105,25 @@ const propose = () =>
     proposal
         .transform((data) => ({
             ...data,
+            ...back(),
             base_per_pack: Number(data.base_per_pack),
         }))
         .post(`/inventory/skus/${props.skuPublicId}/pack-conversions`, {
             preserveScroll: true,
+            preserveState: true,
             onFinish: () => (proposal.idempotency_key = fresh()),
         });
 const stop = () =>
     proposal
         .transform(() => ({
+            ...back(),
             expected_version: props.block.expectedVersion,
             idempotency_key: proposal.idempotency_key,
             stop: true,
         }))
         .post(`/inventory/skus/${props.skuPublicId}/pack-conversions`, {
             preserveScroll: true,
+            preserveState: true,
             onSuccess: () => (stopping.value = false),
             onFinish: () => (proposal.idempotency_key = fresh()),
         });
@@ -118,6 +131,7 @@ const submitCheck = () =>
     check
         .transform((data) => ({
             ...data,
+            ...back(),
             checked_base_per_pack:
                 data.checked_base_per_pack === ''
                     ? null
@@ -127,6 +141,7 @@ const submitCheck = () =>
             `/inventory/pack-conversions/${props.block.waiting?.publicId}/check`,
             {
                 preserveScroll: true,
+                preserveState: true,
                 onFinish: () => {
                     check.idempotency_key = fresh();
                     check.checked_base_per_pack = '';
@@ -134,28 +149,43 @@ const submitCheck = () =>
             },
         );
 const submitRefusal = () =>
-    refusal.post(
-        `/inventory/pack-conversions/${props.block.waiting?.publicId}/refuse`,
-        {
-            preserveScroll: true,
-            onSuccess: () => (refusing.value = false),
-            onFinish: () => (refusal.idempotency_key = fresh()),
-        },
-    );
+    refusal
+        .transform((data) => ({ ...data, ...back() }))
+        .post(
+            `/inventory/pack-conversions/${props.block.waiting?.publicId}/refuse`,
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => (refusing.value = false),
+                onFinish: () => (refusal.idempotency_key = fresh()),
+            },
+        );
 const withdraw = () =>
-    decision.post(
-        `/inventory/pack-conversions/${props.block.waiting?.publicId}/withdraw`,
-        {
-            preserveScroll: true,
-            onSuccess: () => (withdrawing.value = false),
-            onFinish: () => (decision.idempotency_key = fresh()),
-        },
-    );
+    decision
+        .transform((data) => ({ ...data, ...back() }))
+        .post(
+            `/inventory/pack-conversions/${props.block.waiting?.publicId}/withdraw`,
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => (withdrawing.value = false),
+                onFinish: () => (decision.idempotency_key = fresh()),
+            },
+        );
 </script>
 
 <template>
     <fieldset class="grid gap-3" data-testid="pack-conversion">
         <legend class="mb-1 text-sm font-semibold">Pack conversion</legend>
+        <!-- A wrong blind count refuses the change, so its form is gone: the message shows here instead. -->
+        <p
+            v-if="!block.waiting && check.errors.checked_base_per_pack"
+            role="alert"
+            class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            data-testid="pack-conversion-refused"
+        >
+            {{ check.errors.checked_base_per_pack }}
+        </p>
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
                 <template v-if="block.current">
