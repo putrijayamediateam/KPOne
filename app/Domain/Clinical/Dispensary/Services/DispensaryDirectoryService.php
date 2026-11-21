@@ -126,6 +126,8 @@ class DispensaryDirectoryService
         }
         $waiting = $case->status === DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK;
         $directory = app(DispensaryDoctorCheckDirectory::class);
+        $mayOverride = $actor->hasRole('ca_supervisor') && $actor->can('dispensary.doctor_check.override.branch');
+        $prepared = $case->sent_for_check_by_user_id === $actor->id || $case->current_handler_user_id === $actor->id;
 
         return [
             'required' => $case->doctor_check_required === true || app(DispensarySettingsService::class)->doctorCheckRequired($branch),
@@ -133,9 +135,9 @@ class DispensaryDirectoryService
             'sentAt' => $waiting ? $directory->time($case->sent_for_check_at, $branch) : null,
             'sentBy' => $waiting ? User::query()->whereKey($case->sent_for_check_by_user_id)->value('name') : null,
             'sentBack' => $directory->latestSendBack($case, $branch),
-            'canCheck' => $waiting && $actor->hasRole('ca_supervisor') && $actor->can('dispensary.doctor_check.override.branch')
-                && $case->sent_for_check_by_user_id !== $actor->id && $case->current_handler_user_id !== $actor->id,
-            'preparedByYou' => $waiting && ($case->sent_for_check_by_user_id === $actor->id || $case->current_handler_user_id === $actor->id),
+            'canCheck' => $waiting && $mayOverride && ! $prepared,
+            // Only someone who could otherwise check instead is told why they can't.
+            'preparedByYou' => $waiting && $mayOverride && $prepared,
         ];
     }
 

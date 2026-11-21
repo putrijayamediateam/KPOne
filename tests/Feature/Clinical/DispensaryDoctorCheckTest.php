@@ -376,7 +376,7 @@ class DispensaryDoctorCheckTest extends ClinicalTestCase
             ->where('dispensary.tvCall.canCall', true)
             ->where('dispensary.doctorCheck.waiting', true)
             ->where('dispensary.doctorCheck.canCheck', false)
-            ->where('dispensary.doctorCheck.preparedByYou', true));
+            ->where('dispensary.doctorCheck.preparedByYou', false));
         $this->get(route('dispensary.labels', $f['case']))->assertOk();
 
         // The other CA Supervisor may check instead, and sees the branch list.

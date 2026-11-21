@@ -64,7 +64,7 @@ const directions = (line: {
             <li
                 v-for="(line, index) in check.lines"
                 :key="index"
-                class="grid gap-2 px-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                class="grid gap-2 px-3 py-2.5"
             >
                 <div class="min-w-0">
                     <p class="font-medium break-words">

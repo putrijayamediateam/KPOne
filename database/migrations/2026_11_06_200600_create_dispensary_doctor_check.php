@@ -61,7 +61,7 @@ return new class extends Migration
 
         // Hakim: every existing branch starts with an "off" row, so the first turn-on always has a row to lock.
         DB::statement('INSERT INTO branch_dispensary_settings (organisation_id, branch_id, doctor_check_required, lock_version, created_at, updated_at)
-            SELECT organisation_id, id, false, 1, now(), now() FROM branches ON CONFLICT (branch_id) DO NOTHING');
+            SELECT organisation_id, id, false, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM branches ON CONFLICT (branch_id) DO NOTHING');
 
         if (DB::connection()->getDriverName() !== 'pgsql') {
             return;
