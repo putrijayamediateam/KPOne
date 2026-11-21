@@ -170,6 +170,7 @@ final class PermissionCatalogue
             'dispensary.doctor_check.own',
             'dispensary.doctor_check.override.branch',
             'dispensary.settings.manage.branch',
+            'dispensary.view_readonly.organisation',
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
@@ -561,6 +562,11 @@ final class PermissionCatalogue
         foreach (['director', 'ca_supervisor'] as $holder) {
             $roles[$holder][] = 'dispensary.settings.manage.branch';
         }
+
+        // DSP-25 (owner decision 4 of 20-21 Nov 2026; answer P5): the Director's read-only view of a dispensary case at
+        // any branch, every open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never
+        // implies a Dispensary write permission.
+        $roles['director'][] = 'dispensary.view_readonly.organisation';
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
