@@ -323,6 +323,17 @@ class ExpiryAlertDaysTest extends VisitTestCase
         $this->assertSame($before, DB::table('audit_logs')->count());
     }
 
+    public function test_one_batch_in_two_locations_counts_as_one_batch(): void
+    {
+        $f = $this->stock(100);
+        $second = new InventoryLocation;
+        $second->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id, 'code' => 'L-SECOND', 'name' => 'Synthetic second store', 'type' => 'dispensary', 'is_active' => true])->save();
+        app(InventoryMovementService::class)->openingBalance($this->supervisor, ['expected_branch_id' => $this->branch->id, 'sku_public_id' => $f['sku']->public_id, 'location_public_id' => $second->public_id, 'batch_public_id' => $f['batch']->public_id, 'quantity' => '2.000']);
+        $rows = $this->atRisk($this->supervisor)['rows'];
+        $this->assertCount(2, $rows);
+        $this->assertSame([1, 1], array_column($rows, 'skuBatches'));
+    }
+
     public function test_at_risk_rows_cannot_be_acknowledged(): void
     {
         $this->stock(100);

@@ -172,7 +172,7 @@ final class InventoryStockReviewService
         $page = (int) ($data['at_risk_page'] ?? 1);
         $withValue = $actor->can(SupplierTermsService::COST_PERMISSION);
         // Daniel's review: how many batches of the same SKU the whole list holds, shown in each card's heading.
-        $batchCounts = (clone $query)->groupBy('sku_id')->selectRaw('sku_id, COUNT(*) as batches')->pluck('batches', 'sku_id')->map(fn ($n): int => (int) $n)->all();
+        $batchCounts = (clone $query)->groupBy('sku_id')->selectRaw('sku_id, COUNT(DISTINCT batch_id) as batches')->pluck('batches', 'sku_id')->map(fn ($n): int => (int) $n)->all();
         $shape = fn (\stdClass $row): array => ['item_id' => (int) $row->item_id, 'sku_code' => $row->sku_code, 'item' => $row->item, 'location' => $row->location,
             'stock_unit' => $row->stock_unit, 'batch' => $row->batch, 'expiry' => (string) $row->expiry, 'quantity' => (string) $row->quantity,
             'skuBatches' => $batchCounts[(int) $row->sku_id] ?? 1,
