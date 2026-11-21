@@ -214,7 +214,7 @@ class ConnectorTest extends VisitTestCase
 
         $this->actingAs($this->actor('ca'))->get('/oauth/authorize?'.$query)->assertForbidden();
         $this->actingAs($this->director())->get('/oauth/authorize?'.$query)
-            ->assertOk()->assertSee('Allow')->assertSee('cannot change anything in KPOne')->assertHeader('Cache-Control');
+            ->assertOk()->assertSee('Allow')->assertSee('cannot change anything in KPOne')->assertSee('can never see')->assertSee('switch the connector off')->assertHeader('Cache-Control');
         $this->assertSame(['mcp:use'], array_keys(Passport::scopes()->mapWithKeys(fn ($scope) => [$scope->id => true])->all()));
     }
 
