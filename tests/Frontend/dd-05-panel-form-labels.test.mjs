@@ -29,23 +29,19 @@ test('each address field sits inside a visible label and keeps its accessible na
     assert.doesNotMatch(form, /placeholder="Address line 1"/);
 });
 
-test('Frequency and Day use the shared select, Time the shared time field, each with a visible label', () => {
-    assert.doesNotMatch(form, /<select\b/);
-    assert.doesNotMatch(form, /type="time"/);
-    assert.match(
-        form,
-        /import \{ OperationalSelect \} from '@\/components\/ui\/select'/,
-    );
-    assert.match(
-        form,
-        /import V2TimeField from '@\/components\/v2\/V2TimeField\.vue'/,
-    );
-    assert.match(form, /id="panel-due-frequency"[^>]*>\s*Frequency/);
-    assert.match(form, /id="panel-due-day"[^>]*>\s*Day/);
-    assert.match(form, /labelledby="panel-due-frequency"/);
-    assert.match(form, /labelledby="panel-due-day"/);
-    assert.match(form, /<V2TimeField[^>]*label="Time"/);
-    assert.match(form, /:error="form\.errors\.claim_due_time"/);
+test('Frequency, Time and Day each sit inside a visible label (native controls kept)', () => {
+    for (const label of ['Frequency', 'Time', 'Day']) {
+        assert.match(
+            form,
+            new RegExp(
+                `<label class="grid content-start gap-1">\\s*${label}\\s*<(select|Input)\\b[\\s\\S]*?aria-label="${label}"`,
+            ),
+            `${label} has a visible label`,
+        );
+    }
+
+    assert.match(form, /@change="form\.claim_due_offset = ''"/);
+    assert.match(form, /Submit by this time\./);
 });
 
 test('the saved values and the request are unchanged', () => {
@@ -60,8 +56,6 @@ test('the saved values and the request are unchanged', () => {
     }
 
     assert.match(form, /blankToNull\(data\.claim_due_time\)/);
-    // Changing the frequency still clears the day, as the old select's change handler did.
-    assert.match(form, /const setFrequency[\s\S]*form\.claim_due_offset = ''/);
 
     // The day choices are the same as before.
     for (const text of [

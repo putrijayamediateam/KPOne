@@ -4,8 +4,6 @@ import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { OperationalSelect } from '@/components/ui/select';
-import V2TimeField from '@/components/v2/V2TimeField.vue';
 
 type PanelDetail = {
     id: number;
@@ -87,31 +85,6 @@ const monthDays = [
     })),
     { value: 0, label: 'Last day of the visit month' },
 ];
-
-const frequencyOptions = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-];
-const setFrequency = (value: string | number) => {
-    form.claim_due_rule = String(value) as 'daily' | 'weekly' | 'monthly';
-    form.claim_due_offset = '';
-};
-const dayOptions = computed(() =>
-    form.claim_due_rule === 'daily'
-        ? [
-              { value: 0, label: 'Same day' },
-              { value: 1, label: 'Next day' },
-              { value: 2, label: '2 days after' },
-              { value: 3, label: '3 days after' },
-          ]
-        : form.claim_due_rule === 'weekly'
-          ? weekdays.map((name, index) => ({
-                value: index + 1,
-                label: `Next ${name}`,
-            }))
-          : monthDays,
-);
 
 const submit = () => {
     const blankToNull = (value: string) => value.trim() || null;
@@ -263,7 +236,7 @@ const submit = () => {
                     <Input v-model="form.email" type="email" maxlength="255" />
                     <InputError :message="form.errors.email" />
                 </label>
-                <fieldset class="grid gap-3 text-xs">
+                <fieldset class="grid gap-2 text-xs">
                     <legend class="mb-1 font-medium">Address</legend>
                     <label class="grid gap-1 text-xs">
                         Address line 1
@@ -419,41 +392,72 @@ const submit = () => {
                     <InputError :message="form.errors.claim_due_days" />
                     <div
                         v-if="scheduled"
-                        class="grid gap-3 text-sm sm:grid-cols-3"
+                        class="grid gap-3 text-xs sm:grid-cols-3"
                     >
-                        <div class="grid content-start gap-1 text-xs">
-                            <span
-                                id="panel-due-frequency"
-                                class="text-sm font-medium"
-                                >Frequency</span
+                        <label class="grid content-start gap-1">
+                            Frequency
+                            <select
+                                v-model="form.claim_due_rule"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                                aria-label="Frequency"
+                                @change="form.claim_due_offset = ''"
                             >
-                            <OperationalSelect
-                                :model-value="form.claim_due_rule"
-                                :options="frequencyOptions"
-                                label="Frequency"
-                                labelledby="panel-due-frequency"
-                                @update:model-value="setFrequency"
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </label>
+                        <label class="grid content-start gap-1">
+                            Time
+                            <Input
+                                v-model="form.claim_due_time"
+                                type="time"
+                                aria-label="Time"
                             />
-                        </div>
-                        <V2TimeField
-                            v-model="form.claim_due_time"
-                            label="Time"
-                            hint="Submit by this time."
-                            :error="form.errors.claim_due_time"
-                        />
-                        <div class="grid content-start gap-1 text-xs">
-                            <span id="panel-due-day" class="text-sm font-medium"
-                                >Day</span
+                            <span class="text-muted-foreground"
+                                >Submit by this time.</span
                             >
-                            <OperationalSelect
+                        </label>
+                        <label class="grid content-start gap-1">
+                            Day
+                            <select
                                 v-model="form.claim_due_offset"
-                                :options="dayOptions"
-                                label="Day"
-                                labelledby="panel-due-day"
-                                placeholder="Select day"
-                            />
-                        </div>
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                                aria-label="Day"
+                            >
+                                <option value="" disabled>Select day</option>
+                                <template
+                                    v-if="form.claim_due_rule === 'daily'"
+                                >
+                                    <option :value="0">Same day</option>
+                                    <option :value="1">Next day</option>
+                                    <option :value="2">2 days after</option>
+                                    <option :value="3">3 days after</option>
+                                </template>
+                                <template
+                                    v-else-if="form.claim_due_rule === 'weekly'"
+                                >
+                                    <option
+                                        v-for="(name, index) in weekdays"
+                                        :key="name"
+                                        :value="index + 1"
+                                    >
+                                        Next {{ name }}
+                                    </option>
+                                </template>
+                                <template v-else>
+                                    <option
+                                        v-for="day in monthDays"
+                                        :key="day.value"
+                                        :value="day.value"
+                                    >
+                                        {{ day.label }}
+                                    </option>
+                                </template>
+                            </select>
+                        </label>
                     </div>
+                    <InputError :message="form.errors.claim_due_time" />
                     <InputError :message="form.errors.claim_due_offset" />
                 </fieldset>
                 <label class="grid gap-1 text-xs">
