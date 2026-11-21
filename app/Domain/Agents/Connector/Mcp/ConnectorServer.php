@@ -14,6 +14,13 @@ final class ConnectorServer extends Server
 {
     protected array $tools = [
         ListBranchesMcpTool::class,
+        ClinicDaySummaryMcpTool::class,
+        MoneyDaySummaryMcpTool::class,
+        SalesSummaryMcpTool::class,
+        PanelClaimsOutstandingMcpTool::class,
+        StockAlertsMcpTool::class,
+        StockBalancesAndCountsMcpTool::class,
+        SystemHealthMcpTool::class,
     ];
 
     protected array $resources = [];

@@ -374,5 +374,11 @@ the Director's AI app can use as a custom connector. **Claude calls KPOne; KPOne
 - **Audit:** `ai_connector.tool_called` (tool, branch code, outcome, reason, row count; never the figures), `ai_connector.access_refused`
   and `ai_connector.tokens_revoked`. If the audit row cannot be written, nothing is returned.
 - **Revoke:** `php artisan agents:connector-revoke {--user=<email>}` (one person, or everyone when left out).
-- **Tools:** CN-1: `list_branches` (data source `connector.list_branches`). CN-2 and CN-3 add the rest (design note section 6).
+- **Tools:** CN-1: `list_branches` (data source `connector.list_branches`). CN-2 adds seven questions that read existing data
+  sources through the gateway, once for each branch the Director works at (or the one named): `clinic_day_summary` (no doctor rows),
+  `money_day_summary`, `sales_summary`, `panel_claims_outstanding`, `stock_alerts`, `stock_balances_and_counts` and `system_health`
+  (organisation-wide, counts only). Each is a `ConnectorQuery` class that returns an explicit list of keys (no pass-through), at most
+  25 rows with a `limits` note, staff-typed names cleaned and cut to 80 characters, dates validated (a range is at most 31 days),
+  plus `definitions` and `asOf`. The connector agent's allowlist is the union of their sources. CN-3 adds `visits_by_state`,
+  `queue_now` and `panel_claims_made`.
 - **Data rule:** fictional data only until the PDPA review (design note section 8).

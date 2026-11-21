@@ -4,18 +4,37 @@ namespace App\Domain\Agents\Connector;
 
 use App\Domain\Agents\Tools\AgentTool;
 
-/** The connector's data sources. CN-1 has one; CN-2 and CN-3 add the rest (design note section 6). */
+/** The connector's data sources and questions. CN-1 had one; CN-2 adds the seven that read existing data sources (design note section 6). */
 final class ConnectorTools
 {
-    /** @return list<class-string<AgentTool>> */
+    /** @return list<class-string<AgentTool>> data sources the connector itself adds to the registry */
     public static function classes(): array
     {
         return [ListBranchesTool::class];
     }
 
-    /** @return list<string> */
+    /** @return list<class-string<ConnectorQuery>> */
+    public static function queries(): array
+    {
+        return [
+            Queries\ClinicDaySummaryQuery::class,
+            Queries\MoneyDaySummaryQuery::class,
+            Queries\SalesSummaryQuery::class,
+            Queries\PanelClaimsOutstandingQuery::class,
+            Queries\StockAlertsQuery::class,
+            Queries\StockBalancesAndCountsQuery::class,
+            Queries\SystemHealthQuery::class,
+        ];
+    }
+
+    /** @return list<string> the connector agent's allowlist: its own data sources and every source its questions read */
     public static function codes(): array
     {
-        return array_map(fn (string $class): string => app($class)->code(), self::classes());
+        $codes = array_map(fn (string $class): string => app($class)->code(), self::classes());
+        foreach (self::queries() as $query) {
+            array_push($codes, ...app($query)->sources());
+        }
+
+        return array_values(array_unique($codes));
     }
 }
