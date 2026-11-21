@@ -60,6 +60,7 @@ final class PanelPriceChangesPage
                     ]);
                     $current = $rows->first(static fn (array $r): bool => $r['effectiveAt']->lte($now));
                     $selection = [
+                        'hasPriceList' => $book !== null,
                         'version' => $book === null ? 0 : (int) (DB::table('price_entries')->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->max('version') ?? 0),
                         'currentAmountSen' => $current['amountSen'] ?? null,
                         'history' => $rows->map(static fn (array $r): array => [

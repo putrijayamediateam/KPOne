@@ -58,3 +58,8 @@ test('every row shows the size of the change and a start that has passed, and sh
     assert.match(page, /start-\$\{row\.id\}-\$\{kind\}/);
     assert.match(page, /size-2 shrink-0 rounded-full/);
 });
+
+test('a Panel with no price list yet says the list is created when someone else approves', () => {
+    assert.match(page, /This Panel has no price list yet\./);
+    assert.match(page, /It is created when someone\s+else approves this\./);
+});

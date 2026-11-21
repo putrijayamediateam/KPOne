@@ -37,6 +37,7 @@ const props = defineProps<{
     panels: { id: string; name: string }[];
     charges: { id: string; name: string; code: string; type: string }[];
     selection: {
+        hasPriceList: boolean;
         version: number;
         currentAmountSen: number | null;
         history: {
@@ -396,6 +397,14 @@ const turnPage = (value: number) =>
                     </option>
                 </select>
             </label>
+            <p
+                v-if="selection && !selection.hasPriceList"
+                class="-mt-2 text-xs text-muted-foreground"
+                data-testid="no-price-list"
+            >
+                This Panel has no price list yet. It is created when someone
+                else approves this.
+            </p>
             <label class="grid gap-1 text-sm">
                 Charge *
                 <select
