@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import PackIssuedLabel from '@/components/panel/PackIssuedLabel.vue';
+import type { PackIssued } from '@/components/panel/PackIssuedLabel.vue';
 import { Button } from '@/components/ui/button';
 import { myr } from '@/types/billing';
 import type { PrintLetterhead } from '@/types/letterhead';
@@ -59,13 +61,16 @@ const props = defineProps<{
     pack: {
         panelName: string;
         branchName: string;
-        printedAt: string;
+        /** Absent on a frozen copy: the print time is not part of what is frozen (see `issued.printedAt`). */
+        printedAt?: string;
         claimCount: number;
         totalClaimSen: number;
         claims: PackClaim[];
     };
     backUrl: string;
     backLabel: string;
+    /** PNL-25: present on a frozen copy (label, version, notes); absent on the live preview. */
+    issued?: PackIssued;
 }>();
 
 const addressLines = computed(() =>
@@ -146,9 +151,21 @@ const print = () => window.print();
                     Print or save as PDF
                 </Button>
             </div>
-            <p class="text-sm text-muted-foreground">
+            <p
+                v-if="issued"
+                class="text-sm text-muted-foreground"
+                data-testid="pack-issued-line"
+            >
+                Frozen copy: {{ issued.recordedLabel.toUpperCase() }} (version
+                {{ issued.version }}){{
+                    issued.printedByYou ? ' by you' : ''
+                }}
+                at {{ issued.printedAt }} (branch time). Photos are not printed.
+                Use A4 paper.
+            </p>
+            <p v-else class="text-sm text-muted-foreground">
                 Photos are not printed. Use A4 paper. Opening this pack is
-                recorded.
+                recorded. This page is a preview, not an issued copy.
             </p>
             <p
                 v-if="letterheadIncomplete"
@@ -203,6 +220,7 @@ const print = () => window.print();
                 <h2 class="my-5 text-center text-lg font-bold underline">
                     PANEL CLAIM PACK
                 </h2>
+                <PackIssuedLabel :issued="issued ?? null" />
                 <dl class="pack-facts">
                     <div>
                         <dt>Panel</dt>
@@ -214,7 +232,7 @@ const print = () => window.print();
                     </div>
                     <div>
                         <dt>Printed</dt>
-                        <dd>{{ pack.printedAt }}</dd>
+                        <dd>{{ pack.printedAt ?? issued?.printedAt }}</dd>
                     </div>
                     <div>
                         <dt>Claims</dt>
@@ -332,6 +350,7 @@ const print = () => window.print();
                         </p>
                     </div>
                 </header>
+                <PackIssuedLabel :issued="issued ?? null" class="mt-4" />
                 <div
                     class="my-5 flex flex-wrap items-start justify-between gap-3"
                 >
