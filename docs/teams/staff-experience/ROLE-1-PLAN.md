@@ -61,6 +61,33 @@ a refund of any amount **now**, before Billing builds the "refund over RM300 goe
 | Cost | `inventory.cost.view.organisation` | item 6 |
 | Never | patient, visit, queue, billing, payments, reports, `inventory.suppliers.manage`, `inventory.references.manage`, variances/holds/recalls approvals | "no patients, no money" |
 
+### 2.3b Inventory team's wider proposal for `store_admin` (Zulkifli, 21 Nov) and how it differs from 2.3
+
+Zulkifli proposes everything in 2.3 **plus**: `inventory.references.manage.organisation` (items, SKUs, locations, batches, unit
+verification), `inventory.reorder.manage.branch`, `inventory.receiving.exceptions.approve.branch`,
+`inventory.stock_requests.create.branch`, `inventory.transfers.receive.branch`, `inventory.transfer.branch`,
+`inventory.supplier_returns.request.branch`, `inventory.batch_holds.place.branch`, `inventory.stock_reviews.manage.branch`,
+`inventory.opening_balance.branch`; later, if the owner approves those slices, `inventory.differences.report.branch` and
+`inventory.cost.enter.organisation`. NOT: PO approve, supplier invoice approve, supplier return approve, batch hold release,
+valuation view, variance approve, `inventory.suppliers.manage.organisation`.
+
+Staff Experience's concerns (each needs the owner's word, not mine):
+- A "stock and purchasing only" role would hold the **reference-data** power (`references.manage`: base-unit verification, SKUs,
+  locations) and `opening_balance`. Their existing independence rules (a second person verifies the opening; the base-unit sign-off)
+  still apply, but the Store Admin becomes a day-to-day author of stock reference data. Acceptable if the store runs it.
+- `receiving.exceptions.approve.branch` for a role that also **receives**: the rule that the approver is never the receiver exists
+  in the domain and PostgreSQL, so one person cannot approve their own receipt; a one-person central store could never approve
+  anything. Confirm there will be a second approver (CA Supervisor, Finance Officer or Director).
+- `stock_reviews.manage`, `batch_holds.place`, `supplier_returns.request`, `transfers.receive`, `transfer.branch`, `reorder.manage`,
+  `stock_requests.create` are consistent with "stock and purchasing only".
+- The two **later** permissions (`differences.report`, `cost.enter`) do not exist yet: they are added by Inventory's own slices
+  and granted then, not in ROLE-1. Cost entry by hand (item 24) is limited to Finance Officer or Store Admin by the owner.
+
+**Shape for the owner:** (A) narrow, the table in 2.3 (what the owner's list names); (B) wide, 2.3 plus the list above. I
+recommend (B) minus `references.manage` and `opening_balance` until the owner says the store may author reference data
+(decision D3). `account_assistant` per Zulkifli matches 2.2 (he proposes fewer: only `inventory.view`, `supplier_invoices.record`,
+`cost.view`; I also give the audit log, the organisation reach and three report views from owner items 5 and 6 and A2).
+
 Open for Zulkifli/Mei Ling (D3): whether `inventory.stock_requests.create.branch` (the store asking a supplier) and
 `inventory.suppliers.manage.organisation` (supplier records) belong to the store role; I left them out because the owner's list
 does not name them.
@@ -130,7 +157,8 @@ affected suites on the branch **before** changing any test, and send that list f
   for the Branch Manager; Daily summary, Stock movement and Panel summary (view only) for the Account Assistant. The two reports
   that list patients by name (Transaction detail, Billing detail) and the organisation-wide Sales and Payments downloads are
   **not** included; say if you want any added.
-- **D3** Store Admin and supplier records / stock requests to suppliers (section 2.3).
+- **D3** Store Admin: narrow (2.3) or wide (2.3b); reference-data authoring and opening balances; supplier records (`suppliers.manage`).
+- **D5** (from Zulkifli) Does the Finance Officer lose `inventory.purchase_orders.approve.organisation` (owner item 20, "the Director approves every PO")? Today the Finance Officer approves POs (STK-19, owner decision 11 Nov 2026). **ROLE-1 removes no permission from any existing role**; any removal belongs to Inventory's slice (20) after the owner's explicit word. The Director keeps `supplier_invoices.approve.branch` (with the Finance Officer; STK-22).
 - **D4** Audit log: `audit.view.organisation` for Finance Officer, Account Assistant and Panel Officer as read only. Please confirm
   they may read every audit row (not just their own area).
 - **Not decided here, for Billing:** the exact Branch Manager permissions for void, refund and day lock, and whether a Branch
