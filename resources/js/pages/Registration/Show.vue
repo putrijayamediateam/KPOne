@@ -285,6 +285,35 @@ const dispensaryStatusLabel: Record<string, string> = {
                 {{ visit.visitReasons.legacy ?? 'Not recorded.' }}
             </p>
         </section>
+        <!-- The Director's read-only consultation, in its own card beside the Dispensary one. A plain link, so nothing
+             prefetches it; every open is recorded. -->
+        <section
+            v-if="visit.consultationReview"
+            class="rounded-lg border bg-card p-4"
+            aria-labelledby="consultation-review-heading"
+            data-testid="consultation-review-card"
+        >
+            <h2 id="consultation-review-heading" class="font-semibold">
+                Consultation
+            </h2>
+            <p class="mt-2 flex items-center gap-2 text-sm">
+                <span
+                    class="size-2 rounded-full bg-foreground/60"
+                    aria-hidden="true"
+                />
+                {{
+                    visit.consultationReview.status === 'in_progress'
+                        ? 'In progress'
+                        : visit.consultationReview.status
+                }}
+            </p>
+            <a
+                :href="visit.consultationReview.url"
+                class="mt-3 inline-flex h-11 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                data-testid="consultation-review-link"
+                >Open consultation (read only)</a
+            >
+        </section>
         <!-- DSP-25 (Daniel): the Director's read-only dispensary case, in its own card under Visit Reason. A plain link, so
              nothing prefetches it; every open is recorded. -->
         <section

@@ -32,6 +32,7 @@ use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
+use App\Http\Controllers\ConsultationReviewController;
 use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
@@ -991,6 +992,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/branch-replenishment', [BranchReplenishmentController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.branch-replenishment');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
+        // STK-52: pack conversions. Anyone who manages references proposes or withdraws; only a CA Supervisor or the Director checks.
+        Route::post('inventory/skus/{sku}/pack-conversions', [SkuEditController::class, 'proposeConversion'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.pack-conversions.store');
+        Route::post('inventory/pack-conversions/{conversion}/withdraw', [SkuEditController::class, 'withdrawConversion'])->whereUuid('conversion')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.pack-conversions.withdraw');
+        Route::post('inventory/pack-conversions/{conversion}/check', [SkuEditController::class, 'checkConversion'])->whereUuid('conversion')->middleware(['permission:inventory.pack_conversions.verify.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.pack-conversions.check');
+        Route::post('inventory/pack-conversions/{conversion}/refuse', [SkuEditController::class, 'refuseConversion'])->whereUuid('conversion')->middleware(['permission:inventory.pack_conversions.verify.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.pack-conversions.refuse');
         Route::get('inventory/supplier-terms', [SupplierTermsController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-terms');
         Route::post('inventory/supplier-terms', [SupplierTermsController::class, 'store'])->middleware(['permission:inventory.suppliers.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-terms.store');
         Route::put('inventory/supplier-terms/{term}', [SupplierTermsController::class, 'update'])->whereUuid('term')->middleware(['permission:inventory.suppliers.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-terms.update');
@@ -1036,6 +1042,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/encounter', [ClinicalEncounterController::class, 'show'])
             ->middleware('permission:encounters.view.own')
             ->name('encounters.show');
+        // The Director's read-only consultation at any branch; every open recorded. GET only. {historicalVisit} is
+        // organisation-scoped (the {visit} binding only works inside the active branch).
+        Route::get('visits/{historicalVisit}/encounter/review', [ConsultationReviewController::class, 'show'])
+            ->middleware(['permission:consultations.view_readonly.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('encounters.review');
         Route::get('visits/{historicalVisit}/encounter/history', [ClinicalEncounterController::class, 'history'])
             ->middleware('permission:encounters.history.view.organisation')
             ->name('encounters.history.show');

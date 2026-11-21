@@ -171,6 +171,7 @@ final class PermissionCatalogue
             'dispensary.doctor_check.override.branch',
             'dispensary.settings.manage.branch',
             'dispensary.view_readonly.organisation',
+            'consultations.view_readonly.organisation',
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
@@ -184,6 +185,7 @@ final class PermissionCatalogue
             'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
             'inventory.valuation.view.organisation',
+            'inventory.pack_conversions.verify.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -555,6 +557,12 @@ final class PermissionCatalogue
         // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
         $roles['director'][] = 'inventory.valuation.view.organisation';
 
+        // STK-52 (owner decision 2026-11-21, "A for the bottle check"): only a CA Supervisor or the Director does the blind
+        // check of a pack conversion; anyone who manages inventory references proposes one. Never the proposer.
+        foreach (['ca_supervisor', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.pack_conversions.verify.organisation';
+        }
+
         // DSP-23 (owner answers 21 Nov 2026: P3, 12 = A, 13 = B): the attending doctor checks the prepared medicine; a
         // CA Supervisor may check instead with a reason; the Director and CA Supervisor turn the branch switch on or off.
         $roles['resident_doctor'][] = 'dispensary.doctor_check.own';
@@ -567,6 +575,10 @@ final class PermissionCatalogue
         // any branch, every open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never
         // implies a Dispensary write permission.
         $roles['director'][] = 'dispensary.view_readonly.organisation';
+
+        // Item 4 (owner decision P4 of 20-21 Nov 2026): the Director's read-only view of a consultation at any branch, every
+        // open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never implies a write permission.
+        $roles['director'][] = 'consultations.view_readonly.organisation';
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {

@@ -57,6 +57,8 @@ const props = defineProps<{
         };
         canFixBarcodes: boolean;
         canImportOpening?: boolean;
+        packConversionsWaiting?: string[];
+        packConversionsWaitingTotal?: number;
     };
 }>();
 const search = ref(props.readiness.q);
@@ -138,6 +140,47 @@ watch(
             title="Pilot readiness"
             :description="`${readiness.branchName} · Check each SKU and sign off openings. Importing opening stock is a separate page. No balance correction or pilot go-live approval.`"
         />
+        <p
+            v-if="readiness.packConversionsWaiting?.length"
+            class="flex flex-wrap items-center gap-2 text-sm"
+            data-testid="pack-conversions-waiting"
+        >
+            <span
+                class="size-2 rounded-full bg-warning"
+                aria-hidden="true"
+            ></span>
+            {{
+                readiness.packConversionsWaitingTotal ??
+                readiness.packConversionsWaiting.length
+            }}
+            pack
+            {{
+                (readiness.packConversionsWaitingTotal ??
+                    readiness.packConversionsWaiting.length) === 1
+                    ? 'conversion'
+                    : 'conversions'
+            }}
+            waiting for a check:
+            <ActionLink
+                v-for="code in readiness.packConversionsWaiting"
+                :key="code"
+                :href="`/inventory/skus?q=${encodeURIComponent(code)}`"
+                variant="link"
+                class="min-h-11 px-0 lg:min-h-9"
+                >{{ code }}</ActionLink
+            ><span
+                v-if="
+                    (readiness.packConversionsWaitingTotal ?? 0) >
+                    readiness.packConversionsWaiting.length
+                "
+                >and
+                {{
+                    (readiness.packConversionsWaitingTotal ?? 0) -
+                    readiness.packConversionsWaiting.length
+                }}
+                more</span
+            >
+        </p>
         <div v-if="readiness.canImportOpening" class="flex flex-wrap gap-2">
             <ActionLink
                 href="/inventory/opening-import"
