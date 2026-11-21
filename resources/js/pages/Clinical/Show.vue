@@ -17,6 +17,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
+import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
@@ -43,6 +44,7 @@ import type { NoteReading } from '@/lib/vitals-from-note';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
+import DispensaryCheckPanel from '@/pages/Clinical/Partials/DispensaryCheckPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
 
@@ -966,6 +968,15 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
+                />
+
+                <DispensaryCheckPanel
+                    v-if="clinical.dispensaryCheck"
+                    :check="clinical.dispensaryCheck"
+                />
+                <SupervisorCheckNote
+                    v-if="clinical.dispensaryCheckedInstead"
+                    :check="clinical.dispensaryCheckedInstead"
                 />
 
                 <div

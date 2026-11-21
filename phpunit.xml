@@ -13,9 +13,11 @@
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
             <exclude>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
@@ -71,12 +73,14 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
             <file>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</file>
             <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
@@ -135,6 +139,7 @@
         <testsuite name="Contention1">
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</file>
             <file>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</file>
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
@@ -152,6 +157,7 @@
             <file>tests/Feature/PostgresDispensaryInventoryRegressionTest.php</file>
         </testsuite>
         <testsuite name="Contention2">
+            <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
