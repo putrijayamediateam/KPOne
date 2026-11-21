@@ -313,12 +313,40 @@ test('the page labels unsaved vitals, announces politely, never moves focus, ord
 });
 
 test('unusual readings are still filled but flagged "Check", with ranges that live in one table (Daniel)', () => {
-    assert.equal(isUnusual({ systolic_bp: '180', diastolic_bp: '45' }), true);
+    // The ranges approved by Dr Fatin Adilah (21 Nov 2026): the ends are inside (no Check), one step past an end is outside.
+    const edges = [
+        ['systolic_bp', 50, 250, '49', '50', '250', '251'],
+        ['diastolic_bp', 30, 150, '29', '30', '150', '151'],
+        ['pulse_bpm', 35, 220, '34', '35', '220', '221'],
+        ['temperature_celsius', 34, 42, '33.9', '34.0', '42.0', '42.1'],
+        ['spo2_percent', 70, 100, '69', '70', '100', '101'],
+    ];
+
+    for (const [field, , , lowOut, lowIn, highIn, highOut] of edges) {
+        assert.equal(
+            isUnusual({ [field]: lowOut }),
+            true,
+            `${field} ${lowOut}`,
+        );
+        assert.equal(isUnusual({ [field]: lowIn }), false, `${field} ${lowIn}`);
+        assert.equal(
+            isUnusual({ [field]: highIn }),
+            false,
+            `${field} ${highIn}`,
+        );
+        assert.equal(
+            isUnusual({ [field]: highOut }),
+            true,
+            `${field} ${highOut}`,
+        );
+    }
+
     assert.equal(isUnusual({ systolic_bp: '120', diastolic_bp: '80' }), false);
-    assert.equal(isUnusual({ pulse_bpm: '130' }), true);
-    assert.equal(isUnusual({ temperature_celsius: '39.4' }), true);
+    // one odd half of a blood pressure flags the whole reading
+    assert.equal(isUnusual({ systolic_bp: '120', diastolic_bp: '25' }), true);
+    // the owner's example "bp:180/45" is inside both ranges now, so it is read and not flagged
+    assert.equal(isUnusual({ systolic_bp: '180', diastolic_bp: '45' }), false);
     assert.equal(isUnusual({ temperature_celsius: '37.2' }), false);
-    assert.equal(isUnusual({ spo2_percent: '88' }), true);
     assert.equal(isUnusual({ weight_kg: '62.5' }), false);
     // the owner's own example is read and flagged, not refused
     const found = parseVitalsFromNote('bp:180/45');
