@@ -110,7 +110,7 @@ request has its own approval, dispatch and receiving steps.
 
 **Fixed rules (computed in PHP, never guessed):**
 - Restock: reorder level minus current quantity, rounded up, for SKUs at or below their reorder level.
-- Expiry: batches with positive quantity expiring within 90 days of the branch-local date; `use_first` when
+- Expiry: batches with positive quantity expiring within the SKU's own alert window (STK-42; 7 to 365 days, none set means 90) capped at 90 days, of the branch-local date; `use_first` when
   60 to 90 days remain, `write_off_review` under 60 days or already expired.
 - Transfer: suggested only when the receiving branch is below its reorder level and the sending branch would
   stay at or above its own reorder level after sending; quantity is the smaller of the shortage and that
