@@ -28,7 +28,7 @@ final class ReadOnlyReviewAudit
 
     public function __construct(private AuditRecorder $audit) {}
 
-    /** @param array<string, int|string> $ids */
+    /** @param array<string, mixed> $ids */
     public function record(User $actor, string $event, Model $subject, array $ids, ?Branch $branch = null): void
     {
         if (! in_array($event, self::EVENTS, true)) {

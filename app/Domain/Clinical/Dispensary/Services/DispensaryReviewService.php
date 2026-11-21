@@ -73,7 +73,7 @@ final class DispensaryReviewService
             'receivedAt' => $time($case->received_at),
             'completedAt' => $time($case->completed_at),
             'allergies' => [
-                'status' => $profile?->status ?? PatientAllergyProfile::STATUS_UNKNOWN,
+                'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN,
                 'records' => $profile
                     ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->get(['allergen_text', 'reaction_text', 'severity'])
                         ->map(fn ($a): array => ['allergen' => $a->allergen_text, 'reaction' => $a->reaction_text, 'severity' => $a->severity])->values()->all()

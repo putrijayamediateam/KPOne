@@ -28,6 +28,7 @@ test('the page renders nothing editable: no button, input, select, textarea, for
             `${tag} must not appear on the review page`,
         );
     }
+
     assert.ok(!/disabled/.test(template(page)), 'nothing is rendered disabled');
 });
 
@@ -49,6 +50,7 @@ test('statuses are a dot and a word; CA changes are chips with a dot and a word'
         template(page),
         /class="size-2 rounded-full bg-foreground\/60"\s+aria-hidden="true"/,
     );
+
     for (const word of ['Added by CA', 'Edited by CA', 'Removed by CA']) {
         assert.ok(page.includes(word), word);
     }
