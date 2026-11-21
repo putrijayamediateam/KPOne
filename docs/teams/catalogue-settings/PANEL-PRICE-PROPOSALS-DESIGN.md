@@ -88,7 +88,7 @@ PostgreSQL checks and triggers (existing repo patterns for append-only evidence)
 - One page `PanelPrices/Index.vue` at `/panel-price-changes`, a Clinic management row (Panel group), three tabs:
   **Propose** (Panel Officer: choose a Panel or the default Panel book, search a charge, shows the current price and
   last three versions, new price in RM, agreement reference, effective date with the branch time zone shown),
-  **Waiting** (the list; Finance Officer sees Approve and Reject, the proposer sees Withdraw) and **Decided**.
+  **Waiting** (the list; Finance Officer and Director see Approve and Reject, the proposer sees Withdraw) and **Decided**.
 - Approve and Reject use the shared confirm dialog; the page names the old and new price in RM and the effective time.
 - Routes: `GET /panel-price-changes`, `POST` propose, approve, reject, withdraw; throttled like other Pricing writes;
   explicit redirects back to the page (no bare `back()`).
