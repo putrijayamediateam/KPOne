@@ -52,3 +52,9 @@ Measurements (width, theme, state, sideways overflow in px and checks):
 ```
 1440/390 light/dark: saveDisabledAt100=true, saveDisabledAt3=false, overflow 0
 ```
+
+## Update: Save all lines refuses an invalid bottles number (code 3f6596ba1)
+
+```
+1440/390 light/dark: writes 0, message "Demo Paracetamol syrup: enter whole bottles, 1 to 99, before saving. Nothing was saved.", overflow 0
+```
