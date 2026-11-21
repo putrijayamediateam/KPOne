@@ -17,6 +17,12 @@ test('Classic Referrals still has its request, compose, issue, blank form and cl
         ['const blank = () => ({', 'const form = reactive(blank());'],
         ['function clear() {', 'watch(() => page.props.branchContext'],
     ]) {
+        // Both markers must exist, in this order, with real code between them.
+        assert.ok(classic.indexOf(from) >= 0, `classic lacks ${from}`);
+        assert.ok(
+            classic.indexOf(to) > classic.indexOf(from),
+            `classic lacks ${to} after ${from}`,
+        );
         assert.ok(
             tight(between(classic, from, to)).length > 50,
             `classic chunk ${from}`,
