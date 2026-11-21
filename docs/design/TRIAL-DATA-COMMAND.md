@@ -1,6 +1,6 @@
 # TRIAL-DATA: fictional demo data for the trial server (design note)
 
-Status: **Phases 1 to 4 built** (branch `feature/trial-data-command`); Phases 5 and 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
+Status: **Phases 1 to 5 built** (branch `feature/trial-data-command`); Phase 6 is design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
 the owner in the DEMO-1 session): demo data that uses every function, every user role and every menu module, built
 in phases. Branch `feature/trial-data-command`. No PR until the owner's ship-it.
 
@@ -154,7 +154,25 @@ acknowledgements; treatment usage; the controlled register.
 Menus: every Inventory sub-page, including reorder suggestions, replenishment, stock health, stock value and journal,
 and the stock movement report.
 
-### Phase 5 — HR
+### Phase 5 — HR (built)
+
+**Built:** a staff file, employment period and position for every fictional account (the HR Manager's opened by the
+Director; none for the Director or the TV screens); bank details confirmed for two people and one waiting for a second
+check; a contract PDF and an onboarding checklist; KPOne's default leave types and entitlements, working days, a
+holiday, the grant, and leave pending, approved, rejected and cancelled; at each branch minimum staffing, next week's
+roster approved by the Director and the following week in draft; attendance and overtime settings from today, the first
+CA at each branch clocked in now (placeholder PNG photo), a session added by an approved correction with overtime
+approved, and a correction waiting; a credential accepted and one waiting; an SOP and a memo read and acknowledged; a
+confirmation letter issued and recorded as given; an appraisal signed off; an incident with an action; a discipline
+case closed with a verbal warning; an open shift; a locum file with a confirmed rate; staff claims paid, approved (then
+paid by payroll) and waiting; two job positions; and payroll for last month: four FICTIONAL statutory tables (names
+start "FICTIONAL", notes say "FICTIONAL — NOT OFFICIAL RATES — TRIAL ONLY", round rates such as 10% and 12%) entered by
+HR and checked by the Director, 19 pay profiles confirmed by the Director, a run prepared and sent by HR and approved
+and locked by the Director (19 payslips), and the bank and accountant files. The Director's and HR Manager's own pay
+stays outside KPOne. Not filled: open-shift requests and locum pay months (they need a locum sign-in account), job
+applications (public form off), and photos on incidents.
+
+Design as reviewed:
 
 Leave types, entitlements, holidays and requests (pending, approved, rejected, cancelled); a roster (one approved
 week, one draft); attendance sessions and an overtime request; a correction request; staff files (no uploads), bank

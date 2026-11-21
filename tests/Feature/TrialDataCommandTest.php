@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Identity\Services\DirectorBootstrapService;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Shared\TrialData\PhaseFiveHr;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
 use App\Domain\Shared\TrialData\PhaseThreePanel;
 use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
@@ -45,7 +46,11 @@ class TrialDataCommandTest extends TestCase
         'inventory_purchase_orders', 'inventory_goods_receipts', 'inventory_receiving_reviews', 'inventory_supplier_invoices',
         'inventory_supplier_returns', 'inventory_batch_hold_states', 'inventory_governed_cases', 'inventory_reorder_levels',
         'inventory_stock_reviews', 'inventory_treatment_usages', 'inventory_controlled_register_checks', 'dispensary_returns',
-        'inventory_stock_requests', 'inventory_recalls', 'inventory_supplier_sku_terms', 'audit_logs',
+        'inventory_stock_requests', 'inventory_recalls', 'inventory_supplier_sku_terms', 'hr_workers', 'hr_bank_details',
+        'hr_leave_requests', 'hr_roster_versions', 'hr_clock_sessions', 'hr_attendance_corrections', 'hr_overtime_requests',
+        'hr_credential_records', 'hr_sops', 'hr_memos', 'hr_letters', 'hr_appraisals', 'hr_incidents', 'hr_discipline_cases',
+        'hr_open_shifts', 'hr_staff_claims', 'hr_job_positions', 'hr_statutory_tables', 'hr_pay_profiles', 'hr_payroll_runs',
+        'hr_payslips', 'hr_payroll_exports', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -366,6 +371,45 @@ class TrialDataCommandTest extends TestCase
 
         $after = $this->counts();
         $this->runPhase('4')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
+    {
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('5')->assertExitCode(Command::SUCCESS);
+        $statuses = fn (string $table): array => DB::table($table)->selectRaw('status, count(*) as n')->groupBy('status')->orderBy('status')->pluck('n', 'status')->map(fn ($n): int => (int) $n)->all();
+        $this->assertSame(['approved' => 1, 'cancelled' => 1, 'pending' => 1, 'rejected' => 1], $statuses('hr_leave_requests'));
+        $this->assertSame(['approved' => 3, 'draft' => 3], $statuses('hr_roster_versions'));
+        $this->assertSame(['closed' => 1, 'open' => 3], $statuses('hr_clock_sessions'));
+        $this->assertSame(['approved' => 1, 'pending' => 1], $statuses('hr_attendance_corrections'));
+        $this->assertSame(['confirmed' => 2, 'waiting' => 1], $statuses('hr_bank_details'));
+        $this->assertSame(['paid' => 2, 'waiting' => 1], $statuses('hr_staff_claims'));
+        $this->assertSame(['accepted' => 1, 'waiting' => 1], $statuses('hr_credential_records'));
+        $this->assertSame(['locked' => 1], $statuses('hr_payroll_runs'));
+        $this->assertSame(['confirmed' => 19], $statuses('hr_pay_profiles'));
+        $this->assertSame(19, DB::table('hr_payslips')->count());
+        $this->assertSame(2, DB::table('hr_payroll_exports')->count());
+
+        // Every statutory table is marked fictional and was checked by someone other than its entrant.
+        $tables = DB::table('hr_statutory_tables')->get();
+        $this->assertCount(4, $tables);
+        foreach ($tables as $table) {
+            $this->assertStringStartsWith('FICTIONAL', (string) $table->category);
+            $this->assertSame(PhaseFiveHr::FICTIONAL, $table->source_note);
+            $this->assertSame('checked', $table->status);
+            $this->assertNotSame($table->entered_by_user_id, $table->decided_by_user_id);
+        }
+        // The Director's and the HR Manager's own pay stays outside KPOne; the Director has no staff file.
+        $director = User::role('director')->sole();
+        $hr = User::query()->where('email', TrialDataContext::email('hr'))->sole();
+        $this->assertSame(0, DB::table('hr_pay_profiles')->whereIn('worker_id', DB::table('hr_workers')->whereIn('user_id', [$director->id, $hr->id])->select('id'))->count());
+        $this->assertSame(0, DB::table('hr_workers')->where('user_id', $director->id)->count());
+
+        $after = $this->counts();
+        $this->runPhase('5')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
         $this->assertSame($after, $this->counts());
     }
 
