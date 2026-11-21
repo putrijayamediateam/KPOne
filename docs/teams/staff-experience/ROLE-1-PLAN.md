@@ -153,6 +153,14 @@ affected suites on the branch **before** changing any test, and send that list f
 ## 8. Decisions for the owner (via B.E.R.N.I.S.S)
 
 - **D1** Branch Manager gets void and refund **approval** in Billing's later slices, not now (section 2.1). Confirm.
+- **D1b** (agreed with Farah, Billing, 21 Nov, open on one point): ROLE-1 grants only existing permissions and **creates none**;
+  the new "approve a void" permission is created and granted in Billing's void slice, one owner OK per slice. The Branch Manager
+  has **no recording rights** (no `payments.add`, `refunds.record`, adjustments, responsibility proposals). **Open point:**
+  today's `payments.reconcile.branch` is the permission to **record the cash count** and to open the daily-close pages; granting
+  it lets a Branch Manager also count (the approver is never the counter, so they still cannot approve their own count). If the
+  owner wants "approves, never records", Billing's close slice adds a view-only permission instead and ROLE-1 grants only
+  `payments.cash_closing.approve.branch` plus that. Farah proposed `payments.refunds.approve.branch` now; I keep it for the refund
+  slice, because the amount rule (over RM300 to Finance first) is built there.
 - **D2** Which reports may the Branch Manager download and the Account Assistant view? I propose Daily summary and Stock movement
   for the Branch Manager; Daily summary, Stock movement and Panel summary (view only) for the Account Assistant. The two reports
   that list patients by name (Transaction detail, Billing detail) and the organisation-wide Sales and Payments downloads are
