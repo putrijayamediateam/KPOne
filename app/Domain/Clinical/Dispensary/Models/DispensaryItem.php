@@ -10,7 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
-/** @property string|null $quantity_dispensed Exact decimal:3 cast; never floating-point quantity. */
+/**
+ * @property string|null $quantity_dispensed Exact decimal:3 cast; never floating-point quantity.
+ * @property int|null $pack_conversion_id DSP-24: the exact STK-52 conversion version used when dispensed in packs.
+ * @property int|null $packs_dispensed DSP-24: whole packs (bottles); quantity_dispensed stays the base unit (ml).
+ */
 #[Guarded(['*'])]
 class DispensaryItem extends Model
 {
@@ -73,7 +77,7 @@ class DispensaryItem extends Model
 
     protected function casts(): array
     {
-        return ['edited_at' => 'immutable_datetime', 'quantity_ordered' => 'decimal:3', 'quantity_dispensed' => 'decimal:3', 'allergy_profile_version_validated' => 'integer', 'lock_version' => 'integer', 'handled_at' => 'immutable_datetime'];
+        return ['edited_at' => 'immutable_datetime', 'quantity_ordered' => 'decimal:3', 'quantity_dispensed' => 'decimal:3', 'allergy_profile_version_validated' => 'integer', 'lock_version' => 'integer', 'handled_at' => 'immutable_datetime', 'pack_conversion_id' => 'integer', 'packs_dispensed' => 'integer'];
     }
 
     public function getRouteKeyName(): string
