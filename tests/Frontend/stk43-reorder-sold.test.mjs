@@ -23,6 +23,11 @@ test('STK-43: each reorder card shows what was sold (dispensed) over 7, 14 and 3
     );
     assert.match(flat, /const soldWindows = \[7, 14, 30\] as const;/);
     assert.match(flat, /return value === null \? '—' : trimQuantity\(value\);/);
+    // Nothing dispensed in 30 days reads in words, not three dashes.
+    assert.match(
+        flat,
+        /<dd v-if="row\.sold30 === null" class="text-muted-foreground" > None in the last 30 days <\/dd>/,
+    );
 });
 
 test('STK-43: the note says what sold counts and that the suggestion is unchanged', () => {

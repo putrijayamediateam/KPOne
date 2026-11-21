@@ -332,7 +332,13 @@ const requestThese = () => {
                     </div>
                     <div data-testid="reorder-sold">
                         <dt class="text-muted-foreground">Sold (dispensed)</dt>
-                        <dd class="tabular-nums">
+                        <dd
+                            v-if="row.sold30 === null"
+                            class="text-muted-foreground"
+                        >
+                            None in the last 30 days
+                        </dd>
+                        <dd v-else class="tabular-nums">
                             <template
                                 v-for="(days, index) in soldWindows"
                                 :key="days"
