@@ -42,10 +42,14 @@ class TrialData extends Command
         }
 
         $organisation = Organisation::query()->where('code', 'KLINIK_PUTRIJAYA')->where('is_active', true)->first();
-        $branch = $organisation === null ? null : Branch::query()
-            ->where('organisation_id', $organisation->id)->where('code', TrialDataContext::BRANCH_CODE)->where('is_active', true)->first();
-        if ($organisation === null || $branch === null) {
-            return $this->refuse('The organisation or the CHERAS branch is missing. Run the migrations and the reference seeder first.');
+        $branches = $organisation === null ? collect() : Branch::query()
+            ->where('organisation_id', $organisation->id)
+            ->whereIn('code', array_keys(TrialDataContext::BRANCHES))
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('code');
+        if ($organisation === null || $branches->count() !== count(TrialDataContext::BRANCHES)) {
+            return $this->refuse('The organisation or one of its three branches is missing. Run the migrations and the reference seeder first.');
         }
 
         $directors = User::role('director')->where('organisation_id', $organisation->id)->where('is_active', true)->get();
@@ -59,9 +63,10 @@ class TrialData extends Command
             return $this->refuse("Stopped: {$others} account(s) other than the Director have an email that does not end in .test. This command runs only on a database with fictional staff.");
         }
 
-        $context = new TrialDataContext($organisation, $branch, $director);
-        if (! $context->directorCoversBranch()) {
-            return $this->refuse('The Director has no current assignment at CHERAS. Run `php artisan kpone:director-branches` first, then try again.');
+        $context = new TrialDataContext($organisation, $branches, $director);
+        $uncovered = $context->branchesWithoutDirector();
+        if ($uncovered !== []) {
+            return $this->refuse('The Director has no current assignment at '.implode(', ', $uncovered).'. Run `php artisan kpone:director-branches` first, then try again.');
         }
 
         $host = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
@@ -103,7 +108,7 @@ class TrialData extends Command
             // A rerun that adds nothing writes nothing, not even an audit row.
             $this->info("Phase {$phase} was already complete. Nothing was added.");
         } else {
-            $audit->record('trial_data.phase_completed', null, ['phase' => (int) $phase, 'created' => $created], null, $branch, $organisation->id);
+            $audit->record('trial_data.phase_completed', null, ['phase' => (int) $phase, 'created' => $created], null, $context->mainBranch(), $organisation->id);
             $this->table(['Record', 'Created'], collect($created)->map(fn (int $count, string $kind): array => [$kind, $count])->values()->all());
             $this->info("Phase {$phase} complete. Accounts use the @".TrialDataContext::EMAIL_DOMAIN.' emails shown on the Staff page.');
         }

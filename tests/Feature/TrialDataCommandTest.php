@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Testing\PendingCommand;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
 class TrialDataCommandTest extends TestCase
@@ -43,7 +44,7 @@ class TrialDataCommandTest extends TestCase
         config(['app.url' => 'https://'.self::HOST, 'trial-data.allowed' => true]);
         $this->cheras = Branch::query()->where('code', 'CHERAS')->firstOrFail();
         // The real owner's Director account need not be a .test address.
-        app(DirectorBootstrapService::class)->bootstrap([
+        $director = app(DirectorBootstrapService::class)->bootstrap([
             'name' => 'Owner Director',
             'email' => 'owner.director@example.com',
             'staff_number' => 'OWNER-0001',
@@ -51,6 +52,10 @@ class TrialDataCommandTest extends TestCase
             'branch_id' => $this->cheras->id,
             'credential_strategy' => 'google_only',
         ]);
+        // Director coverage of every branch (what kpone:director-branches provides), set up as a test fixture.
+        foreach (Branch::query()->where('code', '!=', 'CHERAS')->get() as $branch) {
+            StaffBranchAssignmentBootstrapper::create($director->staffProfile, $branch, ['is_primary' => false]);
+        }
     }
 
     public function test_it_refuses_without_the_flag(): void
@@ -105,6 +110,19 @@ class TrialDataCommandTest extends TestCase
             ->assertExitCode(Command::FAILURE);
     }
 
+    public function test_it_refuses_when_the_director_does_not_cover_every_branch(): void
+    {
+        $puchong = Branch::query()->where('code', 'PUCHONG')->firstOrFail();
+        DB::table('staff_branch_assignments')->where('branch_id', $puchong->id)->delete();
+        $before = $this->counts();
+
+        $this->artisan('kpone:trial-data')
+            ->expectsOutputToContain('no current assignment at PUCHONG. Run `php artisan kpone:director-branches` first')
+            ->assertExitCode(Command::FAILURE);
+
+        $this->assertSame($before, $this->counts());
+    }
+
     public function test_it_refuses_mismatched_or_weak_passwords_before_any_write(): void
     {
         $before = $this->counts();
@@ -122,12 +140,20 @@ class TrialDataCommandTest extends TestCase
     {
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
 
-        foreach (array_keys(TrialDataContext::ACCOUNTS) as $key) {
+        $branches = Branch::query()->get()->keyBy('code');
+        foreach (TrialDataContext::accounts() as $key => $account) {
             $user = User::query()->where('email', TrialDataContext::email($key))->sole();
-            $this->assertTrue($user->hasRole(TrialDataContext::ACCOUNTS[$key]['role']), $key);
+            $this->assertTrue($user->hasRole($account['role']), $key);
             $this->assertTrue(Hash::check(self::PASSWORD, (string) $user->password), $key);
-            $this->assertSame($this->cheras->id, $user->staffProfile->branchAssignments()->where('is_primary', true)->value('branch_id'), $key);
+            $assignments = $user->staffProfile->branchAssignments()->effectiveAt()->get();
+            $this->assertSame($branches[$account['branches'][0]]->id, $assignments->firstWhere('is_primary', true)?->branch_id, $key);
+            $this->assertEqualsCanonicalizing(
+                array_map(fn (string $code): int => $branches[$code]->id, $account['branches']),
+                $assignments->pluck('branch_id')->all(),
+                $key,
+            );
         }
+        $this->assertSame(28, count(TrialDataContext::accounts()));
         $this->assertSame(0, User::query()->where('email', 'like', 'trial.%')->whereRaw("email NOT LIKE '%@kpjaya.test'")->count());
 
         $this->assertSame(count(PhaseOneFoundation::MEDICINES), DB::table('medicine_catalogue_items')->count());
@@ -136,18 +162,27 @@ class TrialDataCommandTest extends TestCase
         $this->assertSame(count(PhaseOneFoundation::PAYMENT_METHODS), DB::table('payment_methods')->where('is_active', true)->count());
         $this->assertSame('cash', DB::table('payment_methods')->where('code', 'CASH')->value('classification'));
         $this->assertSame(count(PhaseOneFoundation::PANELS), DB::table('panels')->count());
-        $this->assertSame(PhaseOneFoundation::PATIENT_COUNT, DB::table('patients')->count());
-        $this->assertSame(2, DB::table('clinician_professional_profiles')->where('verified', true)->count());
+        $this->assertSame(PhaseOneFoundation::PATIENTS_PER_BRANCH * 3, DB::table('patients')->count());
+        $this->assertSame(6, DB::table('clinician_professional_profiles')->where('verified', true)->count());
 
-        // Every opening was recorded by one CA Supervisor and signed off by the other.
-        $recorder = User::query()->where('email', TrialDataContext::email('supervisor1'))->sole();
-        $verifier = User::query()->where('email', TrialDataContext::email('supervisor2'))->sole();
-        $openings = StockMovement::query()->where('movement_type', StockMovement::TYPE_OPENING)->get();
-        $this->assertCount(count(PhaseOneFoundation::MEDICINES), $openings);
-        foreach ($openings as $opening) {
-            $this->assertSame($recorder->id, $opening->actor_user_id);
-            $this->assertSame($verifier->id, (int) DB::table('inventory_opening_verifications')->where('stock_movement_id', $opening->id)->value('actor_user_id'));
-            $this->assertGreaterThan(now()->toDateString(), (string) DB::table('inventory_batches')->where('id', $opening->inventory_batch_id)->value('expiry_date'));
+        foreach ($branches as $code => $branch) {
+            // Each branch has its own letterhead, footer, rooms and approval limits.
+            $this->assertSame(1, DB::table('branch_business_profiles')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(PhaseOneFoundation::FOOTER_TEXT, DB::table('branch_document_footers')->where('branch_id', $branch->id)->value('text'), $code);
+            $this->assertSame(count(PhaseOneFoundation::ROOMS), DB::table('branch_rooms')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(2, DB::table('billing_approval_limits')->where('branch_id', $branch->id)->count(), $code);
+
+            // Every opening at this branch was recorded by its first CA Supervisor and signed off by its second.
+            $recorder = User::query()->where('email', TrialDataContext::email(TrialDataContext::key($code, 'supervisor1')))->sole();
+            $verifier = User::query()->where('email', TrialDataContext::email(TrialDataContext::key($code, 'supervisor2')))->sole();
+            $dispensary = DB::table('inventory_locations')->where('code', PhaseOneFoundation::dispensaryCode($code))->value('id');
+            $openings = StockMovement::query()->where('movement_type', StockMovement::TYPE_OPENING)->where('destination_location_id', $dispensary)->get();
+            $this->assertCount(count(PhaseOneFoundation::MEDICINES), $openings, $code);
+            foreach ($openings as $opening) {
+                $this->assertSame($recorder->id, $opening->actor_user_id, $code);
+                $this->assertSame($verifier->id, (int) DB::table('inventory_opening_verifications')->where('stock_movement_id', $opening->id)->value('actor_user_id'), $code);
+                $this->assertGreaterThan(now()->toDateString(), (string) DB::table('inventory_batches')->where('id', $opening->inventory_batch_id)->value('expiry_date'));
+            }
         }
 
         // One system audit row for the phase: no actor, counts only.
@@ -155,7 +190,7 @@ class TrialDataCommandTest extends TestCase
         $this->assertNull($row->actor_user_id);
         $metadata = json_decode((string) $row->metadata, true);
         $this->assertSame(1, $metadata['phase']);
-        $this->assertSame(count(TrialDataContext::ACCOUNTS), $metadata['created']['staff']);
+        $this->assertSame(28, $metadata['created']['staff']);
     }
 
     public function test_a_second_run_adds_nothing(): void
@@ -180,8 +215,8 @@ class TrialDataCommandTest extends TestCase
             $this->app['env'] = 'testing';
         }
 
-        $this->assertSame(count(TrialDataContext::ACCOUNTS), User::query()->where('email', 'like', '%@kpjaya.test')->count());
-        $this->assertSame(PhaseOneFoundation::PATIENT_COUNT, DB::table('patients')->count());
+        $this->assertSame(count(TrialDataContext::accounts()), User::query()->where('email', 'like', '%@kpjaya.test')->count());
+        $this->assertSame(PhaseOneFoundation::PATIENTS_PER_BRANCH * 3, DB::table('patients')->count());
     }
 
     public function test_the_password_never_appears_in_output_logs_or_audit(): void

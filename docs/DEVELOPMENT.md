@@ -245,8 +245,8 @@ the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND
 Phase 1 (foundation) is built so far.
 
 Before the first run: migrate and seed the reference data, create the one Director with
-`php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at CHERAS (run
-`php artisan kpone:director-branches` if it exists on your version). Then, on the trial server only:
+`php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
+(run `php artisan kpone:director-branches` if it exists on your version). Then, on the trial server only:
 
 ```bash
 # in the server environment, for this run only
@@ -259,11 +259,13 @@ php artisan kpone:trial-data --phase=1
 The command stops before changing anything unless the switch is on, it runs in an interactive terminal, there is
 exactly one active Director, every other account has a `.test` email, and the operator types the site's host name
 (the host of `APP_URL`). It asks once, hidden, for one shared password for the fictional `@kpjaya.test` accounts;
-the password is hashed at once and never printed, logged or audited. Phase 1 creates one account per role (two
-doctors, two Clinic Assistants and two CA Supervisors), clinic set-up (business details, footer, payment methods,
-approval limits, rooms, visit reasons, preset diagnoses, verified fictional clinician credentials), 12 generic
-medicines (one controlled) and 6 services with Self-pay and Panel prices, two fictional Panels, CHERAS stock with
-real future expiry dates signed off by the second CA Supervisor, and 20 fictional patients. Running it again adds
+the password is hashed at once and never printed, logged or audited. Phase 1 fills all three branches: 28 accounts (at each
+branch two doctors, two Clinic Assistants, two CA Supervisors and the TV account; once for the organisation the
+Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing and Technical Admin,
+assigned to every branch), payment methods, visit reasons and preset diagnoses, and for each branch its letterhead,
+footer, approval limits, rooms and verified fictional doctor credentials; 12 generic medicines (one controlled) and
+6 services with Self-pay and Panel prices, two fictional Panels, stock at every branch with real future expiry dates
+signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
 nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
 counts only). It is never called from a seeder, migration, scheduler or deploy.
 

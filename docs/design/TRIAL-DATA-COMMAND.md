@@ -22,8 +22,8 @@ It stops, before any write, unless **all** of these hold:
 3. The terminal is interactive (no `--no-interaction`, no scheduler, no deploy hook). It is never called from a
    seeder, `DatabaseSeeder`, a migration or a deploy script.
 4. Exactly one active Director exists. The command acts as that Director for Director-only steps (it never creates
-   or changes a Director). The Director must have a current assignment at CHERAS; if not, the command stops and
-   tells the operator to run `php artisan kpone:director-branches` first.
+   or changes a Director). The Director must have a current assignment at every branch; if not, the command
+   stops, names the branches, and tells the operator to run `php artisan kpone:director-branches` first.
 5. Every existing user other than that Director has an email ending in `.test`. Any other address means the database
    may hold real staff, so the command stops and names how many such accounts exist, never which.
 6. Every account it creates uses `@kpjaya.test`.
@@ -47,28 +47,37 @@ no output, log line or audit row.
 - **No new permission, role or route.** Code lives under `app/Domain/Shared/TrialData/` (one class per phase) and
   `app/Console/Commands/TrialData.php`. DEMO-1 and the inventory-walk seeder are not changed; their steps are
   re-implemented in the same style so their tests stay untouched.
-- **Branches:** CHERAS is the main demo branch (B.E.R.N.I.S.S, 21 Nov). PUCHONG gets a small second stock in Phase 4,
-  where transfers, branch replenishment and cross-branch recall need it.
+- **Branches:** all three branches get full data (owner, 21 Nov). CHERAS is the main branch, from which the
+  organisation-wide set-up (catalogue, prices, Panels, payment methods) is done.
 
 ## 4. Phases
 
 Each phase is a separate PR-sized slice with its own tests, run in order. Later phases need the earlier ones.
 
-### Phase 1 — foundation (smallest useful set)
+### Phase 1 — foundation (built)
 
-- **Staff:** one fictional account per role (12 roles: Director exists; Resident Doctor ×2, CA ×2, CA Supervisor ×2,
-  Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing, Technical Admin, and the
-  TV display account), all at CHERAS, through `StaffProvisioningService`. Two of the roles that need independent
-  approvals get a second person.
-- **Clinic set-up:** Business details and footer, payment methods (Cash, Card, e-wallet; Cash classified Cash),
-  billing approval limits, visit reasons, preset diagnoses, registration settings, consultation rooms and the TV
-  settings, verified clinician credentials (obviously fictional MMC numbers) for both doctors.
-- **Catalogue and prices:** about 12 generic medicines (one controlled), 6 services, the consultation tariff;
-  Self-pay and default Panel prices; two fictional Panels with a claim message template.
-- **Stock:** dispensary and store locations at CHERAS, suppliers, openings with real future expiry dates (one batch
-  close to expiry, for the expiry views), verified units and second-person sign-off.
-- **Patients:** about 20 fictional patients (adults, a minor with a guardian, one with allergies, one with an
-  unknown date of birth and the adult confirmation).
+All three branches get full data (owner, 21 Nov).
+
+- **Staff (28 accounts):** at each branch its own two Resident Doctors, two Clinic Assistants, two CA Supervisors and
+  the waiting-room TV account; once for the organisation, a Panel Officer, Finance Officer, Administrator, HR
+  Manager, Business Development, Marketing and Technical Admin, each assigned to all three branches with CHERAS as
+  primary. All through `StaffProvisioningService`, acting as the Director.
+- **Organisation set-up:** payment methods (Cash, Card, e-wallet, published, Cash classified Cash), visit reasons,
+  preset diagnoses.
+- **Each branch:** its own letterhead (Business details), the agreed footer, approval limits for its first CA
+  Supervisor, consultation, dispensary and treatment rooms, verified credentials for its two doctors (obviously
+  fictional twelve-digit registration numbers). The organisation logo is the Klinik Putrijaya mark, when GD is
+  available.
+- **Catalogue and prices:** 12 generic medicines (one controlled), 6 services, the consultation tariff; Self-pay and
+  default Panel prices; two fictional Panels with a claim message template.
+- **Stock:** two suppliers; at each branch a dispensary and a store, openings with real future expiry dates (one batch
+  expires in two months, for the expiry views), recorded by the branch's first CA Supervisor and signed off by its
+  second.
+- **Patients:** 30 fictional patients, 10 registered at each branch, including a minor with a guardian and an adult
+  with an unknown date of birth and the adult confirmation. Allergies are recorded in Phase 2, where a consultation
+  makes that possible.
+- **Not in Phase 1:** TV posters and other placeholder files (see section 5, item 2), which start with Phase 2 along
+  with a shared placeholder generator.
 
 Menus that come alive: Staff, Branches, Access, Business details, Payment Methods, Approval Limits, Medicine and
 Service catalogues, Pricing, Checkout settings, Suppliers, Medicine details, Registration and Consultation settings,
@@ -131,13 +140,15 @@ summary), a QR check-in link.
    `--phase=day` option can add one more clinic day each run.
 2. **File uploads** need real files: clinic logo, website media and release images, TV posters, Panel claim
    documents and statements, HR documents, SOP PDFs, CVs and interview files, leave evidence, compliance and incident
-   photos, the opening import file. Default: **skipped**. Option, for the owner to decide: generated plain placeholder
-   images and one-page PDFs saying "FICTIONAL TRIAL DATA" (needs GD on the server).
-3. **Clock-in** requires a photo. Attendance sessions can only be created with a generated placeholder photo (option
-   2). Without it, attendance stays empty and only corrections and overtime settings are shown.
-4. **Payroll statutory tables** (EPF, SOCSO, EIS, PCB/MTD) must be entered and checked by two people from the
-   official rates. Fictional rates would produce wrong-looking payslips. The pay run stops at draft unless HR or
-   Finance supplies the tables; payslips and the bank and accountant exports stay empty.
+   photos, the opening import file. **Owner decision (21 Nov): generate plain placeholder images and one-page PDFs
+   marked "FICTIONAL TRIAL DATA"** so those menus are filled (needs GD on the trial server; a phase stops with a clear
+   message if GD is missing).
+3. **Clock-in** requires a photo: attendance sessions use generated placeholder photos (item 2).
+4. **Payroll statutory tables** (EPF, SOCSO, EIS, PCB/MTD, HRD). **Owner decision (21 Nov):** the command enters
+   FICTIONAL tables, entered by one fictional account and checked by a different one, so the pay run goes through to
+   payslips and the bank and accountant exports. Every table's name and notes say "FICTIONAL — NOT OFFICIAL RATES —
+   TRIAL ONLY", the numbers are obviously round (not lookalikes of real rates), and the existing "To confirm with the
+   clinic's accountant" banners stay.
 5. **Messages** (email, WhatsApp, SMS, OTP) stay off. Only in-app message settings are shown.
 6. **Public forms** (QR check-in submission, the job application form) are off by default. One QR intake is created
    through the public service only if `PUBLIC_PATIENT_INTAKE_ENABLED` is already on; job applications only if
@@ -155,10 +166,11 @@ a second run changes no table's row count; the password appears in no output, lo
 row has no actor and ids or counts only. No existing assertion is expected to change; any that must will be listed
 for the owner before it is touched.
 
-## 7. Open questions for the owner
+## 7. Owner answers (21 Nov 2026, relayed by B.E.R.N.I.S.S)
 
-1. Placeholder files (section 5, items 2 and 3): generate them, or leave those menus empty?
-2. Payroll: stop at a draft run, or will HR or Finance supply checked statutory tables?
-3. Is CHERAS plus a small PUCHONG stock right, or should all three branches get data?
-4. The command acts as the existing Director for Director-only steps (provisioning, verifying clinician
-   credentials, website release approval), so those audit rows show the Director's account. Is that acceptable?
+1. Placeholder files: **generate them**, marked "FICTIONAL TRIAL DATA" (section 5, items 2 and 3).
+2. Payroll: **fictional statutory tables**, entered and checked by two different fictional accounts, labelled as not
+   official, so the pay run reaches payslips and exports (section 5, item 4).
+3. Branches: **full data at all three branches** (CHERAS, SUNGAI_BESI, PUCHONG). The Director must cover every branch
+   (`kpone:director-branches`); the command stops with that instruction if not.
+4. Director-only steps run as the existing Director, so the audit shows that account: **accepted**.
