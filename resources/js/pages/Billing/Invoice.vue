@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { ArrowLeft, FileText, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import ForeignPatientNote from '@/components/billing/ForeignPatientNote.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
@@ -155,6 +156,9 @@ const totals = computed(() => {
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ invoice.patient.patientNumber }}
                             </div>
+                            <ForeignPatientNote
+                                :foreign="invoice.patient.foreign"
+                            />
                         </div>
                         <ActionLink
                             v-if="invoice.patient.profileUrl"

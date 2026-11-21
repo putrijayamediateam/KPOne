@@ -4,6 +4,7 @@ import { ArrowLeft, Check, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
+import ForeignPatientNote from '@/components/billing/ForeignPatientNote.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
@@ -398,6 +399,9 @@ const reverse = (receipt: Receipt) =>
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ billing.patient.patientNumber }}
                             </div>
+                            <ForeignPatientNote
+                                :foreign="billing.patient.foreign"
+                            />
                         </div>
                         <ActionLink
                             v-if="billing.patient.profileUrl"
@@ -659,6 +663,9 @@ const reverse = (receipt: Receipt) =>
                             {{ billing.patient.patientNumber }} ·
                             {{ billing.visit.visitNumber }}
                         </p>
+                        <ForeignPatientNote
+                            :foreign="billing.patient.foreign"
+                        />
                     </div>
                     <div class="text-xs sm:ml-auto">
                         <p class="text-muted-foreground">Coverage</p>

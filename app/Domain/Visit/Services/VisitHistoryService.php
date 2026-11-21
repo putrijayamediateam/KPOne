@@ -14,6 +14,7 @@ use App\Domain\Clinical\Models\ServiceDelivery;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Models\TreatmentPlanServiceOrder;
+use App\Domain\Patient\Services\ForeignPatientRule;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\Payment;
@@ -84,6 +85,8 @@ class VisitHistoryService
                 'sex' => $visit->patient->sex,
                 'profileUrl' => $actor->can('patients.view.organisation')
                     ? '/patients/'.rawurlencode($visit->patient->patient_number) : null,
+                // BIL-29: yes or no only; no identifier value or country. No SST is charged on it yet.
+                'foreign' => app(ForeignPatientRule::class)->isForeign((int) $visit->organisation_id, (int) $visit->patient_id),
             ],
             'visit' => [
                 'visitNumber' => $visit->visit_number,

@@ -123,7 +123,13 @@ export type BillingPage = {
     notes?: InvoiceNotesContext | null;
     activity: InvoiceActivityLink;
     backLink: { label: string; href: string } | null;
-    patient: { name: string; patientNumber: string; profileUrl: string | null };
+    patient: {
+        name: string;
+        patientNumber: string;
+        profileUrl: string | null;
+        /** BIL-29: foreign (passport) patient; no SST is charged yet. */
+        foreign?: boolean;
+    };
     visit: {
         visitNumber: string;
         status: string;
