@@ -28,6 +28,8 @@ final class DispensaryReviewService
 {
     public const PERMISSION = 'dispensary.view_readonly.organisation';
 
+    public const RETURNS_SHOWN = 10;
+
     public function __construct(private ReadOnlyReviewAudit $audit) {}
 
     /** @return array<string, mixed> */
@@ -59,7 +61,9 @@ final class DispensaryReviewService
             ? DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->with('allocations.batch:id,batch_number,expiry_date')->get()
             : collect();
         $profile = PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $case->visit->patient_id)->first();
-        $returns = DispensaryReturn::query()->where('dispensary_case_id', $case->id)->orderBy('id')->get();
+        // Daniel: the latest 10 returns, newest first, with the full count for a "Showing the latest 10 of N" line.
+        $returnsTotal = DispensaryReturn::query()->where('dispensary_case_id', $case->id)->count();
+        $returns = DispensaryReturn::query()->where('dispensary_case_id', $case->id)->orderByDesc('id')->limit(self::RETURNS_SHOWN)->get();
         $checks = DispensaryReturnCheck::query()->whereIn('dispensary_return_id', $returns->pluck('id'))->get()->keyBy('dispensary_return_id');
         $time = fn ($value): ?string => $value === null ? null : CarbonImmutable::parse($value)->setTimezone($branch->timezone)->format('j M Y, g:i A');
 
@@ -118,12 +122,14 @@ final class DispensaryReviewService
                 : [],
             'returns' => $returns->map(fn (DispensaryReturn $return): array => [
                 'medicine' => $items->firstWhere('id', $return->dispensary_item_id)?->medicine_name_snapshot,
+                'unit' => $items->firstWhere('id', $return->dispensary_item_id)?->unit_snapshot,
                 'quantity' => $return->quantity,
                 'reason' => $return->reason,
                 'condition' => $return->condition,
                 'outcome' => $checks->get($return->id)?->outcome,
                 'recordedAt' => $time($return->recorded_at),
             ])->values()->all(),
+            'returnsTotal' => $returnsTotal,
         ];
     }
 }

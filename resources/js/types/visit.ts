@@ -102,7 +102,7 @@ export type VisitDetail = {
     lockVersion: number;
     hasConsultation: boolean;
     /** DSP-25: the Director's read-only dispensary case, or null. */
-    dispensaryReviewUrl: string | null;
+    dispensaryReview: { url: string; status: string } | null;
     queue: {
         queueNumber: string;
         operationalDate: string;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReviewService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,8 +15,13 @@ use Inertia\Response;
  */
 class DispensaryReviewController extends Controller
 {
-    public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryReviewService $review): Response
+    public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryReviewService $review): Response|HttpResponse
     {
+        // Hakim: a HEAD request shows nothing, so it records nothing.
+        if ($request->isMethod('HEAD')) {
+            return response()->noContent();
+        }
+
         return Inertia::render('Dispensary/Review', ['review' => $review->open($request->user(), $dispensaryCase)]);
     }
 }

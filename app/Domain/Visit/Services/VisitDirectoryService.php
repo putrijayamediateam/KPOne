@@ -249,8 +249,10 @@ class VisitDirectoryService
             // Medical certificates link only when that page can work. A boolean only; no clinical content.
             'hasConsultation' => $visit->visit_type === 'consultation' && $visit->clinicalEncounter()->exists(),
             // DSP-25: the Director's read-only entry to this visit's dispensary case (the review route records every open).
-            'dispensaryReviewUrl' => $actor->can('dispensary.view_readonly.organisation')
-                ? (($reviewCase = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('visit_id', $visit->id)->latest('id')->first(['public_id'])) ? route('dispensary.review', $reviewCase->public_id) : null)
+            'dispensaryReview' => $actor->can('dispensary.view_readonly.organisation')
+                ? (($reviewCase = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('visit_id', $visit->id)->latest('id')->first(['public_id', 'status']))
+                    ? ['url' => route('dispensary.review', $reviewCase->public_id), 'status' => $reviewCase->status]
+                    : null)
                 : null,
             'queue' => $visibleQueueEntry ? [
                 'queueNumber' => QueueNumberFormat::format($visibleQueueEntry->queue_number),

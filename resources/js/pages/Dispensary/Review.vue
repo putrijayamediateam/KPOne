@@ -60,12 +60,14 @@ const props = defineProps<{
         }[];
         returns: {
             medicine: string | null;
+            unit: string | null;
             quantity: string;
             reason: string;
             condition: string;
             outcome: string | null;
             recordedAt: string | null;
         }[];
+        returnsTotal: number;
     };
 }>();
 
@@ -135,8 +137,9 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
 
         <section
             class="grid gap-2 rounded-md border p-4 text-sm dark:border-foreground/20"
-            aria-label="Case"
+            aria-labelledby="review-case"
         >
+            <h2 id="review-case" class="font-semibold">Case</h2>
             <p class="flex items-center gap-2" data-testid="review-status">
                 <span
                     class="size-2 rounded-full bg-foreground/60"
@@ -303,19 +306,37 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
             >
                 <p class="font-medium">
                     {{ item.medicine ?? 'Medicine' }} · {{ qty(item.quantity) }}
+                    {{ item.unit ?? '' }}
                 </p>
-                <p class="text-muted-foreground">
-                    {{ reasonLabel[item.reason] ?? item.reason }} ·
+                <p
+                    class="flex items-center gap-2"
+                    data-testid="review-return-outcome"
+                >
+                    <span
+                        class="size-2 rounded-full bg-foreground/60"
+                        aria-hidden="true"
+                    />
                     {{
                         item.outcome
                             ? (outcomeLabel[item.outcome] ?? item.outcome)
                             : 'Waiting for a check'
                     }}
+                </p>
+                <p class="text-muted-foreground">
+                    {{ reasonLabel[item.reason] ?? item.reason }}
                     <template v-if="item.recordedAt">
                         · {{ item.recordedAt }}</template
                     >
                 </p>
             </article>
+            <p
+                v-if="review.returnsTotal > review.returns.length"
+                class="text-sm text-muted-foreground"
+                data-testid="review-returns-cap"
+            >
+                Showing the latest {{ review.returns.length }} of
+                {{ review.returnsTotal }}
+            </p>
         </section>
     </main>
 </template>

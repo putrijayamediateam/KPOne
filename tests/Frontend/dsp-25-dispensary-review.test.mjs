@@ -56,13 +56,43 @@ test('statuses are a dot and a word; CA changes are chips with a dot and a word'
     }
 });
 
-test('the visit page link is a plain outline link (no prefetch), shown only when the server sends its address', () => {
+test('the visit page has a Dispensary card under Visit Reason with the status and a plain outline link (no prefetch)', () => {
+    const reason = visit.indexOf('<h2 class="font-semibold">Visit Reason</h2>');
+    const card = visit.indexOf('data-testid="dispensary-review-card"');
+
+    assert.ok(reason > 0 && card > reason);
     assert.match(
         visit,
-        /<a\s+v-if="visit\.dispensaryReviewUrl"\s+:href="visit\.dispensaryReviewUrl"[\s\S]*?>Open dispensary case \(read only\)<\/a/,
+        /<a\s+:href="visit\.dispensaryReview\.url"[\s\S]*?>Open dispensary case \(read only\)<\/a/,
+    );
+    assert.match(
+        visit,
+        /dispensaryStatusLabel\[visit\.dispensaryReview\.status\]/,
     );
     assert.match(
         read('resources/js/types/visit.ts'),
-        /dispensaryReviewUrl: string \| null;/,
+        /dispensaryReview: \{ url: string; status: string \} \| null;/,
     );
+});
+
+test('returns show the unit, the outcome as a dot and a word, and a latest-10 line', () => {
+    assert.match(
+        page,
+        /\{\{ qty\(item\.quantity\) \}\}\s+\{\{ item\.unit \?\? '' \}\}/,
+    );
+    assert.match(page, /data-testid="review-return-outcome"/);
+    assert.match(
+        page,
+        /Showing the latest \{\{ review\.returns\.length \}\} of/,
+    );
+
+    for (const heading of [
+        '>Case</h2>',
+        '>Allergies</h2>',
+        '>Medicines</h2>',
+        '>Services</h2>',
+        '>Medicine returns</h2>',
+    ]) {
+        assert.ok(page.includes(heading), heading);
+    }
 });

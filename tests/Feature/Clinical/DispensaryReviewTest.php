@@ -6,6 +6,7 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Shared\ReadOnlyReviewAudit;
@@ -13,6 +14,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use InvalidArgumentException;
 use Spatie\Permission\Models\Role;
@@ -95,7 +97,7 @@ class DispensaryReviewTest extends VisitTestCase
         $c = $this->completedCase();
         $review = $this->actingAs($this->directorAtAnotherBranch())->get(route('dispensary.review', $c['case']))->viewData('page')['props']['review'];
 
-        $this->assertSame(['status', 'caseType', 'branch', 'patient', 'visit', 'doctor', 'receivedAt', 'completedAt', 'allergies', 'medicines', 'services', 'returns'], array_keys($review));
+        $this->assertSame(['status', 'caseType', 'branch', 'patient', 'visit', 'doctor', 'receivedAt', 'completedAt', 'allergies', 'medicines', 'services', 'returns', 'returnsTotal'], array_keys($review));
         $this->assertSame(['name', 'strength', 'unit', 'source', 'changeState', 'status', 'ordered', 'dispensed', 'batches'], array_keys($review['medicines'][0]));
         $keys = [];
         $walk = function (array $node) use (&$walk, &$keys): void {
@@ -177,16 +179,44 @@ class DispensaryReviewTest extends VisitTestCase
         $item = $c['case']->handoffs()->sole()->items()->sole()->public_id;
 
         $writes = collect(Route::getRoutes()->getRoutes())
-            ->filter(fn ($route): bool => str_starts_with($route->uri(), 'dispensary/') && array_intersect($route->methods(), ['POST', 'PATCH', 'PUT', 'DELETE']) !== []);
+            ->filter(fn ($route): bool => str_starts_with($route->uri(), 'dispensary/') && array_intersect($route->methods(), ['POST', 'PATCH', 'PUT', 'DELETE']) !== [])
+            ->reject(fn ($route): bool => $route->getName() === 'dispensary.returns.check');
         $this->assertNotEmpty($writes);
         foreach ($writes as $route) {
-            $uri = str_replace(['{dispensaryCase}', '{itemPublicId}', '{returnPublicId}', '{serviceLinePublicId}', '{dispensaryItem}', '{dispensaryServiceLine}'], [$c['case']->public_id, $item, $item, $item, $item, $item], $route->uri());
+            $uri = str_replace(['{dispensaryCase}', '{itemPublicId}', '{returnPublicId}', '{item}', '{line}'], [$c['case']->public_id, $item, $item, $item, $item], $route->uri());
             $method = strtolower(collect($route->methods())->first(fn (string $m): bool => in_array($m, ['POST', 'PATCH', 'PUT', 'DELETE'], true)));
             $status = $this->{$method.'Json'}('/'.$uri, ['expected_branch_id' => $c['f']['visit']->branch_id])->status();
-            $this->assertContains($status, [403, 404, 405, 409, 422], "{$method} /{$route->uri()} must be refused for the Director (got {$status}).");
+            $this->assertSame(403, $status, "{$method} /{$route->uri()} must be refused by its permission for the Director (got {$status}).");
         }
 
         $this->assertSame($before, $snapshot());
+    }
+
+    public function test_the_director_holds_the_return_check_middleware_permission_but_the_service_refuses_and_writes_nothing(): void
+    {
+        $c = $this->completedCase();
+        $item = $c['case']->handoffs()->sole()->items()->sole()->public_id;
+        $return = app(DispensaryReturnService::class)->record($c['f']['ca'], $c['case'], $item, ['expected_branch_id' => $c['f']['visit']->branch_id, 'retry_key' => (string) Str::uuid(), 'expected_return_count' => 0, 'quantity' => '1.000', 'reason' => 'not_used', 'note' => null, 'condition' => 'sealed_in_date']);
+        $director = $this->actor('director', $c['f']['visit']->branch);
+        $this->assertTrue($director->can('inventory.variances.approve.branch'), 'the Director passes the route middleware');
+        $this->selectBranch($director, $c['f']['visit']->branch);
+        $tables = ['dispensary_returns', 'dispensary_return_checks', 'stock_movements', 'inventory_stock_balances'];
+        $snapshot = fn (): array => collect($tables)->mapWithKeys(fn (string $t): array => [$t => DB::table($t)->orderBy('id')->get()->map(fn ($row): array => (array) $row)->all()])->all();
+        $before = $snapshot();
+
+        $this->postJson(route('dispensary.returns.check', [$c['case'], $return->public_id]), [
+            'expected_branch_id' => $c['f']['visit']->branch_id, 'retry_key' => (string) Str::uuid(), 'outcome' => 'dispose',
+            'refuse_reason' => null, 'refuse_note' => null, 'location_public_id' => null, 'batch_public_id' => null,
+        ])->assertForbidden();
+
+        $this->assertSame($before, $snapshot());
+    }
+
+    public function test_a_head_request_records_nothing(): void
+    {
+        $c = $this->completedCase();
+        $this->actingAs($this->directorAtAnotherBranch())->call('HEAD', route('dispensary.review', $c['case']))->assertNoContent();
+        $this->assertSame(0, AuditLog::query()->where('event', 'dispensary.case_reviewed')->count());
     }
 
     public function test_the_visit_page_offers_the_link_to_the_director_only(): void
@@ -195,11 +225,11 @@ class DispensaryReviewTest extends VisitTestCase
         $director = $this->actor('director', $c['f']['visit']->branch);
         $this->selectBranch($director, $c['f']['visit']->branch);
         $this->get(route('visits.show', $c['f']['visit']))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('visit.dispensaryReviewUrl', route('dispensary.review', $c['case']->public_id)));
+            ->assertInertia(fn (Assert $page) => $page->where('visit.dispensaryReview', ['url' => route('dispensary.review', $c['case']->public_id), 'status' => 'completed']));
 
         $this->selectBranch($c['f']['ca'], $c['f']['visit']->branch);
         $this->get(route('visits.show', $c['f']['visit']))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('visit.dispensaryReviewUrl', null));
+            ->assertInertia(fn (Assert $page) => $page->where('visit.dispensaryReview', null));
         $this->assertSame(0, AuditLog::query()->where('event', 'dispensary.case_reviewed')->count(), 'Showing the link records nothing.');
     }
 
