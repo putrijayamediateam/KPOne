@@ -235,6 +235,16 @@ summary), a QR check-in link.
 
 ## 6. Tests (per phase, on PostgreSQL 18)
 
+**Committed run (added after the first trial-server run, 21 Nov 2026).** Most trial-data tests run inside one
+rolled-back test transaction, so PostgreSQL's deferred checks, which fire only at COMMIT (for example
+`completed_visit_evidence`), never ran there. On the trial server phase 3 then failed: it completed a Panel visit and,
+in the same transaction, changed that visit's invoice through the claim stage. `TrialDataEndToEndTest` now runs
+phases 1 to 6 in order on a freshly migrated database with every step really committed and PNL-28a's automatic claims
+on. Phase 3 commits each completed visit before its claim stage, and resumes a claim stage left undone. Phase 6
+merges duplicates of patients whose phase 2 visit is completed (a merge is refused while either record has an
+unfinished visit).
+
+
 Refused without the flag; refused with the wrong host name; refused non-interactively; refused when a non-`.test`
 account (other than the Director) exists; refused without exactly one Director; creates the phase's records once;
 a second run changes no table's row count; the password appears in no output, log or audit row; the phase audit
