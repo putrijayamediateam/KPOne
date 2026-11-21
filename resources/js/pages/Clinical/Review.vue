@@ -141,7 +141,7 @@ const hasVitals = Object.entries(props.review.vitals).some(
             </p>
             <p v-else class="flex items-center gap-2">
                 <span
-                    class="size-2 rounded-full bg-foreground/60"
+                    class="size-2 rounded-full bg-warning"
                     aria-hidden="true"
                 />
                 {{ allergyLabel[review.allergies.status] }}
@@ -245,15 +245,15 @@ const hasVitals = Object.entries(props.review.vitals).some(
                 <li
                     v-for="(diagnosis, index) in review.diagnoses"
                     :key="index"
-                    class="flex flex-wrap items-center gap-x-2"
+                    class="break-words"
                 >
-                    <span class="break-words">{{ diagnosis.text }}</span>
+                    {{ diagnosis.text }}
                     <span v-if="diagnosis.code" class="text-muted-foreground"
                         >· {{ diagnosis.code }}</span
                     >
                     <span
                         v-if="diagnosis.isPrimary"
-                        class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                        class="ml-1 inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground"
                         ><span
                             class="size-1.5 rounded-full bg-foreground/60"
                             aria-hidden="true"
