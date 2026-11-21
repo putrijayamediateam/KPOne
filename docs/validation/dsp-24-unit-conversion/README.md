@@ -46,3 +46,9 @@ Measurements (width, theme, state, sideways overflow in px and checks):
 1440 dark {"overflow":0,"qty":false,"row":false}
 390 dark {"overflow":0,"qty":false,"row":false}
 ```
+
+## Update: Save line disabled while the bottles number is invalid (code 28f96a31d)
+
+```
+1440/390 light/dark: saveDisabledAt100=true, saveDisabledAt3=false, overflow 0
+```
