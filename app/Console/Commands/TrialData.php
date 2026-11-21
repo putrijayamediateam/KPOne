@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
+use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
 use App\Domain\Shared\TrialData\TrialDataContext;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -21,12 +22,12 @@ use Throwable;
  */
 class TrialData extends Command
 {
-    protected $signature = 'kpone:trial-data {--phase=1 : The phase to run (only phase 1 is built so far)}';
+    protected $signature = 'kpone:trial-data {--phase=1 : The phase to run (1 foundation, 2 clinic day)}';
 
     protected $description = 'Fill a trial server with fictional demo data (locked; read docs/design/TRIAL-DATA-COMMAND.md first)';
 
     /** @var list<string> */
-    private const PHASES = ['1'];
+    private const PHASES = ['1', '2'];
 
     public function handle(AuditRecorder $audit): int
     {
@@ -77,6 +78,9 @@ class TrialData extends Command
 
         $password = null;
         $missing = $context->missingAccounts();
+        if ($phase !== '1' && $missing !== []) {
+            return $this->refuse("Phase {$phase} needs the fictional accounts from phase 1. Run --phase=1 first.");
+        }
         if ($missing !== []) {
             $this->info(count($missing).' fictional account(s) will be created. They all share one password.');
             $password = (string) $this->secret('Shared password for the fictional accounts (hidden)');
@@ -95,7 +99,10 @@ class TrialData extends Command
 
         $this->info("Running phase {$phase}…");
         try {
-            $created = (new PhaseOneFoundation($context))->run($password);
+            $created = match ($phase) {
+                '1' => (new PhaseOneFoundation($context))->run($password),
+                default => (new PhaseTwoClinicDay($context))->run(),
+            };
         } catch (ValidationException $exception) {
             return $this->refuse('A step was refused: '.implode(' ', $exception->validator->errors()->all()).' Fix it and run the command again; finished steps are kept and not repeated.');
         } catch (Throwable $exception) {

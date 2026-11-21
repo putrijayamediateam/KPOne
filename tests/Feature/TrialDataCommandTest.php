@@ -6,6 +6,8 @@ use App\Domain\Identity\Services\DirectorBootstrapService;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
+use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
+use App\Domain\Shared\TrialData\PlaceholderFiles;
 use App\Domain\Shared\TrialData\TrialDataContext;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -14,6 +16,7 @@ use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\PendingCommand;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
@@ -33,7 +36,7 @@ class TrialDataCommandTest extends TestCase
         'charge_definitions', 'price_books', 'price_entries', 'inventory_unit_contracts', 'inventory_opening_verifications',
         'payment_methods', 'panels', 'branch_rooms', 'diagnosis_presets', 'clinician_professional_profiles', 'patients',
         'inventory_suppliers', 'billing_approval_limits', 'visit_reason_catalogue_items', 'panel_claim_message_templates',
-        'business_detail_commands', 'branch_document_footers', 'audit_logs',
+        'business_detail_commands', 'branch_document_footers', 'branch_display_settings', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -235,6 +238,55 @@ class TrialDataCommandTest extends TestCase
         }
         $this->assertSame(0, DB::table('audit_logs')->where('metadata', 'like', '%'.self::PASSWORD.'%')->count());
         $this->assertSame(0, DB::table('users')->where('password', self::PASSWORD)->count());
+    }
+
+    public function test_phase_two_needs_phase_one_first(): void
+    {
+        $this->artisan('kpone:trial-data', ['--phase' => '2'])
+            ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST)
+            ->expectsOutputToContain('Run --phase=1 first')
+            ->assertExitCode(Command::FAILURE);
+    }
+
+    public function test_phase_two_adds_marked_posters_once_at_every_branch(): void
+    {
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhaseTwo()->assertExitCode(Command::SUCCESS);
+        foreach (Branch::query()->get() as $branch) {
+            $posters = DB::table('branch_display_settings')->where('branch_id', $branch->id)->value('posters');
+            $this->assertCount(PhaseTwoClinicDay::POSTERS_PER_BRANCH, json_decode((string) $posters, true), $branch->code);
+        }
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'trial_data.phase_completed')->whereRaw("metadata::jsonb->>'phase' = '2'")->count());
+
+        $after = $this->counts();
+        $this->runPhaseTwo()->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
+    }
+
+    public function test_placeholder_files_are_real_png_and_pdf_marked_fictional(): void
+    {
+        $files = new PlaceholderFiles;
+        $image = $files->image('Poster one', 640, 360);
+        $pdf = $files->pdf('Trial document', 'Detail line');
+        $this->assertSame('image/png', $image->getMimeType());
+        $this->assertSame([640, 360], array_slice((array) getimagesize($image->getPathname()), 0, 2));
+        $this->assertSame('application/pdf', $pdf->getMimeType());
+        $bytes = (string) file_get_contents($pdf->getPathname());
+        $this->assertStringContainsString(PlaceholderFiles::MARK, $bytes);
+        $this->assertStringEndsWith("%%EOF\n", $bytes);
+        $paths = [$image->getPathname(), $pdf->getPathname()];
+        $files->cleanUp();
+        foreach ($paths as $path) {
+            $this->assertFileDoesNotExist($path);
+        }
+    }
+
+    private function runPhaseTwo(): PendingCommand
+    {
+        return $this->artisan('kpone:trial-data', ['--phase' => '2'])
+            ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST);
     }
 
     private function confirmHost(): PendingCommand
