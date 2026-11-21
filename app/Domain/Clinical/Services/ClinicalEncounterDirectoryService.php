@@ -86,7 +86,12 @@ class ClinicalEncounterDirectoryService
                     ? ($encounter->visit->coverage_panel_name_snapshot ?? 'Panel')
                     : 'Self-pay',
                 // PNL-26c: one line for the doctor, the Panel total of the orders so far against the Panel's limit per visit; never item prices.
-                'panelEstimate' => app(PanelVisitLimit::class)->estimateForEncounter($encounter->visit, $encounter->id),
+                // PNL-26c: the doctor is told only when the estimate is over the limit; an estimate under it is never sent.
+                'panelEstimate' => (function () use ($encounter): ?array {
+                    $estimate = app(PanelVisitLimit::class)->estimateForEncounter($encounter->visit, $encounter->id);
+
+                    return $estimate !== null && $estimate['over'] ? $estimate : null;
+                })(),
                 'registrationReason' => $this->visitReasons->summary($encounter->visit),
                 'registrationReasons' => $this->visitReasons->presentation($encounter->visit),
                 'registeredAt' => $encounter->visit->registered_at->toIso8601String(),

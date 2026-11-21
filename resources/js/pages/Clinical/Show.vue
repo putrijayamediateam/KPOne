@@ -48,7 +48,7 @@ import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttent
 import DispensaryCheckPanel from '@/pages/Clinical/Partials/DispensaryCheckPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
-import { myr } from '@/types/billing';
+import { myrNoBreak } from '@/types/billing';
 
 defineOptions({
     layout: {
@@ -1025,36 +1025,30 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >{{ clinical.visit.paymentMethodLabel }}</span
                             >
                             <p
-                                v-if="clinical.visit.panelEstimate"
+                                v-if="clinical.visit.panelEstimate?.over"
                                 data-testid="consultation-panel-estimate"
-                                class="flex items-start gap-2 text-xs"
-                                :class="
-                                    clinical.visit.panelEstimate.over
-                                        ? 'text-warning-strong'
-                                        : 'text-muted-foreground'
-                                "
+                                class="flex items-start gap-2 text-xs text-warning-strong"
                             >
                                 <span
-                                    v-if="clinical.visit.panelEstimate.over"
                                     aria-hidden="true"
                                     class="mt-1 size-2 shrink-0 rounded-full bg-current"
                                 />
                                 <span>
                                     Estimated Panel total
                                     {{
-                                        myr(
+                                        myrNoBreak(
                                             clinical.visit.panelEstimate
                                                 .totalSen,
                                         )
                                     }}
-                                    of the
+                                    is over the
                                     {{
-                                        myr(
+                                        myrNoBreak(
                                             clinical.visit.panelEstimate
                                                 .limitSen,
                                         )
                                     }}
-                                    limit
+                                    limit. Estimate only.
                                     <template
                                         v-if="
                                             clinical.visit.panelEstimate.partial

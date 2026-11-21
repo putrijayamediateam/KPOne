@@ -224,6 +224,9 @@ export const amount = (sen: number): string => {
 /** "RM 1,234.50"; negative amounts read "−RM 12.00" (BIL-9 fixed "RM -1.-50"). */
 export const myr = (sen: number): string =>
     sen < 0 ? `\u2212RM ${amount(-sen)}` : `RM ${amount(sen)}`;
+/** Money that never breaks across lines (a no-break space between RM and the number). */
+export const myrNoBreak = (sen: number): string =>
+    myr(sen).replace(/ /g, '\u00a0');
 export const outstandingSen = (state: BillingState): number =>
     state.deferred + state.due_now;
 export const toSen = (text: string): string | null => {

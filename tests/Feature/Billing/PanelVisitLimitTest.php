@@ -110,15 +110,21 @@ class PanelVisitLimitTest extends BillingTestCase
             ->where('billing.panelVisitLimit', null));
     }
 
-    public function test_the_consultation_page_carries_one_estimate_and_no_item_price(): void
+    public function test_the_consultation_page_carries_an_estimate_only_when_it_is_over_the_limit_and_no_item_price(): void
     {
         [$panel, $visit] = $this->panelVisit(3000);
         $this->panelPrice($panel, 'consultation', 2500);
         $doctor = $visit->assignedDoctor;
-        $this->actingAs($doctor)->withSession(['active_branch_id' => $this->branch->id])->get(route('encounters.show', $visit))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('clinical.visit.panelEstimate.limitSen', 3000)->where('clinical.visit.panelEstimate.totalSen', 2500)
-                ->where('clinical.visit.panelEstimate.over', false)->where('clinical.visit.panelEstimate.partial', false)
-                ->has('clinical.visit.panelEstimate', 4));
+        $get = fn () => $this->actingAs($doctor)->withSession(['active_branch_id' => $this->branch->id])->get(route('encounters.show', $visit))->assertOk();
+
+        // Under the limit: nothing is sent, so the doctor sees no line and no running total.
+        $get()->assertInertia(fn (Assert $page) => $page->where('clinical.visit.panelEstimate', null));
+
+        // Over the limit: one estimate with four fields and no item price.
+        DB::table('panels')->where('id', $panel->id)->update(['visit_limit_sen' => 2000]);
+        $get()->assertInertia(fn (Assert $page) => $page
+            ->where('clinical.visit.panelEstimate.limitSen', 2000)->where('clinical.visit.panelEstimate.totalSen', 2500)
+            ->where('clinical.visit.panelEstimate.over', true)->where('clinical.visit.panelEstimate.partial', false)
+            ->has('clinical.visit.panelEstimate', 4));
     }
 }

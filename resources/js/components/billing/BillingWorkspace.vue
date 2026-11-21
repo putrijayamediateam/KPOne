@@ -41,7 +41,7 @@ import type {
     Receipt,
     Responsibility,
 } from '@/types/billing';
-import { myr, outstandingSen, toSen } from '@/types/billing';
+import { myr, myrNoBreak, outstandingSen, toSen } from '@/types/billing';
 
 const props = withDefaults(
     defineProps<{ billing: BillingPage; manage?: boolean }>(),
@@ -1175,9 +1175,10 @@ const reverse = (receipt: Receipt) =>
                     </p>
                     <p>
                         This visit's total is
-                        {{ myr(billing.panelVisitLimit.totalSen) }}; the Panel's
-                        limit is {{ myr(billing.panelVisitLimit.limitSen) }}.
-                        This is a warning only. You can continue.
+                        {{ myrNoBreak(billing.panelVisitLimit.totalSen) }}; the
+                        Panel's limit is
+                        {{ myrNoBreak(billing.panelVisitLimit.limitSen) }}. This
+                        is a warning only. You can continue.
                     </p>
                 </div>
                 <div
