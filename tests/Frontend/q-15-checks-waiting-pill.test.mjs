@@ -52,23 +52,25 @@ test('the shared tabs render the pill only when a tab has a badge, after the cou
 });
 
 test('the Queue page gives the Consultation Completed tab a badge only when checksWaiting is above 0', () => {
-    assert.match(queue, /count > 0\s*\?\s*\{\s*text: `\$\{count\} to check`/);
+    // inline in the tabs computed: tab-counts-1.test.mjs evaluates that computed on its own, so it cannot call a helper
     assert.match(
         queue,
-        /srLabel: `\$\{count\} medicine \$\{count === 1 \? 'check' : 'checks'\} waiting for you`/,
+        /badge:\s*\(live\.value\.checksWaiting \?\? 0\) > 0\s*\?\s*\{\s*text: `\$\{live\.value\.checksWaiting\} to check`/,
     );
     assert.match(
         queue,
-        /badge: toCheckBadge\(live\.value\.checksWaiting \?\? 0\)/,
+        /srLabel: `\$\{live\.value\.checksWaiting\} medicine \$\{live\.value\.checksWaiting === 1 \? 'check' : 'checks'\} waiting for you`/,
     );
     const removed = queue.slice(
         queue.indexOf("label: 'Consultation Completed'"),
     );
     assert.ok(
-        removed.indexOf('badge: toCheckBadge') < removed.indexOf('}'),
+        removed.indexOf('badge:') > 0 &&
+            removed.indexOf('badge:') < removed.indexOf('\n]);'),
         'only that tab has the badge',
     );
-    assert.equal((queue.match(/toCheckBadge\(live/g) ?? []).length, 1);
+    assert.equal((queue.match(/badge:\s*\(live/g) ?? []).length, 1);
+    assert.ok(!queue.includes('toCheckBadge'));
 });
 
 test('the count rides the poll as its own top-level key and tabCounts keeps its shape', () => {
