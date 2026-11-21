@@ -16,6 +16,8 @@ export type PatientBoardRow = {
     key: string;
     canWhatsapp: boolean;
     callHold?: CallReadiness | null;
+    /** Q-13: the doctor's own row whose dispensary case waits for the doctor's check. */
+    dispensaryCheckWaiting?: boolean;
     treatmentProgress?: TreatmentProgress | null;
     // Minutes since the open step started, or since it was marked done.
     treatmentMinutes?: number | null;
