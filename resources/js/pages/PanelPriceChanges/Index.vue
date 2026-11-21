@@ -348,7 +348,12 @@ const turnPage = (value: number) =>
         <p
             v-for="message in errorMessages"
             :key="message"
-            class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            :class="
+                message.startsWith('The price changed')
+                    ? 'border-warning/40 bg-warning/10 text-foreground'
+                    : 'border-destructive/40 bg-destructive/10 text-destructive'
+            "
+            class="rounded-md border p-3 text-sm"
             role="alert"
         >
             {{ message }}
