@@ -176,3 +176,24 @@ change; the existing-assertion list is widened and comes from a spike run.
 
 28a (this note) → Priya's review → Daniel's look at the Pending/Overdue tabs and the button → owner's ship-it → build.
 16b/16c and the Back-to-invoice end follow separately.
+
+## 9. Daniel's wording and layout (21 Nov, OK with changes) and owner answer
+
+Owner (relayed 21 Nov): the Follow-up list leaves out never-submitted Prepared claims. Daniel needs real shots at
+1440 and 390, light and dark, before the PR.
+
+- **Pending tab:** "N approved invoices have no claim yet" is a warning-token line with a dot and words (not red),
+  shown only when N > 0. One-line meaning under the tabs: Pending = "Approved invoices with no claim."; Overdue =
+  "Prepared claims not submitted by the Panel's due date."
+- **Button:** "Create claims for 12 waiting invoices"; above 50: "Create claims for the oldest 50 of 73 waiting
+  invoices". Outline unless it is the only action (one filled button per page), 44 px below 1024 px, disabled and
+  "Creating…" while running. Beside it: "Creates a Prepared claim for each. Nothing is submitted."
+- **Result panel** (not only a toast): "Created 12 claims. Skipped 3. 8 still waiting — press again." Skipped invoices
+  listed by invoice number with a plain reason ("Invoice was reissued", "Panel share is zero", "Held for
+  correction", "Claim already exists"), the code in a muted title. Dismissible, stays after the list refreshes.
+- **Status:** Prepared chip = neutral dot and the word "Prepared"; Overdue = warning dot and the word "Overdue". Tab
+  counts equal what each tab lists (also at 390 with the scrolling tabs). On phone cards the chip is on the first line.
+- **Follow-up page:** muted line "Claims not yet submitted are on the Overdue tab."
+- **Claim page log line:** "Claim prepared automatically when the Panel bill was approved by <name>" (staff-visibility
+  rule, "Staff member" otherwise). Submit button "Submit claim" with "Submitted date will be today, dd/mm/yyyy
+  (branch time)." and no date box; Create claim with its date field stays as the second route.
