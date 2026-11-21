@@ -214,9 +214,8 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                         {{ medicine.name
                         }}<span
                             v-if="medicine.strength"
-                            class="font-normal text-muted-foreground"
-                        >
-                            {{ medicine.strength }}</span
+                            class="ml-1 font-normal text-muted-foreground"
+                            >{{ medicine.strength }}</span
                         >
                     </h3>
                     <span
@@ -266,7 +265,7 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                     >
                         Batch {{ batch.batchNumber ?? '—' }} · exp
                         {{ batch.expiryDate ?? '—' }} ·
-                        {{ qty(batch.quantity) }}
+                        {{ qty(batch.quantity) }} {{ medicine.unit ?? '' }}
                     </li>
                 </ul>
             </article>
