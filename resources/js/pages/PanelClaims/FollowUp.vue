@@ -81,10 +81,11 @@ const go = (panel: string, page = 1) =>
         </div>
         <p class="text-sm text-muted-foreground">
             An action is a submission, query, decision, amount change, note,
-            payment or photo. Paid and rejected claims are not listed. A claim
-            marked “Prepared (not yet submitted)” still needs submitting on the
-            Panel's portal. Change a Panel's follow-up days in Checkout
-            settings.
+            payment or photo. Paid and rejected claims are not listed. Change a
+            Panel's follow-up days in Checkout settings.
+        </p>
+        <p class="text-sm text-muted-foreground">
+            Claims not yet submitted are on the Overdue tab.
         </p>
 
         <p

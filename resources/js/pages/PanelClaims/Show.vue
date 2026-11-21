@@ -45,6 +45,8 @@ type ClaimData = {
         adjustment: boolean;
     }[];
     events: {
+        auto?: boolean;
+        approvedBy?: string | null;
         type: string;
         previousAmountSen: number | null;
         amountSen: number | null;
@@ -182,6 +184,12 @@ const adjust = () => {
         confirm_over_invoice: confirmAboveInvoice.value,
     });
 };
+// The server's branch-local date: the submitted date is the moment Submit is pressed.
+const todayLabel = computed(() => {
+    const [year, month, day] = props.branch.today.split('-');
+
+    return `${day}/${month}/${year}`;
+});
 const submit = () =>
     post('post', `/panel-claims/${props.claim.publicId}/submit`, {
         ...context(),
@@ -855,7 +863,11 @@ const eventTitle = (type: string) =>
                             :key="`${event.type}-${index}`"
                             class="rounded-lg border p-3 text-sm"
                         >
-                            <strong>{{ eventTitle(event.type) }}</strong>
+                            <strong>{{
+                                event.auto
+                                    ? `Claim prepared automatically when the Panel bill was approved by ${event.approvedBy ?? 'Staff member'}`
+                                    : eventTitle(event.type)
+                            }}</strong>
                             <p class="text-xs text-muted-foreground">
                                 {{ event.occurredAt }} · {{ event.actor }}
                             </p>
@@ -958,8 +970,12 @@ const eventTitle = (type: string) =>
                                 class="w-full rounded-md border bg-background px-3 py-2"
                             />
                         </label>
+                        <p class="text-sm text-muted-foreground">
+                            Submitted date will be today,
+                            {{ todayLabel }} (branch time).
+                        </p>
                         <Button type="submit" :disabled="busy">
-                            Record submission
+                            Submit claim
                         </Button>
                     </form>
 
