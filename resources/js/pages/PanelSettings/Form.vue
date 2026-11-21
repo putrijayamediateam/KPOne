@@ -390,10 +390,7 @@ const submit = () => {
                         days after the visit
                     </span>
                     <InputError :message="form.errors.claim_due_days" />
-                    <div
-                        v-if="scheduled"
-                        class="grid gap-3 text-xs sm:grid-cols-3"
-                    >
+                    <div v-if="scheduled" class="grid gap-3 text-xs">
                         <label class="grid content-start gap-1">
                             Frequency
                             <select
