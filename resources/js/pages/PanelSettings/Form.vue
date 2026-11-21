@@ -31,6 +31,7 @@ type PanelDetail = {
     claimDueTime: string | null;
     claimDueOffset: number | null;
     claimFollowUpDays?: number;
+    visitLimitSen?: number | null;
     incomeTaxNumber: string | null;
 };
 
@@ -61,6 +62,11 @@ const form = useForm({
     claim_due_offset: props.panel?.claimDueOffset ?? ('' as number | ''),
     claim_follow_up_days: props.panel?.claimFollowUpDays ?? 30,
     income_tax_number: props.panel?.incomeTaxNumber ?? '',
+    // PNL-26: the limit per visit, typed in ringgit; empty means no limit.
+    visit_limit:
+        props.panel?.visitLimitSen == null
+            ? ''
+            : (props.panel.visitLimitSen / 100).toFixed(2),
     lock_version: props.panel?.lockVersion ?? 1,
 });
 
@@ -120,6 +126,7 @@ const submit = () => {
                 ? null
                 : data.claim_due_offset,
         income_tax_number: blankToNull(data.income_tax_number),
+        visit_limit: blankToNull(data.visit_limit),
     }));
 
     if (editing) {
@@ -477,6 +484,21 @@ const submit = () => {
                         note or photo.
                     </span>
                     <InputError :message="form.errors.claim_follow_up_days" />
+                </label>
+                <label class="grid gap-1 text-xs">
+                    Limit per visit (RM)
+                    <Input
+                        v-model="form.visit_limit"
+                        inputmode="decimal"
+                        maxlength="20"
+                        class="w-40"
+                        placeholder="No limit"
+                    />
+                    <span class="text-muted-foreground">
+                        Optional. Used for warnings only: it never blocks a
+                        visit, a bill or a claim. Leave it empty for no limit.
+                    </span>
+                    <InputError :message="form.errors.visit_limit" />
                 </label>
                 <p class="text-xs text-muted-foreground">
                     Prices: a Panel uses the default Panel price book unless it
