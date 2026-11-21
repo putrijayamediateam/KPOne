@@ -572,11 +572,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         </li>
                         <li>
                             <strong>{{ pharmacy.stockWatch.expiring }}</strong>
-                            <span class="space-muted"
-                                >expiring in
-                                {{ pharmacy.stockWatch.windowDays }}
-                                days</span
-                            >
+                            <span class="space-muted">expiring soon</span>
                         </li>
                         <li>
                             <strong>{{ pharmacy.stockWatch.expired }}</strong>
