@@ -9,6 +9,7 @@ use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -51,5 +52,22 @@ class PricePublicationService
 
             return $entry;
         }, 3);
+    }
+
+    /**
+     * Writes the PriceEntry of an approved Panel price change (PanelPriceProposalService). The only way a Panel price
+     * is meant to be written once direct publishing of Panel books is closed. The caller holds the charge, price book and
+     * proposal locks, has checked the version and the effective time, and records its own audit.
+     */
+    public function publishApproved(User $actor, PriceBook $book, ChargeDefinition $charge, int $amountSen, int $expectedVersion, CarbonImmutable $effectiveAt): PriceEntry
+    {
+        $version = (int) PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->max('version');
+        if ($version !== $expectedVersion) {
+            throw ValidationException::withMessages(['price' => 'The price changed after this was proposed. Propose it again.']);
+        }
+        $entry = new PriceEntry;
+        $entry->forceFill(['organisation_id' => $actor->organisation_id, 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'unit_price_sen' => $amountSen, 'version' => $version + 1, 'effective_at' => $effectiveAt, 'published_by_user_id' => $actor->id])->save();
+
+        return $entry;
     }
 }

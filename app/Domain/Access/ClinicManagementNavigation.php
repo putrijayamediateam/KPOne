@@ -107,6 +107,7 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('panel.claims.manage.branch'), 'Claims follow-up', "Open claims with no action for their Panel's follow-up days.", 'panel-claims.follow-up'],
             [$branch && $actor->can('panel.remittances.record.branch'), 'Panel payments', "Record a Panel's payment and split it across its accepted claims.", 'panel-remittances.index'],
             [$branch && $actor->can('panel.claim_payments.reverse.branch'), 'Correct a Panel payment', 'Reverse a wrongly recorded Panel payment.', 'panel-payment-corrections.index'],
+            [$branch && ($actor->can('panel.prices.propose.organisation') || $actor->can('panel.prices.approve.organisation')), 'Panel price changes', 'Propose a Panel price change, or approve one that someone else proposed.', 'panel-price-changes.index'],
             [$branch && $actor->can('panel.invoices.export.branch'), 'Panel invoices', 'Review the existing branch Panel invoice report.', 'panel-invoices.index'],
             [$panels, 'Claims message template', 'Manage the claim message in Checkout settings.', 'panel-settings.index'],
         ]);
