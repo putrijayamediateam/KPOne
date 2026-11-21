@@ -69,6 +69,45 @@ class PanelSettingsTest extends VisitTestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'panel.restored', 'subject_id' => $panel->id]);
     }
 
+    public function test_the_limit_per_visit_is_typed_in_ringgit_saved_in_sen_cleared_when_empty_and_audited_by_field_name_only(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+        $service = app(PanelSettingsService::class);
+
+        foreach ([['500', 50000], ['1,500.00', 150000], ['RM 750.5', 75050], ['0.01', 1], ['9,999,999.99', 999999999]] as [$typed, $sen]) {
+            $panel = $service->create($officer, $this->payload(['code' => 'LIM-'.$sen, 'name' => 'Limit '.$sen, 'visit_limit' => $typed]));
+            $this->assertSame($sen, $panel->refresh()->visit_limit_sen, $typed);
+        }
+        $none = $service->create($officer, $this->payload(['code' => 'LIM-NONE', 'name' => 'No limit']));
+        $this->assertNull($none->refresh()->visit_limit_sen);
+        $this->assertNull($service->create($officer, $this->payload(['code' => 'LIM-BLANK', 'name' => 'Blank', 'visit_limit' => '  ']))->visit_limit_sen);
+
+        $panel = Panel::query()->where('code', 'LIM-50000')->sole();
+        $this->get(route('panel-settings.edit', $panel->id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('panel.visitLimitSen', 50000));
+        $service->update($officer, $panel, $this->payload(['visit_limit' => '650', 'lock_version' => $panel->lock_version, 'code' => 'LIM-50000', 'name' => 'Limit 50000']));
+        $this->assertSame(65000, $panel->refresh()->visit_limit_sen);
+        $audit = \DB::table('audit_logs')->where('event', 'panel.updated')->where('subject_id', $panel->id)->value('metadata');
+        $this->assertStringContainsString('visit_limit_sen', (string) $audit);
+        $this->assertStringNotContainsString('65000', (string) $audit);
+
+        // Clearing the box removes the limit.
+        $service->update($officer, $panel, $this->payload(['visit_limit' => '', 'lock_version' => $panel->lock_version, 'code' => 'LIM-50000', 'name' => 'Limit 50000']));
+        $this->assertNull($panel->refresh()->visit_limit_sen);
+    }
+
+    public function test_a_limit_that_is_not_clearly_one_positive_amount_is_refused_and_nothing_is_saved(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+        $service = app(PanelSettingsService::class);
+
+        foreach (['abc', '0', '0.00', '-5', '10.999', '1.000', '1,50', '10,000,000', '99999999', '1e3', '5 0 0.0.0'] as $bad) {
+            $this->assertValidationFails(fn () => $service->create($officer, $this->payload(['code' => 'BAD-LIM', 'visit_limit' => $bad])), 'visit_limit');
+        }
+        $this->assertSame(0, Panel::query()->where('code', 'BAD-LIM')->count());
+    }
+
     public function test_stale_version_duplicate_code_and_unsafe_values_are_refused(): void
     {
         $officer = $this->actor('panel_officer');
