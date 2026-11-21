@@ -44,7 +44,8 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
     reason code and an encrypted note;
   - PostgreSQL refuses update, delete and truncate;
   - an insert trigger checks that the case, branch and organisation agree, that the doctor is the encounter's
-    attending clinician, and that a `verified` row comes from a case in `awaiting_doctor_check`.
+    attending clinician, and that both a `verified` and a `sent_back` row come from a case in
+    `awaiting_doctor_check`.
 - Migrations from `2026_11_06_200500` up (the team range; `200400` is the DSP-13 index).
 
 ## 4. When stock moves
@@ -53,8 +54,29 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
 
 - Today the batch allocations are saved before Complete, and Complete writes the dispense movements. Under the
   check, "Send to doctor" runs every Complete check except the movements and the status change to completed.
-- Verify then runs them under the same locks: the case, the handoff, the items, the allocations, then the stock
-  rows in the existing order.
+- **Lock order (Hakim).** Verify takes the doctor's user lock first (`ConsultationLocks::users([doctor])`), as
+  Return to Doctor and hold/resume do. It then reuses `DispensaryService::caTransaction`'s sequence unchanged:
+  1. patient, visit, queue entry, encounter;
+  2. the allergy profile, its records and the encounter allergy review;
+  3. the treatment plan, its medicine orders and the consultation checkouts;
+  4. the case, handoff and items;
+  5. the allocations, locations, SKUs, mappings and batches;
+  6. the stock balances inside `debitForDispense`.
+
+  Nothing is ever locked case-first, so Verify cannot deadlock against a CA write.
+- **Verify re-runs every Complete check**, not only stock:
+  - the state guard: encounter in progress, queue entry removed as `sent_to_dispensary`, handoff open, visit
+    registered;
+  - `safety->assertCurrent`, so a new allergy or a changed allergy review while the case waits stops Verify;
+  - every item finalised, and patient-declined lines acknowledged at their current version;
+  - allocation totals, and location, SKU, mapping and batch validity.
+- One guard changes. Complete requires `current_handler_user_id === actor`, which is the CA. Verify instead
+  requires the actor to be the encounter's attending clinician, and the case to be in `awaiting_doctor_check` at
+  the version the doctor saw.
+- **After Verify:**
+  - `ca_verified_at` holds the time the CA sent the case;
+  - `completed_by_user_id` and `completed_at` hold the doctor and the time of Verify;
+  - the handoff is completed exactly as Complete does today.
 - Send back writes no stock row, so nothing needs reversing. The CA returns the boxes to the shelf physically.
 - **Stock can change while the case waits.** Another case may use the batch, or it may be held or expire. Verify
   re-runs the shared batch-eligibility rule and the no-negative-stock check. If either fails, Verify is refused with a
@@ -67,8 +89,10 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
   use it, checked at the active branch. This is a clinical permission, so it needs the owner's explicit approval
   (owner question d).
 - **Switch:** `dispensary.settings.manage.branch` for `director` and `ca_supervisor` at their branches (owner
-  question c). This is also new, so it needs approval too. Alternatively it could reuse an existing branch settings
-  permission if the owner prefers.
+  question c). This is also new, so it needs approval too. No existing permission fits (Hakim):
+  - `catalogue.settings.manage.organisation` would also let the Finance Officer, Panel Officer and Administrator
+    change a clinical safety switch;
+  - `queue_display.manage.branch` is about the TV.
 - Sending for check uses the CA's existing `dispensary.complete.branch`.
 
 ## 6. Every write
@@ -82,7 +106,25 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
   - `dispensary.doctor_sent_back`
   - `dispensary.settings_changed`
 - Return to Doctor (the existing route for stock problems and clarification) keeps working while the case is with
-  the CA. It is refused while the case waits for the check; the doctor uses Send back instead.
+  the CA. It is refused while the case waits for the check; the doctor uses Send back instead. The same guard covers
+  the CA's button (hidden) and the route (refused).
+- **The switch is read under lock at Complete (Hakim).**
+  - Complete locks the branch's settings row. If the check is now on, a page opened while it was off is refused:
+    "This branch now needs the doctor's check. Reload the page." A stale page cannot skip the check.
+  - `doctor_check_required`, once set on Send, stays for the life of the case. After Send back, the next submit is
+    again Send to doctor, even if the switch was turned off meanwhile.
+
+## 6a. Other code that knows the case statuses (Hakim)
+
+| Code | Today | With `awaiting_doctor_check` |
+|---|---|---|
+| `DrugLabelService` (completed, or dispensing for its handler) | 404 while waiting | A read-only preview is allowed for the CA and CA Supervisor. Printing stays allowed, because the doctor may ask for a reprint after a label problem; each print is logged as today. |
+| `VisitDirectoryService` "Open Dispensary" (pending or dispensing) | the link disappears | The new status is added: the link opens the waiting case read-only. |
+| `RoomCallService` dispensary call (pending or dispensing) | refused | The new status is added, so the CA may call the patient while the case waits. |
+| `ReopenConsultationCheckoutService`, `CompleteConsultationService` (need `returned_to_doctor`) | refused while waiting | Intended. The doctor acts through Verify or Send back. |
+| `DispensaryDirectoryService::detail` `can` flags | dispensing or completed | A waiting case shows the open-case page read-only: no edit, no Complete, the waiting banner, and Print and Call still allowed. |
+| `DoctorDispensaryAttentionService::forEncounter`, `hasPendingForVisit`, `pendingForVisits` | pending or dispensing, plus a patient-declined exception | A waiting case counts too, so the Queue board hint shows "Medicine ready for your check" on the doctor's board. The doctor has usually moved on to the next patient by then, and this is how they find the case. |
+| Billing, returns, refunds | need `completed` | No change. |
 
 ## 7. Screens (Daniel's look before the build)
 
@@ -95,6 +137,8 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
     changes beside the order;
   - an outline Verify button, and a Send back button that opens a reason picker;
   - the row says what each button does.
+- **Doctor's Queue board:** the existing Dispensary hint on the patient's row reads "Medicine ready for your check"
+  and opens that consultation at the panel.
 - **Registration board:** the case's chip reads "Waiting for doctor's check", so the CA at the counter knows why
   billing is not ready.
 - **Settings:** one switch per branch, with a sentence saying what it does. Placement is to be agreed with Adlina
@@ -114,10 +158,24 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
 - PostgreSQL:
   - the status check;
   - append-only check rows;
-  - a two-process race between two Verify presses, and between Verify and Send back. Both join the serial Contention
-    suite.
+  - a two-process race between two Verify presses, and between Verify and Send back;
+  - a two-process race between Verify and another case dispensing from the same batch, which must not take stock
+    below zero.
+  - All three join the serial Contention suite.
+  - Trigger tests: a `verified` or `sent_back` row is refused for a case that isn't waiting, and for a doctor who
+    isn't the attending clinician.
+- More feature tests (Hakim):
+  - Complete refused on a stale page after the switch is turned on;
+  - Verify refused after a new allergy is recorded, and after the encounter or queue state changes;
+  - a replayed Verify with the same key writes no second dispense movement;
+  - the encrypted note never reaches audit or logs;
+  - the switch's idempotency key and audit row;
+  - the additive permission migrations.
+- Frontend and feature tests for the doctor's Queue board hint, the label preview while waiting, the Registration
+  chip and the "Open Dispensary" link.
 - Frontend tests for both Classic pages.
-- Existing assertions are expected to stay unchanged, because the switch defaults to off. Any that do change will be
+- Existing assertions are expected to stay unchanged, because the switch defaults to off, apart from the
+  role-permission pins that list each role's permissions exactly. The two new permissions change them; these are
   listed and left failing for the owner.
 
 ## 9. Questions for the owner (recommended answer first)

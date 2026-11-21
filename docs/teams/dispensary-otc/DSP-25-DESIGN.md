@@ -34,26 +34,47 @@ Status: **draft for Hakim's review.** Not built. Classic only, because V2 was re
    only (case, visit, patient), never content. If the audit row cannot be written, it throws and the page shows
    nothing.
 5. **One shared banner,** `resources/js/components/ReadOnlyBanner.vue`.
-6. **The existing routes still refuse.** The Director holds no Dispensary write permission, so every existing POST
-   returns 403. A test posts to each Dispensary write route as the Director and proves it.
+6. **The existing routes still refuse.** A test posts to every Dispensary write route as the Director and checks two
+   things: the request is refused, and nothing is written. Permissions alone don't cover everything (Hakim):
+   - The Director holds `inventory.variances.approve.branch`, the only middleware on
+     `POST dispensary/{case}/returns/{id}/check`. That route is refused by the service's own checks (the CA
+     Supervisor role and `dispensary.view.branch`), so its response may not be the middleware's 403.
+   - The Director holds `queue.call.branch`. The review page offers no call button and has no call URL in its data.
 
 ## 3. Shared pieces (this PR; Amirul's PR uses them)
 
 - `app/Domain/Shared/ReadOnlyReviewAudit.php`:
   - signature: `record(User $actor, string $event, Model $subject, array $ids): void`;
-  - it goes through the existing `AuditRecorder`, inside the request transaction;
-  - it throws if the row was not written;
-  - the event names and ids keys are allowlisted, so no content can slip in.
+  - it goes through the existing `AuditRecorder` and commits before anything else happens;
+  - it throws if the row was not written; `AuditRecorder` must throw rather than swallow the error, and a test forces
+    a failure;
+  - two named allowlists in the class, `EVENTS` and `ID_KEYS`, so no content can slip in. Amirul's
+    `consultation.reviewed` is added to them deliberately in his PR.
 - `resources/js/components/ReadOnlyBanner.vue`: the text above and a Back slot. It uses the theme tokens, readable
   in light and dark.
 
 ## 4. What the page is built from
 
-- A new `DispensaryReviewService::project()`, which reuses the projection the Completed page uses. It drops every
-  action URL, lock version, token and idempotency field, so the payload has nothing a form could post.
-- A test pins the payload's keys.
+- A new `DispensaryReviewService::project()`, built as an **explicit list of fields** for every case status: pending,
+  dispensing, waiting for the doctor's check, returned to doctor and completed (Hakim).
+  - It reuses neither the Completed page's data nor the open-case `detail()`.
+  - The Completed page's data carries `billingUrl`, `labelUrl` and returns-panel fields worked out from the viewer's
+    permissions, and lacks the order beside what was dispensed.
+  - `detail()` carries lock versions, `can` flags, stock availability and search data.
+- The layout of ordered beside dispensed follows `VisitHistoryService`, which already lays it out this way.
+- The payload holds no URL, lock version, token, idempotency field or `can` flag. A test pins its keys.
 - The page is a new `pages/Dispensary/Review.vue`. It shares the Completed page's read-only table partials rather
   than copying them.
+
+## 4a. Recorded once per real view (Hakim)
+
+- The controller calls `ReadOnlyReviewAudit::record()` first and lets it commit. Only then does it build the page
+  data, because Inertia works out page data when it builds the response.
+- If the audit write fails, the response is a 500 whose body contains no patient name (tested).
+- The "Open dispensary case (read only)" link turns off Inertia hover prefetch.
+- The page does no partial reloads, so every request to the route is a real open and is recorded.
+- `no-store` keeps the browser from saving the page. A page restored by Back from the browser's memory without a new
+  request is not recorded, because nothing new is shown. A reload or a new open is recorded.
 
 ## 5. Privacy
 
@@ -70,6 +91,10 @@ Status: **draft for Hakim's review.** Not built. Classic only, because V2 was re
   - the payload keys are pinned, with no URLs or versions;
   - every write route returns 403;
   - a case from another organisation returns 404.
+- A forced audit failure returns a 500 with no patient name in the body.
+- Prefetch is off on the link (frontend test).
+- Posting to `returns/{id}/check` as the Director is refused and writes nothing.
+- The review data holds no call URL.
 - Every other role gets 403 on the review route. That includes CA and CA Supervisor, who keep their normal pages.
 - The source test for GET only, and the permission catalogue and the migration (additive, idempotent).
 - **Existing assertions that will fail and are left failing for the owner:**
