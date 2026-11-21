@@ -96,6 +96,8 @@ final class PanelClaimDirectoryService
                     'currentPage' => $eligible->currentPage(),
                     'lastPage' => $eligible->lastPage(),
                 ],
+                // PNL-28a: every approved Panel share at this branch with no claim, whatever the list filters.
+                'waiting' => app(PanelClaimEligibility::class)->query($actor->organisation_id, $branch->id)->count(),
                 'summary' => $this->summary($base, $invoices, $overdueIds),
                 'tabs' => $this->tabCounts($base, $invoices, $filters, $overdueIds),
                 'panels' => DB::table('panels')->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->pluck('name')->all(),
