@@ -37,8 +37,26 @@ test('a reversed receipt stays grey on the Billing receipt badges', () => {
         /const receiptTone = \(status: string\) =>\s+status === 'reversed' \? \('neutral' as const\) : undefined;/,
     );
 
+    const badges =
+        workspace.match(
+            /<StatusBadge\s+:status="receipt\.status"\s+:tone="receiptTone\(receipt\.status\)"/g,
+        ) ?? [];
+    assert.equal(badges.length, 2);
     assert.doesNotMatch(
         workspace,
         /<StatusBadge :status="receipt\.status" \/>/,
+    );
+});
+
+test('the read-only Billing receipt rows keep their Classic spacing', () => {
+    assert.ok(
+        readOnlyList.includes(
+            'class="text-xs text-muted-foreground tabular-nums"',
+        ),
+    );
+    assert.ok(
+        readOnlyList.includes(
+            'class="text-xs break-words text-muted-foreground"',
+        ),
     );
 });
