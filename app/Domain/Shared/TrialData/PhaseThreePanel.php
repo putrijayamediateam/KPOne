@@ -151,8 +151,14 @@ final class PhaseThreePanel
         $base = ['expected_branch_id' => $branch->id];
 
         if ($position === 10) {
-            $existing = PanelClaim::query()->whereIn('coverage_allocation_id', array_map(fn (CoverageAllocation $a): int => $a->id, $allocations))->exists();
-            if (! $existing) {
+            $existing = PanelClaim::query()->whereIn('coverage_allocation_id', array_map(fn (CoverageAllocation $a): int => $a->id, $allocations))->get();
+            // With automatic claims on (PNL-28a) the approvals already have prepared claims: submit those instead.
+            foreach ($existing as $claim) {
+                if ($claim->status === 'prepared') {
+                    $claims->submit($officer(), $claim, $base + ['lock_version' => $claim->lock_version]);
+                }
+            }
+            if ($existing->isEmpty()) {
                 $claims->bulkCreate($officer(), $base + [
                     'submitted_date' => $today,
                     'remarks' => 'Fictional trial bulk claim',

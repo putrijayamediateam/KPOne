@@ -313,6 +313,16 @@ class TrialDataCommandTest extends TestCase
         $this->assertSame($after, $this->counts());
     }
 
+    public function test_phase_three_reuses_automatic_claims_when_they_are_switched_on(): void
+    {
+        // The live server creates a prepared claim on every Panel approval (PNL-28a, on by default outside tests).
+        config(['panel-claims.auto_create' => true]);
+        $this->test_phase_three_takes_panel_claims_through_every_stage_once();
+        foreach (Branch::query()->get() as $branch) {
+            $this->assertSame(count(PhaseThreePanel::SCENARIOS), DB::table('panel_claims')->where('branch_id', $branch->id)->count(), $branch->code);
+        }
+    }
+
     public function test_phase_three_takes_panel_claims_through_every_stage_once(): void
     {
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
