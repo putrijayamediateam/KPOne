@@ -48,6 +48,7 @@ import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttent
 import DispensaryCheckPanel from '@/pages/Clinical/Partials/DispensaryCheckPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
+import { myr } from '@/types/billing';
 
 defineOptions({
     layout: {
@@ -1023,6 +1024,46 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 class="inline-flex max-w-full rounded-md bg-muted px-2 py-1 text-xs break-words"
                                 >{{ clinical.visit.paymentMethodLabel }}</span
                             >
+                            <p
+                                v-if="clinical.visit.panelEstimate"
+                                data-testid="consultation-panel-estimate"
+                                class="flex items-start gap-2 text-xs"
+                                :class="
+                                    clinical.visit.panelEstimate.over
+                                        ? 'text-warning-strong'
+                                        : 'text-muted-foreground'
+                                "
+                            >
+                                <span
+                                    v-if="clinical.visit.panelEstimate.over"
+                                    aria-hidden="true"
+                                    class="mt-1 size-2 shrink-0 rounded-full bg-current"
+                                />
+                                <span>
+                                    Estimated Panel total
+                                    {{
+                                        myr(
+                                            clinical.visit.panelEstimate
+                                                .totalSen,
+                                        )
+                                    }}
+                                    of the
+                                    {{
+                                        myr(
+                                            clinical.visit.panelEstimate
+                                                .limitSen,
+                                        )
+                                    }}
+                                    limit
+                                    <template
+                                        v-if="
+                                            clinical.visit.panelEstimate.partial
+                                        "
+                                    >
+                                        (some items have no Panel price yet)
+                                    </template>
+                                </span>
+                            </p>
                             <div
                                 v-if="clinical.visit.isPanel && panelNote"
                                 data-testid="consultation-panel-note"

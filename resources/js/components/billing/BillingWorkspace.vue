@@ -1161,6 +1161,26 @@ const reverse = (receipt: Receipt) =>
                     >
                 </div>
                 <div
+                    v-if="billing.panelVisitLimit?.over"
+                    role="note"
+                    data-testid="panel-visit-limit"
+                    class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-xs text-warning-strong"
+                >
+                    <p class="flex items-center gap-2 font-semibold">
+                        <span
+                            aria-hidden="true"
+                            class="size-2 shrink-0 rounded-full bg-current"
+                        />
+                        Above the Panel's limit per visit
+                    </p>
+                    <p>
+                        This visit's total is
+                        {{ myr(billing.panelVisitLimit.totalSen) }}; the Panel's
+                        limit is {{ myr(billing.panelVisitLimit.limitSen) }}.
+                        This is a warning only. You can continue.
+                    </p>
+                </div>
+                <div
                     v-if="billing.panelShortfall"
                     role="note"
                     data-testid="panel-shortfall"

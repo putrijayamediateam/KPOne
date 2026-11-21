@@ -169,6 +169,12 @@ export type BillingPage = {
     };
     panel: Responsibility | null;
     panelShortfall: PanelShortfall | null;
+    /** PNL-26b: the Panel's limit per visit; a warning only. */
+    panelVisitLimit?: {
+        limitSen: number;
+        totalSen: number;
+        over: boolean;
+    } | null;
     panelAdjustment?: PanelAdjustment | null;
     deferment: Responsibility | null;
     payments: Receipt[];
