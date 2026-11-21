@@ -71,9 +71,13 @@ class QueueChecksWaitingTest extends ClinicalTestCase
         DB::flushQueryLog();
         DB::enableQueryLog();
         $this->assertSame(1, app(DoctorDispensaryAttentionService::class)->checksWaitingCount($f['doctor']));
-        $counts = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains(strtolower($q['query']), 'count(*)') && str_contains($q['query'], 'dispensary_cases'))->count();
+        $counts = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains(strtolower($q['query']), 'count(*)') && str_contains($q['query'], 'dispensary_cases'));
         DB::disableQueryLog();
-        $this->assertSame(1, $counts, 'One aggregate count, no per-row query.');
+        $this->assertCount(1, $counts, 'One aggregate count, no per-row query.');
+        // It counts every waiting case, not the rows a page lists: no LIMIT, OFFSET or page window in the query (Aisyah's query-log check).
+        $sql = strtolower($counts->first()['query']);
+        $this->assertStringNotContainsString(' limit ', $sql);
+        $this->assertStringNotContainsString(' offset ', $sql);
 
         $row = collect($this->actingAs($f['doctor'])->postJson(route('queue.search'), ['status' => 'removed'])->json('removed'))->firstWhere('visitNumber', $f['visit']->visit_number);
         $this->assertTrue($row['dispensaryCheckWaiting'], 'The count and the Q-13 row flag agree.');
