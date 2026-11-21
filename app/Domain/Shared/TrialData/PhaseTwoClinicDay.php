@@ -19,6 +19,7 @@ use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Clinical\Services\PatientAllergyService;
 use App\Domain\Clinical\Services\TreatmentPlanService;
+use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageService;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
@@ -570,17 +571,19 @@ final class PhaseTwoClinicDay
 
     private function triage(string $code, Branch $branch, Visit $visit): void
     {
+        $guideline = app(TriageGuidelineService::class)->inForce($branch->organisation_id);
         app(TriageService::class)->record($this->ca($code, $branch), $visit->refresh(), [
             'expected_branch_id' => $branch->id,
             'visit_lock_version' => $visit->lock_version,
             'queue_lock_version' => $this->queue($visit)->lock_version,
             'expected_latest_triage_id' => null,
-            // No triage guideline is approved until phase 6, so no zone is chosen yet.
-            'expected_guideline_version_id' => null,
+            // Until phase 6 approves the triage guideline no zone can be chosen; once it is in force, these readings
+            // are within every limit of that fictional guideline, so the zone is green.
+            'expected_guideline_version_id' => $guideline?->id,
             'systolic_bp' => 124, 'diastolic_bp' => 82, 'pulse_bpm' => 88, 'temperature_celsius' => '37.80',
             'spo2_percent' => '97', 'weight_kg' => '58', 'height_cm' => '160',
             'red_flag_codes' => [], 'yellow_sign_codes' => [],
-            'chosen_zone' => null,
+            'chosen_zone' => $guideline === null ? null : 'green',
             'override_reason_code' => null,
             'idempotency_key' => (string) Str::uuid(),
         ]);

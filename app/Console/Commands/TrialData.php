@@ -8,6 +8,7 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Shared\TrialData\PhaseFiveHr;
 use App\Domain\Shared\TrialData\PhaseFourInventory;
 use App\Domain\Shared\TrialData\PhaseOneFoundation;
+use App\Domain\Shared\TrialData\PhaseSixRest;
 use App\Domain\Shared\TrialData\PhaseThreePanel;
 use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
 use App\Domain\Shared\TrialData\TrialDataContext;
@@ -25,12 +26,12 @@ use Throwable;
  */
 class TrialData extends Command
 {
-    protected $signature = 'kpone:trial-data {--phase=1 : The phase to run (1 foundation, 2 clinic day, 3 Panel claims, 4 inventory, 5 HR)}';
+    protected $signature = 'kpone:trial-data {--phase=1 : The phase to run (1 foundation, 2 clinic day, 3 Panel claims, 4 inventory, 5 HR, 6 the rest)}';
 
     protected $description = 'Fill a trial server with fictional demo data (locked; read docs/design/TRIAL-DATA-COMMAND.md first)';
 
     /** @var list<string> */
-    private const PHASES = ['1', '2', '3', '4', '5'];
+    private const PHASES = ['1', '2', '3', '4', '5', '6'];
 
     public function handle(AuditRecorder $audit): int
     {
@@ -107,7 +108,8 @@ class TrialData extends Command
                 '2' => (new PhaseTwoClinicDay($context))->run(),
                 '3' => (new PhaseThreePanel($context))->run(),
                 '4' => (new PhaseFourInventory($context))->run(),
-                default => (new PhaseFiveHr($context))->run(),
+                '5' => (new PhaseFiveHr($context))->run(),
+                default => (new PhaseSixRest($context))->run(),
             };
         } catch (ValidationException $exception) {
             return $this->refuse('A step was refused: '.implode(' ', $exception->validator->errors()->all()).' Fix it and run the command again; finished steps are kept and not repeated.');

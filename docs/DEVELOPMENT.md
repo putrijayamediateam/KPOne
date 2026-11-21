@@ -244,7 +244,7 @@ It adds no Panels, patients, visits or cost policy. Never run it with real data 
 A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
 run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
 the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
-Phases 1 (foundation), 2 (a clinic day), 3 (Panel claims), 4 (inventory) and 5 (HR) are built so far.
+Phases 1 (foundation), 2 (a clinic day), 3 (Panel claims), 4 (inventory), 5 (HR) and 6 (compliance, website drafts, triage guideline, QR links, merges) are built.
 
 Before the first run: migrate and seed the reference data, create the one Director with
 `php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
@@ -259,6 +259,7 @@ php artisan kpone:trial-data --phase=2   # needs phase 1; asks no password
 php artisan kpone:trial-data --phase=3   # needs phase 1
 php artisan kpone:trial-data --phase=4   # needs phase 1 (phase 2 for the medicine return)
 php artisan kpone:trial-data --phase=5   # needs phase 1
+php artisan kpone:trial-data --phase=6   # needs phase 1
 # afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
 ```
 
@@ -299,6 +300,11 @@ moment the command runs, with placeholder photos), credentials, an SOP, a memo, 
 a discipline case, an open shift, a locum rate, staff claims, job positions, and a locked payroll run for last month
 with payslips and exports, using FICTIONAL statutory tables marked "NOT OFFICIAL RATES — TRIAL ONLY". The HR Manager
 enters and prepares; the Director approves, checks, confirms and locks.
+
+Phase 6 fills clinic compliance (licences, fridge readings, a monthly audit and its task), text-only English and
+Bahasa Melayu website drafts with a private release freeze approved by the Director (nothing is published), the triage
+guideline (HR Manager enters, Director approves), a QR check-in link at every branch, and two patient merges (one
+approved, one waiting). Agents stay empty on a production server: they are registered only in local and testing.
 
 ## Ask KPOne read login (AG-7)
 

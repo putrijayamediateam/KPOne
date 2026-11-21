@@ -1,6 +1,6 @@
 # TRIAL-DATA: fictional demo data for the trial server (design note)
 
-Status: **Phases 1 to 5 built** (branch `feature/trial-data-command`); Phase 6 is design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
+Status: **Phases 1 to 6 built** (branch `feature/trial-data-command`); All phases are built. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
 the owner in the DEMO-1 session): demo data that uses every function, every user role and every menu module, built
 in phases. Branch `feature/trial-data-command`. No PR until the owner's ship-it.
 
@@ -183,7 +183,25 @@ receipt (waiting, approved, paid); a discipline case (no files); job positions; 
 
 Menus: every HR page except where section 5 says otherwise; the HR dashboard and labour cost fill from the above.
 
-### Phase 6 — the rest
+### Phase 6 — the rest (built)
+
+**Built:** clinic compliance (an operating-licence type with a licence at each branch, one due within the 60-day
+warning, each with a placeholder PDF scan, and a clinic-wide insurance policy; a vaccine fridge at each branch with an
+in-range reading and an out-of-range reading reviewed by the CA Supervisor; a monthly audit at each branch with one
+failed item raising a task, done and verified by a second supervisor at CHERAS); text-only English and Bahasa Melayu
+website drafts (every branch profile, a doctor profile, a career posting, a service category and service, a promotion,
+an activity, an FAQ and a Little Shield draft) and a private release freeze prepared by Marketing and approved by the
+Director (nothing is published or deployed); the triage guideline, entered by the HR Manager and approved by the
+Director, with the fictional signer name "Dr Trial Signer (fictional)" (only the Director and the HR Manager may manage
+the guideline, so the two people are those two, not two doctors); a QR check-in link at every branch issued by its
+first CA Supervisor (and one QR intake only when public intake is switched on); and two duplicate registrations, one
+merge approved and one waiting. Once the guideline is in force, phase 2's triage records choose the green zone.
+**Not filled: agents.** Agents are registered only by `KPOneAgentSeeder`, which refuses to run outside local and
+testing, so on a production trial server the agent office, the approval inbox, the daily summary and Dato' Arif stay
+empty. Registering them there needs an owner decision. Website images and compliance photos also need the image
+extension, so phase 6 uses text and PDFs only.
+
+Design as reviewed:
 
 Clinic compliance (licences, fridge readings, a checklist), website drafts (text only), the triage guideline (entered
 and approved by two different fictional doctors), agents (an inventory review that creates proposals; the daily
