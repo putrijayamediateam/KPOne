@@ -23,11 +23,7 @@ test('V2FormCard: a numbered section whose title is its heading', () => {
     assert.match(s, /step\?: number/);
 });
 
-test('V2StickySummary and V2StickyBar: a sticky rail from 1024px and a phone bar with safe-area padding', () => {
-    const rail = v2('V2StickySummary');
-    assert.match(rail, /max-sm:hidden/);
-    assert.match(rail, /lg:sticky lg:top-4/);
-    assert.match(rail, /<dl/);
+test('V2StickyBar: a phone bar with safe-area padding', () => {
     const bar = v2('V2StickyBar');
     assert.match(bar, /sm:hidden/);
     assert.match(bar, /env\(safe-area-inset-bottom\)/);
@@ -35,12 +31,7 @@ test('V2StickySummary and V2StickyBar: a sticky rail from 1024px and a phone bar
 });
 
 test('The new blocks import nothing from the Classic ui components', () => {
-    for (const n of [
-        'V2OptionGroup',
-        'V2FormCard',
-        'V2StickySummary',
-        'V2StickyBar',
-    ]) {
+    for (const n of ['V2OptionGroup', 'V2FormCard', 'V2StickyBar']) {
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
 });

@@ -187,6 +187,7 @@ final class PanelSettingsService
             'city' => $panel->city, 'state' => $panel->state, 'country' => $panel->country,
             'verificationMode' => $panel->verification_mode, 'verificationUrl' => $panel->verification_url, 'verificationRemark' => $panel->verification_remark,
             'claimDueDays' => $panel->claim_due_days, 'claimDueRule' => $panel->claim_due_rule, 'claimDueTime' => $panel->claim_due_time, 'claimDueOffset' => $panel->claim_due_offset, 'claimFollowUpDays' => $panel->claim_follow_up_days, 'incomeTaxNumber' => $panel->income_tax_number,
+            'visitLimitSen' => $panel->visit_limit_sen,
         ];
     }
 
@@ -219,6 +220,7 @@ final class PanelSettingsService
             'claim_due_offset' => ['required_unless:claim_due_rule,days_after_visit', 'nullable', 'integer'],
             'income_tax_number' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9\-]+$/'],
             'claim_follow_up_days' => ['sometimes', 'required', 'integer', 'between:1,365'],
+            'visit_limit' => ['nullable', 'string', 'max:20'],
         ], [
             'company_registration_number.regex' => 'The company registration number must be exactly 12 digits.',
             'verification_url.url' => 'Enter a secure link that starts with https://.',
@@ -270,6 +272,28 @@ final class PanelSettingsService
             'claim_due_time' => $rule === 'days_after_visit' ? null : (string) $clean['claim_due_time'],
             'claim_due_offset' => $offset,
             'income_tax_number' => $text($clean['income_tax_number'] ?? null),
+            'visit_limit_sen' => self::limitSen($clean['visit_limit'] ?? null),
         ];
+    }
+
+    /**
+     * PNL-26: the Panel's limit per visit, typed in ringgit ("500", "1,500.00", "RM 750.50"), as sen. Empty means no limit.
+     * Anything that is not clearly one positive amount is refused, never read as a different one.
+     */
+    private static function limitSen(mixed $text): ?int
+    {
+        $clean = preg_replace('/^(?:rm|myr)\s*/i', '', str_replace(' ', '', trim((string) $text))) ?? '';
+        if ($clean === '') {
+            return null;
+        }
+        if (preg_match('/\A([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?:\.([0-9]{1,2}))?\z/', $clean, $m) !== 1) {
+            throw ValidationException::withMessages(['visit_limit' => 'Enter the limit in ringgit, for example 500 or 1,500.00. Leave it empty for no limit.']);
+        }
+        $sen = (int) str_replace(',', '', $m[1]) * 100 + (int) str_pad($m[2] ?? '', 2, '0');
+        if ($sen < 1 || $sen > 999_999_999) {
+            throw ValidationException::withMessages(['visit_limit' => 'Enter a limit above RM 0.00 and up to RM 9,999,999.99, or leave it empty.']);
+        }
+
+        return $sen;
     }
 }

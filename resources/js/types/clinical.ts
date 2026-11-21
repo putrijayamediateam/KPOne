@@ -203,6 +203,13 @@ export type ClinicalEncounterPage = {
         priority: 'normal' | 'urgent';
         isPanel: boolean;
         panelNote: string | null;
+        /** PNL-26c: the Panel total so far against the Panel's limit per visit; null when there is no limit. */
+        panelEstimate?: {
+            limitSen: number;
+            totalSen: number;
+            over: boolean;
+            partial: boolean;
+        } | null;
         paymentMethodLabel: string;
         registrationReason: string | null;
         registrationReasons: VisitReasonPresentation;
