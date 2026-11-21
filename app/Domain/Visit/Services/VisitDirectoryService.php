@@ -254,6 +254,10 @@ class VisitDirectoryService
                     ? ['url' => route('dispensary.review', $reviewCase->public_id), 'status' => $reviewCase->status]
                     : null)
                 : null,
+            // The Director's read-only entry to this visit's consultation (the review route records every open).
+            'consultationReview' => $actor->can('consultations.view_readonly.organisation') && $visit->visit_type === 'consultation' && $visit->clinicalEncounter()->exists()
+                ? ['url' => route('encounters.review', $visit->visit_number), 'status' => $visit->clinicalEncounter()->value('status')]
+                : null,
             'queue' => $visibleQueueEntry ? [
                 'queueNumber' => QueueNumberFormat::format($visibleQueueEntry->queue_number),
                 'operationalDate' => $visibleQueueEntry->operational_date->toDateString(),

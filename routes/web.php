@@ -32,6 +32,7 @@ use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
+use App\Http\Controllers\ConsultationReviewController;
 use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
@@ -1025,6 +1026,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/encounter', [ClinicalEncounterController::class, 'show'])
             ->middleware('permission:encounters.view.own')
             ->name('encounters.show');
+        // The Director's read-only consultation at any branch; every open recorded. GET only. {historicalVisit} is
+        // organisation-scoped (the {visit} binding only works inside the active branch).
+        Route::get('visits/{historicalVisit}/encounter/review', [ConsultationReviewController::class, 'show'])
+            ->middleware(['permission:consultations.view_readonly.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('encounters.review');
         Route::get('visits/{historicalVisit}/encounter/history', [ClinicalEncounterController::class, 'history'])
             ->middleware('permission:encounters.history.view.organisation')
             ->name('encounters.history.show');
