@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 
@@ -18,7 +18,14 @@ test('the page compiles and has no Version 2 twin', () => {
         }).errors,
         [],
     );
-    assert.doesNotMatch(read('config/v2-pages.php'), /'HR\/LabourCost'/);
+    assert.ok(
+        !existsSync(
+            new URL(
+                '../../resources/js/pages/HR/V2/LabourCost.vue',
+                import.meta.url,
+            ),
+        ),
+    );
 });
 
 test('hidden branches say why, in words', () => {
@@ -26,7 +33,10 @@ test('hidden branches say why, in words', () => {
     assert.match(page, /const NOT_SHOWN = 'Not shown'/);
     assert.match(page, /value \?\? NOT_SHOWN/);
     assert.match(template, /data-test="labour-cost-some-hidden"/);
-    assert.match(template, /class="sr-only">\s*\(withheld to protect privacy\)/);
+    assert.match(
+        template,
+        /class="sr-only">\s*\(withheld to protect privacy\)/,
+    );
     assert.match(template, /no one person's pay can be worked\s+out/);
     assert.match(template, /data-test="labour-cost-hidden"/);
     assert.match(template, /The clinic total covers fewer than 3 people/);
