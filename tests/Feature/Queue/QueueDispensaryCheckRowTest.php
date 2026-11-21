@@ -88,7 +88,9 @@ class QueueDispensaryCheckRowTest extends ClinicalTestCase
         // The check helper's one read: a dispensary_cases query bound to the waiting status and not to the declined-medicine reason.
         $checks = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains($q['query'], 'dispensary_cases')
             && in_array('awaiting_doctor_check', $q['bindings'], true)
-            && ! in_array('patient_declined', $q['bindings'], true))->count();
+            && ! in_array('patient_declined', $q['bindings'], true)
+            // Q-15 adds its own aggregate count of the same cases to the payload; this test is about the row flag's read.
+            && ! str_contains(strtolower($q['query']), 'count(*)'))->count();
         DB::disableQueryLog();
 
         $this->assertSame(1, $checks, 'One batched read for the whole page, not one per row.');

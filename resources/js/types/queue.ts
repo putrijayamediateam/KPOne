@@ -49,6 +49,8 @@ export type QueuePollSnapshot = {
         serving: number;
         removed: number;
     };
+    /** Q-15: dispensary cases waiting for this doctor's check (0 for everyone else). */
+    checksWaiting?: number;
     scope: 'branch' | 'own';
     serverNow: string;
     operationalDate: string;
