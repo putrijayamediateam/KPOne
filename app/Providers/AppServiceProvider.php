@@ -44,6 +44,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\Compilers\BladeCompiler;
 use Inertia\Inertia;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
@@ -68,10 +69,25 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * OPT-1: `php artisan optimize` failed at its views step with "Unable to locate a class or view for component
+     * [inertia::app]". inertia-laravel registers the `inertia` component namespace through the Blade facade, and
+     * `config:cache` (run first by `optimize`) boots a fresh application that the facades then point at, so the
+     * namespace landed on that application's compiler instead of the one `view:cache` uses. Registering it on the
+     * compiler instance itself works in every case; the rendered page is unchanged.
+     */
+    private function registerInertiaBladeComponents(): void
+    {
+        $this->callAfterResolving('blade.compiler', function (BladeCompiler $blade): void {
+            $blade->componentNamespace('Inertia\\View\\Components', 'inertia');
+        });
+    }
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
+        $this->registerInertiaBladeComponents();
         RateLimiter::for('patient-report-views', fn (Request $request) => Limit::perMinute(60)->by('patient-reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         RateLimiter::for('patient-whatsapp', fn (Request $request) => Limit::perMinute(20)->by('patient-whatsapp:'.$request->user()?->id));
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));

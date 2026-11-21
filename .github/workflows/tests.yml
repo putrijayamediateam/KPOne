@@ -654,6 +654,16 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
+      # OPT-1: the server deploy runs `php artisan optimize`. Its views step once failed after config:cache had run in
+      # the same process ("Unable to locate a class or view for component [inertia::app]"), so CI runs it the same way,
+      # then clears every cache again. This job has no database, so the cache store is the in-memory array store.
+      - name: Laravel optimize and optimize:clear
+        env:
+          CACHE_STORE: array
+        run: |
+          php artisan optimize --ansi
+          php artisan optimize:clear --ansi
+
       # CI-SPLIT (b): the three shards' lists of tests must add up to the unsharded Unit, Feature and Contention
       # suites. Each backend shard then proves that it ran exactly the tests it was given.
       - name: Prove the shards hold every test exactly once
