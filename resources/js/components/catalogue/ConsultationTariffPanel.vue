@@ -36,7 +36,6 @@ const props = defineProps<{
     tariff: ConsultationTariff;
     canManagePrices: boolean;
     canPublishPrices: boolean;
-    canProposePanelPrices: boolean;
     activeBranchId: number | null;
     branches: { id: number; name: string }[];
     panels: { id: number; name: string }[];
@@ -236,10 +235,7 @@ const submit = () => {
 
             <div class="grid gap-2">
                 <h4 class="text-sm font-medium">Panel prices</h4>
-                <PanelPricesReadOnly
-                    :lines="tariff.panelPrices"
-                    :can-propose="canProposePanelPrices"
-                />
+                <PanelPricesReadOnly :lines="tariff.panelPrices" />
                 <InputError :message="form.errors.prices" />
                 <InputError :message="form.errors.expected_versions" />
             </div>

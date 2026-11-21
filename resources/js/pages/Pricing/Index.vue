@@ -50,7 +50,6 @@ type PriceBookRow = {
 
 const props = defineProps<{
     canPublish: boolean;
-    canProposePanelPrices: boolean;
     branches: Array<{ id: number; name: string }>;
     medicines: Array<{ publicId: string; displayName: string; code: string }>;
     services: Array<{ publicId: string; displayName: string; code: string }>;
@@ -240,13 +239,8 @@ const toggleCharge = (charge: ChargeRow) => {
             <template #description>
                 Manage charge definitions, price books and published prices.
                 Current price is the Self-pay price. Panel prices are changed by
-                proposal.
-                <Link
-                    v-if="canProposePanelPrices"
-                    href="/panel-price-changes"
-                    class="font-medium text-brand-strong underline underline-offset-2"
-                    >Propose a change</Link
-                >
+                proposal. A Panel Officer proposes them in Clinic management,
+                Panel price changes.
             </template>
             <template #actions>
                 <Button variant="outline" size="sm" as-child>

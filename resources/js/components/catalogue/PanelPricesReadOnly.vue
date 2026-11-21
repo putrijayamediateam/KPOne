@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 export type PanelPriceLine = {
@@ -13,7 +12,6 @@ export type PanelPriceLine = {
 // price in effect now and, when there is one, the next price that starts later (as on Price check).
 const props = defineProps<{
     lines: PanelPriceLine[];
-    canPropose: boolean;
 }>();
 const others = computed(() => props.lines.filter((line) => !line.isDefault));
 </script>
@@ -38,13 +36,8 @@ const others = computed(() => props.lines.filter((line) => !line.isDefault));
         </ul>
         <p v-else class="text-muted-foreground">No Panel-specific prices.</p>
         <p class="text-xs text-muted-foreground">
-            Panel prices are changed by proposal.
-            <Link
-                v-if="canPropose"
-                href="/panel-price-changes"
-                class="font-medium text-brand-strong underline underline-offset-2"
-                >Propose a change</Link
-            >
+            Panel prices are changed by proposal. A Panel Officer proposes them
+            in Clinic management, Panel price changes.
         </p>
     </div>
 </template>

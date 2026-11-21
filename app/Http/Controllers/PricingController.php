@@ -85,7 +85,6 @@ class PricingController extends Controller
             });
 
         return Inertia::render('Pricing/Index', [
-            'canProposePanelPrices' => $actor->can('panel.prices.propose.organisation'),
             'canPublish' => Gate::forUser($actor)->allows('prices.publish.organisation'),
             'branches' => Branch::query()
                 ->where('organisation_id', $organisationId)

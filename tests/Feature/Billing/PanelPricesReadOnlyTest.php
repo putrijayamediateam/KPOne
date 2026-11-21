@@ -88,7 +88,6 @@ class PanelPricesReadOnlyTest extends ClinicalTestCase
 
         $this->actingAs($supervisor);
         $this->get(route('pricing.index'))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('canProposePanelPrices', false)
             ->where('priceBooks', fn ($books) => collect($books)->firstWhere('name', 'Read-only Panel 2 book')['isPanel'] === true));
 
         $officer = $this->actor('panel_officer');

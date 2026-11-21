@@ -86,7 +86,6 @@ type SetupOptions = {
 };
 
 const props = defineProps<{
-    canProposePanelPrices: boolean;
     medicines: {
         data: MedicineRow[];
         total: number;
@@ -1244,10 +1243,7 @@ const toggleDescription = computed(() => {
                                 <h4 class="text-sm font-medium">
                                     Panel prices
                                 </h4>
-                                <PanelPricesReadOnly
-                                    :lines="panelPriceLines"
-                                    :can-propose="canProposePanelPrices"
-                                />
+                                <PanelPricesReadOnly :lines="panelPriceLines" />
                             </div>
                             <label class="grid gap-1 text-xs">
                                 <span id="medicine-publication-branch-label"
