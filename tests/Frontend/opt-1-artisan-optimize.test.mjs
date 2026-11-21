@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 // OPT-1 (first server deploy, 21 Nov 2026): `php artisan optimize` failed at its views step with "Unable to locate a
-// class or view for component [inertia::app]". CI now runs optimize and optimize:clear, and the `inertia` component
-// namespace is registered on the Blade compiler instance, never only through the Blade facade.
+// class or view for component [inertia::app]": after route:cache, view:cache compiles with a fresh application's Blade
+// compiler while inertia-laravel registers its namespace through the facade. CI now runs optimize and
+// optimize:clear, and the `inertia` component namespace is registered on each Blade compiler instance.
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
@@ -28,11 +29,10 @@ test('the page shell still uses the inertia components', () => {
 
 test('CI runs optimize and then optimize:clear, without a database', () => {
     const workflow = read('.github/workflows/tests.yml');
-    const step = workflow.slice(
-        workflow.indexOf('- name: Laravel optimize and optimize:clear'),
-    );
+    const at = workflow.indexOf('- name: Laravel optimize and optimize:clear');
 
-    assert.ok(step.length > 0);
+    assert.notEqual(at, -1);
+    const step = workflow.slice(at);
     assert.match(
         step,
         /env:\s*CACHE_STORE: array\s*run: \|\s*php artisan optimize --ansi\s*php artisan optimize:clear --ansi/,

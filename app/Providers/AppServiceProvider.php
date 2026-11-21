@@ -70,10 +70,12 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * OPT-1: `php artisan optimize` failed at its views step with "Unable to locate a class or view for component
-     * [inertia::app]". inertia-laravel registers the `inertia` component namespace through the Blade facade, and
-     * `config:cache` (run first by `optimize`) boots a fresh application that the facades then point at, so the
-     * namespace landed on that application's compiler instead of the one `view:cache` uses. Registering it on the
-     * compiler instance itself works in every case; the rendered page is unchanged.
+     * [inertia::app]". `route:cache` boots a fresh application, which becomes `Container::getInstance()`, then points
+     * the facades back at the original one; `view:cache` then compiles with the fresh application's Blade compiler,
+     * while inertia-laravel registers its `inertia` component namespace through the Blade facade, on the original
+     * compiler. Registering the namespace on each compiler instance itself works in every order; the rendered page is
+     * unchanged. Remove this once inertia-laravel registers it on the compiler it is given (or Laravel's route:cache
+     * restores the container instance).
      */
     private function registerInertiaBladeComponents(): void
     {
