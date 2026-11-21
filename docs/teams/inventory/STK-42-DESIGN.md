@@ -44,8 +44,8 @@ are now spelled out below.
   90, so every existing SKU behaves exactly as today. `down()` simply drops the column (losing only the setting).
 - Saved through the STK-14 path. The field joins `SkuEditService`'s field list and validation (empty becomes NULL),
   then goes through `InventoryReferenceAdministrationService`: the same permission
-  (`inventory.references.manage.organisation`), organisation lock, SKU row lock, version check and audit (field name
-  and new number only).
+  (`inventory.references.manage.organisation`), organisation lock, SKU row lock, version check and audit (the field
+  name only, never the number, as for every SKU field).
 - `EXPIRY_WINDOW_DAYS` (90) stays as the default. The expiring query becomes
   `whereRaw('e.expiry_date <= ?::date + COALESCE(s.expiry_alert_days, 90)', [$localDate])` instead of `whereDate`
   against one fixed date.
@@ -82,7 +82,7 @@ suggested only from 90 days, until the agent platform raises its limits.
 ## Tests
 
 - **SKU field:** the range 7 to 365 (6 and 366 refused, also by PostgreSQL); empty saved as NULL and behaving as 90;
-  a stale version refused; audit with the field and number only; refused without the reference permission; ignored
+  a stale version refused; audit with the field name only; refused without the reference permission; ignored
   when the SKU doesn't track expiry; the migration's `down()`.
 - **Expiring list:** SKUs at 30 days, 180 days and empty, against batches at 20, 60 and 150 days, are listed exactly as
   their own window says.

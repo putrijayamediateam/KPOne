@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeft, TriangleAlert } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -39,6 +39,30 @@ type Row = {
     history: Review[];
 };
 type Kind = 'low_stock' | 'expiring' | 'expired';
+// STK-42: the read-only "At risk in 6 months" section. Value keys arrive only for people who may see cost.
+type AtRiskRow = {
+    item_id: number;
+    sku_code: string;
+    item: string;
+    location: string;
+    stock_unit: string;
+    batch: string | null;
+    expiry: string;
+    quantity: string;
+    daysLeft: number;
+    value?: string | null;
+    estimate?: boolean;
+    part?: boolean;
+};
+type AtRisk = {
+    days: number;
+    sortedBy: 'value' | 'expiry';
+    rows: AtRiskRow[];
+    total: number;
+    page: number;
+    lastPage: number;
+    banner?: string;
+};
 type List = { rows: Row[]; total: number; page: number; lastPage: number };
 const props = defineProps<{
     review: {
@@ -50,6 +74,7 @@ const props = defineProps<{
         q: string;
         lists: Record<Kind, List>;
     };
+    atRisk: AtRisk;
 }>();
 const headings: Record<Kind, string> = {
     low_stock: 'Low stock',
@@ -75,8 +100,14 @@ const form = useForm({
     outcome: 'monitoring',
     review_by: '',
 });
-function search(target?: Kind, page = 1) {
+function search(target?: Kind | 'at_risk', page = 1) {
     const parameters: Record<string, string | number> = { q: q.value };
+
+    parameters.at_risk_page = target
+        ? target === 'at_risk'
+            ? page
+            : props.atRisk.page
+        : 1;
 
     for (const k of kinds) {
         parameters[`${k}_page`] = target
@@ -171,8 +202,9 @@ watch(
         >
             <h2 class="text-xl font-semibold">{{ headings[k] }}</h2>
             <p v-if="k === 'expiring'" class="text-sm">
-                Eligible positive stock expiring after today through day
-                {{ review.windowDays }}, inclusive.
+                Eligible positive stock expiring after today, within each item's
+                alert days ({{ review.windowDays }} days unless set on the
+                item), inclusive.
             </p>
             <p v-if="k === 'expired'" class="text-sm font-medium">
                 Always listed while stock remains, including held or unavailable
@@ -262,6 +294,114 @@ watch(
                     type="button"
                     :disabled="review.lists[k].page >= review.lists[k].lastPage"
                     @click="search(k, review.lists[k].page + 1)"
+                >
+                    Next
+                </button>
+            </div>
+        </section>
+        <section
+            class="min-w-0 space-y-3 rounded-lg border p-3 md:p-5"
+            data-testid="at-risk"
+        >
+            <h2 class="text-xl font-semibold">At risk in 6 months</h2>
+            <p class="text-sm">
+                Usable stock expiring within {{ atRisk.days }} days of today.
+                Read only: there is nothing to acknowledge here.
+                <template v-if="atRisk.sortedBy === 'value'"
+                    >Sorted by value, highest first.</template
+                ><template v-else
+                    >Sorted by expiry date, soonest first.</template
+                >
+            </p>
+            <p
+                v-if="atRisk.banner"
+                class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+                data-testid="at-risk-banner"
+            >
+                <TriangleAlert
+                    class="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                />
+                <span>{{ atRisk.banner }}</span>
+            </p>
+            <p
+                v-if="atRisk.sortedBy === 'value'"
+                class="text-sm text-muted-foreground"
+            >
+                Value is the quantity times the item's average cost at this
+                branch: an average cost, not what was paid for this batch.
+            </p>
+            <p class="text-sm text-muted-foreground">
+                {{ atRisk.total }} matching batches · Page {{ atRisk.page }} of
+                {{ atRisk.lastPage }} · Up to 25 per page.
+            </p>
+            <p v-if="!atRisk.rows.length">No matching batches on this page.</p>
+            <article
+                v-for="row in atRisk.rows"
+                :key="row.item_id"
+                class="min-w-0 space-y-1 rounded border p-3"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1 break-words">
+                        <h3 class="font-semibold">
+                            {{ row.sku_code }} · {{ row.item }}
+                        </h3>
+                        <p>
+                            {{ row.location
+                            }}<span v-if="row.batch"> · {{ row.batch }}</span>
+                            · Expiry
+                            <span class="whitespace-nowrap">{{
+                                formatDate(row.expiry)
+                            }}</span>
+                            ·
+                            {{
+                                row.daysLeft === 1
+                                    ? '1 day left'
+                                    : `${row.daysLeft} days left`
+                            }}
+                        </p>
+                    </div>
+                    <p
+                        v-if="atRisk.sortedBy === 'value'"
+                        class="text-right tabular-nums"
+                        data-testid="at-risk-value"
+                    >
+                        <span class="block text-sm text-muted-foreground"
+                            >Value (RM)</span
+                        >
+                        <template v-if="row.value"
+                            >{{ row.value
+                            }}<span
+                                v-if="row.estimate"
+                                class="text-sm text-muted-foreground"
+                            >
+                                (estimate)</span
+                            ><span
+                                v-if="row.part"
+                                class="text-sm text-muted-foreground"
+                            >
+                                (part)</span
+                            ></template
+                        ><span v-else class="text-sm text-muted-foreground"
+                            >No cost recorded</span
+                        >
+                    </p>
+                </div>
+                <p>On hand: {{ row.quantity }} {{ row.stock_unit }}</p>
+            </article>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <button
+                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    type="button"
+                    :disabled="atRisk.page <= 1"
+                    @click="search('at_risk', atRisk.page - 1)"
+                >
+                    Previous</button
+                ><button
+                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    type="button"
+                    :disabled="atRisk.page >= atRisk.lastPage"
+                    @click="search('at_risk', atRisk.page + 1)"
                 >
                     Next
                 </button>

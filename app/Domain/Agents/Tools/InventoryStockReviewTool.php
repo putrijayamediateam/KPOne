@@ -7,12 +7,11 @@ use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * `inventory.stock_review`: low-stock, expiring (90 days) and expired counts per SKU at one branch.
+ * `inventory.stock_review`: low-stock, expiring (per SKU, up to 90 days) and expired counts per SKU at one branch.
  * Uses the same rules as the Stock review page (InventoryStockReviewService); the list totals are
  * proven equal to that page's totals by test. `rows` (AG-6) lists each low-stock SKU and location with its
  * reorder level (and `maxLevel`, null when none is set, STK-30), and each expiring or expired batch at its location, by public id, for the inventory analyst.
@@ -120,7 +119,8 @@ final class InventoryStockReviewTool implements SystemReadableTool
             // stock stays listed below, because it still has to be written off.
             $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
             $query->where('l.is_active', true)->whereNull('e.eligibility_reason')
-                ->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($this->eligibility->localDate($branch))->addDays(InventoryStockReviewService::EXPIRY_WINDOW_DAYS)->toDateString());
+                // STK-42: each SKU's own alert days, capped at 90 for the analyst (agreed with the agent platform).
+                ->whereRaw('e.expiry_date <= ?::date + LEAST(COALESCE(s.expiry_alert_days, ?), ?)::int', [$this->eligibility->localDate($branch), InventoryStockReviewService::EXPIRY_WINDOW_DAYS, InventoryStockReviewService::EXPIRY_WINDOW_DAYS]);
         } else {
             $query->whereDate('e.expiry_date', '<=', $this->eligibility->localDate($branch));
         }
