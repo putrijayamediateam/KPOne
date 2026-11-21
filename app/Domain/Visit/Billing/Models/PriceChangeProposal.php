@@ -15,7 +15,9 @@ use LogicException;
  * @property int $id
  * @property string $public_id
  * @property int $organisation_id
- * @property int $price_book_id
+ * @property int|null $price_book_id
+ * @property string $scope_key
+ * @property int|null $panel_id
  * @property int $charge_definition_id
  * @property int $proposed_unit_price_sen
  * @property string $agreement_reference
@@ -48,7 +50,7 @@ class PriceChangeProposal extends Model
     {
         static::deleting(fn (): never => throw new LogicException('Price change proposal evidence is retained.'));
         static::updating(function (self $proposal): void {
-            $allowed = ['status', 'decided_by_user_id', 'decided_at', 'reason_code', 'decision_note', 'price_entry_id', 'applied_effective_at', 'lock_version', 'updated_at'];
+            $allowed = ['price_book_id', 'status', 'decided_by_user_id', 'decided_at', 'reason_code', 'decision_note', 'price_entry_id', 'applied_effective_at', 'lock_version', 'updated_at'];
             if ($proposal->getOriginal('status') !== 'proposed' || array_diff(array_keys($proposal->getDirty()), $allowed) !== []) {
                 throw new LogicException('A price change proposal can only be decided once.');
             }
