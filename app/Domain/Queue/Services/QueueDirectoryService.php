@@ -158,6 +158,15 @@ class QueueDirectoryService
         // Q-13: the doctor's own removed rows whose dispensary case waits for the doctor's check (one batched read, ids only).
         // It is its own array for the board's block; it also lets the doctor open the consultation (the way in).
         $checkWaiting = $this->dispensaryAttention->checksForVisits($actor, $removedVisits);
+        // Q-15: when this page already holds EVERY removed entry in scope (the Completed tab, unfiltered, nothing cut off by the 25-row
+        // limit), the flags just read are the whole answer, so no second query. Otherwise one aggregate count over all the doctor's cases.
+        $showsAllRemoved = $status === QueueEntry::STATUS_REMOVED
+            && ! filled($criteria['priority'] ?? null)
+            && trim((string) ($criteria['query'] ?? '')) === ''
+            && $removedEntries->count() >= $counts['tabs']['removed'];
+        $checksWaiting = $showsAllRemoved
+            ? count($checkWaiting)
+            : $this->dispensaryAttention->checksWaitingCount($actor, $branch);
         $removedHints = $this->dispensaryAttention->pendingForVisits($actor, $removedVisits)
             + app(CheckoutReopenEligibility::class)->forVisits($actor, $removedVisits)
             + $checkWaiting;
@@ -171,7 +180,7 @@ class QueueDirectoryService
         $dynamic = [
             'tabCounts' => $counts['tabs'],
             // Q-15: every dispensary case waiting for this doctor's check (0 for anyone else); a top-level key, so tabCounts keeps its shape.
-            'checksWaiting' => $this->dispensaryAttention->checksWaitingCount($actor),
+            'checksWaiting' => $checksWaiting,
             'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
             'serverNow' => $now->toIso8601String(),
             'operationalDate' => $today,

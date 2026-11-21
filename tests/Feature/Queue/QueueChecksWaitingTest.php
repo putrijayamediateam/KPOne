@@ -56,7 +56,7 @@ class QueueChecksWaitingTest extends ClinicalTestCase
 
         foreach ([$f['ca'], $this->actor('ca_supervisor'), $this->actor('director'), $this->doctor()] as $actor) {
             $this->selectBranch($actor);
-            $this->assertSame(0, app(DoctorDispensaryAttentionService::class)->checksWaitingCount($actor));
+            $this->assertSame(0, app(DoctorDispensaryAttentionService::class)->checksWaitingCount($actor, $this->branch));
             $this->assertSame(0, $this->payloadCount($actor));
         }
     }
@@ -70,7 +70,7 @@ class QueueChecksWaitingTest extends ClinicalTestCase
 
         DB::flushQueryLog();
         DB::enableQueryLog();
-        $this->assertSame(1, app(DoctorDispensaryAttentionService::class)->checksWaitingCount($f['doctor']));
+        $this->assertSame(1, app(DoctorDispensaryAttentionService::class)->checksWaitingCount($f['doctor'], $f['visit']->branch));
         $counts = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains(strtolower($q['query']), 'count(*)') && str_contains($q['query'], 'dispensary_cases'));
         DB::disableQueryLog();
         $this->assertCount(1, $counts, 'One aggregate count, no per-row query.');

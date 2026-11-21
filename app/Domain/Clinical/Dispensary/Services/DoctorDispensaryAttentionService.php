@@ -232,17 +232,15 @@ class DoctorDispensaryAttentionService
 
     /**
      * Q-15 (owner decision 21 Nov 2026): how many dispensary cases wait for THIS doctor's check, for the "N to check" count on
-     * the Queue tab. One aggregate count with the same guards and the same case rules as checksForVisits(), over all of the
-     * doctor's cases at the active branch (not only the rows a page lists). Returns 0 without a query for anyone else.
+     * the Queue tab. One aggregate count over all of the doctor's cases at $branch (not only the rows a page lists), with the
+     * same case rules as checksForVisits(). The caller (the Queue page) has already authorised the actor for $branch, so the
+     * branch checks are not repeated here (they cost four queries a poll); the count is still limited to the actor's own cases.
+     * Returns 0 without a query for anyone who is not that doctor.
      */
-    public function checksWaitingCount(User $actor): int
+    public function checksWaitingCount(User $actor, Branch $branch): int
     {
-        if (! $actor->is_active || ! $actor->hasRole('resident_doctor')
+        if (! $actor->is_active || ! $actor->hasRole('resident_doctor') || $branch->organisation_id !== $actor->organisation_id
             || ! $actor->can('dispensary.doctor_check.own') || ! $actor->can('encounters.view.own')) {
-            return 0;
-        }
-        $branch = $this->branches->activeBranch($actor);
-        if (! $branch || ! $actor->staffProfile()->exists() || ! $this->branches->canSelect($actor, $branch) || ! $this->branches->hasEffectiveAssignment($actor, $branch)) {
             return 0;
         }
 
