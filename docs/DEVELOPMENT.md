@@ -266,7 +266,7 @@ branch two doctors, two Clinic Assistants, two CA Supervisors and the TV account
 Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing and Technical Admin,
 assigned to every branch), payment methods, visit reasons and preset diagnoses, and for each branch its letterhead,
 footer, approval limits, rooms and verified fictional doctor credentials; 12 generic medicines (one controlled) and
-6 services with Self-pay and Panel prices, two fictional Panels, stock at every branch with real future expiry dates
+6 services with Self-pay prices and Panel prices (proposed by the Panel Officer, approved by Finance), two fictional Panels, stock at every branch with real future expiry dates
 signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
 nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
 counts only). It is never called from a seeder, migration, scheduler or deploy.

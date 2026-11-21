@@ -33,7 +33,7 @@ class TrialDataCommandTest extends TestCase
         'charge_definitions', 'price_books', 'price_entries', 'inventory_unit_contracts', 'inventory_opening_verifications',
         'payment_methods', 'panels', 'branch_rooms', 'diagnosis_presets', 'clinician_professional_profiles', 'patients',
         'inventory_suppliers', 'billing_approval_limits', 'visit_reason_catalogue_items', 'panel_claim_message_templates',
-        'business_detail_commands', 'branch_document_footers', 'audit_logs',
+        'business_detail_commands', 'branch_document_footers', 'price_change_proposals', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -162,6 +162,9 @@ class TrialDataCommandTest extends TestCase
         $this->assertSame(count(PhaseOneFoundation::PAYMENT_METHODS), DB::table('payment_methods')->where('is_active', true)->count());
         $this->assertSame('cash', DB::table('payment_methods')->where('code', 'CASH')->value('classification'));
         $this->assertSame(count(PhaseOneFoundation::PANELS), DB::table('panels')->count());
+        // Panel prices came by proposal (Panel Officer) and approval (Finance Officer), never by direct publishing.
+        $panelBook = DB::table('price_books')->where('scope_key', 'panel:default')->value('id');
+        $this->assertSame(1 + count(PhaseOneFoundation::SERVICES) + count(PhaseOneFoundation::MEDICINES), DB::table('price_entries')->where('price_book_id', $panelBook)->count());
         $this->assertSame(PhaseOneFoundation::PATIENTS_PER_BRANCH * 3, DB::table('patients')->count());
         $this->assertSame(6, DB::table('clinician_professional_profiles')->where('verified', true)->count());
 

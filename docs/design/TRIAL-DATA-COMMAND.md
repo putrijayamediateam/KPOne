@@ -68,8 +68,8 @@ All three branches get full data (owner, 21 Nov).
   Supervisor, consultation, dispensary and treatment rooms, verified credentials for its two doctors (obviously
   fictional twelve-digit registration numbers). The organisation logo is the Klinik Putrijaya mark, when GD is
   available.
-- **Catalogue and prices:** 12 generic medicines (one controlled), 6 services, the consultation tariff; Self-pay and
-  default Panel prices; two fictional Panels with a claim message template.
+- **Catalogue and prices:** 12 generic medicines (one controlled), 6 services, the consultation tariff; Self-pay prices, and default
+  Panel prices proposed by the Panel Officer and approved by the Finance Officer (owner decision 27: no direct Panel price publishing); two fictional Panels with a claim message template.
 - **Stock:** two suppliers; at each branch a dispensary and a store, openings with real future expiry dates (one batch
   expires in two months, for the expiry views), recorded by the branch's first CA Supervisor and signed off by its
   second.

@@ -93,16 +93,26 @@ final class TrialDataContext
         foreach (self::BRANCHES as $code => $short) {
             foreach (self::BRANCH_STAFF as $role => $definition) {
                 $accounts[self::key($code, $role)] = [
-                    ...$definition,
                     'name' => 'Trial '.ucwords(str_replace('_', ' ', strtolower($code))).' '.$definition['name'],
+                    'role' => $definition['role'],
+                    'department' => $definition['department'],
+                    'title' => $definition['title'],
                     'staff_number' => sprintf('TRIAL-%04d', $number++),
-                    'branches' => [$code],
+                    'branches' => [(string) $code],
                 ];
             }
         }
+        /** @var list<string> $all */
         $all = array_keys(self::BRANCHES);
         foreach (self::SHARED_STAFF as $key => $definition) {
-            $accounts[$key] = [...$definition, 'staff_number' => sprintf('TRIAL-%04d', $number++), 'branches' => $all];
+            $accounts[$key] = [
+                'name' => $definition['name'],
+                'role' => $definition['role'],
+                'department' => $definition['department'],
+                'title' => $definition['title'],
+                'staff_number' => sprintf('TRIAL-%04d', $number++),
+                'branches' => $all,
+            ];
         }
 
         return $accounts;
