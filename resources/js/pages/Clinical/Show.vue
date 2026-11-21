@@ -15,6 +15,7 @@ import {
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
@@ -517,6 +518,85 @@ const holdWithoutSaving = () => {
     treatmentPlanPanelRef.value?.discardDraft();
     unsavedWorkOpen.value = false;
     changeHoldState('hold');
+};
+
+// Q-14 (owner decision 21 Nov 2026): Complete Consultation never goes ahead with unsaved clinical work. The panel's button only
+// asks (request-complete); with nothing unsaved the existing "Complete consultation?" dialog opens as before, otherwise the doctor
+// first chooses. Either choice ends in that same confirm dialog (so the service dispositions are still confirmed), never in a
+// silent completion.
+const continueOpen = ref(false);
+const continueProcessing = ref(false);
+const continueAction = ref<'confirm' | 'secondary'>('confirm');
+const continueError = ref('');
+const requestComplete = () => {
+    if (form.processing || continueProcessing.value) {
+        return;
+    }
+
+    if (!hasUnsavedWork.value) {
+        treatmentPlanPanelRef.value?.openComplete();
+
+        return;
+    }
+
+    continueError.value = '';
+    continueOpen.value = true;
+};
+const saveAndContinue = () => {
+    continueAction.value = 'confirm';
+    continueProcessing.value = true;
+    continueError.value = '';
+
+    const proceed = () => {
+        continueOpen.value = false;
+        continueProcessing.value = false;
+        treatmentPlanPanelRef.value?.openComplete();
+    };
+    const saveTreatmentPlanThenContinue = () => {
+        const panel = treatmentPlanPanelRef.value;
+
+        if (!panel) {
+            proceed();
+
+            return;
+        }
+
+        panel.saveDraft(proceed, (message) => {
+            continueError.value = message;
+            continueProcessing.value = false;
+        });
+    };
+
+    if (!form.isDirty) {
+        saveTreatmentPlanThenContinue();
+
+        return;
+    }
+
+    form.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                adoptLatestRecord();
+                saveTreatmentPlanThenContinue();
+            },
+            onError: () => {
+                continueError.value =
+                    Object.values(form.errors)[0] ??
+                    'The clinical record could not be saved. Review the latest information and try again.';
+                continueProcessing.value = false;
+            },
+        },
+    );
+};
+const continueWithoutSaving = () => {
+    continueAction.value = 'secondary';
+    form.reset();
+    form.clearErrors();
+    treatmentPlanPanelRef.value?.discardDraft();
+    continueOpen.value = false;
+    treatmentPlanPanelRef.value?.openComplete();
 };
 
 const bmi = computed(() => {
@@ -1606,6 +1686,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 >
                     <TreatmentPlanPanel
                         ref="treatmentPlanPanelRef"
+                        @request-complete="requestComplete"
                         :visit-number="clinical.visit.visitNumber"
                         :branch-id="clinical.branch.id"
                         :plan="clinical.treatmentPlan"
@@ -1637,6 +1718,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             @update:open="unsavedWorkOpen = $event"
             @save-and-hold="saveAndHold"
             @hold-without-saving="holdWithoutSaving"
+        />
+        <UnsavedClinicalWorkContinueDialog
+            :open="continueOpen"
+            :unsaved-items="unsavedItems"
+            :processing="continueProcessing"
+            :processing-action="continueAction"
+            :error="continueError"
+            @update:open="continueOpen = $event"
+            @save-and-continue="saveAndContinue"
+            @continue-without-saving="continueWithoutSaving"
         />
     </main>
 </template>
