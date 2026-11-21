@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Ramsey\Uuid\Uuid;
 use Spatie\Permission\Models\Role;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -74,6 +75,33 @@ class PackConversionTest extends VisitTestCase
         $rows = $this->get(route('inventory.skus', ['q' => $this->sku->sku_code]))->assertOk()->viewData('page')['props']['skus']['rows'];
 
         return $rows[0]['packConversion'];
+    }
+
+    /**
+     * A waiting change's id is the one random value a checker receives, and a random UUID contains "60" or "55"
+     * about one time in five. The two tests below make that id contain both, so their text checks always meet such
+     * an id, and then leave the id out of the text they search: only a real number can fail them.
+     */
+    private function withIdsContainingTheNumbers(callable $propose): void
+    {
+        $sequence = 0;
+        Str::createUuidsUsing(function () use (&$sequence) {
+            return Uuid::fromString(sprintf('60556055-6055-4055-8055-%012d', ++$sequence));
+        });
+        try {
+            $propose();
+        } finally {
+            Str::createUuidsNormally();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     * @return array<string, mixed>
+     */
+    private function withoutWaitingId(array $block): array
+    {
+        return array_replace_recursive($block, ['waiting' => ['publicId' => 'id']]);
     }
 
     private function refused(callable $write): void
@@ -147,14 +175,15 @@ class PackConversionTest extends VisitTestCase
     {
         $refused = $this->propose(55);
         $this->check($refused, 54);
-        $this->propose(60);
+        $this->withIdsContainingTheNumbers(fn () => $this->propose(60));
         $checker = $this->block($this->checker);
+        $this->assertStringContainsString('6055', $checker['waiting']['publicId']);
         $this->assertTrue($checker['waiting']['canCheck']);
         $this->assertArrayNotHasKey('basePerPack', $checker['waiting']);
         $this->assertArrayNotHasKey('packUnit', $checker['waiting']);
         // Refused numbers are hidden from a checker too, so they cannot be copied.
         $this->assertArrayNotHasKey('basePerPack', $checker['history'][0]);
-        $json = json_encode($checker, JSON_THROW_ON_ERROR);
+        $json = json_encode($this->withoutWaitingId($checker), JSON_THROW_ON_ERROR);
         $this->assertStringNotContainsString('60', $json);
         $this->assertStringNotContainsString('55', $json);
 
@@ -174,10 +203,11 @@ class PackConversionTest extends VisitTestCase
             return $this->get(route('inventory.skus', ['q' => $this->sku->sku_code]))->assertOk()->viewData('page')['props']['skus']['rows'][0];
         };
         $this->assertSame(['60.000', 'bottle', false], [$row($this->checker)['packSize'], $row($this->checker)['purchaseUnit'], $row($this->checker)['legacyHidden']]);
-        $this->propose(60);
+        $this->withIdsContainingTheNumbers(fn () => $this->propose(60));
         $checker = $row($this->checker);
+        $this->assertStringContainsString('6055', $checker['packConversion']['waiting']['publicId']);
         $this->assertSame([null, null, true], [$checker['packSize'], $checker['purchaseUnit'], $checker['legacyHidden']]);
-        $this->assertStringNotContainsString('60', json_encode([$checker['packSize'], $checker['purchaseUnit'], $checker['packConversion']], JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('60', json_encode([$checker['packSize'], $checker['purchaseUnit'], $this->withoutWaitingId($checker['packConversion'])], JSON_THROW_ON_ERROR));
         // The proposer and a third person keep them.
         $this->assertSame(['60.000', false], [$row($this->proposer)['packSize'], $row($this->proposer)['legacyHidden']]);
         $this->assertSame(['60.000', false], [$row($this->actor('administrator'))['packSize'], $row($this->actor('administrator'))['legacyHidden']]);
