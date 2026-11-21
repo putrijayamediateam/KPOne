@@ -244,7 +244,7 @@ It adds no Panels, patients, visits or cost policy. Never run it with real data 
 A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
 run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
 the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
-Phases 1 (foundation), 2 (a clinic day) and 3 (Panel claims) are built so far.
+Phases 1 (foundation), 2 (a clinic day), 3 (Panel claims) and 4 (inventory) are built so far.
 
 Before the first run: migrate and seed the reference data, create the one Director with
 `php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
@@ -257,6 +257,7 @@ php artisan config:clear
 php artisan kpone:trial-data --phase=1
 php artisan kpone:trial-data --phase=2   # needs phase 1; asks no password
 php artisan kpone:trial-data --phase=3   # needs phase 1
+php artisan kpone:trial-data --phase=4   # needs phase 1 (phase 2 for the medicine return)
 # afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
 ```
 
@@ -286,6 +287,11 @@ Phase 3 adds, at every branch, eleven fictional Panel patients with completed Pa
 stage (prepared, submitted with a confirmed claim adjustment, queried, accepted, partly accepted, rejected, partly
 paid, paid by a remittance, a payment reversed by Finance, and a two-claim bulk claim on the second Panel), plus two
 Panel price changes from tomorrow (one approved, one waiting).
+
+Phase 4 runs the inventory workflows at every branch with the required independent people: purchasing with a matched
+and a waiting supplier invoice, a delivery exception, a supplier return, a batch hold, a governed count and write-offs,
+reorder and review acknowledgements, treatment-room usage, a controlled-register check, a medicine return and a cycle
+count; and once a cross-branch transfer with a short receipt and a supplier recall.
 
 ## Ask KPOne read login (AG-7)
 

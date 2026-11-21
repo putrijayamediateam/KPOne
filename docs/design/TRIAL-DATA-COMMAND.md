@@ -1,6 +1,6 @@
 # TRIAL-DATA: fictional demo data for the trial server (design note)
 
-Status: **Phases 1 to 3 built** (branch `feature/trial-data-command`); Phases 4 to 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
+Status: **Phases 1 to 4 built** (branch `feature/trial-data-command`); Phases 5 and 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
 the owner in the DEMO-1 session): demo data that uses every function, every user role and every menu module, built
 in phases. Branch `feature/trial-data-command`. No PR until the owner's ship-it.
 
@@ -130,7 +130,21 @@ one waiting).
 Menus: Panel Claims, Claims follow-up, Panel payments, Correct a Panel payment, Panel price changes, Panel
 invoices, Panel summary report.
 
-### Phase 4 — inventory workflows
+### Phase 4 — inventory workflows (built)
+
+**Built, at every branch:** a purchase request (CA) converted to an order (CA Supervisor), approved by Finance, received
+in part with actual costs, short-closed by the Director and its supplier invoice matched; a second order received with
+five damaged boxes quarantined (review requested by the receiver, approved by the other CA Supervisor, then posted; the
+batch is held automatically) whose invoice differs and waits for Finance; those boxes returned to the supplier
+(approved, dispatched, credit note); a hold placed and released by a different person; a governed count counted and
+recounted by the two CA Supervisors and approved by Finance; a damage write-off and an expiry write-off of a fictional
+batch that expired the day before; a reorder level and the low-stock, expiring and expired lists acknowledged;
+treatment-room usage and waste; the controlled register checked; a medicine return from phase 2 quarantined into a new
+patient-returns location; a cycle count started. **Once:** supplier price terms, a PUCHONG to CHERAS transfer with two
+boxes short (resolved as arriving later) and a supplier recall of one CHERAS receipt batch started by the Director.
+Receipts carry actual costs, so stock value and the journal summary have costed stock.
+
+Design as reviewed:
 
 Purchase request → PO → approval → partial receipt; a delivery exception with independent approval; supplier invoice
 (matched and waiting); a supplier return; a stock request from PUCHONG with a short receipt; a governed count with a

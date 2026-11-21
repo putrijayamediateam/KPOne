@@ -41,7 +41,11 @@ class TrialDataCommandTest extends TestCase
         'queue_entries', 'otc_queue_entries', 'queue_calls', 'queue_call_holds', 'consultation_holds', 'queue_treatment_steps',
         'visit_triage_assessments', 'dispensary_cases', 'invoices', 'payments', 'payment_refunds', 'medical_certificates',
         'referral_documents', 'attendance_documents', 'payment_reconciliations', 'cash_closings', 'coverage_allocations', 'panel_claims', 'panel_claim_payments',
-        'panel_claim_adjustments', 'panel_remittances', 'panel_claim_payment_reversals', 'audit_logs',
+        'panel_claim_adjustments', 'panel_remittances', 'panel_claim_payment_reversals', 'inventory_purchase_requests',
+        'inventory_purchase_orders', 'inventory_goods_receipts', 'inventory_receiving_reviews', 'inventory_supplier_invoices',
+        'inventory_supplier_returns', 'inventory_batch_hold_states', 'inventory_governed_cases', 'inventory_reorder_levels',
+        'inventory_stock_reviews', 'inventory_treatment_usages', 'inventory_controlled_register_checks', 'dispensary_returns',
+        'inventory_stock_requests', 'inventory_recalls', 'inventory_supplier_sku_terms', 'audit_logs',
     ];
 
     private Branch $cheras;
@@ -335,6 +339,34 @@ class TrialDataCommandTest extends TestCase
     {
         return $this->artisan('kpone:trial-data', ['--phase' => $phase])
             ->expectsQuestion('Type this site\'s host name to confirm (for example trial.example.com)', self::HOST);
+    }
+
+    public function test_phase_four_runs_the_inventory_workflows_once_at_every_branch(): void
+    {
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+        $this->runPhase('2')->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('4')->assertExitCode(Command::SUCCESS);
+        foreach (Branch::query()->get() as $branch) {
+            $code = $branch->code;
+            $invoices = DB::table('inventory_supplier_invoices')->where('branch_id', $branch->id)->orderBy('id')->pluck('status')->all();
+            $this->assertSame(['matched', 'waiting'], $invoices, $code);
+            $this->assertSame(1, DB::table('inventory_receiving_reviews')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(1, DB::table('inventory_supplier_returns')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(['count', 'count', 'writeoff', 'writeoff'], DB::table('inventory_governed_cases')->where('branch_id', $branch->id)->orderBy('kind')->pluck('kind')->all(), $code);
+            $this->assertSame(2, DB::table('inventory_treatment_usages')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(1, DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(1, DB::table('dispensary_returns')->where('branch_id', $branch->id)->count(), $code);
+            $this->assertSame(2, DB::table('inventory_stock_reviews')->where('branch_id', $branch->id)->whereIn('worklist', ['low_stock', 'expiring'])->count(), $code);
+        }
+        $this->assertSame(1, DB::table('inventory_stock_requests')->count());
+        $this->assertSame(1, DB::table('inventory_transfer_differences')->count());
+        $this->assertSame(1, DB::table('inventory_recalls')->count());
+
+        $after = $this->counts();
+        $this->runPhase('4')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
+        $this->assertSame($after, $this->counts());
     }
 
     public function test_placeholder_files_are_real_png_and_pdf_marked_fictional(): void
