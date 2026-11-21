@@ -4,7 +4,7 @@ Owner decision 25 (20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-
 item (default 90) plus a 6-month at-risk list sorted by cost.** **Classic layout only** (coordinator, 21 Nov; the Stock
 review page has no V2 version anyway). Synthetic data only.
 
-Revision 2, after Mei Ling's review (OK with changes, 21 Nov): Hana's tool, the acknowledgement list, the window
+Revision 2, after Mei Ling's review (OK with changes, 21 Nov; revision 2 OK, 21 Nov): Hana's tool, the acknowledgement list, the window
 wording, cost leaving the page, the valuation label, who sees value, sorting cost, the usable-stock rule and the query
 are now spelled out below.
 
@@ -100,7 +100,8 @@ suggested only from 90 days, until the agent platform raises its limits.
 - **Frontend (Classic):** the SKU field, the reworded sentence, the at-risk section, both sort orders, the value
   column and banner only when allowed, the "(estimate)", "(part)" and "No cost recorded" labels, and pagination.
 - **Existing assertions:** any that pins "within 90 days" or `windowDays` on the Stock review page is listed before and
-  after for the owner's approval, and left failing until then.
+  after, and none is edited. It is asked of the owner directly (never through a red CI run), and the PR does not open
+  until the owner has approved each change.
 
 ## Not in this slice
 
