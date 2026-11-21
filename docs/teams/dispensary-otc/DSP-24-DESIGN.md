@@ -32,7 +32,8 @@ still moves in ml.
 - No change to the doctor's order: the doctor still orders in the medicine's order unit. The "Doctor ordered" line
   stays as it is; the CA's bottles show beside it.
 - Not in DSP-24: receiving, openings and reorder levels in bottles (STK-52's known limit, a later Inventory slice);
-  bottles on the Completed page's returns (returns stay in ml).
+  recording returns in bottles (returns stay in ml; the returns screen's "Dispensed" line shows "2 bottles (120 ml)"
+  so the CA sees what went out).
 
 ## 3. Data
 

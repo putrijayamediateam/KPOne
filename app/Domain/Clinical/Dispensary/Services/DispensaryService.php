@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Dispensary\Labels\DrugLabelLayout;
 use App\Domain\Clinical\Dispensary\Models\DispensaryAllergyConfirmation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
@@ -364,13 +365,15 @@ class DispensaryService
         if (($attributes['packs'] ?? null) === null || $attributes['packs'] === '') {
             return ['pack_conversion_id' => null, 'packs_dispensed' => null];
         }
-        $packs = filter_var($attributes['packs'], FILTER_VALIDATE_INT);
-        if ($packs === false || $packs < 1 || $packs > self::MAX_PACKS) {
-            throw ValidationException::withMessages(['packs' => 'Whole bottles only, 1 to '.self::MAX_PACKS.'.']);
-        }
         $skuIds = DispensaryItemBatchAllocation::query()->where('dispensary_item_id', $line->id)->distinct()->pluck('inventory_sku_id');
         $sku = $skuIds->count() === 1 ? InventorySku::query()->where('organisation_id', $actor->organisation_id)->whereKey($skuIds->first())->first() : null;
         $conversion = $sku ? app(PackConversionReader::class)->checkedForShare($actor->organisation_id, $sku->id) : null;
+        // Hakim: the message names the pack unit ("Whole boxes only") when the conversion is known.
+        $packs = filter_var($attributes['packs'], FILTER_VALIDATE_INT);
+        if ($packs === false || $packs < 1 || $packs > self::MAX_PACKS) {
+            $plural = $conversion ? DrugLabelLayout::packCount(2, $conversion->packUnit) : '2 packs';
+            throw ValidationException::withMessages(['packs' => 'Whole '.mb_substr($plural, 2).' only, 1 to '.self::MAX_PACKS.'.']);
+        }
         if (! $conversion
             || $conversion->publicId !== (string) ($attributes['pack_conversion_public_id'] ?? '')
             || $conversion->version !== (int) ($attributes['pack_conversion_version'] ?? 0)

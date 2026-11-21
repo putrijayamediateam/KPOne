@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\Feature\Billing\BillingTestCase;
+use Tests\Support\DoctorCheckFixtures;
 use Tests\Support\OtcDispensaryFixtures;
 
 /**
@@ -29,6 +30,7 @@ use Tests\Support\OtcDispensaryFixtures;
  */
 class DispensaryPackDispensingTest extends BillingTestCase
 {
+    use DoctorCheckFixtures;
     use OtcDispensaryFixtures;
 
     private User $director;
@@ -196,6 +198,13 @@ class DispensaryPackDispensingTest extends BillingTestCase
         $refused(fn () => DB::table('dispensary_items')->where('id', $item->id)->update(['packs_dispensed' => null]));
         $refused(fn () => DB::table('dispensary_items')->where('id', $item->id)->update(['packs_dispensed' => 100, 'quantity_dispensed' => '500.000']));
 
+        // A version waiting for its check is refused, even with the right packs and ml.
+        $this->director ??= $this->actor('director');
+        $this->selectBranch($this->director, $f['visit']->branch);
+        $waiting = app(PackConversionService::class)->propose($this->director, $f['sku']->public_id, ['expected_version' => 1, 'idempotency_key' => (string) Str::uuid(), 'pack_unit' => 'bottle', 'base_per_pack' => 10]);
+        $waitingId = (int) DB::table('inventory_pack_conversions')->where('public_id', $waiting)->value('id');
+        $refused(fn () => DB::table('dispensary_items')->where('id', $item->id)->update(['pack_conversion_id' => $waitingId, 'packs_dispensed' => 1]));
+
         // An allocation from another SKU is refused when the transaction commits (deferred trigger).
         $otherItem = new InventoryItem;
         $otherItem->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'code' => 'SYN-OTHER-'.Str::upper(Str::random(5)), 'generic_name' => 'Synthetic other item', 'is_active' => true])->save();
@@ -206,5 +215,33 @@ class DispensaryPackDispensingTest extends BillingTestCase
         $refused(fn () => DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $item->id)->update(['inventory_sku_id' => $other->id, 'inventory_batch_id' => $batch->id]));
 
         $this->assertSame(2, $item->refresh()->packs_dispensed);
+    }
+
+    public function test_the_doctor_cannot_verify_a_bottle_line_after_the_bottle_size_changes(): void
+    {
+        // A consultation case (DSP-23): the CA saves 1 bottle of 2 units, sends it for the doctor's check, and a new
+        // bottle size is checked meanwhile. Verify is refused and nothing is dispensed.
+        $p = $this->prepared();
+        $f = ['ca' => $p['ca'], 'visit' => $p['visit'], 'sku' => $p['sku']];
+        $this->checkedConversion($f, 2);
+        $case = $p['case'];
+        $item = $case->handoffs()->sole()->items()->sole();
+        $conversion = $this->current($p['sku']);
+        app(DispensaryService::class)->editItem($p['ca'], $case->refresh(), $item, [
+            'expected_branch_id' => $p['visit']->branch_id, 'case_lock_version' => $case->lock_version, 'item_lock_version' => $item->lock_version,
+            'quantity_dispensed' => '2.000', 'dosage' => 'Synthetic dosage', 'frequency' => 'Synthetic frequency',
+            'packs' => 1, 'pack_conversion_public_id' => $conversion['public_id'], 'pack_conversion_version' => $conversion['version'],
+            'allocations' => [['location_public_id' => $p['location']->public_id, 'sku_public_id' => $p['sku']->public_id, 'batch_public_id' => $p['batch']->public_id, 'quantity' => '2.000']],
+        ]);
+        $this->assertSame(1, $item->refresh()->packs_dispensed);
+        $this->switchOn($p['visit']->branch);
+        $this->selectBranch($p['ca'], $p['visit']->branch);
+        app(DispensaryService::class)->sendForDoctorCheck($p['ca'], $case->refresh(), ['expected_branch_id' => $p['visit']->branch_id, 'case_lock_version' => $case->lock_version, 'retry_key' => (string) Str::uuid()]);
+        $this->checkedConversion($f, 4);
+
+        $this->selectBranch($p['doctor'], $p['visit']->branch);
+        $this->refusedWith(fn () => app(DispensaryService::class)->verifyDoctorCheck($p['doctor'], $case->refresh(), ['expected_branch_id' => $p['visit']->branch_id, 'case_lock_version' => $case->lock_version, 'retry_key' => (string) Str::uuid()]), 'allocations', 'The bottle size for this medicine changed. Send the case back so the CA can save the line again.');
+        $this->assertSame(DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK, $case->refresh()->status);
+        $this->assertSame(0, DB::table('stock_movements')->where('movement_type', 'dispense')->count());
     }
 }
