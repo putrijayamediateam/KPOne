@@ -1,6 +1,6 @@
 # TRIAL-DATA: fictional demo data for the trial server (design note)
 
-Status: **design for review**, not built. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
+Status: **Phase 1 built** (branch `feature/trial-data-command`); Phases 2 to 6 are design for review. Owner-approved task (21 Nov 2026, relayed by B.E.R.N.I.S.S and confirmed by
 the owner in the DEMO-1 session): demo data that uses every function, every user role and every menu module, built
 in phases. Branch `feature/trial-data-command`. No PR until the owner's ship-it.
 
@@ -22,7 +22,8 @@ It stops, before any write, unless **all** of these hold:
 3. The terminal is interactive (no `--no-interaction`, no scheduler, no deploy hook). It is never called from a
    seeder, `DatabaseSeeder`, a migration or a deploy script.
 4. Exactly one active Director exists. The command acts as that Director for Director-only steps (it never creates
-   or changes a Director).
+   or changes a Director). The Director must have a current assignment at CHERAS; if not, the command stops and
+   tells the operator to run `php artisan kpone:director-branches` first.
 5. Every existing user other than that Director has an email ending in `.test`. Any other address means the database
    may hold real staff, so the command stops and names how many such accounts exist, never which.
 6. Every account it creates uses `@kpjaya.test`.
@@ -46,8 +47,8 @@ no output, log line or audit row.
 - **No new permission, role or route.** Code lives under `app/Domain/Shared/TrialData/` (one class per phase) and
   `app/Console/Commands/TrialData.php`. DEMO-1 and the inventory-walk seeder are not changed; their steps are
   re-implemented in the same style so their tests stay untouched.
-- **Branches:** CHERAS is the main demo branch. PUCHONG gets a small second stock so transfers, branch
-  replenishment and cross-branch recall have something to show.
+- **Branches:** CHERAS is the main demo branch (B.E.R.N.I.S.S, 21 Nov). PUCHONG gets a small second stock in Phase 4,
+  where transfers, branch replenishment and cross-branch recall need it.
 
 ## 4. Phases
 
@@ -64,8 +65,8 @@ Each phase is a separate PR-sized slice with its own tests, run in order. Later 
   settings, verified clinician credentials (obviously fictional MMC numbers) for both doctors.
 - **Catalogue and prices:** about 12 generic medicines (one controlled), 6 services, the consultation tariff;
   Self-pay and default Panel prices; two fictional Panels with a claim message template.
-- **Stock:** dispensary and store locations at CHERAS, a small store at PUCHONG, suppliers, openings with real future
-  expiry dates (one batch close to expiry, for the expiry views), verified units and second-person sign-off.
+- **Stock:** dispensary and store locations at CHERAS, suppliers, openings with real future expiry dates (one batch
+  close to expiry, for the expiry views), verified units and second-person sign-off.
 - **Patients:** about 20 fictional patients (adults, a minor with a guardian, one with allergies, one with an
   unknown date of birth and the adult confirmation).
 

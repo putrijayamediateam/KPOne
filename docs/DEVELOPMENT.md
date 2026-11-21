@@ -237,6 +237,36 @@ adds nothing. Every change goes through the domain services as a named demo acco
 
 It adds no Panels, patients, visits or cost policy. Never run it with real data or in production.
 
+## Trial server demo data (TRIAL-DATA)
+
+A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
+run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
+the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
+Phase 1 (foundation) is built so far.
+
+Before the first run: migrate and seed the reference data, create the one Director with
+`php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at CHERAS (run
+`php artisan kpone:director-branches` if it exists on your version). Then, on the trial server only:
+
+```bash
+# in the server environment, for this run only
+KPONE_TRIAL_DATA_ALLOWED=true
+php artisan config:clear
+php artisan kpone:trial-data --phase=1
+# afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
+```
+
+The command stops before changing anything unless the switch is on, it runs in an interactive terminal, there is
+exactly one active Director, every other account has a `.test` email, and the operator types the site's host name
+(the host of `APP_URL`). It asks once, hidden, for one shared password for the fictional `@kpjaya.test` accounts;
+the password is hashed at once and never printed, logged or audited. Phase 1 creates one account per role (two
+doctors, two Clinic Assistants and two CA Supervisors), clinic set-up (business details, footer, payment methods,
+approval limits, rooms, visit reasons, preset diagnoses, verified fictional clinician credentials), 12 generic
+medicines (one controlled) and 6 services with Self-pay and Panel prices, two fictional Panels, CHERAS stock with
+real future expiry dates signed off by the second CA Supervisor, and 20 fictional patients. Running it again adds
+nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
+counts only). It is never called from a seeder, migration, scheduler or deploy.
+
 ## Ask KPOne read login (AG-7)
 
 Ask KPOne lets the owner ask Claude Code, on the computer that runs KPOne, about the data in KPOne. Claude reads
