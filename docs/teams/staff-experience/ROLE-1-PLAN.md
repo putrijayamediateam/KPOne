@@ -29,7 +29,7 @@ All three also get the shared base: `dashboard.view.own`, `profile.view.own`, `s
 | Base | `staff.view.branch`, `branches.view.branch`, `branch_context.switch.branch` | the CA Supervisor pattern |
 | Registration, queue (view only) | `visits.view.branch`, `visits.history.view.branch`, `queue.view.branch` | item 1 "branch views of registration and queue" |
 | Billing (view only) | `billing.view.branch`, `billing.summary.branch`, `outstanding.view.branch` | item 1 "branch views of billing" |
-| Daily close | `payments.reconcile.branch`, `payments.cash_closing.approve.branch` | item 11: the Branch Manager approves the close (these exist today; CA counts, so the CA's count right is unchanged) |
+| Daily close | `payments.cash_closing.approve.branch` only | item 11: the Branch Manager approves the close and never records the count (owner and Billing, 21 Nov: `payments.reconcile.branch` is NOT granted; Billing's BIL-32 adds a view-only permission for the close pages) |
 | Stock (view only) | `inventory.view.branch` | item 1 "branch views of stock" |
 | Reports, own branch | `reports.daily_summary.view.branch`, `reports.daily_summary.export.branch`, `reports.stock_movement.view.branch`, `reports.stock_movement.export.branch` | item 7. All four are `.branch`, so "own branch only" is already enforced by the effective-branch rule |
 | Branch settings | none | not asked for |
@@ -55,7 +55,7 @@ a refund of any amount **now**, before Billing builds the "refund over RM300 goe
 | Area | Permissions | Why / source |
 |---|---|---|
 | Base, HQ reach | `branches.view.organisation`, `branch_context.switch.organisation`, `staff.view.branch` | needs to work at the central store branch and see branch names for requests |
-| Stock | `inventory.view.branch`, `inventory.receiving.branch`, `inventory.stocktake.branch`, `inventory.warehouse.organisation` | "receive" and "count the store" |
+| Stock | `inventory.view.branch`, `inventory.receiving.branch`, `inventory.stocktake.branch`, `inventory.stock_reviews.manage.branch`, `inventory.warehouse.organisation` | "receive" and "count the store"; the stock review right gives the Stock space (owner, 21 Nov) |
 | Purchasing | `inventory.purchase_orders.create.organisation`, `inventory.purchase_requests.create.branch` | item 20: prepares POs; **not** `inventory.purchase_orders.approve.organisation` (Director approves every PO) |
 | Branch requests | `inventory.stock_requests.approve.branch`, `inventory.transfers.dispatch.branch`, `inventory.transfer.organisation` | "issue branch requests" (the existing stock-request and transfer permissions) |
 | Cost | `inventory.cost.view.organisation` | item 6 |
@@ -202,7 +202,11 @@ Not failing, so no change needed: the staff-authority tests, the Access-control 
 ### What the new roles get today by the existing rules (the decisions the two pins need)
 
 - **Spaces** (department spaces follow the permissions): `branch_manager` = Billing, Me; `account_assistant` = Panel, Me (only
-  because of `reports.panel_summary.view.branch`); `store_admin` = **Me only, no Stock space** (the Stock space needs
-  `inventory.stock_reviews.manage.branch` or `inventory.references.manage.organisation`, which the approved narrow table does not give).
+  because of `reports.panel_summary.view.branch`); `store_admin` = **Stock, Me** (owner, 21 Nov: it holds
+  `inventory.stock_reviews.manage.branch`, which opens the Stock space).
 - **Top-bar daily list**: `branch_manager` = Registration, Consultation, Inventory, Clinic management;
-  `account_assistant` = Insights, Inventory, Staff, Clinic management; `store_admin` = Insights, Inventory, Clinic management.
+  `account_assistant` = Insights, Inventory, Clinic management (Daniel: no Staff item without staff or access administration; the Audit log stays reachable from Clinic management); `store_admin` = Insights, Inventory, Clinic management.
+
+## Status 21 Nov 2026 (owner decisions applied)
+
+The owner approved the 22 test changes (only adding the new roles where the table puts them), the Store Admin stock review right and the Panel page for the Account Assistant. Built on `feature/role-1-roles`; the Branch Manager no longer holds `payments.reconcile.branch` (Billing agreement). New tests: `RoleOneRolesTest` (exact tables, money rules held apart, who may provision, no authority over people, server refusals, the audit log, one person with several roles, the migration).
