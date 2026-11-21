@@ -59,7 +59,7 @@ final class PanelClaimAutoCreator
      *
      * @return array{created: int, skipped: list<array{invoiceNumber: string, code: string, reason: string}>, remaining: int}
      */
-    public function createWaiting(User $actor, int $expectedBranchId): array
+    public function createWaiting(User $actor, int $expectedBranchId, int $limit = self::BATCH): array
     {
         $branch = DB::transaction(function () use (&$actor, $expectedBranchId) {
             $branch = $this->authority->branch($actor, $expectedBranchId);
@@ -70,7 +70,7 @@ final class PanelClaimAutoCreator
 
         $waiting = $this->eligibility->query($actor->organisation_id, $branch->id)
             ->orderBy('v.registered_at')->orderBy('c.id')
-            ->limit(self::BATCH)->get(['c.public_id', 'i.invoice_number']);
+            ->limit($limit)->get(['c.public_id', 'i.invoice_number']);
         $remaining = max(0, $this->eligibility->query($actor->organisation_id, $branch->id)->count() - $waiting->count());
 
         $created = 0;
