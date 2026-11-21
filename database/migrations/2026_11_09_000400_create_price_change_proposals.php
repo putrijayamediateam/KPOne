@@ -21,7 +21,11 @@ return new class extends Migration
             $t->id();
             $t->uuid('public_id')->unique();
             $t->unsignedBigInteger('organisation_id');
-            $t->unsignedBigInteger('price_book_id');
+            // Null until approval when the Panel has no price book yet: the book is created in the approval's own transaction,
+            // so a rejected or withdrawn first proposal leaves nothing behind. scope_key names the target either way.
+            $t->unsignedBigInteger('price_book_id')->nullable();
+            $t->string('scope_key', 60);
+            $t->unsignedBigInteger('panel_id')->nullable();
             $t->unsignedBigInteger('charge_definition_id');
             $t->bigInteger('proposed_unit_price_sen');
             $t->string('agreement_reference', 120);
@@ -42,7 +46,8 @@ return new class extends Migration
             $t->timestamps();
             $t->unique(['organisation_id', 'proposed_by_user_id', 'idempotency_key'], 'price_change_proposal_key_unique');
             $t->unique('price_entry_id', 'price_change_proposal_entry_unique');
-            $t->index(['price_book_id', 'charge_definition_id'], 'price_change_proposal_target_index');
+            $t->index(['organisation_id', 'scope_key', 'charge_definition_id'], 'price_change_proposal_target_index');
+            $t->foreign('panel_id')->references('id')->on('panels')->restrictOnDelete();
             $t->foreign(['price_book_id', 'organisation_id'])->references(['id', 'organisation_id'])->on('price_books')->restrictOnDelete();
             $t->foreign(['charge_definition_id', 'organisation_id'])->references(['id', 'organisation_id'])->on('charge_definitions')->restrictOnDelete();
             $t->foreign('price_entry_id')->references('id')->on('price_entries')->restrictOnDelete();
@@ -67,11 +72,13 @@ ALTER TABLE price_change_proposals ADD CONSTRAINT price_change_proposal_shape CH
  proposed_unit_price_sen BETWEEN 0 AND 999999999999
  AND length(btrim(agreement_reference)) BETWEEN 3 AND 120
  AND base_version>=0 AND lock_version>0
+ AND ((scope_key='panel:default' AND panel_id IS NULL) OR (scope_key='panel:'||panel_id::text))
+ AND (price_book_id IS NOT NULL OR (status<>'approved' AND base_version=0))
  AND ((status='proposed' AND decided_by_user_id IS NULL AND decided_at IS NULL AND reason_code IS NULL AND decision_note IS NULL AND price_entry_id IS NULL AND applied_effective_at IS NULL)
   OR (status='approved' AND decided_by_user_id IS NOT NULL AND decided_at IS NOT NULL AND reason_code IS NULL AND decision_note IS NULL AND price_entry_id IS NOT NULL AND applied_effective_at IS NOT NULL AND applied_effective_at>=effective_at AND decided_by_user_id<>proposed_by_user_id)
   OR (status='rejected' AND decided_by_user_id IS NOT NULL AND decided_at IS NOT NULL AND reason_code IN ('wrong_amount','wrong_panel','no_agreement_seen','other') AND price_entry_id IS NULL AND applied_effective_at IS NULL AND decided_by_user_id<>proposed_by_user_id AND (reason_code<>'other' OR decision_note IS NOT NULL))
   OR (status='withdrawn' AND decided_by_user_id=proposed_by_user_id AND decided_at IS NOT NULL AND reason_code IS NULL AND decision_note IS NULL AND price_entry_id IS NULL AND applied_effective_at IS NULL)));
-CREATE UNIQUE INDEX price_change_proposal_one_open_per_target ON price_change_proposals (price_book_id, charge_definition_id) WHERE status='proposed';
+CREATE UNIQUE INDEX price_change_proposal_one_open_per_target ON price_change_proposals (organisation_id, scope_key, charge_definition_id) WHERE status='proposed';
 ALTER TABLE price_change_proposal_events ADD CONSTRAINT price_change_proposal_event_shape CHECK (event IN ('proposed','approved','rejected','withdrawn'));
 
 CREATE OR REPLACE FUNCTION kpone_price_change_retained() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -88,11 +95,20 @@ CREATE OR REPLACE FUNCTION kpone_price_change_guard() RETURNS trigger LANGUAGE p
 DECLARE book record; charge record; entry record; current_version bigint;
 BEGIN
  IF TG_OP='INSERT' THEN
-  SELECT * INTO book FROM price_books WHERE id=NEW.price_book_id;
   SELECT * INTO charge FROM charge_definitions WHERE id=NEW.charge_definition_id;
-  IF book.id IS NULL OR book.price_tier<>'panel' OR book.branch_id IS NOT NULL OR book.currency<>'MYR' OR book.organisation_id<>NEW.organisation_id
-   OR charge.id IS NULL OR charge.organisation_id<>NEW.organisation_id THEN
-   RAISE EXCEPTION 'A price change proposal needs an organisation Panel price book and a charge of the same organisation' USING ERRCODE='23514';
+  IF charge.id IS NULL OR charge.organisation_id<>NEW.organisation_id THEN
+   RAISE EXCEPTION 'A price change proposal needs a charge of the same organisation' USING ERRCODE='23514';
+  END IF;
+  IF NEW.price_book_id IS NOT NULL THEN
+   SELECT * INTO book FROM price_books WHERE id=NEW.price_book_id;
+   IF book.id IS NULL OR book.price_tier<>'panel' OR book.branch_id IS NOT NULL OR book.currency<>'MYR' OR book.organisation_id<>NEW.organisation_id OR book.scope_key<>NEW.scope_key THEN
+    RAISE EXCEPTION 'A price change proposal needs an organisation Panel price book of the same scope' USING ERRCODE='23514';
+   END IF;
+  ELSE
+   IF EXISTS (SELECT 1 FROM price_books WHERE organisation_id=NEW.organisation_id AND scope_key=NEW.scope_key)
+    OR (NEW.panel_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM panels WHERE id=NEW.panel_id AND organisation_id=NEW.organisation_id)) THEN
+    RAISE EXCEPTION 'A proposal without a price book is only for a Panel that has none yet' USING ERRCODE='23514';
+   END IF;
   END IF;
   SELECT coalesce(max(version),0) INTO current_version FROM price_entries WHERE price_book_id=NEW.price_book_id AND charge_definition_id=NEW.charge_definition_id;
   IF NEW.status<>'proposed' OR NEW.lock_version<>1 OR NEW.base_version<>current_version
@@ -103,8 +119,9 @@ BEGIN
  END IF;
  IF TG_OP<>'UPDATE' THEN RAISE EXCEPTION 'Price change proposal evidence is retained' USING ERRCODE='23514'; END IF;
  IF OLD.status<>'proposed' OR NEW.status NOT IN ('approved','rejected','withdrawn') OR NEW.lock_version<>OLD.lock_version+1
-  OR (to_jsonb(NEW) - ARRAY['status','decided_by_user_id','decided_at','reason_code','decision_note','price_entry_id','applied_effective_at','lock_version','updated_at'])
-   IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['status','decided_by_user_id','decided_at','reason_code','decision_note','price_entry_id','applied_effective_at','lock_version','updated_at']) THEN
+  OR (NEW.price_book_id IS DISTINCT FROM OLD.price_book_id AND NOT (OLD.price_book_id IS NULL AND NEW.status='approved'))
+  OR (to_jsonb(NEW) - ARRAY['price_book_id','status','decided_by_user_id','decided_at','reason_code','decision_note','price_entry_id','applied_effective_at','lock_version','updated_at'])
+   IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['price_book_id','status','decided_by_user_id','decided_at','reason_code','decision_note','price_entry_id','applied_effective_at','lock_version','updated_at']) THEN
   RAISE EXCEPTION 'A price change proposal can only be decided once, never edited' USING ERRCODE='23514';
  END IF;
  IF NEW.status IN ('approved','rejected') AND NOT kpone_price_change_has_permission(NEW.decided_by_user_id, 'panel.prices.approve.organisation') THEN
@@ -112,9 +129,12 @@ BEGIN
  END IF;
  IF NEW.status='approved' THEN
   SELECT * INTO entry FROM price_entries WHERE id=NEW.price_entry_id;
-  IF entry.id IS NULL OR entry.organisation_id<>NEW.organisation_id OR entry.price_book_id<>NEW.price_book_id OR entry.charge_definition_id<>NEW.charge_definition_id
+  IF entry.id IS NULL OR entry.organisation_id<>NEW.organisation_id OR NEW.price_book_id IS NULL OR entry.price_book_id<>NEW.price_book_id OR entry.charge_definition_id<>NEW.charge_definition_id
    OR entry.unit_price_sen<>NEW.proposed_unit_price_sen OR entry.version<=NEW.base_version OR entry.effective_at<>NEW.applied_effective_at THEN
    RAISE EXCEPTION 'An approved price change proposal must point at the price entry it created' USING ERRCODE='23514';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM price_books WHERE id=NEW.price_book_id AND organisation_id=NEW.organisation_id AND scope_key=NEW.scope_key AND price_tier='panel') THEN
+   RAISE EXCEPTION 'An approved price change proposal must point at the Panel price book of its scope' USING ERRCODE='23514';
   END IF;
  END IF;
  RETURN NEW;
