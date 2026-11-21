@@ -27,7 +27,11 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\ConsultationTariffAdministrationService;
+use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
+use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -147,6 +151,8 @@ class KPOneDemoSetupSeeder extends Seeder
             $this->ensureUnitVerified($recorder, $branch, $sku);
             $openings[] = $this->ensureOpeningBalance($recorder, $branch, $location, $sku, $index);
         }
+
+        $this->ensureDemoPanelPrices($recorder, $branch);
 
         $verifier = $this->actAs(self::SECOND_SUPERVISOR_EMAIL);
         foreach ($openings as $opening) {
@@ -373,6 +379,39 @@ class KPOneDemoSetupSeeder extends Seeder
         ]);
     }
 
+    /**
+     * Panel prices are never published directly (owner decision 27): the demo gets them the way the clinic does, as a
+     * Panel Officer's proposal approved by a Finance Officer. The default Panel price book is created first because the
+     * proposal page only changes the price in an existing book.
+     */
+    private function ensureDemoPanelPrices(User $supervisor, Branch $branch): void
+    {
+        $officer = $this->requireUser('demo.panel_officer@kpone.test');
+        $finance = $this->requireUser('demo.finance_officer@kpone.test');
+        $book = PriceBook::query()->where('organisation_id', $supervisor->organisation_id)->where('scope_key', 'panel:default')->first()
+            ?? app(PricingReferenceAdministrationService::class)->createPriceBook($supervisor, null, ['name' => 'Panel', 'currency' => 'MYR', 'price_tier' => 'panel', 'panel_id' => null]);
+        $service = app(PanelPriceProposalService::class);
+        $prices = [self::CONSULTATION['code'] => self::CONSULTATION['panel_default_sen']];
+        foreach ([...self::SERVICES, ...self::MEDICINES] as $item) {
+            $prices[$item['code']] = $item['panel_default_sen'];
+        }
+        foreach ($prices as $code => $sen) {
+            $charge = ChargeDefinition::query()->where('organisation_id', $supervisor->organisation_id)->where('code', $code)->first();
+            if ($charge === null || PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->exists()) {
+                continue;
+            }
+            $proposal = $service->propose($officer, $book, $charge, [
+                'expected_branch_id' => $branch->id,
+                'expected_version' => 0,
+                'amount_sen' => $sen,
+                'agreement_reference' => 'DEMO-PANEL-PRICE-LIST',
+                'effective_date' => now($branch->timezone)->toDateString(),
+                'idempotency_key' => (string) Str::uuid(),
+            ]);
+            $service->approve($finance, $proposal, ['expected_branch_id' => $branch->id, 'lock_version' => $proposal->lock_version]);
+        }
+    }
+
     private function ensureConsultationTariff(User $actor, Branch $branch): void
     {
         if (ChargeDefinition::query()->where('organisation_id', $actor->organisation_id)->where('source_key', 'consultation')->exists()) {
@@ -385,9 +424,8 @@ class KPOneDemoSetupSeeder extends Seeder
             'expected_branch_id' => $branch->id,
             'prices' => [
                 'self_pay_sen' => self::CONSULTATION['self_pay_sen'],
-                'panel_default_sen' => self::CONSULTATION['panel_default_sen'],
             ],
-            'expected_versions' => ['self_pay' => 0, 'panel_default' => 0],
+            'expected_versions' => ['self_pay' => 0],
         ]);
     }
 
@@ -406,7 +444,6 @@ class KPOneDemoSetupSeeder extends Seeder
             'expected_branch_id' => $branch->id,
             'prices' => [
                 'self_pay_sen' => $service['self_pay_sen'],
-                'panel_default_sen' => $service['panel_default_sen'],
             ],
         ]);
     }
@@ -442,7 +479,6 @@ class KPOneDemoSetupSeeder extends Seeder
                 ],
                 'prices' => [
                     'self_pay_sen' => $medicine['self_pay_sen'],
-                    'panel_default_sen' => $medicine['panel_default_sen'],
                 ],
             ]);
         }

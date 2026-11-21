@@ -18,6 +18,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Clinical\ClinicalTestCase;
+use Tests\Support\PanelPriceFixture;
 
 /**
  * CAT-3 (owner decision 2026-11-05): a read-only history of every published price of one charge.
@@ -66,7 +67,11 @@ class PriceHistoryTest extends ClinicalTestCase
     {
         $version = (int) DB::table('price_entries')->where('price_book_id', $book->id)
             ->where('charge_definition_id', $charge->id)->max('version');
-        $this->publication->publish($by ?? $this->supervisor, $book, $charge, $sen, $version, $this->branch->id);
+        if ($book->price_tier === 'panel') {
+            PanelPriceFixture::insert($book, $charge, $sen, $by ?? $this->supervisor);
+        } else {
+            $this->publication->publish($by ?? $this->supervisor, $book, $charge, $sen, $version, $this->branch->id);
+        }
         $this->travel(1)->minutes();
 
         return PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->orderByDesc('version')->firstOrFail();

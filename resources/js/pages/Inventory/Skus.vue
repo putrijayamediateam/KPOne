@@ -30,6 +30,7 @@ type Sku = {
     protectFromLight: boolean;
     batchTrackingRequired: boolean;
     expiryTrackingRequired: boolean;
+    expiryAlertDays: number | null;
     active: boolean;
     lockVersion: number;
     unitsLocked: boolean;
@@ -67,6 +68,12 @@ const visit = (page = 1) =>
         { preserveScroll: true },
     );
 
+// STK-42: a locked SKU keeps its saved expiry tracking; otherwise the form's tick decides.
+const tracksExpiry = (sku: Sku) =>
+    sku.unitsLocked
+        ? sku.expiryTrackingRequired
+        : form.expiry_tracking_required;
+
 const storageTypes = [
     { value: 'ambient', label: 'Room temperature' },
     { value: 'refrigerated', label: 'Refrigerated' },
@@ -99,6 +106,7 @@ const form = useForm({
     protect_from_light: false,
     batch_tracking_required: true,
     expiry_tracking_required: true,
+    expiry_alert_days: '',
     sku_active: true,
     item_active: true,
     sku_lock_version: 1,
@@ -125,6 +133,8 @@ const startEdit = (sku: Sku) => {
         protect_from_light: sku.protectFromLight,
         batch_tracking_required: sku.batchTrackingRequired,
         expiry_tracking_required: sku.expiryTrackingRequired,
+        expiry_alert_days:
+            sku.expiryAlertDays === null ? '' : String(sku.expiryAlertDays),
         sku_active: sku.active,
         item_active: sku.item.active,
         sku_lock_version: sku.lockVersion,
@@ -160,12 +170,21 @@ const save = (sku: Sku) => {
                 data.maximum_temperature === ''
                     ? null
                     : data.maximum_temperature,
+            expiry_alert_days:
+                String(data.expiry_alert_days ?? '').trim() === ''
+                    ? null
+                    : String(data.expiry_alert_days).trim(),
         };
 
         // Hidden legacy fields (a pack check is waiting) are never sent either.
         if (sku.legacyHidden) {
             delete sent.pack_size;
             delete sent.purchase_unit;
+        }
+
+        // STK-42: the alert days only apply when the SKU tracks expiry.
+        if (!tracksExpiry(sku)) {
+            delete sent.expiry_alert_days;
         }
 
         // Locked unit fields are never sent, so the server never sees a change to them.
@@ -542,6 +561,41 @@ const errorFor = (field: string) =>
                                 </div>
                             </div>
                         </dl>
+                    </fieldset>
+
+                    <fieldset
+                        v-if="tracksExpiry(sku)"
+                        class="grid gap-3 sm:grid-cols-2"
+                        data-testid="expiry-alert"
+                    >
+                        <legend class="mb-1 text-sm font-semibold">
+                            Expiry alert
+                        </legend>
+                        <label class="grid min-w-0 gap-1 text-sm"
+                            >Alert before expiry (days) (optional)
+                            <Input
+                                class="h-11 lg:h-9"
+                                v-model="form.expiry_alert_days"
+                                type="number"
+                                min="7"
+                                max="365"
+                                step="1"
+                                inputmode="numeric"
+                                placeholder="90"
+                                aria-describedby="expiry-alert-help"
+                            />
+                            <InputError
+                                :message="errorFor('expiry_alert_days')"
+                            />
+                        </label>
+                        <p
+                            id="expiry-alert-help"
+                            class="text-sm text-muted-foreground sm:col-span-2"
+                        >
+                            Stock review lists a batch as expiring this many
+                            days before its expiry date. Leave empty for 90
+                            days.
+                        </p>
                     </fieldset>
 
                     <fieldset class="grid gap-3 sm:grid-cols-2">

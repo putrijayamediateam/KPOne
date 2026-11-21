@@ -41,7 +41,7 @@ final class SkuEditDirectoryService
             ->orderBy('s.sku_code')->orderBy('s.id')
             ->paginate(25, ['s.id', 's.public_id', 's.sku_code', 's.barcode', 's.pack_size', 's.purchase_unit', 's.stock_unit', 's.dispensing_unit', 's.unit_conversion',
                 's.storage_type', 's.minimum_temperature', 's.maximum_temperature', 's.cold_chain_required', 's.do_not_freeze', 's.protect_from_light',
-                's.batch_tracking_required', 's.expiry_tracking_required', 's.is_active', 's.lock_version',
+                's.batch_tracking_required', 's.expiry_tracking_required', 's.expiry_alert_days', 's.is_active', 's.lock_version',
                 'i.public_id as item_public_id', 'i.code as item_code', 'i.generic_name', 'i.brand_name', 'i.is_active as item_active', 'i.lock_version as item_lock_version'],
                 'page', (int) ($data['page'] ?? 1));
         /** @var list<\stdClass> $items */
@@ -79,6 +79,7 @@ final class SkuEditDirectoryService
                 'maximumTemperature' => $row->maximum_temperature === null ? null : (string) $row->maximum_temperature,
                 'coldChainRequired' => (bool) $row->cold_chain_required, 'doNotFreeze' => (bool) $row->do_not_freeze, 'protectFromLight' => (bool) $row->protect_from_light,
                 'batchTrackingRequired' => (bool) $row->batch_tracking_required, 'expiryTrackingRequired' => (bool) $row->expiry_tracking_required,
+                'expiryAlertDays' => $row->expiry_alert_days === null ? null : (int) $row->expiry_alert_days,
                 'active' => (bool) $row->is_active, 'lockVersion' => (int) $row->lock_version, 'unitsLocked' => $locked[(int) $row->id],
                 'onHand' => in_array((int) $row->id, $onHand, true), 'barcodeShared' => $row->barcode !== null && in_array((string) $row->barcode, $shared, true),
                 'item' => ['publicId' => $row->item_public_id, 'code' => $row->item_code, 'genericName' => $row->generic_name, 'brandName' => $row->brand_name,
