@@ -12,6 +12,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
@@ -296,7 +297,9 @@ const waitingButtonLabel = computed(() => {
         ? `Create claims for the oldest 50 of ${waiting} waiting invoices`
         : `Create claims for ${waiting} waiting ${waiting === 1 ? 'invoice' : 'invoices'}`;
 });
+const confirmingWaiting = ref(false);
 const createWaitingClaims = () => {
+    confirmingWaiting.value = false;
     creatingWaiting.value = true;
     router.post(
         '/panel-claims/auto-create',
@@ -826,7 +829,7 @@ const visitTypeLabel = (value: string) =>
                         variant="outline"
                         class="max-lg:min-h-11"
                         :disabled="creatingWaiting"
-                        @click="createWaitingClaims"
+                        @click="confirmingWaiting = true"
                     >
                         {{ waitingButtonLabel }}
                     </Button>
@@ -1602,23 +1605,6 @@ const visitTypeLabel = (value: string) =>
                                 <span class="min-w-0 truncate font-medium">
                                     Claim {{ row.claimNo }}
                                 </span>
-                                <StatusBadge
-                                    v-if="row.overdue"
-                                    status="overdue"
-                                    label="Overdue"
-                                    tone="warning"
-                                    dot
-                                />
-                                <StatusBadge
-                                    v-else
-                                    :status="row.status"
-                                    :tone="
-                                        row.status === 'Prepared'
-                                            ? 'neutral'
-                                            : undefined
-                                    "
-                                    :dot="row.status === 'Prepared'"
-                                />
                                 <span
                                     class="ml-auto font-medium whitespace-nowrap tabular-nums"
                                 >
@@ -1651,6 +1637,25 @@ const visitTypeLabel = (value: string) =>
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                            </div>
+                            <div class="flex">
+                                <StatusBadge
+                                    v-if="row.overdue"
+                                    status="overdue"
+                                    label="Overdue"
+                                    tone="warning"
+                                    dot
+                                />
+                                <StatusBadge
+                                    v-else
+                                    :status="row.status"
+                                    :tone="
+                                        row.status === 'Prepared'
+                                            ? 'neutral'
+                                            : undefined
+                                    "
+                                    :dot="row.status === 'Prepared'"
+                                />
                             </div>
                             <p class="wrap-anywhere text-muted-foreground">
                                 {{ row.panelName }}
@@ -1876,4 +1881,12 @@ const visitTypeLabel = (value: string) =>
             </template>
         </section>
     </main>
+    <OperationalConfirmDialog
+        :open="confirmingWaiting"
+        :title="`Create ${Math.min(work.waiting, 50)} Prepared ${Math.min(work.waiting, 50) === 1 ? 'claim' : 'claims'}?`"
+        description="Nothing is submitted. Each claim stays Prepared until you submit it."
+        :confirm-label="`Create ${Math.min(work.waiting, 50)} ${Math.min(work.waiting, 50) === 1 ? 'claim' : 'claims'}`"
+        @update:open="(v: boolean) => (confirmingWaiting = v)"
+        @confirm="createWaitingClaims"
+    />
 </template>
