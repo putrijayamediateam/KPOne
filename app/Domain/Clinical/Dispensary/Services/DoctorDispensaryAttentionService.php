@@ -4,13 +4,18 @@ namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\PatientAllergyProfile;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 
@@ -44,12 +49,16 @@ class DoctorDispensaryAttentionService
                 ->where('branch_id', $visit->branch_id)
                 ->where('visit_id', $visit->id)
                 ->where('clinical_encounter_id', $encounter->id)
-                ->whereIn('status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
-                ->whereHas('handoffs', fn ($handoff) => $handoff
-                    ->where('status', DispensaryHandoff::STATUS_OPEN)
-                    ->whereHas('items.exceptions', fn ($exception) => $exception
-                        ->where('reason', DispensaryItemException::REASON_PATIENT_DECLINED)
-                        ->where('status', DispensaryItemException::STATUS_AWAITING)))
+                ->where(fn ($cases) => $cases
+                    ->where(fn ($declined) => $declined
+                        ->whereIn('status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
+                        ->whereHas('handoffs', fn ($handoff) => $handoff
+                            ->where('status', DispensaryHandoff::STATUS_OPEN)
+                            ->whereHas('items.exceptions', fn ($exception) => $exception
+                                ->where('reason', DispensaryItemException::REASON_PATIENT_DECLINED)
+                                ->where('status', DispensaryItemException::STATUS_AWAITING))))
+                    // DSP-23: a case waiting for this doctor's check also needs the doctor.
+                    ->orWhere(fn ($waiting) => $this->waitingForCheck($actor, $waiting)))
                 ->exists();
     }
 
@@ -73,11 +82,86 @@ class DoctorDispensaryAttentionService
         }
 
         return DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->whereIn('visit_id', $ids)
-            ->whereIn('status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
             ->whereHas('encounter', fn ($q) => $q->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('attending_clinician_user_id', $actor->id))
             ->whereHas('visit', fn ($q) => $q->where('status', Visit::STATUS_REGISTERED)->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_REMOVED)->where('removal_reason', 'sent_to_dispensary')))
-            ->whereHas('handoffs', fn ($h) => $h->where('status', DispensaryHandoff::STATUS_OPEN)->whereHas('items.exceptions', fn ($e) => $e->where('reason', DispensaryItemException::REASON_PATIENT_DECLINED)->where('status', DispensaryItemException::STATUS_AWAITING)))
+            ->where(fn ($cases) => $cases
+                ->where(fn ($declined) => $declined
+                    ->whereIn('status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
+                    ->whereHas('handoffs', fn ($h) => $h->where('status', DispensaryHandoff::STATUS_OPEN)->whereHas('items.exceptions', fn ($e) => $e->where('reason', DispensaryItemException::REASON_PATIENT_DECLINED)->where('status', DispensaryItemException::STATUS_AWAITING))))
+                ->orWhere(fn ($waiting) => $this->waitingForCheck($actor, $waiting)))
             ->pluck('visit_id')->mapWithKeys(fn ($id): array => [(int) $id => true])->all();
+    }
+
+    /**
+     * DSP-23: a case waiting for this doctor's check, on the doctor's own case only.
+     *
+     * @param  Builder<DispensaryCase>  $query
+     * @return Builder<DispensaryCase>
+     */
+    private function waitingForCheck(User $actor, Builder $query): Builder
+    {
+        if (! $actor->can('dispensary.doctor_check.own')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK)
+            ->whereHas('handoffs', fn ($h) => $h->where('status', DispensaryHandoff::STATUS_OPEN));
+    }
+
+    /**
+     * DSP-23: the "Medicine ready for your check" row on the consultation page: each line with the order beside what
+     * the CA prepared, the batches and expiry, and the allergy status line (Daniel, note 3). Only for the attending
+     * doctor of a case waiting for the check.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function checkForEncounter(User $actor, ClinicalEncounter $encounter): ?array
+    {
+        if (! $actor->can('dispensary.doctor_check.own') || ! $this->eligible($actor, $encounter)) {
+            return null;
+        }
+        $case = DispensaryCase::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $encounter->branch_id)
+            ->where('visit_id', $encounter->visit->id)
+            ->where('clinical_encounter_id', $encounter->id)
+            ->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK)
+            ->with(['handoffs' => fn ($query) => $query->where('status', DispensaryHandoff::STATUS_OPEN)->with('items.allocations.batch:id,batch_number,expiry_date')])
+            ->first();
+        $handoff = $case?->handoffs->first();
+        if (! $case || ! $handoff) {
+            return null;
+        }
+        $branch = Branch::query()->findOrFail($case->branch_id);
+        $profile = PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $encounter->visit->patient_id)->first();
+
+        return [
+            'caseLockVersion' => $case->lock_version,
+            'expectedBranchId' => $case->branch_id,
+            'sentAt' => app(DispensaryDoctorCheckDirectory::class)->time($case->sent_for_check_at, $branch),
+            'sentBy' => User::query()->whereKey($case->sent_for_check_by_user_id)->value('name'),
+            'allergies' => [
+                'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN,
+                'records' => $profile ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->pluck('allergen_text')->values()->all() : [],
+            ],
+            'lines' => $handoff->items->map(fn (DispensaryItem $item): array => [
+                'name' => $item->medicine_name_snapshot,
+                'strength' => $item->strength_snapshot,
+                'unit' => $item->unit_snapshot,
+                'changeState' => $item->change_state,
+                'source' => $item->source,
+                'ordered' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration],
+                'prepared' => ['quantity' => $item->quantity_dispensed, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction')],
+                'batches' => $item->allocations->map(fn ($allocation): array => [
+                    'batchNumber' => $allocation->batch?->batch_number,
+                    'expiryDate' => $allocation->batch?->expiry_date ? CarbonImmutable::parse($allocation->batch->expiry_date)->format('j M Y') : null,
+                    'quantity' => $allocation->quantity,
+                ])->values()->all(),
+            ])->values()->all(),
+            'reasons' => DispensaryDoctorCheck::REASONS,
+            'verifyUrl' => route('dispensary.doctor-check.verify', $case),
+            'sendBackUrl' => route('dispensary.doctor-check.send-back', $case),
+        ];
     }
 
     /** @return list<array<string, mixed>> */

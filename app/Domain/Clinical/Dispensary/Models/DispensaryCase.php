@@ -19,6 +19,9 @@ class DispensaryCase extends Model
 
     public const STATUS_DISPENSING = 'dispensing';
 
+    /** DSP-23: the CA sent the prepared medicine to the attending doctor for a check; nothing has been dispensed yet. */
+    public const STATUS_AWAITING_DOCTOR_CHECK = 'awaiting_doctor_check';
+
     public const STATUS_RETURNED = 'returned_to_doctor';
 
     public const STATUS_COMPLETED = 'completed';
@@ -48,6 +51,7 @@ class DispensaryCase extends Model
             'lock_version' => 'integer', 'received_at' => 'immutable_datetime',
             'started_at' => 'immutable_datetime', 'returned_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
+            'doctor_check_required' => 'boolean', 'sent_for_check_at' => 'immutable_datetime',
         ];
     }
 

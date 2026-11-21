@@ -130,6 +130,7 @@ class ClinicalEncounterDirectoryService
             'problems' => $isActiveConsultation ? $this->clinicalSafety->problems($actor, $encounter) : null,
             'treatmentPlan' => $this->treatmentPlans->detail($actor, $encounter),
             'dispensaryAttention' => $this->dispensaryAttention->forEncounter($actor, $encounter),
+            'dispensaryCheck' => $this->dispensaryAttention->checkForEncounter($actor, $encounter),
             'history' => $this->history($actor, $encounter),
         ];
     }

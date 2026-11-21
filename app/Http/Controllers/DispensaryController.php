@@ -43,14 +43,15 @@ class DispensaryController extends Controller
     {
         $detail = $directory->detail($request->user(), $dispensaryCase);
         $detail['labelLimits'] = DrugLabelLayout::FIELD_BUDGETS;
-        $detail['canPrintLabels'] = $request->user()->can('dispensary.labels.print.branch') && ($dispensaryCase->status === 'completed' || ($dispensaryCase->status === 'dispensing' && $dispensaryCase->current_handler_user_id === $request->user()->id));
+        // DSP-23: a case waiting for the doctor's check may be printed again (the doctor may ask for a reprint).
+        $detail['canPrintLabels'] = $request->user()->can('dispensary.labels.print.branch') && ($dispensaryCase->status === 'completed' || $dispensaryCase->status === DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK || ($dispensaryCase->status === 'dispensing' && $dispensaryCase->current_handler_user_id === $request->user()->id));
         if ($detail['canPrintLabels']) {
             $detail['labelUrl'] = route('dispensary.labels', $dispensaryCase);
         }
         if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED && $dispensaryCase->case_type !== DispensaryCase::TYPE_OTC) {
             $detail['tvCall'] = [
                 'canCall' => $request->user()->can('dispensary.start.branch')
-                    && in_array($detail['status'], [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true),
+                    && in_array($detail['status'], [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true),
                 'rooms' => $calls->rooms(Branch::query()->findOrFail($dispensaryCase->branch_id), BranchRoom::KIND_DISPENSARY),
             ];
         }

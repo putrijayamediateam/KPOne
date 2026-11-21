@@ -5,6 +5,7 @@ namespace App\Domain\Clinical\Dispensary\Services;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Dispensary\Models\DispensaryAllergyConfirmation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
@@ -45,6 +46,9 @@ use Illuminate\Validation\ValidationException;
 
 class DispensaryService
 {
+    /** DSP-23: the pseudo-permission key for Verify and Send back (doctor or CA Supervisor; see lockChecker). */
+    private const CHECK = 'dispensary.doctor_check';
+
     public function __construct(private DispensaryAuthorityService $authority, private DispensarySafetyValidator $safety, private InventoryMovementService $inventory, private AuditRecorder $audit, private DispensaryAllergyMatcher $allergyMatcher, private PatientAllergyService $allergies) {}
 
     /** @param array<string,mixed> $attributes */
@@ -666,103 +670,358 @@ class DispensaryService
             if ($case->case_type === DispensaryCase::TYPE_OTC) {
                 $this->assertOtcCompletable($actor, $case, $handoff, $items, $visit, $profile);
             } else {
-                if ($case->status !== DispensaryCase::STATUS_DISPENSING || $case->current_handler_user_id !== $actor->id || $handoff->status !== DispensaryHandoff::STATUS_OPEN || $visit->status !== Visit::STATUS_REGISTERED || $queue->status !== QueueEntry::STATUS_REMOVED || $queue->removal_reason !== 'sent_to_dispensary' || $encounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS) {
-                    $this->stale('case');
+                $this->assertCaReady($actor, $case, $handoff, $visit, $queue, $encounter);
+                // DSP-23 (Hakim): the branch switch is read under lock, so a page opened while the check was off can't skip it.
+                if ($case->doctor_check_required === true || $this->settings()->lockedDoctorCheckRequired($branch)) {
+                    $this->needsReload();
                 }
                 $this->safety->assertCurrent($encounter, $profile, $review, $plan, $handoff, $items);
             }
-            foreach ($items as $item) {
-                if ($item->status === DispensaryItem::STATUS_PENDING) {
-                    throw ValidationException::withMessages(['items' => 'Finalize every Medicine before completing Dispensary.']);
-                }
-                if (in_array($item->reason, ['out_of_stock', 'clarification_required', 'other'], true)) {
-                    throw ValidationException::withMessages(['items' => 'Stock shortage or clarification requires Return to Doctor.']);
-                }
-                if (in_array($item->status, [DispensaryItem::STATUS_PARTIAL, DispensaryItem::STATUS_NOT_DISPENSED], true) && $item->change_state !== DispensaryItem::CHANGE_REMOVED) {
-                    $ack = DispensaryItemException::query()->where('dispensary_item_id', $item->id)->where('status', DispensaryItemException::STATUS_ACKNOWLEDGED)->lockForUpdate()->latest('id')->first();
-                    if (! $ack || $ack->proposed_quantity_dispensed !== $item->quantity_dispensed || $ack->expected_item_lock_version !== $item->lock_version) {
-                        throw ValidationException::withMessages(['items' => 'The attending doctor must acknowledge the current patient-declined quantity.']);
-                    }
-                }
-            }
-
-            $allocations = DispensaryItemBatchAllocation::query()
-                ->whereIn('dispensary_item_id', $items->pluck('id'))
-                ->orderBy('inventory_location_id')
-                ->orderBy('inventory_sku_id')
-                ->orderBy('inventory_batch_id')
-                ->lockForUpdate()
-                ->get();
-            $allocationsByItem = $allocations->groupBy('dispensary_item_id');
-            foreach ($items as $item) {
-                if (number_format((float) $allocationsByItem->get($item->id, collect())->sum('quantity'), 3, '.', '') !== number_format((float) $item->quantity_dispensed, 3, '.', '')) {
-                    throw ValidationException::withMessages(['allocations' => 'Batch allocations must equal the actual dispensed quantity.']);
-                }
-            }
-
-            $locations = InventoryLocation::query()
-                ->where('organisation_id', $actor->organisation_id)
-                ->whereIn('id', $allocations->pluck('inventory_location_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-            $skus = InventorySku::query()
-                ->where('organisation_id', $actor->organisation_id)
-                ->whereIn('id', $allocations->pluck('inventory_sku_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-            $mappings = MedicineCatalogueInventorySku::query()
-                ->where('organisation_id', $actor->organisation_id)
-                ->whereIn('medicine_catalogue_item_id', $items->pluck('medicine_catalogue_item_id')->unique())
-                ->whereIn('inventory_sku_id', $allocations->pluck('inventory_sku_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-            $batches = InventoryBatch::query()
-                ->where('organisation_id', $actor->organisation_id)
-                ->whereIn('id', $allocations->pluck('inventory_batch_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            foreach ($allocations as $allocation) {
-                $item = $items->firstWhere('id', $allocation->dispensary_item_id);
-                $location = $locations->get($allocation->inventory_location_id);
-                $sku = $skus->get($allocation->inventory_sku_id);
-                $batch = $batches->get($allocation->inventory_batch_id);
-                $mapping = $item ? $mappings->first(fn (MedicineCatalogueInventorySku $candidate): bool => $candidate->medicine_catalogue_item_id === $item->medicine_catalogue_item_id && $candidate->inventory_sku_id === $allocation->inventory_sku_id) : null;
-                app(InventoryBatchEligibility::class)->assertEligible($actor->organisation_id, $branch, $allocation->inventory_batch_id, $item->medicine_name_snapshot ?? 'Selected medicine');
-                if (! $item
-                    || ! $location
-                    || ! $location->is_active
-                    || $location->branch_id !== $branch->id
-                    || $location->type !== InventoryLocation::TYPE_DISPENSARY
-                    || ! $sku
-                    || $item->unit_snapshot !== $sku->stock_unit
-                    || ! $mapping
-                    || ! $mapping->is_active
-                    || ! $batch
-                    || $batch->inventory_sku_id !== $sku->id
-                ) {
-                    throw ValidationException::withMessages(['allocations' => 'A selected inventory reference is no longer eligible for dispensing.']);
-                }
-                $movement = $this->inventory->debitForDispense($actor, $location, $sku, $batch, (string) $allocation->quantity, $allocation->id, $allocation->public_id);
-                $this->audit->record('inventory.dispensed', $movement, ['movement_type' => 'dispense'], $actor, $branch);
-            }
-            $handoff->forceFill(['status' => DispensaryHandoff::STATUS_COMPLETED, 'open_case_guard' => null, 'completed_by_user_id' => $actor->id, 'completed_at' => now()->utc(), 'ca_verified_at' => now()->utc()])->save();
-            $case->forceFill(['status' => DispensaryCase::STATUS_COMPLETED, 'completed_at' => now()->utc(), 'lock_version' => $case->lock_version + 1])->save();
-            $this->audit->record('dispensary.completed', $case, [
-                'record_version' => $case->lock_version, 'ca_verified' => true,
-                'edited_lines' => $items->where('change_state', DispensaryItem::CHANGE_EDITED)->count(),
-                'added_lines' => $items->where('change_state', DispensaryItem::CHANGE_ADDED)->count(),
-                'removed_lines' => $items->where('change_state', DispensaryItem::CHANGE_REMOVED)->count(),
-                'service_lines_changed' => DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->where('change_state', '<>', DispensaryServiceLine::CHANGE_UNCHANGED)->count(),
-            ], $actor, $branch);
+            $this->assertItemsReady($items);
+            $this->dispenseAndComplete($actor, $branch, $case, $handoff, $items, $actor, now()->utc(), false);
         });
+    }
+
+    /**
+     * DSP-23: with the branch's doctor's check on, the CA sends the prepared case to the attending doctor instead of
+     * completing it. Every Complete check runs except the stock movements; nothing is dispensed until Verify.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function sendForDoctorCheck(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
+    {
+        $retryKey = $this->retryKey($attributes);
+        $done = DispensaryCase::query()->whereKey($case->id)->where('organisation_id', $actor->organisation_id)->first();
+        if ($done && $done->sent_for_check_retry_key === $retryKey && $done->sent_for_check_by_user_id === $actor->id && $done->status !== DispensaryCase::STATUS_DISPENSING) {
+            return $done->fresh(['handoffs.items']) ?? $done;
+        }
+
+        return $this->caTransaction($actor, $case, $attributes, 'dispensary.complete.branch', function ($context) use ($retryKey): void {
+            [$actor,$branch,$case,$handoff,$items,$visit,$queue,$encounter,$plan,$profile,$review] = $context;
+            $this->refuseOtc($case);
+            $this->assertCaReady($actor, $case, $handoff, $visit, $queue, $encounter);
+            // The frozen flag stays for the life of the case; otherwise the switch decides, read under lock.
+            if ($case->doctor_check_required !== true && ! $this->settings()->lockedDoctorCheckRequired($branch)) {
+                $this->needsReload();
+            }
+            $this->safety->assertCurrent($encounter, $profile, $review, $plan, $handoff, $items);
+            $this->assertItemsReady($items);
+            $this->lockedAllocations($actor, $branch, $items, false);
+            $case->forceFill([
+                'status' => DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK, 'doctor_check_required' => true,
+                'sent_for_check_at' => now()->utc(), 'sent_for_check_by_user_id' => $actor->id,
+                'sent_for_check_retry_key' => $retryKey, 'lock_version' => $case->lock_version + 1,
+            ])->save();
+            $this->audit->record('dispensary.sent_for_doctor_check', $case, ['record_version' => $case->lock_version], $actor, $branch);
+        });
+    }
+
+    /**
+     * DSP-23: the attending doctor (or, owner answer 13 = B, a CA Supervisor with a reason) verifies the prepared case.
+     * Verify finishes the case exactly as Complete does: every Complete check is re-run, then the stock moves.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function verifyDoctorCheck(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
+    {
+        $data = $this->checkInput($attributes, DispensaryDoctorCheck::OUTCOME_VERIFIED);
+        if ($replayed = $this->replayedCheck($actor, $case, $data)) {
+            return $replayed;
+        }
+
+        return $this->checkerTransaction($actor, $case, $attributes, function ($context, string $checkedAs) use ($data): void {
+            [$actor,$branch,$case,$handoff,$items,$visit,$queue,$encounter,$plan,$profile,$review] = $context;
+            if ($checkedAs === DispensaryDoctorCheck::AS_SUPERVISOR && $data['override_reason'] === null) {
+                throw ValidationException::withMessages(['override_reason' => 'Choose why you are checking instead of the doctor.']);
+            }
+            $this->safety->assertCurrent($encounter, $profile, $review, $plan, $handoff, $items);
+            $this->assertItemsReady($items);
+            $this->recordCheck($actor, $branch, $case, $handoff, $checkedAs, $data);
+            $this->dispenseAndComplete($actor, $branch, $case, $handoff, $items, $actor, $case->sent_for_check_at ?? now()->utc(), true);
+            $this->audit->record('dispensary.doctor_verified', $case, ['record_version' => $case->lock_version, 'checked_as' => $checkedAs, 'override_reason' => $data['override_reason']], $actor, $branch);
+        });
+    }
+
+    /**
+     * DSP-23: the doctor (or a CA Supervisor) sends the prepared case back to the CA with a reason. No stock row was
+     * written, so nothing is reversed; the case returns as Dispensing to the CA who sent it.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function sendBackDoctorCheck(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
+    {
+        $data = $this->checkInput($attributes, DispensaryDoctorCheck::OUTCOME_SENT_BACK);
+        if ($replayed = $this->replayedCheck($actor, $case, $data)) {
+            return $replayed;
+        }
+
+        return $this->checkerTransaction($actor, $case, $attributes, function ($context, string $checkedAs) use ($data): void {
+            [$actor,$branch,$case,$handoff] = $context;
+            $this->recordCheck($actor, $branch, $case, $handoff, $checkedAs, $data);
+            $case->forceFill(['status' => DispensaryCase::STATUS_DISPENSING, 'lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.doctor_sent_back', $case, ['record_version' => $case->lock_version, 'checked_as' => $checkedAs, 'reason' => $data['reason']], $actor, $branch);
+        });
+    }
+
+    /** @param array<string,mixed> $attributes */
+    private function checkerTransaction(User $actor, DispensaryCase $case, array $attributes, callable $callback): DispensaryCase
+    {
+        $checkedAs = null;
+
+        return $this->caTransaction($actor, $case, $attributes, self::CHECK, function ($context) use ($callback, &$checkedAs): void {
+            [$actor,$branch,$case,$handoff,$items,$visit,$queue,$encounter] = $context;
+            $this->refuseOtc($case);
+            if ($case->status !== DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK || $case->doctor_check_required !== true || $handoff->status !== DispensaryHandoff::STATUS_OPEN
+                || $visit->status !== Visit::STATUS_REGISTERED || $queue === null || $queue->status !== QueueEntry::STATUS_REMOVED || $queue->removal_reason !== 'sent_to_dispensary'
+                || $encounter === null || $encounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS) {
+                $this->stale('case');
+            }
+            $checkedAs = $this->checkerRole($actor, $case, $visit, $encounter);
+            $callback($context, $checkedAs);
+        });
+    }
+
+    /** The attending doctor checks as the doctor; a CA Supervisor who did not prepare the case checks instead. */
+    private function checkerRole(User $actor, DispensaryCase $case, Visit $visit, ClinicalEncounter $encounter): string
+    {
+        if ($actor->hasRole('resident_doctor') && $actor->can('dispensary.doctor_check.own')) {
+            if ($encounter->attending_clinician_user_id !== $actor->id || $visit->assigned_doctor_user_id !== $actor->id) {
+                throw new AuthorizationException('Only the attending doctor may check this case.');
+            }
+
+            return DispensaryDoctorCheck::AS_DOCTOR;
+        }
+        if ($actor->hasRole('ca_supervisor') && $actor->can('dispensary.doctor_check.override.branch')) {
+            if ($case->sent_for_check_by_user_id === $actor->id || $case->current_handler_user_id === $actor->id) {
+                throw new AuthorizationException('You prepared this case, so someone else must check it.');
+            }
+
+            return DispensaryDoctorCheck::AS_SUPERVISOR;
+        }
+
+        throw new AuthorizationException('You may not check this case.');
+    }
+
+    /**
+     * @param  array<string,mixed>  $attributes
+     * @return array{retry_key: string, reason: ?string, note: ?string, override_reason: ?string, override_note: ?string, outcome: string}
+     */
+    private function checkInput(array $attributes, string $outcome): array
+    {
+        $sentBack = $outcome === DispensaryDoctorCheck::OUTCOME_SENT_BACK;
+        $data = validator($attributes, [
+            'retry_key' => ['required', 'uuid'],
+            'reason' => $sentBack ? ['required', 'string', 'in:'.implode(',', DispensaryDoctorCheck::REASONS)] : ['prohibited'],
+            'note' => ['nullable', 'string', 'max:'.DispensaryDoctorCheck::NOTE_MAX],
+            'override_reason' => ['nullable', 'string', 'in:'.implode(',', DispensaryDoctorCheck::OVERRIDE_REASONS)],
+            'override_note' => ['nullable', 'string', 'max:'.DispensaryDoctorCheck::NOTE_MAX],
+        ], [
+            'reason.required' => 'Pick a reason to continue.',
+        ])->validate();
+        $note = $this->cleanValue($data['note'] ?? null);
+        $overrideNote = $this->cleanValue($data['override_note'] ?? null);
+        $reason = $data['reason'] ?? null;
+        $overrideReason = $data['override_reason'] ?? null;
+        if ($reason === 'other' && $note === null) {
+            throw ValidationException::withMessages(['note' => 'Add a short note for "Other".']);
+        }
+        if ($overrideReason === 'other' && $overrideNote === null) {
+            throw ValidationException::withMessages(['override_note' => 'Add a short note for "Other".']);
+        }
+
+        return [
+            'retry_key' => (string) $data['retry_key'], 'outcome' => $outcome,
+            'reason' => $reason, 'note' => $reason === null ? null : $note,
+            'override_reason' => $overrideReason, 'override_note' => $overrideReason === null ? null : $overrideNote,
+        ];
+    }
+
+    /** @param array{retry_key: string, reason: ?string, note: ?string, override_reason: ?string, override_note: ?string, outcome: string} $data */
+    private function replayedCheck(User $actor, DispensaryCase $case, array $data): ?DispensaryCase
+    {
+        $retry = DispensaryDoctorCheck::query()->where('organisation_id', $actor->organisation_id)->where('checked_by_user_id', $actor->id)->where('retry_key', $data['retry_key'])->first();
+        if (! $retry) {
+            return null;
+        }
+        if (! hash_equals($retry->payload_hash, $this->checkHash($case, $data))) {
+            throw ValidationException::withMessages(['retry_key' => 'This retry key was used for a different check.']);
+        }
+
+        return DispensaryCase::query()->whereKey($retry->dispensary_case_id)->firstOrFail()->fresh(['handoffs.items']);
+    }
+
+    /** @param array{retry_key: string, reason: ?string, note: ?string, override_reason: ?string, override_note: ?string, outcome: string} $data */
+    private function checkHash(DispensaryCase $case, array $data): string
+    {
+        return hash('sha256', json_encode([$case->id, $data['outcome'], $data['reason'], $data['note'], $data['override_reason'], $data['override_note']], JSON_THROW_ON_ERROR));
+    }
+
+    /** @param array{retry_key: string, reason: ?string, note: ?string, override_reason: ?string, override_note: ?string, outcome: string} $data */
+    private function recordCheck(User $actor, Branch $branch, DispensaryCase $case, DispensaryHandoff $handoff, string $checkedAs, array $data): void
+    {
+        $check = new DispensaryDoctorCheck;
+        $check->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $case->organisation_id, 'branch_id' => $branch->id,
+            'dispensary_case_id' => $case->id, 'dispensary_handoff_id' => $handoff->id, 'case_lock_version' => $case->lock_version,
+            'checked_by_user_id' => $actor->id, 'checked_as' => $checkedAs, 'outcome' => $data['outcome'],
+            'reason' => $data['reason'], 'note_encrypted' => $data['note'],
+            'override_reason' => $checkedAs === DispensaryDoctorCheck::AS_SUPERVISOR ? $data['override_reason'] : null,
+            'override_note_encrypted' => $checkedAs === DispensaryDoctorCheck::AS_SUPERVISOR ? $data['override_note'] : null,
+            'checked_at' => now()->utc(), 'retry_key' => $data['retry_key'], 'payload_hash' => $this->checkHash($case, $data),
+        ])->save();
+    }
+
+    private function assertCaReady(User $actor, DispensaryCase $case, DispensaryHandoff $handoff, Visit $visit, ?QueueEntry $queue, ?ClinicalEncounter $encounter): void
+    {
+        if ($case->status !== DispensaryCase::STATUS_DISPENSING || $case->current_handler_user_id !== $actor->id || $handoff->status !== DispensaryHandoff::STATUS_OPEN || $visit->status !== Visit::STATUS_REGISTERED || $queue === null || $queue->status !== QueueEntry::STATUS_REMOVED || $queue->removal_reason !== 'sent_to_dispensary' || $encounter === null || $encounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS) {
+            $this->stale('case');
+        }
+    }
+
+    private function needsReload(): never
+    {
+        throw ValidationException::withMessages(['case' => 'This branch\'s doctor\'s check setting changed. Reload the page.']);
+    }
+
+    /** @param array<string,mixed> $attributes */
+    private function retryKey(array $attributes): string
+    {
+        return (string) validator($attributes, ['retry_key' => ['required', 'uuid']])->validate()['retry_key'];
+    }
+
+    private function settings(): DispensarySettingsService
+    {
+        return app(DispensarySettingsService::class);
+    }
+
+    /** @param Collection<int, DispensaryItem> $items */
+    private function assertItemsReady(Collection $items): void
+    {
+        foreach ($items as $item) {
+            if ($item->status === DispensaryItem::STATUS_PENDING) {
+                throw ValidationException::withMessages(['items' => 'Finalize every Medicine before completing Dispensary.']);
+            }
+            if (in_array($item->reason, ['out_of_stock', 'clarification_required', 'other'], true)) {
+                throw ValidationException::withMessages(['items' => 'Stock shortage or clarification requires Return to Doctor.']);
+            }
+            if (in_array($item->status, [DispensaryItem::STATUS_PARTIAL, DispensaryItem::STATUS_NOT_DISPENSED], true) && $item->change_state !== DispensaryItem::CHANGE_REMOVED) {
+                $ack = DispensaryItemException::query()->where('dispensary_item_id', $item->id)->where('status', DispensaryItemException::STATUS_ACKNOWLEDGED)->lockForUpdate()->latest('id')->first();
+                if (! $ack || $ack->proposed_quantity_dispensed !== $item->quantity_dispensed || $ack->expected_item_lock_version !== $item->lock_version) {
+                    throw ValidationException::withMessages(['items' => 'The attending doctor must acknowledge the current patient-declined quantity.']);
+                }
+            }
+        }
+    }
+
+    /**
+     * Lock and validate every allocation of the case in the Complete lock order (allocations, locations, SKUs,
+     * mappings, batches). At Verify (DSP-23) a batch that is no longer dispensable gives one plain message.
+     *
+     * @param  Collection<int, DispensaryItem>  $items
+     * @return list<array{DispensaryItemBatchAllocation, InventoryLocation, InventorySku, InventoryBatch}>
+     */
+    private function lockedAllocations(User $actor, Branch $branch, Collection $items, bool $verifying): array
+    {
+        $allocations = DispensaryItemBatchAllocation::query()
+            ->whereIn('dispensary_item_id', $items->pluck('id'))
+            ->orderBy('inventory_location_id')
+            ->orderBy('inventory_sku_id')
+            ->orderBy('inventory_batch_id')
+            ->lockForUpdate()
+            ->get();
+        $allocationsByItem = $allocations->groupBy('dispensary_item_id');
+        foreach ($items as $item) {
+            if (number_format((float) $allocationsByItem->get($item->id, collect())->sum('quantity'), 3, '.', '') !== number_format((float) $item->quantity_dispensed, 3, '.', '')) {
+                throw ValidationException::withMessages(['allocations' => 'Batch allocations must equal the actual dispensed quantity.']);
+            }
+        }
+
+        $locations = InventoryLocation::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereIn('id', $allocations->pluck('inventory_location_id')->unique())
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+        $skus = InventorySku::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereIn('id', $allocations->pluck('inventory_sku_id')->unique())
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+        $mappings = MedicineCatalogueInventorySku::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereIn('medicine_catalogue_item_id', $items->pluck('medicine_catalogue_item_id')->unique())
+            ->whereIn('inventory_sku_id', $allocations->pluck('inventory_sku_id')->unique())
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+        $batches = InventoryBatch::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereIn('id', $allocations->pluck('inventory_batch_id')->unique())
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        $checked = [];
+        foreach ($allocations as $allocation) {
+            $item = $items->firstWhere('id', $allocation->dispensary_item_id);
+            $location = $locations->get($allocation->inventory_location_id);
+            $sku = $skus->get($allocation->inventory_sku_id);
+            $batch = $batches->get($allocation->inventory_batch_id);
+            $mapping = $item ? $mappings->first(fn (MedicineCatalogueInventorySku $candidate): bool => $candidate->medicine_catalogue_item_id === $item->medicine_catalogue_item_id && $candidate->inventory_sku_id === $allocation->inventory_sku_id) : null;
+            try {
+                app(InventoryBatchEligibility::class)->assertEligible($actor->organisation_id, $branch, $allocation->inventory_batch_id, $item->medicine_name_snapshot ?? 'Selected medicine');
+            } catch (ValidationException $exception) {
+                $verifying ? $this->batchGone() : throw $exception;
+            }
+            if (! $item
+                || ! $location
+                || ! $location->is_active
+                || $location->branch_id !== $branch->id
+                || $location->type !== InventoryLocation::TYPE_DISPENSARY
+                || ! $sku
+                || $item->unit_snapshot !== $sku->stock_unit
+                || ! $mapping
+                || ! $mapping->is_active
+                || ! $batch
+                || $batch->inventory_sku_id !== $sku->id
+            ) {
+                $verifying ? $this->batchGone() : throw ValidationException::withMessages(['allocations' => 'A selected inventory reference is no longer eligible for dispensing.']);
+            }
+            $checked[] = [$allocation, $location, $sku, $batch];
+        }
+
+        return $checked;
+    }
+
+    private function batchGone(): never
+    {
+        throw ValidationException::withMessages(['allocations' => 'This batch can no longer be dispensed. Send the case back so the CA can choose another.']);
+    }
+
+    /** @param Collection<int, DispensaryItem> $items */
+    private function dispenseAndComplete(User $actor, Branch $branch, DispensaryCase $case, DispensaryHandoff $handoff, Collection $items, User $completer, mixed $caVerifiedAt, bool $verifying): void
+    {
+        foreach ($this->lockedAllocations($actor, $branch, $items, $verifying) as [$allocation, $location, $sku, $batch]) {
+            try {
+                $movement = $this->inventory->debitForDispense($actor, $location, $sku, $batch, (string) $allocation->quantity, $allocation->id, $allocation->public_id);
+            } catch (ValidationException $exception) {
+                $verifying ? $this->batchGone() : throw $exception;
+            }
+            $this->audit->record('inventory.dispensed', $movement, ['movement_type' => 'dispense'], $actor, $branch);
+        }
+        $handoff->forceFill(['status' => DispensaryHandoff::STATUS_COMPLETED, 'open_case_guard' => null, 'completed_by_user_id' => $completer->id, 'completed_at' => now()->utc(), 'ca_verified_at' => $caVerifiedAt])->save();
+        $case->forceFill(['status' => DispensaryCase::STATUS_COMPLETED, 'completed_at' => now()->utc(), 'lock_version' => $case->lock_version + 1])->save();
+        $this->audit->record('dispensary.completed', $case, [
+            'record_version' => $case->lock_version, 'ca_verified' => true,
+            'edited_lines' => $items->where('change_state', DispensaryItem::CHANGE_EDITED)->count(),
+            'added_lines' => $items->where('change_state', DispensaryItem::CHANGE_ADDED)->count(),
+            'removed_lines' => $items->where('change_state', DispensaryItem::CHANGE_REMOVED)->count(),
+            'service_lines_changed' => DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->where('change_state', '<>', DispensaryServiceLine::CHANGE_UNCHANGED)->count(),
+        ], $actor, $branch);
     }
 
     /** @param array<string,mixed> $attributes */
@@ -772,16 +1031,18 @@ class DispensaryService
 
         return DB::transaction(function () use ($actor, $case, $attributes, $permission, $callback, $branch): DispensaryCase {
             $returnDoctorId = null;
-            if ($permission === 'dispensary.return_to_doctor.branch') {
+            $lockDoctor = in_array($permission, ['dispensary.return_to_doctor.branch', self::CHECK], true);
+            if ($lockDoctor) {
                 $stub = DispensaryCase::query()->whereKey($case->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
                 $returnDoctorId = Visit::query()->whereKey($stub->visit_id)->value('assigned_doctor_user_id');
                 ConsultationLocks::users($actor->organisation_id, [$actor->id, $returnDoctorId]);
             }
-            $lockedActor = $this->authority->lock($actor, $branch, $permission);
+            // DSP-23: the doctor's user lock is taken first (above), as Return to Doctor and hold/resume do.
+            $lockedActor = $permission === self::CHECK ? $this->authority->lockChecker($actor, $branch) : $this->authority->lock($actor, $branch, $permission);
             $lockedCaseStub = DispensaryCase::query()->whereKey($case->id)->where('organisation_id', $lockedActor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
             $patient = Patient::query()->whereKey($lockedCaseStub->visit()->value('patient_id'))->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
             $visit = Visit::query()->whereKey($lockedCaseStub->visit_id)->where('patient_id', $patient->id)->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
-            if ($permission === 'dispensary.return_to_doctor.branch' && $visit->assigned_doctor_user_id !== $returnDoctorId) {
+            if ($lockDoctor && $visit->assigned_doctor_user_id !== $returnDoctorId) {
                 $this->stale('case');
             }
             $otc = $lockedCaseStub->case_type === DispensaryCase::TYPE_OTC;
