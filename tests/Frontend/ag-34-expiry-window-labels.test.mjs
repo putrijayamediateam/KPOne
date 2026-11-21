@@ -13,7 +13,7 @@ test('the Daily summary and the quick question no longer promise a flat 90 days'
     );
     assert.match(
         read('resources/js/pages/Agents/DailySummary.vue'),
-        /expiring soon \(up to 90 days\)/,
+        /expiring soon \(up to 90\s+days\)/,
     );
     assert.match(
         read('app/Domain/Agents/Assistant/QuickQuestions.php'),
