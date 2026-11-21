@@ -5,6 +5,7 @@ namespace App\Domain\Clinical\Dispensary\Services;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -102,6 +103,7 @@ final class DispensaryReturnService
                     'dosageForm' => $item->dosage_form_snapshot, 'code' => $item->medicine_code_snapshot, 'unit' => $item->unit_snapshot,
                     'controlled' => $isControlled,
                     'dispensed' => $this->trimmed(StockUnitQuantity::format($dispensed)),
+                    'dispensedPacks' => DispensaryPackDisplay::text($item),
                     'returned' => $this->trimmed(StockUnitQuantity::format($returned)),
                     'returnable' => $this->trimmed(StockUnitQuantity::format(max(0, $dispensed - $returned))),
                     'returnCount' => $lineReturns->count(),

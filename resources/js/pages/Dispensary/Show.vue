@@ -13,12 +13,19 @@ import {
 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
+import PackQuantityField from '@/components/dispensary/PackQuantityField.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
+import {
+    packsOnHand,
+    parsePacks,
+    usablePackConversion,
+} from '@/lib/dispensary-packs';
+import type { PackConversion } from '@/lib/dispensary-packs';
 import {
     boxBatchCheck,
     checkScan,
@@ -76,6 +83,10 @@ type Item = {
     unit: string;
     quantityOrdered: string;
     quantityDispensed: string | null;
+    // DSP-24: whole packs on a saved line ("2 bottles (120 ml)"), and the SKU's current checked conversion.
+    packsDispensed?: number | null;
+    packText?: string | null;
+    packConversion?: PackConversion | null;
     status: 'pending' | 'dispensed' | 'partial' | 'not_dispensed';
     reason: string | null;
     dosage: string;
@@ -184,11 +195,15 @@ type Medicine = {
     strength: string | null;
     unit: string;
     sku: { publicId: string; unit: string };
+    packConversion?: PackConversion | null;
     availability: Availability[];
     allergyMatches?: AllergyMatch[];
 };
 type LineForm = {
     quantity: string;
+    // DSP-24: the packs typed when the CA chose "Bottles"; the quantity then holds the matching ml.
+    packs: string;
+    packMode: 'base' | 'packs';
     dosage: string;
     frequency: string;
     duration: string;
@@ -208,6 +223,8 @@ const branchId = () => page.props.branchContext?.active?.id ?? 0;
 // A line the CA has not saved yet shows the doctor's quantity; a saved line shows the CA's.
 const formFor = (item: Item): LineForm => ({
     quantity: item.quantityDispensed ?? item.quantityOrdered,
+    packs: item.packsDispensed ? String(item.packsDispensed) : '',
+    packMode: item.packsDispensed ? 'packs' : 'base',
     dosage: item.dosage ?? '',
     frequency: item.frequency ?? '',
     duration: item.duration ?? '',
@@ -251,6 +268,7 @@ const isDirty = (item: Item): boolean => {
         (
             [
                 'quantity',
+                'packs',
                 'dosage',
                 'frequency',
                 'duration',
@@ -727,6 +745,24 @@ const allocationFor = (
               },
           ]
         : [];
+// DSP-24: with "Bottles" chosen, the packs and the conversion version the CA saw go with the ml; the server refuses a
+// save when the bottle size changed meanwhile.
+const packPayload = (
+    form: LineForm,
+    conversion: PackConversion | null | undefined,
+    unit: string,
+) => {
+    const usable = usablePackConversion(conversion, unit);
+    const packs = parsePacks(form.packs);
+
+    return form.packMode === 'packs' && usable && packs !== null
+        ? {
+              packs,
+              pack_conversion_public_id: usable.publicId,
+              pack_conversion_version: usable.version,
+          }
+        : {};
+};
 const linePayload = (form: LineForm) => ({
     quantity_dispensed: form.quantity,
     dosage: form.dosage,
@@ -747,6 +783,7 @@ const saveItem = (item: Item, done?: () => void) => {
             case_lock_version: props.dispensary.lockVersion,
             item_lock_version: item.lockVersion,
             ...linePayload(form),
+            ...packPayload(form, item.packConversion, item.unit),
             allocations: allocationFor(
                 item.availability[form.availabilityIndex],
                 item.sku?.publicId,
@@ -854,19 +891,29 @@ const stockAmount = (quantity: string, unit: string): string => {
 
     return `${text} ${unit}`.trim();
 };
-const batchOptionText = (stock: Availability, unit: string): string =>
-    `${stock.held ? `Held: ${formatInventoryReason(stock.holdReason)} · ` : ''}${stockAmount(stock.quantity, unit)} on hand · exp ${formatDate(stock.expiryDate)} · ${stock.batchNumber} · ${stock.locationName}`;
+// DSP-24: "180 ml (3 bottles) on hand" when the stock divides evenly into whole bottles.
+const batchOptionText = (
+    stock: Availability,
+    unit: string,
+    conversion: PackConversion | null = null,
+): string =>
+    `${stock.held ? `Held: ${formatInventoryReason(stock.holdReason)} · ` : ''}${stockAmount(stock.quantity, unit)}${packsOnHand(stock.quantity, conversion)} on hand · exp ${formatDate(stock.expiryDate)} · ${stock.batchNumber} · ${stock.locationName}`;
 const selectedBatchText = (
     stock: Availability | undefined,
     unit: string,
+    conversion: PackConversion | null = null,
 ): string =>
     stock === undefined
         ? 'No batch selected.'
         : stock.held
           ? 'No usable batch: every batch here is on hold.'
-          : `Selected: ${batchOptionText(stock, unit)}`;
+          : conversion
+            ? `Selected: ${batchOptionText(stock, unit, conversion)}`
+            : `Selected: ${batchOptionText(stock, unit)}`;
 const addForm = reactive<LineForm>({
     quantity: '1.000',
+    packs: '',
+    packMode: 'base',
     dosage: '',
     frequency: '',
     duration: '',
@@ -918,6 +965,13 @@ const searchMedicines = async () => {
 const chooseMedicine = (medicine: Medicine) => {
     chosen.value = medicine;
     clearBatchHint('add');
+    addForm.packs = '';
+    addForm.packMode = 'base';
+
+    if (addForm.quantity === '') {
+        addForm.quantity = '1.000';
+    }
+
     addAllergyCheck.value = false;
     addForm.availabilityIndex = Math.max(
         0,
@@ -1078,6 +1132,7 @@ const addMedicine = () => {
             case_lock_version: props.dispensary.lockVersion,
             medicine_public_id: medicine.publicId,
             ...linePayload(addForm),
+            ...packPayload(addForm, medicine.packConversion, medicine.unit),
             allocations: allocationFor(
                 medicine.availability[addForm.availabilityIndex],
                 medicine.sku.publicId,
@@ -1105,6 +1160,8 @@ const addMedicine = () => {
                 searchTerm.value = '';
                 Object.assign(addForm, {
                     quantity: '1.000',
+                    packs: '',
+                    packMode: 'base',
                     dosage: '',
                     frequency: '',
                     duration: '',
@@ -1715,13 +1772,20 @@ const exceptionStatusLabels: Record<string, string> = {
                                 printed rows. Route is not printed. Over-budget
                                 labels are blocked, never truncated.
                             </p>
-                            <label
-                                >Quantity ({{ item.unit }})<input
-                                    v-model="forms[item.publicId].quantity"
-                                    :class="inputClass"
-                                    inputmode="decimal"
-                                    data-field="quantity"
-                            /></label>
+                            <PackQuantityField
+                                v-model:quantity="forms[item.publicId].quantity"
+                                v-model:packs="forms[item.publicId].packs"
+                                v-model:mode="forms[item.publicId].packMode"
+                                :unit="item.unit"
+                                :conversion="item.packConversion"
+                                :ordered="
+                                    item.source === 'doctor'
+                                        ? item.original.quantity
+                                        : null
+                                "
+                                :input-class="inputClass"
+                                data-field="quantity"
+                            />
                             <label
                                 >Dosage (label max
                                 {{ dispensary.labelLimits?.dosage }}
@@ -1804,6 +1868,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                             batchOptionText(
                                                 stock,
                                                 item.sku?.unit ?? item.unit,
+                                                usablePackConversion(
+                                                    item.packConversion,
+                                                    item.sku?.unit ?? item.unit,
+                                                ),
                                             )
                                         }}
                                     </option>
@@ -1840,6 +1908,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                                 .availabilityIndex
                                         ],
                                         item.sku?.unit ?? item.unit,
+                                        usablePackConversion(
+                                            item.packConversion,
+                                            item.sku?.unit ?? item.unit,
+                                        ),
                                     )
                                 }}
                             </p>
@@ -1935,11 +2007,16 @@ const exceptionStatusLabels: Record<string, string> = {
                             <p>
                                 <span class="text-muted-foreground"
                                     >Quantity</span
-                                ><br />{{
-                                    item.quantityDispensed ??
-                                    item.quantityOrdered
-                                }}
-                                {{ item.unit }}
+                                ><br /><template v-if="item.packText">{{
+                                    item.packText
+                                }}</template
+                                ><template v-else
+                                    >{{
+                                        item.quantityDispensed ??
+                                        item.quantityOrdered
+                                    }}
+                                    {{ item.unit }}</template
+                                >
                             </p>
                             <p>
                                 <span class="text-muted-foreground">Dosage</span
@@ -2158,13 +2235,15 @@ const exceptionStatusLabels: Record<string, string> = {
                         <p class="text-sm font-medium sm:col-span-full">
                             {{ chosen.name }}
                         </p>
-                        <label
-                            >Quantity ({{ chosen.unit }})<input
-                                v-model="addForm.quantity"
-                                :class="inputClass"
-                                inputmode="decimal"
-                                data-field="add-quantity"
-                        /></label>
+                        <PackQuantityField
+                            v-model:quantity="addForm.quantity"
+                            v-model:packs="addForm.packs"
+                            v-model:mode="addForm.packMode"
+                            :unit="chosen.unit"
+                            :conversion="chosen.packConversion"
+                            :input-class="inputClass"
+                            data-field="add-quantity"
+                        />
                         <label
                             >Dosage (label max
                             {{ dispensary.labelLimits?.dosage }}
@@ -2240,6 +2319,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                         batchOptionText(
                                             stock,
                                             chosen.sku?.unit ?? chosen.unit,
+                                            usablePackConversion(
+                                                chosen.packConversion,
+                                                chosen.sku?.unit ?? chosen.unit,
+                                            ),
                                         )
                                     }}
                                 </option>
@@ -2273,6 +2356,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                         addForm.availabilityIndex
                                     ],
                                     chosen.sku?.unit ?? chosen.unit,
+                                    usablePackConversion(
+                                        chosen.packConversion,
+                                        chosen.sku?.unit ?? chosen.unit,
+                                    ),
                                 )
                             }}
                         </p>
