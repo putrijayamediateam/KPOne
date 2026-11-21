@@ -2,7 +2,7 @@
 
 Synthetic `.test` data on a task-owned preview database, signed in as the demo Director. Branch under review: `feature/dsp-25-director-readonly-dispensary`.
 
-- `visit-link-1440-light.png`: the visit page with "Open dispensary case (read only)".
+- `visit-link-390-light.png`, `visit-link-1440-light.png`: the visit page with the Dispensary card (status and "Open dispensary case (read only)") under Visit Reason.
 - `review-completed-*` (an OTC case with returns) and `review-dispensing-*` (a consultation case still being dispensed), at 390 and 1440 px, light and dark.
 
 Measured on every shot:
