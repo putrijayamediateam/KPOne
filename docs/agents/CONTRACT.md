@@ -145,6 +145,12 @@ as it is until then. Names are the owner's draft and can be renamed in the regis
 
 Seeded by a local and testing seeder only (fictional data), never by a migration.
 
+**Registering them on a real server (AG-36, owner decision 2026-11-21).** The agents are listed once in `App\Domain\Agents\Registry\AgentCatalogue`,
+read by the local and testing seeder and by `php artisan kpone:register-agents` (`--dry-run`, `--force` in production, `--enable`,
+`--add-missing-tools`). The command is idempotent, creates agents disabled, never changes an existing agent's code, name, title,
+enabled state or lock version, never removes a tool, and writes one `ai_agents.registered` audit row. Design:
+[AGENT-REGISTRATION-DESIGN.md](AGENT-REGISTRATION-DESIGN.md).
+
 ## 9. Knowledge pack files
 
 One file per agent at `docs/agents/<code>.md`, sections: Role, Scope, Data sources (tool codes), Rules,
