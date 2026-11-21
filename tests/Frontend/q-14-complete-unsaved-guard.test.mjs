@@ -105,3 +105,10 @@ test('the confirm dialog says when the service choices were reset after a save',
         /watch\(sendOpen, \(open\) => \{\s*if \(!open\) \{\s*servicesReset\.value = false;/,
     );
 });
+
+test('the confirm sheet footer wraps at sm and wider, so three buttons stay inside the card (Daniel)', () => {
+    const shell = read(
+        'resources/js/components/ui/OperationalConfirmDialog.vue',
+    );
+    assert.match(shell, /<DialogFooter class="gap-2 sm:flex-wrap sm:gap-2">/);
+});
