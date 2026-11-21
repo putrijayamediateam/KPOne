@@ -587,8 +587,8 @@ const errorFor = (field: string) =>
                         >
                             <div
                                 v-for="[label, value] in [
-                                    ['Pack size', sku.packSize],
-                                    ['Purchase unit', sku.purchaseUnit],
+                                    ['Pack size', sku.packSize ?? ''],
+                                    ['Purchase unit', sku.purchaseUnit ?? ''],
                                 ]"
                                 :key="label"
                                 class="flex items-start gap-2"
