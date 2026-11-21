@@ -167,6 +167,7 @@ final class PermissionCatalogue
             'dispensary.return_to_doctor.branch',
             'dispensary.otc.create.branch',
             'dispensary.acknowledge_partial.own',
+            'dispensary.view_readonly.organisation',
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
@@ -550,6 +551,11 @@ final class PermissionCatalogue
         // STK-28 (owner programme 2026-11-11; owner decision 2026-11-15: Director only): the stock value, cost of
         // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
         $roles['director'][] = 'inventory.valuation.view.organisation';
+
+        // DSP-25 (owner decision 4 of 20-21 Nov 2026; answer P5): the Director's read-only view of a dispensary case at
+        // any branch, every open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never
+        // implies a Dispensary write permission.
+        $roles['director'][] = 'dispensary.view_readonly.organisation';
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
