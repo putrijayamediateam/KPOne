@@ -44,6 +44,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\Compilers\BladeCompiler;
 use Inertia\Inertia;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
@@ -68,10 +69,27 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * OPT-1: `php artisan optimize` failed at its views step with "Unable to locate a class or view for component
+     * [inertia::app]". `route:cache` boots a fresh application, which becomes `Container::getInstance()`, then points
+     * the facades back at the original one; `view:cache` then compiles with the fresh application's Blade compiler,
+     * while inertia-laravel registers its `inertia` component namespace through the Blade facade, on the original
+     * compiler. Registering the namespace on each compiler instance itself works in every order; the rendered page is
+     * unchanged. Remove this once inertia-laravel registers it on the compiler it is given (or Laravel's route:cache
+     * restores the container instance).
+     */
+    private function registerInertiaBladeComponents(): void
+    {
+        $this->callAfterResolving('blade.compiler', function (BladeCompiler $blade): void {
+            $blade->componentNamespace('Inertia\\View\\Components', 'inertia');
+        });
+    }
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
+        $this->registerInertiaBladeComponents();
         RateLimiter::for('patient-report-views', fn (Request $request) => Limit::perMinute(60)->by('patient-reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         RateLimiter::for('patient-whatsapp', fn (Request $request) => Limit::perMinute(20)->by('patient-whatsapp:'.$request->user()?->id));
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
