@@ -48,11 +48,10 @@ final class ConnectorToolRunner
     {
         $branch = null;
         $limitKey = 'connector-day:'.$user->id;
-        if (RateLimiter::tooManyAttempts($limitKey, self::DAILY_LIMIT)) {
+        if (RateLimiter::hit($limitKey, 86400) > self::DAILY_LIMIT) {
             $this->audit($user, $toolCode, null, 'refused', 'rate_limited_day');
             throw new ConnectorRefused('rate_limited_day', 'The daily limit of connector calls was reached. Try again tomorrow.');
         }
-        RateLimiter::hit($limitKey, 86400);
 
         if ($branchCode !== null) {
             $branch = Branch::query()->where('organisation_id', $user->organisation_id)->where('code', $branchCode)->first();

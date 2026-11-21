@@ -5,6 +5,7 @@ namespace App\Domain\Agents\Connector;
 use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentTool;
 use App\Domain\Organisation\Models\Department;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,13 +22,8 @@ final class ConnectorAgent
     {
         $agent = AiAgent::query()->where('organisation_id', $organisationId)->where('code', self::CODE)->first();
         if (! $agent) {
-            $agent = DB::transaction(function () use ($organisationId): AiAgent {
-                $existing = AiAgent::query()->where('organisation_id', $organisationId)->where('code', self::CODE)->lockForUpdate()->first();
-                if ($existing) {
-                    return $existing;
-                }
-
-                return AiAgent::query()->create([
+            try {
+                $agent = DB::transaction(fn (): AiAgent => AiAgent::query()->create([
                     'organisation_id' => $organisationId,
                     'code' => self::CODE,
                     'display_name' => 'Claude connector',
@@ -36,11 +32,19 @@ final class ConnectorAgent
                     'kind' => 'runtime',
                     'is_enabled' => true,
                     'lock_version' => 0,
-                ]);
-            });
+                ]));
+            } catch (UniqueConstraintViolationException) {
+                // Two first calls at once: the other one created it.
+                $agent = AiAgent::query()->where('organisation_id', $organisationId)->where('code', self::CODE)->firstOrFail();
+            }
         }
-        foreach (ConnectorTools::codes() as $code) {
-            AiAgentTool::query()->firstOrCreate(['ai_agent_id' => $agent->id, 'tool_code' => $code]);
+        $have = AiAgentTool::query()->where('ai_agent_id', $agent->id)->pluck('tool_code')->all();
+        foreach (array_diff(ConnectorTools::codes(), $have) as $code) {
+            try {
+                AiAgentTool::query()->firstOrCreate(['ai_agent_id' => $agent->id, 'tool_code' => $code]);
+            } catch (UniqueConstraintViolationException) {
+                // Created by a concurrent first call.
+            }
         }
 
         return $agent;

@@ -35,7 +35,9 @@
         <main>
             <div class="card">
                 <h1>Allow {{ $client->name }} to read KPOne totals?</h1>
-                <p>You are signed in as <span class="who">{{ $user->email }}</span>.</p>
+                @php($redirectHost = parse_url((string) $request->query('redirect_uri', ''), PHP_URL_HOST))
+                <p>You are signed in as <span class="who">{{ $user->email }}</span>.@if ($redirectHost) It will return to <span class="who">{{ $redirectHost }}</span>.@endif</p>
+                <p><strong>Only continue if you just started this connection yourself, in your own app.</strong> If someone sent you this link, choose Cancel.</p>
                 <p>What it can see:</p>
                 <ul>
                     <li>Totals only (counts and amounts) for your own branches.</li>
@@ -46,7 +48,7 @@
                     <li>Clinical notes, diagnoses or anything typed by staff about a person.</li>
                 </ul>
                 <p>It cannot change anything in KPOne. KPOne never sends anything to the app by itself: the app asks, and each question is recorded.</p>
-                <p>How long: each sign-in lasts about 1 hour and renews for up to 30 days. To stop it, disconnect KPOne in the app, or ask the person who manages the KPOne server to switch the connector off.</p>
+                <p>How long: each sign-in lasts about 1 hour and the app renews it by itself while you use it. After 30 days without use it stops. To stop it, disconnect KPOne in the app, or ask the person who manages the KPOne server to switch the connector off.</p>
                 <div class="actions">
                     <form method="POST" action="{{ route('passport.authorizations.deny') }}">
                         @csrf

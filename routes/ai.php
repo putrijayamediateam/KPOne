@@ -9,6 +9,7 @@ use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\ApproveAuthorizationController;
 use Laravel\Passport\Http\Controllers\AuthorizationController;
 use Laravel\Passport\Http\Controllers\DenyAuthorizationController;
+use Laravel\Passport\Http\Middleware\CheckToken;
 
 /*
 | The KPOne connector (docs/agents/MCP-CONNECTOR-DESIGN.md). Loaded by the MCP package's service provider. Every route
@@ -33,5 +34,5 @@ Route::middleware([ConnectorEnabled::class])->group(function (): void {
 
     // The MCP endpoint itself: bearer token only (no cookies, no CSRF), the token's scope, the person's permission on every
     // call, then 30 calls a minute per person.
-    Mcp::web('/mcp', ConnectorServer::class)->middleware(['sensitive.no-store', 'auth:api', ConnectorAccess::class, 'throttle:30,1']);
+    Mcp::web('/mcp', ConnectorServer::class)->middleware(['sensitive.no-store', 'auth:api', CheckToken::using('mcp:use'), ConnectorAccess::class, 'throttle:30,1']);
 });

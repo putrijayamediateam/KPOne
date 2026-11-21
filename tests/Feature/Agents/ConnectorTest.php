@@ -7,6 +7,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Agents\Connector\ConnectorAgent;
 use App\Domain\Agents\Connector\ConnectorToolRunner;
 use App\Domain\Agents\Models\AiAgentRun;
+use App\Domain\Agents\Models\AiAgentTool;
 use App\Domain\Audit\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
@@ -251,11 +252,45 @@ class ConnectorTest extends VisitTestCase
 
     public function test_connector_tool_classes_never_call_a_write_method(): void
     {
-        foreach (glob(app_path('Domain/Agents/Connector/{ListBranchesTool,ConnectorTools}.php'), GLOB_BRACE) + glob(app_path('Domain/Agents/Connector/Mcp/*Tool.php')) as $file) {
+        $files = array_merge(
+            glob(app_path('Domain/Agents/Connector/{ListBranchesTool,ConnectorTools}.php'), GLOB_BRACE) ?: [],
+            glob(app_path('Domain/Agents/Connector/Mcp/*Tool.php')) ?: [],
+        );
+        $this->assertCount(3, $files, 'The MCP layer must be scanned too.');
+        foreach ($files as $file) {
             $source = file_get_contents($file);
             foreach (['->save(', '->update(', '->delete(', '->insert(', '->create(', 'forceFill(', 'DB::statement', 'DB::insert', 'DB::update', 'DB::delete'] as $write) {
                 $this->assertStringNotContainsString($write, $source, basename($file).' must stay read-only: '.$write);
             }
         }
+    }
+
+    public function test_a_token_without_the_connector_scope_is_refused(): void
+    {
+        Passport::actingAs($this->director(), [], 'api');
+
+        $this->postJson('/mcp', $this->message(), $this->headers())->assertForbidden();
+        $this->assertSame(0, AiAgentRun::query()->count());
+    }
+
+    public function test_the_consent_screen_names_where_the_app_will_return_and_warns_about_links_from_others(): void
+    {
+        $client = app(ClientRepository::class)->createAuthorizationCodeGrantClient('Test app', ['https://claude.ai/api/mcp/auth_callback'], false, null, false);
+        $query = http_build_query([
+            'client_id' => $client->id, 'redirect_uri' => 'https://claude.ai/api/mcp/auth_callback', 'response_type' => 'code', 'scope' => 'mcp:use',
+            'state' => 'abc', 'code_challenge' => str_repeat('a', 43), 'code_challenge_method' => 'S256',
+        ]);
+
+        $this->actingAs($this->director())->get('/oauth/authorize?'.$query)
+            ->assertOk()->assertSee('It will return to')->assertSee('claude.ai')->assertSee('If someone sent you this link, choose Cancel');
+    }
+
+    public function test_the_connector_agent_is_created_once_and_its_allowlist_is_not_duplicated(): void
+    {
+        $first = ConnectorAgent::ensure($this->organisation->id);
+        $second = ConnectorAgent::ensure($this->organisation->id);
+
+        $this->assertSame($first->id, $second->id);
+        $this->assertSame(1, AiAgentTool::query()->where('ai_agent_id', $first->id)->count());
     }
 }
