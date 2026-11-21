@@ -45,10 +45,12 @@ type PriceBookRow = {
     branchId: number | null;
     scopeKey: string;
     isActive: boolean;
+    isPanel: boolean;
 };
 
 const props = defineProps<{
     canPublish: boolean;
+    canProposePanelPrices: boolean;
     branches: Array<{ id: number; name: string }>;
     medicines: Array<{ publicId: string; displayName: string; code: string }>;
     services: Array<{ publicId: string; displayName: string; code: string }>;
@@ -62,7 +64,7 @@ const activeBranchId = page.props.branchContext?.active?.id ?? null;
 const bookOptions = () => [
     { value: '', label: 'Select a price book' },
     ...props.priceBooks
-        .filter((book) => book.isActive)
+        .filter((book) => book.isActive && !book.isPanel)
         .map((book) => ({
             value: book.publicId,
             label: `${book.name} (${book.branchId === null ? 'Organisation-wide' : 'Branch'})`,
@@ -133,7 +135,14 @@ const publishForms = reactive<
 const publishForm = (charge: ChargeRow) => {
     if (!publishForms[charge.publicId]) {
         publishForms[charge.publicId] = {
-            priceBook: charge.currentPrice?.priceBookPublicId ?? '',
+            // Panel prices are not published here; they change by proposal.
+            priceBook: props.priceBooks.some(
+                (book) =>
+                    book.isPanel &&
+                    book.publicId === charge.currentPrice?.priceBookPublicId,
+            )
+                ? ''
+                : (charge.currentPrice?.priceBookPublicId ?? ''),
             amount:
                 charge.currentPrice && charge.currentPrice.amountSen !== null
                     ? (charge.currentPrice.amountSen / 100).toFixed(2)
@@ -237,6 +246,15 @@ const toggleCharge = (charge: ChargeRow) => {
                 </Button>
             </template>
         </PageHeader>
+        <p class="text-sm text-muted-foreground">
+            Panel prices are changed by proposal.
+            <Link
+                v-if="canProposePanelPrices"
+                href="/panel-price-changes"
+                class="font-medium text-brand-strong underline underline-offset-2"
+                >Propose a change</Link
+            >
+        </p>
 
         <section class="grid gap-4 md:grid-cols-2">
             <div class="min-w-0 rounded-xl border bg-card p-4">

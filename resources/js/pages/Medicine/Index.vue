@@ -7,7 +7,7 @@ import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSec
 import CatalogueOptionPicker from '@/components/catalogue/CatalogueOptionPicker.vue';
 import InventorySkuPicker from '@/components/catalogue/InventorySkuPicker.vue';
 import LocationPicker from '@/components/catalogue/LocationPicker.vue';
-import PanelTariffEditor from '@/components/catalogue/PanelTariffEditor.vue';
+import PanelPricesReadOnly from '@/components/catalogue/PanelPricesReadOnly.vue';
 import SupplierPicker from '@/components/catalogue/SupplierPicker.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -84,6 +84,7 @@ type SetupOptions = {
 };
 
 const props = defineProps<{
+    canProposePanelPrices: boolean;
     medicines: {
         data: MedicineRow[];
         total: number;
@@ -302,13 +303,6 @@ const submit = () => {
             ? {
                   prices: {
                       self_pay_sen: rmToSen(data.prices.self_pay_rm),
-                      panel_default_sen: rmToSen(data.prices.panel_default_rm),
-                      panel_overrides: data.prices.panel_overrides.map(
-                          (override) => ({
-                              panel_id: override.panel_id,
-                              amount_sen: rmToSen(override.amount_rm),
-                          }),
-                      ),
                   },
               }
             : {}),
@@ -1229,50 +1223,36 @@ const toggleDescription = computed(() => {
                                             >Default for Panels without a custom
                                             rate</span
                                         >
-                                        <div class="grid gap-1">
-                                            <Input
-                                                v-model="
-                                                    form.prices.panel_default_rm
-                                                "
-                                                aria-label="Default Panel price in RM"
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <InputError
-                                                :message="
-                                                    formError(
-                                                        'prices.panel_default_sen',
-                                                    )
-                                                "
-                                            />
-                                        </div>
+                                        <span class="text-sm tabular-nums">{{
+                                            form.prices.panel_default_rm
+                                                ? `RM ${form.prices.panel_default_rm}`
+                                                : 'No price yet'
+                                        }}</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="grid gap-2">
-                                <div>
-                                    <h4 class="text-sm font-medium">
-                                        Panel-specific price overrides
-                                    </h4>
-                                    <p class="text-xs text-muted-foreground">
-                                        Add a Panel only when its tariff differs
-                                        from the default Panel price.
-                                    </p>
-                                </div>
-                                <PanelTariffEditor
-                                    v-model="form.prices.panel_overrides"
-                                    :panels="setup.panels"
+                                <h4 class="text-sm font-medium">
+                                    Panel prices
+                                </h4>
+                                <PanelPricesReadOnly
+                                    :default-rm="form.prices.panel_default_rm"
+                                    :overrides="
+                                        form.prices.panel_overrides.map(
+                                            (override) => ({
+                                                panelName:
+                                                    setup.panels.find(
+                                                        (panel) =>
+                                                            String(panel.id) ===
+                                                            override.panel_id,
+                                                    )?.name ??
+                                                    `Panel ${override.panel_id}`,
+                                                amountRm: override.amount_rm,
+                                            }),
+                                        )
+                                    "
+                                    :can-propose="canProposePanelPrices"
                                 />
-                                <p
-                                    v-if="editing"
-                                    class="text-xs text-muted-foreground"
-                                >
-                                    Published Panel rates are versioned.
-                                    Removing a row here does not erase its
-                                    existing price history or disable that Panel
-                                    rate.
-                                </p>
                             </div>
                             <label class="grid gap-1 text-xs">
                                 <span id="medicine-publication-branch-label"

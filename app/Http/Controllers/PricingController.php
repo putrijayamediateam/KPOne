@@ -83,6 +83,7 @@ class PricingController extends Controller
             });
 
         return Inertia::render('Pricing/Index', [
+            'canProposePanelPrices' => $actor->can('panel.prices.propose.organisation'),
             'canPublish' => Gate::forUser($actor)->allows('prices.publish.organisation'),
             'branches' => Branch::query()
                 ->where('organisation_id', $organisationId)
@@ -113,6 +114,7 @@ class PricingController extends Controller
                     'branchId' => $book->branch_id,
                     'scopeKey' => $book->scope_key,
                     'isActive' => $book->is_active,
+                    'isPanel' => $book->price_tier === 'panel',
                 ])->values(),
             'charges' => $charges->map(function (ChargeDefinition $charge) use ($latestEntries, $bookPublicIds): array {
                 $latest = $latestEntries->get($charge->id);

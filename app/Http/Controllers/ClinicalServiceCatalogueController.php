@@ -121,6 +121,8 @@ class ClinicalServiceCatalogueController extends Controller
             ->values();
 
         return Inertia::render('ClinicalService/Index', [
+            // Panel prices are read-only here; they change through Panel price changes (owner decision 27).
+            'canProposePanelPrices' => $actor->can('panel.prices.propose.organisation'),
             'services' => [
                 'data' => $serviceRows->map(fn (ClinicalServiceCatalogueItem $service): array => [
                     'publicId' => $service->public_id,

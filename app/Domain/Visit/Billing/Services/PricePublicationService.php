@@ -7,7 +7,6 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
-use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +17,8 @@ class PricePublicationService
     public const EMPTY_AMOUNT_MESSAGE = 'Enter an amount. Type 0.00 if this is free.';
 
     public function __construct(private TransactionalActorAuthority $authority, private AuditRecorder $audit) {}
+
+    public const PANEL_BY_PROPOSAL_MESSAGE = 'Panel prices are changed by proposal. Use Panel price changes.';
 
     public function publish(User $actor, PriceBook $book, ChargeDefinition $charge, mixed $amountSen, int $expectedVersion, int $expectedBranch): PriceEntry
     {
@@ -34,11 +35,9 @@ class PricePublicationService
             $book = PriceBook::query()->whereKey($book->id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->where('currency', 'MYR')->lockForUpdate()->firstOrFail();
             abort_unless($book->branch_id === null || $book->branch_id === $branch->id, 404);
             if ($book->price_tier === 'panel') {
-                abort_unless($book->branch_id === null, 404);
-                if ($book->panel_id !== null) {
-                    Panel::query()->whereKey($book->panel_id)->where('organisation_id', $actor->organisation_id)
-                        ->where('is_active', true)->firstOrFail();
-                }
+                // Owner decision 27 (21 Nov 2026): a Panel price changes only by proposal and approval
+                // (PanelPriceProposalService), so direct publishing is closed for every Panel price book.
+                throw ValidationException::withMessages(['prices' => self::PANEL_BY_PROPOSAL_MESSAGE]);
             } elseif ($book->panel_id !== null) {
                 abort(404);
             }

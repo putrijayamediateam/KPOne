@@ -62,6 +62,8 @@ class MedicineCatalogueController extends Controller
         );
 
         return Inertia::render('Medicine/Index', [
+            // Panel prices are read-only here; they change through Panel price changes (owner decision 27).
+            'canProposePanelPrices' => $actor->can('panel.prices.propose.organisation'),
             'medicines' => [
                 'data' => $medicineRows->map(fn (MedicineCatalogueItem $medicine): array => [
                     'publicId' => $medicine->public_id,
