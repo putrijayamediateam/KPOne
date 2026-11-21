@@ -1,6 +1,6 @@
 # Design note: Panel price changes by proposal (owner decision 27, 20-21 Nov 2026)
 
-Status: **draft for Ravi's review; no code until the owner answers a) to d) and approves the two new permissions.**
+Status: **draft for Ravi's review and Daniel's look; the owner answered a) to d) and approved both permissions on 21 Nov (section 10); no code until his ship-it.**
 Owner of the slice: Adlina (Catalogue & settings). Panel side reviewed by Syafiq. Classic layout only (V2 is retired).
 Source: `docs/decisions/2026-11-20-finance-inventory-proposals.md` item 27: "the Panel Officer proposes with the
 agreement reference and an effective date; Finance approves before it applies; it applies to bills created on or after
@@ -64,7 +64,7 @@ PostgreSQL checks and triggers (existing repo patterns for append-only evidence)
 
 - `panel.prices.propose.organisation`: Panel Officer. Also lets them read the Panel price books and their history
   (Panel books only; never Self-pay prices).
-- `panel.prices.approve.organisation`: Finance Officer (default d: not the Director, not the CA Supervisor).
+- `panel.prices.approve.organisation`: Finance Officer **and Director** (owner decision Q9 = B, 21 Nov; not the CA Supervisor). The approver is never the proposer, so a Director who proposed cannot approve their own.
 - Additive grant migration (`firstOrCreate`, give only what is missing, never revoke), mirrored in `PermissionCatalogue`.
 - No change to `prices.publish.organisation` or `pricing.references.manage.organisation`.
 - Branch rule: Panel books are organisation-level, so these are organisation-scoped. As the other Pricing actions
@@ -130,11 +130,12 @@ PostgreSQL checks and triggers (existing repo patterns for append-only evidence)
 
 ## 10. Owner decisions (defaults assumed above)
 
-a) Self-pay keeps direct publishing (pilot procedure: Finance Officer publishes, CA Supervisor and Director check).
-b) A proposal whose effective time has passed at approval takes effect at approval time.
-c) The first Panel price for a new medicine or service is also a proposal.
-d) The Director does not approve (Finance Officer only).
-Plus: approval of `panel.prices.propose.organisation` and `panel.prices.approve.organisation`.
+Owner answers, 21 Nov (round 2), all as proposed except d):
+a) (answer 6 = A) Self-pay keeps direct publishing (pilot procedure: Finance Officer publishes, CA Supervisor and Director check).
+b) (answer 7 = A) A proposal whose effective time has passed at approval takes effect at approval time, and the page says so.
+c) (answer 8 = A) The first Panel price for a new medicine or service is also a proposal; until then billing uses the default Panel price.
+d) (answer Q9 = B) **The Director can also approve**, so the approve permission goes to the Finance Officer and the Director. Changed from the draft default.
+Permissions approved (P1, P2): `panel.prices.propose.organisation` (Panel Officer) and `panel.prices.approve.organisation` (Finance Officer, Director).
 Open for Syafiq: the agreement reference format and whether a proposal may cover several charges (default: one per proposal; bulk later).
 
 ## 11. Risks
