@@ -47,7 +47,7 @@ final class PanelPriceProposalService
     ) {}
 
     /** @param array<string, mixed> $a */
-    public function propose(User $actor, PriceBook $routeBook, ChargeDefinition $routeCharge, array $a): PriceChangeProposal
+    public function propose(User $actor, PriceBook|PanelPriceTarget $routeTarget, ChargeDefinition $routeCharge, array $a): PriceChangeProposal
     {
         Validator::make($a, [
             'expected_branch_id' => ['required', 'integer', 'min:1'],
@@ -66,9 +66,10 @@ final class PanelPriceProposalService
             throw ValidationException::withMessages(['agreement_reference' => 'Enter the agreement reference, 3 to 120 characters.']);
         }
         $time = (string) ($a['effective_time'] ?? '00:00') ?: '00:00';
-        $hash = hash('sha256', json_encode([$routeBook->id, $routeCharge->id, $amount, $reference, $a['effective_date'], $time, (int) $a['expected_version']], JSON_THROW_ON_ERROR));
+        $target = $routeTarget instanceof PanelPriceTarget ? $routeTarget : PanelPriceTarget::forBook($routeTarget);
+        $hash = hash('sha256', json_encode([$target->scopeKey(), $routeCharge->id, $amount, $reference, $a['effective_date'], $time, (int) $a['expected_version']], JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($actor, $routeBook, $routeCharge, $a, $amount, $reference, $time, $hash): PriceChangeProposal {
+        return DB::transaction(function () use ($actor, $target, $routeCharge, $a, $amount, $reference, $time, $hash): PriceChangeProposal {
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, self::PROPOSE_PERMISSION);
             $existing = PriceChangeProposal::query()->where('organisation_id', $actor->organisation_id)
@@ -80,20 +81,20 @@ final class PanelPriceProposalService
 
                 return $existing;
             }
-            [$charge, $book] = $this->lockTarget($actor, $routeBook, $routeCharge);
+            [$charge, $book] = $this->lockTarget($actor, $target, $routeCharge);
             $effective = $this->effectiveInstant($branch, (string) $a['effective_date'], $time);
             if ($effective->lt($this->startOfBranchToday($branch))) {
                 throw ValidationException::withMessages(['effective_date' => 'Choose today or a later date.']);
             }
-            $version = $this->currentVersion($book, $charge);
+            $version = $book === null ? 0 : $this->currentVersion($book, $charge);
             if ($version !== (int) $a['expected_version']) {
                 throw ValidationException::withMessages(['proposal' => self::STALE_PRICE]);
             }
-            $latest = $this->latestEffective($book, $charge);
+            $latest = $book === null ? null : $this->latestEffective($book, $charge);
             if ($latest !== null && $effective->lt($latest)) {
                 throw ValidationException::withMessages(['effective_date' => 'A price taking effect later is already recorded. Choose a date after it.']);
             }
-            if (PriceChangeProposal::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->where('status', 'proposed')->exists()) {
+            if (PriceChangeProposal::query()->where('organisation_id', $actor->organisation_id)->where('scope_key', $target->scopeKey())->where('charge_definition_id', $charge->id)->where('status', 'proposed')->exists()) {
                 throw ValidationException::withMessages(['proposal' => 'A price change for this Panel and charge is already waiting for a decision.']);
             }
 
@@ -101,7 +102,9 @@ final class PanelPriceProposalService
             $proposal->forceFill([
                 'public_id' => (string) Str::uuid(),
                 'organisation_id' => $actor->organisation_id,
-                'price_book_id' => $book->id,
+                'price_book_id' => $book?->id,
+                'scope_key' => $target->scopeKey(),
+                'panel_id' => $target->panelId,
                 'charge_definition_id' => $charge->id,
                 'proposed_unit_price_sen' => $amount,
                 'agreement_reference' => $reference,
@@ -115,7 +118,7 @@ final class PanelPriceProposalService
                 'lock_version' => 1,
             ])->save();
             $this->event($proposal, 'proposed', $actor);
-            $this->audit->record('panel_price.proposed', $proposal, ['price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'base_version' => $version], $actor, $branch);
+            $this->audit->record('panel_price.proposed', $proposal, ['price_book_id' => $book?->id, 'charge_definition_id' => $charge->id, 'base_version' => $version, 'scope_key' => $target->scopeKey()], $actor, $branch);
 
             return $proposal;
         }, 3);
@@ -133,12 +136,23 @@ final class PanelPriceProposalService
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, self::APPROVE_PERMISSION);
             $peek = $this->find($actor, $routeProposal);
-            [$charge, $book] = $this->lockTarget($actor, $peek->priceBook, $peek->charge, requireActive: false);
+            [$charge, $book] = $this->lockTarget($actor, $this->targetOf($peek), $peek->charge, requireActive: false);
             $proposal = PriceChangeProposal::query()->whereKey($peek->id)->lockForUpdate()->firstOrFail();
             if ($proposal->status === 'approved' && $proposal->decided_by_user_id === $actor->id && $proposal->lock_version === (int) $a['lock_version'] + 1) {
                 return $proposal; // A retried approval does nothing.
             }
             $this->assertDecidable($proposal, $actor, (int) $a['lock_version']);
+            $created = false;
+            if ($book === null) {
+                // The first price for this Panel: its price book is created here, in the approval's own transaction.
+                // Two approvals for one Panel serialise on the scope, so only one creates the book.
+                DB::select('select pg_advisory_xact_lock(hashtext(?))', [$actor->organisation_id.'|'.$proposal->scope_key]);
+                $book = PriceBook::query()->where('organisation_id', $actor->organisation_id)->where('scope_key', $proposal->scope_key)->lockForUpdate()->first();
+                if ($book === null) {
+                    $book = $this->createBook($actor, $proposal);
+                    $created = true;
+                }
+            }
             if ($this->currentVersion($book, $charge) !== $proposal->base_version) {
                 throw ValidationException::withMessages(['proposal' => self::STALE_PRICE]);
             }
@@ -150,13 +164,14 @@ final class PanelPriceProposalService
             }
             $entry = $this->publication->publishApproved($actor, $book, $charge, $proposal->proposed_unit_price_sen, $proposal->base_version, $effective);
             $proposal->forceFill([
+                'price_book_id' => $book->id,
                 'status' => 'approved', 'decided_by_user_id' => $actor->id, 'decided_at' => $now,
                 'price_entry_id' => $entry->id, 'applied_effective_at' => $effective, 'lock_version' => $proposal->lock_version + 1,
             ])->save();
             $this->event($proposal, 'approved', $actor);
             $this->audit->record('panel_price.approved', $proposal, [
                 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'price_entry_id' => $entry->id, 'record_version' => $entry->version,
-                'took_effect_at_approval' => ! $proposal->effective_at->eq($effective),
+                'took_effect_at_approval' => ! $proposal->effective_at->eq($effective), 'price_book_created' => $created,
             ], $actor, $branch);
             $this->audit->record('billing.price_published', $entry, ['record_version' => $entry->version, 'price_change_proposal_id' => $proposal->id], $actor, $branch);
 
@@ -179,7 +194,7 @@ final class PanelPriceProposalService
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, self::APPROVE_PERMISSION);
             $peek = $this->find($actor, $routeProposal);
-            [$charge, $book] = $this->lockTarget($actor, $peek->priceBook, $peek->charge, requireActive: false);
+            [$charge, $book] = $this->lockTarget($actor, $this->targetOf($peek), $peek->charge, requireActive: false);
             $proposal = PriceChangeProposal::query()->whereKey($peek->id)->lockForUpdate()->firstOrFail();
             $this->assertDecidable($proposal, $actor, (int) $a['lock_version']);
             $proposal->forceFill([
@@ -187,7 +202,7 @@ final class PanelPriceProposalService
                 'reason_code' => $a['reason_code'], 'decision_note' => $note, 'lock_version' => $proposal->lock_version + 1,
             ])->save();
             $this->event($proposal, 'rejected', $actor);
-            $this->audit->record('panel_price.rejected', $proposal, ['price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'reason_code' => $a['reason_code']], $actor, $branch);
+            $this->audit->record('panel_price.rejected', $proposal, ['price_book_id' => $book?->id, 'charge_definition_id' => $charge->id, 'reason_code' => $a['reason_code']], $actor, $branch);
 
             return $proposal;
         }, 3);
@@ -205,7 +220,7 @@ final class PanelPriceProposalService
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, self::PROPOSE_PERMISSION);
             $peek = $this->find($actor, $routeProposal);
-            [$charge, $book] = $this->lockTarget($actor, $peek->priceBook, $peek->charge, requireActive: false);
+            [$charge, $book] = $this->lockTarget($actor, $this->targetOf($peek), $peek->charge, requireActive: false);
             $proposal = PriceChangeProposal::query()->whereKey($peek->id)->lockForUpdate()->firstOrFail();
             if ($proposal->status !== 'proposed' || $proposal->lock_version !== (int) $a['lock_version']) {
                 throw ValidationException::withMessages(['proposal' => self::CHANGED]);
@@ -217,7 +232,7 @@ final class PanelPriceProposalService
                 'status' => 'withdrawn', 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(), 'lock_version' => $proposal->lock_version + 1,
             ])->save();
             $this->event($proposal, 'withdrawn', $actor);
-            $this->audit->record('panel_price.withdrawn', $proposal, ['price_book_id' => $book->id, 'charge_definition_id' => $charge->id], $actor, $branch);
+            $this->audit->record('panel_price.withdrawn', $proposal, ['price_book_id' => $book?->id, 'charge_definition_id' => $charge->id], $actor, $branch);
 
             return $proposal;
         }, 3);
@@ -238,24 +253,61 @@ final class PanelPriceProposalService
         return PriceChangeProposal::query()->whereKey($routeProposal->id)->where('organisation_id', $actor->organisation_id)->firstOrFail();
     }
 
+    private function targetOf(PriceChangeProposal $proposal): PanelPriceTarget
+    {
+        return PanelPriceTarget::forPanel($proposal->panel_id);
+    }
+
     /**
-     * Charge, then price book: the order PricePublicationService::publish() uses. A Panel book is organisation-level.
+     * Charge, then price book: the order PricePublicationService::publish() uses. A Panel book is organisation-level and
+     * may not exist yet (null), in which case only an active Panel (or the default) is checked.
      *
-     * @return array{ChargeDefinition, PriceBook}
+     * @return array{ChargeDefinition, PriceBook|null}
      */
-    private function lockTarget(User $actor, PriceBook $routeBook, ChargeDefinition $routeCharge, bool $requireActive = true): array
+    private function lockTarget(User $actor, PanelPriceTarget $target, ChargeDefinition $routeCharge, bool $requireActive = true): array
     {
         $charge = ChargeDefinition::query()->whereKey($routeCharge->id)->where('organisation_id', $actor->organisation_id)
             ->when($requireActive, fn ($q) => $q->where('is_active', true))->lockForUpdate()->firstOrFail();
-        $book = PriceBook::query()->whereKey($routeBook->id)->where('organisation_id', $actor->organisation_id)
-            ->when($requireActive, fn ($q) => $q->where('is_active', true))->where('currency', 'MYR')->lockForUpdate()->firstOrFail();
-        abort_unless($book->price_tier === 'panel' && $book->branch_id === null, 404);
-        if ($book->panel_id !== null) {
-            Panel::query()->whereKey($book->panel_id)->where('organisation_id', $actor->organisation_id)
+        $book = PriceBook::query()->where('organisation_id', $actor->organisation_id)
+            ->when($target->book !== null, fn ($q) => $q->whereKey($target->book->id), fn ($q) => $q->where('scope_key', $target->scopeKey()))
+            ->when($requireActive, fn ($q) => $q->where('is_active', true))->where('currency', 'MYR')->lockForUpdate()->first();
+        abort_if($target->book !== null && $book === null, 404);
+        if ($book !== null) {
+            abort_unless($book->price_tier === 'panel' && $book->branch_id === null, 404);
+        }
+        if ($target->panelId !== null) {
+            Panel::query()->whereKey($target->panelId)->where('organisation_id', $actor->organisation_id)
                 ->when($requireActive, fn ($q) => $q->where('is_active', true))->firstOrFail();
         }
 
         return [$charge, $book];
+    }
+
+    private function createBook(User $actor, PriceChangeProposal $proposal): PriceBook
+    {
+        $name = 'Panel';
+        if ($proposal->panel_id !== null) {
+            $name = (string) Panel::query()->whereKey($proposal->panel_id)->value('name').' prices';
+        }
+        $book = new PriceBook;
+        $book->forceFill([
+            'public_id' => (string) Str::uuid(),
+            'organisation_id' => $actor->organisation_id,
+            'branch_id' => null,
+            'scope_key' => $proposal->scope_key,
+            'name' => mb_substr($name, 0, 150),
+            'currency' => 'MYR',
+            'price_tier' => 'panel',
+            'panel_id' => $proposal->panel_id,
+            'is_active' => true,
+        ])->save();
+        $this->audit->record('price_book.created', $book, [
+            'reference_public_id' => $book->public_id,
+            'changed_fields' => ['branch_id', 'scope_key', 'name', 'currency', 'price_tier', 'panel_id', 'is_active'],
+            'scope' => $book->scope_key, 'currency' => 'MYR', 'price_tier' => 'panel', 'panel_id' => $book->panel_id, 'price_change_proposal_id' => $proposal->id,
+        ], $actor, organisationId: $actor->organisation_id);
+
+        return $book;
     }
 
     private function currentVersion(PriceBook $book, ChargeDefinition $charge): int

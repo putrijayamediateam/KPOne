@@ -4,18 +4,21 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceChangeProposal;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
+use App\Domain\Visit\Billing\Services\PanelPriceTarget;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -380,5 +383,87 @@ class PanelPriceProposalTest extends ClinicalTestCase
             }
         }
         $this->assertSame(0, PriceChangeProposal::query()->count());
+    }
+
+    /** @return array<string, mixed> */
+    private function firstPrice(array $overrides = []): array
+    {
+        return [
+            'expected_branch_id' => $this->branch->id, 'expected_version' => 0, 'amount_sen' => 2100, 'agreement_reference' => 'AGR-FIRST-001',
+            'effective_date' => CarbonImmutable::now($this->branch->timezone)->toDateString(), 'idempotency_key' => (string) Str::uuid(), ...$overrides,
+        ];
+    }
+
+    public function test_a_first_price_for_a_panel_without_a_book_creates_the_book_only_when_it_is_approved(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'FIRST-PNL', 'name' => 'First Panel']);
+        $this->assertSame(0, PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->count());
+
+        $proposal = $this->service->propose($this->officer, PanelPriceTarget::forPanel($panel->id), $this->charge, $this->firstPrice());
+        $this->assertNull($proposal->price_book_id);
+        $this->assertSame('panel:'.$panel->id, $proposal->scope_key);
+        $this->assertSame(0, PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->count(), 'proposing creates nothing');
+
+        $approved = $this->service->approve($this->finance, $proposal, $this->decide($proposal));
+        $book = PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->sole();
+        $this->assertSame('panel', $book->price_tier);
+        $this->assertSame($panel->id, $book->panel_id);
+        $this->assertNull($book->branch_id);
+        $this->assertSame($book->id, $approved->price_book_id);
+        $entry = PriceEntry::query()->findOrFail($approved->price_entry_id);
+        $this->assertSame([$book->id, 2100, 1], [$entry->price_book_id, $entry->unit_price_sen, $entry->version]);
+
+        $audit = AuditLog::query()->where('event', 'price_book.created')->latest('id')->firstOrFail();
+        $this->assertStringNotContainsString('AGR-FIRST-001', json_encode($audit->metadata, JSON_THROW_ON_ERROR));
+        $this->assertTrue(AuditLog::query()->where('event', 'panel_price.approved')->latest('id')->firstOrFail()->metadata['price_book_created']);
+    }
+
+    public function test_the_default_panel_price_gets_its_book_on_approval_and_a_second_proposal_reuses_it(): void
+    {
+        $first = $this->service->propose($this->officer, PanelPriceTarget::forPanel(null), $this->charge, $this->firstPrice());
+        $this->service->approve($this->director, $first, $this->decide($first));
+        $book = PriceBook::query()->where('scope_key', 'panel:default')->sole();
+        $this->assertNull($book->panel_id);
+
+        $other = ChargeDefinition::query()->where('id', '<>', $this->charge->id)->first()
+            ?? app(PricingReferenceAdministrationService::class)->createServiceCharge($this->supervisor, ClinicalServiceCatalogueItem::factory()->create([
+                'organisation_id' => $this->organisation->id, 'code' => 'FIRST-SVC', 'display_name' => 'Synthetic first service',
+                'created_by_user_id' => $this->supervisor->id, 'updated_by_user_id' => $this->supervisor->id,
+            ]), ['code' => 'FIRST-SVC', 'display_name' => 'Synthetic first service']);
+        $second = $this->service->propose($this->officer, PanelPriceTarget::forPanel(null), $other, $this->firstPrice(['agreement_reference' => 'AGR-FIRST-002']));
+        $this->assertSame($book->id, $second->price_book_id, 'an existing book is used, never duplicated');
+        $this->service->approve($this->finance, $second, $this->decide($second));
+        $this->assertSame(1, PriceBook::query()->where('scope_key', 'panel:default')->count());
+    }
+
+    public function test_a_rejected_or_withdrawn_first_proposal_leaves_no_book_behind(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'NOBOOK-PNL', 'name' => 'No-book Panel']);
+        $scope = 'panel:'.$panel->id;
+
+        $rejected = $this->service->propose($this->officer, PanelPriceTarget::forPanel($panel->id), $this->charge, $this->firstPrice());
+        $this->service->reject($this->finance, $rejected, $this->decide($rejected, ['reason_code' => 'wrong_amount']));
+        $this->assertSame(0, PriceBook::query()->where('scope_key', $scope)->count());
+
+        $withdrawn = $this->service->propose($this->officer, PanelPriceTarget::forPanel($panel->id), $this->charge, $this->firstPrice(['agreement_reference' => 'AGR-FIRST-003']));
+        $this->service->withdraw($this->officer, $withdrawn, $this->decide($withdrawn));
+        $this->assertSame(0, PriceBook::query()->where('scope_key', $scope)->count());
+        $this->assertSame(0, PriceEntry::query()->count());
+    }
+
+    public function test_one_open_proposal_per_panel_and_charge_even_without_a_book_and_an_inactive_panel_is_refused(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'OPEN-PNL', 'name' => 'Open Panel']);
+        $this->service->propose($this->officer, PanelPriceTarget::forPanel($panel->id), $this->charge, $this->firstPrice());
+        try {
+            $this->service->propose($this->officer, PanelPriceTarget::forPanel($panel->id), $this->charge, $this->firstPrice(['agreement_reference' => 'AGR-FIRST-004']));
+            $this->fail('A second open proposal for the same Panel and charge must be refused.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('proposal', $e->errors());
+        }
+
+        $inactive = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'OFF-PNL', 'name' => 'Off Panel', 'is_active' => false]);
+        $this->expectException(ModelNotFoundException::class);
+        $this->service->propose($this->officer, PanelPriceTarget::forPanel($inactive->id), $this->charge, $this->firstPrice());
     }
 }
