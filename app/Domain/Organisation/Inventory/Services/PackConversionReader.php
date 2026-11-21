@@ -33,7 +33,7 @@ final class PackConversionReader
     public function toBase(CheckedPackConversion $conversion, int $packs): string
     {
         if ($packs < 1 || $packs > self::MAX_PACKS) {
-            throw ValidationException::withMessages(['quantity' => 'Enter a whole number of '.$conversion->packUnit.'s from 1 to '.self::MAX_PACKS.'.']);
+            throw ValidationException::withMessages(['quantity' => 'Enter a whole number of packs ('.$conversion->packUnit.') from 1 to '.self::MAX_PACKS.'.']);
         }
 
         return StockUnitQuantity::format($packs * $conversion->basePerPack * 1000);

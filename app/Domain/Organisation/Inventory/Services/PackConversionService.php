@@ -58,7 +58,7 @@ final class PackConversionService
         }
         $basePerPack = $stop ? null : (int) $data['base_per_pack'];
         $key = strtolower((string) $data['idempotency_key']);
-        $hash = hash('sha256', json_encode([strtolower($skuPublicId), (int) $data['expected_version'], $packUnit, $basePerPack], JSON_THROW_ON_ERROR));
+        $hash = hash_hmac('sha256', json_encode([strtolower($skuPublicId), (int) $data['expected_version'], $packUnit, $basePerPack], JSON_THROW_ON_ERROR), (string) config('app.key'));
 
         try {
             return DB::transaction(function () use ($actor, $skuPublicId, $data, $packUnit, $basePerPack, $stop, $key, $hash): string {
@@ -106,6 +106,11 @@ final class PackConversionService
                 return $publicId;
             }, 3);
         } catch (UniqueConstraintViolationException) {
+            // The same request sent twice at the same instant: the first one won, so answer with its result.
+            $same = DB::table('inventory_pack_conversions')->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->first(['public_id', 'request_hash', 'proposed_by_user_id']);
+            if ($same !== null && $same->request_hash === $hash && (int) $same->proposed_by_user_id === $actor->id) {
+                return (string) $same->public_id;
+            }
             throw ValidationException::withMessages(['expected_version' => 'Someone else changed the pack conversion at the same moment. Reload and try again.']);
         }
     }
@@ -157,7 +162,7 @@ final class PackConversionService
     private function decide(User $actor, string $conversionPublicId, string $idempotencyKey, string $permission, callable $outcome, array $payload): string
     {
         $key = strtolower($idempotencyKey);
-        $hash = hash('sha256', json_encode([strtolower($conversionPublicId), ...$payload], JSON_THROW_ON_ERROR));
+        $hash = hash_hmac('sha256', json_encode([strtolower($conversionPublicId), ...$payload], JSON_THROW_ON_ERROR), (string) config('app.key'));
 
         try {
             return DB::transaction(function () use ($actor, $conversionPublicId, $key, $hash, $permission, $outcome, $payload): string {
@@ -196,6 +201,10 @@ final class PackConversionService
                 return $result;
             }, 3);
         } catch (UniqueConstraintViolationException) {
+            $same = DB::table('inventory_pack_conversion_outcomes')->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->first(['outcome', 'request_hash', 'recorded_by_user_id']);
+            if ($same !== null && $same->request_hash === $hash && (int) $same->recorded_by_user_id === $actor->id) {
+                return (string) $same->outcome;
+            }
             throw ValidationException::withMessages(['pack_conversion' => 'Someone else decided this change at the same moment. Reload to see it.']);
         }
     }

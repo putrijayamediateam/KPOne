@@ -53,7 +53,7 @@ return new class extends Migration
 ALTER TABLE inventory_pack_conversions ADD CONSTRAINT pack_conversions_shape CHECK (
     version >= 1
     AND ((pack_unit IS NULL AND base_per_pack IS NULL) OR (pack_unit IS NOT NULL AND btrim(pack_unit) <> '' AND base_per_pack BETWEEN 2 AND 100000))
-    AND pack_unit <> base_unit
+    AND lower(btrim(pack_unit)) <> lower(btrim(base_unit))
 );
 ALTER TABLE inventory_pack_conversion_outcomes ADD CONSTRAINT pack_conversion_outcomes_shape CHECK (
     (outcome = 'checked' AND reason IS NULL)
@@ -102,6 +102,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.recorded_by_user_id AND organisation_id = NEW.organisation_id) THEN
         RAISE EXCEPTION 'The person recording an outcome must belong to the organisation.' USING ERRCODE = 'P0001';
+    END IF;
+    IF EXISTS (SELECT 1 FROM inventory_pack_conversions WHERE inventory_sku_id = conversion.inventory_sku_id AND version > conversion.version) THEN
+        RAISE EXCEPTION 'Only the latest pack conversion version can be decided.' USING ERRCODE = 'P0001';
     END IF;
     IF NEW.outcome = 'withdrawn' AND NEW.recorded_by_user_id <> conversion.proposed_by_user_id THEN
         RAISE EXCEPTION 'Only the proposer withdraws a pack conversion.' USING ERRCODE = 'P0001';

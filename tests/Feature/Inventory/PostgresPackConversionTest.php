@@ -49,11 +49,38 @@ class PostgresPackConversionTest extends TestCase
             });
     }
 
+    public function test_a_check_against_a_withdrawal_records_one_outcome(): void
+    {
+        $this->race(function (array $people, InventorySku $sku): array {
+            $waiting = app(PackConversionService::class)->propose($people['administrator'], $sku->public_id, ['expected_version' => 0, 'idempotency_key' => (string) Str::uuid(), 'pack_unit' => 'bottle', 'base_per_pack' => 60]);
+
+            return [['withdraw', $people['administrator'], $waiting, 0], ['check', $people['ca_supervisor'], $waiting, 60]];
+        }, function (array $outputs): void {
+            $this->assertCount(1, array_filter($outputs, fn (string $o): bool => str_contains($o, 'WITHDRAWN') || str_contains($o, 'CHECKED')));
+            $this->assertCount(1, array_filter($outputs, fn (string $o): bool => str_contains($o, 'REFUSED This change was already decided.')));
+            $this->assertSame(1, DB::table('inventory_pack_conversion_outcomes')->count());
+        });
+    }
+
+    /** A reader holding checkedForShare (FOR SHARE on the SKU) sees the old state until it commits; the check waits on it. */
+    public function test_a_check_waits_for_a_reader_holding_the_shared_lock(): void
+    {
+        $this->race(function (array $people, InventorySku $sku): array {
+            $waiting = app(PackConversionService::class)->propose($people['administrator'], $sku->public_id, ['expected_version' => 0, 'idempotency_key' => (string) Str::uuid(), 'pack_unit' => 'bottle', 'base_per_pack' => 60]);
+
+            return [['check', $people['ca_supervisor'], $waiting, 60]];
+        }, function (array $outputs): void {
+            $this->assertStringContainsString('CHECKED', $outputs[0]);
+            $this->assertSame(1, DB::table('inventory_pack_conversion_outcomes')->where('outcome', 'checked')->count());
+        }, shareReader: true);
+    }
+
     /**
      * @param  callable(array<string, User>, InventorySku): list<array{0: string, 1: User, 2: string, 3: int}>  $arrange
      * @param  callable(list<string>): void  $assert
+     * @param  bool  $shareReader  hold the SKU like Dispensary's reader (checkedForShare) instead of FOR UPDATE
      */
-    private function race(callable $arrange, callable $assert): void
+    private function race(callable $arrange, callable $assert, bool $shareReader = false): void
     {
         $original = config('database.default');
         $config = DB::connection()->getConfig();
@@ -90,9 +117,14 @@ class PostgresPackConversionTest extends TestCase
             app(InventoryReadinessService::class)->verify($people['director'], 'unit', $sku->public_id, ['expected_branch_id' => $branch->id, 'base_unit' => 'ml', 'lock_version' => 0, 'retry_key' => (string) Str::uuid()]);
             $plans = $arrange($people, $sku);
 
-            // Hold the SKU row, so both writers wait on it before either reads the conversion state.
+            // Hold the SKU row, so every writer waits on it before reading the conversion state.
             DB::connection('stk_blocker')->beginTransaction();
-            DB::connection('stk_blocker')->select('select id from inventory_skus where id=? for update', [$skuId]);
+            if ($shareReader) {
+                // The same lock PackConversionReader::checkedForShare() takes: FOR SHARE on the SKU row.
+                DB::connection('stk_blocker')->select('select id from inventory_skus where id=? for share', [$skuId]);
+            } else {
+                DB::connection('stk_blocker')->select('select id from inventory_skus where id=? for update', [$skuId]);
+            }
             $pids = [];
             foreach ($plans as [$mode, $actor, $subject, $count]) {
                 $input = new InputStream;
@@ -118,13 +150,22 @@ class PostgresPackConversionTest extends TestCase
                 foreach ($workers as $worker) {
                     $worker->getOutput();
                 }
-                $waiting = (int) DB::selectOne("select count(*) as total from pg_stat_activity where pid in (?,?) and wait_event_type='Lock'", $pids)->total;
-                if ($waiting === 2) {
+                $marks = implode(',', array_fill(0, count($pids), '?'));
+                $waiting = (int) DB::selectOne("select count(*) as total from pg_stat_activity where pid in ({$marks}) and wait_event_type='Lock'", $pids)->total;
+                if ($waiting === count($pids)) {
                     break;
                 }
                 usleep(20000);
             } while (microtime(true) < $deadline);
-            $this->assertSame(2, $waiting, 'Both writers must wait on the held SKU row.');
+            $this->assertSame(count($pids), $waiting, 'Every writer must wait on the held SKU row.');
+            if ($shareReader) {
+                // The blocker holding FOR SHARE is what each writer waits on, and it still sees no checked conversion.
+                $blocker = (int) DB::connection('stk_blocker')->selectOne('select pg_backend_pid() as pid')->pid;
+                foreach ($pids as $pid) {
+                    $this->assertContains($blocker, array_map('intval', explode(',', trim((string) DB::selectOne('select array_to_string(pg_blocking_pids(?), \',\') as b', [$pid])->b, ','))));
+                }
+                $this->assertSame(0, (int) DB::connection('stk_blocker')->table('inventory_pack_conversion_outcomes')->count());
+            }
             DB::connection('stk_blocker')->commit();
 
             $outputs = [];

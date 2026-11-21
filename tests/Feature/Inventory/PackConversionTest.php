@@ -6,6 +6,7 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryReadinessService;
+use App\Domain\Organisation\Inventory\Services\InventoryStaffNames;
 use App\Domain\Organisation\Inventory\Services\PackConversionReader;
 use App\Domain\Organisation\Inventory\Services\PackConversionService;
 use App\Domain\Organisation\Models\Organisation;
@@ -282,6 +283,33 @@ class PackConversionTest extends VisitTestCase
         $this->assertSame([$this->sku->sku_code], $props['packConversionsWaiting']);
         $block = $this->block($this->proposer);
         $this->assertSame('You', $block['waiting']['proposedBy']);
+    }
+
+    public function test_names_follow_the_visibility_rule_and_the_legacy_note_needs_a_checked_conversion(): void
+    {
+        $this->propose(50);
+        $ca = $this->actor('ca');
+        $waiting = $this->block($ca)['waiting'];
+        // The shared staff-visibility rule (InventoryStaffNames): a name the viewer may not see reads "Staff member".
+        $this->assertSame(app(InventoryStaffNames::class)->resolver($ca, [$this->proposer->id])($this->proposer->id), $waiting['proposedBy']);
+        $this->assertNotSame('You', $waiting['proposedBy']);
+        // While a change only waits, there is no legacy note (and so no legacy number) in the block.
+        $this->assertSame([false, null], [$this->block($this->checker)['legacyDiffers'], $this->block($this->checker)['legacy']]);
+        $this->check(DB::table('inventory_pack_conversions')->value('public_id'), 50);
+        $after = $this->block($this->checker);
+        $this->assertTrue($after['legacyDiffers']);
+        $this->assertSame(['packSize' => '60.000', 'purchaseUnit' => 'bottle'], $after['legacy']);
+    }
+
+    public function test_postgresql_refuses_a_pack_unit_equal_to_the_base_unit_in_any_case_and_a_decision_on_an_old_version(): void
+    {
+        $this->refused(fn () => DB::table('inventory_pack_conversions')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'inventory_sku_id' => $this->sku->id,
+            'version' => 1, 'pack_unit' => ' ML ', 'base_per_pack' => 10, 'base_unit' => 'ml', 'proposed_by_user_id' => $this->proposer->id, 'proposed_at' => now(), 'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('d', 64)]));
+        $first = (int) DB::table('inventory_pack_conversions')->where('public_id', $this->propose(60))->value('id');
+        app(PackConversionService::class)->withdraw($this->proposer, DB::table('inventory_pack_conversions')->where('id', $first)->value('public_id'), ['idempotency_key' => (string) Str::uuid()]);
+        $this->propose(50);
+        $this->refused(fn () => DB::table('inventory_pack_conversion_outcomes')->insert(['organisation_id' => $this->organisation->id, 'pack_conversion_id' => $first, 'outcome' => 'refused', 'reason' => 'other',
+            'recorded_by_user_id' => $this->checker->id, 'recorded_at' => now(), 'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('e', 64)]));
     }
 
     public function test_the_migration_drops_and_restores_its_tables(): void

@@ -280,7 +280,8 @@ const withdraw = () =>
             >
                 <label v-if="!block.waiting.stop" class="grid max-w-sm gap-1"
                     >How many {{ unit }} are in one pack? Count them yourself
-                    and type the number.
+                    and type the number. Count the physical pack; do not copy
+                    the legacy pack fields.
                     <Input
                         v-model="check.checked_base_per_pack"
                         class="h-11 lg:h-9"
