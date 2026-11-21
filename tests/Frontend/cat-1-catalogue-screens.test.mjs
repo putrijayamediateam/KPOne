@@ -190,23 +190,16 @@ test('Consultation tariff prices have visible labels on a phone', () => {
         read('resources/js/components/catalogue/ConsultationTariffPanel.vue'),
     );
 
-    for (const id of [
-        'consultation-self-pay-price',
-        'consultation-panel-default-price',
-    ]) {
-        assert.ok(panel.includes(`for="${id}"`), `no label for ${id}`);
-        assert.ok(panel.includes(`id="${id}"`), `no input with id ${id}`);
-    }
+    // Owner decision 27: only the Self-pay price is typed here; Panel prices are shown read-only.
+    const id = 'consultation-self-pay-price';
 
+    assert.ok(panel.includes(`for="${id}"`), `no label for ${id}`);
+    assert.ok(panel.includes(`id="${id}"`), `no input with id ${id}`);
     assert.match(panel, />Self-pay price \(RM\)<\/Label/);
-    assert.match(panel, />Default Panel price \(RM\)<\/Label/);
     // The accessible name contains the visible label text.
     assert.ok(
         panel.includes('aria-label="Self-pay price (RM) for consultation"'),
     );
-    assert.ok(
-        panel.includes(
-            'aria-label="Default Panel price (RM) for consultation"',
-        ),
-    );
+    assert.ok(!panel.includes('consultation-panel-default-price'));
+    assert.match(panel, /<PanelPricesReadOnly/);
 });

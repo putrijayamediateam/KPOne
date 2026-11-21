@@ -100,7 +100,8 @@ final class DrugLabelService
             abort_if($visit->status === Visit::STATUS_CANCELLED, 404);
             $case = DispensaryCase::query()->whereKey($case->id)->lockForUpdate()->firstOrFail();
             $completed = $case->status === DispensaryCase::STATUS_COMPLETED;
-            abort_unless($completed || ($case->status === DispensaryCase::STATUS_DISPENSING && $case->current_handler_user_id === $actor->id), 404);
+            // DSP-23: a case waiting for the doctor's check prints read-only, for the CA and CA Supervisor.
+            abort_unless($completed || $case->status === DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK || ($case->status === DispensaryCase::STATUS_DISPENSING && $case->current_handler_user_id === $actor->id), 404);
             $handoff = $case->handoffs()->orderByDesc('attempt_number')->lockForUpdate()->firstOrFail();
             abort_unless($handoff->status === ($completed ? DispensaryHandoff::STATUS_COMPLETED : DispensaryHandoff::STATUS_OPEN), 404);
             $all = $handoff->items()->orderBy('id')->lockForUpdate()->get();

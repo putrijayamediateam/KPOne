@@ -66,6 +66,26 @@ class AgentDataSourcesTest extends QueueTestCase
         $this->assertSame([1, 1, '10.000', 0], [$sku['lowStockLocations'], $sku['expiringBatches'], $sku['expiringQuantity'], $sku['expiredBatches']]);
     }
 
+    /** STK-42: the analyst's expiring rows follow each SKU's own alert days, capped at 90. */
+    public function test_stock_review_expiring_follows_the_sku_alert_days_up_to_90(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $f['batch']->forceFill(['expiry_date' => now()->setTimezone($this->branch->timezone)->addDays(60)->toDateString()])->save();
+        $supervisor = $f['proposer'];
+        $this->selectBranch($supervisor);
+        $expiring = fn (): int => (int) (collect($this->read('inventory.stock_review', $supervisor)['skus'])->firstWhere('sku', $f['sku']->public_id)['expiringBatches'] ?? 0);
+
+        $this->assertSame(1, $expiring());
+        $f['sku']->forceFill(['expiry_alert_days' => 30])->save();
+        $this->assertSame(0, $expiring());
+        $f['sku']->forceFill(['expiry_alert_days' => 365])->save();
+        $f['batch']->forceFill(['expiry_date' => now()->setTimezone($this->branch->timezone)->addDays(120)->toDateString()])->save();
+        $this->assertSame(0, $expiring());
+        // The one deliberate difference from the page: Stock review uses the SKU's own 365 days, the analyst stops at 90.
+        $this->assertSame(1, app(InventoryStockReviewService::class)->page($supervisor, [])['lists']['expiring']['total']);
+        $this->assertSame(90, $this->read('inventory.stock_review', $supervisor)['expiryWindowDays']);
+    }
+
     /** STK-11: returned medicine is not usable stock for the agents either, but it is still counted. */
     public function test_returns_location_stock_is_left_out_of_usable_figures_and_kept_in_stock_counts(): void
     {
