@@ -22,6 +22,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import {
     displayQuantity,
+    packChoiceLabel,
     packsOnHand,
     parsePacks,
     usablePackConversion,
@@ -816,6 +817,20 @@ const saveAll = () => {
 
     if (unticked) {
         actionError.value = `${unticked.name} may match a recorded allergy. Tick "I have checked with the patient/doctor" on that line first.`;
+
+        return;
+    }
+
+    // DSP-24 (Daniel): check every line first, so an invalid bottles number never leaves a partly saved set.
+    const badPacks = unsaved.value.find((item) =>
+        packsInvalid(forms[item.publicId]),
+    );
+
+    if (badPacks) {
+        const packs = packChoiceLabel(
+            badPacks.packConversion?.packUnit ?? 'pack',
+        ).toLowerCase();
+        actionError.value = `${badPacks.name}: enter whole ${packs}, 1 to 99, before saving. Nothing was saved.`;
 
         return;
     }

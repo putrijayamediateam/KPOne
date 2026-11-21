@@ -110,6 +110,11 @@ test('DSP-24: the page sends the packs with the conversion version it showed, an
         page,
         /!addForm\.frequency\.trim\(\) \|\| packsInvalid\(addForm\)/,
     );
+    // Daniel: Save all lines checks every line first and names the invalid one, saving nothing.
+    assert.match(
+        page,
+        /enter whole \$\{packs\}, 1 to 99, before saving\. Nothing was saved\./,
+    );
     // Daniel: the doctor's quantity beside the new warning drops trailing zeros ("60 ml", never "60.000 ml").
     assert.match(page, /\{\{ displayQuantity\(item\.quantityOrdered\) \}\}/);
 });
