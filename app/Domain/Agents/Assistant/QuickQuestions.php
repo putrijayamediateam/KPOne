@@ -36,7 +36,7 @@ final class QuickQuestions
         'panel.overdue' => ['group' => 'panel', 'label' => 'Overdue unclaimed invoices, per Panel', 'tool' => 'panel.claims_summary', 'date' => 'none', 'alsoNeeds' => 'reports.panel_summary.view.branch'],
         'panel.accepted_unpaid' => ['group' => 'panel', 'label' => 'Accepted but not yet paid, per Panel', 'tool' => 'panel.claims_summary', 'date' => 'none', 'alsoNeeds' => 'reports.panel_summary.view.branch'],
         'stock.low' => ['group' => 'stock', 'label' => 'Items at or below reorder level', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
-        'stock.expiring' => ['group' => 'stock', 'label' => 'Batches expiring within 90 days', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
+        'stock.expiring' => ['group' => 'stock', 'label' => 'Batches expiring soon (up to 90 days)', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
         'stock.expired' => ['group' => 'stock', 'label' => 'Expired stock still on hand', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
     ];
 

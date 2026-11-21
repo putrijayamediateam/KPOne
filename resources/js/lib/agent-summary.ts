@@ -169,7 +169,7 @@ export const stockItems = (stock: NonNullable<Lina['stock']>) => [
         value: `${plural(stock.lowStock, 'item')}, by location`,
     },
     {
-        label: 'Expiring within 90 days',
+        label: 'Expiring soon (up to 90 days)',
         value: plural(stock.expiring, 'batch', 'batches'),
     },
     {
