@@ -602,7 +602,7 @@ const toggleDescription = computed(() => {
                             :description="
                                 editing
                                     ? 'Update default self-pay and Panel tariffs. Existing published prices remain in immutable version history.'
-                                    : 'Set default self-pay and Panel tariffs. Published prices are retained as versioned records.'
+                                    : 'Set the Self-pay price. Panel prices change by proposal. Published prices are retained as versioned records.'
                             "
                         />
                         <template v-if="setup.canPublishPrices">
@@ -612,8 +612,8 @@ const toggleDescription = computed(() => {
                                         Default pricing
                                     </h4>
                                     <p class="text-xs text-muted-foreground">
-                                        These rates apply unless a
-                                        Panel-specific override is added below.
+                                        The Self-pay price is typed here. Panel
+                                        prices are shown below.
                                     </p>
                                 </div>
                                 <div class="overflow-hidden rounded-lg border">
@@ -675,7 +675,6 @@ const toggleDescription = computed(() => {
                                     Panel prices
                                 </h4>
                                 <PanelPricesReadOnly
-                                    :default-rm="form.prices.panel_default_rm"
                                     :overrides="
                                         form.prices.panel_overrides.map(
                                             (override) => ({

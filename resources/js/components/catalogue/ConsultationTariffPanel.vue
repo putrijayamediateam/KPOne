@@ -174,7 +174,8 @@ const submit = () => {
                     <h4 class="text-sm font-medium">Default pricing</h4>
                     <p class="text-xs text-muted-foreground">
                         These organisation-wide prices are shared across
-                        branches. Panel-specific rates can be set below.
+                        branches. Panel prices are shown below and change by
+                        proposal.
                     </p>
                 </div>
                 <div class="overflow-hidden rounded-lg border">
@@ -231,7 +232,6 @@ const submit = () => {
             <div class="grid gap-2">
                 <h4 class="text-sm font-medium">Panel prices</h4>
                 <PanelPricesReadOnly
-                    :default-rm="tariff.panelDefaultAmountRm"
                     :overrides="
                         tariff.panelOverrides.map((override) => ({
                             panelName: override.panelName,

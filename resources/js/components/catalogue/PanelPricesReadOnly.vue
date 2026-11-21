@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/vue3';
 
 // Panel prices are changed by proposal and approval (owner decision 27), so the catalogue screens only show them.
 defineProps<{
-    defaultRm: string | null;
+    defaultRm?: string | null;
     overrides: { panelName: string; amountRm: string | null }[];
     canPropose: boolean;
 }>();
@@ -12,7 +12,10 @@ defineProps<{
 <template>
     <div class="grid gap-2 text-sm" data-testid="panel-prices-read-only">
         <dl class="grid gap-1">
-            <div class="flex justify-between gap-3">
+            <div
+                v-if="defaultRm !== undefined"
+                class="flex justify-between gap-3"
+            >
                 <dt>Default Panel price</dt>
                 <dd class="tabular-nums">
                     {{ defaultRm ? `RM ${defaultRm}` : 'No price yet' }}
@@ -33,6 +36,12 @@ defineProps<{
                 </dd>
             </div>
         </dl>
+        <p
+            v-if="overrides.length === 0 && defaultRm === undefined"
+            class="text-muted-foreground"
+        >
+            No Panel-specific prices.
+        </p>
         <p class="text-xs text-muted-foreground">
             Panel prices are changed by proposal.
             <Link

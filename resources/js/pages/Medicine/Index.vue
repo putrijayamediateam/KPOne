@@ -1164,7 +1164,7 @@ const toggleDescription = computed(() => {
                         <CatalogueFormSectionHeading
                             number="04"
                             title="Pricing"
-                            description="Set default self-pay and Panel tariffs. Published prices are retained as versioned records and are separate from purchase cost."
+                            description="Set the Self-pay price. Panel prices change by proposal. Published prices are retained as versioned records and are separate from purchase cost."
                         />
                         <template v-if="setup.canPublishPrices">
                             <div class="grid gap-2">
@@ -1173,8 +1173,8 @@ const toggleDescription = computed(() => {
                                         Default pricing
                                     </h4>
                                     <p class="text-xs text-muted-foreground">
-                                        These rates apply unless a
-                                        Panel-specific override is added below.
+                                        The Self-pay price is typed here. Panel
+                                        prices are shown below.
                                     </p>
                                 </div>
                                 <div class="overflow-hidden rounded-lg border">
@@ -1236,7 +1236,6 @@ const toggleDescription = computed(() => {
                                     Panel prices
                                 </h4>
                                 <PanelPricesReadOnly
-                                    :default-rm="form.prices.panel_default_rm"
                                     :overrides="
                                         form.prices.panel_overrides.map(
                                             (override) => ({
