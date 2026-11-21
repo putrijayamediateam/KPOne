@@ -1,6 +1,7 @@
 # DSP-25: the Director's read-only view of a dispensary case (design note)
 
-Status: **draft for Hakim's review.** Not built. Classic only, because V2 was retired on 19 Nov.
+Status: **design approved (Hakim OK, Daniel OK with changes); owner answers 21 Nov: P5 approved, 15 = A (every branch,
+every view recorded), 16 = A (the record goes in the audit log only, with no special page).** Not built. Classic only, because V2 was retired on 19 Nov.
 
 - Source: owner decision 4 of 20-21 Nov 2026 (`docs/decisions/2026-11-20-finance-inventory-proposals.md`): "Director
   gets a read-only view of consultations and dispensary; every view is audited." This is an explicit owner role

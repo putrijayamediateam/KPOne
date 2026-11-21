@@ -1,6 +1,7 @@
 # DSP-23: the doctor checks prepared medicine before payment (design note)
 
-Status: **draft for Hakim's review.** Not built. Classic only (V2 retired 19 Nov). Written on the recommended answers to section 9, which are with the owner. Owner decision 14 of 20-21 Nov 2026
+Status: **design approved (Hakim OK, Daniel OK with changes); owner answers 21 Nov: P3 yes, 10 = A, 11 = A, 12 = A,
+13 = B.** Not built. Classic only (V2 retired 19 Nov). Written on the recommended answers to section 9, which are with the owner. Owner decision 14 of 20-21 Nov 2026
 (`docs/decisions/2026-11-20-finance-inventory-proposals.md`): "Doctor checks prepared medicine before payment:
 a per-branch switch (on or off)." Synthetic data only. Open questions for the owner are in section 9.
 
@@ -200,7 +201,24 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
   role-permission pins that list each role's permissions exactly. The two new permissions change them; these are
   listed and left failing for the owner.
 
-## 9. Questions for the owner (recommended answer first)
+## 8a. Owner answers (21 Nov), which replace section 9
+
+- 10 = A: consultation cases only.
+- 11 = A: stock moves when the doctor verifies.
+- 12 = A: the Director and that branch's CA Supervisor turn the switch on or off, and each change is recorded. The
+  Branch Manager joins them once that role exists (ROLE-1).
+- P3: `dispensary.doctor_check.own` for the Resident Doctor is approved.
+- **13 = B: if the doctor is unavailable, a CA Supervisor at that branch may check instead, giving a reason, and it is
+  recorded.**
+  - This uses a second permission, `dispensary.doctor_check.override.branch`, for `ca_supervisor` only. It is the
+    implementation of answer 13 and is listed for the owner.
+  - The CA Supervisor uses the same Verify and Send back. Verify additionally needs a reason from a fixed list
+    (doctor off shift; doctor in an emergency; Other, with a short note).
+  - The check row records `checked_as = 'supervisor'` and the reason.
+  - A CA Supervisor never checks a case they prepared themselves (service and trigger).
+  - The case appears for them in a branch list, "Waiting for doctor's check", reachable from the Registration chip.
+
+## 9. Questions for the owner (answered 21 Nov; see 8a)
 
 a. Consultation cases only, not OTC? (Yes.)
 b. Stock moves when the doctor verifies? (Yes.)
