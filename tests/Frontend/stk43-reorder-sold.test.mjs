@@ -38,3 +38,16 @@ test('STK-43: the note says what sold counts and that the suggestion is unchange
     );
     assert.match(flat, /The suggested quantity still uses the/);
 });
+
+test("STK-43: the sold figures spell out the days and stack on a phone (Daniel's review)", () => {
+    assert.match(flat, /\{\{ days \}\} days: \{\{ soldText\(row, days\) \}\}/);
+    assert.match(
+        flat,
+        /<ul class="sm:hidden" data-testid="reorder-sold-lines"/,
+    );
+    assert.match(
+        flat,
+        /<span class="w-16 text-muted-foreground" >\{\{ days \}\} days<\/span >/,
+    );
+    assert.match(flat, /<span class="hidden sm:inline"/);
+});

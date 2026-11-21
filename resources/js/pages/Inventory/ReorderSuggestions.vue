@@ -339,14 +339,34 @@ const requestThese = () => {
                             None in the last 30 days
                         </dd>
                         <dd v-else class="tabular-nums">
-                            <template
-                                v-for="(days, index) in soldWindows"
-                                :key="days"
-                                ><template v-if="index > 0"> · </template
-                                >{{ days }} d
-                                {{ soldText(row, days) }}</template
+                            <!-- Daniel's review: days spelled out; stacked below 640 px so a figure never wraps. -->
+                            <ul
+                                class="sm:hidden"
+                                data-testid="reorder-sold-lines"
                             >
-                            {{ row.stockUnit }}
+                                <li
+                                    v-for="days in soldWindows"
+                                    :key="days"
+                                    class="flex gap-3"
+                                >
+                                    <span class="w-16 text-muted-foreground"
+                                        >{{ days }} days</span
+                                    ><span
+                                        >{{ soldText(row, days) }}
+                                        {{ row.stockUnit }}</span
+                                    >
+                                </li>
+                            </ul>
+                            <span class="hidden sm:inline"
+                                ><template
+                                    v-for="(days, index) in soldWindows"
+                                    :key="days"
+                                    ><template v-if="index > 0"> · </template
+                                    >{{ days }} days:
+                                    {{ soldText(row, days) }}</template
+                                >
+                                {{ row.stockUnit }}</span
+                            >
                         </dd>
                     </div>
                     <template v-if="row.supplier">
