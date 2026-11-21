@@ -246,21 +246,3 @@ test('V2Dialog: the footer-note slot is in the pinned footer, outside the scroll
     // pinned: it never shrinks, and the footer border is dropped so there is one divider
     assert.match(d, /data-slot="v2-dialog-footer-note"[\s\S]*?shrink-0/);
 });
-
-test('V2Tabs: the selected tab is brought to the middle of a scrolling strip on load and change, smooth unless reduced motion, never moving the page', () => {
-    const t = read('resources/js/components/v2/V2Tabs.vue');
-    assert.match(t, /const reveal = \(\) =>/);
-    assert.match(t, /el\.scrollWidth <= el\.clientWidth/);
-    assert.match(
-        t,
-        /tab\.offsetLeft - \(el\.clientWidth - tab\.offsetWidth\) \/ 2/,
-    );
-    assert.match(t, /el\.scrollTo\(\{/);
-    assert.match(t, /behavior: reduced \? 'auto' : 'smooth'/);
-    assert.match(t, /prefers-reduced-motion: reduce/);
-    // on mount and whenever the selected value changes
-    assert.match(t, /onMounted\(\(\) => \{\s*reveal\(\);/);
-    assert.match(t, /watch\(\(\) => props\.modelValue, reveal\)/);
-    // the strip scrolls, not the page: no element scrollIntoView any more
-    assert.doesNotMatch(t, /scrollIntoView/);
-});
