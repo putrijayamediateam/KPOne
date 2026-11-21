@@ -23,7 +23,7 @@ the effective date; history kept."
 1. Only Panel price books are covered. Self-pay publishing is unchanged (default a).
 2. `publish()` refuses a Panel book with "Panel prices are changed by proposal." (closed only in PR 3, section 8).
 3. A **proposal** names: Panel price book, charge, proposed price (whole sen, 0 to the existing maximum), agreement
-   reference (required, plain text, 1 to 120 characters, collapsed whitespace, never in audit or logs), effective date
+   reference (required, plain text, 3 to 120 characters as the Panel team asked, trimmed and shown as typed, no format check, never in audit or logs), effective date
    and time (entered as a branch-local date, stored UTC; today or later at proposal time), and the base version (the
    highest version of that book and charge when the proposal was made, 0 if none).
 4. **One open proposal per (book, charge).** A second is refused with the first one's status shown.
@@ -96,7 +96,7 @@ management row "Panel price changes" with one sentence in the Panel group, and t
   2 decimals, tabular figures). Panel prices only, never Self-pay.
 - Under the price box the change is shown before sending: "RM 12.00 -> RM 14.50 (+RM 2.50, +20.8%)". Over 25% it adds
   a warning-token line, with a dot and words, "Large change. Check the agreement reference."
-- Agreement reference help: "Plain text, up to 120 characters. Do not enter patient details."
+- Agreement reference help: "Plain text, 3 to 120 characters. Do not enter patient details."
 - Effective date uses the shared DateField (dd/mm/yyyy) with the time zone beside it ("Cheras time (Asia/Kuala_Lumpur)").
   Any time box defaults to 00:00 and says so. A past date is refused with a plain line under the field.
 
