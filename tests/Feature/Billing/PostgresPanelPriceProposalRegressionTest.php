@@ -8,6 +8,7 @@ use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceChangeProposal;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
+use App\Domain\Visit\Billing\Services\PanelPriceTarget;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
@@ -161,6 +162,40 @@ class PostgresPanelPriceProposalRegressionTest extends ClinicalTestCase
         $this->assertSame(1, PriceChangeProposal::query()->where('status', 'proposed')->count());
     }
 
+    public function test_two_first_approvals_for_one_panel_create_one_price_book(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'RACE-NOBOOK', 'name' => 'Race Panel without book']);
+        $references = app(PricingReferenceAdministrationService::class);
+        $supervisor = $this->actor('ca_supervisor');
+        $other = $references->createMedicineCharge($supervisor, MedicineCatalogueItem::factory()->create([
+            'organisation_id' => $this->organisation->id, 'code' => 'RACE-MED-2', 'display_name' => 'Synthetic race medicine 2', 'order_unit' => 'tablet',
+            'created_by_user_id' => $supervisor->id, 'updated_by_user_id' => $supervisor->id,
+        ]), ['code' => 'RACE-MED-2', 'display_name' => 'Synthetic race medicine 2']);
+        $service = app(PanelPriceProposalService::class);
+        $propose = fn (ChargeDefinition $charge, string $reference) => $service->propose($this->officer, PanelPriceTarget::forPanel($panel->id), $charge, [
+            'expected_branch_id' => $this->branch->id, 'expected_version' => 0, 'amount_sen' => 1450, 'agreement_reference' => $reference,
+            'effective_date' => CarbonImmutable::now($this->branch->timezone)->toDateString(), 'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $one = $propose($this->charge, 'AGR-RACE-ONE');
+        $two = $propose($other, 'AGR-RACE-TWO');
+        $this->assertSame(0, PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->count());
+
+        // Both approvals (two different approvers, two different charges, two different proposals) share only the
+        // advisory lock on the Panel's scope. Hold it, prove both workers are waiting behind it, then release.
+        $out = $this->race('select pg_advisory_xact_lock(hashtext(?))', $this->organisation->id.'|panel:'.$panel->id, [
+            $this->worker('approve', $this->finance, ['proposal' => $one->public_id, 'lock_version' => 1]),
+            $this->worker('approve', $this->director, ['proposal' => $two->public_id, 'lock_version' => 1]),
+        ]);
+
+        $this->assertSame(2, substr_count($out, 'SUCCESS '), $out);
+        $book = PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->sole();
+        $this->assertSame(2, PriceEntry::query()->where('price_book_id', $book->id)->count());
+        $this->assertSame([1, 1], PriceEntry::query()->where('price_book_id', $book->id)->orderBy('charge_definition_id')->pluck('version')->all());
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'price_book.created')->where('metadata->scope', 'panel:'.$panel->id)->count(), 'only one approval created the book');
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_price.approved')->where('metadata->price_book_created', true)->count());
+        $this->assertSame([$book->id, $book->id], [$one->refresh()->price_book_id, $two->refresh()->price_book_id]);
+    }
+
     /** Makes the fixture visible to the worker processes; the next test rebuilds the schema. */
     private function commitFixture(): void
     {
@@ -195,7 +230,7 @@ class PostgresPanelPriceProposalRegressionTest extends ClinicalTestCase
      *
      * @param  list<Worker>  $workers
      */
-    private function race(string $lockSql, int $key, array $workers, bool $inOrder = true): string
+    private function race(string $lockSql, int|string $key, array $workers, bool $inOrder = true): string
     {
         $this->commitFixture();
         DB::beginTransaction();
