@@ -139,9 +139,15 @@ class DispensaryReviewTest extends VisitTestCase
             }
         });
 
+        // What a real Director sees: production runs with APP_DEBUG off. (With debug on, Laravel's error page lists
+        // every query the process ran, including this test's own fixture inserts, so it would name the patient even
+        // though the review built nothing.)
+        config(['app.debug' => false]);
         $response = $this->actingAs($this->directorAtAnotherBranch())->get(route('dispensary.review', $c['case']));
         $response->assertStatus(500);
-        $this->assertStringNotContainsString($c['f']['visit']->patient->full_name, (string) $response->getContent());
+        $content = (string) $response->getContent();
+        $this->assertStringNotContainsString($c['f']['visit']->patient->full_name, $content);
+        $this->assertStringNotContainsString($c['f']['visit']->patient->patient_number, $content);
     }
 
     public function test_the_helper_refuses_an_event_or_id_key_that_is_not_allowlisted(): void
