@@ -95,7 +95,7 @@ class DispensaryService
                 $exception->forceFill(['status' => DispensaryItemException::STATUS_SUPERSEDED])->save();
             });
             DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $locked->id)->delete();
-            $locked->forceFill(['quantity_dispensed' => $quantity, 'pack_conversion_id' => null, 'packs_dispensed' => null, 'status' => $status, 'reason' => $reason, 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
+            $locked->forceFill([...$this->clearedPacks($locked), 'quantity_dispensed' => $quantity, 'status' => $status, 'reason' => $reason, 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
             $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $locked, $profile, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
             foreach (($attributes['allocations'] ?? []) as $allocation) {
                 $this->allocation($actor, $case, $locked, $allocation);
@@ -177,7 +177,7 @@ class DispensaryService
             ])->save();
             $this->replaceAllocations($actor, $case, $line, $quantity, $attributes['allocations'] ?? []);
             $packs = $this->packFields($actor, $line, $quantity, $attributes);
-            if ($packs['packs_dispensed'] !== null) {
+            if (($packs['packs_dispensed'] ?? null) !== null) {
                 $line->forceFill($packs)->save();
             }
             $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $line, $profile, $matches, DispensaryAllergyConfirmation::ACTION_ADD);
@@ -204,7 +204,7 @@ class DispensaryService
             DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $locked->id)->delete();
             $locked->forceFill([
                 'quantity_dispensed' => '0.000', 'status' => DispensaryItem::STATUS_NOT_DISPENSED, 'reason' => DispensaryItem::REASON_CA_REMOVED,
-                'pack_conversion_id' => null, 'packs_dispensed' => null,
+                ...$this->clearedPacks($locked),
                 'change_state' => DispensaryItem::CHANGE_REMOVED, 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(),
                 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1,
             ])->save();
@@ -353,17 +353,30 @@ class DispensaryService
     }
 
     /**
+     * DSP-24: clears the packs only on a line that has them, so a save in the base unit writes no pack column at all
+     * (and still works against an older schema, as the historical migration tests run today's code).
+     *
+     * @return array<string, null>
+     */
+    private function clearedPacks(DispensaryItem $line): array
+    {
+        return $line->pack_conversion_id !== null || $line->packs_dispensed !== null
+            ? ['pack_conversion_id' => null, 'packs_dispensed' => null]
+            : [];
+    }
+
+    /**
      * DSP-24: when the CA dispensed whole packs (bottles), check them against the SKU's checked STK-52 conversion and
      * return the two columns to store; otherwise clear them. Called after replaceAllocations(), so allocation() has
      * already locked the SKU FOR UPDATE in the usual order and checkedForShare() adds no new lock (Hakim, Zulkifli).
      *
      * @param  array<string,mixed>  $attributes
-     * @return array{pack_conversion_id: ?int, packs_dispensed: ?int}
+     * @return array{pack_conversion_id?: ?int, packs_dispensed?: ?int}
      */
     private function packFields(User $actor, DispensaryItem $line, string $quantity, array $attributes): array
     {
         if (($attributes['packs'] ?? null) === null || $attributes['packs'] === '') {
-            return ['pack_conversion_id' => null, 'packs_dispensed' => null];
+            return $this->clearedPacks($line);
         }
         $skuIds = DispensaryItemBatchAllocation::query()->where('dispensary_item_id', $line->id)->distinct()->pluck('inventory_sku_id');
         $sku = $skuIds->count() === 1 ? InventorySku::query()->where('organisation_id', $actor->organisation_id)->whereKey($skuIds->first())->first() : null;
