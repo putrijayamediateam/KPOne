@@ -65,19 +65,51 @@ final class PhaseThreePanel
                     continue; // made together with 10
                 }
                 $patients = $position === 10 ? [$this->patient($code, $branch, 10), $this->patient($code, $branch, 11)] : [$this->patient($code, $branch, $position)];
-                if (Visit::query()->whereIn('patient_id', array_map(fn (Patient $p): int => $p->id, $patients))->exists()) {
-                    continue;
+                // The completed visit is committed on its own, before its claim stage: PostgreSQL checks a completed
+                // visit's invoice evidence at COMMIT, and claim steps (an adjustment, a submission) change the invoice
+                // afterwards, as they do in the clinic on a later day.
+                $allocations = [];
+                foreach ($patients as $patient) {
+                    $allocation = $this->existingAllocation($patient);
+                    if ($allocation === null) {
+                        $allocation = DB::transaction(fn (): CoverageAllocation => $this->panelVisit($code, $branch, $patient, $this->panel($position === 10 ? 1 : 0)));
+                        $this->count('panel_visits');
+                    }
+                    $allocations[] = $allocation;
                 }
-                DB::transaction(function () use ($code, $branch, $position, $patients): void {
-                    $allocations = array_map(fn (Patient $patient): CoverageAllocation => $this->panelVisit($code, $branch, $patient, $this->panel($position === 10 ? 1 : 0)), $patients);
-                    $this->claimStage($code, $branch, $position, $allocations);
-                });
-                $this->count('panel_visits', count($patients));
+                if (! $this->stageDone($position, $allocations)) {
+                    DB::transaction(fn () => $this->claimStage($code, $branch, $position, $allocations));
+                }
             }
         }
         $this->priceProposals();
 
         return $this->created;
+    }
+
+    /** The approved Panel share on the patient's completed visit, or null when the visit has not been made yet. */
+    private function existingAllocation(Patient $patient): ?CoverageAllocation
+    {
+        $visit = Visit::query()->where('patient_id', $patient->id)->where('status', Visit::STATUS_COMPLETED)->first();
+        $invoice = $visit === null ? null : Invoice::query()->where('visit_id', $visit->id)->where('status', 'finalized')->first();
+
+        return $invoice === null ? null : CoverageAllocation::query()->where('invoice_id', $invoice->id)->where('status', 'approved')->first();
+    }
+
+    /**
+     * Whether a scenario's claim stage has run: its claim exists and has moved past "prepared" (an automatic claim from
+     * PNL-28a starts there), except the first scenario, which stops at "prepared" on purpose.
+     *
+     * @param  list<CoverageAllocation>  $allocations
+     */
+    private function stageDone(int $position, array $allocations): bool
+    {
+        $claims = PanelClaim::query()->whereIn('coverage_allocation_id', array_map(fn (CoverageAllocation $a): int => $a->id, $allocations))->get();
+        if ($claims->count() < count($allocations)) {
+            return false;
+        }
+
+        return $position === 1 || $claims->every(fn (PanelClaim $claim): bool => $claim->status !== 'prepared');
     }
 
     /** A fictional Panel patient, registered by the branch's first CA the first time it is needed. */
