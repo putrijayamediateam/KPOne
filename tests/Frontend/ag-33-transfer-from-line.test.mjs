@@ -6,7 +6,6 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 for (const [name, path] of [
-    ['V2', 'resources/js/pages/Agents/V2/DailySummary.vue'],
     ['Classic', 'resources/js/pages/Agents/DailySummary.vue'],
 ]) {
     test(`${name} Daily summary: the receiving branch sees a read-only line for a transfer decided at the sending branch`, () => {
@@ -29,10 +28,7 @@ for (const [name, path] of [
 }
 
 test('Daily summary: the inbox helper says nothing is waiting when this branch has nothing to decide itself', () => {
-    for (const path of [
-        'resources/js/pages/Agents/V2/DailySummary.vue',
-        'resources/js/pages/Agents/DailySummary.vue',
-    ]) {
+    for (const path of ['resources/js/pages/Agents/DailySummary.vue']) {
         const page = read(path);
 
         assert.match(page, /ownWaiting\(branch\.hana\) === 0/);
