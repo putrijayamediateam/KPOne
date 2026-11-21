@@ -154,7 +154,7 @@ final class PanelClaimPackIssueService
      * a holder of the claims permission at the active branch; each row says how many claims the pack holds, who issued
      * it and when, how many times it was printed, and carries the address of its latest print.
      *
-     * @return list<array<string, mixed>>|null
+     * @return array<int, array<string, mixed>>|null
      */
     public function forClaim(User $actor, PanelClaim $claim): ?array
     {
@@ -166,7 +166,7 @@ final class PanelClaimPackIssueService
             ->whereRaw('claim_ids @> ?::jsonb', [json_encode([(int) $claim->id], JSON_THROW_ON_ERROR)])->orderByDesc('issued_at')->orderByDesc('id')->limit(25)->get();
         $people = app(StaffAccessService::class)->visibleUsers($actor)->whereIn('id', $documents->pluck('issued_by_user_id')->unique())->pluck('name', 'id');
         $latestPrints = PanelClaimPackPrint::query()->whereIn('panel_claim_pack_document_id', $documents->pluck('id'))->orderBy('id')->get()
-            ->groupBy('panel_claim_pack_document_id')->map->last();
+            ->groupBy('panel_claim_pack_document_id')->map(static fn ($rows) => $rows->last());
         $firstLabels = PanelClaimPackPrint::query()->whereIn('panel_claim_pack_document_id', $documents->pluck('id'))->where('label', '!=', 'copy')->pluck('label', 'panel_claim_pack_document_id');
 
         return $documents->map(static fn (PanelClaimPackDocument $d): array => [
@@ -185,7 +185,13 @@ final class PanelClaimPackIssueService
     /** @param array<string, mixed> $content */
     private function assertCanSee(User $actor, array $content): void
     {
-        $identity = collect($content['pack']['claims'] ?? [])->contains(static fn (array $row): bool => ! ($row['identityHidden'] ?? true));
+        $rows = is_array($content['pack']['claims'] ?? null) ? $content['pack']['claims'] : [];
+        $identity = false;
+        foreach ($rows as $row) {
+            if (is_array($row) && ! ($row['identityHidden'] ?? true)) {
+                $identity = true;
+            }
+        }
         if ($identity && ! $actor->can(PanelClaimPackService::IDENTITY_PERMISSION)) {
             throw ValidationException::withMessages(['pack' => 'This copy shows patient identity numbers, which your role cannot see.']);
         }
