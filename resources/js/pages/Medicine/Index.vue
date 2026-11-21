@@ -8,6 +8,8 @@ import CatalogueOptionPicker from '@/components/catalogue/CatalogueOptionPicker.
 import InventorySkuPicker from '@/components/catalogue/InventorySkuPicker.vue';
 import LocationPicker from '@/components/catalogue/LocationPicker.vue';
 import PanelPricesReadOnly from '@/components/catalogue/PanelPricesReadOnly.vue';
+import type { PanelPriceLine } from '@/components/catalogue/PanelPricesReadOnly.vue';
+import PanelPriceValue from '@/components/catalogue/PanelPriceValue.vue';
 import SupplierPicker from '@/components/catalogue/SupplierPicker.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -171,7 +173,10 @@ const form = useForm({
     }[],
 });
 
+// Panel prices of the item being edited: read-only, loaded with its setup details (owner decision 27).
+const panelPriceLines = ref<PanelPriceLine[]>([]);
 const openCreate = () => {
+    panelPriceLines.value = [];
     editing.value = null;
     editingSkuLabel.value = '';
     editLoadError.value = '';
@@ -220,6 +225,7 @@ const openEdit = async (row: MedicineRow) => {
                 mal_number: string;
                 generic_name: string;
             };
+            panel_prices: PanelPriceLine[];
             prices: {
                 self_pay_rm: string | null;
                 panel_default_rm: string | null;
@@ -234,6 +240,7 @@ const openEdit = async (row: MedicineRow) => {
         Object.assign(form, details.medicine);
         form.prices.self_pay_rm = details.prices.self_pay_rm ?? '';
         form.prices.panel_default_rm = details.prices.panel_default_rm ?? '';
+        panelPriceLines.value = details.panel_prices ?? [];
         form.prices.panel_overrides = details.prices.panel_overrides.map(
             ({ panel_id, amount_rm }) => ({ panel_id, amount_rm }),
         );
@@ -1223,11 +1230,13 @@ const toggleDescription = computed(() => {
                                             >Default for Panels without a custom
                                             rate</span
                                         >
-                                        <span class="text-sm tabular-nums">{{
-                                            form.prices.panel_default_rm
-                                                ? `RM ${form.prices.panel_default_rm}`
-                                                : 'No price yet'
-                                        }}</span>
+                                        <PanelPriceValue
+                                            :line="
+                                                panelPriceLines.find(
+                                                    (line) => line.isDefault,
+                                                )
+                                            "
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -1236,20 +1245,7 @@ const toggleDescription = computed(() => {
                                     Panel prices
                                 </h4>
                                 <PanelPricesReadOnly
-                                    :overrides="
-                                        form.prices.panel_overrides.map(
-                                            (override) => ({
-                                                panelName:
-                                                    setup.panels.find(
-                                                        (panel) =>
-                                                            String(panel.id) ===
-                                                            override.panel_id,
-                                                    )?.name ??
-                                                    `Panel ${override.panel_id}`,
-                                                amountRm: override.amount_rm,
-                                            }),
-                                        )
-                                    "
+                                    :lines="panelPriceLines"
                                     :can-propose="canProposePanelPrices"
                                 />
                             </div>

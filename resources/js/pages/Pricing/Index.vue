@@ -236,25 +236,24 @@ const toggleCharge = (charge: ChargeRow) => {
     <main
         class="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-6"
     >
-        <PageHeader
-            title="Pricing"
-            description="Manage charge definitions, price books and published prices."
-        >
+        <PageHeader title="Pricing">
+            <template #description>
+                Manage charge definitions, price books and published prices.
+                Current price is the Self-pay price. Panel prices are changed by
+                proposal.
+                <Link
+                    v-if="canProposePanelPrices"
+                    href="/panel-price-changes"
+                    class="font-medium text-brand-strong underline underline-offset-2"
+                    >Propose a change</Link
+                >
+            </template>
             <template #actions>
                 <Button variant="outline" size="sm" as-child>
                     <Link href="/pricing/price-check">Check price list</Link>
                 </Button>
             </template>
         </PageHeader>
-        <p class="text-sm text-muted-foreground">
-            Panel prices are changed by proposal.
-            <Link
-                v-if="canProposePanelPrices"
-                href="/panel-price-changes"
-                class="font-medium text-brand-strong underline underline-offset-2"
-                >Propose a change</Link
-            >
-        </p>
 
         <section class="grid gap-4 md:grid-cols-2">
             <div class="min-w-0 rounded-xl border bg-card p-4">

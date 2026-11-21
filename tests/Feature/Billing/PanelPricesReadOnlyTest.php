@@ -6,6 +6,7 @@ use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PanelPriceLines;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Clinical\ClinicalTestCase;
+use Tests\Support\PanelPriceFixture;
 
 /**
  * Owner decision 27 (21 Nov 2026), slice 3: a Panel price changes only by proposal and approval, so direct publishing
@@ -92,5 +94,55 @@ class PanelPricesReadOnlyTest extends ClinicalTestCase
         $officer = $this->actor('panel_officer');
         $this->assertTrue($officer->can('panel.prices.propose.organisation'));
         $this->assertFalse($supervisor->can('panel.prices.propose.organisation'));
+    }
+
+    public function test_the_catalogue_payloads_list_every_panel_price_in_effect_and_a_later_one(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->actingAs($supervisor);
+        $references = app(PricingReferenceAdministrationService::class);
+        $charge = $this->charge('RO-LINES');
+        $panelA = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'RO-A', 'name' => 'Alpha Panel']);
+        $panelB = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'RO-B', 'name' => 'Beta Panel']);
+        $default = $references->createPriceBook($supervisor, null, ['name' => 'Panel', 'price_tier' => 'panel', 'panel_id' => null]);
+        $bookA = $references->createPriceBook($supervisor, null, ['name' => 'Alpha', 'price_tier' => 'panel', 'panel_id' => $panelA->id]);
+        $bookB = $references->createPriceBook($supervisor, null, ['name' => 'Beta', 'price_tier' => 'panel', 'panel_id' => $panelB->id]);
+        PanelPriceFixture::insert($default, $charge, 1800, $supervisor);
+        PanelPriceFixture::insert($bookA, $charge, 2000, $supervisor);
+        PanelPriceFixture::insert($bookB, $charge, 2100, $supervisor);
+        // A later price for Beta: in effect only from next week, so it is a scheduled line, never the current one.
+        $later = new PriceEntry;
+        $later->forceFill(['organisation_id' => $this->organisation->id, 'price_book_id' => $bookB->id, 'charge_definition_id' => $charge->id, 'unit_price_sen' => 2500, 'version' => 2, 'effective_at' => now()->utc()->addWeek(), 'published_by_user_id' => $supervisor->id])->save();
+
+        $lines = app(PanelPriceLines::class)->forCharge($this->organisation->id, $charge->id, $this->branch->timezone);
+        $this->assertSame(['Default Panel price', 'Alpha Panel', 'Beta Panel'], array_column($lines, 'name'));
+        $this->assertSame(['18.00', '20.00', '21.00'], array_column($lines, 'amountRm'));
+        $this->assertNull($lines[0]['scheduled']);
+        $this->assertSame('25.00', $lines[2]['scheduled']['amountRm']);
+
+        $medicine = MedicineCatalogueItem::query()->where('code', 'RO-LINES')->sole();
+        $this->getJson(route('medicines.setup', $medicine->public_id))->assertOk()
+            ->assertJsonPath('panel_prices.2.name', 'Beta Panel')->assertJsonPath('panel_prices.2.amountRm', '21.00')
+            ->assertJsonPath('panel_prices.2.scheduled.amountRm', '25.00');
+    }
+
+    public function test_the_pricing_page_never_offers_a_panel_price_as_the_current_price_to_repeat(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->actingAs($supervisor);
+        $references = app(PricingReferenceAdministrationService::class);
+        $charge = $this->charge('RO-CURRENT');
+        $panelBook = $references->createPriceBook($supervisor, null, ['name' => 'Panel', 'price_tier' => 'panel', 'panel_id' => null]);
+        PanelPriceFixture::insert($panelBook, $charge, 1800, $supervisor);
+
+        $current = fn () => collect($this->get(route('pricing.index'))->viewData('page')['props']['charges'])->firstWhere('code', 'RO-CURRENT')['currentPrice'];
+        $this->assertNull($current(), 'a charge with only a Panel price has no Self-pay current price');
+
+        $selfPay = $references->createPriceBook($supervisor, null, ['name' => 'Self-pay']);
+        app(PricePublicationService::class)->publish($supervisor, $selfPay, $charge, 900, 0, $this->branch->id);
+        $this->assertSame(900, $current()['amountSen']);
+        $this->assertSame($selfPay->public_id, $current()['priceBookPublicId']);
     }
 }

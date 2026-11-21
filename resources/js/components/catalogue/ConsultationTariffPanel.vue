@@ -3,6 +3,8 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSectionHeading.vue';
 import PanelPricesReadOnly from '@/components/catalogue/PanelPricesReadOnly.vue';
+import type { PanelPriceLine } from '@/components/catalogue/PanelPricesReadOnly.vue';
+import PanelPriceValue from '@/components/catalogue/PanelPriceValue.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +29,7 @@ type ConsultationTariff = {
     panelDefaultAmountRm: string | null;
     panelDefaultVersion: number;
     panelOverrides: PanelOverride[];
+    panelPrices: PanelPriceLine[];
 };
 
 const props = defineProps<{
@@ -220,11 +223,13 @@ const submit = () => {
                         <span class="text-xs text-muted-foreground"
                             >Default for Panels without a custom rate</span
                         >
-                        <span class="text-sm tabular-nums">{{
-                            tariff.panelDefaultAmountRm
-                                ? `RM ${tariff.panelDefaultAmountRm}`
-                                : 'No price yet'
-                        }}</span>
+                        <PanelPriceValue
+                            :line="
+                                tariff.panelPrices.find(
+                                    (line) => line.isDefault,
+                                )
+                            "
+                        />
                     </div>
                 </div>
             </div>
@@ -232,12 +237,7 @@ const submit = () => {
             <div class="grid gap-2">
                 <h4 class="text-sm font-medium">Panel prices</h4>
                 <PanelPricesReadOnly
-                    :overrides="
-                        tariff.panelOverrides.map((override) => ({
-                            panelName: override.panelName,
-                            amountRm: override.amountRm,
-                        }))
-                    "
+                    :lines="tariff.panelPrices"
                     :can-propose="canProposePanelPrices"
                 />
                 <InputError :message="form.errors.prices" />
