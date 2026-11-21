@@ -70,6 +70,7 @@ class ClinicManagementTest extends VisitTestCase
             '/panel-claims/follow-up' => ['panel.claims.manage.branch'],
             '/panel-remittances' => ['panel.remittances.record.branch'],
             '/panel-payment-corrections' => ['panel.claim_payments.reverse.branch'],
+            '/panel-price-changes' => ['panel.prices.propose.organisation', 'panel.prices.approve.organisation'],
             '/panel-responsibility' => ['panel.work.view.branch'],
             '/panel-invoices' => ['panel.invoices.export.branch'],
             '/hr/dashboard' => ['hr.roster.manage.organisation', 'hr.attendance.review.organisation', 'hr.leave.manage.organisation'],
