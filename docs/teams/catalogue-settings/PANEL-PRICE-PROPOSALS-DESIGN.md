@@ -154,6 +154,18 @@ line "From <date and time>: RM x.xx".
   not touched (V2 is being deleted).
 - `PostgresBillingRegressionTest` builds Panel books directly and is not expected to change.
 
+## 9b. The price book of a Panel that has none yet (owner answer 21 Nov 2026, "Option A")
+
+Nothing in the app creates a Panel price book once direct publishing of Panel prices is closed (slice 3), so a Panel with no book could never get its first price. Rule: **the book is created when the FIRST price for that Panel is APPROVED, in the same transaction as the approval, never when it is proposed.**
+
+- A proposal names its target by `scope_key` (`panel:default` or `panel:<id>`) and `panel_id` (null for the default). `price_book_id` is null until approval when no book exists; PostgreSQL allows null only while the proposal is not approved and `base_version` is 0, and requires the book to exist and match the scope on approval.
+- Proposing a price for a Panel without a book writes only the proposal. A rejected or withdrawn first proposal therefore leaves no book, no price entry and no audit row about a book.
+- Approving takes a transaction advisory lock on the scope, re-reads the book, creates it if it is still missing (organisation-wide, Panel tier, MYR, named "Panel" or "<Panel name> prices"), then publishes the entry. Two approvals for the same Panel serialise on that lock, so one book exists.
+- One open proposal per Panel and charge is enforced on the scope, with or without a book (unique index on organisation, scope and charge where status is proposed).
+- The proposal page offers the default Panel price and every active Panel, not only Panels that already have a book.
+- Audit holds ids and codes only: `price_book.created` carries the book's public id, scope, tier and the proposal id; `panel_price.approved` gains `price_book_created`. The agreement reference, amounts and decision note never reach it.
+- Tests: first proposal creates nothing, approval creates the book and the entry, a second price reuses the book, rejection and withdrawal leave no book, one open proposal per Panel and charge, an inactive Panel is refused, and the page offers Panels without a book.
+
 ## 10. Owner decisions (defaults assumed above)
 
 Owner answers, 21 Nov (round 2), all as proposed except d):
