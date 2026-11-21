@@ -5,6 +5,7 @@ namespace Tests\Feature\Visit;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Services\PanelSettingsService;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
@@ -67,6 +68,66 @@ class PanelSettingsTest extends VisitTestCase
         $this->post(route('panel-settings.active', $panel->id), ['active' => true, 'lock_version' => 3])->assertRedirect();
         $this->assertTrue($panel->refresh()->is_active);
         $this->assertDatabaseHas('audit_logs', ['event' => 'panel.restored', 'subject_id' => $panel->id]);
+    }
+
+    public function test_the_limit_per_visit_is_typed_in_ringgit_saved_in_sen_cleared_when_empty_and_audited_by_field_name_only(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+        $service = app(PanelSettingsService::class);
+
+        foreach ([['500', 50000], ['1,500.00', 150000], ['RM 750.5', 75050], ['0.01', 1], ['9,999,999.99', 999999999]] as [$typed, $sen]) {
+            $panel = $service->create($officer, $this->payload(['code' => 'LIM-'.$sen, 'name' => 'Limit '.$sen, 'visit_limit' => $typed]));
+            $this->assertSame($sen, $panel->refresh()->visit_limit_sen, $typed);
+        }
+        $none = $service->create($officer, $this->payload(['code' => 'LIM-NONE', 'name' => 'No limit']));
+        $this->assertNull($none->refresh()->visit_limit_sen);
+        $this->assertNull($service->create($officer, $this->payload(['code' => 'LIM-BLANK', 'name' => 'Blank', 'visit_limit' => '  ']))->visit_limit_sen);
+
+        $panel = Panel::query()->where('code', 'LIM-50000')->sole();
+        $this->get(route('panel-settings.edit', $panel->id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('panel.visitLimitSen', 50000));
+        $service->update($officer, $panel, $this->payload(['visit_limit' => '650', 'lock_version' => $panel->lock_version, 'code' => 'LIM-50000', 'name' => 'Limit 50000']));
+        $this->assertSame(65000, $panel->refresh()->visit_limit_sen);
+        $audit = \DB::table('audit_logs')->where('event', 'panel.updated')->where('subject_id', $panel->id)->value('metadata');
+        $this->assertStringContainsString('visit_limit_sen', (string) $audit);
+        $this->assertStringNotContainsString('65000', (string) $audit);
+
+        // Clearing the box removes the limit.
+        $service->update($officer, $panel, $this->payload(['visit_limit' => '', 'lock_version' => $panel->lock_version, 'code' => 'LIM-50000', 'name' => 'Limit 50000']));
+        $this->assertNull($panel->refresh()->visit_limit_sen);
+    }
+
+    public function test_a_limit_that_is_not_clearly_one_positive_amount_is_refused_and_nothing_is_saved(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+        $service = app(PanelSettingsService::class);
+
+        foreach (['abc', '0', '0.00', '-5', '10.999', '1.000', '1,50', '10,000,000', '99999999', '1e3', '5 0 0.0.0', '500.', '1,5'] as $bad) {
+            $this->assertValidationFails(fn () => $service->create($officer, $this->payload(['code' => 'BAD-LIM', 'visit_limit' => $bad])), 'visit_limit');
+        }
+        $this->assertSame(0, Panel::query()->where('code', 'BAD-LIM')->count());
+    }
+
+    public function test_the_database_refuses_a_limit_outside_one_sen_to_the_maximum(): void
+    {
+        if (\DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('The limit check is a PostgreSQL constraint.');
+        }
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+
+        foreach ([0, -1, 1_000_000_000] as $bad) {
+            try {
+                \DB::transaction(fn () => \DB::table('panels')->where('id', $panel->id)->update(['visit_limit_sen' => $bad]));
+                $this->fail('A limit of '.$bad.' sen was accepted by the database.');
+            } catch (QueryException $e) {
+                $this->assertStringContainsString('panels_visit_limit_check', $e->getMessage());
+            }
+        }
+        foreach ([1, 999_999_999] as $good) {
+            \DB::table('panels')->where('id', $panel->id)->update(['visit_limit_sen' => $good]);
+            $this->assertSame($good, (int) \DB::table('panels')->where('id', $panel->id)->value('visit_limit_sen'));
+        }
     }
 
     public function test_stale_version_duplicate_code_and_unsafe_values_are_refused(): void
