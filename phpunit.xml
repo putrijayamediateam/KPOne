@@ -217,5 +217,8 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true" force="true"/>
         <server name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true"/>
+        <!-- PNL-28a: existing Panel fixtures approve a bill and then create the claim themselves, so the automatic claim is off in tests. Tests of the automatic claim switch it on. -->
+        <env name="PANEL_AUTO_CLAIMS" value="false" force="true"/>
+        <server name="PANEL_AUTO_CLAIMS" value="false"/>
     </php>
 </phpunit>

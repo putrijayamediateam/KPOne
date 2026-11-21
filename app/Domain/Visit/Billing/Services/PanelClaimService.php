@@ -29,6 +29,9 @@ final class PanelClaimService
     /** PNL-2: the most invoices one bulk creation may include (one list page holds 20). */
     public const BULK_MAX = 20;
 
+    /** PNL-28a: the note on a `prepared` event written by the system step. */
+    public const AUTO_NOTE = 'system:auto_created';
+
     public function __construct(private TransactionalActorAuthority $authority, private AuditRecorder $audit) {}
 
     /** @param array<string, mixed> $a */
@@ -43,6 +46,54 @@ final class PanelClaimService
 
             $this->event($claim, $actor, $branch, 'prepared', amount: $claim->claim_amount_sen);
             $this->audit->record('panel_claim.prepared', $claim, ['claim_amount_sen' => $claim->claim_amount_sen], $actor, $branch);
+
+            return $claim;
+        }, 3);
+    }
+
+    /**
+     * PNL-28a: the one entry point for a claim that is created without the Panel Officer pressing Create claim.
+     * The caller has already passed the authority check (the approval's own `coverage.approve.branch` check for the
+     * system step, or `panel.claims.manage.branch` for the "Create claims for waiting invoices" button), so this
+     * method checks no permission itself. It returns the new Prepared claim, or a skip reason code.
+     */
+    public function prepareAutomatically(User $actor, CoverageAllocation $allocation, bool $systemStep): PanelClaim|string
+    {
+        return DB::transaction(function () use ($actor, $allocation, $systemStep): PanelClaim|string {
+            $branch = Branch::query()->whereKey($allocation->branch_id)->where('organisation_id', $actor->organisation_id)->firstOrFail();
+            $invoice = Invoice::query()->whereKey($allocation->invoice_id)->where('organisation_id', $actor->organisation_id)
+                ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
+            $locked = CoverageAllocation::query()->whereKey($allocation->id)->where('invoice_id', $invoice->id)
+                ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
+
+            if (PanelClaim::query()->where('coverage_allocation_id', $locked->id)->where('claim_kind', 'original')->exists()) {
+                return 'already_claimed';
+            }
+            if ($locked->status !== 'approved') {
+                return 'not_approved';
+            }
+            if ((int) $locked->current_invoice_guard !== $invoice->id || $invoice->status !== 'finalized') {
+                return 'reissued';
+            }
+            if ($invoice->correction_hold || $invoice->source_stale) {
+                return 'held_for_correction';
+            }
+            $share = PanelShare::effective($locked);
+            if ($share < 1) {
+                return 'share_zero';
+            }
+            if ($share > app(FinancialLedger::class)->chargedBeforeCredits($invoice)) {
+                return 'share_above_total';
+            }
+
+            $claim = $this->buildLockedSnapshot($actor, $branch, $locked);
+            // The event note marks a claim made by the system step (the claim page words it; lists never show it).
+            $this->event($claim, $actor, $branch, 'prepared', amount: $claim->claim_amount_sen, note: self::AUTO_NOTE);
+            $this->audit->record('panel_claim.auto_created', $claim, [
+                'claim_amount_sen' => $claim->claim_amount_sen,
+                'system_step' => $systemStep,
+                'approved_by_user_id' => $locked->approved_by_user_id,
+            ], $actor, $branch);
 
             return $claim;
         }, 3);

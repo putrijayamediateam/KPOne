@@ -57,7 +57,8 @@ final class PanelClaimDirectoryService
 
     private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'rejected', 'received'];
 
-    private const INVOICE_TABS = ['pending', 'overdue'];
+    /** PNL-28a: Pending lists approved invoices with no claim; Overdue lists Prepared claims past the Panel's due date. */
+    private const INVOICE_TABS = ['pending'];
 
     /**
      * @param  array<string, mixed>  $filters
@@ -74,10 +75,11 @@ final class PanelClaimDirectoryService
             $tab = in_array($filters['tab'] ?? 'all', self::TABS, true) ? (string) ($filters['tab'] ?? 'all') : 'all';
             $onInvoices = in_array($tab, self::INVOICE_TABS, true);
 
-            $eligible = $invoices($onInvoices ? $tab : null)
+            $overdueIds = $this->overdueClaimIds($base(), $branch, $today);
+            $eligible = $invoices(null)
                 ->orderBy('v.registered_at')->orderBy('c.id')
                 ->paginate(20, ['*'], 'allocations_page', $allocationsPage);
-            $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab)
+            $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab, $overdueIds)
                 ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
             $paymentRemarks = $this->latestPaymentReferences(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
@@ -94,8 +96,8 @@ final class PanelClaimDirectoryService
                     'currentPage' => $eligible->currentPage(),
                     'lastPage' => $eligible->lastPage(),
                 ],
-                'summary' => $this->summary($base, $invoices),
-                'tabs' => $this->tabCounts($base, $invoices, $filters),
+                'summary' => $this->summary($base, $invoices, $overdueIds),
+                'tabs' => $this->tabCounts($base, $invoices, $filters, $overdueIds),
                 'panels' => DB::table('panels')->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->pluck('name')->all(),
                 'filters' => [
                     'tab' => $tab,
@@ -129,6 +131,7 @@ final class PanelClaimDirectoryService
                         'panelId' => (int) $claim->panel_id,
                         'claimAmountSen' => $claim->claim_amount_sen,
                         'status' => self::statusLabel($claim),
+                        'overdue' => in_array($claim->id, $overdueIds, true),
                         'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
                         'updatedBy' => $latest[$claim->id]['actor'] ?? null,
                         'remarks' => $paymentRemarks[$claim->id] ?? ($latest[$claim->id]['note'] ?? null),
@@ -370,11 +373,13 @@ final class PanelClaimDirectoryService
     /**
      * @param  \Illuminate\Database\Eloquent\Builder<PanelClaim>  $query
      * @param  array<string, mixed>  $filters
+     * @param  list<int>  $overdueIds
      * @return \Illuminate\Database\Eloquent\Builder<PanelClaim>
      */
-    private function applyListFilters($query, array $filters, string $tab)
+    private function applyListFilters($query, array $filters, string $tab, array $overdueIds = [])
     {
         match ($tab) {
+            'overdue' => $query->whereIn('id', $overdueIds),
             'submitted' => $query->whereIn('status', self::SUBMITTED),
             'approved' => $query->whereIn('status', self::APPROVED),
             'rejected' => $query->where('status', 'rejected'),
@@ -408,7 +413,7 @@ final class PanelClaimDirectoryService
      * @param  callable(?string): Builder  $invoices
      * @return array<string, array{count: int, amountSen: int}>
      */
-    private function summary(callable $base, callable $invoices): array
+    private function summary(callable $base, callable $invoices, array $overdueIds): array
     {
         $paid = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
         $approved = $base()->whereIn('status', self::APPROVED);
@@ -418,13 +423,42 @@ final class PanelClaimDirectoryService
         $figure = static fn (Builder $query): array => ['count' => (clone $query)->count(), 'amountSen' => (int) (clone $query)->sum(DB::raw('kpone_panel_effective(i.id)'))];
 
         return [
-            'pending' => $figure($invoices('pending')),
-            'overdue' => $figure($invoices('overdue')),
+            'pending' => $figure($invoices(null)),
+            'overdue' => ['count' => count($overdueIds), 'amountSen' => $overdueIds === [] ? 0 : (int) $base()->whereIn('id', $overdueIds)->sum('claim_amount_sen')],
             'approved' => ['count' => (clone $approved)->count(), 'amountSen' => (int) (clone $approved)->sum('accepted_amount_sen')],
             'received' => ['count' => (clone $received)->count(), 'amountSen' => (int) (clone $received)->sum('accepted_amount_sen')],
             'rejected' => ['count' => (clone $rejected)->count(), 'amountSen' => (int) (clone $rejected)->sum('claim_amount_sen')],
             'outstanding' => ['count' => (clone $outstanding)->count(), 'amountSen' => (int) (clone $outstanding)->selectRaw("coalesce(sum(coalesce(accepted_amount_sen, 0) - {$paid}), 0) as total")->value('total')],
         ];
+    }
+
+    /**
+     * PNL-28a: Prepared claims that were never submitted and are past their Panel's due date. The due date uses the
+     * Panel's rule (days, daily, weekly or monthly) from the visit, as the Pending list always has.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
+     * @return list<int>
+     */
+    private function overdueClaimIds($base, Branch $branch, CarbonImmutable $today): array
+    {
+        $ids = [];
+        $rows = DB::table('panel_claims as c')
+            ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
+            ->join('visits as v', 'v.id', '=', 'i.visit_id')
+            ->join('panels as pn', function ($join): void {
+                $join->on('pn.id', '=', 'c.panel_id')->on('pn.organisation_id', '=', 'c.organisation_id');
+            })
+            ->whereIn('c.id', (clone $base)->where('status', 'prepared')->select('id'))
+            ->whereNotExists(fn (Builder $e) => $e->selectRaw('1')->from('panel_claim_events as ev')->whereColumn('ev.panel_claim_id', 'c.id')->where('ev.event_type', 'submitted'))
+            ->get(['c.id', 'v.registered_at', 'pn.claim_due_days', 'pn.claim_due_rule', 'pn.claim_due_time', 'pn.claim_due_offset']);
+        foreach ($rows as $row) {
+            $due = PanelClaimDueRule::dueAt($row, CarbonImmutable::parse((string) $row->registered_at, 'UTC')->setTimezone($branch->timezone));
+            if (PanelClaimDueRule::isOverdue($row, $due, $today)) {
+                $ids[] = (int) $row->id;
+            }
+        }
+
+        return $ids;
     }
 
     /**
@@ -435,13 +469,13 @@ final class PanelClaimDirectoryService
      * @param  array<string, mixed>  $filters
      * @return array<string, int>
      */
-    private function tabCounts(callable $base, callable $invoices, array $filters): array
+    private function tabCounts(callable $base, callable $invoices, array $filters, array $overdueIds): array
     {
         $counts = [];
         foreach (self::TABS as $tab) {
             $counts[$tab] = in_array($tab, self::INVOICE_TABS, true)
-                ? $invoices($tab)->count()
-                : $this->applyListFilters($base(), $filters, $tab)->count();
+                ? $invoices(null)->count()
+                : $this->applyListFilters($base(), $filters, $tab, $overdueIds)->count();
         }
 
         return $counts;
@@ -493,7 +527,7 @@ final class PanelClaimDirectoryService
             $id = (int) $row->panel_claim_id;
             $latest[$id] ??= ['actor' => null, 'note' => null];
             $latest[$id]['actor'] = $names[(int) $row->actor_user_id] ?? 'Staff member';
-            if ($row->note !== null) {
+            if ($row->note !== null && $row->note !== PanelClaimService::AUTO_NOTE) {
                 $latest[$id]['note'] = (string) $row->note;
             }
         }
@@ -593,12 +627,17 @@ final class PanelClaimDirectoryService
                     'panel_claim_events.actor_user_id',
                 ]);
             $actorNames = $this->staffNames($actor, $eventRows->pluck('actor_user_id')->all());
+            $approverId = (int) DB::table('coverage_allocations')->where('id', $claim->coverage_allocation_id)->value('approved_by_user_id');
+            $approverName = $this->staffNames($actor, [$approverId])[$approverId] ?? 'Staff member';
             $events = $eventRows->map(fn (object $event): array => [
+                // PNL-28a: a claim made by the system step reads as such, naming whoever approved the Panel bill.
+                'auto' => $event->note === PanelClaimService::AUTO_NOTE,
+                'approvedBy' => $event->note === PanelClaimService::AUTO_NOTE ? $approverName : null,
                 'type' => (string) $event->event_type,
                 'previousAmountSen' => $event->previous_amount_sen === null ? null : (int) $event->previous_amount_sen,
                 'amountSen' => $event->amount_sen === null ? null : (int) $event->amount_sen,
                 'externalReference' => $event->external_reference === null ? null : (string) $event->external_reference,
-                'note' => $event->note === null ? null : (string) $event->note,
+                'note' => $event->note === null || $event->note === PanelClaimService::AUTO_NOTE ? null : (string) $event->note,
                 'occurredAt' => CarbonImmutable::parse((string) $event->occurred_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                 'actor' => $actorNames[(int) $event->actor_user_id] ?? 'Staff member',
             ])->all();
