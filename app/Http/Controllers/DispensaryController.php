@@ -8,6 +8,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryDoctorCheckDirectory;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
@@ -43,14 +44,15 @@ class DispensaryController extends Controller
     {
         $detail = $directory->detail($request->user(), $dispensaryCase);
         $detail['labelLimits'] = DrugLabelLayout::FIELD_BUDGETS;
-        $detail['canPrintLabels'] = $request->user()->can('dispensary.labels.print.branch') && ($dispensaryCase->status === 'completed' || ($dispensaryCase->status === 'dispensing' && $dispensaryCase->current_handler_user_id === $request->user()->id));
+        // DSP-23: a case waiting for the doctor's check may be printed again (the doctor may ask for a reprint).
+        $detail['canPrintLabels'] = $request->user()->can('dispensary.labels.print.branch') && ($dispensaryCase->status === 'completed' || $dispensaryCase->status === DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK || ($dispensaryCase->status === 'dispensing' && $dispensaryCase->current_handler_user_id === $request->user()->id));
         if ($detail['canPrintLabels']) {
             $detail['labelUrl'] = route('dispensary.labels', $dispensaryCase);
         }
         if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED && $dispensaryCase->case_type !== DispensaryCase::TYPE_OTC) {
             $detail['tvCall'] = [
                 'canCall' => $request->user()->can('dispensary.start.branch')
-                    && in_array($detail['status'], [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true),
+                    && in_array($detail['status'], [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true),
                 'rooms' => $calls->rooms(Branch::query()->findOrFail($dispensaryCase->branch_id), BranchRoom::KIND_DISPENSARY),
             ];
         }
@@ -60,7 +62,14 @@ class DispensaryController extends Controller
 
         if ($detail['status'] === DispensaryCase::STATUS_COMPLETED) {
             // DSP-7: the returns section is its own prop, so the completed-case payload keeps its keys.
-            return Inertia::render('Dispensary/Completed', ['dispensary' => $detail, 'returns' => app(DispensaryReturnService::class)->panel($request->user(), $dispensaryCase, Branch::query()->findOrFail($dispensaryCase->branch_id))]);
+            $caseBranch = Branch::query()->findOrFail($dispensaryCase->branch_id);
+
+            return Inertia::render('Dispensary/Completed', [
+                'dispensary' => $detail,
+                'returns' => app(DispensaryReturnService::class)->panel($request->user(), $dispensaryCase, $caseBranch),
+                // DSP-23: a separate prop, so the completed-case payload keeps its keys.
+                'supervisorCheck' => app(DispensaryDoctorCheckDirectory::class)->supervisorCheck($dispensaryCase, $caseBranch),
+            ]);
         }
 
         return Inertia::render('Dispensary/Show', ['dispensary' => $detail]);
