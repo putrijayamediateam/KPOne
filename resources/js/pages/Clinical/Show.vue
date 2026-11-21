@@ -13,7 +13,7 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -34,6 +34,11 @@ import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitc
 import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
+import {
+    noteVitalsKey,
+    parseVitalsFromNote,
+    planFill,
+} from '@/lib/vitals-from-note';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
@@ -139,6 +144,65 @@ const form = useForm({
     vitals: vitalsFromProps(),
     diagnoses: diagnosesFromProps(),
 });
+
+// Q-11 (owner decision 2026-11-21): vitals the doctor typed into the note are suggested for the vitals boxes. Reading only: the note is
+// never edited, nothing is saved, and the boxes change only when the doctor presses Fill (then the usual Save clinical record).
+const noteForVitals = ref(form.clinical_note);
+let noteVitalsTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+    () => form.clinical_note,
+    (value) => {
+        clearTimeout(noteVitalsTimer);
+        noteVitalsTimer = setTimeout(() => {
+            noteForVitals.value = value;
+        }, 800);
+    },
+);
+onBeforeUnmount(() => clearTimeout(noteVitalsTimer));
+const noteVitals = computed(() => parseVitalsFromNote(noteForVitals.value));
+const noteVitalsPlan = computed(() => planFill(noteVitals.value, form.vitals));
+const noteVitalsNow = computed(() => noteVitalsKey(noteVitals.value));
+const dismissedNoteVitals = ref('');
+const filledFromNote = ref<string[]>([]);
+const noteVitalsNotice = ref('');
+const showNoteVitals = computed(
+    () =>
+        (noteVitalsPlan.value.filled.length > 0 ||
+            noteVitalsPlan.value.skipped.length > 0) &&
+        dismissedNoteVitals.value !== noteVitalsNow.value,
+);
+const fillVitalsFromNote = () => {
+    const plan = noteVitalsPlan.value;
+
+    for (const [field, value] of Object.entries(plan.fill)) {
+        form.vitals[field as keyof typeof form.vitals] = value;
+    }
+
+    filledFromNote.value = plan.filled;
+    noteVitalsNotice.value = plan.skipped.length
+        ? `Not filled (the box already has a different value): ${plan.skipped.join(', ')}.`
+        : '';
+
+    if (plan.filled.length > 0) {
+        vitalsExpanded.value = true;
+    }
+
+    dismissedNoteVitals.value = noteVitalsNow.value;
+};
+const dismissNoteVitals = () => {
+    dismissedNoteVitals.value = noteVitalsNow.value;
+    noteVitalsNotice.value = '';
+};
+// Once the record is saved the "check them" line has done its job.
+watch(
+    () => form.recentlySuccessful,
+    (saved) => {
+        if (saved) {
+            filledFromNote.value = [];
+            noteVitalsNotice.value = '';
+        }
+    },
+);
 
 // OH-06: Hold and Resume intentionally use `preserveState: true` (see
 // changeHoldState below) so a doctor's in-progress edits are never disturbed
@@ -1176,6 +1240,68 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 placeholder="Record the clinical consultation note…"
                             />
                             <InputError :message="form.errors.clinical_note" />
+                            <div
+                                v-if="
+                                    showNoteVitals ||
+                                    filledFromNote.length ||
+                                    noteVitalsNotice
+                                "
+                                role="status"
+                                data-testid="note-vitals-suggestion"
+                                class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
+                            >
+                                <div
+                                    v-if="showNoteVitals"
+                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
+                                >
+                                    <p
+                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                                    >
+                                        Vitals found in your note:
+                                        <span class="font-medium">{{
+                                            noteVitals.readings
+                                                .map((reading) => reading.label)
+                                                .join(' · ')
+                                        }}</span>
+                                    </p>
+                                    <Button
+                                        v-if="noteVitalsPlan.filled.length"
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="max-lg:h-11"
+                                        @click="fillVitalsFromNote"
+                                        >Fill vitals boxes</Button
+                                    >
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        class="max-lg:h-11"
+                                        @click="dismissNoteVitals"
+                                        >Dismiss</Button
+                                    >
+                                </div>
+                                <p
+                                    v-if="
+                                        showNoteVitals &&
+                                        !noteVitalsPlan.filled.length
+                                    "
+                                    class="text-muted-foreground"
+                                >
+                                    The vitals boxes already hold different
+                                    values, so nothing can be filled from the
+                                    note.
+                                </p>
+                                <p v-if="filledFromNote.length">
+                                    Filled from your note:
+                                    {{ filledFromNote.join(' · ') }}. Check
+                                    them, then save.
+                                </p>
+                                <p v-if="noteVitalsNotice">
+                                    {{ noteVitalsNotice }}
+                                </p>
+                            </div>
                             <div class="border-t px-3 py-2">
                                 <div
                                     class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
