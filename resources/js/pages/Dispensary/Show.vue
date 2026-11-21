@@ -764,6 +764,9 @@ const packPayload = (
           }
         : {};
 };
+// DSP-24 (Daniel): Save and Add stay off while "Bottles" holds something other than 1 to 99 whole bottles.
+const packsInvalid = (form: LineForm | undefined): boolean =>
+    form?.packMode === 'packs' && parsePacks(form.packs) === null;
 const linePayload = (form: LineForm) => ({
     quantity_dispensed: form.quantity,
     dosage: form.dosage,
@@ -1980,6 +1983,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     :disabled="
                                         busy ||
                                         needsAllergyCheck(item) ||
+                                        packsInvalid(forms[item.publicId]) ||
                                         (item.status !== 'pending' &&
                                             !isDirty(item) &&
                                             !item.allergyUnconfirmed)
@@ -2421,7 +2425,8 @@ const exceptionStatusLabels: Record<string, string> = {
                                     (matchesFor(chosen).length > 0 &&
                                         !addAllergyCheck) ||
                                     !addForm.dosage.trim() ||
-                                    !addForm.frequency.trim()
+                                    !addForm.frequency.trim() ||
+                                    packsInvalid(addForm)
                                 "
                                 data-action="add-medicine"
                                 @click="addMedicine"

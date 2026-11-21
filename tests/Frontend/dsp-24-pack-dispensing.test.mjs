@@ -100,6 +100,16 @@ test('DSP-24: the page sends the packs with the conversion version it showed, an
     assert.ok(page.includes('data-field="quantity"'));
     assert.ok(page.includes('data-field="add-quantity"'));
     assert.match(page, /packMode: item\.packsDispensed \? 'packs' : 'base'/);
+    // Daniel: Save line and Add stay off while the bottles number is not 1 to 99.
+    assert.match(
+        page,
+        /form\?\.packMode === 'packs' && parsePacks\(form\.packs\) === null/,
+    );
+    assert.match(page, /packsInvalid\(forms\[item\.publicId\]\) \|\|/);
+    assert.match(
+        page,
+        /!addForm\.frequency\.trim\(\) \|\| packsInvalid\(addForm\)/,
+    );
     // Daniel: the doctor's quantity beside the new warning drops trailing zeros ("60 ml", never "60.000 ml").
     assert.match(page, /\{\{ displayQuantity\(item\.quantityOrdered\) \}\}/);
 });
