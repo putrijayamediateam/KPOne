@@ -59,6 +59,10 @@ return new class extends Migration
             $table->index(['dispensary_case_id', 'id'], 'dispensary_doctor_check_case_index');
         });
 
+        // Hakim: every existing branch starts with an "off" row, so the first turn-on always has a row to lock.
+        DB::statement('INSERT INTO branch_dispensary_settings (organisation_id, branch_id, doctor_check_required, lock_version, created_at, updated_at)
+            SELECT organisation_id, id, false, 1, now(), now() FROM branches ON CONFLICT (branch_id) DO NOTHING');
+
         if (DB::connection()->getDriverName() !== 'pgsql') {
             return;
         }
@@ -113,12 +117,20 @@ CREATE OR REPLACE FUNCTION refuse_dispensary_doctor_check_mutation() RETURNS tri
 BEGIN
     RAISE EXCEPTION 'Dispensary doctor checks are append-only' USING ERRCODE = 'P0001';
 END; $$;
+CREATE OR REPLACE FUNCTION keep_dispensary_doctor_check_required() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF OLD.doctor_check_required IS TRUE AND NEW.doctor_check_required IS NOT TRUE THEN
+        RAISE EXCEPTION 'A case that needed the doctor''s check keeps needing it' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+END; $$;
+CREATE TRIGGER dispensary_cases_doctor_check_one_way BEFORE UPDATE OF doctor_check_required ON dispensary_cases FOR EACH ROW EXECUTE FUNCTION keep_dispensary_doctor_check_required();
 CREATE TRIGGER dispensary_doctor_checks_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON dispensary_doctor_checks FOR EACH STATEMENT EXECUTE FUNCTION refuse_dispensary_doctor_check_mutation();
 SQL);
     }
 
     public function down(): void
     {
-        // Retain the append-only check evidence and the frozen case flags; no purge.
+        throw new RuntimeException('DSP-23 retains append-only doctor check evidence and the frozen case flags; this migration cannot be rolled back.');
     }
 };

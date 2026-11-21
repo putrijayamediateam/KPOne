@@ -84,6 +84,7 @@ trait DoctorCheckFixtures
 
     protected function switchOn(Branch $branch, bool $on = true): void
     {
-        (new BranchDispensarySetting)->forceFill(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id, 'doctor_check_required' => $on, 'lock_version' => 1])->save();
+        $row = BranchDispensarySetting::query()->where('branch_id', $branch->id)->first() ?? new BranchDispensarySetting;
+        $row->forceFill(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id, 'doctor_check_required' => $on, 'lock_version' => $row->exists ? $row->lock_version + 1 : 1])->save();
     }
 }

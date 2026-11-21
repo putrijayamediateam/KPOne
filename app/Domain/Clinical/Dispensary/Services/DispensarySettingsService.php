@@ -29,11 +29,13 @@ final class DispensarySettingsService
 
     /**
      * Read the switch under a row lock, inside the caller's transaction (Hakim: a stale page can't skip the check).
-     * A missing row is off and writes nothing, so Complete adds no row on a branch that never used the switch.
+     * A shared lock (Hakim): the switch cannot change while a Complete reads it, yet Completes at the branch still run
+     * side by side; turning the switch takes FOR UPDATE and waits for them. A missing row is off and writes nothing
+     * (the migration gives every existing branch an "off" row, so only a branch created later starts without one).
      */
     public function lockedDoctorCheckRequired(Branch $branch): bool
     {
-        return (bool) BranchDispensarySetting::query()->where('branch_id', $branch->id)->lockForUpdate()->value('doctor_check_required');
+        return (bool) BranchDispensarySetting::query()->where('branch_id', $branch->id)->sharedLock()->value('doctor_check_required');
     }
 
     /** @return array{doctorCheckRequired: bool, lockVersion: int} */

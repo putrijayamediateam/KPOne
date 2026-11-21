@@ -71,7 +71,7 @@ class DispensaryDoctorCheckTest extends ClinicalTestCase
         $this->assertNull($case->doctor_check_required);
         $this->assertSame(1, $this->dispenseMoves());
         $this->assertDatabaseCount('dispensary_doctor_checks', 0);
-        $this->assertDatabaseCount('branch_dispensary_settings', 0);
+        $this->assertSame(0, BranchDispensarySetting::query()->where('doctor_check_required', true)->count());
     }
 
     public function test_with_the_switch_on_the_ca_sends_and_the_doctor_verifies_then_stock_moves(): void
@@ -146,7 +146,16 @@ class DispensaryDoctorCheckTest extends ClinicalTestCase
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('note', $exception->errors());
         }
+        $sentAt = $f['case']->refresh()->sent_for_check_at;
+        $sendKey = $f['case']->sent_for_check_retry_key;
         $back = app(DispensaryService::class)->sendBackDoctorCheck($f['doctor'], $f['case']->refresh(), $this->base($f, ['reason' => 'wrong_quantity', 'note' => 'Synthetic note: two tablets, not three']));
+
+        // Hakim: replaying the CA's original Send after the Send back sends nothing again.
+        $this->selectBranch($f['ca'], $f['visit']->branch);
+        $replayed = app(DispensaryService::class)->sendForDoctorCheck($f['ca'], $f['case']->refresh(), [...$this->base($f), 'retry_key' => $sendKey]);
+        $this->assertSame(DispensaryCase::STATUS_DISPENSING, $replayed->status);
+        $this->assertEquals($sentAt, $replayed->sent_for_check_at);
+        $this->selectBranch($f['doctor'], $f['visit']->branch);
 
         $this->assertSame(DispensaryCase::STATUS_DISPENSING, $back->status);
         $this->assertSame($f['ca']->id, $back->current_handler_user_id);
@@ -162,6 +171,14 @@ class DispensaryDoctorCheckTest extends ClinicalTestCase
         $this->get(route('dispensary.show', $f['case']))->assertInertia(fn (Assert $page) => $page
             ->where('dispensary.doctorCheck.sentBack.reason', 'wrong_quantity')
             ->where('dispensary.doctorCheck.required', true));
+
+        // The database keeps the flag one way too (Hakim).
+        try {
+            DB::transaction(fn () => DB::table('dispensary_cases')->where('id', $f['case']->id)->update(['doctor_check_required' => false]));
+            $this->fail('A case that needed the check must keep needing it in the database.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('keeps needing it', $exception->getMessage());
+        }
 
         // Turning the switch off doesn't release this case: the next submit is still Send to doctor.
         BranchDispensarySetting::query()->where('branch_id', $f['visit']->branch_id)->update(['doctor_check_required' => false]);

@@ -692,7 +692,8 @@ class DispensaryService
     {
         $retryKey = $this->retryKey($attributes);
         $done = DispensaryCase::query()->whereKey($case->id)->where('organisation_id', $actor->organisation_id)->first();
-        if ($done && $done->sent_for_check_retry_key === $retryKey && $done->sent_for_check_by_user_id === $actor->id && $done->status !== DispensaryCase::STATUS_DISPENSING) {
+        // A replay of the same key never sends again, even after a Send back made the case Dispensing (Hakim).
+        if ($done && $done->sent_for_check_retry_key === $retryKey && $done->sent_for_check_by_user_id === $actor->id) {
             return $done->fresh(['handoffs.items']) ?? $done;
         }
 
@@ -738,7 +739,7 @@ class DispensaryService
             $this->assertItemsReady($items);
             $this->recordCheck($actor, $branch, $case, $handoff, $checkedAs, $data);
             $this->dispenseAndComplete($actor, $branch, $case, $handoff, $items, $actor, $case->sent_for_check_at ?? now()->utc(), true);
-            $this->audit->record('dispensary.doctor_verified', $case, ['record_version' => $case->lock_version, 'checked_as' => $checkedAs, 'override_reason' => $data['override_reason']], $actor, $branch);
+            $this->audit->record('dispensary.doctor_verified', $case, ['record_version' => $case->lock_version, 'checked_as' => $checkedAs, 'override_reason' => $checkedAs === DispensaryDoctorCheck::AS_SUPERVISOR ? $data['override_reason'] : null], $actor, $branch);
         });
     }
 
