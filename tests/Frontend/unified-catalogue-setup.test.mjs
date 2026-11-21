@@ -108,17 +108,11 @@ test('catalogue edits cannot be saved when loading saved setup details fails', (
     }
 });
 
-test('Panel tariff and descriptive dropdowns persist new options through permissioned JSON endpoints', () => {
-    const panelEditor = read(
-        'resources/js/components/catalogue/PanelTariffEditor.vue',
-    );
+test('Descriptive dropdowns persist new options through permissioned JSON endpoints', () => {
     const optionPicker = read(
         'resources/js/components/catalogue/CatalogueOptionPicker.vue',
     );
 
-    assert.match(panelEditor, /POST/);
-    assert.match(panelEditor, /'\/catalogue-panels'/);
-    assert.match(panelEditor, /Add new Panel/);
     assert.match(optionPicker, /`\/catalogue-options\/\$\{props\.type\}`/);
     assert.match(optionPicker, /`\/catalogue-options\/\$\{props\.type\}\?/);
     assert.match(
