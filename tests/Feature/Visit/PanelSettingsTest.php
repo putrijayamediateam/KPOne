@@ -5,6 +5,7 @@ namespace Tests\Feature\Visit;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Services\PanelSettingsService;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
@@ -102,10 +103,31 @@ class PanelSettingsTest extends VisitTestCase
         $this->selectBranch($officer);
         $service = app(PanelSettingsService::class);
 
-        foreach (['abc', '0', '0.00', '-5', '10.999', '1.000', '1,50', '10,000,000', '99999999', '1e3', '5 0 0.0.0'] as $bad) {
+        foreach (['abc', '0', '0.00', '-5', '10.999', '1.000', '1,50', '10,000,000', '99999999', '1e3', '5 0 0.0.0', '500.', '1,5'] as $bad) {
             $this->assertValidationFails(fn () => $service->create($officer, $this->payload(['code' => 'BAD-LIM', 'visit_limit' => $bad])), 'visit_limit');
         }
         $this->assertSame(0, Panel::query()->where('code', 'BAD-LIM')->count());
+    }
+
+    public function test_the_database_refuses_a_limit_outside_one_sen_to_the_maximum(): void
+    {
+        if (\DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('The limit check is a PostgreSQL constraint.');
+        }
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+
+        foreach ([0, -1, 1_000_000_000] as $bad) {
+            try {
+                \DB::transaction(fn () => \DB::table('panels')->where('id', $panel->id)->update(['visit_limit_sen' => $bad]));
+                $this->fail('A limit of '.$bad.' sen was accepted by the database.');
+            } catch (QueryException $e) {
+                $this->assertStringContainsString('panels_visit_limit_check', $e->getMessage());
+            }
+        }
+        foreach ([1, 999_999_999] as $good) {
+            \DB::table('panels')->where('id', $panel->id)->update(['visit_limit_sen' => $good]);
+            $this->assertSame($good, (int) \DB::table('panels')->where('id', $panel->id)->value('visit_limit_sen'));
+        }
     }
 
     public function test_stale_version_duplicate_code_and_unsafe_values_are_refused(): void
