@@ -607,8 +607,34 @@ class InventoryReferenceAdministrationService
         if ($minimum !== null && $maximum !== null && (float) $minimum > (float) $maximum) {
             $this->invalid('maximum_temperature', 'Maximum temperature must be at least the minimum temperature.');
         }
+        // STK-42: the alert days only mean something when the SKU tracks expiry. When it doesn't, a sent value is
+        // ignored unchecked, and turning tracking off clears any saved number (so the change is audited).
+        $tracksExpiry = array_key_exists('expiry_tracking_required', $values) ? $values['expiry_tracking_required'] : ($current->expiry_tracking_required ?? true);
+        if ($tracksExpiry) {
+            if (array_key_exists('expiry_alert_days', $attributes)) {
+                $values['expiry_alert_days'] = $this->expiryAlertDays($attributes['expiry_alert_days']);
+            } elseif (! $partial) {
+                $values['expiry_alert_days'] = null;
+            }
+        } elseif ($current !== null && $current->expiry_alert_days !== null) {
+            $values['expiry_alert_days'] = null;
+        }
 
         return $values;
+    }
+
+    /** STK-42: empty means the default (90 days); otherwise a whole number of days from 7 to 365. */
+    private function expiryAlertDays(mixed $value): ?int
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) {
+            return null;
+        }
+        $text = is_int($value) ? (string) $value : (is_string($value) ? trim($value) : '');
+        if (preg_match('/^\d{1,3}$/D', $text) !== 1 || (int) $text < 7 || (int) $text > 365) {
+            $this->invalid('expiry_alert_days', '7 to 365 days: enter a whole number, or leave it empty for 90 days.');
+        }
+
+        return (int) $text;
     }
 
     /** @param array<string, mixed> $attributes

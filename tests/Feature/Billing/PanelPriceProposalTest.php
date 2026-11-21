@@ -12,7 +12,6 @@ use App\Domain\Visit\Billing\Models\PriceChangeProposal;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
 use App\Domain\Visit\Billing\Services\PanelPriceTarget;
-use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
@@ -25,6 +24,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Clinical\ClinicalTestCase;
+use Tests\Support\PanelPriceFixture;
 
 /**
  * Panel price changes by proposal (owner decision 27, 21 Nov 2026): the Panel Officer proposes, a Finance Officer or
@@ -223,7 +223,7 @@ class PanelPriceProposalTest extends ClinicalTestCase
         }
 
         // A direct publish changes the version after the proposal was made.
-        app(PricePublicationService::class)->publish($this->supervisor, $this->book, $this->charge, 1000, 0, $this->branch->id);
+        PanelPriceFixture::insert($this->book, $this->charge, 1000, $this->supervisor);
         try {
             $this->service->approve($this->finance, $first, $this->decide($first));
             $this->fail('a proposal made on an old version is refused.');
@@ -316,7 +316,7 @@ class PanelPriceProposalTest extends ClinicalTestCase
     public function test_postgresql_refuses_what_the_service_refuses(): void
     {
         $proposal = $this->propose();
-        $entry = app(PricePublicationService::class)->publish($this->supervisor, $this->book, $this->charge, 777, 0, $this->branch->id);
+        $entry = PanelPriceFixture::insert($this->book, $this->charge, 777, $this->supervisor);
 
         foreach ([
             ['status' => 'approved', 'decided_by_user_id' => $this->officer->id, 'decided_at' => now(), 'price_entry_id' => PriceEntry::query()->latest('id')->value('id'), 'applied_effective_at' => now()->addYear()],

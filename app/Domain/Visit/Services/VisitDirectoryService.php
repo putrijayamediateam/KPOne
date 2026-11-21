@@ -254,6 +254,10 @@ class VisitDirectoryService
                     ? ['url' => route('dispensary.review', $reviewCase->public_id), 'status' => $reviewCase->status]
                     : null)
                 : null,
+            // The Director's read-only entry to this visit's consultation (the review route records every open).
+            'consultationReview' => $actor->can('consultations.view_readonly.organisation') && $visit->visit_type === 'consultation' && $visit->clinicalEncounter()->exists()
+                ? ['url' => route('encounters.review', $visit->visit_number), 'status' => $visit->clinicalEncounter()->value('status')]
+                : null,
             'queue' => $visibleQueueEntry ? [
                 'queueNumber' => QueueNumberFormat::format($visibleQueueEntry->queue_number),
                 'operationalDate' => $visibleQueueEntry->operational_date->toDateString(),
@@ -432,7 +436,7 @@ class VisitDirectoryService
         $consultationCase = $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
             && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])
             ? $cases->first(fn (DispensaryCase $case): bool => $case->case_type === DispensaryCase::TYPE_CONSULTATION
-                && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true))
+                && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true))
             : null;
         $openCase = $otcOpen ? $otcCase : $consultationCase;
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'

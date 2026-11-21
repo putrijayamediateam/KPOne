@@ -53,7 +53,7 @@ export type VisitRow = {
     visitLockVersion: number;
     queueLockVersion: number | null;
     returnedFromDispensary?: boolean;
-    dispensaryStatus?: 'pending' | 'dispensing';
+    dispensaryStatus?: 'pending' | 'dispensing' | 'awaiting_doctor_check';
     medicineCount?: number;
     dispensaryUrl?: string;
     billingUrl?: string | null;
@@ -103,6 +103,7 @@ export type VisitDetail = {
     hasConsultation: boolean;
     /** DSP-25: the Director's read-only dispensary case, or null. */
     dispensaryReview: { url: string; status: string } | null;
+    consultationReview: { url: string; status: string } | null;
     queue: {
         queueNumber: string;
         operationalDate: string;

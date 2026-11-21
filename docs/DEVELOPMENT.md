@@ -78,6 +78,8 @@ production database.
 
 1. Create the empty database, then run `php artisan migrate:fresh --seed`.
 2. Run `php artisan kpone:bootstrap-director` in a terminal and choose an appropriate sign-in method.
+   The command also authorises the Director at every active branch. On an existing installation, or after a new
+   branch opens, run `php artisan kpone:director-branches` (idempotent, audited, console only).
 3. Sign in as the Director and provision synthetic `.test` staff accounts needed for the walk: a `ca_supervisor`,
    a `ca`, and a `resident_doctor`. Confirm each has the intended primary branch.
 4. Sign in as the `ca_supervisor` and create a synthetic Medicine and Clinical Service with Self-pay tariffs;

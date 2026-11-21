@@ -21,10 +21,10 @@ use RuntimeException;
 final class ReadOnlyReviewAudit
 {
     /** @var list<string> */
-    public const EVENTS = ['dispensary.case_reviewed'];
+    public const EVENTS = ['dispensary.case_reviewed', 'consultation.reviewed'];
 
     /** @var list<string> */
-    public const ID_KEYS = ['case', 'visit', 'patient'];
+    public const ID_KEYS = ['case', 'visit', 'patient', 'encounter'];
 
     public function __construct(private AuditRecorder $audit) {}
 
