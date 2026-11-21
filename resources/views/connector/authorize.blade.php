@@ -23,6 +23,7 @@
             p { margin: 0 0 12px; color: var(--muted); }
             ul { margin: 0 0 16px; padding-left: 20px; }
             li { margin-bottom: 4px; }
+            .notice { color: var(--fg); }
             .who { color: var(--fg); font-weight: 600; word-break: break-word; }
             .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
             form { flex: 1 1 8rem; margin: 0; }
@@ -37,7 +38,7 @@
                 <h1>Allow {{ $client->name }} to read KPOne totals?</h1>
                 @php($redirectHost = parse_url((string) $request->query('redirect_uri', ''), PHP_URL_HOST))
                 <p>You are signed in as <span class="who">{{ $user->email }}</span>.@if ($redirectHost) It will return to <span class="who">{{ $redirectHost }}</span>.@endif</p>
-                <p><strong>Only continue if you just started this connection yourself, in your own app.</strong> If someone sent you this link, choose Cancel.</p>
+                <p class="notice"><strong>Only continue if you just started this connection yourself, in your own app.</strong> If someone sent you this link, choose Cancel.</p>
                 <p>What it can see:</p>
                 <ul>
                     <li>Totals only (counts and amounts) for your own branches.</li>
