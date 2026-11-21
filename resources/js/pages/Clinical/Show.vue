@@ -13,7 +13,7 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -34,6 +34,12 @@ import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitc
 import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
+import {
+    isUnusual,
+    parseVitalsFromNote,
+    planFill,
+} from '@/lib/vitals-from-note';
+import type { NoteReading } from '@/lib/vitals-from-note';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
@@ -139,6 +145,126 @@ const form = useForm({
     vitals: vitalsFromProps(),
     diagnoses: diagnosesFromProps(),
 });
+
+// Q-11 (owner decisions 2026-11-21): vitals the doctor typed into the note are filled straight into the EMPTY vitals boxes (rule-based, in the
+// browser; no AI service). The note is never edited, a box that already has a value is never overwritten, and nothing is saved until the
+// doctor presses Save clinical record. Undo clears what was auto-filled.
+const noteForVitals = ref(form.clinical_note);
+let noteVitalsTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+    () => form.clinical_note,
+    (value) => {
+        clearTimeout(noteVitalsTimer);
+        noteVitalsTimer = setTimeout(() => {
+            noteForVitals.value = value;
+        }, 800);
+    },
+);
+onBeforeUnmount(() => clearTimeout(noteVitalsTimer));
+const noteVitals = computed(() => parseVitalsFromNote(noteForVitals.value));
+const filledReadings = ref<NoteReading[]>([]);
+// Only readings whose boxes still hold what KPOne put there: once the doctor edits a box it drops off this line.
+const stillAutoFilled = computed(() =>
+    filledReadings.value.filter((reading) =>
+        Object.entries(reading.values).every(
+            ([field, value]) =>
+                form.vitals[field as keyof typeof form.vitals] === value,
+        ),
+    ),
+);
+const filledFromNote = computed(() =>
+    stillAutoFilled.value.map((reading) => reading.label),
+);
+// Filled readings outside the usual ranges: still filled, but flagged "Check" so a typo in the note is not missed.
+const filledChecks = computed(() =>
+    stillAutoFilled.value
+        .filter((reading) => isUnusual(reading.values))
+        .map((reading) => reading.label),
+);
+// What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
+// a box the doctor changed is theirs and is never touched.
+const autoValues: Partial<Record<keyof typeof form.vitals, string>> = {};
+// Field and value pairs already applied once, so Undo (or clearing a box) is not undone by the next typing pause.
+const appliedFromNote = new Set<string>();
+const boxesForPlan = () => {
+    const boxes = { ...form.vitals } as Record<string, string>;
+
+    for (const [field, value] of Object.entries(autoValues)) {
+        if (boxes[field] === value) {
+            boxes[field] = '';
+        }
+    }
+
+    return boxes as typeof form.vitals;
+};
+const noteVitalsPlan = computed(() =>
+    planFill(noteVitals.value, boxesForPlan()),
+);
+const showNoteVitals = computed(
+    () =>
+        noteVitalsPlan.value.skipped.length > 0 ||
+        noteVitals.value.notRead.length > 0,
+);
+const autoFillVitalsFromNote = () => {
+    const plan = noteVitalsPlan.value;
+    const touched: (keyof typeof form.vitals)[] = [];
+
+    for (const [field, value] of Object.entries(plan.fill)) {
+        const key = `${field}:${value}`;
+
+        if (appliedFromNote.has(key)) {
+            continue;
+        }
+
+        appliedFromNote.add(key);
+        form.vitals[field as keyof typeof form.vitals] = value;
+        autoValues[field as keyof typeof form.vitals] = value;
+        touched.push(field as keyof typeof form.vitals);
+    }
+
+    if (touched.length === 0) {
+        return;
+    }
+
+    // Everything KPOne has put in the boxes and the doctor has not changed (so a later update never drops an earlier fill).
+    const autoRead = noteVitals.value.readings.filter((reading) =>
+        Object.entries(reading.values).every(
+            ([field, value]) =>
+                autoValues[field as keyof typeof form.vitals] === value &&
+                form.vitals[field as keyof typeof form.vitals] === value,
+        ),
+    );
+    filledReadings.value = autoRead;
+    // Focus is never moved: the doctor is usually still typing in the note.
+    vitalsExpanded.value = true;
+};
+// Fill only after a typing pause, never on load: a saved record that is reopened is not refilled.
+watch(noteForVitals, () => {
+    autoFillVitalsFromNote();
+});
+const undoNoteVitals = () => {
+    for (const [field, value] of Object.entries(autoValues)) {
+        if (form.vitals[field as keyof typeof form.vitals] === value) {
+            form.vitals[field as keyof typeof form.vitals] = '';
+        }
+
+        delete autoValues[field as keyof typeof form.vitals];
+    }
+
+    filledReadings.value = [];
+};
+const vitalsUnsaved = computed(
+    () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
+);
+// Once the record is saved the "check them" line has done its job.
+watch(
+    () => form.recentlySuccessful,
+    (saved) => {
+        if (saved) {
+            filledReadings.value = [];
+        }
+    },
+);
 
 // OH-06: Hold and Resume intentionally use `preserveState: true` (see
 // changeHoldState below) so a doctor's in-progress edits are never disturbed
@@ -956,6 +1082,12 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"
                             data-testid="vitals-summary"
                         >
+                            <span
+                                v-if="vitalsUnsaved"
+                                class="font-medium text-warning-strong"
+                                data-testid="vitals-unsaved"
+                                >Not saved yet</span
+                            >
                             <span class="inline-flex items-baseline gap-1"
                                 ><span
                                     class="text-muted-foreground"
@@ -1043,6 +1175,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Systolic BP
                                 <input
                                     v-model="form.vitals.systolic_bp"
+                                    data-vitals-field="systolic_bp"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1056,6 +1189,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Diastolic BP
                                 <input
                                     v-model="form.vitals.diastolic_bp"
+                                    data-vitals-field="diastolic_bp"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1071,6 +1205,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Pulse (bpm)
                                 <input
                                     v-model="form.vitals.pulse_bpm"
+                                    data-vitals-field="pulse_bpm"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1084,6 +1219,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Temperature (°C)
                                 <input
                                     v-model="form.vitals.temperature_celsius"
+                                    data-vitals-field="temperature_celsius"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1102,6 +1238,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >SpO₂ (%)
                                 <input
                                     v-model="form.vitals.spo2_percent"
+                                    data-vitals-field="spo2_percent"
                                     inputmode="decimal"
                                     type="number"
                                     min="0"
@@ -1119,6 +1256,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Weight (kg)
                                 <input
                                     v-model="form.vitals.weight_kg"
+                                    data-vitals-field="weight_kg"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1133,6 +1271,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Height (cm)
                                 <input
                                     v-model="form.vitals.height_cm"
+                                    data-vitals-field="height_cm"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1176,6 +1315,79 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 placeholder="Record the clinical consultation note…"
                             />
                             <InputError :message="form.errors.clinical_note" />
+                            <div
+                                v-if="showNoteVitals || filledFromNote.length"
+                                role="status"
+                                aria-live="polite"
+                                data-testid="note-vitals-suggestion"
+                                class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
+                            >
+                                <div
+                                    v-if="filledFromNote.length"
+                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
+                                >
+                                    <p
+                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                                    >
+                                        Filled from your note:
+                                        {{ filledFromNote.join(' · ') }}. Check
+                                        them, then save.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="max-lg:h-11"
+                                        data-testid="note-vitals-undo"
+                                        @click="undoNoteVitals"
+                                        >Undo</Button
+                                    >
+                                </div>
+                                <p
+                                    v-if="
+                                        filledFromNote.length &&
+                                        filledChecks.length
+                                    "
+                                    class="flex items-start gap-1.5 font-medium text-warning-strong"
+                                    data-testid="note-vitals-check"
+                                >
+                                    <AlertTriangle
+                                        class="mt-0.5 size-3.5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    <span
+                                        >Check:
+                                        {{ filledChecks.join(', ') }} (unusual
+                                        value; is it a typo in the note?)</span
+                                    >
+                                </p>
+                                <p
+                                    v-if="noteVitalsPlan.skippedDetails.length"
+                                    class="text-muted-foreground"
+                                >
+                                    Not filled:
+                                    {{
+                                        noteVitalsPlan.skippedDetails
+                                            .map(
+                                                (item) =>
+                                                    `${item.label} (box already has ${item.current})`,
+                                            )
+                                            .join(', ')
+                                    }}.
+                                </p>
+                                <p
+                                    v-if="
+                                        showNoteVitals &&
+                                        noteVitals.notRead.length
+                                    "
+                                    class="text-muted-foreground"
+                                >
+                                    Not read:
+                                    {{ noteVitals.notRead.join(', ') }}. Enter
+                                    them in the vitals boxes in the units KPOne
+                                    takes.
+                                </p>
+                            </div>
                             <div class="border-t px-3 py-2">
                                 <div
                                     class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
