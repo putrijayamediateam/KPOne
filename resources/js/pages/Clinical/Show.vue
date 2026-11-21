@@ -1048,14 +1048,13 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                                 .limitSen,
                                         )
                                     }}
-                                    limit. Estimate only.
-                                    <template
+                                    limit. Estimate only<template
                                         v-if="
                                             clinical.visit.panelEstimate.partial
                                         "
-                                    >
-                                        (some items have no Panel price yet)
-                                    </template>
+                                        >: some items have no Panel price
+                                        yet.</template
+                                    ><template v-else>.</template>
                                 </span>
                             </p>
                             <div

@@ -30,12 +30,12 @@ test('The doctor reads one estimate line, with the limit, and no item price', ()
     assert.match(clinical, /data-testid="consultation-panel-estimate"/);
     assert.match(flat(clinical), /Estimated Panel total/);
     assert.match(flat(clinical), /is over the/);
-    assert.match(flat(clinical), /limit\. Estimate only\./);
+    assert.match(flat(clinical), /limit\. Estimate only/);
     // Shown only when over the limit, and the amounts never break across lines.
     assert.match(clinical, /v-if="clinical\.visit\.panelEstimate\?\.over"/);
     assert.match(clinical, /myrNoBreak/);
     assert.match(workspace, /myrNoBreak\(billing\.panelVisitLimit\.totalSen\)/);
-    assert.match(flat(clinical), /some items have no Panel price yet/);
+    assert.match(flat(clinical), /: some items have no Panel price yet\./);
     const block = clinical.slice(
         clinical.indexOf('data-testid="consultation-panel-estimate"'),
         clinical.indexOf('data-testid="consultation-panel-note"'),
