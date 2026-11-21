@@ -4,6 +4,7 @@ namespace App\Domain\Shared\TrialData;
 
 use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Appraisals\Services\AppraisalService;
+use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
 use App\Domain\HR\Attendance\Services\ClockService;
@@ -36,6 +37,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * TRIAL-DATA phase 5: KPOne HR, through the HR services. With one Director and one HR Manager the HR Manager enters,
@@ -244,8 +246,10 @@ final class PhaseFiveHr
         $added = $corrections->propose($this->hr($cheras), ['kind' => 'add_day', 'user_id' => $this->user($subject)->id, 'on_behalf' => true, 'branch_id' => $cheras->id,
             'in_time' => $in, 'out_time' => $out, 'reason_code' => 'forgot', 'note' => 'Fictional trial correction', 'idempotency_key' => $this->k()]);
         $added = $corrections->decide($this->director($cheras), $added->public_id, 'approve', ['expected_lock_version' => (int) DB::table('hr_attendance_corrections')->where('public_id', $added->public_id)->value('lock_version'), 'idempotency_key' => $this->k()]);
-        $session = DB::table('hr_clock_sessions')->where('id', $added->created_session_id)->value('public_id');
-        $overtime = app(OvertimeService::class)->ask($this->as($subject, $cheras), ['session_id' => $session, 'minutes' => 60, 'reason_code' => 'patient_load', 'note' => null, 'idempotency_key' => $this->k()]);
+        $session = ClockSession::query()->findOrFail($added->created_session_id);
+        // Up to an hour, but never more than the session holds: just after local midnight it is only a few minutes long.
+        $minutes = min(60, app(OvertimeService::class)->allowance($session, $cheras)['max']);
+        $overtime = app(OvertimeService::class)->ask($this->as($subject, $cheras), ['session_id' => $session->public_id, 'minutes' => $minutes, 'reason_code' => 'patient_load', 'note' => null, 'idempotency_key' => $this->k()]);
         app(OvertimeService::class)->decide($this->hr($cheras), $overtime->public_id, 'approve', ['expected_lock_version' => (int) DB::table('hr_overtime_requests')->where('public_id', $overtime->public_id)->value('lock_version'), 'idempotency_key' => $this->k()]);
         $this->count('attendance_corrections');
         $this->count('overtime_requests');
@@ -356,7 +360,7 @@ final class PhaseFiveHr
         }
         $incidents = app(IncidentService::class);
         $incident = $incidents->report($this->as(TrialDataContext::key('CHERAS', 'ca2')), [
-            'branch_id' => 'CHERAS', 'occurred_on' => $this->day()->toDateString(), 'occurred_time' => '08:30', 'category' => 'workplace_safety', 'director_only' => false,
+            'branch_id' => 'CHERAS', 'occurred_on' => $this->day()->subDay()->toDateString(), 'occurred_time' => '08:30', 'category' => 'workplace_safety', 'director_only' => false,
             'description' => 'Fictional trial incident: a loose shelf in the store room.', 'idempotency_key' => $this->k(),
         ]);
         $incidents->acknowledge($this->hr(), $incident, ['expected_lock_version' => 1, 'idempotency_key' => $this->k()]);
@@ -509,6 +513,9 @@ final class PhaseFiveHr
     {
         $now = CarbonImmutable::now($branch->timezone)->startOfMinute();
         $midnight = $now->startOfDay();
+        if ($now->lessThan($midnight->addMinutes(3))) {
+            throw new RuntimeException('It is just after midnight at '.$branch->code.', so there is no earlier time today for a past session. Run the command again after 00:03 branch time.');
+        }
         $in = $now->subHours($from)->max($midnight);
         $out = $now->subHours($to)->max($in->addMinutes(30))->min($now->subMinute());
 

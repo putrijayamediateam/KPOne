@@ -1,3 +1,4 @@
+// Classic only, CO-9: the Classic half of v2-checkin-links, kept when its V2 page was removed.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
@@ -5,12 +6,10 @@ import test from 'node:test';
 const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const classic = read('resources/js/pages/PublicCheckInLinks/Index.vue');
-const page = read('resources/js/pages/PublicCheckInLinks/V2/Index.vue');
 const tight = (s) => s.replace(/\s+/g, '');
-const flat = (s) => s.replace(/\s+/g, ' ');
 const between = (s, from, to) => s.slice(s.indexOf(from), s.indexOf(to));
 
-test('V2 keeps the Classic request, create, confirm, copy, download and print logic exactly', () => {
+test('Classic QR check-in links keeps its request, create, confirm, copy, download and print functions', () => {
     for (const [from, to] of [
         ['const request = async (', 'const create = async'],
         ['const create = async', 'const confirmAction = async'],
@@ -19,18 +18,20 @@ test('V2 keeps the Classic request, create, confirm, copy, download and print lo
         ['const downloadQr =', 'const printQr ='],
         ['const printQr =', '</script>'],
     ]) {
-        const a = tight(between(classic, from, to));
-        assert.ok(a.length > 40, `classic chunk ${from}`);
+        // Both markers must exist, in this order, with real code between them.
+        assert.ok(classic.indexOf(from) >= 0, `classic lacks ${from}`);
         assert.ok(
-            tight(page).includes(a),
-            `V2 differs from Classic in: ${from}`,
+            classic.indexOf(to) > classic.indexOf(from),
+            `classic lacks ${to} after ${from}`,
+        );
+        assert.ok(
+            tight(between(classic, from, to)).length > 40,
+            `classic chunk ${from}`,
         );
     }
 });
 
-test('V2 sends the same requests: same URLs, methods and body, branch id stays a number', () => {
-    const p = tight(page);
-
+test('Classic QR check-in links sends its requests: URLs, methods, body, partial reload and CSRF header', () => {
     for (const piece of [
         "'/public-checkin-links','POST',form.data()",
         '`/public-checkin-links/${pending.value.link.publicId}`',
@@ -40,14 +41,10 @@ test('V2 sends the same requests: same URLs, methods and body, branch id stays a
         "'X-CSRF-TOKEN':csrfToken()",
     ]) {
         assert.ok(tight(classic).includes(piece), `Classic lacks ${piece}`);
-        assert.ok(p.includes(piece), `V2 lacks ${piece}`);
     }
-
-    assert.ok(p.includes('set:(value:string)=>(form.branch_id=Number(value))'));
-    assert.ok(!/router\.(post|put|patch|delete)/.test(page));
 });
 
-test('V2 keeps every Classic wording string', () => {
+test('Classic QR check-in links keeps every wording string', () => {
     for (const text of [
         'QR check-in links',
         'Issue and revoke branch-bound public landing links. No Patient information is staged until staff review and confirmation.',
@@ -81,55 +78,5 @@ test('V2 keeps every Classic wording string', () => {
             tight(classic).includes(tight(text)),
             `Classic lacks: ${text}`,
         );
-        assert.ok(tight(page).includes(tight(text)), `V2 lacks: ${text}`);
     }
-});
-
-test('V2 confirm sheet: revoke is the only danger tone, the failure message shows inside it and clears on the next one', () => {
-    const p = flat(page);
-
-    assert.ok(
-        p.includes(
-            ":tone=\"pending?.type === 'revoke' ? 'danger' : 'default'\"",
-        ),
-    );
-    assert.ok(p.includes(':busy="actionProcessing"'));
-    assert.ok(p.includes('v-if="actionError"') && p.includes('role="alert"'));
-    assert.ok(
-        tight(page).includes("watch(pending,()=>(actionError.value=''))"),
-    );
-});
-
-test('V2 actions are 44 px targets that stack on phones; the QR image stays white; one filled button', () => {
-    const t = tight(page);
-
-    assert.ok(t.includes('h-11'));
-    assert.ok(t.includes('max-sm:flex-col'));
-    assert.ok(/bg-white/.test(page));
-    assert.equal((page.match(/:class="primaryButton"/g) ?? []).length, 1);
-});
-
-test('V2 review changes: URL box is named and selects the whole link, rotate sheet warns about printed copies, sheets show the creation date, phone gap before Revoke', () => {
-    const f = flat(page);
-
-    assert.ok(f.includes('label="Public check-in URL"'));
-    assert.ok(f.includes('readonly'));
-    assert.ok(
-        tight(page).includes('($event.targetasHTMLInputElement).select()'),
-    );
-    assert.ok(
-        f.includes(
-            'Printed copies of the old QR stop working. Print the new one.',
-        ),
-    );
-    assert.ok(f.includes('v-if="pending.type === \'rotate\'"'));
-    assert.ok(f.includes('Created {{ formatDate(pending.link.createdAt) }}'));
-    // 16 px between Rotate and Revoke below 640 px, so a stray tap cannot reach the destructive one.
-    assert.ok(
-        f.includes(
-            'v-if="link.status === \'active\'" class="flex flex-wrap gap-2 max-sm:flex-col max-sm:gap-4"',
-        ),
-    );
-    // Classic keeps its own wording (these lines are V2 only).
-    assert.ok(!classic.includes('Printed copies of the old QR'));
 });

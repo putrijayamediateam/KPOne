@@ -36,7 +36,7 @@ final class QuickQuestions
         'panel.overdue' => ['group' => 'panel', 'label' => 'Overdue unclaimed invoices, per Panel', 'tool' => 'panel.claims_summary', 'date' => 'none', 'alsoNeeds' => 'reports.panel_summary.view.branch'],
         'panel.accepted_unpaid' => ['group' => 'panel', 'label' => 'Accepted but not yet paid, per Panel', 'tool' => 'panel.claims_summary', 'date' => 'none', 'alsoNeeds' => 'reports.panel_summary.view.branch'],
         'stock.low' => ['group' => 'stock', 'label' => 'Items at or below reorder level', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
-        'stock.expiring' => ['group' => 'stock', 'label' => 'Batches expiring within 90 days', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
+        'stock.expiring' => ['group' => 'stock', 'label' => 'Batches expiring soon (up to 90 days)', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
         'stock.expired' => ['group' => 'stock', 'label' => 'Expired stock still on hand', 'tool' => 'inventory.stock_review', 'date' => 'none', 'alsoNeeds' => null],
     ];
 
@@ -77,7 +77,7 @@ final class QuickQuestions
             'panel.overdue' => self::panel($results[0], 'overdueUnclaimedInvoices', 'overdueUnclaimedSen', 'Overdue invoices', ['approved Panel invoice worth %s is past its claim due date and not yet claimed', 'approved Panel invoices worth %s are past their claim due date and not yet claimed']),
             'panel.accepted_unpaid' => self::panel($results[0], 'acceptedUnpaidClaims', 'acceptedOutstandingSen', 'Claims accepted, unpaid', ['accepted Panel claim still has %s unpaid', 'accepted Panel claims still have %s unpaid']),
             'stock.low' => self::stock($results, 'lowStockLocations', null, 'Locations', ['item is at or below its reorder level', 'items are at or below their reorder level']),
-            'stock.expiring' => self::stock($results, 'expiringBatches', 'expiringQuantity', 'Batches', ['item is expiring within 90 days', 'items are expiring within 90 days']),
+            'stock.expiring' => self::stock($results, 'expiringBatches', 'expiringQuantity', 'Batches', ['item is expiring within its alert window (up to 90 days)', 'items are expiring within their alert window (up to 90 days)']),
             'stock.expired' => self::stock($results, 'expiredBatches', 'expiredQuantity', 'Batches', ['item is expired and still on hand', 'items are expired and still on hand']),
             default => throw new InvalidArgumentException('Unknown question.'),
         };
