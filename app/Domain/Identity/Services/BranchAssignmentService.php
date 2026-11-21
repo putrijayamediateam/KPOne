@@ -2,6 +2,7 @@
 
 namespace App\Domain\Identity\Services;
 
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Access\StaffAuthorityService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -74,6 +75,82 @@ class BranchAssignmentService
             );
 
             return $assignment;
+        });
+    }
+
+    /**
+     * Give a Director an effective assignment at every active branch of the
+     * organisation (owner decision: the Director is fully authorised at every
+     * branch). Console/bootstrap use only: there is no actor, so this can never
+     * be used for self-escalation from the application, and it is limited to the
+     * protected Director role. The primary assignment is never changed and
+     * existing effective assignments are left alone, so the method is idempotent.
+     *
+     * @return int the number of assignments created
+     */
+    public function ensureDirectorCoverage(User $director): int
+    {
+        if (! app()->runningInConsole()) {
+            throw new AuthorizationException('Director branch coverage can only be granted from the server console.');
+        }
+
+        return DB::transaction(function () use ($director): int {
+            $locked = User::query()->whereKey($director->id)->lockForUpdate()->firstOrFail();
+            if (! $locked->is_active || ! $locked->hasRole(PermissionCatalogue::PROTECTED_AUTHORITY_ROLE)) {
+                throw ValidationException::withMessages(['user' => 'Only an active Director can receive all-branch coverage.']);
+            }
+
+            $profile = StaffProfile::query()->where('user_id', $locked->id)->lockForUpdate()->first();
+            if ($profile === null) {
+                throw ValidationException::withMessages(['user' => 'The Director has no staff profile.']);
+            }
+
+            $assignments = StaffBranchAssignment::query()
+                ->where('staff_profile_id', $profile->id)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $created = 0;
+            $branches = Branch::query()
+                ->where('organisation_id', $locked->organisation_id)
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->get();
+
+            foreach ($branches as $branch) {
+                $today = now()->setTimezone($branch->timezone)->toDateString();
+                $covered = $assignments->contains(
+                    fn (StaffBranchAssignment $a): bool => $a->branch_id === $branch->id
+                        && $a->valid_from->toDateString() <= $today
+                        && ($a->valid_until === null || $a->valid_until->toDateString() >= $today),
+                );
+                if ($covered) {
+                    continue;
+                }
+
+                $assignment = new StaffBranchAssignment;
+                $assignment->forceFill([
+                    'staff_profile_id' => $profile->id,
+                    'branch_id' => $branch->id,
+                    'is_primary' => false,
+                    'assignment_type' => 'permanent',
+                    'valid_from' => $today,
+                    'valid_until' => null,
+                ])->save();
+
+                $this->audit->record(
+                    'staff.director_branch_coverage.granted',
+                    $assignment,
+                    ['after' => $this->snapshot($assignment)],
+                    null,
+                    $branch,
+                    $locked->organisation_id,
+                );
+                $created++;
+            }
+
+            return $created;
         });
     }
 
