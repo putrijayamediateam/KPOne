@@ -251,7 +251,15 @@ a second run changes no table's row count; the password appears in no output, lo
 row has no actor and ids or counts only. No existing assertion is expected to change; any that must will be listed
 for the owner before it is touched.
 
-## 7. Owner answers (21 Nov 2026, relayed by B.E.R.N.I.S.S)
+## 7. First run on the trial server (kpjaya.com, 21 Nov 2026)
+
+Phases 1 and 2 ran; phase 3 stopped on PostgreSQL's commit-time completed-visit check (see section 6), was fixed in
+PR #1051 and resumed without clean-up; then phases 3 to 6 finished. The owner switched trial mode off again afterwards
+(`KPONE_TRIAL_DATA_ALLOWED=false`, config cleared and cached). Data is dated 21 Nov 2026. Agents stay empty until the
+agent registration feature (agent platform team) ships; job applications, locum pay months and open-shift requests
+are empty by design.
+
+## 8. Owner answers (21 Nov 2026, relayed by B.E.R.N.I.S.S)
 
 1. Placeholder files: **generate them**, marked "FICTIONAL TRIAL DATA" (section 5, items 2 and 3).
 2. Payroll: **fictional statutory tables**, entered and checked by two different fictional accounts, labelled as not
