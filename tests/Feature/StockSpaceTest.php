@@ -22,6 +22,16 @@ class StockSpaceTest extends VisitTestCase
             ->has('questions', 3));
     }
 
+    public function test_the_expiring_list_is_titled_soon_because_each_item_has_its_own_alert_days(): void
+    {
+        // STK-42: the window is per item (90 days unless set), so the title names no fixed number of days.
+        $this->selectBranch($this->actor('ca_supervisor'));
+
+        $this->get('/spaces/stock')->assertOk()->assertInertia(fn (Assert $p) => $p
+            ->where('stock.watch.lists.1.title', 'Expiring soon')
+            ->where('stock.watch.lists.2.title', 'Expired on hand'));
+    }
+
     public function test_the_administrator_gets_the_readiness_card_and_a_ca_is_refused_the_space(): void
     {
         $this->selectBranch($this->actor('administrator'));

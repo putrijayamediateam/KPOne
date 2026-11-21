@@ -71,7 +71,7 @@ test('Classic Panel Claims list keeps its wording', () => {
         'Submit claim (manual)',
         'Clear selection',
         'Print pack',
-        'No overdue invoices',
+        'No overdue claims',
         'No pending invoices',
         'No claims match',
         'Select all ${selectAllPanel} invoices on this page',

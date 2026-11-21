@@ -101,6 +101,8 @@ final class PanelClaimFollowUpService
                 ->joinSub($latest, 'l', 'l.panel_claim_id', '=', 'c.id')
                 ->where('c.organisation_id', $org)->where('c.branch_id', $branchId)
                 ->whereIn('c.status', self::OPEN)
+                // PNL-28a: a Prepared claim that was never submitted is on the Overdue tab, not here.
+                ->whereRaw("not (c.status = 'prepared' and not exists (select 1 from panel_claim_events se where se.panel_claim_id = c.id and se.event_type = 'submitted'))")
                 ->whereRaw('l.acted_at <= CAST(? AS timestamp) - make_interval(days => pn.claim_follow_up_days)', [$now->utc()->toDateTimeString()]);
             if (($filters['panel'] ?? '') !== '') {
                 $base->where('pn.code', (string) $filters['panel']);
