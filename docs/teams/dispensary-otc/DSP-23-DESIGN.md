@@ -146,6 +146,26 @@ a per-branch switch (on or off)." Synthetic data only. Open questions for the ow
 - **Settings:** one switch per branch, with a sentence saying what it does. Placement is to be agreed with Adlina
   (Catalogue & settings) and Daniel.
 
+### 7a. Daniel's notes on the design (OK with changes, 21 Nov; to check again on shots)
+
+1. **Verify** is an outline button that opens a confirm sheet: "Verify and release to billing? The medicine is
+   dispensed when you confirm." Red is used only in that sheet.
+2. **Send back** is an outline button, not red. It opens a reason picker that starts empty ("Pick a reason to
+   continue.", with the confirm button off). Other needs the short note.
+3. **The doctor's row shows the patient's allergy status line** beside the lines. CA changes show as chips with a
+   dot and a word ("Added by CA", "Edited by CA"), not colour alone.
+4. **The sent-back reason at the top of the CA page** is a warning box with the reason and the note, not red.
+5. **Waiting banner:** "Waiting for Dr X's check since 10:42", with the date when it is not today. The hand-over
+   instruction, "Do not hand over the medicine until the doctor has checked it", appears in a warning box with an
+   icon in the banner, and as the call button's help line. Print and Call stay available.
+6. **Registration chip:** a dot and the words "Waiting for doctor's check". The Queue board hint reads "Medicine
+   ready for your check".
+7. **Stale or refused messages** show as the usual toast, and the page stays where it is.
+8. **Settings switch:** a 44 px target with the word "On" or "Off" beside it and one sentence saying what it changes.
+   It saves with a confirm toast. Placement is to be agreed with Adlina and Daniel; Daniel suggests beside Business
+   details, under Dispensary.
+9. **At 390 px:** the doctor's row becomes a card, with the lines stacked and both buttons full width at 44 px.
+
 ## 8. Tests
 
 - Feature tests:

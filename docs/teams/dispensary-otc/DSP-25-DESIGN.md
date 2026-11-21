@@ -21,6 +21,16 @@ Status: **draft for Hakim's review.** Not built. Classic only, because V2 was re
 - There are no buttons except Back. There is no label preview, print, WhatsApp, scan or edit.
 - It works at any branch, because the Director is organisation-wide.
 
+### 1a. Daniel's notes on the design (OK with changes, 21 Nov)
+
+1. **The banner** uses the neutral or info tokens, not warning, and sits at the top, above the patient card. Back is
+   the only control.
+2. **Nothing is shown disabled.** The page has no buttons, inputs or sticky action bars, so it never looks editable.
+3. **Statuses** show as a dot and a word. At 390 px, ordered beside dispensed uses the same card layout as the
+   Completed page.
+4. **The entry link** "Open dispensary case (read only)" reads as an outline link. Every page that opens the review
+   uses the same label.
+
 ## 2. Shared rules, agreed with Amirul
 
 1. **View only.** A new permission, `dispensary.view_readonly.organisation`, for `director` only. It never implies a
