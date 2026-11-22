@@ -13,6 +13,8 @@ Owner decisions:
   - 3: Panel claim adjustments are allowed on a locked day; they count on their own confirmation day.
 - **View permission** (22 Nov 2026, owner: "approve the Branch Manager cash closing view permission"):
   `payments.cash_closing.view.branch` for `branch_manager` only, view-only.
+- **Q5 and the Approve bug** (22 Nov 2026, owner: "BIL-32: fix the Approve bug in BIL-32, Q5 A"): option A; the
+  `cash-closings.decide` route fix ships inside BIL-32, no separate PR.
 
 Design note for review (Kumar). Revision 3: revision 2 addressed Kumar's first review (verdict "rework", ten findings,
 K1 to K10); revision 3 addresses his second read ("approve with changes", six items, R1 to R6). Classic only. Synthetic data only; nothing here is production approval.
@@ -67,16 +69,16 @@ the thing being changed, not today:
 
 Still allowed on a locked day ("refund only"):
 
-- **Refunds.** **K3, owner decision needed (question 5):** a refund before completion needs the receipt reversed
+- **Refunds.** **K3, owner answer 5 = A:** a refund before completion needs the receipt reversed
   first (`RefundService`), and a reversal of a locked day's receipt is refused above. Two options:
-  - **A (recommended):** a reversal of a locked day's receipt is allowed only inside a refund: one action that
+  - **A (chosen):** a reversal of a locked day's receipt is allowed only inside a refund: one action that
     reverses and records the refund together, with the refund's approval. The locked day's figures do not change: a
     reversed receipt with a refund still counts as received on its own day (`CashClosingService::expected`, BIL-6), and
     the refund counts on its payout day.
     - **R2:** a reversed receipt counts on its day only while its refund is open, so under A a **rejected** decision on
       the refund of a locked day's receipt is refused (`payment_refund_decisions`, in `BranchDayGate` and PostgreSQL);
       the refund can still be approved. The screen says why Reject is off.
-  - **B:** no reversal on a locked day at all; a locked day's receipt can only be refunded after completion (as an
+  - B (not chosen, kept for the record): no reversal on a locked day at all; a locked day's receipt can only be refunded after completion (as an
     invoice credit). Before completion, the CA must first complete the visit.
 - **New payments on a later day** against an older invoice: they belong to the day they are received.
 - **Panel claim adjustments** (PCA-2), which count on their confirmation day (owner answer 3).
@@ -92,8 +94,7 @@ used by guard triggers on the real tables (K2): `invoices` (update to `voided`),
 A) is let through only when the same transaction records the refund. **R1:** a refund row can only be inserted after
 its reversal exists (`payment_refunds` check, `RefundService`), so the locked-day check on `payment_reversals` is a
 `CONSTRAINT TRIGGER ... DEFERRABLE INITIALLY DEFERRED` that runs at commit and then requires a non-rejected
-`payment_refunds` row for the receipt (precedent: `2026_09_05_000300_protect_billing_reconciliation`). Under option B the
-same trigger simply refuses. The other lock triggers are ordinary row triggers.
+`payment_refunds` row for the receipt (precedent: `2026_09_05_000300_protect_billing_reconciliation`). The other lock triggers are ordinary row triggers.
 
 ### 2.4 The pause (while a close waits for approval; owner answer 2 = A, the counted day only)
 
@@ -163,13 +164,12 @@ Count and approval take the same advisory lock before the receipts' share lock, 
   an approved day; the Branch Manager sees Approve and Return but no Count form.
 - **Patient Billing and Manage payments (K8, the counted day only):** a banner when today is the counted day and its
   count is waiting; money buttons off with the reason. On a locked day's invoice or receipt: Void, receipt reversal and
-  correction off, with "This day's cash is closed and locked." Refund stays available (option A) or points to refund
-  after completion (option B).
+  correction off, with "This day's cash is closed and locked." Refund stays available (option A).
 
 ## 6. Tests
 
 - **Lock:** void, reversal, correction and adjustment refused on a locked day, in the domain and by direct SQL; a refund
-  still allowed (per question 5); a later-day payment allowed; a Panel approval and a Panel remittance allowed.
+  still allowed (option A); a later-day payment allowed; a Panel approval and a Panel remittance allowed.
 - **Pause:** each paused action refused while a count waits, in the domain and by direct SQL; registration and
   consultation not refused; a return lifts the pause; the next day is not paused; a refund on the counted day is
   accepted and the approval then asks for a recount.
@@ -200,8 +200,5 @@ Count and approval take the same advisory lock before the receipts' share lock, 
 3. Panel claim adjustments on a locked day's invoice: allowed.
 4. New `payments.cash_closing.view.branch` for `branch_manager` only, view-only: approved.
 
-## 8. New question for the owner (from Kumar's review)
-
-5. Refund of a locked day's receipt before the visit is completed: **A** (recommended) reverse and refund together in
-   one approved action, the locked day's figures unchanged; or **B** no reversal on a locked day, refund only after the
-   visit is completed?
+5. Refund of a locked day's receipt before completion: A, reverse and refund together in one approved action; the
+   locked day's figures unchanged. The Approve route bug (K1) is fixed inside BIL-32.
