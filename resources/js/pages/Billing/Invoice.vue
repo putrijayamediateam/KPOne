@@ -118,6 +118,13 @@ const totals = computed(() => {
                 :context="invoice.links.activity"
                 :notes-context="invoice.notes"
             />
+            <ActionLink
+                v-if="invoice.links.panelClaim"
+                :href="invoice.links.panelClaim.href"
+                variant="outline"
+                data-testid="panel-claim-link"
+                >{{ invoice.links.panelClaim.label }}</ActionLink
+            >
             <span class="ml-auto text-xs text-muted-foreground"
                 >{{ invoice.visit.branch }} ·
                 {{ invoice.visit.visitNumber }}</span
