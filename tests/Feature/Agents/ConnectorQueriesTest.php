@@ -157,8 +157,37 @@ class ConnectorQueriesTest extends VisitTestCase
         $audit = AuditLog::query()->where('event', 'ai_connector.tool_called')->latest('id')->firstOrFail();
         $this->assertSame('connector.money_day_summary', $audit->metadata['tool']);
         $this->assertSame(['date' => '2026-02-03'], $audit->metadata['dates']);
-        $this->assertEqualsCanonicalizing(['tool', 'branch_code', 'dates', 'outcome', 'rows'], array_keys($audit->metadata) === ['tool', 'dates', 'outcome', 'rows'] ? ['tool', 'branch_code', 'dates', 'outcome', 'rows'] : array_keys($audit->metadata));
+        $this->assertSame(['tool', 'dates', 'outcome', 'rows'], array_keys($audit->metadata));
         $this->assertStringNotContainsString('Sen', json_encode($audit->metadata));
+    }
+
+    public function test_malformed_input_is_refused_without_a_run_or_using_the_daily_limit(): void
+    {
+        $director = $this->actor('director');
+        $runs = \App\Domain\Agents\Models\AiAgentRun::query()->count();
+
+        foreach ([['date' => ['x']], ['date' => 20260101]] as $bad) {
+            $this->refusal($director, 'money_day_summary', $bad);
+        }
+        $this->refusal($director, 'sales_summary', ['from' => ['a']]);
+        $this->refusal($director, 'sales_summary', ['to' => '2026-02-01']);
+        $this->refusal($director, 'panel_claims_made', ['to' => '2026-02-01']);
+
+        $this->assertSame($runs, \App\Domain\Agents\Models\AiAgentRun::query()->count());
+        $this->assertSame(0, \Illuminate\Support\Facades\RateLimiter::attempts('connector-day:'.$director->id));
+        $audit = AuditLog::query()->where('event', 'ai_connector.tool_called')->latest('id')->firstOrFail();
+        $this->assertSame('invalid_input', $audit->metadata['reason']);
+        $this->assertStringNotContainsString('Array', json_encode($audit->metadata));
+    }
+
+    public function test_other_roles_create_no_run_or_audit_row(): void
+    {
+        $runs = \App\Domain\Agents\Models\AiAgentRun::query()->count();
+        $audits = AuditLog::query()->where('event', 'ai_connector.tool_called')->count();
+        $this->ask($this->actor('ca_supervisor'), 'clinic_day_summary')->assertForbidden();
+
+        $this->assertSame($runs, \App\Domain\Agents\Models\AiAgentRun::query()->count());
+        $this->assertSame($audits, AuditLog::query()->where('event', 'ai_connector.tool_called')->count());
     }
 
     public function test_other_roles_are_refused_every_question(): void

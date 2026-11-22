@@ -29,6 +29,10 @@ final class SystemHealthQuery implements ConnectorQuery
         return 'Counts only, for the whole KPOne server: error-level log lines since the given date (default the last 24 hours; at most the last 8 MB of each log file is read, and "logReadLimited" says when that cut it), failed scheduled agent runs, database changes not yet applied and failed queue jobs. A missing or unreadable log is never "all clear".';
     }
 
+    public function check(array $input): void
+    {
+    }
+
     public function organisationWide(): bool
     {
         return true;

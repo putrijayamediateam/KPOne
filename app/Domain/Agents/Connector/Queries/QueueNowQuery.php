@@ -28,7 +28,7 @@ final class QueueNowQuery implements ConnectorQuery
 
     public function definitions(): string
     {
-        return 'Right now, today\'s consultation queue at the branch: waiting (including those marked not ready to call, counted again separately), serving, and on hold (a consultation the doctor has put on hold). Counts only.';
+        return 'Right now, the consultation queue at the branch including patients carried over from earlier days: waiting (including those marked not ready to call, counted again separately; carriedOver is how many of the waiting are from an earlier day), serving, and on hold (a consultation the doctor has put on hold). Counts only.';
     }
 
     public function organisationWide(): bool

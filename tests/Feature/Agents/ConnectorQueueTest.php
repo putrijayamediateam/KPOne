@@ -64,4 +64,18 @@ class ConnectorQueueTest extends QueueTestCase
         $this->assertSame($source['waitingNow'], $entry['waiting']);
         $this->assertArrayNotHasKey('queueNumber', $entry);
     }
+
+    public function test_queue_now_counts_a_waiting_patient_carried_over_from_an_earlier_day(): void
+    {
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $this->send($ca, $this->consultationVisit($ca, $doctor));
+        $carried = $this->send($ca, $this->consultationVisit($ca, $doctor));
+        \Illuminate\Support\Facades\DB::table('queue_entries')->where('id', $carried->id)->update(['operational_date' => now($this->branch->timezone)->subDay()->toDateString()]);
+
+        $entry = $this->connectorAnswer($this->actor('director'), 'queue_now')['branches'][0];
+
+        $this->assertSame(2, $entry['waiting']);
+        $this->assertSame(1, $entry['carriedOver']);
+    }
 }

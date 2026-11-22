@@ -32,8 +32,9 @@ final class QueueNowTool implements AgentTool
     {
         assert($branch !== null);
         $date = $this->localDate($branch, null);
-        $entries = fn () => DB::table('queue_entries as q')->where('q.organisation_id', $requester->organisation_id)->where('q.branch_id', $branch->id)->where('q.operational_date', $date);
+        $entries = fn () => DB::table('queue_entries as q')->where('q.organisation_id', $requester->organisation_id)->where('q.branch_id', $branch->id)->where('q.operational_date', '<=', $date);
         $waiting = (int) $entries()->where('q.status', 'waiting')->count();
+        $carried = (int) $entries()->where('q.status', 'waiting')->where('q.operational_date', '<', $date)->count();
         $notReady = (int) $entries()->where('q.status', 'waiting')
             ->whereExists(fn ($query) => $query->selectRaw('1')->from('queue_call_holds as h')->whereColumn('h.queue_entry_id', 'q.id')->where('h.state', 'active'))->count();
         $serving = $entries()->where('q.status', 'serving');
@@ -45,6 +46,7 @@ final class QueueNowTool implements AgentTool
             'branch' => $branch->code,
             'date' => $date,
             'waiting' => $waiting,
+            'carriedOver' => $carried,
             'notReadyToCall' => $notReady,
             'serving' => $servingTotal - $onHold,
             'onHold' => $onHold,

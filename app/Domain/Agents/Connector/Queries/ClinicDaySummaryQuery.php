@@ -39,8 +39,7 @@ final class ClinicDaySummaryQuery implements ConnectorQuery
     public function run(ConnectorReads $reads, ?Branch $branch, array $input): array
     {
         $entry = $reads->call('clinic.day_summary', $branch, array_intersect_key($input, ['date' => 1]))['branches'][0] ?? [];
-        unset($entry['doctors']);
 
-        return $entry;
+        return array_intersect_key($entry, array_flip(['branch', 'date', 'registered', 'waitingNow', 'served', 'averageWaitMinutes', 'averageConsultationMinutes']));
     }
 }

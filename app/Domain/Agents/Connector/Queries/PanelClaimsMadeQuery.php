@@ -38,7 +38,6 @@ final class PanelClaimsMadeQuery implements ConnectorQuery
 
     public function run(ConnectorReads $reads, ?Branch $branch, array $input): array
     {
-        $this->assertRange($input);
         $entry = $reads->call('connector.panel_claims_made', $branch, array_intersect_key($input, ['from' => 1, 'to' => 1]));
         [$panels, $limits] = $this->cap(array_map(fn (array $panel): array => [...$panel, 'panel' => $this->label($panel['panel'] ?? '')], $entry['panels'] ?? []));
         $entry['panels'] = $panels;

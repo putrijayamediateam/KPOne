@@ -67,16 +67,24 @@ final class ConnectorToolRunner
     public function runQuery(User $user, ConnectorQuery $query, array $input = []): array
     {
         $tool = 'connector.'.$query->name();
-        $params = array_intersect_key($input, array_flip(['date', 'from', 'to']));
+        $params = $this->dateParams($input);
 
-        return $this->execute($user, $tool, is_string($input['branch'] ?? null) ? $input['branch'] : null, $params, function (AiAgentRun $run, ?Branch $branch) use ($user, $query, $input): array {
+        // Validate before anything is counted or recorded: a bad request neither uses the daily limit nor creates a run.
+        try {
             $valid = Validator::make($input, ['branch' => ['sometimes', 'nullable', 'string', 'max:30'], ...$query->rules()])->validate();
+            $query->check($valid);
+        } catch (ValidationException $invalid) {
+            $this->audit($user, $tool, null, 'refused', 'invalid_input', 0, $params);
+            throw new ConnectorRefused('invalid_input', 'The request was not valid: '.mb_substr((string) $invalid->validator->errors()->first(), 0, 200));
+        }
+
+        return $this->execute($user, $tool, isset($valid['branch']) ? (string) $valid['branch'] : null, $params, function (AiAgentRun $run, ?Branch $branch) use ($user, $query, $valid): array {
             $reads = new ConnectorReads($this->gateway, $run, $user);
             $result = ['asOf' => now()->toIso8601ZuluString(), 'definitions' => $query->definitions()];
             if ($query->organisationWide()) {
                 return [...$result, ...$query->run($reads, null, $valid)];
             }
-            $branches = $branch ? collect([$branch]) : $this->branches->availableBranches($user)->filter(fn (Branch $each): bool => $this->branches->hasEffectiveAssignment($user, $each))->sortBy('code')->values();
+            $branches = $branch ? collect([$branch]) : $this->branches->availableBranches($user)->filter(fn (Branch $each): bool => $each->is_active && $this->branches->hasEffectiveAssignment($user, $each))->sortBy('code')->values();
             $entries = [];
             foreach ($branches as $each) {
                 $entries[] = $query->run($reads, $each, $valid);
@@ -96,18 +104,17 @@ final class ConnectorToolRunner
     private function execute(User $user, string $toolCode, ?string $branchCode, array $params, Closure $work): array
     {
         $branch = null;
-        $limitKey = 'connector-day:'.$user->id;
-        if (RateLimiter::hit($limitKey, 86400) > self::DAILY_LIMIT) {
-            $this->audit($user, $toolCode, null, 'refused', 'rate_limited_day', 0, $params);
-            throw new ConnectorRefused('rate_limited_day', 'The daily limit of connector calls was reached. Try again tomorrow.');
-        }
-
         if ($branchCode !== null) {
             $branch = Branch::query()->where('organisation_id', $user->organisation_id)->where('code', $branchCode)->first();
-            if (! $branch || ! $this->branches->hasEffectiveAssignment($user, $branch)) {
+            if (! $branch || ! $branch->is_active || ! $this->branches->hasEffectiveAssignment($user, $branch)) {
                 $this->audit($user, $toolCode, null, 'refused', 'branch_not_allowed', 0, $params);
                 throw new ConnectorRefused('branch_not_allowed', 'That branch is not available to you.');
             }
+        }
+        // Only a request that is valid and allowed uses the daily limit.
+        if (RateLimiter::hit('connector-day:'.$user->id, 86400) > self::DAILY_LIMIT) {
+            $this->audit($user, $toolCode, null, 'refused', 'rate_limited_day', 0, $params);
+            throw new ConnectorRefused('rate_limited_day', 'The daily limit of connector calls was reached. Try again tomorrow.');
         }
 
         try {
@@ -150,6 +157,24 @@ final class ConnectorToolRunner
         abort_if($this->audit($user, $toolCode, $branch, 'ok', null, $this->rows($result), $params) === null, 503, 'Unable to record this call. Try again later.');
 
         return $result;
+    }
+
+    /**
+     * Only well-formed dates reach the audit row; anything else the caller sent is dropped.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, string>
+     */
+    private function dateParams(array $input): array
+    {
+        $params = [];
+        foreach (['date', 'from', 'to'] as $key) {
+            if (isset($input[$key]) && is_string($input[$key]) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $input[$key])) {
+                $params[$key] = $input[$key];
+            }
+        }
+
+        return $params;
     }
 
     /** @param array<string, mixed> $params */

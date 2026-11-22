@@ -39,13 +39,16 @@ final class MoneyDaySummaryQuery implements ConnectorQuery
     public function run(ConnectorReads $reads, ?Branch $branch, array $input): array
     {
         $entry = $reads->call('money.day_summary', $branch, array_intersect_key($input, ['date' => 1]))['branches'][0] ?? [];
+        $methods = $entry['receiptsByMethod'] ?? [];
+        $entry = array_intersect_key($entry, array_flip(['branch', 'date', 'netSalesSen', 'discountsSen', 'cashNetSen', 'nonCashNetSen', 'totalReceivedSen', 'panelApprovedSen', 'panelAdjustmentSen', 'payLaterDueSen']));
         $entry['receiptsByMethod'] = array_map(fn (array $row): array => [
             'method' => $this->label($row['method'] ?? ''),
             'cash' => (bool) ($row['cash'] ?? false),
             'receiptsSen' => (int) ($row['receiptsSen'] ?? 0),
             'reversedSen' => (int) ($row['reversedSen'] ?? 0),
             'netSen' => (int) ($row['netSen'] ?? 0),
-        ], array_slice($entry['receiptsByMethod'] ?? [], 0, self::MAX_ROWS));
+        ], array_slice($methods, 0, self::MAX_ROWS));
+        $entry['limits'] = ['receiptsByMethod' => ['shown' => min(count($methods), self::MAX_ROWS), 'total' => count($methods)]];
 
         return $entry;
     }

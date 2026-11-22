@@ -38,7 +38,6 @@ final class SalesSummaryQuery implements ConnectorQuery
 
     public function run(ConnectorReads $reads, ?Branch $branch, array $input): array
     {
-        $this->assertRange($input);
         $result = $reads->call('insights.sales_summary', $branch, array_intersect_key($input, ['from' => 1, 'to' => 1]));
         unset($result['scope']);
 

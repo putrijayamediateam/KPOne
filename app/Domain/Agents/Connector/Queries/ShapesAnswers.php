@@ -32,7 +32,13 @@ trait ShapesAnswers
     /** @return array<string, list<string>> date rules; the 31-day limit is checked by assertRange() */
     protected function rangeRules(): array
     {
-        return ['from' => ['sometimes', 'date_format:Y-m-d'], 'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from']];
+        return ['from' => ['required_with:to', 'date_format:Y-m-d'], 'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from']];
+    }
+
+    /** @param array<string, mixed> $input */
+    public function check(array $input): void
+    {
+        $this->assertRange($input);
     }
 
     /** @param array<string, mixed> $input */

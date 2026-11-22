@@ -28,7 +28,7 @@ final class PanelClaimsOutstandingQuery implements ConnectorQuery
 
     public function definitions(): string
     {
-        return 'Amounts are in sen. Counts approved Panel responsibilities on invoices finalised in the period (all dates when none is given): claimed or unclaimed, how many unclaimed are overdue by the Panel\'s due rule, and accepted claim amounts not yet paid. Shows the first 25 Panels.';
+        return 'Amounts are in sen. Counts approved Panel responsibilities on invoices finalised in the period (default: the last 31 days; at most 31 days): claimed or unclaimed, how many unclaimed are overdue by the Panel\'s due rule, and accepted claim amounts not yet paid. Shows the first 25 Panels.';
     }
 
     public function organisationWide(): bool
@@ -38,10 +38,21 @@ final class PanelClaimsOutstandingQuery implements ConnectorQuery
 
     public function run(ConnectorReads $reads, ?Branch $branch, array $input): array
     {
-        $this->assertRange($input);
-        $entry = $reads->call('panel.claims_summary', $branch, array_intersect_key($input, ['from' => 1, 'to' => 1]))['branches'][0] ?? [];
+        $window = array_intersect_key($input, ['from' => 1, 'to' => 1]);
+        if ($window === [] && $branch) {
+            $today = now($branch->timezone);
+            $window = ['from' => $today->copy()->subDays(self::MAX_DAYS - 1)->toDateString(), 'to' => $today->toDateString()];
+        }
+        $entry = $reads->call('panel.claims_summary', $branch, $window)['branches'][0] ?? [];
         [$panels, $limits] = $this->cap(array_map(fn (array $panel): array => [...$panel, 'panel' => $this->label($panel['panel'] ?? '')], $entry['panels'] ?? []));
-        $entry['panels'] = $panels;
+        $keys = ['panel', 'approvedInvoices', 'approvedSen', 'claimedInvoices', 'claimedSen', 'unclaimedInvoices', 'unclaimedSen', 'overdueUnclaimedInvoices', 'overdueUnclaimedSen', 'acceptedSen', 'remittedSen', 'acceptedOutstandingSen', 'acceptedUnpaidClaims'];
+        $entry = [
+            'branch' => $entry['branch'] ?? null,
+            'from' => $entry['from'] ?? null,
+            'to' => $entry['to'] ?? null,
+            'totals' => $entry['totals'] ?? [],
+            'panels' => array_map(fn (array $panel): array => array_intersect_key($panel, array_flip($keys)), $panels),
+        ];
         $entry['limits'] = ['panels' => $limits];
 
         return $entry;

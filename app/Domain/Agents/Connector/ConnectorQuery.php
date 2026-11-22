@@ -24,6 +24,15 @@ interface ConnectorQuery
     /** Plain words that say what was counted, so the answer is worded honestly. */
     public function definitions(): string;
 
+    /**
+     * Rules that need several fields together (such as a date range). Runs before anything is counted or recorded.
+     *
+     * @param  array<string, mixed>  $input  validated
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function check(array $input): void;
+
     public function organisationWide(): bool;
 
     /**
