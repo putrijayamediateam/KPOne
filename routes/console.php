@@ -13,6 +13,7 @@ use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
 use App\Console\Commands\PurgeLeaveRecords;
 use App\Console\Commands\PurgeLocationResults;
+use App\Console\Commands\PurgeMyRoutine;
 use App\Console\Commands\PurgePanelStatements;
 use App\Console\Commands\PurgeStaffClaims;
 use Illuminate\Foundation\Inspiring;
@@ -120,6 +121,12 @@ Schedule::command(AgentsDailyRun::class, ['1400'])
 
 // HR-11c: audit and task photo files are deleted after the clinic's own retention; nothing is deleted until a number is set.
 Schedule::command(PurgeCompliancePhotos::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// DAY-1b: personal routine ticks, long-hidden items and the lists of long-deactivated accounts.
+Schedule::command(PurgeMyRoutine::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();

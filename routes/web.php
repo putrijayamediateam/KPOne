@@ -79,6 +79,7 @@ use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\MyDayController;
+use App\Http\Controllers\MyRoutineController;
 use App\Http\Controllers\OpeningImportController;
 use App\Http\Controllers\PanelClaimAdjustmentController;
 use App\Http\Controllers\PanelClaimPackCopiesController;
@@ -739,6 +740,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('dashboard');
     // DAY-1a: My day, the person's own first page (the TV account is refused in the controller).
     Route::get('my-day', [MyDayController::class, 'show'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('my-day');
+    // DAY-1b: the person's own routine (no route takes a user id; the TV account is refused in the service).
+    Route::post('my-day/routine', [MyRoutineController::class, 'store'])->middleware('throttle:30,1')->name('my-day.routine.store');
+    Route::post('my-day/routine/reorder', [MyRoutineController::class, 'reorder'])->middleware('throttle:30,1')->name('my-day.routine.reorder');
+    Route::patch('my-day/routine/{routineItem}', [MyRoutineController::class, 'rename'])->middleware('throttle:30,1')->name('my-day.routine.rename');
+    Route::post('my-day/routine/{routineItem}/hide', [MyRoutineController::class, 'hide'])->middleware('throttle:30,1')->name('my-day.routine.hide');
+    Route::post('my-day/routine/{routineItem}/restore', [MyRoutineController::class, 'restore'])->middleware('throttle:30,1')->name('my-day.routine.restore');
+    Route::put('my-day/routine/{routineItem}/tick', [MyRoutineController::class, 'tick'])->middleware('throttle:120,1')->name('my-day.routine.tick');
 
     Route::middleware('permission:visits.view.branch,queue.view.own,queue.view.branch')->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');

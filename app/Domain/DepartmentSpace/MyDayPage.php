@@ -5,6 +5,7 @@ namespace App\Domain\DepartmentSpace;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Approvals\ApprovalInbox;
+use App\Domain\MyDay\MyRoutineService;
 use App\Models\User;
 
 /**
@@ -20,6 +21,7 @@ final class MyDayPage
         private DepartmentSpaceNavigation $spaces,
         private ClinicManagementNavigation $management,
         private ApprovalInbox $inbox,
+        private MyRoutineService $routine,
     ) {}
 
     /** @return array<string, mixed> */
@@ -49,6 +51,7 @@ final class MyDayPage
                 'credentials' => $me['credentials'], 'branchName' => $me['branchName'], 'asOf' => $me['asOf'],
             ],
             'waiting' => $this->waiting($actor),
+            'routine' => $this->routine->page($actor),
             'shortcuts' => $shortcuts,
         ];
     }
