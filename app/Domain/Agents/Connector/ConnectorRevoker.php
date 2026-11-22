@@ -17,10 +17,10 @@ final class ConnectorRevoker
 {
     public function __construct(private AuditRecorder $audit) {}
 
-    public function revoke(?User $user = null): int
+    public function revoke(?User $user = null, ?string $clientId = null): int
     {
-        return DB::transaction(function () use ($user): int {
-            $tokens = Token::query()->where('revoked', false)->when($user, fn ($query) => $query->where('user_id', $user->id));
+        return DB::transaction(function () use ($user, $clientId): int {
+            $tokens = Token::query()->where('revoked', false)->when($user, fn ($query) => $query->where('user_id', $user->id))->when($clientId, fn ($query) => $query->where('client_id', $clientId));
             $ids = $tokens->pluck('id')->all();
             if ($ids !== []) {
                 Token::query()->whereIn('id', $ids)->update(['revoked' => true]);
@@ -28,7 +28,7 @@ final class ConnectorRevoker
             }
             $this->audit->record('ai_connector.tokens_revoked', null, [
                 'user_id' => $user?->id,
-                'scope' => $user ? 'one_user' : 'everyone',
+                'scope' => $clientId !== null ? 'one_app' : ($user ? 'one_user' : 'everyone'),
                 'tokens' => count($ids),
             ], null, null, $user !== null ? $user->organisation_id : User::query()->orderBy('id')->value('organisation_id'));
 
