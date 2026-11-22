@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-// HR-15g locum pay statement (owner, 18 Nov 2026): Classic and Version 2 share one composable and one statement view.
+// HR-15g locum pay statement (owner, 18 Nov 2026): one composable and one statement view.
 const read = (path) => readFileSync(path, 'utf8');
 const composable = read('resources/js/composables/hr/useLocumPayPage.ts');
 const view = read('resources/js/components/hr/locum-pay/StatementView.vue');

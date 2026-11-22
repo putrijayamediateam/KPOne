@@ -37,7 +37,7 @@ import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import {
-    isUnusual,
+    crossesRedLimit,
     parseVitalsFromNote,
     planFill,
 } from '@/lib/vitals-from-note';
@@ -179,10 +179,12 @@ const stillAutoFilled = computed(() =>
 const filledFromNote = computed(() =>
     stillAutoFilled.value.map((reading) => reading.label),
 );
-// Filled readings outside the usual ranges: still filled, but flagged "Check" so a typo in the note is not missed.
+// Filled readings at or past the guideline's red limit: still filled, but flagged "Check" so a typo in the note is not missed.
 const filledChecks = computed(() =>
     stillAutoFilled.value
-        .filter((reading) => isUnusual(reading.values))
+        .filter((reading) =>
+            crossesRedLimit(reading.values, props.clinical.vitalLimits),
+        )
         .map((reading) => reading.label),
 );
 // What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
@@ -1482,8 +1484,17 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     />
                                     <span
                                         >Check:
-                                        {{ filledChecks.join(', ') }} (unusual
-                                        value; is it a typo in the note?)</span
+                                        {{ filledChecks.join(', ') }} (at or
+                                        past the clinic's red limit; is it a
+                                        typo in the note?)
+                                        <span
+                                            v-if="clinical.vitalLimits"
+                                            class="font-normal text-muted-foreground"
+                                            >Triage guideline v{{
+                                                clinical.vitalLimits
+                                                    .versionNumber
+                                            }}.</span
+                                        ></span
                                     >
                                 </p>
                                 <p

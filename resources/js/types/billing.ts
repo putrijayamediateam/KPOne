@@ -122,6 +122,8 @@ export type BillingPage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
     activity: InvoiceActivityLink;
+    /** BIL-35: the Panel claim button, for Panel Claims users only. */
+    panelClaim?: PanelClaimLink | null;
     backLink: { label: string; href: string } | null;
     patient: { name: string; patientNumber: string; profileUrl: string | null };
     visit: {
@@ -344,4 +346,12 @@ export type PanelAdjustmentClaim = {
         claimAmountSen: number;
         recordedAt: string;
     }[];
+};
+
+/** BIL-35: straight to the invoice's Panel claim, or Create claim (read-only navigation). */
+export type PanelClaimLink = {
+    kind: 'open' | 'create';
+    label: string;
+    href: string;
+    claimNumber: string | null;
 };

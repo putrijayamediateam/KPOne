@@ -17,8 +17,8 @@ import { StatusBadge } from '@/components/ui/status';
 import { formatDateTime } from '@/lib/presentation';
 
 /**
- * The Classic agent office. The live behaviour (poll, selection, detail, Pause motion) is `useAgentOffice`, shared with
- * the Version 2 page (`pages/Agents/V2/Office.vue`, AG-23). Classic keeps its sheet.
+ * The agent office. The live behaviour (poll, selection, detail, Pause motion) is `useAgentOffice` (AG-23); the page
+ * keeps its sheet.
  */
 const props = defineProps<{
     feed: OfficeFeed;

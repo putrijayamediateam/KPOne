@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * HR-15g: one locum's month statement, shared by Classic and Version 2 and by My pay. From 768 px a table; below it one
- * card per shift. Plain theme tokens only, so it reads the same in both versions and in dark mode. Only HR (canEdit)
+ * HR-15g: one locum's month statement, shared by the Locum pay page and My pay. From 768 px a table; below it one
+ * card per shift. Plain theme tokens only, so it reads the same in dark mode. Only HR (canEdit)
  * sees the "Not worked" and "Remove" buttons; the buttons are outline and emit to the page, which sends the request.
  */
 import type {
