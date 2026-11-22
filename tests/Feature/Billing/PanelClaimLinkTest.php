@@ -84,7 +84,42 @@ class PanelClaimLinkTest extends BillingTestCase
         $this->actingAs($elsewhere);
         $this->selectBranch($elsewhere, $other);
         $this->assertNull($link->for($elsewhere, $visit, $invoice, 'billing'));
+    }
 
+    public function test_no_button_for_a_director_viewing_a_branch_without_an_assignment_there(): void
+    {
+        // Kumar (#1040): a Director may switch to any branch, but the Panel pages need an assignment in effect today.
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-LINK5']);
+        [$allocation, $invoice] = $this->approvedAllocation($panel);
+        $visit = Visit::query()->findOrFail($invoice->visit_id);
+        $other = Branch::query()->where('organisation_id', $this->organisation->id)->whereKeyNot($this->branch->id)->firstOrFail();
+        $visitor = $this->actor('director', $other);
+        $this->actingAs($visitor);
+        $this->selectBranch($visitor, $this->branch);
+
+        $this->assertNull(app(PanelClaimLink::class)->for($visitor, $visit, $invoice, 'billing'));
+        // The page the link would have opened refuses this actor.
+        $this->get(route('panel-claims.create', [$allocation, 'from' => 'billing', 'visit' => $visit->visit_number]))->assertForbidden();
+    }
+
+    public function test_a_panel_officer_gets_the_link_and_every_offered_link_opens(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-LINK6']);
+        [$allocation, $invoice] = $this->approvedAllocation($panel);
+        $visit = Visit::query()->findOrFail($invoice->visit_id);
+        $officer = $this->officer();
+        $this->actingAs($officer);
+        $this->selectBranch($officer, $this->branch);
+        $link = app(PanelClaimLink::class);
+
+        $create = $link->for($officer, $visit, $invoice, 'billing');
+        $this->assertSame('create', $create['kind'] ?? null);
+        $this->get($create['href'])->assertOk();
+
+        app(PanelClaimService::class)->prepare($officer, $allocation, ['expected_branch_id' => $visit->branch_id]);
+        $open = $link->for($officer, $visit, $invoice, 'invoice');
+        $this->assertSame('open', $open['kind'] ?? null);
+        $this->get($open['href'])->assertOk();
     }
 
     public function test_no_button_on_a_self_pay_invoice(): void
