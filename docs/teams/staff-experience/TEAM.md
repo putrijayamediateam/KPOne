@@ -97,7 +97,7 @@ usability aid only and must follow the permission the backend already enforces.
 | CO-10b | The V2 machinery removed: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font and the V2 shared props | #1056 |
 | CO-10c | The last V2 leftovers: unused V2-only props and options, seven backend fields and the inline "add a Panel" route (`POST /catalogue-panels`), and stale V2 comments | #1059 |
 
-**Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Still open with the owner: whether to drop the unused `user_space_preferences` table (plan Q4; BASELINE section 6, item 31). The Classic leave warning (section 7, item 17) remains its own later slice.
+**Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Owner, 22 Nov 2026: keep the unused `user_space_preferences` table (plan Q4), so there is no CO-11. The Classic leave warning (section 7, item 17) remains its own later slice.
 
 ## 6. Owner decisions already made (never ask again)
 

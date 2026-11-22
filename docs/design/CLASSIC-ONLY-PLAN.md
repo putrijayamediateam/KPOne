@@ -234,6 +234,6 @@ assertions, and the owner approved them before the commit that changed them.
 | CO-10c | The last leftovers: V2-only props and options, seven backend fields, `POST /catalogue-panels` with its controller, request and `PanelAdministrationService`, and stale V2 comments | #1059 |
 
 The CO-10 split into 10a, 10b and 10c was approved by the owner, because the office page still used `useUiVersion`.
-Still open: decision 4 (drop `user_space_preferences` or keep it) is with the owner. The table is no longer read, and
-its two merged migrations stay unedited. The Classic leave warning for long forms is its own later slice, not part of
+Owner, 22 Nov 2026: keep `user_space_preferences`. The table is not dropped and there is no CO-11; it is no longer
+read, and its two merged migrations stay unedited. The Classic leave warning for long forms is its own later slice, not part of
 this plan.
