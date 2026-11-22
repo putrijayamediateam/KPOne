@@ -4,6 +4,7 @@ namespace Tests\Feature\Agents;
 
 use App\Domain\Agents\Tools\ClinicDaySummaryTool;
 use App\Domain\Queue\Readiness\CallHoldService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Queue\QueueTestCase;
 use Tests\Support\AsksTheConnector;
@@ -71,7 +72,7 @@ class ConnectorQueueTest extends QueueTestCase
         $doctor = $this->doctor();
         $this->send($ca, $this->consultationVisit($ca, $doctor));
         $carried = $this->send($ca, $this->consultationVisit($ca, $doctor));
-        \Illuminate\Support\Facades\DB::table('queue_entries')->where('id', $carried->id)->update(['operational_date' => now($this->branch->timezone)->subDay()->toDateString()]);
+        DB::table('queue_entries')->where('id', $carried->id)->update(['operational_date' => now($this->branch->timezone)->subDay()->toDateString()]);
 
         $entry = $this->connectorAnswer($this->actor('director'), 'queue_now')['branches'][0];
 

@@ -3,6 +3,7 @@
 namespace App\Domain\Agents\Connector;
 
 use App\Domain\Organisation\Models\Branch;
+use Illuminate\Validation\ValidationException;
 
 /**
  * One connector question (docs/agents/MCP-CONNECTOR-DESIGN.md section 6). It reads only through ConnectorReads (the agent tool
@@ -29,7 +30,7 @@ interface ConnectorQuery
      *
      * @param  array<string, mixed>  $input  validated
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function check(array $input): void;
 

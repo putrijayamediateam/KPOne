@@ -7,6 +7,7 @@ use App\Domain\Agents\Connector\ConnectorQuery;
 use App\Domain\Agents\Connector\ConnectorTools;
 use App\Domain\Agents\Connector\Mcp\ConnectorServer;
 use App\Domain\Agents\Connector\Queries\ShapesAnswers;
+use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Models\AiAgentTool;
 use App\Domain\Agents\Tools\AgentToolRegistry;
 use App\Domain\Agents\Tools\ClinicDaySummaryTool;
@@ -14,6 +15,7 @@ use App\Domain\Agents\Tools\MoneyDaySummaryTool;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
+use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Passport\Passport;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -164,7 +166,7 @@ class ConnectorQueriesTest extends VisitTestCase
     public function test_malformed_input_is_refused_without_a_run_or_using_the_daily_limit(): void
     {
         $director = $this->actor('director');
-        $runs = \App\Domain\Agents\Models\AiAgentRun::query()->count();
+        $runs = AiAgentRun::query()->count();
 
         foreach ([['date' => ['x']], ['date' => 20260101]] as $bad) {
             $this->refusal($director, 'money_day_summary', $bad);
@@ -173,8 +175,8 @@ class ConnectorQueriesTest extends VisitTestCase
         $this->refusal($director, 'sales_summary', ['to' => '2026-02-01']);
         $this->refusal($director, 'panel_claims_made', ['to' => '2026-02-01']);
 
-        $this->assertSame($runs, \App\Domain\Agents\Models\AiAgentRun::query()->count());
-        $this->assertSame(0, \Illuminate\Support\Facades\RateLimiter::attempts('connector-day:'.$director->id));
+        $this->assertSame($runs, AiAgentRun::query()->count());
+        $this->assertSame(0, RateLimiter::attempts('connector-day:'.$director->id));
         $audit = AuditLog::query()->where('event', 'ai_connector.tool_called')->latest('id')->firstOrFail();
         $this->assertSame('invalid_input', $audit->metadata['reason']);
         $this->assertStringNotContainsString('Array', json_encode($audit->metadata));
@@ -182,11 +184,11 @@ class ConnectorQueriesTest extends VisitTestCase
 
     public function test_other_roles_create_no_run_or_audit_row(): void
     {
-        $runs = \App\Domain\Agents\Models\AiAgentRun::query()->count();
+        $runs = AiAgentRun::query()->count();
         $audits = AuditLog::query()->where('event', 'ai_connector.tool_called')->count();
         $this->ask($this->actor('ca_supervisor'), 'clinic_day_summary')->assertForbidden();
 
-        $this->assertSame($runs, \App\Domain\Agents\Models\AiAgentRun::query()->count());
+        $this->assertSame($runs, AiAgentRun::query()->count());
         $this->assertSame($audits, AuditLog::query()->where('event', 'ai_connector.tool_called')->count());
     }
 
