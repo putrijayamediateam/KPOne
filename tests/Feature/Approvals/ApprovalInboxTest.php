@@ -7,6 +7,7 @@ use App\Domain\Approvals\ApprovalSources;
 use App\Domain\Approvals\Sources\PanelPriceChangeSource;
 use App\Domain\Approvals\Sources\PatientMergeSource;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
+use App\Domain\DepartmentSpace\AccountMenuLinks;
 use App\Domain\Patient\Services\PatientMergeService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
@@ -18,6 +19,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia;
 use Tests\Feature\Clinical\ClinicalTestCase;
 
 /** APPR-1a: the inbox counts what the owning pages list, per person, and never grants access by itself. */
@@ -125,6 +127,22 @@ final class ApprovalInboxTest extends ClinicalTestCase
         $body = $this->actingAs($finance)->getJson(route('approvals.count'))->assertOk()->getContent();
         foreach (['AGR-1', '1450', 'Synthetic'] as $secret) {
             $this->assertStringNotContainsString($secret, (string) $body);
+        }
+    }
+
+    public function test_the_page_opens_for_a_decider_and_is_refused_to_others_and_the_tv(): void
+    {
+        $this->proposePrice();
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $this->actingAs($finance)->get(route('approvals.index'))->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Approvals/Index')->where('sections.0.kind', 'approval')->where('sections.0.areas.0.sources.0.count', 1));
+        $this->assertContains('/approvals', array_column(app(AccountMenuLinks::class)->for($finance)['links'], 'href'));
+        foreach (['resident_doctor', 'queue_display'] as $role) {
+            $user = $this->actor($role);
+            $this->selectBranch($user);
+            $this->actingAs($user)->get(route('approvals.index'))->assertForbidden();
+            $this->assertNotContains('/approvals', array_column(app(AccountMenuLinks::class)->for($user)['links'], 'href'));
         }
     }
 }

@@ -219,6 +219,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // DS-13: the Me home lives at /spaces/me; /me is a plain redirect to it.
     Route::get('me', fn () => to_route('spaces.show', ['space' => 'me']))->middleware('sensitive.no-store')->name('me');
     // APPR-1a: the number for the account button; read only, human accounts only.
+    Route::get('approvals', [ApprovalsController::class, 'index'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('approvals.index');
     Route::get('approvals/count', [ApprovalsController::class, 'count'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('approvals.count');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');

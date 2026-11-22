@@ -16,6 +16,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { useApprovalCount } from '@/composables/useApprovalCount';
 import { useClockShortcut } from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
@@ -34,6 +35,7 @@ const handleLogout = () => {
 defineProps<Props>();
 const page = usePage();
 // DS-12: the person's own pages, built on the server from the permissions they hold, and the phone clock row.
+const { count: approvalCount } = useApprovalCount();
 const accountMenu = computed(() => page.props.workspace?.accountMenu);
 // Classic only (CO-1, 19 Nov 2026): the Clock in row is the same on every page except Me home, whose big Clock in button
 // is the one Clock in there (owner, 18 Nov 2026: one Clock in on Me home).
@@ -81,9 +83,17 @@ onMounted(() => {
             :as-child="true"
             class="pl-10 max-lg:min-h-11"
         >
-            <Link class="block w-full cursor-pointer" :href="link.href">{{
-                link.title
-            }}</Link>
+            <Link
+                class="flex w-full cursor-pointer items-center justify-between gap-2"
+                :href="link.href"
+                ><span>{{ link.title }}</span>
+                <span
+                    v-if="link.href === '/approvals' && approvalCount > 0"
+                    class="rounded-full bg-brand px-1.5 py-0.5 text-[11px] leading-none font-semibold text-brand-foreground"
+                    >{{ approvalCount
+                    }}<span class="sr-only"> waiting</span></span
+                ></Link
+            >
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator

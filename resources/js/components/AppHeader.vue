@@ -32,6 +32,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useApprovalCount } from '@/composables/useApprovalCount';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
@@ -47,6 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const page = usePage();
+const { count: approvalCount, label: approvalLabel } = useApprovalCount();
 const auth = computed(() => ({
     ...page.props.auth,
     user: page.props.auth.user!,
@@ -262,6 +264,23 @@ const rightNavItems: NavItem[] = [
                                         {{ getInitials(auth.user?.name) }}
                                     </AvatarFallback>
                                 </Avatar>
+                                <!-- APPR-1a: the number of things waiting for this person; hidden at zero. -->
+                                <span
+                                    v-if="approvalCount > 0"
+                                    data-test="approvals-pill"
+                                    class="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[11px] leading-none font-semibold text-brand-foreground ring-2 ring-background"
+                                    aria-hidden="true"
+                                    >{{
+                                        approvalCount > 99
+                                            ? '99+'
+                                            : approvalCount
+                                    }}</span
+                                >
+                                <span
+                                    v-if="approvalCount > 0"
+                                    class="sr-only"
+                                    >{{ approvalLabel }}</span
+                                >
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" class="w-56">

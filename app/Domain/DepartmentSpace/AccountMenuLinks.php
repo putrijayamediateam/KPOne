@@ -2,6 +2,7 @@
 
 namespace App\Domain\DepartmentSpace;
 
+use App\Domain\Approvals\ApprovalSources;
 use App\Models\User;
 
 /**
@@ -11,7 +12,7 @@ use App\Models\User;
  */
 final class AccountMenuLinks
 {
-    public function __construct(private DepartmentSpaceNavigation $spaces) {}
+    public function __construct(private DepartmentSpaceNavigation $spaces, private ApprovalSources $approvals) {}
 
     /**
      * `spaces`: Classic only (CO-1, 19 Nov 2026), the account menu's Spaces row, shown to everyone who can enter at least
@@ -25,6 +26,10 @@ final class AccountMenuLinks
         $keys = array_column($this->spaces->spaces($actor), 'key');
         if (in_array(DepartmentSpaceNavigation::ME[0], $keys, true)) {
             $links[] = ['title' => 'Me', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
+        }
+        // APPR-1a: only for someone who can decide something; the number sits on the account button, not on this row.
+        if ($actor->hasAnyPermission($this->approvals->approvalPermissions())) {
+            $links[] = ['title' => 'Approvals & tasks', 'href' => route('approvals.index', absolute: false)];
         }
         foreach ([
             ['hr.roster.view.own', 'My roster', 'hr.roster.index'],
