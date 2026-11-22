@@ -26,28 +26,64 @@ export type NoteVitals = {
     notRead: string[];
 };
 
-// "Check" marks, not judgement: a reading outside these ranges is still filled, but the line says "Check: ..." so a typo in the
-// note does not slide into the record unseen. A value inside a range (the ends included) has no Check flag.
-// Typo-check ranges (adult, paediatric and emergency) approved by Dr Fatin Adilah, 21 Nov 2026. Replaced by the triage guideline's limits in Q-12.
-const USUAL: Partial<Record<VitalsField, [number, number]>> = {
-    systolic_bp: [50, 250],
-    diastolic_bp: [30, 150],
-    pulse_bpm: [35, 220],
-    temperature_celsius: [34, 42],
-    spo2_percent: [70, 100],
+// "Check" marks, not judgement: a reading at or past the triage guideline's RED limit is still filled, but the line says "Check: ..." so a
+// typo in the note does not slide into the record unseen. The limits are the approved TRI-1a guideline's (signed by Dr Fatin Adilah) and
+// arrive with the consultation; with no guideline in force there is no Check flag. The age band picks adult or child limits; an unknown
+// band checks both, as the triage form does. Whole hundredths, inclusive (very_high: value >= limit, very_low: value <= limit), like
+// triage-zone.ts (kept in step by the same rule, not imported, so this file stays loadable on its own).
+export type VitalLimits = {
+    ageBand: 'adult' | 'child' | 'unknown';
+    limits: {
+        reading: string;
+        age_band: 'adult' | 'child';
+        direction: 'very_low' | 'very_high';
+        limit_value: string;
+        zone: 'yellow' | 'red';
+    }[];
 };
 
-export const isUnusual = (values: Partial<Record<VitalsField, string>>) =>
-    (Object.keys(values) as VitalsField[]).some((field) => {
-        const range = USUAL[field];
-        const value = Number.parseFloat(values[field] ?? '');
+const hundredths = (value: string): number | null => {
+    const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value.trim());
+
+    return match
+        ? Number(match[1]) * 100 + Number((match[2] ?? '0').padEnd(2, '0'))
+        : null;
+};
+
+export const crossesRedLimit = (
+    values: Partial<Record<VitalsField, string>>,
+    vitalLimits: VitalLimits | null,
+): boolean => {
+    if (vitalLimits === null) {
+        return false;
+    }
+
+    const bands =
+        vitalLimits.ageBand === 'unknown'
+            ? ['adult', 'child']
+            : [vitalLimits.ageBand];
+
+    return (Object.keys(values) as VitalsField[]).some((field) => {
+        const value = hundredths(values[field] ?? '');
 
         return (
-            range !== undefined &&
-            Number.isFinite(value) &&
-            (value < range[0] || value > range[1])
+            value !== null &&
+            vitalLimits.limits.some((limit) => {
+                const bound = hundredths(limit.limit_value);
+
+                return (
+                    limit.zone === 'red' &&
+                    limit.reading === field &&
+                    bands.includes(limit.age_band) &&
+                    bound !== null &&
+                    (limit.direction === 'very_high'
+                        ? value >= bound
+                        : value <= bound)
+                );
+            })
         );
     });
+};
 
 const num = (text: string) => Number.parseFloat(text.replace(',', '.'));
 const between = (value: number, low: number, high: number) =>
