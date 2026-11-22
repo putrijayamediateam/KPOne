@@ -317,6 +317,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    a reason, no reason refused, each entry point, and an audit row with the reason and no personal data. Until then the staff procedure in
    `docs/pilot/PATIENT-DUPLICATES.md` applies. A new permission comes back to the coordinator and the owner first.
 
-- **Follow-up (Lead UI/UX Designer, 20 Nov 2026, not in TRI-1b):** make "Apply" an outline button on every
-  Registration board tab (one filled button per view). TRI-1b makes it outline on the Triage tab only. A separate
-  small piece; check the frontend tests that mount the board before changing it.
+- **Follow-up (Lead UI/UX Designer, 20 Nov 2026, not in TRI-1b), built 21 Nov 2026 on
+  `feature/reg-apply-outline`:** "Apply" is an outline button on every Registration board tab, so Register Visit
+  stays the one filled button (one filled button per view). The owner approved, in this team session, changing
+  the one existing assertion that pinned the TRI-1b rule (`tests/Frontend/tri-1b-triage-zone.test.mjs`, the
+  Apply variant line). Frontend only.
