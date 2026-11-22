@@ -54,6 +54,8 @@ const props = defineProps<{
     };
     serverNow: string | null;
     timezone: string | null;
+    // DAY-1a (Daniel, 22 Nov 2026): My day shows a compact Today (time, status and an outline Clock in); the big ring stays on Me.
+    compact?: boolean;
 }>();
 
 // The browser only ticks a display. It starts from the server's own "now", so a wrong device clock cannot change it,
@@ -168,7 +170,45 @@ const tileList = computed(() =>
 
 <template>
     <div class="me-home">
-        <div class="me-top">
+        <div v-if="compact && ring" class="me-compact" data-test="me-compact">
+            <div class="min-w-0 space-y-1">
+                <p class="me-time" data-test="me-time">{{ time }}</p>
+                <div
+                    v-if="status"
+                    class="me-status"
+                    :class="`is-${status.tone}`"
+                >
+                    <span class="me-dot" aria-hidden="true" />
+                    <span>{{ status.word }}</span>
+                    <span v-if="status.line" class="me-status-line">{{
+                        status.line
+                    }}</span>
+                </div>
+                <p v-if="ring.state === 'in'" class="me-status-line">
+                    Worked {{ workedText }}
+                </p>
+                <p v-if="ring.refusal" class="me-refusal">{{ ring.refusal }}</p>
+            </div>
+            <button
+                v-if="ring.state === 'out'"
+                type="button"
+                class="me-compact-button"
+                data-test="me-clock-in"
+                @click="press()"
+            >
+                <Camera class="size-4" aria-hidden="true" />Clock in
+            </button>
+            <button
+                v-else-if="ring.state === 'in'"
+                type="button"
+                class="me-compact-button"
+                data-test="me-clock-out"
+                @click="press()"
+            >
+                Clock out
+            </button>
+        </div>
+        <div v-else-if="!compact" class="me-top">
             <p v-if="greeting" class="me-greet">{{ greeting.text }}</p>
             <p v-if="greeting" class="me-date">{{ greeting.date }}</p>
             <p class="me-time" data-test="me-time">{{ time }}</p>

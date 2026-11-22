@@ -1033,3 +1033,47 @@
         min-height: 36px;
     }
 }
+
+/* DAY-1a (Daniel, 22 Nov 2026): the compact Today on My day: the time, the status and an outline Clock in in one calm card. */
+.space-shell .me-compact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    padding: 16px;
+    border: 1px solid var(--space-line);
+    border-radius: var(--space-radius-card);
+    background: var(--space-surface);
+}
+.space-shell .me-compact .me-time {
+    margin: 0;
+    font-size: 32px;
+}
+.space-shell .me-compact .me-status {
+    margin-top: 8px;
+    justify-content: flex-start;
+}
+.space-shell .me-compact-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 24px;
+    border: 2px solid var(--space-brand);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--space-brand);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+.space-shell .me-compact-button:focus-visible {
+    outline: 3px solid var(--space-accent);
+    outline-offset: 3px;
+}
+@media (min-width: 1024px) {
+    .space-shell .me-compact-button {
+        min-height: 36px;
+    }
+}

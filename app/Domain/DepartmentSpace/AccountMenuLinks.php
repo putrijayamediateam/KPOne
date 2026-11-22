@@ -2,6 +2,7 @@
 
 namespace App\Domain\DepartmentSpace;
 
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Approvals\ApprovalSources;
 use App\Models\User;
 
@@ -23,6 +24,14 @@ final class AccountMenuLinks
     public function for(User $actor): array
     {
         $links = [];
+        // DAY-1a: My day first, and the Main Menu as a link (owner, 22 Nov 2026). Neither is shown to the TV account, which gets none.
+        $human = ! $actor->hasRole(PermissionCatalogue::QUEUE_DISPLAY_ROLE);
+        if ($human) {
+            $links[] = ['title' => 'My day', 'href' => route('my-day', absolute: false)];
+        }
+        if ($human && $actor->can('dashboard.view.own')) {
+            $links[] = ['title' => 'Main menu', 'href' => route('dashboard', absolute: false)];
+        }
         $keys = array_column($this->spaces->spaces($actor), 'key');
         if (in_array(DepartmentSpaceNavigation::ME[0], $keys, true)) {
             $links[] = ['title' => 'Me', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
