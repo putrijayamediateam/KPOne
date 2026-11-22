@@ -10,6 +10,11 @@ margin denominator, estimates, free lines, units, time zones, an index and more 
 
 **Owner decision 2026-11-22** (relayed by B.E.R.N.I.S.S): the purchasing order starts with this slice.
 
+Revision 2 is OK by Mei Ling (22 Nov), with two small wording notes applied.
+
+**For the owner:** (1) the page ranks by Sales or Gross profit only, not units (asked through B.E.R.N.I.S.S); (2) a
+line charged RM 0.00 is shown as "given free", not as sold below cost, while its cost still counts.
+
 ## What staff see
 
 A new read-only page, **Medicine sales** (`/inventory/medicine-sales`, `Inventory/MedicineSales.vue`), in the Classic
@@ -99,7 +104,8 @@ Everything follows the **invoice**, so each line's sale, quantity and cost belon
   The totals line then says "N medicines with cost not complete are left out of profit and margin."
 - **Sold below cost:** a line counts when its cost is complete, its line total is above RM 0.00 and less than its
   cost. The shortfall is cost − line total. This is per line, so one cheap sale shows even when the month's margin is
-  positive. A line at RM 0.00 is counted as **given free** instead.
+  positive. A line at RM 0.00 is counted as **given free** instead. Its cost still counts in the cost and gross profit
+  totals (a real cost with no sale), and the disclosure says so.
 - **Left out:**
   - medicine returned after dispensing (DSP-7): it is not taken off, as in STK-28 and STK-43;
   - treatment-room use, which is not a sale.
@@ -158,8 +164,8 @@ written, the page is not shown.
   and paging.
 - Ranking by Sales and Gross profit, with the tiebreak; the top 25 cut and "of N".
 - Audit row: ids and codes only; no row is written on a 403; if the audit write fails, the page is not shown (503).
-- A voided invoice reissued in a later month: counted once, in the reissue month; one finalised line per dispensary
-  item.
+- A voided invoice reissued in a later month: counted once, in the reissue month. The check runs across months
+  (original voided in month M, reissue in M+1), so a dispensary item is never counted in both.
 - Dispensing recorded after the invoice: its cost is still included.
 - The total margin's denominator leaves out medicines with incomplete cost.
 - A line costed from an order estimate shows "(estimate)".
