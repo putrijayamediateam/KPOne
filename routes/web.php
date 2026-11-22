@@ -77,6 +77,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
+use App\Http\Controllers\MyDayController;
 use App\Http\Controllers\OpeningImportController;
 use App\Http\Controllers\PanelClaimAdjustmentController;
 use App\Http\Controllers\PanelClaimPackCopiesController;
@@ -732,6 +733,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)
         ->middleware('permission:dashboard.view.own')
         ->name('dashboard');
+    // DAY-1a: My day, the person's own first page (the TV account is refused in the controller).
+    Route::get('my-day', [MyDayController::class, 'show'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('my-day');
 
     Route::middleware('permission:visits.view.branch,queue.view.own,queue.view.branch')->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
