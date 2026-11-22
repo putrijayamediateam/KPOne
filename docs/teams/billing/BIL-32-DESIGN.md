@@ -34,7 +34,8 @@ Design note for review (Kumar). Classic only. Synthetic data only; nothing here 
 
 ### 2.2 View-only close pages (agreed with Kavitha)
 
-- New permission `payments.cash_closing.view.branch` for `branch_manager`. It opens the Daily cash closing and Monthly
+- New permission `payments.cash_closing.view.branch` for `branch_manager` (owner approved, 22 Nov 2026: "approve the
+  Branch Manager cash closing view permission"; branch_manager only, view-only). It opens the Daily cash closing and Monthly
   cash closing pages read only.
 - A Branch Manager approves but never records a count. Counting stays on `payments.reconcile.branch`, which they don't
   hold.
@@ -154,3 +155,4 @@ The count, approval, and every guarded money write lock the branch-day row in on
 1. Approvers: keep all (CA Supervisor, Director, Branch Manager, Finance Officer).
 2. Pause: A, the counted day only.
 3. Panel claim adjustments on a locked day's invoice: allowed.
+4. New `payments.cash_closing.view.branch` for `branch_manager` only, view-only: approved.
