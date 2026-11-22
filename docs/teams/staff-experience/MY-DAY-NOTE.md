@@ -1,6 +1,6 @@
 # DAY-1: the "My day" first page (design note)
 
-Status: **DRAFT for the owner, not built.** Owner decision 31 (20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-proposals.md`):
+Status: **owner decisions recorded (22 Nov 2026), not built.** Owner decision 31 (20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-proposals.md`):
 "A 'My day' page as each role's first page, with work items and a personal routine checklist that resets daily."
 This note says what the page shows, what it replaces, where the routine checklist is stored, and how it is built in slices. It
 authorises nothing by itself. Synthetic data only. Written by Staff Experience (Kavitha, Aiman's review to come) on 22 Nov 2026
@@ -100,7 +100,7 @@ most. Option B (owner's call): make "My day" the first page for **every** role, 
 
 | Slice | What | Existing assertions I expect to touch (listed for the owner first) |
 |---|---|---|
-| DAY-1a | the `/my-day` page with blocks 1, 2 (hidden until APPR-1a) and 4, an account-menu link, and the landing rule of section 5 | `WorkspaceTest`, `SecurityHardeningTest`, `LocumSignInTest` and `QueueDisplayTest` pin where each role lands; the Main Menu roles change from `dashboard` to `my-day`; the account-menu link list assertion; none for the roles that keep their board |
+| DAY-1a | the `/my-day` page with blocks 1, 2 (hidden until APPR-1a) and 4, an account-menu link, and the landing rule of section 5 | **One test changes:** `WorkspaceTest::test_workspace_landing_is_role_aware_without_implying_clinical_authority` (lines 16-18): `director`, `technical_admin` and `hr_manager` change from `'dashboard'` to `'my-day'`, and the new roles and the other Main Menu roles are added with `'my-day'`. `SecurityHardeningTest` (the Main Menu page still opens), `LocumSignInTest` and `QueueDisplayTest` (locum and TV landing) pin behaviour that does not change, so they should pass untouched; I will confirm by running them before the PR. The account-menu link list may need one line if a test pins it (checked at build time). |
 | DAY-1b | the routine checklist (block 3): tables, `MyRoutineService`, the add / rename / reorder / hide / tick routes, the page block | none expected |
 | DAY-1c | (optional, after APPR-1a) connect block 2 to the inbox count | none |
 
@@ -110,7 +110,7 @@ midnight, which has failed tests before, so dates come from the branch time zone
 two concurrent adds (a real two-process PostgreSQL test in the serial Contention suite); titles never reach audit or any report; the
 TV account gets 403; no patient value appears in the payload.
 
-## 8. Questions for the owner (plain words; my recommendation first)
+## 8. Questions for the owner (answered 22 Nov 2026; see section 11)
 1. **Which roles land on "My day"?** Recommend the table in section 5: only the roles that today land on the Main Menu, so the
    doctor, CA and CA Supervisor keep their boards. (Alternative: everyone, with the board one click away.)
 2. **Is the routine strictly personal?** Recommend yes: private to the person, no manager view, no completion reports.
@@ -121,7 +121,7 @@ TV account gets 403; no patient value appears in the payload.
 6. **Routine size.** Recommend 20 items of up to 120 characters each; say if you want more.
 
 ## 9. Risks
-- **Landing change** touches four existing tests; each change is a one-line expectation per role and is listed for the owner first.
+- **Landing change** changes one existing test (`WorkspaceTest`, three expectations plus the new roles); listed for the owner first. Three other tests that mention the landing are expected to pass unchanged and are run before the PR.
 - **Cost:** block 1 reuses own-data reads the Me page already makes; block 2 is one cached count; block 3 is two small indexed queries.
 - **Scope creep:** people will ask for shared lists, reminders and manager views. Each is a different feature with different privacy
   rules and stays out of DAY-1.
@@ -129,3 +129,13 @@ TV account gets 403; no patient value appears in the payload.
 ## 10. After this note
 Owner answers the six questions; Daniel looks at the page sketch (section 3); Aiman reviews; DAY-1a is built, then DAY-1b. The
 Approvals inbox (APPR-1a) can be built first or in parallel; DAY-1a works without it.
+
+## 11. Owner decisions, 22 Nov 2026 (the owner's own words, relayed by B.E.R.N.I.S.S)
+"My day: 1 Main Menu roles, 2 yes, 3 no, 4 yes, 5 yes, 6 yes."
+1. **Landing:** only the roles that land on the Main Menu today, plus the three new roles; the Resident Doctor, CA and CA Supervisor keep their boards (section 5 table, option A).
+2. **The routine is strictly personal** (no manager view, no completion reports).
+3. **No shared routine now.**
+4. **The Main Menu stays** as a link in the account menu.
+5. **The routine resets at midnight in the branch's time zone.**
+6. **20 items of 120 characters.**
+Next: Aiman's review, Daniel's look at the page sketch, then DAY-1a. The one existing test to change is listed in section 7 for the owner before any edit.
