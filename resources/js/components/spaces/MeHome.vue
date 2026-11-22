@@ -172,7 +172,11 @@ const tileList = computed(() =>
 
 <template>
     <div class="me-home">
-        <div v-if="compact && ring" class="me-compact" data-test="me-compact">
+        <div
+            v-if="compact && ring && part !== 'rest'"
+            class="me-compact"
+            data-test="me-compact"
+        >
             <div class="min-w-0 space-y-1">
                 <p class="me-time" data-test="me-time">{{ time }}</p>
                 <div
