@@ -36,6 +36,9 @@ class AgentToolGatewayTest extends VisitTestCase
         'panel.claims_summary' => 'insights.view.organisation',
         'system.health' => 'ai_agents.view.organisation',
         'connector.list_branches' => 'ai_connector.use.organisation',
+        'connector.visits_by_state' => 'insights.view.organisation',
+        'connector.queue_now' => 'insights.view.organisation',
+        'connector.panel_claims_made' => 'insights.view.organisation',
     ];
 
     private AgentToolGateway $gateway;
