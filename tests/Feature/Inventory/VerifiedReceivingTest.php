@@ -93,9 +93,9 @@ class VerifiedReceivingTest extends VisitTestCase
             $this->selectBranch($actor);
             try {
                 app(ProcurementService::class)->receive($actor, $f['order'], $f['payload']);
-                $this->assertSame('ca_supervisor', $role);
+                $this->assertContains($role, ['ca_supervisor', 'store_admin']);
             } catch (AuthorizationException) {
-                $this->assertNotSame('ca_supervisor', $role);
+                $this->assertNotContains($role, ['ca_supervisor', 'store_admin']);
             }
             $f = $this->fixture();
             $p = $this->rich($f, [$this->lot('2.000', 'quarantined', 'damaged')], '2.000');

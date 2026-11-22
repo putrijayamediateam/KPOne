@@ -12,6 +12,7 @@ use App\Domain\Shared\TrialData\PhaseTwoClinicDay;
 use App\Domain\Shared\TrialData\PlaceholderFiles;
 use App\Domain\Shared\TrialData\TrialDataContext;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\PendingCommand;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
@@ -382,6 +384,31 @@ class TrialDataCommandTest extends TestCase
         $after = $this->counts();
         $this->runPhase('4')->expectsOutputToContain('already complete')->assertExitCode(Command::SUCCESS);
         $this->assertSame($after, $this->counts());
+    }
+
+    /**
+     * Phase 5 adds an "earlier today" attendance session with overtime. Just after midnight in Kuala Lumpur
+     * (16:00 to 16:59 UTC) that session is only minutes long, so the overtime asked for must fit it; and until 08:30 there the
+     * fictional incident, reported at 08:30, must be on an earlier day. The clock is frozen
+     * at the latest past occurrence of each UTC time, so it stays close to the database's own clock.
+     */
+    #[DataProvider('justAfterKualaLumpurMidnight')]
+    public function test_phase_five_works_just_after_midnight_in_kuala_lumpur(string $utcTime): void
+    {
+        $at = CarbonImmutable::now('UTC')->setTimeFromTimeString($utcTime);
+        $this->travelTo($at->isFuture() ? $at->subDay() : $at);
+        Storage::fake('local');
+        $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
+
+        $this->runPhase('5')->assertExitCode(Command::SUCCESS);
+        $this->assertSame(1, DB::table('hr_overtime_requests')->where('status', 'approved')->count());
+        $this->assertLessThanOrEqual(60, (int) DB::table('hr_overtime_requests')->value('minutes_approved'));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function justAfterKualaLumpurMidnight(): array
+    {
+        return ['00:04 in Kuala Lumpur' => ['16:04:00'], '00:30 in Kuala Lumpur' => ['16:30:00'], '01:30 in Kuala Lumpur' => ['17:30:00'], '08:00 in Kuala Lumpur' => ['00:00:00']];
     }
 
     public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
