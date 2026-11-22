@@ -1,6 +1,6 @@
 # APPR-1: the "Approvals & tasks" inbox (design note)
 
-Status: **DRAFT for the owner, not built.** Owner decision 30 (20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-proposals.md`):
+Status: **owner decisions recorded (22 Nov 2026), not built.** Owner decision 30 (20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-proposals.md`):
 "One 'Approvals & tasks' inbox listing every approval waiting for the person; each opens its own page to decide (the rules behind each
 approval do not change)." This note says what the inbox lists, how it counts, who sees what, and how it is built in slices. It
 authorises nothing by itself. Synthetic data only. Written by Staff Experience (Kavitha, with Aiman's review to come) on 22 Nov 2026
@@ -126,7 +126,7 @@ No rule, permission, route, migration, table or approval behaviour of any owning
 
 | Slice | Owner | Content | Existing assertions touched |
 |---|---|---|---|
-| APPR-1a | Staff Experience | the contract, the registry, `/approvals` page, `/approvals/count`, the number; **sources: none yet except the five that already have a cheap count** (cash close, patient merge, Panel price change, supplier invoice, purchase request) | the exact Clinic management map in `ClinicManagementTest` gets `/approvals`, **only if** the owner wants a hub row (Q3); `DepartmentSpaceMatrixTest` is not affected |
+| APPR-1a | Staff Experience | the contract, the registry, `/approvals` page with an Approvals section and a Tasks section, `/approvals/count`, the number next to Me, a Clinic management row, the "N waiting at other branches" line; **sources: only the five that already have a cheap count** (cash close, patient merge, Panel price change, supplier invoice, purchase request) | **One line** in the exact map of `ClinicManagementTest::test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role`: `'/approvals' => ApprovalSources::decidePermissions(),` (the union of every registered source's decide permission, taken from the registry, so adding a source later never edits the test). If a source also needs a role (as the DSP-7b returns list needs `ca_supervisor`), its hub exception is added the way DSP-7b's was and listed then. `DepartmentSpaceMatrixTest` is not affected. |
 | APPR-1b | Inventory (Zulkifli) | stock sources (3.2), reusing each page's own list query | none expected |
 | APPR-1c | Billing (Farah) | refund, responsibility, adjustment; a "Refunds waiting" list so the refund has a place to open | none expected |
 | APPR-1d | HR (Liyana) | all HR sources (3.4), and the HR space claims count is fixed to exclude the viewer's own | the HR space count assertion, if it pins the old number |
@@ -144,7 +144,7 @@ exists; the count equals the owning page's own waiting count for a seeded case; 
 - a branch item never appears without an effective assignment at the active branch;
 - the count endpoint does not call a page service (a source test fails if `*PageService` is imported by an inbox class).
 
-## 6. Questions for the owner (plain words)
+## 6. Questions for the owner (answered 22 Nov 2026; see section 9)
 
 1. **Approvals only, or tasks too?** The doctor's check of prepared medicine, and memos or SOPs to read, are tasks assigned to one
    person, not decisions. My recommendation: show approvals first, add the doctor check and "to read" items as a second section in
@@ -174,3 +174,17 @@ exists; the count equals the owning page's own waiting count for a seeded case; 
 ## 8. After this note
 Owner answers the six questions; Daniel looks at the page sketch (section 4.2); Aiman reviews; then APPR-1a is built. "My day" (decision
 31) comes next as its own note and will link to this inbox.
+
+## 9. Owner decisions, 22 Nov 2026 (the owner's own words, relayed by B.E.R.N.I.S.S)
+"Approvals inbox: 1 yes, 2 no, 3 yes, 4 yes, 5 yes, 6 yes."
+1. **Tasks are a second section; states are left out.** v1 Tasks: the doctor's check of prepared medicine, and memos and SOPs to
+   read. Held batches, active recalls, the controlled-register check, stock review worklists and similar states stay on their own pages.
+2. **No amounts** (nor names or reasons) on any row.
+3. **The count sits next to Me, plus a Clinic management row.** The exact test line is in section 5 (APPR-1a); it is listed for the
+   owner before any edit.
+4. **Active branch plus a muted "N waiting at other branches"** (with branch names) for people who can switch branches. Organisation-wide
+   items (HR, Panel price, patient merge) always show.
+5. **The HR space claims count is fixed to exclude the viewer's own claims, in the HR slice (APPR-1d).** The website release
+   maker-is-not-approver gap is a **separate later item**, not part of this work.
+6. **Billing adds a small "waiting" list for refunds and Panel responsibility proposals** (APPR-1c), so those rows open a useful page.
+Next: Aiman's review, Daniel's look at the page sketch (section 4.2), then APPR-1a.
