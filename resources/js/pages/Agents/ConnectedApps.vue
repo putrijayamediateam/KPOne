@@ -83,8 +83,14 @@ const disconnect = () => {
             class="rounded-xl border border-dashed p-5 text-sm text-muted-foreground"
             data-test="connected-apps-empty"
         >
-            No apps are connected. To connect Claude, start from its Connectors
-            settings, then allow it on the KPOne screen that opens.
+            <template v-if="connectorEnabled">
+                No apps are connected. To connect Claude, start from its
+                Connectors settings, then allow it on the KPOne screen that
+                opens.
+            </template>
+            <template v-else>
+                Connecting is not available until the connector is switched on.
+            </template>
         </div>
 
         <ul v-else class="flex flex-col gap-4">

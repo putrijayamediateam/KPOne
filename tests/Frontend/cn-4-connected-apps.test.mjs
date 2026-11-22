@@ -46,3 +46,18 @@ test('the Agents page links to Connected apps only when the person may connect, 
         /agents\.connected-apps[\s\S]*Connected apps<\/a> in KPOne, or disconnect KPOne in the app/,
     );
 });
+
+test('while the connector is switched off the empty state does not invite connecting, and the Agents link is a header action button', () => {
+    const page = read('resources/js/pages/Agents/ConnectedApps.vue');
+    const agents = read('resources/js/pages/Agents/Index.vue');
+
+    assert.match(
+        page,
+        /Connecting is not available until the connector is switched on\./,
+    );
+    assert.match(page, /v-if="connectorEnabled"/);
+    assert.match(
+        agents,
+        /<template v-if="canConnect" #actions>[\s\S]*variant="outline"[\s\S]*\/agents\/connected-apps/,
+    );
+});

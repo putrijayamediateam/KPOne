@@ -121,16 +121,18 @@ const toggle = () => {
         <PageHeader
             title="AI agents"
             description="The AI agents registered in KPOne and what they did recently."
-        />
-        <p v-if="canConnect" class="text-sm">
-            <Link
-                href="/agents/connected-apps"
-                class="underline underline-offset-4"
-                data-test="connected-apps-link"
-            >
-                Connected apps
-            </Link>
-        </p>
+        >
+            <template v-if="canConnect" #actions>
+                <Button variant="outline" as-child>
+                    <Link
+                        href="/agents/connected-apps"
+                        data-test="connected-apps-link"
+                    >
+                        Connected apps
+                    </Link>
+                </Button>
+            </template>
+        </PageHeader>
         <p class="text-sm text-muted-foreground" data-test="agents-notice">
             These are AI agents, not staff. They follow fixed rules over KPOne
             data, propose work for people to approve and change no clinic data.
