@@ -4,8 +4,8 @@ import { computed, reactive, watch } from 'vue';
 import type { Option } from '@/components/hr/records/types';
 
 /**
- * HR-4a "Ask for a correction" form state (HR-PLAN 11.3 rule 6): the same request and key for the Classic sheet
- * (`components/hr/records/CorrectionSheet.vue`) and Version 2. Moved out unchanged.
+ * HR-4a "Ask for a correction" form state (HR-PLAN 11.3 rule 6): the request and key for
+ * `components/hr/records/CorrectionSheet.vue`.
  */
 export type CorrectionSheetProps = {
     kind: string;

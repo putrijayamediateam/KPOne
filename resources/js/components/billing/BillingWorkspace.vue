@@ -41,7 +41,7 @@ import type {
     Receipt,
     Responsibility,
 } from '@/types/billing';
-import { myr, outstandingSen, toSen } from '@/types/billing';
+import { myr, myrNoBreak, outstandingSen, toSen } from '@/types/billing';
 
 const props = withDefaults(
     defineProps<{ billing: BillingPage; manage?: boolean }>(),
@@ -358,6 +358,13 @@ const reverse = (receipt: Receipt) =>
                 :context="billing.activity"
                 :notes-context="billing.notes"
             />
+            <ActionLink
+                v-if="!manage && billing.panelClaim"
+                :href="billing.panelClaim.href"
+                variant="outline"
+                data-testid="panel-claim-link"
+                >{{ billing.panelClaim.label }}</ActionLink
+            >
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >
@@ -1049,23 +1056,16 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
-                                <span class="v2:hidden"
+                                <span
                                     >·
                                     <span class="capitalize">{{
                                         receipt.status
                                     }}</span></span
                                 >
                             </div>
-                            <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
-                            <div class="mt-1 hidden v2:block">
-                                <StatusBadge
-                                    :status="receipt.status"
-                                    :tone="receiptTone(receipt.status)"
-                                />
-                            </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="text-xs text-muted-foreground tabular-nums v2:mt-1"
+                                class="text-xs text-muted-foreground tabular-nums"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -1076,7 +1076,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-xs break-words text-muted-foreground v2:mt-1"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
@@ -1159,6 +1159,27 @@ const reverse = (receipt: Receipt) =>
                             >Approve</Button
                         ></template
                     >
+                </div>
+                <div
+                    v-if="billing.panelVisitLimit?.over"
+                    role="note"
+                    data-testid="panel-visit-limit"
+                    class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-xs text-warning-strong"
+                >
+                    <p class="flex items-center gap-2 font-semibold">
+                        <span
+                            aria-hidden="true"
+                            class="size-2 shrink-0 rounded-full bg-current"
+                        />
+                        Above the Panel's limit per visit
+                    </p>
+                    <p>
+                        This visit's total is
+                        {{ myrNoBreak(billing.panelVisitLimit.totalSen) }}; the
+                        Panel's limit is
+                        {{ myrNoBreak(billing.panelVisitLimit.limitSen) }}. This
+                        is a warning only. You can continue.
+                    </p>
                 </div>
                 <div
                     v-if="billing.panelShortfall"

@@ -239,6 +239,73 @@ adds nothing. Every change goes through the domain services as a named demo acco
 
 It adds no Panels, patients, visits or cost policy. Never run it with real data or in production.
 
+## Trial server demo data (TRIAL-DATA)
+
+A trial server runs with `APP_ENV=production` and holds fictional data only, so the demo seeders above refuse to
+run there. `php artisan kpone:trial-data` fills it instead, one phase at a time, through the same domain services
+the screens use. The design and the phase plan are in [design/TRIAL-DATA-COMMAND.md](design/TRIAL-DATA-COMMAND.md).
+Phases 1 (foundation), 2 (a clinic day), 3 (Panel claims), 4 (inventory), 5 (HR) and 6 (compliance, website drafts, triage guideline, QR links, merges) are built.
+
+Before the first run: migrate and seed the reference data, create the one Director with
+`php artisan kpone:bootstrap-director`, and make sure the Director has a current assignment at all three branches
+(run `php artisan kpone:director-branches` if it exists on your version). Then, on the trial server only:
+
+```bash
+# in the server environment, for this run only
+KPONE_TRIAL_DATA_ALLOWED=true
+php artisan config:clear
+php artisan kpone:trial-data --phase=1
+php artisan kpone:trial-data --phase=2   # needs phase 1; asks no password
+php artisan kpone:trial-data --phase=3   # needs phase 1
+php artisan kpone:trial-data --phase=4   # needs phase 1 (phase 2 for the medicine return)
+php artisan kpone:trial-data --phase=5   # needs phase 1
+php artisan kpone:trial-data --phase=6   # needs phase 1
+# afterwards set KPONE_TRIAL_DATA_ALLOWED=false again and run php artisan config:clear
+```
+
+The command stops before changing anything unless the switch is on, it runs in an interactive terminal, there is
+exactly one active Director, every other account has a `.test` email, and the operator types the site's host name
+(the host of `APP_URL`). It asks once, hidden, for one shared password for the fictional `@kpjaya.test` accounts;
+the password is hashed at once and never printed, logged or audited. Phase 1 fills all three branches: 28 accounts (at each
+branch two doctors, two Clinic Assistants, two CA Supervisors and the TV account; once for the organisation the
+Panel Officer, Finance Officer, Administrator, HR Manager, Business Development, Marketing and Technical Admin,
+assigned to every branch), payment methods, visit reasons and preset diagnoses, and for each branch its letterhead,
+footer, approval limits, rooms and verified fictional doctor credentials; 12 generic medicines (one controlled) and
+6 services with Self-pay prices and Panel prices (proposed by the Panel Officer, approved by Finance), two fictional Panels, stock at every branch with real future expiry dates
+signed off by that branch's second CA Supervisor, and 30 fictional patients. Running it again adds
+nothing and writes no audit row; a run that adds records writes one system audit row (`trial_data.phase_completed`,
+counts only). It is never called from a seeder, migration, scheduler or deploy.
+
+Phase 2 runs one clinic day at every branch, dated the day it runs: two waiting-room TV posters (plain placeholder
+images marked "FICTIONAL TRIAL DATA") and one visit for each of the branch's ten patients, each ending in a different
+state: completed with cash, a discount, an MC, a referral and an attendance letter; a card receipt reversed and
+refunded, then paid in cash; a Panel visit whose first invoice was voided and reissued; part pay later; a
+medicine-only (OTC) visit; waiting at the Dispensary; returned to the doctor; held with a nebuliser step done;
+waiting, triaged and flagged not ready to call; and being seen, called to the treatment room. It ends with the
+card terminal close and the cash count for the day (approval waits until the day has ended). Each visit is made in
+one transaction and skipped on a rerun when the patient already has a visit.
+
+Phase 3 adds, at every branch, eleven fictional Panel patients with completed Panel visits and claims in every
+stage (prepared, submitted with a confirmed claim adjustment, queried, accepted, partly accepted, rejected, partly
+paid, paid by a remittance, a payment reversed by Finance, and a two-claim bulk claim on the second Panel), plus two
+Panel price changes from tomorrow (one approved, one waiting).
+
+Phase 4 runs the inventory workflows at every branch with the required independent people: purchasing with a matched
+and a waiting supplier invoice, a delivery exception, a supplier return, a batch hold, a governed count and write-offs,
+reorder and review acknowledgements, treatment-room usage, a controlled-register check, a medicine return and a cycle
+count; and once a cross-branch transfer with a short receipt and a supplier recall.
+
+Phase 5 fills KPOne HR: staff files, bank details, leave, rosters, attendance and overtime (clock-ins happen at the
+moment the command runs, with placeholder photos), credentials, an SOP, a memo, a letter, an appraisal, an incident,
+a discipline case, an open shift, a locum rate, staff claims, job positions, and a locked payroll run for last month
+with payslips and exports, using FICTIONAL statutory tables marked "NOT OFFICIAL RATES — TRIAL ONLY". The HR Manager
+enters and prepares; the Director approves, checks, confirms and locks.
+
+Phase 6 fills clinic compliance (licences, fridge readings, a monthly audit and its task), text-only English and
+Bahasa Melayu website drafts with a private release freeze approved by the Director (nothing is published), the triage
+guideline (HR Manager enters, Director approves), a QR check-in link at every branch, and two patient merges (one
+approved, one waiting). Agents stay empty on a production server: they are registered only in local and testing.
+
 ## Ask KPOne read login (AG-7)
 
 Ask KPOne lets the owner ask Claude Code, on the computer that runs KPOne, about the data in KPOne. Claude reads

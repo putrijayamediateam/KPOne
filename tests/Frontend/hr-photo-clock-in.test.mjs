@@ -79,11 +79,7 @@ test("someone else's photo stays hidden until Show; your own shows; a correction
 });
 
 test('the dialog is mounted once in each layout', () => {
-    for (const layout of [
-        'AdminLayout.vue',
-        'ClinicLayout.vue',
-        'V2Layout.vue',
-    ]) {
+    for (const layout of ['AdminLayout.vue', 'ClinicLayout.vue']) {
         const source = read(`resources/js/layouts/${layout}`);
         assert.equal(
             (source.match(/<ClockPhotoDialog \/>/g) ?? []).length,

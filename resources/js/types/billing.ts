@@ -122,6 +122,8 @@ export type BillingPage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
     activity: InvoiceActivityLink;
+    /** BIL-35: the Panel claim button, for Panel Claims users only. */
+    panelClaim?: PanelClaimLink | null;
     backLink: { label: string; href: string } | null;
     patient: { name: string; patientNumber: string; profileUrl: string | null };
     visit: {
@@ -169,6 +171,12 @@ export type BillingPage = {
     };
     panel: Responsibility | null;
     panelShortfall: PanelShortfall | null;
+    /** PNL-26b: the Panel's limit per visit; a warning only. */
+    panelVisitLimit?: {
+        limitSen: number;
+        totalSen: number;
+        over: boolean;
+    } | null;
     panelAdjustment?: PanelAdjustment | null;
     deferment: Responsibility | null;
     payments: Receipt[];
@@ -218,6 +226,9 @@ export const amount = (sen: number): string => {
 /** "RM 1,234.50"; negative amounts read "−RM 12.00" (BIL-9 fixed "RM -1.-50"). */
 export const myr = (sen: number): string =>
     sen < 0 ? `\u2212RM ${amount(-sen)}` : `RM ${amount(sen)}`;
+/** Money that never breaks across lines (a no-break space between RM and the number). */
+export const myrNoBreak = (sen: number): string =>
+    myr(sen).replace(/ /g, '\u00a0');
 export const outstandingSen = (state: BillingState): number =>
     state.deferred + state.due_now;
 export const toSen = (text: string): string | null => {
@@ -335,4 +346,12 @@ export type PanelAdjustmentClaim = {
         claimAmountSen: number;
         recordedAt: string;
     }[];
+};
+
+/** BIL-35: straight to the invoice's Panel claim, or Create claim (read-only navigation). */
+export type PanelClaimLink = {
+    kind: 'open' | 'create';
+    label: string;
+    href: string;
+    claimNumber: string | null;
 };

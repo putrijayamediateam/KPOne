@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\StaffAccessService;
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -24,6 +25,7 @@ use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceNoteService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
+use App\Domain\Visit\Billing\Services\PanelClaimLink;
 use App\Domain\Visit\Billing\Services\PanelInvoicePrinting;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -104,6 +106,8 @@ class VisitHistoryService
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
                 'payments' => $canFinance ? route('billing.payments', $visit) : null,
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id),
+                // BIL-35: straight to the Panel claim, or Create claim, for Panel Claims users only.
+                'panelClaim' => app(PanelClaimLink::class)->for($actor, $visit, $invoice, 'invoice'),
             ],
         ];
     }
@@ -253,6 +257,7 @@ class VisitHistoryService
                 'source' => 'doctor',
                 'changeState' => $item->change_state ?? 'unchanged',
                 'dispensedQuantity' => $item?->quantity_dispensed,
+                'dispensedPacks' => $item ? DispensaryPackDisplay::text($item) : null,
                 'dispensedStatus' => $item?->status,
                 'dispensed' => $item ? $this->dispensedText($item) : null,
             ];
@@ -274,6 +279,7 @@ class VisitHistoryService
                 'source' => 'ca',
                 'changeState' => $item->change_state,
                 'dispensedQuantity' => $item->quantity_dispensed,
+                'dispensedPacks' => DispensaryPackDisplay::text($item),
                 'dispensedStatus' => $item->status,
                 'dispensed' => $this->dispensedText($item),
             ];

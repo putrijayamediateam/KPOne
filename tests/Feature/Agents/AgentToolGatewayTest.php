@@ -23,7 +23,7 @@ use Tests\Feature\Visit\VisitTestCase;
 /** AG-4: the data source boundary — permission, branch, allowlist, input, step log and the aggregate-only scan. */
 class AgentToolGatewayTest extends VisitTestCase
 {
-    /** Contract section 5; `system.health` (AG-10) joins the registry by tag. */
+    /** Contract section 5; `system.health` (AG-10) and the connector's tools (CN-1) join the registry by tag. */
     private const CONTRACT = [
         'insights.today' => 'insights.view.organisation',
         'insights.sales_summary' => 'insights.view.organisation',
@@ -35,6 +35,10 @@ class AgentToolGatewayTest extends VisitTestCase
         'money.day_summary' => 'insights.view.organisation',
         'panel.claims_summary' => 'insights.view.organisation',
         'system.health' => 'ai_agents.view.organisation',
+        'connector.list_branches' => 'ai_connector.use.organisation',
+        'connector.visits_by_state' => 'insights.view.organisation',
+        'connector.queue_now' => 'insights.view.organisation',
+        'connector.panel_claims_made' => 'insights.view.organisation',
     ];
 
     private AgentToolGateway $gateway;

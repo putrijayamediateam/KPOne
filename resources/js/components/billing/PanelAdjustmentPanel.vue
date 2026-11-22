@@ -21,7 +21,7 @@ import { myr, toSen } from '@/types/billing';
 /**
  * PCA-2 (Daniel's board v10, sections 1 and 2): the Panel share as "original + Panel claim adjustment" beside the
  * amount claimed, the button that changes the invoice, and a waiting request with Confirm adjustment and Withdraw
- * request. Shared by the claim page and the Billing page, Classic and Version 2 (a new rule, so both layouts). The
+ * request. Shared by the claim page and the Billing page. The
  * server decides every amount and refusal; this page only shows them. One card holds the figures (no card inside it);
  * a waiting request is its own block under the card (Daniel).
  */
@@ -248,9 +248,10 @@ const signed = (dir: string, value: number) =>
                     data-testid="panel-adjustment-change"
                 >
                     <h4 class="font-medium">Change the amount</h4>
+                    <!-- On a phone the long labels wrap inside the box instead of widening the page (Syafiq, 390 px). -->
                     <div class="flex flex-wrap gap-2">
                         <Button
-                            class="max-lg:min-h-11"
+                            class="max-lg:min-h-11 max-sm:!h-auto max-sm:w-full max-sm:justify-start max-sm:py-2 max-sm:text-left max-sm:whitespace-normal"
                             data-touch-target
                             v-if="adjustment.canRequest"
                             variant="outline"
@@ -259,7 +260,7 @@ const signed = (dir: string, value: number) =>
                             >Adjust Panel amount: changes the invoice</Button
                         >
                         <Button
-                            class="max-lg:min-h-11"
+                            class="max-lg:min-h-11 max-sm:!h-auto max-sm:w-full max-sm:justify-start max-sm:py-2 max-sm:text-left max-sm:whitespace-normal"
                             data-touch-target
                             v-if="canClaimOnly"
                             variant="outline"
@@ -332,7 +333,7 @@ const signed = (dir: string, value: number) =>
                     ></Button
                 >
                 <Button
-                    class="max-lg:min-h-11"
+                    class="max-lg:min-h-11 max-sm:!h-auto max-sm:w-full max-sm:justify-start max-sm:py-2 max-sm:text-left max-sm:whitespace-normal"
                     data-touch-target
                     v-if="adjustment.canRequest"
                     variant="outline"

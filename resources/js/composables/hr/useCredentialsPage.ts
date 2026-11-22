@@ -11,10 +11,9 @@ import type {
 import { dateLabel } from '@/components/hr/records/types';
 
 /**
- * The Credentials page's state and actions (HR-5a), shared by Classic (`pages/HR/Credentials.vue`) and Version 2
- * (`pages/HR/V2/Credentials.vue`), so both send the same requests with the same lock versions and idempotency keys. Moved
- * out of the Classic page unchanged; the Classic template did not change. A credential reference stays masked: it is shown
- * only through the audited Show component, and nothing is prefetched, cached or put in props.
+ * The Credentials page's state and actions (HR-5a) for `pages/HR/Credentials.vue`: every request, lock version and
+ * idempotency key. A credential reference stays masked: it is shown only through the audited Show component, and nothing
+ * is prefetched, cached or put in props.
  */
 export type Tab = 'my' | 'register' | 'settings';
 export type Cell = {

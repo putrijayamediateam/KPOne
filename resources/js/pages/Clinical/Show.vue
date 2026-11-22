@@ -15,6 +15,7 @@ import {
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
@@ -36,7 +37,7 @@ import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import {
-    isUnusual,
+    crossesRedLimit,
     parseVitalsFromNote,
     planFill,
 } from '@/lib/vitals-from-note';
@@ -47,6 +48,7 @@ import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttent
 import DispensaryCheckPanel from '@/pages/Clinical/Partials/DispensaryCheckPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
+import { myrNoBreak } from '@/types/billing';
 
 defineOptions({
     layout: {
@@ -177,10 +179,12 @@ const stillAutoFilled = computed(() =>
 const filledFromNote = computed(() =>
     stillAutoFilled.value.map((reading) => reading.label),
 );
-// Filled readings outside the usual ranges: still filled, but flagged "Check" so a typo in the note is not missed.
+// Filled readings at or past the guideline's red limit: still filled, but flagged "Check" so a typo in the note is not missed.
 const filledChecks = computed(() =>
     stillAutoFilled.value
-        .filter((reading) => isUnusual(reading.values))
+        .filter((reading) =>
+            crossesRedLimit(reading.values, props.clinical.vitalLimits),
+        )
         .map((reading) => reading.label),
 );
 // What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
@@ -517,6 +521,85 @@ const holdWithoutSaving = () => {
     treatmentPlanPanelRef.value?.discardDraft();
     unsavedWorkOpen.value = false;
     changeHoldState('hold');
+};
+
+// Q-14 (owner decision 21 Nov 2026): Complete Consultation never goes ahead with unsaved clinical work. The panel's button only
+// asks (request-complete); with nothing unsaved the existing "Complete consultation?" dialog opens as before, otherwise the doctor
+// first chooses. Either choice ends in that same confirm dialog (so the service dispositions are still confirmed), never in a
+// silent completion.
+const continueOpen = ref(false);
+const continueProcessing = ref(false);
+const continueAction = ref<'confirm' | 'secondary'>('confirm');
+const continueError = ref('');
+const requestComplete = () => {
+    if (form.processing || continueProcessing.value) {
+        return;
+    }
+
+    if (!hasUnsavedWork.value) {
+        treatmentPlanPanelRef.value?.openComplete();
+
+        return;
+    }
+
+    continueError.value = '';
+    continueOpen.value = true;
+};
+const saveAndContinue = () => {
+    continueAction.value = 'confirm';
+    continueProcessing.value = true;
+    continueError.value = '';
+
+    const proceed = () => {
+        continueOpen.value = false;
+        continueProcessing.value = false;
+        treatmentPlanPanelRef.value?.openComplete();
+    };
+    const saveTreatmentPlanThenContinue = () => {
+        const panel = treatmentPlanPanelRef.value;
+
+        if (!panel) {
+            proceed();
+
+            return;
+        }
+
+        panel.saveDraft(proceed, (message) => {
+            continueError.value = message;
+            continueProcessing.value = false;
+        });
+    };
+
+    if (!form.isDirty) {
+        saveTreatmentPlanThenContinue();
+
+        return;
+    }
+
+    form.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                adoptLatestRecord();
+                saveTreatmentPlanThenContinue();
+            },
+            onError: () => {
+                continueError.value =
+                    Object.values(form.errors)[0] ??
+                    'The clinical record could not be saved. Review the latest information and try again.';
+                continueProcessing.value = false;
+            },
+        },
+    );
+};
+const continueWithoutSaving = () => {
+    continueAction.value = 'secondary';
+    form.reset();
+    form.clearErrors();
+    treatmentPlanPanelRef.value?.discardDraft();
+    continueOpen.value = false;
+    treatmentPlanPanelRef.value?.openComplete();
 };
 
 const bmi = computed(() => {
@@ -943,6 +1026,39 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 class="inline-flex max-w-full rounded-md bg-muted px-2 py-1 text-xs break-words"
                                 >{{ clinical.visit.paymentMethodLabel }}</span
                             >
+                            <p
+                                v-if="clinical.visit.panelEstimate?.over"
+                                data-testid="consultation-panel-estimate"
+                                class="flex items-start gap-2 text-xs text-warning-strong"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="mt-1 size-2 shrink-0 rounded-full bg-current"
+                                />
+                                <span>
+                                    Estimated Panel total
+                                    {{
+                                        myrNoBreak(
+                                            clinical.visit.panelEstimate
+                                                .totalSen,
+                                        )
+                                    }}
+                                    is over the
+                                    {{
+                                        myrNoBreak(
+                                            clinical.visit.panelEstimate
+                                                .limitSen,
+                                        )
+                                    }}
+                                    limit. Estimate only<template
+                                        v-if="
+                                            clinical.visit.panelEstimate.partial
+                                        "
+                                        >: some items have no Panel price
+                                        yet.</template
+                                    ><template v-else>.</template>
+                                </span>
+                            </p>
                             <div
                                 v-if="clinical.visit.isPanel && panelNote"
                                 data-testid="consultation-panel-note"
@@ -1368,8 +1484,17 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     />
                                     <span
                                         >Check:
-                                        {{ filledChecks.join(', ') }} (unusual
-                                        value; is it a typo in the note?)</span
+                                        {{ filledChecks.join(', ') }} (at or
+                                        past the clinic's red limit; is it a
+                                        typo in the note?)
+                                        <span
+                                            v-if="clinical.vitalLimits"
+                                            class="font-normal text-muted-foreground"
+                                            >Triage guideline v{{
+                                                clinical.vitalLimits
+                                                    .versionNumber
+                                            }}.</span
+                                        ></span
                                     >
                                 </p>
                                 <p
@@ -1606,6 +1731,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 >
                     <TreatmentPlanPanel
                         ref="treatmentPlanPanelRef"
+                        @request-complete="requestComplete"
                         :visit-number="clinical.visit.visitNumber"
                         :branch-id="clinical.branch.id"
                         :plan="clinical.treatmentPlan"
@@ -1637,6 +1763,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             @update:open="unsavedWorkOpen = $event"
             @save-and-hold="saveAndHold"
             @hold-without-saving="holdWithoutSaving"
+        />
+        <UnsavedClinicalWorkContinueDialog
+            :open="continueOpen"
+            :unsaved-items="unsavedItems"
+            :processing="continueProcessing"
+            :processing-action="continueAction"
+            :error="continueError"
+            @update:open="continueOpen = $event"
+            @save-and-continue="saveAndContinue"
+            @continue-without-saving="continueWithoutSaving"
         />
     </main>
 </template>

@@ -16,8 +16,10 @@
             <exclude>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelClaimPackIssueRaceTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDispensaryPackTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
             <exclude>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
@@ -80,8 +82,10 @@
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimPackIssueRaceTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryPackTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
             <file>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</file>
             <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
@@ -142,6 +146,7 @@
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryPackTest.php</file>
             <file>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</file>
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
@@ -161,6 +166,7 @@
         <testsuite name="Contention2">
             <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimPackIssueRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
@@ -226,5 +232,8 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true" force="true"/>
         <server name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true"/>
+        <!-- PNL-28a: existing Panel fixtures approve a bill and then create the claim themselves, so the automatic claim is off in tests. Tests of the automatic claim switch it on. -->
+        <env name="PANEL_AUTO_CLAIMS" value="false" force="true"/>
+        <server name="PANEL_AUTO_CLAIMS" value="false"/>
     </php>
 </phpunit>

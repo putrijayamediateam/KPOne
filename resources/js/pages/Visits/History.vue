@@ -425,10 +425,21 @@ const totals = computed(() => {
                                     <div class="font-medium">Dispensed</div>
                                     <template v-if="medicine.dispensed">
                                         <div>
-                                            {{
-                                                text(medicine.dispensedQuantity)
-                                            }}
-                                            {{ medicine.unit }} ({{
+                                            <template
+                                                v-if="medicine.dispensedPacks"
+                                                >{{
+                                                    medicine.dispensedPacks
+                                                }}</template
+                                            >
+                                            <template v-else
+                                                >{{
+                                                    text(
+                                                        medicine.dispensedQuantity,
+                                                    )
+                                                }}
+                                                {{ medicine.unit }}</template
+                                            >
+                                            ({{
                                                 statusLabel(
                                                     medicine.dispensedStatus,
                                                 )

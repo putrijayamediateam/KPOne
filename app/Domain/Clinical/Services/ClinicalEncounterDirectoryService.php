@@ -7,9 +7,12 @@ use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
+use App\Domain\Clinical\Triage\TriageGuidelineService;
+use App\Domain\Clinical\Triage\TriageService;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Visit\Billing\Services\PanelVisitLimit;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
@@ -24,6 +27,8 @@ class ClinicalEncounterDirectoryService
         private TreatmentPlanDirectoryService $treatmentPlans,
         private DoctorDispensaryAttentionService $dispensaryAttention,
         private VisitReasonService $visitReasons,
+        private TriageGuidelineService $triageGuidelines,
+        private TriageService $triage,
     ) {}
 
     /** @return array<string, mixed> */
@@ -38,7 +43,7 @@ class ClinicalEncounterDirectoryService
                 'visit' => fn ($query) => $query->select([
                     'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_type',
                     'status', 'priority', 'visit_reason', 'assigned_doctor_user_id', 'registered_at', 'lock_version',
-                    'coverage_type', 'coverage_panel_name_snapshot', 'coverage_panel_note',
+                    'coverage_type', 'panel_id', 'coverage_panel_name_snapshot', 'coverage_panel_note',
                 ])->with([
                     'patient:id,organisation_id,patient_number,full_name,date_of_birth,sex',
                     'branch:id,organisation_id,code,name,timezone',
@@ -84,6 +89,13 @@ class ClinicalEncounterDirectoryService
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'
                     ? ($encounter->visit->coverage_panel_name_snapshot ?? 'Panel')
                     : 'Self-pay',
+                // PNL-26c: one line for the doctor, the Panel total of the orders so far against the Panel's limit per visit; never item prices.
+                // PNL-26c: the doctor is told only when the estimate is over the limit; an estimate under it is never sent.
+                'panelEstimate' => (function () use ($encounter): ?array {
+                    $estimate = app(PanelVisitLimit::class)->estimateForEncounter($encounter->visit, $encounter->id);
+
+                    return $estimate !== null && $estimate['over'] ? $estimate : null;
+                })(),
                 'registrationReason' => $this->visitReasons->summary($encounter->visit),
                 'registrationReasons' => $this->visitReasons->presentation($encounter->visit),
                 'registeredAt' => $encounter->visit->registered_at->toIso8601String(),
@@ -120,6 +132,9 @@ class ClinicalEncounterDirectoryService
                 'canResume' => $canActOnConsultation && $activeHold !== null && $actor->can('consultations.hold.own'),
             ],
             'vitals' => $this->vitals($vitals),
+            // Q-12: the red limits of the triage guideline in force and the patient's age band (never the signs), for the "Check" line on
+            // vitals read from the note. Null when no guideline is in force. Reference limits only; the doctor already sees the date of birth.
+            'vitalLimits' => $this->vitalLimits($actor, $encounter),
             'diagnoses' => $encounter->diagnoses->map(fn (EncounterDiagnosis $diagnosis): array => [
                 'diagnosisText' => $diagnosis->diagnosis_text,
                 'diagnosisCode' => $diagnosis->diagnosis_code,
@@ -279,6 +294,29 @@ class ClinicalEncounterDirectoryService
             ->orderByDesc('started_at')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * @return array{versionNumber: int, ageBand: string, limits: list<array{reading: string, age_band: string, direction: string, limit_value: string, zone: string}>}|null
+     */
+    private function vitalLimits(User $actor, ClinicalEncounter $encounter): ?array
+    {
+        // The caller already proved this is the actor's own consultation (the encounter lookup and the view gate); the limits are
+        // organisation reference data with no patient content, so no further permission is needed (owner decision 21 Nov 2026).
+        $guideline = $this->triageGuidelines->inForce($actor->organisation_id);
+
+        if ($guideline === null) {
+            return null;
+        }
+
+        return [
+            'versionNumber' => $guideline->version_number,
+            'ageBand' => $this->triage->ageBand($encounter->visit, $encounter->visit->branch->timezone, $guideline->child_age_limit_years),
+            'limits' => array_values(array_filter(
+                TriageService::limits($guideline),
+                fn (array $limit): bool => $limit['zone'] === 'red',
+            )),
+        ];
     }
 
     /** @return array<string, mixed> */
