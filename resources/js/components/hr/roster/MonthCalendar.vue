@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * HR-15f: the month calendar on My roster (owner, via B.E.R.N.I.S.S, 18 Nov 2026; layout by Daniel). Shared by Classic
- * and Version 2. The person's own approved shifts and their own open-shift asks only. From 640 px a Monday-first table;
+ * HR-15f: the month calendar on My roster (owner, via B.E.R.N.I.S.S, 18 Nov 2026; layout by Daniel). The person's own approved shifts and their own open-shift asks only. From 640 px a Monday-first table;
  * below it a list of the days that have something. A day with items is one button that opens the day sheet, which is the
  * same content as the phone list. Lines inside a cell are plain text, never interactive.
  */

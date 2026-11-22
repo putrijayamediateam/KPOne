@@ -35,12 +35,6 @@ const props = defineProps<{
     refresh: () => Promise<void>;
     /** Q-4b: the held consultation this control sits on; a refusal returns there instead of the queue board. */
     fromVisit?: string;
-    /**
-     * Optional: runs before the confirm dialog opens, so a page can ask something first (the V2 consultation page asks
-     * about unsaved clinical work). Nothing has been sent yet, so there is no busy state to clean up. Call `proceed`
-     * to carry on, or never call it to stop.
-     */
-    beforeStart?: (proceed: () => void) => void;
 }>();
 const emit = defineEmits<{ processing: [busy: boolean] }>();
 
@@ -68,12 +62,6 @@ const label = computed(() => callNextLabel(props.block));
 
 const start = () => {
     if (unavailable.value || processing.value) {
-        return;
-    }
-
-    if (props.beforeStart) {
-        props.beforeStart(openConfirm);
-
         return;
     }
 

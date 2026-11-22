@@ -250,6 +250,8 @@ export type ClinicalEncounterPage = {
         canResume: boolean;
     };
     vitals: ClinicalVitals;
+    /** Q-12: the triage guideline's red limits and the patient's age band; null when no guideline is in force. */
+    vitalLimits: ClinicalVitalLimits | null;
     diagnoses: ClinicalDiagnosis[];
     allergies: ClinicalAllergySafety | null;
     problems: ClinicalProblemList | null;
@@ -281,4 +283,16 @@ export type ClinicalHistoryDetailPage = {
         backLabel: string;
         backUrl: string;
     };
+};
+
+export type ClinicalVitalLimits = {
+    versionNumber: number;
+    ageBand: 'adult' | 'child' | 'unknown';
+    limits: {
+        reading: string;
+        age_band: 'adult' | 'child';
+        direction: 'very_low' | 'very_high';
+        limit_value: string;
+        zone: 'yellow' | 'red';
+    }[];
 };

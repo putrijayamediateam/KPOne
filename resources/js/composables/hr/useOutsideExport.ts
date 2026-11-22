@@ -1,9 +1,8 @@
 import { ref } from 'vue';
 
 /**
- * HR-12 export for an outside HR product (HR-PLAN 15.1): the same request for the Classic card
- * (`components/hr/records/OutsideExportCard.vue`) and Version 2. One way; each download is recorded first and no file is
- * kept. Never identity numbers, bank details or documents. Moved out unchanged.
+ * HR-12 export for an outside HR product (HR-PLAN 15.1): the request for `components/hr/records/OutsideExportCard.vue`.
+ * One way; each download is recorded first and no file is kept. Never identity numbers, bank details or documents.
  */
 export function useOutsideExport() {
     type Kind = 'staff' | 'leave' | 'overtime';

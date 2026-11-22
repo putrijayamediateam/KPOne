@@ -77,7 +77,7 @@ const REJECT_OUTLINE =
     'border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive';
 
 // The confirm in the dialog is filled destructive. It uses the theme's own text colour on the fill and never the
-// shared button's 60% dark fill, so its text is at least 4.5:1 in Version 2 (6.5:1 light, 8.0:1 dark).
+// shared button's 60% dark fill, so its text is at least 4.5:1 (6.5:1 light, 8.0:1 dark).
 const REJECT_FILLED =
     'bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:hover:bg-destructive/90';
 

@@ -3,9 +3,8 @@ import { computed, reactive, watch } from 'vue';
 import type { CredentialTypeHead } from '@/components/hr/credentials/types';
 
 /**
- * The add or renew sheet's state and actions (HR-5a), shared by Classic (`components/hr/credentials/RecordSheet.vue`) and
- * Version 2 (`pages/HR/V2/Credentials.vue`), so both send the same request with the same key. Moved out of the Classic
- * component unchanged; its template did not change.
+ * The add or renew sheet's state and actions (HR-5a) for `components/hr/credentials/RecordSheet.vue`: the request and
+ * its key.
  */
 export type RecordSheetProps = {
     open: boolean;

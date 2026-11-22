@@ -51,7 +51,7 @@ export type LateItem = {
 
 /**
  * HR-7b one payroll run page state and requests (send, approve, return, lock, MTD, manual lines, late items, start an
- * adjustment). Shared by the Classic page (`pages/HR/PayrollRun.vue`) and V2, so both send the same requests. Moved unchanged.
+ * adjustment) for `pages/HR/PayrollRun.vue`.
  */
 export type PayrollRunPageProps = {
     run: {
