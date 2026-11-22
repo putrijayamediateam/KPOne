@@ -1236,6 +1236,19 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Record new</Button
                             >
                         </div>
+                        <!-- TRI-1c: the vitals were copied from triage when the consultation started and are unchanged. -->
+                        <p
+                            v-if="clinical.vitals.fromTriage && !vitalsUnsaved"
+                            class="text-xs text-muted-foreground"
+                            data-testid="vitals-from-triage"
+                        >
+                            From triage, last taken by
+                            {{
+                                clinical.vitals.fromTriage.recordedBy ??
+                                'a clinic assistant'
+                            }}
+                            at {{ clinical.vitals.fromTriage.recordedAt }}.
+                        </p>
                         <div
                             v-if="hasVitals"
                             class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"

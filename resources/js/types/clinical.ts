@@ -28,6 +28,8 @@ export type ClinicalVitals = {
     weightKg: string | null;
     heightCm: string | null;
     bmi: number | null;
+    /** TRI-1c: set while the vitals are still the copy made from triage at consultation start (consultation page only). */
+    fromTriage?: { recordedBy: string | null; recordedAt: string } | null;
 };
 
 export type ClinicalAllergyRecord = {
