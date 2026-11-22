@@ -51,9 +51,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
 </script>
 
 <template>
-    <header
-        class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur v2:bg-card v2:backdrop-blur-none"
-    >
+    <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div
             class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5"
         >
@@ -86,7 +84,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                             "
                             :class="
                                 isActive(item.href)
-                                    ? 'border-brand bg-muted text-foreground v2:border-primary'
+                                    ? 'border-brand bg-muted text-foreground'
                                     : 'border-transparent text-muted-foreground'
                             "
                             @click="mobileNavOpen = false"
@@ -108,7 +106,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                     class="size-8 object-contain"
                 />
                 <span
-                    class="hidden text-sm font-semibold tracking-tight text-brand-strong sm:block v2:text-primary"
+                    class="hidden text-sm font-semibold tracking-tight text-brand-strong sm:block"
                     >KPOne</span
                 >
             </Link>
@@ -128,7 +126,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                         :aria-current="isActive(item.href) ? 'page' : undefined"
                         :class="
                             isActive(item.href)
-                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand v2:after:bg-primary'
+                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand'
                                 : ''
                         "
                     >
