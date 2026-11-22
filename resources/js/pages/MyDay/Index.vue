@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
+import MyRoutine from '@/components/MyRoutine.vue';
 import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -23,6 +24,7 @@ defineProps<{
         branchName: string | null;
         asOf: string | null;
     };
+    routine: InstanceType<typeof MyRoutine>['$props']['routine'];
     shortcuts: Array<{ title: string; href: string }>;
 }>();
 </script>
@@ -83,6 +85,8 @@ defineProps<{
                 :as-of="today.asOf"
                 only="today"
             />
+
+            <MyRoutine :routine="routine" />
 
             <section
                 v-if="shortcuts.length"

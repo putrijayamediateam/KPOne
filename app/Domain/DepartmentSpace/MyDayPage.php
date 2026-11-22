@@ -4,6 +4,7 @@ namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
+use App\Domain\MyDay\MyRoutineService;
 use App\Models\User;
 
 /**
@@ -18,6 +19,7 @@ final class MyDayPage
         private MeSpace $me,
         private DepartmentSpaceNavigation $spaces,
         private ClinicManagementNavigation $management,
+        private MyRoutineService $routine,
     ) {}
 
     /** @return array<string, mixed> */
@@ -46,6 +48,7 @@ final class MyDayPage
                 'ring' => $me['ring'], 'week' => $me['week'], 'tiles' => $me['tiles'], 'time' => $me['time'],
                 'credentials' => $me['credentials'], 'branchName' => $me['branchName'], 'asOf' => $me['asOf'],
             ],
+            'routine' => $this->routine->page($actor),
             'shortcuts' => $shortcuts,
         ];
     }
