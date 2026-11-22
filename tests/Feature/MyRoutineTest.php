@@ -81,8 +81,8 @@ final class MyRoutineTest extends VisitTestCase
             try {
                 $attempt();
                 $this->fail('Another person\'s item must not be reachable.');
-            } catch (HttpException|ValidationException $e) {
-                $this->assertContains($e->getStatusCode ?? 404, [404, 404]);
+            } catch (HttpException $e) {
+                $this->assertSame(404, $e->getStatusCode());
             }
         }
         $this->assertSame('Alice private routine', $this->service()->page($alice)['items'][0]['title']);
