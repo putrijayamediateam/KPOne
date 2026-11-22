@@ -763,9 +763,7 @@ onBeforeUnmount(() => {
                     <Button
                         size="sm"
                         type="submit"
-                        :variant="
-                            activeTab === 'triage' ? 'outline' : 'default'
-                        "
+                        variant="outline"
                         :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"

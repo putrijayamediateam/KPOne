@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Domain\Agents\Connector;
+
+use App\Domain\Audit\AuditRecorder;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Laravel\Passport\RefreshToken;
+use Laravel\Passport\Token;
+
+/**
+ * Revokes connector tokens at once (design note section 7): every token of one user, or of everyone. Tokens are only ever
+ * marked revoked (Passport keeps the row), and the refresh tokens that belong to them with them. The audit row holds the
+ * number of tokens and the user id, never a token.
+ */
+final class ConnectorRevoker
+{
+    public function __construct(private AuditRecorder $audit) {}
+
+    public function revoke(?User $user = null): int
+    {
+        return DB::transaction(function () use ($user): int {
+            $tokens = Token::query()->where('revoked', false)->when($user, fn ($query) => $query->where('user_id', $user->id));
+            $ids = $tokens->pluck('id')->all();
+            if ($ids !== []) {
+                Token::query()->whereIn('id', $ids)->update(['revoked' => true]);
+                RefreshToken::query()->whereIn('access_token_id', $ids)->update(['revoked' => true]);
+            }
+            $this->audit->record('ai_connector.tokens_revoked', null, [
+                'user_id' => $user?->id,
+                'scope' => $user ? 'one_user' : 'everyone',
+                'tokens' => count($ids),
+            ], null, null, $user !== null ? $user->organisation_id : User::query()->orderBy('id')->value('organisation_id'));
+
+            return count($ids);
+        });
+    }
+}

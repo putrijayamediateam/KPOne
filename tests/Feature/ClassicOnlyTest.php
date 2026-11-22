@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Domain\DepartmentSpace\AccountMenuLinks;
-use App\Domain\DepartmentSpace\UiVersionResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +22,6 @@ class ClassicOnlyTest extends VisitTestCase
         parent::setUp();
         $this->travelTo(CarbonImmutable::parse('2027-03-08 07:00', $this->branch->timezone));
 
-        config(['v2-pages.pages' => ['Pricing/Index'], 'v2-pages.public' => true]);
         Route::middleware(['web', 'auth'])->get('/_classic-only/registered', fn () => Inertia::render('Pricing/Index', ['x' => 1]));
     }
 
@@ -42,11 +40,11 @@ class ClassicOnlyTest extends VisitTestCase
         $this->get('/_classic-only/registered')->assertInertia(fn (Assert $p) => $p
             ->component('Pricing/Index')
             ->where('x', 1)
-            ->where('workspace.spaces', ['offered' => false, 'enabled' => false, 'lockVersion' => 0])
-            ->where('workspace.newLook', false)
-            ->where('workspace.shell', null));
+            ->missing('workspace.spaces')
+            ->missing('workspace.newLook')
+            ->missing('workspace.shell'));
 
-        $this->assertStringContainsString('data-ui="classic"', $this->get('/_classic-only/registered')->getContent());
+        $this->assertStringNotContainsString('data-ui=', $this->get('/_classic-only/registered')->getContent());
         $this->assertStringNotContainsString('data-look="new"', $this->get('/_classic-only/registered')->getContent());
         // The saved choice is kept, not changed or deleted.
         $this->assertSame(1, DB::table('user_space_preferences')->where('user_id', $user->id)->where('enabled', true)->where('lock_version', 3)->count());
@@ -65,17 +63,11 @@ class ClassicOnlyTest extends VisitTestCase
                 $response = $this->get($url)->assertOk();
                 $response->assertInertia(fn (Assert $p) => $p
                     ->component('Spaces/Show')
-                    ->where('workspace.shell', null)
-                    ->where('workspace.spaces.offered', false));
-                $this->assertStringContainsString('data-ui="classic"', $response->getContent());
+                    ->missing('workspace.shell')
+                    ->missing('workspace.spaces'));
+                $this->assertStringNotContainsString('data-ui=', $response->getContent());
             }
         }
-    }
-
-    public function test_the_public_qr_pages_stay_classic_even_with_the_old_public_switch_on(): void
-    {
-        $this->assertSame('PublicCheckIn/Show', app(UiVersionResolver::class)->pageFor('PublicCheckIn/Show'));
-        $this->assertSame('PublicCheckIn/Status', app(UiVersionResolver::class)->pageFor('PublicCheckIn/Status'));
     }
 
     public function test_the_switch_endpoint_is_gone_and_changes_nothing(): void

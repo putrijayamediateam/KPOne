@@ -10,12 +10,12 @@ final class ReportPermissions
         return [
             'reports.transactions.view.branch' => ['director', 'finance_officer'],
             'reports.transactions.export.branch' => ['director', 'finance_officer'],
-            'reports.stock_movement.view.branch' => ['director', 'finance_officer', 'administrator'],
-            'reports.stock_movement.export.branch' => ['director', 'finance_officer', 'administrator'],
-            'reports.panel_summary.view.branch' => ['director', 'finance_officer', 'panel_officer'],
+            'reports.stock_movement.view.branch' => ['director', 'finance_officer', 'administrator', 'branch_manager', 'account_assistant'],
+            'reports.stock_movement.export.branch' => ['director', 'finance_officer', 'administrator', 'branch_manager'],
+            'reports.panel_summary.view.branch' => ['director', 'finance_officer', 'panel_officer', 'account_assistant'],
             'reports.panel_summary.export.branch' => ['director', 'finance_officer', 'panel_officer'],
-            'reports.daily_summary.view.branch' => ['director', 'finance_officer', 'administrator'],
-            'reports.daily_summary.export.branch' => ['director', 'finance_officer', 'administrator'],
+            'reports.daily_summary.view.branch' => ['director', 'finance_officer', 'administrator', 'branch_manager', 'account_assistant'],
+            'reports.daily_summary.export.branch' => ['director', 'finance_officer', 'administrator', 'branch_manager'],
         ];
     }
 }

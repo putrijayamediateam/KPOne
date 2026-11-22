@@ -248,9 +248,10 @@ const signed = (dir: string, value: number) =>
                     data-testid="panel-adjustment-change"
                 >
                     <h4 class="font-medium">Change the amount</h4>
+                    <!-- On a phone the long labels wrap inside the box instead of widening the page (Syafiq, 390 px). -->
                     <div class="flex flex-wrap gap-2">
                         <Button
-                            class="max-lg:min-h-11"
+                            class="max-lg:min-h-11 max-sm:!h-auto max-sm:w-full max-sm:justify-start max-sm:py-2 max-sm:text-left max-sm:whitespace-normal"
                             data-touch-target
                             v-if="adjustment.canRequest"
                             variant="outline"
@@ -259,7 +260,7 @@ const signed = (dir: string, value: number) =>
                             >Adjust Panel amount: changes the invoice</Button
                         >
                         <Button
-                            class="max-lg:min-h-11"
+                            class="max-lg:min-h-11 max-sm:!h-auto max-sm:w-full max-sm:justify-start max-sm:py-2 max-sm:text-left max-sm:whitespace-normal"
                             data-touch-target
                             v-if="canClaimOnly"
                             variant="outline"
@@ -332,7 +333,7 @@ const signed = (dir: string, value: number) =>
                     ></Button
                 >
                 <Button
-                    class="max-lg:min-h-11"
+                    class="max-lg:min-h-11 max-sm:!h-auto max-sm:w-full max-sm:justify-start max-sm:py-2 max-sm:text-left max-sm:whitespace-normal"
                     data-touch-target
                     v-if="adjustment.canRequest"
                     variant="outline"

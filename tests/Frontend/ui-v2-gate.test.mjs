@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
@@ -73,39 +72,4 @@ test('Classic: :root and .dark keep the pre-restyle token values', () => {
             );
         }
     }
-});
-
-test('Version 2: the new look lives only under data-ui="v2"', () => {
-    const light = block(":root[data-ui='v2']:not(.dark)");
-    const dark = block(".dark[data-ui='v2']");
-
-    assert.equal(light['--primary'], '#0a56d1');
-    assert.equal(light['--background'], '#f4f6fb');
-    assert.equal(dark['--primary'], '#6ba6ff');
-    assert.equal(dark['--background'], '#12141a');
-    assert.match(css, /@custom-variant v2 \(&:where\(\[data-ui='v2'\] \*\)\);/);
-});
-
-test('CO-1 (Classic only): the look is Classic on first paint and on every navigation', () => {
-    const blade = read('resources/views/app.blade.php');
-    assert.match(blade, /data-ui="classic"/);
-    assert.doesNotMatch(
-        blade,
-        /\['props'\]\['workspace'\]\['spaces'\]\['enabled'\]/,
-    );
-    assert.match(blade, /html\[data-ui='v2'\]/);
-
-    const app = read('resources/js/app.ts');
-    assert.match(app, /applyUiVersion\(uiVersionFor\(event\.detail\.page\)\)/);
-});
-
-test('Guard: the tokens added for Version 2 are never used without a v2: prefix in pages or components', () => {
-    const hits = execSync(
-        "grep -rnE '(^|[^:a-z-])(bg|text|border|from|to)-(success-soft|warning-soft|destructive-soft|tint-[1-4]|grad-[12])' resources/js --exclude-dir=v2 || true",
-        { cwd: new URL('../..', import.meta.url).pathname, encoding: 'utf8' },
-    )
-        .split('\n')
-        .filter((line) => line && !line.includes('v2:'));
-
-    assert.deepEqual(hits, []);
 });

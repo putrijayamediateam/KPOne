@@ -324,7 +324,8 @@ final class PhaseSixRest
         }
         $main = $this->context->mainBranch();
         $merges = app(PatientMergeService::class);
-        foreach ([6 => true, 7 => false] as $position => $approve) {
+        // Patients whose phase 2 visit is completed: a merge is refused while either record has an unfinished visit.
+        foreach ([1 => true, 2 => false] as $position => $approve) {
             $kept = Patient::query()->where('organisation_id', $this->org())->where('full_name', sprintf('Trial Patient %02d', $position))->firstOrFail();
             $duplicate = app(PatientAdministrationService::class)->create($this->ca(TrialDataContext::MAIN_BRANCH, $main), [
                 'full_name' => $kept->full_name.' (registered twice)', 'date_of_birth' => $kept->date_of_birth?->toDateString(), 'sex' => $kept->sex, 'nationality_code' => 'MY',
