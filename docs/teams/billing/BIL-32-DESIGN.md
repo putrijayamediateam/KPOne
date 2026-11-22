@@ -14,8 +14,8 @@ Owner decisions:
 - **View permission** (22 Nov 2026, owner: "approve the Branch Manager cash closing view permission"):
   `payments.cash_closing.view.branch` for `branch_manager` only, view-only.
 
-Design note for review (Kumar). Revision 2, after Kumar's first review (verdict "rework", ten findings, all addressed
-below; K1 to K10 mark where). Classic only. Synthetic data only; nothing here is production approval.
+Design note for review (Kumar). Revision 3: revision 2 addressed Kumar's first review (verdict "rework", ten findings,
+K1 to K10); revision 3 addresses his second read ("approve with changes", six items, R1 to R6). Classic only. Synthetic data only; nothing here is production approval.
 
 ## 1. How the close works today (unchanged parts)
 
@@ -43,11 +43,15 @@ below; K1 to K10 mark where). Classic only. Synthetic data only; nothing here is
 - New permission `payments.cash_closing.view.branch` for `branch_manager` only. It opens the Daily cash closing and
   Monthly cash closing pages read only.
 - A Branch Manager approves but never records a count. Counting stays on `payments.reconcile.branch`.
-- Routes: the two GET pages allow `reconcile` OR `cash_closing.view`; `store` and `start-date` keep `reconcile`;
-  `decide` needs only `approve` (K1).
-- **K9:** the entry points gated on `reconcile` widen the same way: the Clinic management hub link
-  (`ClinicManagementNavigation`), the Billing department space (`BillingSpace`) and the shared nav flag
-  (`HandleInertiaRequests`).
+- Routes: the two GET pages allow `reconcile` OR `cash_closing.view`; `store` keeps `reconcile`; `start-date` keeps
+  `reconcile` plus `payments.cash_closing.start_date.manage.branch` (R6); `decide` needs only `approve` (K1).
+- **K9, corrected in R3 and R5:** entry points that lead to the close pages widen to `reconcile` OR `cash_closing.view`:
+  - the "Daily cash closing" hub entry only (`ClinicManagementNavigation`), not the Terminal Reconciliation entry;
+  - a **new, separate** cash-closing nav flag in `HandleInertiaRequests`. The existing `paymentReconciliations` flag
+    drives the Terminal Reconciliation link and stays on `reconcile`, so the Branch Manager never sees a link that 403s;
+  - the Billing department space: whether it is offered (`DepartmentSpaceNavigation`) and its cash-closing tile
+    (`BillingSpace`);
+  - the "days with no cash count" space question (`SpaceQuestions`), so the Branch Manager can ask it.
 
 ### 2.3 The day lock (on approval)
 
@@ -69,6 +73,9 @@ Still allowed on a locked day ("refund only"):
     reverses and records the refund together, with the refund's approval. The locked day's figures do not change: a
     reversed receipt with a refund still counts as received on its own day (`CashClosingService::expected`, BIL-6), and
     the refund counts on its payout day.
+    - **R2:** a reversed receipt counts on its day only while its refund is open, so under A a **rejected** decision on
+      the refund of a locked day's receipt is refused (`payment_refund_decisions`, in `BranchDayGate` and PostgreSQL);
+      the refund can still be approved. The screen says why Reject is off.
   - **B:** no reversal on a locked day at all; a locked day's receipt can only be refunded after completion (as an
     invoice credit). Before completion, the CA must first complete the visit.
 - **New payments on a later day** against an older invoice: they belong to the day they are received.
@@ -82,7 +89,11 @@ The lock is a row per branch-day, derived from the approval: a new table `cash_c
 transaction as the approval decision, append-only. A PostgreSQL helper `kpone_branch_day_locked(branch, date)` is
 used by guard triggers on the real tables (K2): `invoices` (update to `voided`), `payment_reversals`,
 `payment_corrections`, `invoice_adjustments` and `invoice_adjustment_reversals`. A reversal inserted by a refund (option
-A) is let through only when the same transaction records the refund; the trigger checks for that refund row.
+A) is let through only when the same transaction records the refund. **R1:** a refund row can only be inserted after
+its reversal exists (`payment_refunds` check, `RefundService`), so the locked-day check on `payment_reversals` is a
+`CONSTRAINT TRIGGER ... DEFERRABLE INITIALLY DEFERRED` that runs at commit and then requires a non-rejected
+`payment_refunds` row for the receipt (precedent: `2026_09_05_000300_protect_billing_reconciliation`). Under option B the
+same trigger simply refuses. The other lock triggers are ordinary row triggers.
 
 ### 2.4 The pause (while a close waits for approval; owner answer 2 = A, the counted day only)
 
@@ -129,10 +140,13 @@ original day comes from `received_at` (receipts) or `finalized_at` (invoices). T
 There is no branch-day row before approval, so the gate uses the **same per-branch-day advisory lock** the close
 already takes (`CashClosingService`), in one order:
 
-1. actor and context lock (`TransactionalActorAuthority::lock`, as every money service does today);
+1. `BillingContextService::lock` as today (actor, then patient, then visit, in one call);
 2. read the original day without a row lock (`received_at` and `finalized_at` never change once set);
 3. take the branch-day advisory lock(s): the original day and today, **in date order**, deduplicated;
-4. only then the patient, visit, invoice and ledger row locks (`BillingContextService`, `FinancialLedger`).
+4. only then the invoice and ledger row locks (`FinancialLedger::lock`).
+
+**R4:** the gate runs right after `context->lock` and before any invoice or payment lock, the same way in every gated
+service. The close never locks patients, visits or invoices for update, so either side of step 1 is deadlock-free.
 
 Count and approval take the same advisory lock before the receipts' share lock, as today. So:
 
@@ -159,10 +173,12 @@ Count and approval take the same advisory lock before the receipts' share lock, 
 - **Pause:** each paused action refused while a count waits, in the domain and by direct SQL; registration and
   consultation not refused; a return lifts the pause; the next day is not paused; a refund on the counted day is
   accepted and the approval then asks for a recount.
+- **Option A refund:** reverse and refund together on a locked day commits; a reversal alone is refused at commit; a
+  rejection of that refund is refused.
 - **Approvers:** Branch Manager approves (K1, today a 403); Finance Officer, CA Supervisor and Director approve; the
   counter can never approve.
-- **View-only:** the Branch Manager opens both close pages and the hub link, cannot count or set the start date (403 on
-  POST), and sees no Count form.
+- **View-only:** the Branch Manager opens both close pages, the Daily cash closing hub entry and the Billing space, cannot
+  count or set the start date (403 on POST), sees no Count form, and sees no Terminal Reconciliation link.
 - **PostgreSQL contention tests** (task-owned database, `Contention` suite): payment against approval; count against
   payment; reversal against approval (the deadlock case); two approvals.
 - **Changed existing assertions (K10)**, to be listed line by line for the owner before any edit and left failing until
