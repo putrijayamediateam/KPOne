@@ -13,7 +13,7 @@ the same PR as the code.
 | Classic-only Lead | **Haris** | Removed the Version 2 (V2) layout slice by slice so everyone sees Classic, losing no function (CO-1 to CO-10c, all merged by PR #1059 on 2026-11-22) |
 | Classic-only Reviewer | **Nadiah** | Reviews every Classic-only plan and slice for missed files, broken links, permission gaps and lost functions |
 
-**Added 2026-11-20 (owner request):** Haris and Nadiah joined this team from a short-term session run on 19 and 20 Nov 2026. The shared shell and layouts are this team's area, so retiring V2 (plan: `docs/design/CLASSIC-ONLY-PLAN.md` on branch `feature/classic-only-plan`) sits here.
+**Added 2026-11-20 (owner request):** Haris and Nadiah joined this team from a short-term session run on 19 and 20 Nov 2026. The shared shell and layouts are this team's area, so retiring V2 (plan: `docs/design/CLASSIC-ONLY-PLAN.md`) sits here.
 
 Both are Claude builder sessions working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Names chosen by
 the coordinator (2026-11-05).
@@ -97,7 +97,7 @@ usability aid only and must follow the permission the backend already enforces.
 | CO-10b | The V2 machinery removed: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font and the V2 shared props | #1056 |
 | CO-10c | The last V2 leftovers: unused V2-only props and options, seven backend fields and the inline "add a Panel" route (`POST /catalogue-panels`), and stale V2 comments | #1059 |
 
-**Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` (branch `feature/classic-only-plan`) is merged. Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Still open with the owner: whether to drop the unused `user_space_preferences` table (plan Q4; BASELINE section 6, item 31). The Classic leave warning (section 7, item 17) remains its own later slice.
+**Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Still open with the owner: whether to drop the unused `user_space_preferences` table (plan Q4; BASELINE section 6, item 31). The Classic leave warning (section 7, item 17) remains its own later slice.
 
 ## 6. Owner decisions already made (never ask again)
 
