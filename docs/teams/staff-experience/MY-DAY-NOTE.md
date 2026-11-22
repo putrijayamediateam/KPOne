@@ -40,7 +40,7 @@ Shared `PageHeader`: "My day", a greeting line with the date in the branch's tim
 2. **Waiting for me** (reuses the APPR-1 per-area totals from the same count endpoint, so there is **no second count path**): "N
    waiting" and up to four areas with their totals, and one **Open the inbox** button (the per-source Open buttons live on the inbox). Hidden when nothing is waiting ("Nothing is waiting for you."). This block is built in DAY-1c, after APPR-1a; until then the page simply has no such block.
 3. **My routine** (new, section 4): the person's own checklist for today, with a progress line ("3 of 5 done").
-4. **My work** (shortcuts, no counts of its own): the person's department spaces and the three most used pages for their role, taken
+4. **Shortcuts** (no counts of its own): the person's department spaces and the three most used pages for their role, taken
    from the existing space list. It is a convenience, not a second menu: nothing appears that the Main Menu would not already offer.
 
 No patient name, IC, phone, amount or reason appears anywhere on the page.
@@ -148,3 +148,23 @@ Approvals inbox (APPR-1a) can be built first or in parallel; DAY-1a works withou
 5. **The routine resets at midnight in the branch's time zone.**
 6. **20 items of 120 characters.**
 Next: Aiman's review, Daniel's look at the page sketch, then DAY-1a. The one existing test to change is listed in section 7 for the owner before any edit.
+
+## 12. Daniel's design points, 22 Nov 2026 (OK with changes; sketches in `docs/design/sketches-2026-11-22/`, files `myday-*` and `sketch.html#myday`)
+- **Routine rows** are 44 px checkbox rows (the whole row is the tap target). The progress line ("3 of 5 done") is plain text: no
+  confetti, no streak count, no red "overdue". The unchecked box border measures at least 3:1 in dark mode at 390 px (avoid the faint
+  dark ring of DD-107).
+- **Reorder** uses Up and Down buttons (44 px), not drag only, so a phone and a keyboard can do it. **Add** has a visible label
+  ("Add to my routine") and a field that shows the 120-character limit.
+- **Recently removed** sits under a closed disclosure with a Restore button on each row (this is where the 7-day restore lives).
+  Hiding needs no confirm sheet because it can be restored.
+- **First visit:** an empty routine says "Add what you do every day. Only you can see this." with one outline Add button, not a large
+  call to action.
+- **"My work" is renamed "Shortcuts"** and must not look like a second menu. The header line shows the date and the active branch, so
+  a person working past midnight can see why the list reset.
+- **Blocks hide when the person has nothing in them, but the page is never empty:** if every block would be hidden, it shows one line
+  with a link to the Main Menu.
+Every sketch is a first picture for Daniel; the build shots after DAY-1a and DAY-1b are reviewed again.
+
+## 13. Owner approval of the test change, 22 Nov 2026
+"approve the My day and Approvals inbox test changes, inbox first": the single `WorkspaceTest` landing change in section 7 is approved as
+listed. Build order: APPR-1a first, then DAY-1a and DAY-1b. Both slices still need the owner's ship-it before a PR opens.

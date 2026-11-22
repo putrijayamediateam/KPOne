@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APPR-1 and DAY-1 sketches (synthetic)</title>
+<style>
+:root{--bg:#f8f9fa;--fg:#18181b;--mut:#71717a;--bd:#e4e4e7;--card:#fff;--brand:#db2777;--brand-strong:#be185d;--ring:#a1a1aa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+.top{display:flex;align-items:center;gap:16px;height:56px;padding:0 16px;background:#fff;border-bottom:1px solid var(--bd)}
+.logo{font-weight:700;color:var(--brand-strong)}.nav{display:flex;gap:16px;color:var(--mut);flex:1;overflow:hidden;white-space:nowrap}
+.nav b{color:var(--fg);border-bottom:2px solid var(--brand);padding:18px 0 14px}
+.acct{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;min-height:44px;background:#fff}
+.pill{background:#f4f4f5;color:var(--fg);border:1px solid var(--ring);border-radius:999px;font-size:12px;padding:0 7px;min-width:20px;text-align:center}
+main{max-width:1100px;margin:0 auto;padding:24px 16px}
+h1{font-size:24px;margin:0}.sub{color:var(--mut);margin:4px 0 20px}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}@media(min-width:1024px){.grid.two{grid-template-columns:1fr 1fr}}
+section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+h2{font-size:15px;margin:0 0 10px}.area{font-size:12px;text-transform:none;color:var(--mut);margin:14px 0 6px;font-weight:600}
+.row{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 0;border-top:1px solid var(--bd)}
+.row:first-of-type{border-top:0}.row .t{flex:1;min-width:0}.row .n{font-weight:600;font-variant-numeric:tabular-nums}
+.mut{color:var(--mut);font-size:12px}.btn{min-height:44px;padding:0 14px;border:1px solid var(--ring);border-radius:8px;background:#fff;color:var(--fg);font:inherit;display:inline-flex;align-items:center}
+.note{color:var(--mut);font-size:12px;margin:2px 0 8px}
+.chk{display:flex;align-items:center;gap:12px;min-height:44px;border-top:1px solid var(--bd)}.chk:first-of-type{border-top:0}
+.box{width:22px;height:22px;border:2px solid var(--ring);border-radius:6px;flex:none}.box.on{background:var(--brand-strong);border-color:var(--brand-strong)}
+.mv{display:flex;gap:6px}.mv .btn{padding:0 10px}
+details{margin-top:10px}summary{min-height:44px;display:flex;align-items:center;color:var(--mut);cursor:pointer}
+.empty{color:var(--mut);padding:8px 0}.hide{display:none}
+body:not([data-s]) .s,body[data-s] .s{display:none}
+body[data-s="approvals"] #approvals,body[data-s="approvals-empty"] #approvals-empty,body[data-s="myday"] #myday,body[data-s="myday-empty"] #myday-empty{display:block}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+</style></head><body>
+<script>document.body.dataset.s=(location.hash||'#approvals').slice(1)</script>
+<header class="top"><span class="logo">KPOne</span><nav class="nav"><b>Insights</b><span>Inventory</span><span>Clinic management</span></nav>
+<div class="acct" aria-label="Approvals &amp; tasks, 3 waiting">Account <span class="pill">3</span></div></header>
+
+<main id="approvals" class="s">
+<h1>Approvals &amp; tasks</h1><p class="sub">Waiting for you at Cheras · Sun 22 Nov 2026</p>
+<div class="grid two">
+<section><h2>Approvals</h2>
+<div class="area">Money</div>
+<div class="row"><div class="t">Daily cash close<div class="mut">oldest 1 day</div></div><span class="n">1</span><span class="btn">Open</span></div>
+<div class="row"><div class="t">Refunds to approve<div class="mut">oldest 3 days</div></div><span class="n">2</span><span class="btn">Open</span></div>
+<div class="area">Stock</div>
+<div class="row"><div class="t">Supplier returns to approve<div class="mut">oldest 2 days</div></div><span class="n">1</span><span class="btn">Open</span></div>
+<p class="note">3 waiting at other branches: Puchong (2), Sungai Besi (1)</p>
+<div class="area">Patients and clinical</div>
+<div class="row"><div class="t">Patient merges<div class="mut">oldest 5 days</div></div><span class="n">1</span><span class="btn">Open</span></div>
+</section>
+<section><h2>Tasks</h2>
+<div class="area">Dispensary</div><p class="empty">Nothing here for you.</p>
+<div class="area">Staff</div>
+<div class="row"><div class="t">Memos to read<div class="mut">oldest 1 day</div></div><span class="n">2</span><span class="btn">Open</span></div>
+<div class="row"><div class="t">SOPs to read<div class="mut">oldest 6 days</div></div><span class="n">1</span><span class="btn">Open</span></div>
+</section></div>
+<p class="note" style="margin-top:14px">Expand arrow (owner: document numbers allowed): "Refunds to approve" opens KPV-0000123 · waiting 3 days, KPV-0000131 · waiting 1 day. No name, amount or reason.</p>
+</main>
+
+<main id="approvals-empty" class="s">
+<h1>Approvals &amp; tasks</h1><p class="sub">Waiting for you at Cheras · Sun 22 Nov 2026</p>
+<section><p class="empty" style="margin:0">Nothing is waiting for you.</p></section></main>
+
+<main id="myday" class="s">
+<h1>My day</h1><p class="sub">Good morning · Sun 22 Nov 2026 · Cheras</p>
+<div class="grid two">
+<section><h2>Today</h2><div class="bar"><span class="btn">Clock in</span><span class="mut">Shift 9:00 AM to 6:00 PM · Cheras</span></div><p class="note" style="margin-top:10px">Credentials due: 1 in 20 days</p></section>
+<section><h2>Waiting for me</h2><div class="row"><div class="t">Money<div class="mut">3 waiting</div></div><span class="btn">Open the inbox</span></div><div class="row"><div class="t">Stock<div class="mut">1 waiting</div></div></div></section>
+<section><h2>My routine</h2><p class="note">3 of 5 done · Only you can see this.</p>
+<div class="chk"><span class="box on"></span><span style="flex:1">Check the fridge log</span><span class="mv"><span class="btn">Up</span><span class="btn">Down</span></span></div>
+<div class="chk"><span class="box on"></span><span style="flex:1">Count the till float</span><span class="mv"><span class="btn">Up</span><span class="btn">Down</span></span></div>
+<div class="chk"><span class="box on"></span><span style="flex:1">Review yesterday's Panel claims</span><span class="mv"><span class="btn">Up</span><span class="btn">Down</span></span></div>
+<div class="chk"><span class="box"></span><span style="flex:1">Restock gloves</span><span class="mv"><span class="btn">Up</span><span class="btn">Down</span></span></div>
+<div class="chk"><span class="box"></span><span style="flex:1">Send daily summary</span><span class="mv"><span class="btn">Up</span><span class="btn">Down</span></span></div>
+<p class="mut" style="margin:10px 0 4px"><label>Add to my routine</label></p><div class="bar"><span class="btn" style="flex:1;min-width:160px;justify-content:space-between;color:var(--mut)">What do you do every day? <span>0 / 120</span></span><span class="btn">Add</span></div>
+<p class="note">Do not write patient names, IC numbers or passwords here.</p>
+<details><summary>Recently removed (1)</summary><div class="chk"><span style="flex:1;color:var(--mut)">Clean the scale</span><span class="btn">Restore</span></div></details></section>
+<section><h2>Shortcuts</h2><div class="bar"><span class="btn">Billing</span><span class="btn">Clinic management</span><span class="btn">Main Menu</span></div></section>
+</div></main>
+
+<main id="myday-empty" class="s">
+<h1>My day</h1><p class="sub">Good morning · Sun 22 Nov 2026 · Cheras</p>
+<div class="grid two">
+<section><h2>My routine</h2><p class="empty">Add what you do every day. Only you can see this.</p><span class="btn">Add</span><p class="note" style="margin-top:10px">Do not write patient names, IC numbers or passwords here.</p></section>
+<section><h2>Shortcuts</h2><div class="bar"><span class="btn">Main Menu</span></div></section></div>
+<p class="note" style="margin-top:14px">A person with nothing in any block (no clock, nothing waiting, no shortcuts): a single line "Open the Main Menu" and nothing else.</p></main>
+</body></html>
