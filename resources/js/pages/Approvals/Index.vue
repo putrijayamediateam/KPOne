@@ -48,7 +48,7 @@ const total = computed(() =>
     >
         <PageHeader
             title="Approvals & tasks"
-            :description="`${branch?.name ?? 'No active branch'} · Everything waiting for you, with how long it has waited. Open an item to decide it on its own page.`"
+            :description="`Waiting for you${branch ? ` at ${branch.name}` : ''}. Open an item to decide it on its own page.`"
         />
 
         <EmptyState

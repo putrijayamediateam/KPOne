@@ -89,7 +89,7 @@ onMounted(() => {
                 ><span>{{ link.title }}</span>
                 <span
                     v-if="link.href === '/approvals' && approvalCount > 0"
-                    class="rounded-full bg-brand px-1.5 py-0.5 text-[11px] leading-none font-semibold text-brand-foreground"
+                    class="rounded-full bg-[#be185d] px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white"
                     >{{ approvalCount
                     }}<span class="sr-only"> waiting</span></span
                 ></Link

@@ -173,7 +173,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                             <span
                                 v-if="approvalCount > 0"
                                 data-test="approvals-pill"
-                                class="absolute -top-0.5 -right-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[11px] leading-none font-semibold text-brand-foreground ring-2 ring-background"
+                                class="absolute -top-1.5 -right-2.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#be185d] px-1 text-[11px] leading-none font-semibold text-white ring-2 ring-background"
                                 aria-hidden="true"
                                 >{{
                                     approvalCount > 99 ? '99+' : approvalCount
