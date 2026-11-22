@@ -1,3 +1,4 @@
+import type { TriageZoneSummary } from './patientBoard';
 import type { VisitReasonPresentation } from './visit';
 
 export type ClinicalDiagnosis = {
@@ -201,6 +202,8 @@ export type ClinicalEncounterPage = {
     visit: {
         visitNumber: string;
         priority: 'normal' | 'urgent';
+        /** TRI-1c: the triage zone for the patient's own doctor; null when not visible. */
+        triage?: TriageZoneSummary | null;
         isPanel: boolean;
         panelNote: string | null;
         /** PNL-26c: the Panel total so far against the Panel's limit per visit; null when there is no limit. */

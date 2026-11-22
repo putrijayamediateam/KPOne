@@ -7,6 +7,7 @@ use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
+use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -80,6 +81,10 @@ class ClinicalEncounterDirectoryService
             'visit' => [
                 'visitNumber' => $encounter->visit->visit_number,
                 'priority' => $encounter->visit->priority,
+                // TRI-1c: the zone chip for the patient's own doctor (and CA, CA Supervisor); never a reading here.
+                'triage' => app(TriageZoneProjection::class)->forVisits($actor, [
+                    TriageZoneProjection::subject($encounter->visit, $encounter->visit->queueEntry),
+                ])[$encounter->visit->id] ?? null,
                 'isPanel' => $encounter->visit->coverage_type === 'panel',
                 'panelNote' => $encounter->visit->coverage_type === 'panel' ? $encounter->visit->coverage_panel_note : null,
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'

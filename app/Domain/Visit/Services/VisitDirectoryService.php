@@ -7,6 +7,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Triage\TriagePermissions;
+use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
@@ -131,8 +132,12 @@ class VisitDirectoryService
 
         $readinessIds = $paginator->getCollection()->map(fn ($visit) => $this->visibleQueueEntry($actor, $visit, $queueHints)?->id)->filter()->values()->all();
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($readinessIds));
+        // TRI-1c: the zone chip, only for CA, CA Supervisor and the patient's own doctor (one query).
+        $triageZones = app(TriageZoneProjection::class)->forVisits($actor, $paginator->getCollection()
+            ->map(fn (Visit $visit): array => TriageZoneProjection::subject($visit, $visit->queueEntry))->all());
         foreach ($paginator->getCollection() as $visit) {
             $visit->setRelation('callReadiness', $readiness[$visit->queueEntry?->id] ?? null);
+            $visit->setRelation('triageZone', $triageZones[$visit->id] ?? null);
         }
 
         return [
@@ -444,6 +449,8 @@ class VisitDirectoryService
 
         return [
             'callHold' => $visit->getRelation('callReadiness'),
+            // TRI-1c: { zone, triaged } or null when this viewer may not see the zone; never a reading.
+            'triage' => $visit->relationLoaded('triageZone') ? $visit->getRelation('triageZone') : null,
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
             'visitNumber' => $visit->visit_number,
             'patientNumber' => $visit->patient->patient_number,
