@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
-/** UX-21: the Version 2 Clinic management hub. Same links and permissions as Classic; V2 sentence-case labels only in V2. */
-class V2ClinicHubTest extends VisitTestCase
+/** UX-21: the Clinic management hub sends each link's own title and refuses a person with no hub links. */
+class ClinicHubTitlesTest extends VisitTestCase
 {
     private function turnOn(User $user): void
     {

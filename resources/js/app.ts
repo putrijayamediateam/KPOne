@@ -1,5 +1,3 @@
-import '@/lib/v2-leave-popstate';
-import '@/lib/v2-refused-request';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AdminLayout from '@/layouts/AdminLayout.vue';
@@ -7,16 +5,9 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 import ClinicLayout from '@/layouts/ClinicLayout.vue';
 import PublicCheckInLayout from '@/layouts/PublicCheckInLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import V2Layout from '@/layouts/V2Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { installAuthenticationHistoryBoundary } from '@/lib/inertia-auth-history-boundary';
 import { readInitialInertiaPage } from '@/lib/inertia-bootstrap';
-import {
-    applyNewLook,
-    applyUiVersion,
-    isV2Page,
-    uiVersionFor,
-} from '@/lib/ui-version';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const initialPage = readInitialInertiaPage();
@@ -28,8 +19,6 @@ const authenticationHistory = installAuthenticationHistoryBoundary(
 if (authenticationHistory.ready) {
     router.on('navigate', (event) => {
         authenticationHistory.boundary?.acceptServerPage(event.detail.page);
-        applyUiVersion(uiVersionFor(event.detail.page));
-        applyNewLook(event.detail.page);
     });
 
     createInertiaApp({
@@ -47,12 +36,6 @@ if (authenticationHistory.ready) {
                 case name === 'PanelClaims/Pack':
                 case name === 'QueueDisplay/Screen':
                     return null;
-                // A Version 2 public (patient-facing) page keeps the public layout: a patient is never inside the staff
-                // shell. This case must stay above the V2 shell case.
-                case name.startsWith('PublicCheckIn/V2/'):
-                    return PublicCheckInLayout;
-                case isV2Page(name):
-                    return V2Layout;
                 case name.startsWith('PublicCheckIn/'):
                 case name.startsWith('Careers/'):
                     return PublicCheckInLayout;
