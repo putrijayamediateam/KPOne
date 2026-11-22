@@ -35,7 +35,7 @@ class PanelSummaryReportTest extends BillingTestCase
     public function test_exact_holders_scope_validation_fresh_revocation_and_replay(): void
     {
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
-            $allowed = in_array($role, ['director', 'finance_officer', 'panel_officer'], true);
+            $allowed = in_array($role, ['director', 'finance_officer', 'panel_officer', 'branch_manager'], true); // BM reports B (owner, 22 Nov 2026)
             // ROLE-1: the Account Assistant may view (not download) the Panel summary.
             $this->assertSame($allowed || $role === 'account_assistant', in_array('reports.panel_summary.view.branch', $permissions, true));
             $this->assertSame($allowed, in_array('reports.panel_summary.export.branch', $permissions, true));
