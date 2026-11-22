@@ -14,6 +14,9 @@ test('the reason is read only: the service helper decides nothing and never name
         service,
         /\$this->cannotDecideReason\(\$actor, \$proposal, \$assigned\) === null/,
     );
-    assert.match(inbox, /'cannotDecideReason' => \$this->proposals->cannotDecideReason\(/);
+    assert.doesNotMatch(
+        inbox,
+        /'cannotDecideReason' => \$this->proposals->cannotDecideReason\(/,
+    );
     assert.doesNotMatch(service, /requested_by_user_id\s*\.\s*'/);
 });

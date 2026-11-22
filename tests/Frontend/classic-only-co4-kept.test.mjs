@@ -259,7 +259,7 @@ test('Classic Patient details keeps its props, flags, identifier routes, merge r
 
     assert.ok(
         read('resources/js/components/patient/WhatsAppLink.vue').includes(
-            "label ?? 'Open WhatsApp chat'",
+            'aria-label="Open WhatsApp chat"',
         ),
     );
 });
