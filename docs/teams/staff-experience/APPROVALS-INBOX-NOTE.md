@@ -52,7 +52,7 @@ Each source below is "one thing waiting for a person to decide". **Scope** B = p
 | Supplier return (single or group) | `inventory.supplier_returns.approve.branch` | B | the requester | `/inventory/supplier-returns` |
 | Supplier invoice | `inventory.supplier_invoices.approve.branch` | B | the recorder | `/inventory/supplier-invoices` |
 | Purchase order | `inventory.purchase_orders.approve.organisation` | O perm, B list | whoever raised or submitted it | Inventory home |
-| Purchase request | `inventory.purchase_orders.create.organisation` | B | the requester | `/inventory/purchase-requests` |
+| Purchase request (review: convert or reject) | `inventory.purchase_orders.create.organisation` (`ProcurementService::CREATE_PERMISSION`; the person who **raises** a request needs `inventory.purchase_requests.create.branch`, which is not a decide permission) | B | the requester (`refuseRequester`) | `/inventory/purchase-requests` |
 | Stock request (transfer) | `inventory.stock_requests.approve.branch` | B | none (AI-raised: the raiser) | Inventory home |
 | Transfer difference | `inventory.variances.approve.branch` | B | the receiver | Inventory home |
 | Opening balance sign-off | `inventory.opening.verify.branch` | B | whoever recorded it | `/inventory/readiness` |
@@ -66,7 +66,7 @@ Each source below is "one thing waiting for a person to decide". **Scope** B = p
 | Patient merge | `patients.merge.approve.organisation` | O | the proposer | `/patient-merges` |
 | Triage guideline draft | `triage.guideline.manage.organisation` | O | the entrant | `/triage-guideline` |
 | Website release / output plan | `website.releases.approve.organisation` (Director) | O | none today (typed release number) | the release page |
-| Doctor's check of prepared medicine (a **task**) | `dispensary.doctor_check.own` / `.override.branch` | B | none | `/dispensary/doctor-checks` |
+| Doctor's check of prepared medicine (a **task**) | `dispensary.doctor_check.own` (the assigned doctor) / `.override.branch` (CA Supervisor) | B | to confirm in the verify service | **not registered in v1**: today the only list page, `/dispensary/doctor-checks`, requires `.override.branch`, so a doctor's row would open a 403. Dispensary decides whether the doctor gets a reachable page (or the row opens the case page); the source is added when that exists |
 | Fridge out-of-range review | `compliance.fridge.review.branch` | B | none | `/clinic-compliance` |
 | Compliance task to verify | `compliance.audits.perform.branch` | B | who marked it done | `/clinic-compliance` |
 
@@ -90,8 +90,15 @@ A source is a small class in the owning team's domain folder, registered in one 
 2. `permissions()`: the decide permission(s) (the inbox calls the same check the owning page uses).
 3. `scope()`: branch or organisation.
 4. `count(User $actor, Branch $branch): int`: a **dedicated `COUNT(*)`** that already excludes anything the actor is barred from
-   deciding. It must be the **same query the owning page uses for its own list**, so the inbox can never disagree with the page.
-5. `rows(User $actor, Branch $branch, int $limit): list<InboxRow>`: up to 5 rows for the inbox (title, "waiting since", an opaque link).
+   deciding. It must come from **one shared query or scope class that the owning page also uses for its own list**, so the inbox can
+   never disagree with the page and no rule is copied. **Where the page's rule today lives only inside a `*PageService`** (the
+   survey found this for the HR queues, whose rank and self-bar rules sit inside the page services), the owning team first extracts
+   that rule into a small shared scope class and points its page at it; that extraction is the first step of its slice (APPR-1d for
+   HR) and is covered by the page's existing tests. The inbox never imports a `*PageService`.
+5. `rows(User $actor, Branch $branch, int $limit): list<InboxRow>`: up to 5 rows. **A row is only a fixed label owned by the
+   source (for example "Refund"), an age ("waiting 3 days", rounded) and a link.** A source cannot supply free text, a name, an
+   amount or a reason: the row type has no field for them. Per-record links carry the record's public id (a UUID) and no data.
+   The count and the existence of waiting items are shown only to people who hold the decide permission.
 6. `route`: the named route of the owning page (and a parameter where the page is per record).
 
 Why this shape: the rules stay with the owning team (Billing keeps the refund rule, HR keeps its rank rule), the inbox cannot
@@ -107,16 +114,26 @@ horizontal scroll. Dark mode through theme tokens only (UX-13 pattern). Daniel's
 ### 4.3 The number
 A single read-only endpoint, `GET /approvals/count`, returns the total and per-area totals for this person at the active branch.
 It runs **only dedicated `COUNT(*)` queries**, never a page service (the survey shows the HR space count builds whole page payloads
-and must not be reused). The result is cached 60 seconds per person and branch, polled every 60 seconds only while the tab is visible,
-and never blocks a page render. The number shows in two places: next to **Me** in the sidebar and top bar account menu, and on the
-inbox link. It never shows a patient name, amount or reason.
+and must not be reused). **Access is never cached:** on every request the server re-checks the person's decide permission and
+effective branch assignment for each source. Only the raw per-source counts are cached, 60 seconds, under a key that includes the
+**user id** and the branch id (the own-item exclusion differs per person, so a count is never shared between people). A person's
+own decision on an item clears that person's cached counts; any other staleness is accepted for at most 60 seconds, and a count never
+grants or keeps access. The number is polled every 60 seconds only while the tab is visible and never blocks a page render. The same
+branch-local midnight and Asia/Kuala_Lumpur fallback as My day apply to "waiting N days". The number shows in two places: on the **Me** row of the account menu (with a small number on the account menu button), and on a
+Clinic management row. (KPOne is Classic only since CO-1; there is no sidebar.) It never shows a patient name, amount or reason.
 
 ### 4.4 Privacy and safety
 - Rows carry **no patient name, IC, phone, amount, reason, note or file name**. A row says what kind of thing and how long it has waited.
   (Whether money items may show an amount is owner question Q2.)
 - The count and rows are computed server-side with a fresh permission check and an effective branch assignment; the Vue page is only a
   convenience. A person with no assignment at the active branch sees no branch items (the page never lists a branch they cannot work in).
-- The TV account, and any role holding no decide permission, gets 403 on `/approvals` and no link.
+- **Who may open the page.** The page opens for any human role that has at least one source, approval or task. Because memos and
+  SOPs to read are held by every human role (`hr.sops.acknowledge.own`), in practice every human role can open it; only the TV
+  account gets 403. **The number, the account-menu badge and the Clinic management row appear only for people who hold at least one
+  approval decide permission**, so someone with only "to read" tasks sees those tasks on My day instead of a number everywhere.
+- **Other branches.** The "N waiting at other branches" line counts only branches where the person has an **effective assignment**
+  and holds that source's permission, and it is computed only when the inbox page is opened (not in the nav count), so the cost is
+  not multiplied on every page.
 - The inbox writes nothing (no audit row per view; it is a count of data the person can already see on the owning pages).
 
 ### 4.5 What it does not change
@@ -126,7 +143,7 @@ No rule, permission, route, migration, table or approval behaviour of any owning
 
 | Slice | Owner | Content | Existing assertions touched |
 |---|---|---|---|
-| APPR-1a | Staff Experience | the contract, the registry, `/approvals` page with an Approvals section and a Tasks section, `/approvals/count`, the number next to Me, a Clinic management row, the "N waiting at other branches" line; **sources: only the five that already have a cheap count** (cash close, patient merge, Panel price change, supplier invoice, purchase request) | **One line** in the exact map of `ClinicManagementTest::test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role`: `'/approvals' => ApprovalSources::decidePermissions(),` (the union of every registered source's decide permission, taken from the registry, so adding a source later never edits the test). If a source also needs a role (as the DSP-7b returns list needs `ca_supervisor`), its hub exception is added the way DSP-7b's was and listed then. `DepartmentSpaceMatrixTest` is not affected. |
+| APPR-1a | Staff Experience | the contract, the registry, `/approvals` page with an Approvals section and a Tasks section, `/approvals/count`, the number next to Me, a Clinic management row, the "N waiting at other branches" line; **sources: only the five that already have a cheap count** (cash close, patient merge, Panel price change, supplier invoice, purchase request) | **One line** in the exact map of `ClinicManagementTest::test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role`: `'/approvals' => [<explicit list of the approval decide permissions>],`. The list is written out in the test so a new source visibly widens who gets the row, and a second test fails if the explicit list and the registry's approval permissions differ. If a source also needs a role (as the DSP-7b returns list needs `ca_supervisor`), its hub exception is added the way DSP-7b's was and listed then. `DepartmentSpaceMatrixTest` is not affected. |
 | APPR-1b | Inventory (Zulkifli) | stock sources (3.2), reusing each page's own list query | none expected |
 | APPR-1c | Billing (Farah) | refund, responsibility, adjustment; a "Refunds waiting" list so the refund has a place to open | none expected |
 | APPR-1d | HR (Liyana) | all HR sources (3.4), and the HR space claims count is fixed to exclude the viewer's own | the HR space count assertion, if it pins the old number |
@@ -142,7 +159,11 @@ exists; the count equals the owning page's own waiting count for a seeded case; 
   seeded Director, Finance Officer, CA Supervisor, HR Manager, Branch Manager, Account Assistant and Store Admin (ROLE-1 roles);
 - no patient identifier, amount or reason appears in either payload (key and value scan, like `AggregatePayloadGuard`);
 - a branch item never appears without an effective assignment at the active branch;
-- the count endpoint does not call a page service (a source test fails if `*PageService` is imported by an inbox class).
+- the count endpoint does not call a page service (a source test fails if `*PageService` is imported by an inbox class);
+- the cache never keeps access: after a role or branch assignment is removed the next request shows nothing, and counts for two
+  people with different own-item exclusions are never shared;
+- the other-branch line counts only branches with an effective assignment and the source's permission;
+- a row has no field other than label, rounded age and link (type test), and a midnight test uses the branch time zone.
 
 ## 6. Questions for the owner (answered 22 Nov 2026; see section 9)
 
