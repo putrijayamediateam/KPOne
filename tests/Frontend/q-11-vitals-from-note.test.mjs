@@ -18,9 +18,9 @@ const {
     parseVitalsFromNote: rawParse,
     planFill: rawPlan,
     noteVitalsKey,
-    isUnusual,
+    crossesRedLimit,
 } = runInNewContext(
-    `${javascript}\n({ parseVitalsFromNote, planFill, noteVitalsKey, isUnusual })`,
+    `${javascript}\n({ parseVitalsFromNote, planFill, noteVitalsKey, crossesRedLimit })`,
 );
 const show = read('resources/js/pages/Clinical/Show.vue');
 // results come from another VM context, so compare plain copies made in this one
@@ -312,47 +312,111 @@ test('the page labels unsaved vitals, announces politely, never moves focus, ord
     );
 });
 
-test('unusual readings are still filled but flagged "Check", with ranges that live in one table (Daniel)', () => {
-    // The ranges approved by Dr Fatin Adilah (21 Nov 2026): the ends are inside (no Check), one step past an end is outside.
-    const edges = [
-        ['systolic_bp', 50, 250, '49', '50', '250', '251'],
-        ['diastolic_bp', 30, 150, '29', '30', '150', '151'],
-        ['pulse_bpm', 35, 220, '34', '35', '220', '221'],
-        ['temperature_celsius', 34, 42, '33.9', '34.0', '42.0', '42.1'],
-        ['spo2_percent', 70, 100, '69', '70', '100', '101'],
+test('Check comes from the triage guideline red limits only (Q-12): inclusive edges, age band, no guideline means no flag', () => {
+    const limits = [
+        {
+            reading: 'systolic_bp',
+            age_band: 'adult',
+            direction: 'very_high',
+            limit_value: '180.00',
+            zone: 'red',
+        },
+        {
+            reading: 'systolic_bp',
+            age_band: 'adult',
+            direction: 'very_low',
+            limit_value: '80.00',
+            zone: 'red',
+        },
+        {
+            reading: 'systolic_bp',
+            age_band: 'child',
+            direction: 'very_high',
+            limit_value: '130.00',
+            zone: 'red',
+        },
+        {
+            reading: 'temperature_celsius',
+            age_band: 'adult',
+            direction: 'very_high',
+            limit_value: '39.50',
+            zone: 'red',
+        },
+        {
+            reading: 'pulse_bpm',
+            age_band: 'adult',
+            direction: 'very_high',
+            limit_value: '140.00',
+            zone: 'yellow',
+        },
+        {
+            reading: 'weight_kg',
+            age_band: 'adult',
+            direction: 'very_low',
+            limit_value: '30.00',
+            zone: 'red',
+        },
     ];
+    const adult = { ageBand: 'adult', limits };
+    const child = { ageBand: 'child', limits };
+    const unknown = { ageBand: 'unknown', limits };
+    const crosses = (values, limit) => crossesRedLimit(values, limit);
 
-    for (const [field, , , lowOut, lowIn, highIn, highOut] of edges) {
-        assert.equal(
-            isUnusual({ [field]: lowOut }),
-            true,
-            `${field} ${lowOut}`,
-        );
-        assert.equal(isUnusual({ [field]: lowIn }), false, `${field} ${lowIn}`);
-        assert.equal(
-            isUnusual({ [field]: highIn }),
-            false,
-            `${field} ${highIn}`,
-        );
-        assert.equal(
-            isUnusual({ [field]: highOut }),
-            true,
-            `${field} ${highOut}`,
-        );
-    }
-
-    assert.equal(isUnusual({ systolic_bp: '120', diastolic_bp: '80' }), false);
+    // no guideline in force: never a Check
+    assert.equal(crosses({ systolic_bp: '300' }, null), false);
+    // inclusive edges: on the limit counts as at or past it, one step inside does not
+    assert.equal(crosses({ systolic_bp: '180' }, adult), true);
+    assert.equal(crosses({ systolic_bp: '179' }, adult), false);
+    assert.equal(crosses({ systolic_bp: '80' }, adult), true);
+    assert.equal(crosses({ systolic_bp: '81' }, adult), false);
+    assert.equal(crosses({ temperature_celsius: '39.5' }, adult), true);
+    assert.equal(crosses({ temperature_celsius: '39.4' }, adult), false);
+    // the limits' own two decimals are respected
+    assert.equal(crosses({ temperature_celsius: '39.50' }, adult), true);
     // one odd half of a blood pressure flags the whole reading
-    assert.equal(isUnusual({ systolic_bp: '120', diastolic_bp: '25' }), true);
-    // the owner's example "bp:180/45" is inside both ranges now, so it is read and not flagged
-    assert.equal(isUnusual({ systolic_bp: '180', diastolic_bp: '45' }), false);
-    assert.equal(isUnusual({ temperature_celsius: '37.2' }), false);
-    assert.equal(isUnusual({ weight_kg: '62.5' }), false);
-    // the owner's own example is read and flagged, not refused
-    const found = parseVitalsFromNote('bp:180/45');
-    assert.equal(found.readings.length, 1);
+    assert.equal(
+        crosses({ systolic_bp: '120', diastolic_bp: '85' }, adult),
+        false,
+    );
+    assert.equal(
+        crosses({ systolic_bp: '185', diastolic_bp: '85' }, adult),
+        true,
+    );
+    // the owner's example "bp:180/45" is at the adult red limit (systolic 180)
+    assert.equal(
+        crosses({ systolic_bp: '180', diastolic_bp: '45' }, adult),
+        true,
+    );
+    // the age band picks the limits: 140 is past the child limit only
+    assert.equal(crosses({ systolic_bp: '140' }, adult), false);
+    assert.equal(crosses({ systolic_bp: '140' }, child), true);
+    // an unknown age band checks both bands, as the triage form does
+    assert.equal(crosses({ systolic_bp: '140' }, unknown), true);
+    assert.equal(crosses({ systolic_bp: '120' }, unknown), false);
+    // yellow limits never flag (red only); a reading with no limit never flags
+    assert.equal(crosses({ pulse_bpm: '150' }, adult), false);
+    assert.equal(crosses({ spo2_percent: '50' }, adult), false);
+    // weight and height flag only if the guideline holds a limit for them
+    assert.equal(crosses({ weight_kg: '25' }, adult), true);
+    assert.equal(crosses({ weight_kg: '62.5' }, adult), false);
+    assert.equal(crosses({ height_cm: '10' }, adult), false);
+    // an unreadable value is never flagged
+    assert.equal(crosses({ systolic_bp: 'abc' }, adult), false);
+    // the owner's own example is still read, not refused
+    assert.equal(parseVitalsFromNote('bp:180/45').readings.length, 1);
+    // wiring on the page
     assert.match(show, /Check:\s*\{\{\s*filledChecks\.join/);
-    assert.match(show, /isUnusual\(reading\.values\)/);
+    assert.match(
+        show,
+        /crossesRedLimit\(reading\.values, props\.clinical\.vitalLimits\)/,
+    );
+    assert.ok(
+        !/isUnusual|USUAL/.test(
+            show + read('resources/js/lib/vitals-from-note.ts'),
+        ),
+        'the placeholder table is gone',
+    );
+    assert.match(show, /Triage guideline v/);
 });
 
 test('Undo clears only the boxes auto-fill filled, whatever else the doctor typed (Daniel)', () => {

@@ -61,7 +61,6 @@ final class ProposalInbox
                 'lockVersion' => $p->lock_version,
                 'lines' => $this->lines($p, $names),
                 'canDecide' => $this->proposals->canDecide($actor, $p, $assigned),
-                'cannotDecideReason' => $this->proposals->cannotDecideReason($actor, $p, $assigned),
                 'prepare' => $this->prepare($actor, $p),
                 'prepared' => $this->prepared($p),
             ])->values()->all(),

@@ -2,8 +2,8 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 
 /**
- * HR-15g locum pay statement (owner, 18 Nov 2026). State and actions shared by Classic (`pages/HR/LocumPay.vue`) and
- * Version 2 (`pages/HR/V2/LocumPay.vue`), so both send the same requests, lock versions and idempotency keys.
+ * HR-15g locum pay statement (owner, 18 Nov 2026). State and actions of `pages/HR/LocumPay.vue`: every request, lock
+ * version and idempotency key.
  * KPOne works out the statement and records a payment made outside it; it pays nothing.
  */
 export type Tab = 'mine' | 'statements' | 'rates';

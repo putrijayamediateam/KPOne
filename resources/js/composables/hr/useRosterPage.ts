@@ -4,9 +4,7 @@ import type { Compliance } from '@/components/hr/compliance/CompliancePanel.vue'
 import type { ComplianceSettings } from '@/components/hr/compliance/ComplianceRules.vue';
 
 /**
- * The Roster page's state and actions, shared by Classic (`pages/HR/Roster.vue`) and Version 2
- * (`pages/HR/V2/Roster.vue`), so both send the same requests with the same lock versions and idempotency keys.
- * Moved out of the Classic page unchanged; the Classic template did not change.
+ * The Roster page's state and actions for `pages/HR/Roster.vue`: every request, lock version and idempotency key.
  */
 export type Option = { value: string; label: string };
 export type Shift = {
@@ -83,7 +81,7 @@ export type Minimums = {
     compliance: ComplianceSettings | null;
 };
 
-export type RosterProps = {
+type RosterProps = {
     /** HR-5a: your own expiring or expired credentials, in words. */
     credentialReminders?: string[];
     roster: {
