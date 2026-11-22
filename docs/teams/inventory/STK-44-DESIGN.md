@@ -10,7 +10,9 @@ margin denominator, estimates, free lines, units, time zones, an index and more 
 
 **Owner decision 2026-11-22** (relayed by B.E.R.N.I.S.S): the purchasing order starts with this slice.
 
-Revision 2 is OK by Mei Ling (22 Nov), with two small wording notes applied.
+Revision 2 is OK by Mei Ling (22 Nov), with two small wording notes applied. Revision 3 applies Daniel's look at the
+note level (OK with changes, 22 Nov): two card groups, visible notes for incomplete cost and later voids, column names,
+negative figures, phone cards and the month label. He does a full look on the shots.
 
 **For the owner:** (1) the page ranks by Sales or Gross profit only, not units (asked through B.E.R.N.I.S.S); (2) a
 line charged RM 0.00 is shown as "given free", not as sold below cost, while its cost still counts.
@@ -23,34 +25,48 @@ layout.
 1. **Header:** the shared `PageHeader`, "Medicine sales", with one description line: "Your best-selling medicines for
    one month, with the cost of what was dispensed and the profit."
 2. **Filters** (a GET form; the page reloads):
-   - **Month:** the current month by default, and any of the last 24 months. The current month runs to today.
+   - **Month:** the current month by default, and any of the last 24 months. The current month runs to today and is
+     labelled "November 2026 (to date)", so nobody reads a partial month as complete.
    - **Branch:** the active branch by default, or "All branches".
+   - An outline **Apply** button and a **Reset** link.
+   - Under the filters, one visible muted line: "Figures can change if an invoice is voided later."
    - **Rank by:** Sales (default) or Gross profit. Not by units, because units are in different stock units across
      medicines (a 1,000 ml syrup would outrank tablets). **Question for the owner:** the decision says "units"; the
      page shows them as a column. If the owner still wants a units ranking, it ranks within one stock unit only.
 3. **The accountant banner,** `StockValuationReportService::BANNER` ("Management report — cost policy to be confirmed
    by the clinic's accountant…"), as AGENTS.md requires for valuation figures. It sits above the figures, with the
    same wording and style as the Stock value page.
-4. **Month totals** in a short line of cards: medicine sales (RM), cost of medicines sold (RM), gross profit (RM),
-   margin (%), the number of medicine lines sold below cost and the number given free.
-5. **Top 25 medicines,** in the shared `OperationalTable` from 1024 px and as cards below that. Columns:
+4. **Month totals** in two groups, so a count is never read as RM:
+   - four money cards in one row: medicine sales (RM), cost of medicines sold (RM), gross profit (RM), margin (%);
+   - a second, smaller row with two counts: lines below cost and free lines.
+   - At 390 px, two cards per row.
+   - When any medicine has incomplete cost, a visible line with a warning dot under the money cards: "N medicines
+     with cost not complete are left out of profit and margin."
+   - A negative gross profit or margin shows a minus sign ("-RM 12.00", "-4.0%") in the normal text colour, never red
+     text on its own. The same applies in the tables.
+5. **Top 25 medicines,** in the shared `OperationalTable` from 1024 px and as cards below that. A card has a heading
+   line (rank, name, code muted), then a two-column list: Sales, Cost, Gross profit, Margin, Units. "Lines below cost"
+   and "Free lines" show only when they aren't a dash. 44 px targets, nothing scrolls sideways. Columns:
    - Rank, Medicine (display name, with its code muted);
    - Units (the quantity dispensed, in the SKU's stock unit, whole numbers without trailing zeros, for example
      "1,240 tablet"). A medicine whose lines used more than one stock unit (its SKU mapping changed) shows each unit
-     on its own line, for example "1,200 tablet · 40 capsule", marked "mixed units";
+     on its own line ("1,200 tablet", then "40 capsule"), with "mixed units" as a muted word;
    - Sales (RM), Cost (RM), Gross profit (RM), Margin (%);
-   - Sold below cost: the number of lines, or a dash.
-   - Given free: the number of lines charged RM 0.00, or a dash. A free line is shown here and **not** counted as sold
+   - **Lines below cost:** the number of lines, or a dash.
+   - **Free lines:** the number of lines charged RM 0.00, or a dash. A free line is shown here and **not** counted as sold
      below cost, because it was charged nothing on purpose. The disclosure says so.
    - When the cost of a medicine is not complete (some dispensed stock had no cost recorded), Cost, Gross profit and
-     Margin show "Cost not complete" instead of a figure, with a tooltip and an `aria-label` giving the reason. Such a
+     Margin show "Cost not complete" instead of a figure, with a tooltip and an `aria-label` giving the reason. A
+     tooltip doesn't work on a phone, so a visible muted footnote sits under the table and on each affected card:
+     "Cost not complete: some stock sold has no cost recorded." Such a
      medicine still ranks by Sales, and goes after every complete one when ranking by Gross profit.
    - A cost that rests partly on an order estimate (`cost_source = estimate`; the engine marks such movements) shows
-     "(estimate)" after the figure, as STK-42 does.
+     "(estimate)" after the figure, as STK-42 does, joined to it with a no-break space so it never wraps alone. The
+     disclosure says what it means.
    - A line under the table: "Showing the top 25 of N medicines sold this month."
 6. **Sold below cost,** a second table: every medicine with at least one line sold for less than its cost this month
    (not only the top 25), with the number of lines and the total shortfall (RM), worst first, 25 a page with its own
-   page parameter. An empty state says "No medicine was sold below cost this month."
+   page parameter. Below 1024 px it is cards too, with outline Previous and Next buttons. An empty state says "No medicine was sold below cost this month."
 7. **How this page counts,** a closed disclosure (as on the shared report page), holding the rules below in plain
    words.
 
@@ -178,8 +194,12 @@ written, the page is not shown.
 - A DSP-7 return is not subtracted.
 - The exact holder list, pinned through `PermissionCatalogue`.
 - The page data holds no patient or doctor field.
-- Frontend: the banner, the table and card layouts, "Cost not complete" with its accessible name, the disclosure, and
-  the Inventory home link only for holders.
+- Frontend: the banner, the two card groups, the table and card layouts, "Cost not complete" with its accessible
+  name and visible footnote, "(estimate)" with a no-break space, the minus sign on negative figures, "Lines below cost"
+  and "Free lines", the "(to date)" month label, the visible void line, the disclosure, and the Inventory home link
+  only for holders.
+- Shots for Daniel at 1440 and 390, light and dark, including a cost-not-complete row, an "(estimate)" row, a
+  mixed-units row, the empty "Sold below cost" state and the accountant banner.
 
 No existing assertion is expected to change. The new permission enters the role lists, so I'll confirm on the full
 suite. The PR description records the new permission as a change of authorisation boundary.
