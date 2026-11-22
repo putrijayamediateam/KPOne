@@ -21,7 +21,7 @@ import { myr, toSen } from '@/types/billing';
 /**
  * PCA-2 (Daniel's board v10, sections 1 and 2): the Panel share as "original + Panel claim adjustment" beside the
  * amount claimed, the button that changes the invoice, and a waiting request with Confirm adjustment and Withdraw
- * request. Shared by the claim page and the Billing page, Classic and Version 2 (a new rule, so both layouts). The
+ * request. Shared by the claim page and the Billing page. The
  * server decides every amount and refusal; this page only shows them. One card holds the figures (no card inside it);
  * a waiting request is its own block under the card (Daniel).
  */

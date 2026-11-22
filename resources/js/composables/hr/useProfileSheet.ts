@@ -4,7 +4,8 @@ import type { Option, Person } from '@/components/hr/payroll/types';
 import { rmText } from '@/components/hr/payroll/types';
 
 /**
- * HR-7a pay profile sheet state: the form, its defaults from the person's current profile, and the request. Shared by the Classic sheet (`components/hr/payroll/ProfileSheet.vue`) and V2 Payroll, so both send the same request. Moved unchanged.
+ * HR-7a pay profile sheet state: the form, its defaults from the person's current profile, and the request, for
+ * `components/hr/payroll/ProfileSheet.vue`.
  */
 export type ProfileSheetProps = {
     open: boolean;

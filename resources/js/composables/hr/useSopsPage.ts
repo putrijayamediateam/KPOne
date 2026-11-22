@@ -2,9 +2,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 
 /**
- * The SOPs page's state and actions (HR-5c), shared by Classic (`pages/HR/Sops.vue`) and Version 2
- * (`pages/HR/V2/Sops.vue`), so both send the same requests with the same lock versions and idempotency keys. Moved out
- * of the Classic page unchanged; the Classic template did not change.
+ * The SOPs page's state and actions (HR-5c) for `pages/HR/Sops.vue`: every request, lock version and idempotency key.
  */
 export type Tab = 'my' | 'manage';
 export type Option = { value: string; label: string };

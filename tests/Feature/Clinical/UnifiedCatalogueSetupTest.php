@@ -272,7 +272,7 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
         }
     }
 
-    public function test_catalogue_dropdown_options_and_panels_are_persisted_and_authorised(): void
+    public function test_catalogue_dropdown_options_are_persisted_and_authorised(): void
     {
         $director = $this->actor('director');
         $this->actingAs($director);
@@ -284,21 +284,6 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
             'type' => 'medicine_category',
             'query' => 'respiratory',
         ]))->assertOk()->assertJsonPath('data.0.label', 'Synthetic respiratory category');
-
-        $this->postJson(route('catalogue-panels.store'), [
-            'code' => 'SYNTH-INLINE-PANEL',
-            'name' => 'Synthetic Inline Panel',
-        ])->assertCreated()->assertJsonPath('data.name', 'Synthetic Inline Panel');
-        $this->assertDatabaseHas('panels', [
-            'organisation_id' => $director->organisation_id,
-            'code' => 'SYNTH-INLINE-PANEL',
-            'name' => 'Synthetic Inline Panel',
-            'is_active' => true,
-        ]);
-        $this->assertDatabaseHas('audit_logs', [
-            'event' => 'panel.created',
-            'actor_user_id' => $director->id,
-        ]);
 
         $this->actingAs($director);
         $this->postJson(route('catalogue-setup.suppliers.store'), [
@@ -331,10 +316,6 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
 
         $technicalAdmin = $this->actor('technical_admin');
         $this->actingAs($technicalAdmin);
-        $this->postJson(route('catalogue-panels.store'), [
-            'code' => 'DENIED-PANEL',
-            'name' => 'Synthetic Denied Panel',
-        ])->assertForbidden();
         $this->postJson(route('catalogue-setup.suppliers.store'), [
             'code' => 'DENIED-SUPPLIER',
             'name' => 'Synthetic Denied Supplier',

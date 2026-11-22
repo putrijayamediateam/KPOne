@@ -3,7 +3,8 @@ import { computed, reactive, watch } from 'vue';
 import type { Option } from '@/components/hr/payroll/types';
 
 /**
- * HR-7a statutory table sheet state: scheme, category, date, rounding, source and wage bands, and the request. Shared by the Classic sheet and V2 Payroll, so both send the same request. Moved unchanged.
+ * HR-7a statutory table sheet state: scheme, category, date, rounding, source and wage bands, and the request, for the
+ * Payroll statutory table sheet.
  */
 export type TableSheetProps = {
     open: boolean;
