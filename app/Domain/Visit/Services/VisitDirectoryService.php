@@ -134,7 +134,7 @@ class VisitDirectoryService
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($readinessIds));
         // TRI-1c: the zone chip, only for CA, CA Supervisor and the patient's own doctor (one query).
         $triageZones = app(TriageZoneProjection::class)->forVisits($actor, $paginator->getCollection()
-            ->map(fn (Visit $visit): array => TriageZoneProjection::subject($visit, $visit->queueEntry))->all());
+            ->map(fn (Visit $visit): array => TriageZoneProjection::subject($visit, $this->visibleQueueEntry($actor, $visit, $queueHints)))->all());
         foreach ($paginator->getCollection() as $visit) {
             $visit->setRelation('callReadiness', $readiness[$visit->queueEntry?->id] ?? null);
             $visit->setRelation('triageZone', $triageZones[$visit->id] ?? null);

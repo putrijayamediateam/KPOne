@@ -20,6 +20,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -96,7 +97,16 @@ class ClinicalEncounterService
                     'record_version' => 1,
                 ], $lockedActor, $branch, $lockedActor->organisation_id);
 
-                $this->copyTriageVitals($encounter, $lockedVisit, $lockedActor, $branch);
+                // TRI-1c: a copy that ever fails (for example after a later schema change) must never block the
+                // consultation: it runs in a savepoint, and on a database error the start goes on without it.
+                try {
+                    DB::transaction(fn () => $this->copyTriageVitals($encounter, $lockedVisit, $lockedActor, $branch));
+                } catch (QueryException $exception) {
+                    Log::warning('encounter.vitals_from_triage_skipped', [
+                        'clinical_encounter_id' => $encounter->id,
+                        'sqlstate' => $exception->errorInfo[0] ?? null,
+                    ]);
+                }
 
                 return $encounter->refresh();
             }, 3);

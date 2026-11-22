@@ -124,6 +124,14 @@ owner's approval before it is changed.
 - "Tell the doctor now" (design step 7) already shows on the TRI-1b triage form; TRI-1c adds nothing to it.
 - The Registration Triage tab uses its own table, so the "No triage yet" chip never repeats there.
 
+**Farhana's diff review (22 Nov 2026):** nothing blocking or major. Done: the copy runs in a savepoint, so a database
+error skips it with a logged code (`encounter.vitals_from_triage_skipped`, ids and SQLSTATE only) and never blocks the
+consultation; a test pins the seven readings to the copy and the trigger; the Director check finds its row by visit
+number; a test of the CA and the own doctor seeing the chip on a Serving row; the Registration board builds the chip from
+the same visible queue entry as its row. Not done (noted): a migration up/down/up test for 500600 (its `down()` is a
+plain drop), a role holding `queue.call.own` without `resident_doctor` (none exists today), and eager-loading the CA's
+name on the consultation page (one small query per load).
+
 **Known limits:** an open Call next confirm card is not refreshed when a green triage lands meanwhile (the card's
 same-patient check compares lock versions, which a green triage does not change), so it can still say "No triage yet";
 it is a warning only. The zone on a board follows the board's poll.

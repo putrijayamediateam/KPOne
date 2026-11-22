@@ -7,6 +7,7 @@ use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
+use App\Domain\Clinical\Triage\VisitTriageAssessment;
 use App\Domain\Queue\Display\QueueDisplayFeedService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Visit\Models\Visit;
@@ -70,6 +71,20 @@ class TriageChipsAndVitalsTest extends TriageTestCase
 
         [$doctor, , $serving] = $this->servingFixture(null, $ca);
         $this->assertNull($this->zoneFor($ca, $serving), 'no "No triage yet" once the patient is called in');
+        $this->triage($ca, $serving);
+        $this->assertSame(['zone' => null, 'triaged' => true], $this->zoneFor($ca, $serving), 'a Serving row keeps its triage chip');
+        $this->assertSame(['zone' => null, 'triaged' => true], $this->zoneFor($doctor, $serving));
+    }
+
+    public function test_the_copy_and_the_database_rule_cover_exactly_the_seven_encounter_readings(): void
+    {
+        $readings = ['systolic_bp', 'diastolic_bp', 'pulse_bpm', 'temperature_celsius', 'spo2_percent', 'weight_kg', 'height_cm'];
+        $this->assertSame($readings, VisitTriageAssessment::READINGS, 'a new triage reading needs the copy rule and the 500600 trigger updated together');
+        $migration = file_get_contents(database_path('migrations/2026_11_20_500600_add_triage_source_to_encounter_vitals.php'));
+        foreach ($readings as $reading) {
+            $this->assertStringContainsString("NEW.{$reading}", $migration);
+            $this->assertStringContainsString("t.{$reading} IS NOT NULL", $migration);
+        }
     }
 
     public function test_board_rows_and_the_call_next_card_carry_only_the_zone(): void
@@ -86,8 +101,9 @@ class TriageChipsAndVitalsTest extends TriageTestCase
 
         $director = $this->actor('director');
         $this->selectBranch($director);
-        $this->actingAs($director)->postJson(route('registration.search'))->assertOk()
-            ->assertJsonPath('data.0.triage', null);
+        $directorRow = collect($this->actingAs($director)->postJson(route('registration.search'))->assertOk()->json('data'))
+            ->firstWhere('visitNumber', $first->visit_number);
+        $this->assertNull($directorRow['triage'], 'the Director never receives the zone');
 
         $this->selectBranch($ca);
         $queueRow = collect(app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'])->firstWhere('visitNumber', $first->visit_number);
