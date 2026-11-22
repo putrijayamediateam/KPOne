@@ -179,7 +179,7 @@ const stillAutoFilled = computed(() =>
 const filledFromNote = computed(() =>
     stillAutoFilled.value.map((reading) => reading.label),
 );
-// Filled readings outside the usual ranges: still filled, but flagged "Check" so a typo in the note is not missed.
+// Filled readings at or past the guideline's red limit: still filled, but flagged "Check" so a typo in the note is not missed.
 const filledChecks = computed(() =>
     stillAutoFilled.value
         .filter((reading) =>

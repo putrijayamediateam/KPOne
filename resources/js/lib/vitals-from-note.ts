@@ -54,7 +54,7 @@ export const crossesRedLimit = (
     values: Partial<Record<VitalsField, string>>,
     vitalLimits: VitalLimits | null,
 ): boolean => {
-    if (vitalLimits === null) {
+    if (!vitalLimits) {
         return false;
     }
 
