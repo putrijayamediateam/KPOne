@@ -42,14 +42,6 @@ const props = defineProps<{
     describe?: (sku: ScannedSku) => string;
     /** Look up button style; 'outline' where the page already has a solid main action beside it (Daniel). */
     lookupVariant?: 'default' | 'outline';
-    /** Optional shorter help line (V2 Dispensary); without it each context keeps its own help text. */
-    help?: string;
-    /**
-     * V2 Dispensary (Daniel): when the camera can't be used on this device (no barcode reader, or no https), hide
-     * "Use camera" and its paragraph instead of showing a disabled button. An explanation still shows after a press
-     * that fails (camera blocked or could not start). Classic pages leave this off and keep today's behaviour.
-     */
-    hideUnavailableCamera?: boolean;
 }>();
 // DSP-18: a GS1 code also passes what it read (batch, expiry); the page may only point at it, never fill it in.
 const emit = defineEmits<{ found: [sku: ScannedSku, gs1: Gs1Read | null] }>();
@@ -64,13 +56,6 @@ const busy = ref(false);
 const starting = ref(false);
 // Checked once on mount, so an unsupported device shows the reason instead of a button that only fails.
 const cameraState = ref<CameraSupport>('supported');
-// Unsupported or insecure is known before any press; denied and error only come from a press.
-const cameraHidden = computed(
-    () =>
-        !!props.hideUnavailableCamera &&
-        (cameraState.value === 'unsupported' ||
-            cameraState.value === 'insecure'),
-);
 const open = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
 let stream: MediaStream | null = null;
@@ -337,10 +322,7 @@ onBeforeUnmount(() => {
                     class="mt-1 min-h-11"
                     @keydown.enter.prevent.stop="lookup(code)"
             /></label>
-            <div
-                class="grid w-full gap-2 sm:flex sm:w-auto"
-                :class="cameraHidden ? 'grid-cols-1' : 'grid-cols-2'"
-            >
+            <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
                 <Button
                     type="button"
                     :variant="lookupVariant ?? 'default'"
@@ -351,7 +333,6 @@ onBeforeUnmount(() => {
                     Look up
                 </Button>
                 <Button
-                    v-if="!cameraHidden"
                     type="button"
                     variant="outline"
                     class="min-h-11"
@@ -368,14 +349,7 @@ onBeforeUnmount(() => {
             </div>
         </div>
         <p
-            v-if="help"
-            :id="`${inputId}-help`"
-            class="text-xs text-muted-foreground"
-        >
-            {{ help }}
-        </p>
-        <p
-            v-else-if="context === 'dispensary-add'"
+            v-if="context === 'dispensary-add'"
             :id="`${inputId}-help`"
             class="text-xs text-muted-foreground"
         >
@@ -397,7 +371,7 @@ onBeforeUnmount(() => {
             not save anything.
         </p>
         <p
-            v-if="cameraState !== 'supported' && !cameraHidden"
+            v-if="cameraState !== 'supported'"
             :id="`${inputId}-camera`"
             class="text-xs text-muted-foreground"
         >

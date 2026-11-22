@@ -2,10 +2,9 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 
 /**
- * HR-10c /hr/discipline page state: the list of restricted cases and opening one. Every request and idempotency key
- * lives here, shared by the Classic page (`pages/HR/Discipline.vue`) and Version 2 (`pages/HR/V2/Discipline.vue`), so
- * both send identical requests. Moved out of the Classic page unchanged; the Classic template did not change. The list
- * carries no allegation or note; those are shown only on the case page, after the view is recorded.
+ * HR-10c /hr/discipline page state: the list of restricted cases and opening one. Every request and idempotency key of
+ * `pages/HR/Discipline.vue` lives here. The list carries no allegation or note; those are shown only on the case page,
+ * after the view is recorded.
  */
 export type Tab = 'open' | 'closed';
 export type CaseRow = {

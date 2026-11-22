@@ -14,8 +14,6 @@ defineProps<{
         type?: string;
     }[];
     headingId: string;
-    /** Version 2 card corners. */
-    v2?: boolean;
 }>();
 </script>
 
@@ -23,10 +21,7 @@ defineProps<{
     <section
         v-if="items.length"
         :aria-labelledby="headingId"
-        :class="[
-            'flex flex-col gap-2 border border-warning/40 bg-warning/10 p-4',
-            v2 ? 'rounded-[14px]' : 'rounded-xl',
-        ]"
+        class="flex flex-col gap-2 rounded-xl border border-warning/40 bg-warning/10 p-4"
         data-test="work-permit-warnings"
     >
         <h3

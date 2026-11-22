@@ -12,9 +12,8 @@ import {
 import { requestJson } from '@/lib/json-client';
 
 /**
- * AG-23: the office page's live behaviour, shared by the Classic page (`pages/Agents/Office.vue`) and the Version 2 page
- * (`pages/Agents/V2/Office.vue`): the 10-second feed poll, the selected agent and its detail, Pause motion, and the counts.
- * Moved from the page unchanged; what each page draws stays in the page.
+ * AG-23: the office page's live behaviour for `pages/Agents/Office.vue`: the 10-second feed poll, the selected agent and
+ * its detail, Pause motion, and the counts. What the page draws stays in the page.
  */
 export type AgentDetail = {
     code: string;

@@ -7,8 +7,8 @@ import type {
 import { dateLabel } from '@/components/hr/records/types';
 
 /**
- * HR-4b onboarding and offboarding tick (HR-PLAN 11.3 rule 11): the same request and key for the Classic tab
- * (`components/hr/records/ChecklistTab.vue`) and Version 2. A tick is final. Moved out unchanged.
+ * HR-4b onboarding and offboarding tick (HR-PLAN 11.3 rule 11): the request and key for
+ * `components/hr/records/ChecklistTab.vue`. A tick is final.
  */
 export type ChecklistTabProps = {
     periods: ChecklistPeriod[];

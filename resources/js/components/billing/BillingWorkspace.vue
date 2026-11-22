@@ -358,6 +358,13 @@ const reverse = (receipt: Receipt) =>
                 :context="billing.activity"
                 :notes-context="billing.notes"
             />
+            <ActionLink
+                v-if="!manage && billing.panelClaim"
+                :href="billing.panelClaim.href"
+                variant="outline"
+                data-testid="panel-claim-link"
+                >{{ billing.panelClaim.label }}</ActionLink
+            >
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >

@@ -19,7 +19,6 @@ use App\Http\Controllers\BranchReportController;
 use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\CatalogueOptionController;
-use App\Http\Controllers\CataloguePanelController;
 use App\Http\Controllers\CatalogueSetupReferenceController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
@@ -1285,8 +1284,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->where('type', '[a-z_]+')->middleware('throttle:60,1')->name('catalogue-options.index');
         Route::post('catalogue-options/{type}', [CatalogueOptionController::class, 'store'])
             ->where('type', '[a-z_]+')->middleware('throttle:30,1')->name('catalogue-options.store');
-        Route::post('catalogue-panels', [CataloguePanelController::class, 'store'])
-            ->middleware(['permission:pricing.references.manage.organisation', 'throttle:30,1'])->name('catalogue-panels.store');
         Route::post('catalogue-setup/suppliers', [CatalogueSetupReferenceController::class, 'storeSupplier'])
             ->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('catalogue-setup.suppliers.store');
         Route::post('catalogue-setup/locations', [CatalogueSetupReferenceController::class, 'storeLocation'])
