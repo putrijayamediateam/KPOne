@@ -6,6 +6,10 @@ Owner decisions:
 - **Round 2** (21 Nov 2026):
   - 19 = A: only money actions pause; registration and consultation carry on.
   - 20 = A: the Finance Officer can approve the close if the Branch Manager is away.
+- **BIL-32 questions** (22 Nov 2026, owner's words relayed by the coordinator: "1 keep all, 2 A, 3 allow"):
+  - 1: keep all approvers (CA Supervisor and Director stay, alongside the Branch Manager and Finance Officer).
+  - 2 = A: only the counted day pauses; the next morning is open.
+  - 3: Panel claim adjustments are allowed on a locked day; they count on their own confirmation day.
 - **ROLE-1** (#1049) has added `branch_manager` with `payments.cash_closing.approve.branch` only.
 
 Design note for review (Kumar). Classic only. Synthetic data only; nothing here is production approval.
@@ -25,9 +29,7 @@ Design note for review (Kumar). Classic only. Synthetic data only; nothing here 
 
 - **Branch Manager:** approves at their branch.
 - **Finance Officer:** keeps approval, for when the manager is away (20 = A).
-- **Owner question 1:** CA Supervisor and Director still hold approval today. Keep them (no change), or remove them so
-  that only the Branch Manager and Finance Officer approve? Removing is a permission change, and changes existing
-  assertions listed in section 6.
+- **CA Supervisor and Director:** keep approval, unchanged (owner answer 1). No approval permission is removed.
 - The approver is never the counter (unchanged).
 
 ### 2.2 View-only close pages (agreed with Kavitha)
@@ -55,7 +57,7 @@ Still allowed on a locked day ("refund only"):
 - **Refunds**, before and after completion, with their own approval (BIL-34 adds the Branch Manager and the
   above-RM300 Finance review). A refund's money is counted on its payout day, so a locked day's figures never change.
 - **New payments on a later day** against an older invoice. They belong to the day they are received.
-- **Panel claim adjustments** (PCA-2), which count on their confirmation day. Owner question 3.
+- **Panel claim adjustments** (PCA-2), which count on their confirmation day (owner answer 3: allowed).
 
 The lock is a row per branch-day, derived from the approval: a new table `cash_closing_locks`, written in the same
 transaction as the approval decision, append-only. A PostgreSQL helper `kpone_branch_day_locked(branch, date)` is used
@@ -64,7 +66,7 @@ cannot get round it. Refunds are not guarded.
 
 ### 2.4 The pause (while a close waits for approval)
 
-**Owner question 2. This needs a choice, because approval is only possible after midnight.**
+**Owner answer 2 = A: pause the counted day only.** Option B is kept below for the record; it is not built.
 
 - **Option A: pause the counted day only.**
   - From the moment a count is recorded until it is approved or returned, no new money action is accepted that would
@@ -78,7 +80,7 @@ cannot get round it. Refunds are not guarded.
   - The clinic cannot take payments the next day until the Branch Manager (or the Finance Officer) approves.
   - This is stricter, but it can stop the counter in the morning.
 
-I recommend **A**.
+Chosen: **A**.
 
 Either way:
 
@@ -105,8 +107,7 @@ for a reversal or void), using the branch timezone the close already uses.
   - `kpone_branch_day_paused(branch_id, date)`, true when the latest count of that day has no decision.
 
   Guard triggers call them on the tables in 2.3 and 2.4.
-- **Permission migration:** `payments.cash_closing.view.branch` for `branch_manager`, plus question 1's change if
-  chosen.
+- **Permission migration:** `payments.cash_closing.view.branch` for `branch_manager` only (no approver removed).
 
 ## 4. Contention
 
@@ -136,7 +137,7 @@ The count, approval, and every guarded money write lock the branch-day row in on
   - each money action refused while a count waits;
   - registration and consultation not refused;
   - a return lifts the pause;
-  - Option A: the next day is not paused.
+  - the next day is not paused (owner answer 2 = A).
 - **Approvers:** the Branch Manager approves; the Finance Officer approves; the counter can never approve.
 - **View-only:** the Branch Manager opens both close pages, cannot count (403 on POST), and sees no Count form.
 - **PostgreSQL contention tests** (task-owned database, in the `Contention` suite):
@@ -145,13 +146,11 @@ The count, approval, and every guarded money write lock the branch-day row in on
   - two approvals.
 - **Changed existing assertions** (listed exactly for the owner before any edit, left failing until approved):
   - cash closing route and permission tests (GET pages now also allow the view permission);
-  - the permission catalogue and role pins (new permission; question 1 if chosen);
+  - the permission catalogue and role pins (the new view permission only);
   - `ClinicManagementTest`'s destination map and the Billing department-space list (Kavitha's note).
 
-## 7. Questions for the owner
+## 7. Owner answers (22 Nov 2026)
 
-1. Approvers: keep the CA Supervisor and Director as approvers too, or only the Branch Manager and Finance Officer?
-2. Pause: A (only the counted day pauses; the next morning is open; recommended) or B (the whole branch pauses until
-   approval)?
-3. Panel claim adjustments on a locked day's invoice: allow them (they count on their own confirmation day, so the
-   locked day's figures do not change; recommended), or block them?
+1. Approvers: keep all (CA Supervisor, Director, Branch Manager, Finance Officer).
+2. Pause: A, the counted day only.
+3. Panel claim adjustments on a locked day's invoice: allowed.
