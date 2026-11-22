@@ -37,9 +37,8 @@ Shared `PageHeader`: "My day", a greeting line with the date in the branch's tim
 1. **Today** (reuses `MeSpace`'s existing pieces, no new query): the clock-in ring or "Clock in" button when the person may clock,
    today's shift from the approved roster, leave today, and the credentials due warning. Left out if the person holds none of the
    own-HR permissions.
-2. **Waiting for me** (reuses the APPR-1 count endpoint): "N waiting" and up to four areas with their counts, each an Open button
-   to the page that owns the decision. Hidden when nothing is waiting ("Nothing is waiting for you."). Until APPR-1a is built this
-   block is not shown at all.
+2. **Waiting for me** (reuses the APPR-1 per-area totals from the same count endpoint, so there is **no second count path**): "N
+   waiting" and up to four areas with their totals, and one **Open the inbox** button (the per-source Open buttons live on the inbox). Hidden when nothing is waiting ("Nothing is waiting for you."). This block is built in DAY-1c, after APPR-1a; until then the page simply has no such block.
 3. **My routine** (new, section 4): the person's own checklist for today, with a progress line ("3 of 5 done").
 4. **My work** (shortcuts, no counts of its own): the person's department spaces and the three most used pages for their role, taken
    from the existing space list. It is a convenience, not a second menu: nothing appears that the Main Menu would not already offer.
@@ -60,18 +59,26 @@ No patient name, IC, phone, amount or reason appears anywhere on the page.
 - A visible line under the box: "Do not write patient names, IC numbers or passwords here."
 
 ### 4.2 Data (additive migration; Staff Experience range to be recorded, proposed from `2026_11_22_000100`)
-- `my_routine_items`: `id`, `user_id` (restrict), `title` (varchar 120), `position`, `hidden_at` (nullable), `created_at`; unique
+- `my_routine_items`: `id`, `user_id` (restrict), `title` (varchar 120, **stored encrypted** like other personal text in KPOne; the 120 limit is checked on the plain text before encrypting), `position`, `hidden_at` (nullable), `created_at`; unique
   `(user_id, id)`; a PostgreSQL CHECK on title length and position range; at most 20 visible items per person enforced in the
   service under the person's row lock and by a trigger.
 - `my_routine_ticks`: `id`, `item_id`, `user_id`, `done_on` (date), `created_at`; **unique `(item_id, done_on)`**, so a double tap
   or a retry cannot create two ticks. The user on a tick must equal the item's user (composite foreign key).
-- Ticks older than 31 days are removed when the person next ticks something (no scheduler). Items belong to the person and may be
-  hard-deleted when the person's account is removed; they are not clinical, financial or audit evidence and are not in `ai_read`.
-- Titles are free text typed by a person, so they are **not logged in audit** (audit records only that a list changed, with counts).
+- **Retention (stated, not implied):** a small daily command, `my-routine:purge` (scheduled like `hr-documents:purge`), removes ticks
+  older than 31 days, items hidden for more than 7 days, and the whole list of an account that has been deactivated for 30 days.
+  Accounts are deactivated, not deleted, so there is no hard-delete on account removal. Items are not clinical, financial or audit
+  evidence and are **excluded from `ai_read` and from every agent data source** (a privacy test pins both).
+- **Audit:** one structural event, `my_routine.changed`, with the person's id, the action (`added`, `renamed`, `reordered`, `hidden`,
+  `restored`) and the item count; never a title and never a tick. Ticking is not audited.
+- **Free text guard:** besides the visible warning line, the server refuses a title that looks like an IC number, email address or
+  phone number or contains a long digit run (the same best-effort rule the agent code uses), with the message "Do not enter patient or
+  personal details." It is best-effort, not proof.
+- **No other reader:** there is no route, report, support tool or impersonation path that reads another person's list (to be
+  confirmed against the code at build, with a test that no route takes another user's id).
 
 ### 4.3 Rules every write follows (as AGENTS.md requires)
 Permission is "own" (the actor's id only; there is no route that takes another user's id). `DB::transaction`, the person's `users`
-row lock, `lock_version` on the list for add, rename and reorder, an idempotency key on add, and the unique tick key for ticking.
+row lock, `lock_version` on the list for **add, rename, reorder, hide and restore**, an idempotency key on add and restore, and the unique tick key for ticking.
 Branch scope is used only for the date (the active branch's time zone); the list itself is the person's, not the branch's.
 A person with no effective branch can still keep and tick the list; the date then follows the organisation default (Asia/Kuala_Lumpur).
 
@@ -84,6 +91,8 @@ A person with no effective branch can still keep and tick the list; the date the
 | Resident Doctor | Consultation queue | unchanged; "My day" one click away |
 | CA, CA Supervisor | Registration board | unchanged; "My day" one click away |
 | Director, Finance Officer, Panel Officer, Administrator, Technical Admin, HR Manager, Marketing, Business Development, **Branch Manager, Account Assistant, Store Admin** | Main Menu (links only) | **"My day" becomes the first page**; the Main Menu stays as a link in the account menu |
+
+**Precedence stays as it is today.** `WorkspaceLandingService` still checks, in order: TV, locum, Resident Doctor, CA or CA Supervisor; only the final fallback changes, from `dashboard` to `my-day`. So a person who also holds the doctor or CA role (for example a Director who is also a Resident Doctor, pinned by `WorkspaceTest`) keeps landing on their board, not on My day. The three new roles hold none of the doctor or CA roles, so they land on My day. `workspace.defaultUrl` stays `/workspace`.
 
 Why: the people who work in a live board all day should not lose it; the people who today land on an empty link list gain the
 most. Option B (owner's call): make "My day" the first page for **every** role, with the board a one-click button at the top of it.
@@ -100,9 +109,9 @@ most. Option B (owner's call): make "My day" the first page for **every** role, 
 
 | Slice | What | Existing assertions I expect to touch (listed for the owner first) |
 |---|---|---|
-| DAY-1a | the `/my-day` page with blocks 1, 2 (hidden until APPR-1a) and 4, an account-menu link, and the landing rule of section 5 | **One test changes:** `WorkspaceTest::test_workspace_landing_is_role_aware_without_implying_clinical_authority` (lines 16-18): `director`, `technical_admin` and `hr_manager` change from `'dashboard'` to `'my-day'`, and the new roles and the other Main Menu roles are added with `'my-day'`. `SecurityHardeningTest` (the Main Menu page still opens), `LocumSignInTest` and `QueueDisplayTest` (locum and TV landing) pin behaviour that does not change, so they should pass untouched; I will confirm by running them before the PR. The account-menu link list may need one line if a test pins it (checked at build time). |
+| DAY-1a | the `/my-day` page with blocks 1 and 4, an account-menu link, and the landing rule of section 5 (the last fallback becomes `my-day`) | **One test changes:** `WorkspaceTest::test_workspace_landing_is_role_aware_without_implying_clinical_authority` (lines 16-18): `director`, `technical_admin` and `hr_manager` change from `'dashboard'` to `'my-day'`, and the new roles and the other Main Menu roles are added with `'my-day'`. `SecurityHardeningTest` (the Main Menu page still opens), `LocumSignInTest` and `QueueDisplayTest` (locum and TV landing) pin behaviour that does not change, so they should pass untouched; I will confirm by running them before the PR. The account-menu link list may need one line if a test pins it (checked at build time). `AuthenticationTest`, `EmailVerificationTest`, `VerificationNotificationTest` and `RegistrationTest` assert a redirect to `workspace`, which still holds. Many tests open `route('dashboard')` directly (BillingWorkTest, InventoryDirectoryTest, DashboardTest and others); they are unaffected because the Main Menu route stays. |
 | DAY-1b | the routine checklist (block 3): tables, `MyRoutineService`, the add / rename / reorder / hide / tick routes, the page block | none expected |
-| DAY-1c | (optional, after APPR-1a) connect block 2 to the inbox count | none |
+| DAY-1c | after APPR-1a: block 2 "Waiting for me", from the inbox's per-area totals | none |
 
 Tests Staff Experience writes: every role lands where the table says; a person can never read or change another person's items (id
 swap, the same item key, a shared account); tick is idempotent and resets on a new branch-local date (frozen clock across Kuala Lumpur
