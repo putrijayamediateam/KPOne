@@ -211,3 +211,27 @@ function stays tested in Classic.
    reason, approved per slice before the commit that changes them. CO-1 needs the Design team's look (1440 and 390 px
    screenshots, light and dark, synthetic data on a task-owned database). The two storage-format "v2" keys stay
    untouched. Inventory V2 pages wait for PR #996. No PRs from this team; the coordinator opens them.
+
+## 8. Done (2026-11-22)
+
+Every slice is merged. Everyone sees Classic, and no function was lost. Each slice listed its changed or deleted test
+assertions, and the owner approved them before the commit that changed them.
+
+| Slice | What it removed | PR |
+|---|---|---|
+| CO-1 | The "Try the new layout" switch and the new-look preview; the spaces and Me home open in Classic | #1000 |
+| CO-3 | V2 branches in shared components | #1002 |
+| CO-4 | V2 front desk and clinical pages | #1003 |
+| CO-5 | V2 money pages | #1004 |
+| CO-6 | V2 Inventory pages (after PR #996) | #1005 |
+| CO-7 | V2 HR pages (the HR composables stay for Classic) | #1009 |
+| CO-8 | V2 catalogue, pricing, settings, staff, admin, document and agent pages | #1034 |
+| CO-9 | V2 public check-in pages (never shown) and the page registry | #1044 |
+| CO-10a | The agent office's V2 control-room look | #1052 |
+| CO-10b | The V2 machinery: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font, `data-ui` and the V2 shared props | #1056 |
+| CO-10c | The last leftovers: V2-only props and options, seven backend fields, `POST /catalogue-panels` with its controller, request and `PanelAdministrationService`, and stale V2 comments | #1059 |
+
+The CO-10 split into 10a, 10b and 10c was approved by the owner, because the office page still used `useUiVersion`.
+Still open: decision 4 (drop `user_space_preferences` or keep it) is with the owner. The table is no longer read, and
+its two merged migrations stay unedited. The Classic leave warning for long forms is its own later slice, not part of
+this plan.
