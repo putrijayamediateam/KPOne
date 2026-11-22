@@ -118,7 +118,7 @@ const total = computed(() =>
                             >
                                 <Link
                                     :href="item.href"
-                                    class="font-medium text-brand-strong underline-offset-2 hover:underline"
+                                    class="font-medium text-brand-strong underline underline-offset-2 hover:no-underline"
                                     >{{ item.reference }}</Link
                                 >
                                 <span class="text-xs text-muted-foreground">{{
