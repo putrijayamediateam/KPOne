@@ -71,7 +71,7 @@ defineProps<{
                 data-test="my-day-waiting"
             >
                 <h2 id="day-waiting">Waiting for me</h2>
-                <p class="space-muted mb-2" data-test="waiting-total">
+                <p class="space-muted mb-4" data-test="waiting-total">
                     {{ waiting.total }} waiting for your decision
                 </p>
                 <ul class="space-list">
