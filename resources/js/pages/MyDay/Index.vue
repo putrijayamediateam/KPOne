@@ -23,6 +23,10 @@ defineProps<{
         branchName: string | null;
         asOf: string | null;
     };
+    waiting: {
+        total: number;
+        areas: Array<{ area: string; count: number }>;
+    } | null;
     shortcuts: Array<{ title: string; href: string }>;
 }>();
 </script>
@@ -83,6 +87,33 @@ defineProps<{
                 :as-of="today.asOf"
                 only="today"
             />
+
+            <section
+                v-if="waiting"
+                class="space-card"
+                aria-labelledby="day-waiting"
+                data-test="my-day-waiting"
+            >
+                <h2 id="day-waiting">Waiting for me</h2>
+                <p class="space-muted" data-test="waiting-total">
+                    {{ waiting.total }} waiting for your decision
+                </p>
+                <ul class="space-list">
+                    <li
+                        v-for="a in waiting.areas"
+                        :key="a.area"
+                        class="space-row"
+                    >
+                        <span>{{ a.area }}</span>
+                        <span class="space-row-sub">{{ a.count }}</span>
+                    </li>
+                </ul>
+                <Link
+                    href="/approvals"
+                    class="mt-2 inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:h-9"
+                    >Open Approvals &amp; tasks</Link
+                >
+            </section>
 
             <section
                 v-if="shortcuts.length"

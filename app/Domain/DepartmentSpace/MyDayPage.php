@@ -4,6 +4,7 @@ namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
+use App\Domain\Approvals\ApprovalInbox;
 use App\Models\User;
 
 /**
@@ -18,6 +19,7 @@ final class MyDayPage
         private MeSpace $me,
         private DepartmentSpaceNavigation $spaces,
         private ClinicManagementNavigation $management,
+        private ApprovalInbox $inbox,
     ) {}
 
     /** @return array<string, mixed> */
@@ -46,7 +48,36 @@ final class MyDayPage
                 'ring' => $me['ring'], 'week' => $me['week'], 'tiles' => $me['tiles'], 'time' => $me['time'],
                 'credentials' => $me['credentials'], 'branchName' => $me['branchName'], 'asOf' => $me['asOf'],
             ],
+            'waiting' => $this->waiting($actor),
             'shortcuts' => $shortcuts,
         ];
+    }
+
+    /**
+     * DAY-1c: the "Waiting for me" block, from the same cached per-area totals as the account-button number (there is no second
+     * count path). Only people who hold an approval decide permission see it, and it is left out when nothing is waiting. Counts
+     * only: no document number, name, amount or reason.
+     *
+     * @return array{total: int, areas: list<array{area: string, count: int}>}|null
+     */
+    private function waiting(User $actor): ?array
+    {
+        $summary = $this->inbox->summary($actor);
+        if (! $summary['showNumber'] || $summary['total'] < 1) {
+            return null;
+        }
+        $areas = [];
+        foreach ($summary['areas'] as $area) {
+            if ($area['kind'] === 'approval') {
+                $areas[$area['area']] = ($areas[$area['area']] ?? 0) + $area['count'];
+            }
+        }
+        arsort($areas);
+        $rows = [];
+        foreach (array_slice($areas, 0, 4, true) as $name => $count) {
+            $rows[] = ['area' => (string) $name, 'count' => $count];
+        }
+
+        return ['total' => $summary['total'], 'areas' => $rows];
     }
 }
