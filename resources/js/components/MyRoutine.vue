@@ -170,7 +170,7 @@ const restore = (id: string) =>
                     >
                         <input
                             type="checkbox"
-                            class="size-5 shrink-0 accent-[#be185d]"
+                            class="routine-check"
                             :checked="item.done"
                             :disabled="busy"
                             @change="
