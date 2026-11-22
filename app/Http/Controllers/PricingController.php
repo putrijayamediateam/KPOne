@@ -192,9 +192,6 @@ class PricingController extends Controller
         return Inertia::render('Pricing/PriceHistory', [
             'filters' => ['book' => $result['book']],
             'from' => $data['from'] ?? null,
-            // The time zone the "In effect from" times are shown in (the active branch's, as in the history service), so
-            // a page can name it. A name only; no branch or patient data.
-            'timezone' => $branch !== null ? $branch->timezone : (string) config('app.timezone'),
             'result' => $result,
         ]);
     }

@@ -12,10 +12,8 @@ import { dateLabel } from '@/components/hr/records/types';
 
 /**
  * HR-4a /hr/records page state: My HR details, Staff files and Settings. Every request, lock version and idempotency
- * key lives here, shared by the Classic page (`pages/HR/Records.vue`) and Version 2 (`pages/HR/V2/Records.vue`), so both
- * send identical requests. Moved out of the Classic page unchanged; the Classic template did not change. Sensitive
- * values: your own are hidden on screen until you press Show (nothing is fetched); everyone else's stay masked until the
- * audited Show on their staff file.
+ * key of `pages/HR/Records.vue` lives here. Sensitive values: your own are hidden on screen until you press Show
+ * (nothing is fetched); everyone else's stay masked until the audited Show on their staff file.
  */
 export type Tab = 'my' | 'files';
 export type FileRow = WorkerHeader & {

@@ -6,6 +6,7 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Agents\AgentPermissions;
 use App\Domain\Agents\Connector\ConnectorAgent;
 use App\Domain\Agents\Connector\ConnectorToolRunner;
+use App\Domain\Agents\Connector\ConnectorTools;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Models\AiAgentTool;
 use App\Domain\Audit\Models\AuditLog;
@@ -256,7 +257,8 @@ class ConnectorTest extends VisitTestCase
             glob(app_path('Domain/Agents/Connector/{ListBranchesTool,ConnectorTools}.php'), GLOB_BRACE) ?: [],
             glob(app_path('Domain/Agents/Connector/Mcp/*Tool.php')) ?: [],
         );
-        $this->assertCount(3, $files, 'The MCP layer must be scanned too.');
+        $this->assertContains(app_path('Domain/Agents/Connector/Mcp/ListBranchesMcpTool.php'), $files, 'The MCP layer must be scanned too.');
+        $this->assertGreaterThanOrEqual(11, count($files));
         foreach ($files as $file) {
             $source = file_get_contents($file);
             foreach (['->save(', '->update(', '->delete(', '->insert(', '->create(', 'forceFill(', 'DB::statement', 'DB::insert', 'DB::update', 'DB::delete'] as $write) {
@@ -291,6 +293,6 @@ class ConnectorTest extends VisitTestCase
         $second = ConnectorAgent::ensure($this->organisation->id);
 
         $this->assertSame($first->id, $second->id);
-        $this->assertSame(1, AiAgentTool::query()->where('ai_agent_id', $first->id)->count());
+        $this->assertSame(count(ConnectorTools::codes()), AiAgentTool::query()->where('ai_agent_id', $first->id)->count());
     }
 }

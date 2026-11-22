@@ -56,13 +56,6 @@ import {
 const props = defineProps<{
     operations: InventoryOperations;
     receiptMemoryContext: InventoryReceiptMemoryContext;
-    /**
-     * V2 Inventory home only (page 2a): suppliers, purchase orders and receiving are shown by the V2 orders section,
-     * so this panel leaves them out there. Classic passes nothing and shows everything, as before.
-     */
-    hideOrders?: boolean;
-    /** V2 Inventory home only (page 2b): stock requests and transfers are shown by the V2 requests section. */
-    hideRequests?: boolean;
 }>();
 const deliveryReferences = reactive<Record<string, string>>({});
 const busy = ref(false);
@@ -878,7 +871,7 @@ const saveReorder = () =>
         </div>
 
         <div
-            v-if="operations.permissions.manageSuppliers && !hideOrders"
+            v-if="operations.permissions.manageSuppliers"
             class="rounded-xl border bg-card p-4"
         >
             <h3 class="font-semibold">Supplier Management</h3>
@@ -925,15 +918,8 @@ const saveReorder = () =>
             </div>
         </div>
 
-        <div
-            v-if="!(hideOrders && hideRequests)"
-            class="grid gap-4"
-            :class="hideOrders || hideRequests ? '' : 'xl:grid-cols-2'"
-        >
-            <section
-                v-if="!hideOrders"
-                class="space-y-3 rounded-xl border bg-card p-4"
-            >
+        <div class="grid gap-4 xl:grid-cols-2">
+            <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Purchase Orders & Receiving</h3>
                 <form
                     v-if="operations.permissions.createPurchaseOrders"
@@ -1302,10 +1288,7 @@ const saveReorder = () =>
                 />
             </section>
 
-            <section
-                v-if="!hideRequests"
-                class="space-y-3 rounded-xl border bg-card p-4"
-            >
+            <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Stock Requests & Transfers</h3>
                 <form
                     v-if="operations.permissions.createRequests"

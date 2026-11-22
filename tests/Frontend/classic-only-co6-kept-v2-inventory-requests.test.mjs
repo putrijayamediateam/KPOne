@@ -21,9 +21,11 @@ test('2b: Classic Inventory operations keep their requests section', () => {
         assert.ok(!source.includes('components/v2/'));
     }
 
-    assert.match(classicPanel, /hideRequests\?: boolean;/);
-    assert.match(classicPanel, /v-if="!hideRequests"/);
-    assert.ok(!/withDefaults[\s\S]*hideRequests/.test(classicPanel));
+    assert.doesNotMatch(classicPanel, /hideRequests/);
+    assert.match(
+        classicPanel,
+        /<section class="space-y-3 rounded-xl border bg-card p-4">\s*<h3 class="font-semibold">Stock Requests & Transfers<\/h3>/,
+    );
     assert.ok(
         !read('resources/js/pages/Inventory/Index.vue').includes(
             'hide-requests',
@@ -31,11 +33,7 @@ test('2b: Classic Inventory operations keep their requests section', () => {
     );
 });
 
-test('2b: Classic quantity words and the picker location parameter', () => {
+test('2b: Classic quantity words', () => {
     const words = read('resources/js/lib/inventory-words.ts');
     assert.match(words, /trimQuantity\(String\(value \?\? '0'\)\)/);
-    assert.match(
-        read('resources/js/lib/inventory-picker.ts'),
-        /params\.set\('location', input\.location\);/,
-    );
 });

@@ -236,7 +236,7 @@ final class GovernedStockService
         $targets = DB::table('inventory_stock_balances as r')->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
             ->where('r.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true);
         $this->search($targets, $data['q'] ?? '');
-        // STK-23: in count mode the list to count from carries no on-hand quantity (blind counts). V2 page 3: each row and case
+        // STK-23: in count mode the list to count from carries no on-hand quantity (blind counts). Each row and case
         // also names its item (read only), so the sheets can say "40 tablets of Paracetamol".
         $t = $targets->orderBy('s.sku_code')->orderBy('b.expiry_date')->orderBy('r.id')->paginate(25, [...($mode === 'count' ? [] : ['r.quantity']), 'r.id', 'r.lock_version', 's.sku_code', 'i.generic_name as item', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location'], 'targets_page', (int) ($data['targets_page'] ?? 1));
 

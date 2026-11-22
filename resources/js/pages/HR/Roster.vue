@@ -63,7 +63,7 @@ const props = defineProps<{
     };
 }>();
 
-// State and actions live in useRosterPage, shared with the Version 2 page (pages/HR/V2/Roster.vue).
+// State and actions live in useRosterPage.
 const {
     errors,
     skipped,

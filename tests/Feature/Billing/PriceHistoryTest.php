@@ -212,7 +212,7 @@ class PriceHistoryTest extends ClinicalTestCase
         app(PriceHistoryService::class)->history($this->actor('ca'), $charge, $this->branch, null, 1);
     }
 
-    public function test_the_page_is_told_the_time_zone_its_times_are_shown_in(): void
+    public function test_the_page_sends_no_time_zone_prop(): void
     {
         $charge = $this->charge('HIS-ZONE');
         $this->publish($this->book('self_pay'), $charge, 700);
@@ -220,7 +220,7 @@ class PriceHistoryTest extends ClinicalTestCase
 
         $this->actingAs($this->supervisor)->get(route('pricing.charges.history', $charge))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('timezone', $this->branch->timezone)->where('result.total', 1));
+            ->assertInertia(fn ($page) => $page->missing('timezone')->where('result.total', 1));
     }
 
     public function test_another_organisations_charge_is_not_found_and_bad_filters_stay_on_the_page(): void

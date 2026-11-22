@@ -24,10 +24,7 @@ test('Classic Attendance renders its own markup and no V2 part', () => {
 });
 
 test('Classic Settings Save sends without keeping page state, and renews its key once saved', () => {
-    assert.match(
-        composable,
-        /const saveSettings = \(\) => sendSettings\(false\);/,
-    );
+    assert.match(composable, /const saveSettings = \(\) => sendSettings\(\);/);
     assert.match(classic, /@submit\.prevent="saveSettings"/);
     assert.match(
         composable,
