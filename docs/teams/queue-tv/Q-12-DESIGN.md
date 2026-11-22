@@ -29,3 +29,8 @@ Stopgap A (Dr Fatin reviews the placeholder table in `resources/js/lib/vitals-fr
 2. The new permission `triage.guideline.view_limits.organisation` for `resident_doctor`, or no new permission (use `encounters.view.own`)?
 3. Weight and height: the guideline can hold limits for them (none are seeded); flag them too if the guideline has any (no extra code), or only the five vital signs?
 4. Age band unknown: flag with both adult and child limits (matches the triage form), or show no Check flag when the age band is unknown?
+
+## Owner decisions (21 Nov 2026) and as built
+1A red limits only. 2A no new permission: the limits ride on the existing `ClinicalEncounterDirectoryService::detail()` payload, so only the attending doctor (`encounters.view.own`) gets them. 3A weight and height flag only if the guideline has red limits for them. 4A an unknown age band checks both adult and child limits.
+
+As built on `feature/q-12-vitals-limits-from-guideline`: `detail()` adds `vitalLimits` (null with no guideline in force; otherwise version number, age band and the red limits only). `crossesRedLimit()` replaces `isUnusual` and the placeholder table in `resources/js/lib/vitals-from-note.ts` (import-free, whole hundredths, very_high at or above the limit, very_low at or below). The Check line reads "at or past the clinic's red limit; is it a typo in the note?" with a muted "Triage guideline v{n}." Existing-assertion change: only my own Q-11 `isUnusual` test, approved by the owner ("approve the Q-12 test change"). The "A table" is gone with this change.
