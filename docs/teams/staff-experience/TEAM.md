@@ -10,7 +10,7 @@ the same PR as the code.
 |---|---|---|
 | Lead | **Kavitha** | Plans each piece, builds it, keeps this file current |
 | Reviewer | **Aiman** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
-| Classic-only Lead | **Haris** | Removes the Version 2 (V2) layout slice by slice so everyone sees Classic (CO-1 merged in PR #1000; CO-3 to CO-10 next), losing no function |
+| Classic-only Lead | **Haris** | Removed the Version 2 (V2) layout slice by slice so everyone sees Classic, losing no function (CO-1 to CO-10c, all merged by PR #1059 on 2026-11-22) |
 | Classic-only Reviewer | **Nadiah** | Reviews every Classic-only plan and slice for missed files, broken links, permission gaps and lost functions |
 
 **Added 2026-11-20 (owner request):** Haris and Nadiah joined this team from a short-term session run on 19 and 20 Nov 2026. The shared shell and layouts are this team's area, so retiring V2 (plan: `docs/design/CLASSIC-ONLY-PLAN.md` on branch `feature/classic-only-plan`) sits here.
@@ -85,6 +85,19 @@ usability aid only and must follow the permission the backend already enforces.
 | UX-14 | Malay guides for the 100 × 62 mm landscape drug label (CA and CA Supervisor) | #357 |
 | UX-15 | Shared `PageHeader` on the Staff pages and Clinic management (DD-17, part), with optional `title-extra` and `description` slots | #369 |
 | UX-16 | Confirm dialog's non-destructive tile on the brand tokens; closes DD-20 | #365 |
+| CO-1 | Classic only: the "Try the new layout" switch and the new-look preview are no longer offered; everyone sees Classic, and the department spaces and Me home open in the Classic layout (`user_space_preferences` kept, no longer read) | #1000 |
+| CO-3 | Shared components back to Classic only (the V2 breadcrumb and other V2 branches in shared code removed) | #1002 |
+| CO-4 | V2 front desk and clinical pages removed (Registration, Queue, Consultation, Dispensary and related) | #1003 |
+| CO-5 | V2 money pages removed (Billing, Panel and reports) | #1004 |
+| CO-6 | V2 Inventory pages removed | #1005 |
+| CO-7 | V2 HR pages removed; the HR composables kept for the Classic pages | #1009 |
+| CO-8 | V2 catalogue, pricing, settings, staff, admin, document and agent pages removed | #1034 |
+| CO-9 | V2 public check-in pages removed (never shown) and the V2 page registry emptied | #1044 |
+| CO-10a | The agent office's V2 control-room look removed | #1052 |
+| CO-10b | The V2 machinery removed: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font and the V2 shared props | #1056 |
+| CO-10c | The last V2 leftovers: unused V2-only props and options, seven backend fields and the inline "add a Panel" route (`POST /catalogue-panels`), and stale V2 comments | #1059 |
+
+**Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` (branch `feature/classic-only-plan`) is merged. Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Still open with the owner: whether to drop the unused `user_space_preferences` table (plan Q4; BASELINE section 6, item 31). The Classic leave warning (section 7, item 17) remains its own later slice.
 
 ## 6. Owner decisions already made (never ask again)
 
