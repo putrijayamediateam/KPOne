@@ -1,7 +1,9 @@
 # BIL-29: mark foreign (passport) patients for SST
 
-Owner decision 12 (questionnaire of 20-21 Nov 2026, `docs/decisions/2026-11-20-finance-inventory-proposals.md`):
+Owner decision 12 (questionnaire of 20-21 Nov 2026, renumbered BIL-29):
 "Mark foreign (passport) patients now; calculate SST only after the accountant confirms the rate and rules."
+Owner round 2 (21 Nov 2026): **17 = A**, foreign means a passport issued by a non-MY country and no IC (section 2 as
+written); **28 = A**, screens only (Option A in section 4; the invoice print is unchanged).
 Design note for review (Kumar). Synthetic data only; nothing here is production approval.
 
 ## 1. What changes
@@ -51,11 +53,11 @@ uses the same answer.
 Issued invoice prints are frozen at first print (BIL-5). A reprint whose content differs becomes a new version marked
 REVISED.
 
-- **Option A (recommended): screens only for now.**
+- **Option A: screens only for now. Chosen (owner 28 = A).**
   - The marker shows on staff screens; the print is unchanged.
   - When SST is confirmed, the print gains the SST line together with the real amount, in the SST slice.
   - This avoids printing "SST: to be confirmed" for patients to read, and avoids any REVISED reprints now.
-- **Option B: also on the invoice print.**
+- **Option B: also on the invoice print.** Not chosen.
   - Adds a line "Foreign patient (passport) · SST: to be confirmed" under the patient name, for foreign patients only.
     The field is added to the print content only when true, the same way BIL-10's refund credit is added, so every
     other patient's printed copies keep their content and hash.
@@ -82,7 +84,7 @@ REVISED.
   - the Billing, Manage payments and completed Invoice props carry `foreign` correctly;
   - no passport number or country appears in those props;
   - totals are byte-identical to before for a foreign patient.
-- **If Option B:**
+- **If Option B** (not chosen; kept for the record):
   - a print snapshot for a non-foreign patient is unchanged, with the same content hash;
   - a foreign patient's print shows the line.
 - **Frontend tests:** the chip and line wording, and that it shows only when `foreign` is true.
@@ -91,7 +93,18 @@ REVISED.
     would be changed assertions, listed for the owner's OK before any edit and left failing until then.
   - Option B may also touch a print-content assertion; same rule.
 
-## 7. Questions for the owner
+## 7. Owner answers and review
 
-1. Is the rule in section 2 right? Should a nationality other than Malaysian also count when there is no IC?
-2. Print: Option A (screens only, recommended) or Option B (also on the invoice print)?
+- 17 = A: the rule in section 2 stands; nationality is not used.
+- 28 = A: screens only. Issued prints keep their content and hash (the frozen snapshot copies only the patient name
+  and number from the screen props; the flag is not in it), so reprinting a foreign patient's issued invoice is a COPY
+  with the same hash. A change to the patient's identifiers still makes a REVISED copy, as before BIL-29, because the
+  print shows the current IC/passport line (BIL-9).
+- As built, no existing assertion needed changing (the expected exact key lists in section 6 did not pin these
+  props).
+- Accepted (section 3): Billing summary holders without `patients.view.organisation` see this yes or no fact, which
+  is derived from identity data; they never see the identifier, its type value or its country.
+- Kumar's review (22 Nov 2026): approve with changes; the docs, the skipped computation when printing and the extra
+  tests were added.
+- Open for the owner: decision 49 treats the clinic as not SST-registered. "SST: to be confirmed" stays until the
+  accountant confirms; the owner may prefer different wording.

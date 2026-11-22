@@ -6,6 +6,7 @@ use App\Domain\Patient\Services\ForeignPatientRule;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Models\Visit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\SyntheticVisitCompletion;
 
@@ -75,7 +76,8 @@ class ForeignPatientMarkerTest extends BillingTestCase
                 ->assertInertia(fn (Assert $page) => $page
                     ->where('billing.patient.foreign', true)
                     ->where('billing.invoice.state', $before));
-            $response->assertDontSee('AA7654321')->assertDontSee('"TH"', false);
+            $response->assertDontSee('AA7654321');
+            $this->assertNoCountryInProps($response);
         }
 
         SyntheticVisitCompletion::complete($visit);
@@ -84,6 +86,7 @@ class ForeignPatientMarkerTest extends BillingTestCase
                 ->where('invoice.patient.foreign', true)
                 ->where('invoice.financial.state', $before));
         $response->assertDontSee('AA7654321');
+        $this->assertNoCountryInProps($response);
         $this->assertSame($before, app(FinancialLedger::class)->state($invoice->refresh()));
     }
 
@@ -103,8 +106,59 @@ class ForeignPatientMarkerTest extends BillingTestCase
         $this->clearIdentifiers($visit);
         $this->identifier($visit, 'passport', 'TH', 'AA1112223');
 
-        // Owner choice pending (BIL-29-DESIGN.md section 4); until then the print content is unchanged.
+        // Owner 28 = A: screens only, so the print content is unchanged.
         $this->issuedInvoicePage($visit, $invoice)->assertOk()
             ->assertDontSee('Foreign patient')->assertDontSee('SST');
+    }
+
+    public function test_a_foreign_patients_issued_invoice_reprints_as_a_copy_with_the_same_content(): void
+    {
+        // The flag is not in the print content, so a reprint finds nothing changed: a COPY of version 1, same hash.
+        // (Changing the patient's identifiers would change the printed IC/passport line and so make a REVISED copy.)
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->clearIdentifiers($visit);
+        $this->identifier($visit, 'passport', 'TH', 'AA1112224');
+        $this->assertTrue($this->foreign($visit));
+        $this->actingAs($ca);
+        $this->issuedInvoicePage($visit, $invoice)->assertOk();
+        $first = DB::table('issued_billing_documents')->where('invoice_id', $invoice->id)->sole();
+
+        $this->issuedInvoicePage($visit, $invoice)->assertOk();
+        $this->assertSame(['original', 'copy'], DB::table('issued_billing_document_prints')->orderBy('id')->pluck('label')->all());
+        $this->assertSame([[1, $first->content_sha256]], DB::table('issued_billing_documents')->where('invoice_id', $invoice->id)
+            ->orderBy('version')->get(['version', 'content_sha256'])->map(fn ($d) => [(int) $d->version, $d->content_sha256])->all());
+    }
+
+    public function test_a_billing_summary_role_sees_only_the_flag(): void
+    {
+        [, , $visit] = $this->finalizedFixture();
+        $this->clearIdentifiers($visit);
+        $this->identifier($visit, 'passport', 'TH', 'AA1112225');
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance, $this->branch);
+
+        $response = $this->actingAs($finance)->get(route('billing.show', $visit))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('billing.patient.foreign', true));
+        $response->assertDontSee('AA1112225');
+        $this->assertNoCountryInProps($response);
+    }
+
+    public function test_a_malaysian_and_a_foreign_passport_without_an_ic_count_as_foreign(): void
+    {
+        // Owner 17 = A: any current passport from another country, with no current IC, makes the patient foreign.
+        [, , $visit] = $this->finalizedFixture();
+        $this->clearIdentifiers($visit);
+        $this->identifier($visit, 'passport', 'MY', 'A12345679');
+        $this->identifier($visit, 'passport', 'TH', 'AA1112226');
+        $this->assertTrue($this->foreign($visit));
+    }
+
+    /** No identifier country reaches the page props, whatever key it might be under. */
+    private function assertNoCountryInProps(TestResponse $response): void
+    {
+        $props = json_encode($response->viewData('page')['props'] ?? [], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('issuing_country', $props);
+        $this->assertStringNotContainsString('issuingCountry', $props);
+        $this->assertDoesNotMatchRegularExpression('/"(?:country|countryCode|issuingCountryCode)"\s*:\s*"TH"/', $props);
     }
 }

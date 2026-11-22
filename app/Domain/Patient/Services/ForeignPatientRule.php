@@ -7,7 +7,7 @@ namespace App\Domain\Patient\Services;
 use Illuminate\Support\Facades\DB;
 
 /**
- * BIL-29 (owner decision 12, 20-21 Nov 2026): whether a patient counts as foreign for SST.
+ * BIL-29 (owner decision 12, 20-21 Nov 2026; round 2: 17 = A, 28 = A): whether a patient counts as foreign for SST.
  *
  * Foreign = no current Malaysian IC AND a current passport issued by a country other than Malaysia. A Malaysian with a
  * Malaysian passport, or a person holding both an IC and a foreign passport, is not foreign. The optional nationality
