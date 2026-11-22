@@ -49,11 +49,13 @@ K1 to K10); revision 3 addresses his second read ("approve with changes", six it
   `reconcile` plus `payments.cash_closing.start_date.manage.branch` (R6); `decide` needs only `approve` (K1).
 - **K9, corrected in R3 and R5:** entry points that lead to the close pages widen to `reconcile` OR `cash_closing.view`:
   - the "Daily cash closing" hub entry only (`ClinicManagementNavigation`), not the Terminal Reconciliation entry;
-  - a **new, separate** cash-closing nav flag in `HandleInertiaRequests`. The existing `paymentReconciliations` flag
-    drives the Terminal Reconciliation link and stays on `reconcile`, so the Branch Manager never sees a link that 403s;
-  - the Billing department space: whether it is offered (`DepartmentSpaceNavigation`) and its cash-closing tile
-    (`BillingSpace`);
-  - the "days with no cash count" space question (`SpaceQuestions`), so the Branch Manager can ask it.
+  - the existing `paymentReconciliations` nav flag drives only the Terminal Reconciliation link and stays on
+    `reconcile`, so the Branch Manager never sees a link that 403s. As built: there is no cash-closing link in the top
+    bar to widen, so no new flag was needed;
+  - the Billing department space is already offered to the Branch Manager (`DepartmentSpaceNavigation`, through
+    `billing.view.branch`); its cash-closing tile and month days (`BillingSpace`) widen;
+  - the "days with no cash count" space question (`SpaceQuestions`) deliberately stays with counters (R5): the
+    Branch Manager sees the same days on the Monthly cash closing page.
 
 ### 2.3 The day lock (on approval)
 

@@ -27,6 +27,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Billing\Models\CashClosing;
 use App\Domain\Visit\Billing\Models\CashClosingDecision;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
@@ -485,6 +486,55 @@ class PostgresBillingRegressionTest extends TestCase
         $reversedAt = CarbonImmutable::parse((string) DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->value('reversed_at'), 'UTC');
         $this->assertTrue($reversedAt->greaterThanOrEqualTo($decision->decided_at), 'Reversal must follow the approval.');
         $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+    }
+
+    public function test_bil32_a_payment_holding_the_day_makes_todays_count_wait_and_then_count_it(): void
+    {
+        $f = $this->billingFixture();
+        DB::table('payment_methods')->where('organisation_id', $f['organisation']->id)->where('code', 'cash')->update(['classification' => 'cash']);
+        $today = CarbonImmutable::now($f['branch']->timezone)->toDateString();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-pay', [...$this->payArgs($f, 1500), 'hold' => true]),
+            $this->billWorker($f, 'bill-cash-count', ['business_date' => $today, 'counted_cash' => '15.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid()]),
+        );
+        // The count waited for the payment's day lock, so its expected figure includes the payment.
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame([1, 1500], [CashClosing::query()->where('organisation_id', $f['organisation']->id)->sole()->expected_receipt_count, CashClosing::query()->where('organisation_id', $f['organisation']->id)->sole()->expected_cash_sen]);
+    }
+
+    public function test_bil32_a_count_holding_the_day_makes_a_payment_wait_and_then_pause(): void
+    {
+        $f = $this->billingFixture();
+        $today = CarbonImmutable::now($f['branch']->timezone)->toDateString();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-cash-count', ['business_date' => $today, 'counted_cash' => '0.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid(), 'hold' => true]),
+            $this->billWorker($f, 'bill-pay', $this->payArgs($f, 1500)),
+        );
+        // The payment waited for the count, then found the day paused (Q2 = A): no receipt after the count.
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE payment'), $out);
+        $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    public function test_bil32_an_approval_holding_the_day_then_reverse_and_refund_of_its_receipt_commits_and_keeps_the_figure(): void
+    {
+        $f = $this->cashClosingFixture();
+        foreach (['payments.refunds.record.branch', 'payments.reverse.branch'] as $permission) {
+            $f['finance']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        $method = (int) DB::table('payment_methods')->where('organisation_id', $f['organisation']->id)->where('code', 'cash')->value('id');
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-cash-decide', [...$this->cashApproveArgs($f), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-refund-with-reversal', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'reason' => 'Synthetic wrong amount',
+                'payment_method_id' => $method, 'reason_code' => array_key_first(PaymentRefund::REASONS), 'idempotency_key' => (string) Str::uuid()], 'finance'),
+        );
+        // Approval first locks the day; the combined action then commits (its commit-time check finds the refund) and
+        // the locked day's figure stays RM 40.00 (a reversed receipt with an open refund still counts on its day).
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, DB::table('cash_closing_locks')->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
     }
 
     public function test_recording_a_refund_and_approving_the_receipt_day_cash_closing_go_one_after_the_other(): void

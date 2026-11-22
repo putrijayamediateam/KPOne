@@ -80,6 +80,8 @@ class BillingDirectoryService
                     ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
                 // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.
                 'refunds' => $printing ? null : app(RefundService::class)->forVisit($actor, $visit, $branch->timezone),
+                // BIL-32: a paused or locked day's notice, and the reverse-and-refund action for a locked day's receipt.
+                'dayClose' => $printing ? null : app(BranchDayGate::class)->billingState($actor, $branch, $visit, $invoice, $payments),
                 'corrections' => $printing ? null : app(ReceiptCorrectionService::class)->forVisit($actor, $visit, $invoice, $branch->timezone),
                 // BIL-17: voided invoices of this visit stay visible (number, total, when and by whom, and their receipts),
                 // never the void reason, following the activity log rule.

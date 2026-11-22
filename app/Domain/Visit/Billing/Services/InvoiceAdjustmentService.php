@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Models\InvoiceAdjustmentLimit;
 use App\Domain\Visit\Billing\Models\InvoiceAdjustmentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -18,7 +19,14 @@ use Illuminate\Validation\ValidationException;
 
 final class InvoiceAdjustmentService
 {
-    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private AuditRecorder $audit) {}
+    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private AuditRecorder $audit, private BranchDayGate $gate) {}
+
+    /** BIL-32: an adjustment is judged on its invoice's finalisation day (locked or paused) and on today (paused). */
+    private function guardDay(Branch $branch, Visit $visit, Invoice $invoice): void
+    {
+        $finalized = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->value('finalized_at');
+        $this->gate->guard($branch, $finalized === null ? null : CarbonImmutable::parse($finalized), true, 'adjustment');
+    }
 
     public static function active(Invoice $invoice): ?InvoiceAdjustment
     {
@@ -97,6 +105,7 @@ final class InvoiceAdjustmentService
 
         return DB::transaction(function () use ($actor, $visit, $invoice, $input, $value): InvoiceAdjustment {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $input['expected_branch_id'] ?? null, 'billing.adjustments.add.branch');
+            $this->guardDay($branch, $visit, $invoice); // BIL-32
             // The branch is the serialization anchor even when no threshold has ever been configured.
             Branch::query()->whereKey($branch->id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
@@ -146,6 +155,7 @@ final class InvoiceAdjustmentService
 
         return DB::transaction(function () use ($actor, $visit, $invoice, $publicId, $input): InvoiceAdjustmentReversal {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $input['expected_branch_id'] ?? null, 'billing.adjustments.reverse.branch');
+            $this->guardDay($branch, $visit, $invoice); // BIL-32
             Branch::query()->whereKey($branch->id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
             $original = InvoiceAdjustment::query()->where('invoice_id', $invoice->id)->where('public_id', $publicId)->lockForUpdate()->firstOrFail();

@@ -14,6 +14,7 @@ use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -41,6 +42,7 @@ class ReceiptCorrectionService
         private RefundService $refunds,
         private AuditRecorder $audit,
         private StaffAccessService $staff,
+        private BranchDayGate $gate,
     ) {}
 
     /** @param array<string, mixed> $a */
@@ -60,6 +62,9 @@ class ReceiptCorrectionService
         return DB::transaction(function () use ($actor, $visit, $invoice, $payment, $a, $received, $method): PaymentCorrection {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, self::PERMISSION);
             abort_unless($actor->can('payments.add.branch'), 403);
+            // BIL-32: judged on the original receipt's day, which a lock refuses; a pause on that day or today refuses too.
+            $receivedAt = Payment::query()->whereKey($payment->id)->where('organisation_id', $actor->organisation_id)->value('received_at');
+            $this->gate->guard($branch, $receivedAt === null ? null : CarbonImmutable::parse($receivedAt), true, 'correction');
             Organisation::query()->whereKey($actor->organisation_id)->sharedLock()->firstOrFail();
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
             $this->ledger->lock($invoice);

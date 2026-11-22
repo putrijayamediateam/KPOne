@@ -108,6 +108,17 @@ class BillingController extends Controller
         return redirect($this->settlementDestination($request, $visit));
     }
 
+    /** BIL-32 (owner Q5 = A): reverse and refund a receipt of a locked day together. */
+    public function refundWithReversal(Request $request, Visit $visit, Invoice $invoice, Payment $payment, RefundService $service): RedirectResponse
+    {
+        $this->stayOnSettlement($request, $visit, fn () => $service->reverseAndRecord($request->user(), $visit, $invoice, $payment,
+            $request->only(['expected_branch_id', 'lock_version', 'payment_lock_version', 'reason', 'recording_error_only']),
+            $request->only(['expected_branch_id', 'payment_method_id', 'reason_code', 'idempotency_key'])));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Receipt reversed and refund recorded. Someone else must now approve the refund.']);
+
+        return redirect($this->settlementDestination($request, $visit));
+    }
+
     public function decideRefund(Request $request, Visit $visit, string $refund, string $decision, RefundService $service): RedirectResponse
     {
         $this->stayOnSettlement($request, $visit, fn () => $service->decide($request->user(), $visit, $refund, $decision, $request->only(['expected_branch_id', 'reason_code', 'idempotency_key'])));

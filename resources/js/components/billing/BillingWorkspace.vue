@@ -4,6 +4,7 @@ import { ArrowLeft, Check, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
+import DayCloseNotice from '@/components/billing/DayCloseNotice.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
@@ -509,6 +510,13 @@ const reverse = (receipt: Receipt) =>
                         </ul>
                     </div>
                 </section>
+                <DayCloseNotice
+                    v-if="billing.dayClose"
+                    :day-close="billing.dayClose"
+                    :base="invoiceBase"
+                    :invoice-lock-version="billing.invoice?.lockVersion ?? null"
+                    :manage="manage"
+                />
                 <ReceiptRefunds
                     v-if="billing.refunds"
                     :refunds="billing.refunds"

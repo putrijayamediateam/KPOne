@@ -86,7 +86,7 @@ final class ClinicManagementNavigation
             [$branch && $this->billing->finance($actor), 'Finance / Billing', 'Review invoices and outstanding balances for this branch.', 'billing.work'],
             [$branch && $actor->can('outstanding.view.branch'), 'Bills to collect', 'Money patients still owe at this branch: approved pay later and money due on completed visits, oldest first.', 'billing.pay-later-collections'],
             [$branch && $actor->can('payments.reconcile.branch'), 'Terminal Reconciliation', 'Review the branch terminal closing and recorded payments.', 'payment-reconciliations.index'],
-            [$branch && $actor->can('payments.reconcile.branch'), 'Daily cash closing', 'Count the day\'s cash takings; someone else approves the closing.', 'cash-closings.index'],
+            [$branch && $actor->canAny(['payments.reconcile.branch', 'payments.cash_closing.view.branch']), 'Daily cash closing', 'Count the day\'s cash takings; someone else approves the closing.', 'cash-closings.index'],
         ]);
         $add('Queue', 'queue', [
             [$branch && $display, 'Queue Display settings', 'Manage rooms and waiting-room TV content.', 'queue-display.settings'],
