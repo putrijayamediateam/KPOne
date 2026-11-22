@@ -22,7 +22,7 @@ test('Connected apps disconnects through its own route behind a destructive conf
 test('Connected apps shows the empty state, the switched-off note, "Not asked yet" and a closed questions list', () => {
     const page = read('resources/js/pages/Agents/ConnectedApps.vue');
 
-    assert.match(page, /then allow it on the KPOne screen that opens/);
+    assert.match(page, /then allow it on the KPOne screen that\s+opens/);
     assert.match(page, /The connector is switched off on this server\./);
     assert.match(page, /Not asked yet/);
     assert.match(page, /<details class=/);
