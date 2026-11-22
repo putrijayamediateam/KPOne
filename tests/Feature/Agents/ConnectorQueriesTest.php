@@ -20,7 +20,7 @@ use Tests\Feature\Visit\VisitTestCase;
 /** CN-2: the seven connector questions that read existing data sources. */
 class ConnectorQueriesTest extends VisitTestCase
 {
-    private const QUESTIONS = ['clinic_day_summary', 'money_day_summary', 'sales_summary', 'panel_claims_outstanding', 'stock_alerts', 'stock_balances_and_counts', 'system_health'];
+    private const QUESTIONS = ['clinic_day_summary', 'money_day_summary', 'sales_summary', 'panel_claims_outstanding', 'stock_alerts', 'stock_balances_and_counts', 'system_health', 'visits_by_state', 'queue_now', 'panel_claims_made'];
 
     protected function setUp(): void
     {
@@ -69,7 +69,7 @@ class ConnectorQueriesTest extends VisitTestCase
     public function test_the_server_lists_every_question_as_read_only(): void
     {
         $tools = (new \ReflectionClass(ConnectorServer::class))->getDefaultProperties()['tools'];
-        $this->assertCount(8, $tools);
+        $this->assertCount(11, $tools);
         foreach ($tools as $class) {
             $array = app($class)->toArray();
             $this->assertTrue($array['annotations']['readOnlyHint'] ?? false, $class);

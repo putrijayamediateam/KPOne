@@ -10,7 +10,7 @@ final class ConnectorTools
     /** @return list<class-string<AgentTool>> data sources the connector itself adds to the registry */
     public static function classes(): array
     {
-        return [ListBranchesTool::class];
+        return [ListBranchesTool::class, Sources\VisitsByStateTool::class, Sources\QueueNowTool::class, Sources\PanelClaimsMadeTool::class];
     }
 
     /** @return list<class-string<ConnectorQuery>> */
@@ -24,6 +24,9 @@ final class ConnectorTools
             Queries\StockAlertsQuery::class,
             Queries\StockBalancesAndCountsQuery::class,
             Queries\SystemHealthQuery::class,
+            Queries\VisitsByStateQuery::class,
+            Queries\QueueNowQuery::class,
+            Queries\PanelClaimsMadeQuery::class,
         ];
     }
 
