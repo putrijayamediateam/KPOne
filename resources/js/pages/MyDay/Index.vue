@@ -44,6 +44,7 @@ defineProps<{
             <MeHome
                 v-if="today.ring || today.week"
                 :greeting="null"
+                compact
                 :ring="today.ring"
                 :week="today.week"
                 :tiles="today.tiles"
