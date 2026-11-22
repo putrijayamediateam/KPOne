@@ -4,11 +4,9 @@ import { computed, reactive, ref } from 'vue';
 
 /**
  * HR-10c one restricted discipline case page state: notes, the staff member's reply, linking a show-cause letter, files
- * and the one outcome. Every request, lock version and idempotency key lives here, shared by the Classic page
- * (`pages/HR/DisciplineCase.vue`) and Version 2 (`pages/HR/V2/DisciplineCase.vue`), so both send identical requests.
- * Moved out of the Classic page unchanged; the Classic template did not change. Opening the page is recorded by the
- * server before anything is sent; the allegation, entries and outcome come in the props only for people the server
- * allows. Files open only through the existing recorded links.
+ * and the one outcome. Every request, lock version and idempotency key of `pages/HR/DisciplineCase.vue` lives here.
+ * Opening the page is recorded by the server before anything is sent; the allegation, entries and outcome come in the
+ * props only for people the server allows. Files open only through the existing recorded links.
  */
 export type LetterRef = { id: string; reference: string; void: boolean } | null;
 export type LetterOption = {

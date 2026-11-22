@@ -2,10 +2,9 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 
 /**
- * HR-10d /hr/incidents page state: report an incident, and the lists of reports. Every request and idempotency key
- * lives here, shared by the Classic page (`pages/HR/Incidents.vue`) and Version 2 (`pages/HR/V2/Incidents.vue`), so
- * both send identical requests. Moved out of the Classic page unchanged; the Classic template did not change. The
- * lists carry no description or note text; a report's text is only on the report page.
+ * HR-10d /hr/incidents page state: report an incident, and the lists of reports. Every request and idempotency key of
+ * `pages/HR/Incidents.vue` lives here. The lists carry no description or note text; a report's text is only on the
+ * report page.
  */
 export type Tab = 'mine' | 'open' | 'clinical' | 'closed';
 export type Row = {

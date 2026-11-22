@@ -3,10 +3,8 @@ import { computed, reactive } from 'vue';
 
 /**
  * HR-10d one incident report page state: acknowledge, notes, actions, linking a discipline case and closing. Every
- * request, lock version and idempotency key lives here, shared by the Classic page (`pages/HR/Incident.vue`) and
- * Version 2 (`pages/HR/V2/Incident.vue`), so both send identical requests. Moved out of the Classic page unchanged; the
- * Classic template did not change. The report's text, notes and outcome come in the props exactly as before (the server
- * decides who may read them); photos open only through the existing links.
+ * request, lock version and idempotency key of `pages/HR/Incident.vue` lives here. The report's text, notes and outcome
+ * come in the props (the server decides who may read them); photos open only through the existing links.
  */
 export type Status = 'reported' | 'acknowledged' | 'closed';
 export type Action = {

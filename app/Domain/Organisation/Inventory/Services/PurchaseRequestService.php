@@ -274,9 +274,8 @@ final class PurchaseRequestService
             ], $requests)],
             'prefill' => $can['request'] ? $this->prefill($actor, $branch, $query) : null,
             'locations' => $can['request'] ? DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('is_active', true)
-                ->where('type', '!=', InventoryLocation::TYPE_DISPENSARY_RETURNS)->orderBy('name')->limit(100)->get(['public_id', 'name', 'code', 'type'])
-                // The code and type tell apart locations that share a name (V2's picker shows them); Classic reads only the name.
-                ->map(fn (stdClass $l): array => ['publicId' => $l->public_id, 'name' => $l->name, 'code' => $l->code, 'type' => $l->type])->values()->all() : [],
+                ->where('type', '!=', InventoryLocation::TYPE_DISPENSARY_RETURNS)->orderBy('name')->limit(100)->get(['public_id', 'name'])
+                ->map(fn (stdClass $l): array => ['publicId' => $l->public_id, 'name' => $l->name])->values()->all() : [],
         ];
     }
 

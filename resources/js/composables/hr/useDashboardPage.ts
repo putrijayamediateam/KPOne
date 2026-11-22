@@ -2,9 +2,8 @@ import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 /**
- * HR-9 /hr/dashboard page state: the month choice and the display helpers. The one request (`GET /hr/dashboard`) lives
- * here, shared by the Classic page (`pages/HR/Dashboard.vue`) and Version 2 (`pages/HR/V2/Dashboard.vue`). Read only;
- * moved out of the Classic page unchanged and the Classic template did not change.
+ * HR-9 /hr/dashboard page state: the month choice and the display helpers. The one request (`GET /hr/dashboard`) of
+ * `pages/HR/Dashboard.vue` lives here. Read only.
  */
 export type Person = {
     name: string;
