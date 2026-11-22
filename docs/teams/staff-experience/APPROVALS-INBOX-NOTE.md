@@ -95,9 +95,11 @@ A source is a small class in the owning team's domain folder, registered in one 
    survey found this for the HR queues, whose rank and self-bar rules sit inside the page services), the owning team first extracts
    that rule into a small shared scope class and points its page at it; that extraction is the first step of its slice (APPR-1d for
    HR) and is covered by the page's existing tests. The inbox never imports a `*PageService`.
-5. `rows(User $actor, Branch $branch, int $limit): list<InboxRow>`: up to 5 rows. **A row is only a fixed label owned by the
-   source (for example "Refund"), an age ("waiting 3 days", rounded) and a link.** A source cannot supply free text, a name, an
-   amount or a reason: the row type has no field for them. Per-record links carry the record's public id (a UUID) and no data.
+5. `rows(User $actor, Branch $branch, int $limit): list<InboxRow>`: up to 5 items, **only for a source whose items have a document
+   number** (visit, invoice, claim, receipt, request or document number, as the owner allowed on 22 Nov). **An item is a fixed label owned
+   by the source, the document number, a rounded age ("waiting 3 days") and a link.** A source cannot supply free text, a name, an
+   amount or a reason: the item type has only those fields. A source whose items have no number (for example a leave request) shows
+   its one summary row and does not expand. Per-record links carry the record's public id (a UUID) and no data.
    The count and the existence of waiting items are shown only to people who hold the decide permission.
 6. `route`: the named route of the owning page (and a parameter where the page is per record).
 
@@ -209,3 +211,24 @@ Owner answers the six questions; Daniel looks at the page sketch (section 4.2); 
    maker-is-not-approver gap is a **separate later item**, not part of this work.
 6. **Billing adds a small "waiting" list for refunds and Panel responsibility proposals** (APPR-1c), so those rows open a useful page.
 Next: Aiman's review, Daniel's look at the page sketch (section 4.2), then APPR-1a.
+
+## 10. Daniel's design points and the owner's document-number decision, 22 Nov 2026
+Daniel: OK with changes. Sketches: `docs/design/sketches-2026-11-22/` (`approvals-*`, and `sketch.html#approvals`).
+- **One row per source:** label, count, "oldest N days" in muted words, and an outline **Open** button. No amber or red age colours in v1
+  (if wanted later, use the Q-1 waiting-time pattern).
+- **Expanding a source** shows up to 5 items, each with its **document number**, because the owner answered "document numbers yes" (visit,
+  invoice or claim number; still no patient name, amount or reason). A source without numbered items shows only its row.
+- **The number's place in the Classic top bar:** a small **neutral pill** with the number on the account menu button (accessible name
+  "Approvals & tasks, 3 waiting"; not red; not a live region), repeated on the "Approvals & tasks" row inside the account menu and the
+  phone drawer, and on the Clinic management row. Hidden at 0.
+- **Tasks use the same row** as approvals (label, count, Open), sit after Approvals, and each area heading matches the Clinic
+  management group names.
+- **"N waiting at other branches"** is a muted line under the area it belongs to, naming the branches, with **no link to switch
+  branch** from there.
+- **On a phone:** one card per source, the count and the Open button on one line, 44 px targets, nothing scrolling sideways.
+- Both notes need Daniel's build shots after APPR-1a and DAY-1a.
+
+## 11. Owner approval of the test change, 22 Nov 2026
+"approve the My day and Approvals inbox test changes, inbox first, document numbers yes": the one `ClinicManagementTest` exact-map line in
+section 5 is approved as listed. Build order: APPR-1a first, then DAY-1a and DAY-1b. Both slices still need the owner's ship-it before a PR
+opens.
