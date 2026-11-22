@@ -24,6 +24,10 @@ defineProps<{
         branchName: string | null;
         asOf: string | null;
     };
+    waiting: {
+        total: number;
+        areas: Array<{ area: string; count: number }>;
+    } | null;
     routine: InstanceType<typeof MyRoutine>['$props']['routine'];
     shortcuts: Array<{ title: string; href: string }>;
 }>();
@@ -43,10 +47,12 @@ defineProps<{
                 data-test="my-day-head"
             />
 
+            <!-- Today first (the clock card), then what needs acting on, then the rest of the person's own week. -->
             <MeHome
                 v-if="today.ring || today.week"
                 :greeting="null"
                 compact
+                part="top"
                 :ring="today.ring"
                 :week="today.week"
                 :tiles="today.tiles"
@@ -57,6 +63,49 @@ defineProps<{
                 <h2 id="day-today">Today</h2>
                 <p class="space-muted">Nothing is planned for you today.</p>
             </section>
+
+            <section
+                v-if="waiting"
+                class="space-card"
+                aria-labelledby="day-waiting"
+                data-test="my-day-waiting"
+            >
+                <h2 id="day-waiting">Waiting for me</h2>
+                <p class="space-muted mb-4" data-test="waiting-total">
+                    {{ waiting.total }} waiting for your decision
+                </p>
+                <ul class="space-list">
+                    <li
+                        v-for="a in waiting.areas"
+                        :key="a.area"
+                        class="space-row"
+                    >
+                        <span>{{ a.area }}</span>
+                        <span class="font-medium tabular-nums">{{
+                            a.count
+                        }}</span>
+                    </li>
+                </ul>
+                <Link
+                    href="/approvals"
+                    class="mt-2 inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:h-9"
+                    >Open Approvals &amp; tasks</Link
+                >
+            </section>
+
+            <MyRoutine :routine="routine" />
+
+            <MeHome
+                v-if="today.ring || today.week"
+                :greeting="null"
+                compact
+                part="rest"
+                :ring="today.ring"
+                :week="today.week"
+                :tiles="today.tiles"
+                :server-now="today.time?.serverNow ?? null"
+                :timezone="today.time?.timezone ?? null"
+            />
 
             <section
                 v-if="today.credentials?.rows.length"
@@ -85,8 +134,6 @@ defineProps<{
                 :as-of="today.asOf"
                 only="today"
             />
-
-            <MyRoutine :routine="routine" />
 
             <section
                 v-if="shortcuts.length"
