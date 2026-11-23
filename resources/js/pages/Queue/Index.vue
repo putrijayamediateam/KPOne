@@ -726,7 +726,6 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Consultation queue</h1>
-        <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
@@ -764,6 +763,8 @@ onBeforeUnmount(() => {
             >
             <InputError :message="roomError" />
         </div>
+        <!-- BIL-30 (Daniel): below the room picker, one calm line. -->
+        <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
         <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
         <div
             ref="tabStrip"

@@ -37,55 +37,67 @@ const bar = computed(() =>
         aria-labelledby="my-sales-target-title"
         data-testid="my-sales-target"
     >
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="my-sales-target-title" class="font-medium">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 id="my-sales-target-title" class="min-w-0 font-medium">
                 My sales target, {{ month }}
+                <span class="font-normal tabular-nums"
+                    >· {{ myr(target.achievedSen) }} of
+                    {{ myr(target.targetSen ?? 0) }} ({{
+                        target.percent ?? 0
+                    }}%)</span
+                >
             </h2>
-            <span class="text-xs text-muted-foreground">{{
-                target.branch
-            }}</span>
+            <div
+                class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                :aria-valuenow="bar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                :aria-label="`${target.percent ?? 0}% of the target reached`"
+            >
+                <div class="h-full bg-brand" :style="{ width: `${bar}%` }" />
+            </div>
+            <details class="group" data-testid="my-sales-target-details">
+                <summary
+                    class="inline-flex min-h-11 cursor-pointer items-center text-xs font-medium text-muted-foreground hover:text-foreground lg:min-h-0"
+                >
+                    Details
+                </summary>
+                <dl class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Balance</dt>
+                        <dd
+                            class="tabular-nums"
+                            data-testid="my-sales-target-balance"
+                        >
+                            {{
+                                target.reached
+                                    ? `Target reached, ${myr(target.overSen ?? 0)} over`
+                                    : myr(target.balanceSen ?? 0)
+                            }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
+                            Needed per day<template
+                                v-if="!target.reached && target.daysLeft"
+                            >
+                                · {{ target.daysLeft }}
+                                {{ target.daysLeft === 1 ? 'day' : 'days' }}
+                                left</template
+                            >
+                        </dt>
+                        <dd class="whitespace-nowrap tabular-nums">
+                            {{
+                                target.reached ||
+                                target.neededPerDaySen === null
+                                    ? '—'
+                                    : `${myr(target.neededPerDaySen)} a day`
+                            }}
+                        </dd>
+                    </div>
+                </dl>
+            </details>
         </div>
-        <div
-            class="mt-2 h-2 overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            :aria-valuenow="bar"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="`${target.percent ?? 0}% of the target reached`"
-        >
-            <div class="h-full bg-primary" :style="{ width: `${bar}%` }" />
-        </div>
-        <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
-            <div>
-                <dt class="text-xs text-muted-foreground">Target</dt>
-                <dd class="tabular-nums">{{ myr(target.targetSen ?? 0) }}</dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Achieved</dt>
-                <dd class="tabular-nums">
-                    {{ myr(target.achievedSen) }} · {{ target.percent ?? 0 }}%
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Balance</dt>
-                <dd class="tabular-nums" data-testid="my-sales-target-balance">
-                    {{
-                        target.reached
-                            ? `Target reached, ${myr(target.overSen ?? 0)} over`
-                            : myr(target.balanceSen ?? 0)
-                    }}
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Needed per day</dt>
-                <dd class="tabular-nums">
-                    {{
-                        target.reached || target.neededPerDaySen === null
-                            ? '—'
-                            : `${myr(target.neededPerDaySen)} for ${target.daysLeft} ${target.daysLeft === 1 ? 'day' : 'days'}`
-                    }}
-                </dd>
-            </div>
-        </dl>
     </section>
 </template>

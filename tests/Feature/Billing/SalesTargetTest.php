@@ -2,7 +2,12 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Shared\Services\ClinicInsightsReportService;
+use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Domain\Visit\Billing\Models\SalesTarget;
@@ -15,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\OtcDispensaryFixtures;
 
 /**
  * BIL-30: monthly sales targets per branch and per doctor. Achieved must equal the Insights net sales figure (K1, K2);
@@ -25,6 +31,8 @@ use Inertia\Testing\AssertableInertia as Assert;
  */
 class SalesTargetTest extends BillingTestCase
 {
+    use OtcDispensaryFixtures;
+
     private CarbonImmutable $month;
 
     protected function setUp(): void
@@ -83,16 +91,16 @@ class SalesTargetTest extends BillingTestCase
 
         $service->save($finance, $this->input(['amount' => '1,000.50']));
         $target = SalesTarget::query()->sole();
-        $this->assertSame([100050, 0, null], [$target->amount_sen, $target->lock_version, $target->cleared_at]);
+        $this->assertSame([100050, 1, null], [$target->amount_sen, $target->lock_version, $target->cleared_at]);
 
-        $this->assertRefused(fn () => $service->save($finance, $this->input(['amount' => '1200', 'lock_version' => 0])), 'reason', 'Write why the target is changed.');
-        $service->save($finance, $this->input(['amount' => '1200', 'lock_version' => 0, 'reason' => 'Synthetic busier month']));
+        $this->assertRefused(fn () => $service->save($finance, $this->input(['amount' => '1200', 'lock_version' => 1])), 'reason', 'Write why the target is changed.');
+        $service->save($finance, $this->input(['amount' => '1200', 'lock_version' => 1, 'reason' => 'Synthetic busier month']));
         $this->assertRefused(fn () => $service->save($finance, $this->input(['amount' => '1300', 'lock_version' => 0, 'reason' => 'Stale'])), 'amount', 'This target changed while you were editing. Reload and try again.');
-        $service->save($finance, $this->input(['amount' => '', 'lock_version' => 1, 'reason' => 'Synthetic clear']));
+        $service->save($finance, $this->input(['amount' => '', 'lock_version' => 2, 'reason' => 'Synthetic clear']));
         $target->refresh();
-        $this->assertSame([null, 2], [$target->amount_sen, $target->lock_version]);
+        $this->assertSame([null, 3], [$target->amount_sen, $target->lock_version]);
         $this->assertNotNull($target->cleared_at);
-        $service->save($finance, $this->input(['amount' => '900', 'lock_version' => 2]));
+        $service->save($finance, $this->input(['amount' => '900', 'lock_version' => 3]));
 
         $this->assertSame(1, SalesTarget::query()->count());
         $this->assertSame(
@@ -131,7 +139,7 @@ class SalesTargetTest extends BillingTestCase
         $service = app(SalesTargetService::class);
         $service->save($director, $this->input(['amount' => '100']));
         $this->travelTo(CarbonImmutable::parse($last->addDay()->toDateString().' 00:01', $this->branch->timezone));
-        $this->assertRefused(fn () => $service->save($director, $this->input(['amount' => '200', 'lock_version' => 0])), 'amount', 'This month has ended. Its targets can no longer be changed.');
+        $this->assertRefused(fn () => $service->save($director, $this->input(['amount' => '200', 'lock_version' => 1])), 'amount', 'This month has ended. Its targets can no longer be changed.');
         $page = $this->get(route('sales-targets.index', ['month' => $this->month->format('Y-m')]))->assertOk();
         $this->assertFalse($page->viewData('page')['props']['salesTargets']['open']);
 
@@ -225,6 +233,102 @@ class SalesTargetTest extends BillingTestCase
         $this->assertSame(['resident_doctor'], $holders('sales_targets.view.own'));
     }
 
+    public function test_a_first_set_from_a_stale_page_is_refused_as_changed_not_taken_as_a_change(): void
+    {
+        $this->travelTo($this->month->setDay(5)->setTime(9, 0));
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $service = app(SalesTargetService::class);
+        $service->save($director, $this->input(['amount' => '100']));
+        // A second person opened "Set target" before the first save (version 0 means "no target yet").
+        $this->assertRefused(fn () => $service->save($director, $this->input(['amount' => '200', 'reason' => 'Overwrite'])), 'amount', 'This target changed while you were editing. Reload and try again.');
+        $this->assertSame(10000, SalesTarget::query()->sole()->amount_sen);
+    }
+
+    public function test_a_doctor_who_left_keeps_a_target_that_can_still_be_changed_or_cleared(): void
+    {
+        $this->travelTo($this->month->setDay(5)->setTime(9, 0));
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $doctor = $this->actor('resident_doctor');
+        $service = app(SalesTargetService::class);
+        $service->save($director, $this->input(['amount' => '100', 'doctor_user_id' => $doctor->id]));
+        $doctor->forceFill(['is_active' => false])->save();
+        $service->save($director, $this->input(['amount' => '', 'doctor_user_id' => $doctor->id, 'lock_version' => 1, 'reason' => 'Synthetic leaver']));
+        $this->assertSame(2, SalesTarget::query()->sole()->lock_version);
+        $this->assertRefused(fn () => $service->save($director, $this->input(['amount' => '50', 'doctor_user_id' => $doctor->id, 'lock_version' => 2])), 'amount', 'This doctor does not work at this branch in this month.');
+    }
+
+    public function test_targets_can_be_set_up_to_twelve_months_ahead_and_no_further(): void
+    {
+        $this->travelTo($this->month->setDay(5)->setTime(9, 0));
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $service = app(SalesTargetService::class);
+        $service->save($director, $this->input(['amount' => '100', 'month' => $this->month->addMonthsNoOverflow(12)->format('Y-m')]));
+        $this->assertRefused(fn () => $service->save($director, $this->input(['amount' => '100', 'month' => $this->month->addMonthsNoOverflow(13)->format('Y-m')])), 'amount', 'Targets can be set up to twelve months ahead.');
+        $this->assertSame($this->month->addMonthsNoOverflow(12)->format('Y-m'), $service->page($director, null)['lastMonth']);
+    }
+
+    public function test_doctor_lines_leave_out_otc_sales_and_match_the_insights_provider_row(): void
+    {
+        $this->travelTo($this->month->setDay(10)->setTime(10, 0));
+        [$doctor] = $this->finalizedFixture(4000);
+        $f = $this->fixture();
+        $this->otcPrice($f, 250);
+        $case = $this->open($f);
+        app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case, '2.000'));
+        $this->confirmAllergy($f, $case);
+        $this->complete($f, $case);
+        $otc = app(BillingBuilderService::class)->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => null]);
+        app(BillingBuilderService::class)->finalize($f['ca'], $f['visit']->refresh(), $otc, ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $otc->lock_version]);
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $report = app(ClinicInsightsReportService::class)->report($director, 'sales', 'CHERAS', $this->month->toDateString(), $this->month->endOfMonth()->toDateString(), null)['report'];
+        $page = app(SalesTargetService::class)->page($director, $this->month->format('Y-m'));
+        $branch = collect($page['branches'])->firstWhere('code', 'CHERAS');
+        $this->assertSame(4500, $branch['achievedSen']);
+        $this->assertSame($report['summary']['totalSen'], $branch['achievedSen']);
+        $line = collect($branch['doctors'])->firstWhere('doctorId', $doctor->id);
+        $this->assertSame(4000, $line['achievedSen'], 'The OTC sale is not the doctor\'s.');
+        $this->assertSame(collect($report['providers'])->firstWhere('name', $doctor->name)['salesSen'], $line['achievedSen']);
+    }
+
+    public function test_postgresql_refuses_a_revision_that_does_not_match_its_target_and_any_change_to_a_past_month(): void
+    {
+        $this->travelTo($this->month->setDay(5)->setTime(9, 0));
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $revision = app(SalesTargetService::class)->save($director, $this->input(['amount' => '100']));
+        $this->assertDatabaseRefuses(fn () => DB::table('sales_target_revisions')->insert([
+            ...collect($revision->getAttributes())->except(['id'])->all(), 'action' => 'changed', 'old_amount_sen' => 10000, 'new_amount_sen' => 20000,
+            'reason' => 'Forged', 'idempotency_key' => (string) Str::uuid(),
+        ]), 'must match its target');
+
+        $this->travelBack();
+        $past = CarbonImmutable::now($this->branch->timezone)->startOfMonth()->subMonthNoOverflow()->toDateString();
+        DB::statement('ALTER TABLE sales_targets DISABLE TRIGGER USER');
+        $id = DB::table('sales_targets')->insertGetId(['organisation_id' => $this->branch->organisation_id, 'branch_id' => $this->branch->id, 'month' => $past, 'amount_sen' => 100,
+            'lock_version' => 1, 'created_by_user_id' => $director->id, 'updated_by_user_id' => $director->id, 'created_at' => now(), 'updated_at' => now()]);
+        DB::statement('ALTER TABLE sales_targets ENABLE TRIGGER USER');
+        $this->assertDatabaseRefuses(fn () => DB::table('sales_targets')->where('id', $id)->update(['amount_sen' => 200, 'lock_version' => 2]), 'past month');
+        $this->assertDatabaseRefuses(fn () => DB::table('sales_targets')->where('id', $id)->update(['amount_sen' => null, 'cleared_at' => now(), 'lock_version' => 2]), 'past month');
+    }
+
+    /** @param array<string, mixed> $f */
+    private function otcPrice(array $f, int $sen): void
+    {
+        $book = PriceBook::query()->where('organisation_id', $f['ca']->organisation_id)->where('scope_key', 'organisation')->first();
+        if ($book === null) {
+            $book = new PriceBook;
+            $book->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'scope_key' => 'organisation', 'name' => 'Synthetic OTC prices', 'currency' => 'MYR'])->save();
+        }
+        $charge = new ChargeDefinition;
+        $charge->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'type' => 'medicine', 'code' => 'OTC-'.Str::upper(Str::random(5)), 'display_name' => 'Synthetic OTC charge', 'source_key' => 'medicine:'.$f['medicine']->id, 'medicine_catalogue_item_id' => $f['medicine']->id, 'unit' => $f['medicine']->order_unit, 'is_active' => true])->save();
+        (new PriceEntry)->forceFill(['organisation_id' => $f['ca']->organisation_id, 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'version' => 1, 'unit_price_sen' => $sen, 'effective_at' => now()->subMinute(), 'published_by_user_id' => $f['ca']->id])->save();
+    }
+
     /** @param array<string, mixed> $overrides
      * @return array<string, mixed> */
     private function input(array $overrides): array
@@ -254,5 +358,4 @@ class SalesTargetTest extends BillingTestCase
             $this->assertStringContainsString($message, $exception->getMessage());
         }
     }
-
 }

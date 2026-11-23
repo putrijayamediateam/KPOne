@@ -29,7 +29,7 @@ return new class extends Migration
             $t->unsignedBigInteger('doctor_user_id')->nullable();
             $t->bigInteger('amount_sen')->nullable();
             $t->timestampTz('cleared_at')->nullable();
-            $t->unsignedInteger('lock_version')->default(0);
+            $t->unsignedInteger('lock_version')->default(1);
             $t->unsignedBigInteger('created_by_user_id');
             $t->unsignedBigInteger('updated_by_user_id');
             $t->timestampsTz();

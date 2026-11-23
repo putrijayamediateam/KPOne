@@ -68,13 +68,14 @@ final class SalesTargetService
                     ...$this->target($target), ...$this->progress($branch, $first, $target?->amount_sen, $sales)];
             })->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->all();
 
-            return ['branchId' => $branch->id, 'branch' => $branch->name, 'code' => $branch->code,
+            return ['branchId' => $branch->id, 'branch' => $branch->name, 'code' => $branch->code, 'open' => $this->isOpen($branch, $first),
                 ...$this->target($branchTarget), ...$this->progress($branch, $first, $branchTarget?->amount_sen, $achieved), 'doctors' => $doctors];
         })->values()->all();
 
         return [
             'month' => $first->format('Y-m'),
             'currentMonth' => CarbonImmutable::now($active->timezone)->format('Y-m'),
+            'lastMonth' => $this->lastMonth($active)->format('Y-m'),
             'open' => $this->isOpen($active, $first),
             'expectedBranchId' => $active->id,
             'branches' => $rows,
@@ -144,8 +145,7 @@ final class SalesTargetService
                 return $previous;
             }
 
-            // K6: the branch row first, so two first sets of the same target queue here instead of racing the unique key.
-            $branch = Branch::query()->whereKey($branchId)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->first();
+            $branch = Branch::query()->whereKey($branchId)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->first();
             if ($branch === null) {
                 throw ValidationException::withMessages(['amount' => 'This branch is not available. Reload the page.']);
             }
@@ -156,15 +156,26 @@ final class SalesTargetService
             if (! $this->isOpen($branch, $first)) {
                 throw ValidationException::withMessages(['amount' => 'This month has ended. Its targets can no longer be changed.']);
             }
-            if ($doctorId !== null) {
-                $this->lockEligibleDoctor($doctorId, $branch, $first);
+            if ($first->format('Y-m') > $this->lastMonth($branch)->format('Y-m')) {
+                throw ValidationException::withMessages(['amount' => 'Targets can be set up to twelve months ahead.']);
             }
+            // Kumar 2: the doctor's rows first, as registration, the queue and certificates lock a doctor before anything
+            // of the branch; then one advisory lock per target (K6), so two first sets of the same target queue there
+            // instead of racing the unique key, without locking the branch row.
+            $eligible = $doctorId === null || $this->lockDoctor($doctorId, $branch, $first);
+            DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', ['sales-target:'.$actor->organisation_id.':'.$branch->id.':'.$first->format('Y-m').':'.($doctorId ?? 0)]);
 
             $target = SalesTarget::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereDate('month', $first->toDateString())->where(fn ($q) => $doctorId === null ? $q->whereNull('doctor_user_id') : $q->where('doctor_user_id', $doctorId))
                 ->lockForUpdate()->first();
+            // Kumar 1: a new target starts at version 1, so 0 always means "there is no target yet".
             if (($target?->lock_version ?? 0) !== $version) {
                 throw ValidationException::withMessages(['amount' => 'This target changed while you were editing. Reload and try again.']);
+            }
+            // Kumar 5: a doctor must work here this month to be given a target; an existing target can still be changed
+            // or cleared after the doctor leaves.
+            if (! $eligible && $target?->amount_sen === null) {
+                throw ValidationException::withMessages(['amount' => 'This doctor does not work at this branch in this month.']);
             }
             $old = $target?->amount_sen;
             if ($amount === null && $old === null) {
@@ -181,7 +192,7 @@ final class SalesTargetService
             if ($target === null) {
                 $target = SalesTarget::query()->forceCreate([
                     'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'month' => $first->toDateString(), 'doctor_user_id' => $doctorId,
-                    'amount_sen' => $amount, 'cleared_at' => null, 'lock_version' => 0, 'created_by_user_id' => $actor->id, 'updated_by_user_id' => $actor->id,
+                    'amount_sen' => $amount, 'cleared_at' => null, 'lock_version' => 1, 'created_by_user_id' => $actor->id, 'updated_by_user_id' => $actor->id,
                 ]);
             } else {
                 $target->forceFill(['amount_sen' => $amount, 'cleared_at' => $amount === null ? $now : null, 'lock_version' => $target->lock_version + 1, 'updated_by_user_id' => $actor->id])->save();
@@ -213,17 +224,20 @@ final class SalesTargetService
             ->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
     }
 
-    private function lockEligibleDoctor(int $doctorId, Branch $branch, CarbonImmutable $first): void
+    /** Locks the doctor's user, profile and assignment rows, and says whether they may be given a target (K4). */
+    private function lockDoctor(int $doctorId, Branch $branch, CarbonImmutable $first): bool
     {
         $doctor = User::query()->whereKey($doctorId)->where('organisation_id', $branch->organisation_id)->lockForUpdate()->first();
-        $profile = $doctor ? StaffProfile::query()->where('user_id', $doctor->id)->lockForUpdate()->first() : null;
+        if ($doctor === null) {
+            throw ValidationException::withMessages(['amount' => 'This doctor does not work at this branch in this month.']);
+        }
+        $profile = StaffProfile::query()->where('user_id', $doctor->id)->lockForUpdate()->first();
         $assignments = $profile ? StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->orderBy('id')->lockForUpdate()->get() : collect();
         [$from, $until] = [$first->toDateString(), $first->endOfMonth()->toDateString()];
         $overlaps = $assignments->contains(fn (StaffBranchAssignment $a): bool => $a->branch_id === $branch->id
             && $a->valid_from->toDateString() <= $until && ($a->valid_until === null || $a->valid_until->toDateString() >= $from));
-        if (! $doctor || ! $doctor->is_active || ! $doctor->hasRole('resident_doctor') || ! $overlaps) {
-            throw ValidationException::withMessages(['amount' => 'This doctor does not work at this branch in this month.']);
-        }
+
+        return $doctor->is_active && $doctor->hasRole('resident_doctor') && $overlaps;
     }
 
     /** @return array{start: CarbonImmutable, end: CarbonImmutable} */
@@ -232,6 +246,12 @@ final class SalesTargetService
         $local = CarbonImmutable::createFromFormat('!Y-m-d', $first->toDateString(), $branch->timezone);
 
         return ['start' => $local->utc(), 'end' => $local->addMonthNoOverflow()->utc()];
+    }
+
+    /** Kumar 6: the last month a target can be set or shown: twelve months after the branch's current month. */
+    private function lastMonth(Branch $branch): CarbonImmutable
+    {
+        return CarbonImmutable::now($branch->timezone)->startOfMonth()->addMonthsNoOverflow(12);
     }
 
     private function isOpen(Branch $branch, CarbonImmutable $first): bool
@@ -243,7 +263,7 @@ final class SalesTargetService
     {
         $current = CarbonImmutable::now($branch->timezone)->startOfMonth();
         $first = is_string($month) && preg_match('/\A\d{4}-\d{2}\z/', $month) === 1 ? CarbonImmutable::createFromFormat('!Y-m', $month, $branch->timezone) : null;
-        if ($first === null || $first->format('Y-m') !== $month || $first->year < 2000 || $first->greaterThan($current->addYear())) {
+        if ($first === null || $first->format('Y-m') !== $month || $first->year < 2000 || $first->format('Y-m') > $this->lastMonth($branch)->format('Y-m')) {
             return $current;
         }
 

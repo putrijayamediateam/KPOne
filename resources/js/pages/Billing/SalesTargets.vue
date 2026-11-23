@@ -33,6 +33,7 @@ type Progress = {
 type DoctorRow = Progress & { doctorId: number; name: string; canSet: boolean };
 type BranchRow = Progress & {
     branchId: number;
+    open: boolean;
     branch: string;
     code: string;
     doctors: DoctorRow[];
@@ -42,6 +43,7 @@ const props = defineProps<{
     salesTargets: {
         month: string;
         currentMonth: string;
+        lastMonth: string;
         open: boolean;
         expectedBranchId: number;
         branches: BranchRow[];
@@ -85,8 +87,14 @@ const neededText = (row: Progress) => {
         return 'Month ended';
     }
 
-    return `${myr(row.neededPerDaySen ?? 0)} a day for ${row.daysLeft} ${row.daysLeft === 1 ? 'day' : 'days'}`;
+    return `${myr(row.neededPerDaySen ?? 0)} a day`;
 };
+const neededLabel = (row: Progress) =>
+    row.targetSen !== null && !row.reached && row.daysLeft
+        ? `Needed per day · ${row.daysLeft} ${row.daysLeft === 1 ? 'day' : 'days'} left`
+        : 'Needed per day';
+const grid =
+    'grid gap-3 p-3 lg:grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(0,1fr))_7rem] lg:items-center';
 
 // The set, change or clear dialog.
 const open = ref(false);
@@ -130,7 +138,7 @@ const changing = computed(() => editing.value?.current !== null);
 const clearing = computed(() => changing.value && form.amount.trim() === '');
 const missing = computed(() => {
     if (!changing.value && form.amount.trim() === '') {
-        return 'Enter the target in ringgit to continue.';
+        return 'Write the target in RM.';
     }
 
     if (changing.value && form.reason.trim() === '') {
@@ -180,9 +188,10 @@ const submit = () => {
             </h2>
             <button
                 type="button"
-                class="inline-flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="inline-flex aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:hover:bg-transparent min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                :aria-disabled="view.month >= view.lastMonth ? 'true' : undefined"
                 data-testid="targets-next"
-                @click="goTo(shift(view.month, 1))"
+                @click="view.month < view.lastMonth && goTo(shift(view.month, 1))"
             >
                 <span>Next<span class="max-sm:sr-only"> month</span></span>
                 <ChevronRight class="size-4" aria-hidden="true" />
@@ -209,14 +218,32 @@ const submit = () => {
                 class="rounded-xl border bg-card"
                 :data-testid="`target-branch-${branch.code}`"
             >
-                <div
-                    class="grid gap-3 p-3 lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))_auto] lg:items-center"
-                >
+                <div :class="grid">
                     <div class="min-w-0">
                         <h3 class="font-semibold">{{ branch.branch }}</h3>
                         <p class="text-xs text-muted-foreground">
                             Branch target
                         </p>
+                        <button
+                            v-if="branch.doctors.length"
+                            type="button"
+                            class="mt-1 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-0"
+                            :aria-expanded="
+                                expanded[branch.branchId] ? 'true' : 'false'
+                            "
+                            @click="toggle(branch.branchId)"
+                        >
+                            Doctors ({{ branch.doctors.length }})
+                            <ChevronDown
+                                class="size-3.5 transition-transform"
+                                :class="
+                                    expanded[branch.branchId]
+                                        ? 'rotate-180'
+                                        : ''
+                                "
+                                aria-hidden="true"
+                            />
+                        </button>
                     </div>
                     <dl class="contents">
                         <div class="grid grid-cols-2 gap-1 lg:block">
@@ -231,7 +258,7 @@ const submit = () => {
                             <dt class="text-xs text-muted-foreground">
                                 Achieved
                             </dt>
-                            <dd class="tabular-nums">
+                            <dd class="whitespace-nowrap tabular-nums">
                                 {{ money(branch.achievedSen)
                                 }}<span
                                     v-if="branch.percent !== null"
@@ -251,16 +278,16 @@ const submit = () => {
                         </div>
                         <div class="grid grid-cols-2 gap-1 lg:block">
                             <dt class="text-xs text-muted-foreground">
-                                Needed per day
+                                {{ neededLabel(branch) }}
                             </dt>
-                            <dd class="tabular-nums">
+                            <dd class="whitespace-nowrap tabular-nums">
                                 {{ neededText(branch) }}
                             </dd>
                         </div>
                     </dl>
-                    <div class="flex flex-wrap gap-2 lg:justify-end">
+                    <div class="flex lg:justify-end">
                         <Button
-                            v-if="view.open"
+                            v-if="branch.open"
                             type="button"
                             variant="outline"
                             class="h-11 lg:h-9"
@@ -272,27 +299,6 @@ const submit = () => {
                                     : 'Change'
                             }}</Button
                         >
-                        <Button
-                            v-if="branch.doctors.length"
-                            type="button"
-                            variant="ghost"
-                            class="h-11 lg:h-9"
-                            :aria-expanded="
-                                expanded[branch.branchId] ? 'true' : 'false'
-                            "
-                            @click="toggle(branch.branchId)"
-                        >
-                            Doctors ({{ branch.doctors.length }})
-                            <ChevronDown
-                                class="size-4 transition-transform"
-                                :class="
-                                    expanded[branch.branchId]
-                                        ? 'rotate-180'
-                                        : ''
-                                "
-                                aria-hidden="true"
-                            />
-                        </Button>
                     </div>
                 </div>
                 <ul
@@ -303,10 +309,10 @@ const submit = () => {
                     <li
                         v-for="doctor in branch.doctors"
                         :key="doctor.doctorId"
-                        class="grid gap-3 p-3 lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))_auto] lg:items-center"
+                        :class="grid"
                         :data-testid="`target-doctor-${doctor.doctorId}`"
                     >
-                        <p class="min-w-0 font-medium break-words">
+                        <p class="min-w-0 pl-4 font-medium break-words">
                             {{ doctor.name }}
                         </p>
                         <dl class="contents">
@@ -322,7 +328,7 @@ const submit = () => {
                                 <dt class="text-xs text-muted-foreground">
                                     Achieved
                                 </dt>
-                                <dd class="tabular-nums">
+                                <dd class="whitespace-nowrap tabular-nums">
                                     {{ money(doctor.achievedSen)
                                     }}<span
                                         v-if="doctor.percent !== null"
@@ -342,16 +348,16 @@ const submit = () => {
                             </div>
                             <div class="grid grid-cols-2 gap-1 lg:block">
                                 <dt class="text-xs text-muted-foreground">
-                                    Needed per day
+                                    {{ neededLabel(doctor) }}
                                 </dt>
-                                <dd class="tabular-nums">
+                                <dd class="whitespace-nowrap tabular-nums">
                                     {{ neededText(doctor) }}
                                 </dd>
                             </div>
                         </dl>
                         <div class="flex lg:justify-end">
                             <Button
-                                v-if="view.open && doctor.canSet"
+                                v-if="branch.open && (doctor.canSet || doctor.targetSen !== null)"
                                 type="button"
                                 variant="outline"
                                 class="h-11 lg:h-9"
@@ -363,7 +369,7 @@ const submit = () => {
                                 }}</Button
                             >
                             <span
-                                v-else-if="view.open"
+                                v-else-if="branch.open"
                                 class="text-xs text-muted-foreground"
                                 >Not at this branch this month</span
                             >
@@ -418,7 +424,10 @@ const submit = () => {
                     </label>
                     <InputError :message="form.errors.reason" />
                     <InputError :message="form.errors.idempotency_key" />
-                    <DialogFooter class="flex-col gap-2 sm:flex-row">
+                    <InputError :message="form.errors.expected_branch_id" />
+                    <DialogFooter
+                        class="flex-col gap-1 sm:flex-col sm:items-end"
+                    >
                         <Button
                             type="submit"
                             class="h-11 lg:h-9"
@@ -428,14 +437,14 @@ const submit = () => {
                                 clearing ? 'Clear target' : 'Save target'
                             }}</Button
                         >
+                        <p
+                            v-if="missing"
+                            class="text-xs text-muted-foreground"
+                            data-testid="target-missing"
+                        >
+                            {{ missing }}
+                        </p>
                     </DialogFooter>
-                    <p
-                        v-if="missing"
-                        class="text-xs text-muted-foreground"
-                        data-testid="target-missing"
-                    >
-                        {{ missing }}
-                    </p>
                 </form>
             </DialogContent>
         </Dialog>
