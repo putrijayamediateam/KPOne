@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// HR-PHOTO-STORAGE in Classic (owner, 16 Nov 2026: "photo card in classic too"): the read-only "Clock-in photo storage"
-// card on the Classic attendance Settings tab, in Classic's own style, with the same figures and words as the V2 card.
+// HR-PHOTO-STORAGE (owner, 16 Nov 2026: "photo card in classic too"): the read-only "Clock-in photo storage" card on
+// the attendance Settings tab.
 // Director and HR Manager only (the prop is sent only to them). Counts only: no names, photos or per-person figures, no
 // Save, and nothing is written when it opens.
 import { StatusBadge } from '@/components/ui/status';

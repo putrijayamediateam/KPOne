@@ -3,8 +3,8 @@ import { computed, reactive, watch } from 'vue';
 import type { CategoryOption, ClaimRow } from '@/components/hr/claims/types';
 
 /**
- * HR-6 New claim form state: category, date spent, amount, purpose and receipts for the active branch. Shared by the
- * Classic sheet (`components/hr/claims/ClaimSheet.vue`) and Version 2, so both send the same request and key.
+ * HR-6 New claim form state: category, date spent, amount, purpose and receipts for the active branch, with the
+ * request and key, for `components/hr/claims/ClaimSheet.vue`.
  * "Send a new claim" after a Wrong amount rejection copies the purpose in, and the server copies that claim's receipts.
  */
 export type ClaimSheetProps = {

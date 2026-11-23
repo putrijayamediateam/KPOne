@@ -39,14 +39,17 @@ class DailySummaryReportTest extends BillingTestCase
     {
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
             $allowed = in_array($role, ['director', 'finance_officer', 'administrator'], true);
-            $this->assertSame($allowed, in_array('reports.daily_summary.view.branch', $permissions, true));
-            $this->assertSame($allowed, in_array('reports.daily_summary.export.branch', $permissions, true));
+            // ROLE-1: the Branch Manager may download its own branch; the Account Assistant may only view.
+            $this->assertSame($allowed || in_array($role, ['branch_manager', 'account_assistant'], true), in_array('reports.daily_summary.view.branch', $permissions, true));
+            $this->assertSame($allowed || $role === 'branch_manager', in_array('reports.daily_summary.export.branch', $permissions, true));
             $actor = $this->actor($role);
             $this->selectBranch($actor);
+            $mayView = $allowed || in_array($role, ['branch_manager', 'account_assistant'], true);
+            $mayDownload = $allowed || $role === 'branch_manager';
             $response = $this->postJson(route('reports.daily-summary.run'), $this->filters());
-            $allowed ? $response->assertOk() : $response->assertForbidden();
+            $mayView ? $response->assertOk() : $response->assertForbidden();
             $response = $this->postJson(route('reports.daily-summary.download'), $this->filters());
-            $allowed ? $response->assertOk() : $response->assertForbidden();
+            $mayDownload ? $response->assertOk() : $response->assertForbidden();
         }
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);

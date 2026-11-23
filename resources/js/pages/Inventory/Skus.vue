@@ -3,6 +3,8 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Lock } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PackConversionBlock from '@/components/inventory/PackConversionBlock.vue';
+import type { PackConversion } from '@/components/inventory/PackConversionBlock.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +16,9 @@ type Sku = {
     publicId: string;
     skuCode: string;
     barcode: string | null;
-    packSize: string;
-    purchaseUnit: string;
+    packSize: string | null;
+    purchaseUnit: string | null;
+    legacyHidden: boolean;
     stockUnit: string;
     dispensingUnit: string;
     unitConversion: string;
@@ -27,11 +30,13 @@ type Sku = {
     protectFromLight: boolean;
     batchTrackingRequired: boolean;
     expiryTrackingRequired: boolean;
+    expiryAlertDays: number | null;
     active: boolean;
     lockVersion: number;
     unitsLocked: boolean;
     onHand: boolean;
     barcodeShared: boolean;
+    packConversion: PackConversion;
     item: {
         publicId: string;
         code: string;
@@ -62,6 +67,12 @@ const visit = (page = 1) =>
         { q: q.value || undefined, status: status.value, page },
         { preserveScroll: true },
     );
+
+// STK-42: a locked SKU keeps its saved expiry tracking; otherwise the form's tick decides.
+const tracksExpiry = (sku: Sku) =>
+    sku.unitsLocked
+        ? sku.expiryTrackingRequired
+        : form.expiry_tracking_required;
 
 const storageTypes = [
     { value: 'ambient', label: 'Room temperature' },
@@ -95,6 +106,7 @@ const form = useForm({
     protect_from_light: false,
     batch_tracking_required: true,
     expiry_tracking_required: true,
+    expiry_alert_days: '',
     sku_active: true,
     item_active: true,
     sku_lock_version: 1,
@@ -108,8 +120,8 @@ const startEdit = (sku: Sku) => {
         brand_name: sku.item.brandName ?? '',
         sku_code: sku.skuCode,
         barcode: sku.barcode ?? '',
-        pack_size: sku.packSize,
-        purchase_unit: sku.purchaseUnit,
+        pack_size: sku.packSize ?? '',
+        purchase_unit: sku.purchaseUnit ?? '',
         stock_unit: sku.stockUnit,
         dispensing_unit: sku.dispensingUnit,
         unit_conversion: sku.unitConversion,
@@ -121,6 +133,8 @@ const startEdit = (sku: Sku) => {
         protect_from_light: sku.protectFromLight,
         batch_tracking_required: sku.batchTrackingRequired,
         expiry_tracking_required: sku.expiryTrackingRequired,
+        expiry_alert_days:
+            sku.expiryAlertDays === null ? '' : String(sku.expiryAlertDays),
         sku_active: sku.active,
         item_active: sku.item.active,
         sku_lock_version: sku.lockVersion,
@@ -156,7 +170,22 @@ const save = (sku: Sku) => {
                 data.maximum_temperature === ''
                     ? null
                     : data.maximum_temperature,
+            expiry_alert_days:
+                String(data.expiry_alert_days ?? '').trim() === ''
+                    ? null
+                    : String(data.expiry_alert_days).trim(),
         };
+
+        // Hidden legacy fields (a pack check is waiting) are never sent either.
+        if (sku.legacyHidden) {
+            delete sent.pack_size;
+            delete sent.purchase_unit;
+        }
+
+        // STK-42: the alert days only apply when the SKU tracks expiry.
+        if (!tracksExpiry(sku)) {
+            delete sent.expiry_alert_days;
+        }
 
         // Locked unit fields are never sent, so the server never sees a change to them.
         if (sku.unitsLocked) {
@@ -534,6 +563,41 @@ const errorFor = (field: string) =>
                         </dl>
                     </fieldset>
 
+                    <fieldset
+                        v-if="tracksExpiry(sku)"
+                        class="grid gap-3 sm:grid-cols-2"
+                        data-testid="expiry-alert"
+                    >
+                        <legend class="mb-1 text-sm font-semibold">
+                            Expiry alert
+                        </legend>
+                        <label class="grid min-w-0 gap-1 text-sm"
+                            >Alert before expiry (days) (optional)
+                            <Input
+                                class="h-11 lg:h-9"
+                                v-model="form.expiry_alert_days"
+                                type="number"
+                                min="7"
+                                max="365"
+                                step="1"
+                                inputmode="numeric"
+                                placeholder="90"
+                                aria-describedby="expiry-alert-help"
+                            />
+                            <InputError
+                                :message="errorFor('expiry_alert_days')"
+                            />
+                        </label>
+                        <p
+                            id="expiry-alert-help"
+                            class="text-sm text-muted-foreground sm:col-span-2"
+                        >
+                            Stock review lists a batch as expiring this many
+                            days before its expiry date. Leave empty for 90
+                            days.
+                        </p>
+                    </fieldset>
+
                     <fieldset class="grid gap-3 sm:grid-cols-2">
                         <legend class="mb-1 text-sm font-semibold">
                             Legacy pack fields
@@ -542,7 +606,14 @@ const errorFor = (field: string) =>
                             Kept from before verified stock units. Supplier pack
                             sizes and prices belong on the Supplier price list.
                         </p>
-                        <template v-if="!sku.unitsLocked">
+                        <p
+                            v-if="sku.legacyHidden"
+                            class="text-sm sm:col-span-2"
+                            data-testid="legacy-hidden"
+                        >
+                            Hidden while a pack check is waiting.
+                        </p>
+                        <template v-else-if="!sku.unitsLocked">
                             <label class="grid min-w-0 gap-1 text-sm"
                                 >Pack size
                                 <Input
@@ -570,8 +641,8 @@ const errorFor = (field: string) =>
                         >
                             <div
                                 v-for="[label, value] in [
-                                    ['Pack size', sku.packSize],
-                                    ['Purchase unit', sku.purchaseUnit],
+                                    ['Pack size', sku.packSize ?? ''],
+                                    ['Purchase unit', sku.purchaseUnit ?? ''],
                                 ]"
                                 :key="label"
                                 class="flex items-start gap-2"
@@ -657,6 +728,14 @@ const errorFor = (field: string) =>
                         >
                     </div>
                 </form>
+                <!-- STK-52: saves on its own (never with Save above), so it sits outside the SKU form. -->
+                <div v-if="editing === sku.publicId" class="mt-4 border-t pt-4">
+                    <PackConversionBlock
+                        :sku-public-id="sku.publicId"
+                        :block="sku.packConversion"
+                        :filters="skus.filters"
+                    />
+                </div>
             </li>
         </ul>
         <CompactPagination

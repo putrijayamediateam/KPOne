@@ -7,7 +7,7 @@ import test from 'node:test';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-test('the leave dialogs say the month is locked, in Classic and V2, from one composable line', () => {
+test('the leave dialogs say the month is locked, in Classic, from one composable line', () => {
     const composable = read('resources/js/composables/hr/useLeavePage.ts');
 
     assert.match(
@@ -20,10 +20,7 @@ test('the leave dialogs say the month is locked, in Classic and V2, from one com
     );
     assert.match(composable, /actionPayrollLine,/);
 
-    for (const file of [
-        'resources/js/pages/HR/Leave.vue',
-        'resources/js/pages/HR/V2/Leave.vue',
-    ]) {
+    for (const file of ['resources/js/pages/HR/Leave.vue']) {
         assert.match(
             read(file),
             /v-if="actionPayrollLine"[\s\S]*?data-test="leave-locked-month"[\s\S]*?\{\{ actionPayrollLine \}\}/,
@@ -32,11 +29,8 @@ test('the leave dialogs say the month is locked, in Classic and V2, from one com
     }
 });
 
-test('the correction approve dialog says the month is locked, in Classic and V2', () => {
-    for (const file of [
-        'resources/js/pages/HR/Attendance.vue',
-        'resources/js/pages/HR/V2/Attendance.vue',
-    ]) {
+test('the correction approve dialog says the month is locked, in Classic', () => {
+    for (const file of ['resources/js/pages/HR/Attendance.vue']) {
         assert.match(
             read(file),
             /decision\.approve && decision\.target\?\.lockedMonth[\s\S]*?data-test="correction-locked-month"[\s\S]*?\{\{ decision\.target\.lockedMonth \}\}'s payroll is already locked:\s+after approving, add the hours on an adjustment run\./,
@@ -51,7 +45,7 @@ test('the correction approve dialog says the month is locked, in Classic and V2'
 });
 
 test('the run card shows each kind with its own word and the change in words, never money', () => {
-    // The run page's script lives in its shared composable (V2 PayrollRun); both are read.
+    // The run page's script lives in its shared composable; both are read.
     const source = `${read('resources/js/pages/HR/PayrollRun.vue')}\n${read('resources/js/composables/hr/usePayrollRunPage.ts')}`;
 
     assert.match(

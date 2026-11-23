@@ -12,11 +12,21 @@ export type CallReadiness = {
 export type PatientBoardStatusTone =
     'neutral' | 'waiting' | 'serving' | 'held' | 'cancelled' | 'removed';
 
+/** TRI-1c: the latest triage zone (null zone = readings only), or triaged false = "No triage yet". */
+export type TriageZoneSummary = {
+    zone: 'red' | 'yellow' | 'green' | null;
+    triaged: boolean;
+};
+
 export type PatientBoardRow = {
     key: string;
     canWhatsapp: boolean;
     callHold?: CallReadiness | null;
+    /** Q-13: the doctor's own row whose dispensary case waits for the doctor's check. */
+    dispensaryCheckWaiting?: boolean;
     treatmentProgress?: TreatmentProgress | null;
+    /** TRI-1c: only for CA, CA Supervisor and the patient's own doctor; null or absent for anyone else. */
+    triage?: TriageZoneSummary | null;
     // Minutes since the open step started, or since it was marked done.
     treatmentMinutes?: number | null;
     patientName: string;

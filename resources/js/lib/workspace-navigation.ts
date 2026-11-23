@@ -393,7 +393,9 @@ export const headerDestinations = (
             keys.push('insights', 'inventory');
         }
 
-        if (capabilities.accessControl || capabilities.auditLogs) {
+        // ROLE-1 (Design, 21 Nov 2026): the audit log is read-only for some finance and panel roles; reading it is not daily
+        // work, so only the people and access administrators (who hold access control) get the Staff item.
+        if (capabilities.accessControl) {
             keys.push('insights', 'staff');
         }
 

@@ -11,6 +11,7 @@ use App\Domain\HR\Records\Services\RecordSupport;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -161,6 +162,7 @@ final class CredentialsPageService
 
         $summary = ['expiring' => 0, 'expired' => 0, 'not_recorded' => 0, 'waiting' => 0];
         $waitingList = [];
+        $permits = [];
         $rows = [];
         foreach ($workers as $w) {
             $roles = $w->user !== null ? $this->roleNames($w->user) : [];
@@ -185,6 +187,12 @@ final class CredentialsPageService
                     'expiresOn' => CredentialStatus::day($inForce?->expires_on), 'doneOn' => $type['healthItem'] ? CredentialStatus::day($inForce?->issued_on) : null];
                 if (in_array($status['code'], ['expiring', 'expired', 'not_recorded'], true)) {
                     $summary[$status['code']]++;
+                }
+                // HR-21: a work permit that is expiring or expired gets its own line (warning tone, never red).
+                if ($type['workPermit'] && in_array($status['code'], ['expiring', 'expired'], true) && $inForce !== null) {
+                    $permits[] = ['person' => $w->name(), 'workerId' => $w->public_id, 'type' => $type['name'], 'expired' => $status['code'] === 'expired',
+                        'expiresOn' => (string) CredentialStatus::day($inForce->expires_on),
+                        'line' => self::permitLine((string) CredentialStatus::day($inForce->expires_on), $status)];
                 }
                 if ($waiting !== null) {
                     $summary['waiting']++;
@@ -226,6 +234,8 @@ final class CredentialsPageService
             'total' => count($rows),
             'summary' => $summary,
             'waiting' => $waitingList,
+            // Soonest (or longest expired) first.
+            'permits' => collect($permits)->sortBy('expiresOn')->values()->all(),
             'branches' => Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->get(['id', 'name'])
                 ->map(fn (Branch $b): array => ['id' => $b->id, 'name' => $b->name])->all(),
         ];
@@ -255,12 +265,12 @@ final class CredentialsPageService
     {
         $rows = DB::table('hr_credential_types as t')->join('hr_credential_type_versions as v', fn ($j) => $j->on('v.type_id', '=', 't.id')->on('v.version', '=', 't.current_version'))
             ->where('t.organisation_id', $organisationId)->orderBy('v.name')
-            ->get(['t.id', 't.public_id', 't.code', 't.expires', 't.health_item', 't.is_active', 't.lock_version', 't.current_version', 'v.id as version_id', 'v.name', 'v.warn_from_days']);
+            ->get(['t.id', 't.public_id', 't.code', 't.expires', 't.health_item', 't.work_permit', 't.is_active', 't.lock_version', 't.current_version', 'v.id as version_id', 'v.name', 'v.warn_from_days']);
         $roles = DB::table('hr_credential_type_roles')->whereIn('type_version_id', $rows->pluck('version_id')->all())->get()->groupBy('type_version_id');
 
         /** @var Collection<int, array<string, mixed>> $types */
         $types = $rows->mapWithKeys(fn (object $r): array => [(int) $r->id => ['id' => (int) $r->id, 'publicId' => (string) $r->public_id, 'code' => (string) $r->code,
-            'name' => (string) $r->name, 'expires' => (bool) $r->expires, 'healthItem' => (bool) $r->health_item, 'isActive' => (bool) $r->is_active,
+            'name' => (string) $r->name, 'expires' => (bool) $r->expires, 'healthItem' => (bool) $r->health_item, 'workPermit' => (bool) $r->work_permit, 'isActive' => (bool) $r->is_active,
             'warnFromDays' => (int) $r->warn_from_days, 'version' => (int) $r->current_version, 'lockVersion' => (int) $r->lock_version,
             'roles' => $roles->get($r->version_id, collect())->pluck('role')->all()]]);
 
@@ -274,13 +284,31 @@ final class CredentialsPageService
     }
 
     /**
+     * "Work permit expires on 3 Feb 2027 (in 60 days)" or "Work permit expired on 1 Nov 2026 (17 days ago)" (HR-21).
+     *
+     * @param  array{code: string, words: string, short: string}  $status
+     */
+    public static function permitLine(string $expiresOn, array $status): string
+    {
+        $date = CarbonImmutable::createFromFormat('!Y-m-d', $expiresOn);
+        $label = $date === null ? $expiresOn : $date->format('j M Y');
+        $words = lcfirst($status['words']);
+        $when = match (true) {
+            $status['code'] === 'expired' => preg_replace('/^expired /', '', $words),
+            default => preg_replace('/^expires /', '', $words),
+        };
+
+        return ($status['code'] === 'expired' ? 'Work permit expired on ' : 'Work permit expires on ').$label.' ('.$when.')';
+    }
+
+    /**
      * @param  array<string, mixed>  $type
      * @return array<string, mixed>
      */
     private function typeHead(array $type): array
     {
         return ['typeId' => $type['publicId'], 'code' => $type['code'], 'name' => $type['name'], 'expires' => $type['expires'], 'healthItem' => $type['healthItem'],
-            'warnFromDays' => $type['warnFromDays'], 'roles' => $type['roles'], 'version' => $type['version']];
+            'workPermit' => $type['workPermit'], 'warnFromDays' => $type['warnFromDays'], 'roles' => $type['roles'], 'version' => $type['version']];
     }
 
     /** @return array<string, mixed> masked: the reference shows only its last four */

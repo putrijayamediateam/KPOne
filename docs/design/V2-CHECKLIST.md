@@ -1,5 +1,7 @@
 # Version 2 page checklist
 
+> **Retired (Classic only, CO-10, owner decision 19 Nov 2026).** Version 2 has been removed from KPOne; this checklist is kept as a record only.
+
 One page for every team that draws a Version 2 page (owner decision 2026-11-13: every department starts its Version 2
 pages). Tick every line before you send shots. A shot set that breaks a line is sent back without a full review. These
 are the defects found again and again in the Registration slices (S1 to S6), so each line names the page where it was seen.

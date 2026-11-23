@@ -123,10 +123,12 @@ final class CandidateLink
         }
         if ($application->status === 'interview') {
             $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')->where('i.application_id', $application->id)
-                ->where('i.status', 'confirmed')->first(['i.starts_at', 'b.name', 'b.timezone']);
+                ->where('i.status', 'confirmed')->first(['i.starts_at', 'i.mode', 'i.video_link', 'b.name', 'b.timezone']);
 
+            // HR-15e: an online interview shows its link instead of the branch.
             return $interview === null ? null : ['confirmed' => CarbonImmutable::parse($interview->starts_at)->setTimezone((string) ($interview->timezone ?: 'UTC'))
-                ->format('D j M Y, g:i A'), 'branch' => (string) $interview->name];
+                ->format('D j M Y, g:i A'), 'branch' => (string) $interview->name, 'online' => $interview->mode === 'online',
+                'videoLink' => $interview->mode === 'online' ? (string) $interview->video_link : null];
         }
 
         return null;

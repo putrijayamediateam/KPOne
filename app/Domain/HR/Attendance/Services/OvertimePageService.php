@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Attendance\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\HR\Approvals\HrWaiting;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
@@ -45,8 +46,7 @@ final class OvertimePageService
 
     public function pendingCount(User $actor): int
     {
-        return OvertimeRequest::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
-            ->where('user_id', '<>', $actor->id)->where('requested_by_user_id', '<>', $actor->id)->count();
+        return HrWaiting::overtime($actor)->count();
     }
 
     /**

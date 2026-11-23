@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class SopsPageService
 {
+    public function __construct(private SopsToRead $toRead) {}
+
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
@@ -50,21 +52,13 @@ final class SopsPageService
             return 0;
         }
 
-        return collect($this->my($actor, $this->zone($actor->organisation_id)))->whereNull('acknowledgedOn')->count();
+        return $this->toRead->count($actor);
     }
 
     /** @return list<array<string, mixed>> */
     private function my(User $actor, string $zone): array
     {
-        $roles = SopService::humanRoles($actor);
-        if ($roles === []) {
-            return [];
-        }
-        $versions = DB::table('hr_sop_versions as v')->join('hr_sops as s', function ($join): void {
-            $join->on('s.id', '=', 'v.sop_id')->on('s.current_version', '=', 'v.version');
-        })->where('s.organisation_id', $actor->organisation_id)->where('s.is_active', true)
-            ->whereExists(fn ($q) => $q->from('hr_sop_audiences as a')->whereColumn('a.sop_version_id', 'v.id')->whereIn('a.role', $roles))
-            ->orderByDesc('v.created_at')->orderByDesc('v.id')->get(['v.id', 'v.public_id', 'v.sop_id', 'v.version', 'v.title', 'v.created_at']);
+        $versions = $this->toRead->versions($actor);
         if ($versions->isEmpty()) {
             return [];
         }

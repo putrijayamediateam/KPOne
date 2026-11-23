@@ -4,11 +4,9 @@ import { csrf } from '@/components/hr/records/types';
 
 /**
  * HR-10a /hr/letters page state: your letters, issued letters and templates. Every request, lock version and
- * idempotency key lives here, shared by the Classic page (`pages/HR/Letters.vue`) and Version 2
- * (`pages/HR/V2/Letters.vue`), so both send identical requests. Moved out of the Classic page unchanged; the Classic
- * template did not change. The letter text of an issued letter is never in the props: only the server's preview of a
- * letter about to be issued is fetched, on request, and any change clears it. Letters are printed and signed by hand;
- * nothing is sent.
+ * idempotency key of `pages/HR/Letters.vue` lives here. The letter text of an issued letter is never in the props: only
+ * the server's preview of a letter about to be issued is fetched, on request, and any change clears it. Letters are
+ * printed and signed by hand; nothing is sent.
  */
 export type Tab = 'mine' | 'issued' | 'templates';
 export type Status = 'current' | 'replaced' | 'void';
