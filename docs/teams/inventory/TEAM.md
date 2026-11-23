@@ -73,6 +73,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | `inventory.supplier_returns.approve.branch` | Finance Officer, Director | Approve or reject supplier returns (never their own request) and record the credit note (STK-7) |
 | `inventory.usage.record.branch` | CA, CA Supervisor | Record treatment-room usage and waste (STK-8); reversal uses `inventory.variances.approve.branch` |
 | `inventory.cost.view.organisation` | Director, Finance Officer | See inventory cost (STK-13) |
+| `inventory.medicine_sales.view.organisation` | Director, Finance Officer | The medicine sales page (STK-44, P9) |
 | `inventory.purchase_orders.approve.organisation` | Director, Finance Officer | Approve purchase orders, never one they raised or submitted (STK-19) |
 | `inventory.purchase_requests.create.branch` | CA, CA Supervisor | Raise purchase requests; converting one uses the purchase order create permission (STK-18) |
 | `inventory.supplier_invoices.record.branch` / `.approve.branch` | record: CA Supervisor, Finance Officer; approve: Finance Officer, Director | Supplier invoice match; the recorder never decides (STK-22) |
@@ -317,6 +318,17 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     PostgreSQL); the approver may lower the quantity and change the locations. A transfer is prepared only at the branch
     that sends the stock (STK-31); a restock is refused when the live Stock review row shows stock back above the level,
     and the inbox may warn when an open purchase request or order already holds the item for that location.
+47. Purchasing order and answers (owner, 22 Nov 2026, relayed by B.E.R.N.I.S.S: "order ok, (a) Finance only, (b) existing
+    warehouse, (c) warn"): build in this order: STK-44 medicine sales, STK-45 report a difference, STK-50 Director-only
+    purchase order approval, STK-51 Finance-only supplier bill acceptance, STK-46 hand-typed cost, STK-49 payment terms
+    and due dates with "paid in Bukku", STK-48 RFQ, STK-47 central store. (a) Only Finance accepts supplier bills, so the
+    Director loses accept (a revoke; the existing assertions go to the owner first). (b) The Cheras central store is the
+    existing organisation warehouse. (c) The Thursday request day warns only, never blocks.
+48. STK-44 medicine sales (owner decision 26; P9 permission `inventory.medicine_sales.view.organisation`, Director and
+    Finance Officer only, separate from cost view): rank by Sales or Gross profit only, never by units, because units
+    can't be compared across medicines (B.E.R.N.I.S.S for the owner, 23 Nov). A line charged RM 0.00 is a "free line",
+    not sold below cost, and its cost still counts. The link sits on the Inventory home, not in Clinic management; the
+    phone count becomes `reportsCount` (owner-approved change to `dd-12-inventory-headers.test.mjs`, 23 Nov).
 
 ## 7. Open items and known limits
 
