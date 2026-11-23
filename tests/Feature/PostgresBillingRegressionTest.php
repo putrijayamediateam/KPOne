@@ -40,6 +40,7 @@ use App\Domain\Visit\Billing\Models\PaymentRefundDecision;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Billing\Services\BranchDayGate;
 use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
@@ -452,40 +453,42 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame($f['visit']->refresh()->status === 'completed' ? 0 : 4000, $state['due_now']);
     }
 
-    public function test_cash_receipt_reversal_holding_its_lock_makes_a_cash_closing_approval_wait_and_refuse(): void
+    public function test_while_a_count_waits_a_receipt_reversal_of_that_day_is_refused_and_the_approval_then_goes_through(): void
     {
+        // BIL-32 (owner approved 2026-11-23, item C): this test once raced a reversal against the approval. A reversal of a
+        // counted day's receipt is now refused while the count waits, so the approval's figures cannot go stale this way.
         $f = $this->cashClosingFixture();
-        $out = $this->leaderThenFollower(
-            $this->billWorker($f, 'bill-reverse', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction', 'hold' => true], 'finance'),
-            $this->billWorker($f, 'bill-cash-decide', ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid()], 'supervisor'),
-        );
+        try {
+            app(InvoiceCorrectionService::class)->reverse($f['finance'], $f['visit'], $f['invoice'], $f['receipt'], ['expected_branch_id' => $f['branch']->id,
+                'lock_version' => $f['invoice']->lock_version, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction']);
+            $this->fail('A reversal of a counted day must be refused while its count waits.');
+        } catch (ValidationException $e) {
+            $this->assertSame(BranchDayGate::PAUSED_EARLIER, $e->errors()['correction'][0] ?? null);
+        }
+        $this->assertSame('posted', $f['receipt']->refresh()->status);
 
-        // The approval waited for the reversal, then saw the receipt reversed and refused: no approval of stale figures.
-        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
-        $this->assertSame(1, substr_count($out, 'STALE cash_closing'), $out);
-        $this->assertSame('reversed', $f['receipt']->refresh()->status);
-        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->count());
-        $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+        app(CashClosingService::class)->decide($f['supervisor'], $f['closing']->public_id, 'approved', ['expected_branch_id' => $f['branch']->id, 'reason' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame('approved', CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->sole()->decision);
+        $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
     }
 
-    public function test_cash_closing_approval_holding_its_share_lock_makes_a_receipt_reversal_wait_then_succeed(): void
+    public function test_cash_closing_approval_holding_the_day_makes_a_receipt_reversal_wait_then_refuse_as_locked(): void
     {
+        // BIL-32 (owner approved 2026-11-23, item D): the reversal still waits for the approval (the day's advisory lock),
+        // and once the approval commits the day is locked, so the reversal is refused and the approved figure stands.
         $f = $this->cashClosingFixture();
         $out = $this->leaderThenFollower(
             $this->billWorker($f, 'bill-cash-decide', ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid(), 'hold' => true], 'supervisor'),
             $this->billWorker($f, 'bill-reverse', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction'], 'finance'),
         );
 
-        // The reversal waited until the approval committed: the approval matched the receipts at that moment, and the
-        // later reversal leaves the approved snapshot unchanged (the page then shows "changed after approval").
-        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE correction'), $out);
         $decision = CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->sole();
         $this->assertSame([$f['closing']->id, 'approved'], [$decision->cash_closing_id, $decision->decision]);
-        $this->assertSame('reversed', $f['receipt']->refresh()->status);
-        // The reversal was recorded only after the approval: it waited behind the approval's share lock.
-        $reversedAt = CarbonImmutable::parse((string) DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->value('reversed_at'), 'UTC');
-        $this->assertTrue($reversedAt->greaterThanOrEqualTo($decision->decided_at), 'Reversal must follow the approval.');
-        $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+        $this->assertSame(1, DB::table('cash_closing_locks')->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame('posted', $f['receipt']->refresh()->status);
+        $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
     }
 
     public function test_bil32_a_payment_holding_the_day_makes_todays_count_wait_and_then_count_it(): void
@@ -548,7 +551,8 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
         $this->assertSame(1, substr_count($out, 'STALE cash_closing'), $out);
         $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->count());
-        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+        // BIL-32 (owner approved 2026-11-23): the setup's returned count is a decision too; no approval was recorded.
+        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->where('decision', 'approved')->count());
         $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
 
         // Approval first: the refund waits for the approval, then is recorded; the approved snapshot (RM 0) stays.
@@ -558,7 +562,7 @@ class PostgresBillingRegressionTest extends TestCase
             $this->billWorker($g, 'bill-refund', $this->refundArgs($g), 'supervisor'),
         );
         $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
-        $this->assertSame('approved', CashClosingDecision::query()->where('organisation_id', $g['organisation']->id)->sole()->decision);
+        $this->assertSame('approved', CashClosingDecision::query()->where('organisation_id', $g['organisation']->id)->where('decision', 'approved')->sole()->decision);
         $this->assertSame(0, $g['closing']->refresh()->expected_cash_sen);
         $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $g['organisation']->id)->count());
     }
@@ -825,6 +829,13 @@ class PostgresBillingRegressionTest extends TestCase
      *
      * @return array<string, mixed>
      */
+    /** BIL-32: return the cash closing fixture's waiting count for a recount, so that day's money actions are not paused. */
+    private function returnWaitingCount(array $f): void
+    {
+        app(CashClosingService::class)->decide($f['supervisor'], $f['closing']->public_id, 'returned', ['expected_branch_id' => $f['branch']->id,
+            'reason' => 'Synthetic: returned before a correction', 'idempotency_key' => (string) Str::uuid()]);
+    }
+
     private function refundFixture(): array
     {
         $f = $this->cashClosingFixture();
@@ -834,6 +845,7 @@ class PostgresBillingRegressionTest extends TestCase
         $f['supervisor']->givePermissionTo(Permission::findOrCreate('payments.refunds.record.branch', 'web'));
         $f['director'] = $this->user($f['organisation'], $f['branch'], null, ['payments.refunds.approve.branch', CashClosingService::APPROVE_PERMISSION, 'payments.reconcile.branch', 'branch_context.switch.branch']);
         session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $this->returnWaitingCount($f); // BIL-32 (owner approved 2026-11-23, item A): a counted day pauses its reversals.
         app(InvoiceCorrectionService::class)->reverse($f['finance'], $f['visit'], $f['invoice'], $f['receipt'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version,
             'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction']);
         $f['invoice']->refresh();
@@ -852,6 +864,8 @@ class PostgresBillingRegressionTest extends TestCase
     private function completedRefundFixture(): array
     {
         $f = $this->cashClosingFixture();
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $this->returnWaitingCount($f); // BIL-32 (owner approved 2026-11-23, item B): a counted day pauses its corrections.
         foreach (['payments.refunds.record.branch'] as $permission) {
             $f['finance']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
             $f['supervisor']->givePermissionTo(Permission::findOrCreate($permission, 'web'));

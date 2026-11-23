@@ -32,6 +32,11 @@ class InvoiceCorrectionService
             // BIL-32: judged on the receipt's own day; on a locked day only inside a refund (owner Q5 = A, RefundService).
             $received = Payment::query()->whereKey($payment->id)->where('organisation_id', $actor->organisation_id)->value('received_at');
             $this->gate->guard($branch, $received === null ? null : CarbonImmutable::parse($received), ! $insideRefund, 'correction');
+            // Kumar (R5): reverse-and-refund together is only for a locked day's receipt, checked here under the day lock so a
+            // close being approved at the same moment is seen correctly.
+            if ($insideRefund && ($received === null || ! $this->gate->locked($branch, CarbonImmutable::parse($received)->setTimezone($branch->timezone)->toDateString()))) {
+                throw ValidationException::withMessages(['refund' => 'Reverse and refund together is only for a receipt of a closed and locked day. Reverse the receipt first, then record the refund.']);
+            }
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
             $this->ledger->requireMutable($invoice, $a['lock_version'] ?? null);
             $this->ledger->lock($invoice);

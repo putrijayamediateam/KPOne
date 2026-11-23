@@ -95,12 +95,7 @@ final class RefundService
             if ($existing !== null && $existing->payment_id === $payment->id) {
                 return $this->record($actor, $visit, $payment->public_id, $refund); // same-key retry: its own replay rules
             }
-            // Kumar (R5): only for a locked day's receipt; on any other day the BIL-6 path (reverse, then refund) applies.
-            $branch = Branch::query()->whereKey($visit->branch_id)->where('organisation_id', $actor->organisation_id)->firstOrFail();
-            $received = Payment::query()->whereKey($payment->id)->where('organisation_id', $actor->organisation_id)->value('received_at');
-            if ($received === null || ! $this->gate->locked($branch, CarbonImmutable::parse($received)->setTimezone($branch->timezone)->toDateString())) {
-                throw ValidationException::withMessages(['refund' => 'Reverse and refund together is only for a receipt of a closed and locked day. Reverse the receipt first, then record the refund.']);
-            }
+            // Kumar (R5): only for a locked day's receipt. InvoiceCorrectionService::reverse checks it under the day lock.
             // The reversal is this refund's bookkeeping (as in BIL-6), so it is not a separate "recording error" confirmation.
             app(InvoiceCorrectionService::class)->reverse($actor, $visit, $invoice, $payment, [...$reversal, 'recording_error_only' => true], insideRefund: true);
 

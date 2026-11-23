@@ -201,6 +201,13 @@ Count and approval take the same advisory lock before the receipts' share lock, 
 2. Pause: A, the counted day only.
 3. Panel claim adjustments on a locked day's invoice: allowed.
 4. New `payments.cash_closing.view.branch` for `branch_manager` only, view-only: approved.
+6. Days approved before BIL-32 are locked when it is installed (the migration back-fills the locks), including days
+   already flagged "changed since approval"; a count still waiting then pauses its day at once (owner "yes to E",
+   23 Nov 2026, from Kumar's code review).
+7. Test changes approved one by one (23 Nov 2026): RoleOneRolesTest:46, ClinicManagementTest:41, CashClosingTest:198,
+   227 and 235, the trial-data recount, and in PostgresBillingRegressionTest the setups A and B (return the waiting
+   count), C and D (a reversal is refused while a count waits, and after approval because the day is locked), and lines
+   554 and 564 (count approved decisions only).
 
 5. Refund of a locked day's receipt before completion: A, reverse and refund together in one approved action; the
    locked day's figures unchanged. The Approve route bug (K1) is fixed inside BIL-32.
