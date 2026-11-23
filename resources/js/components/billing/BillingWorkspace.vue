@@ -5,6 +5,7 @@ import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
 import DayCloseNotice from '@/components/billing/DayCloseNotice.vue';
+import ForeignPatientNote from '@/components/billing/ForeignPatientNote.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
@@ -369,6 +370,13 @@ const reverse = (receipt: Receipt) =>
                 :context="billing.activity"
                 :notes-context="billing.notes"
             />
+            <ActionLink
+                v-if="!manage && billing.panelClaim"
+                :href="billing.panelClaim.href"
+                variant="outline"
+                data-testid="panel-claim-link"
+                >{{ billing.panelClaim.label }}</ActionLink
+            >
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >
@@ -409,6 +417,9 @@ const reverse = (receipt: Receipt) =>
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ billing.patient.patientNumber }}
                             </div>
+                            <ForeignPatientNote
+                                :foreign="billing.patient.foreign"
+                            />
                         </div>
                         <ActionLink
                             v-if="billing.patient.profileUrl"
@@ -678,6 +689,9 @@ const reverse = (receipt: Receipt) =>
                             {{ billing.patient.patientNumber }} ·
                             {{ billing.visit.visitNumber }}
                         </p>
+                        <ForeignPatientNote
+                            :foreign="billing.patient.foreign"
+                        />
                     </div>
                     <div class="text-xs sm:ml-auto">
                         <p class="text-muted-foreground">Coverage</p>
@@ -1073,23 +1087,16 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
-                                <span class="v2:hidden"
+                                <span
                                     >·
                                     <span class="capitalize">{{
                                         receipt.status
                                     }}</span></span
                                 >
                             </div>
-                            <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
-                            <div class="mt-1 hidden v2:block">
-                                <StatusBadge
-                                    :status="receipt.status"
-                                    :tone="receiptTone(receipt.status)"
-                                />
-                            </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="text-xs text-muted-foreground tabular-nums v2:mt-1"
+                                class="text-xs text-muted-foreground tabular-nums"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -1100,7 +1107,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-xs break-words text-muted-foreground v2:mt-1"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>

@@ -7,6 +7,9 @@ use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
+use App\Domain\Clinical\Triage\TriageGuidelineService;
+use App\Domain\Clinical\Triage\TriageService;
+use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -25,6 +28,8 @@ class ClinicalEncounterDirectoryService
         private TreatmentPlanDirectoryService $treatmentPlans,
         private DoctorDispensaryAttentionService $dispensaryAttention,
         private VisitReasonService $visitReasons,
+        private TriageGuidelineService $triageGuidelines,
+        private TriageService $triage,
     ) {}
 
     /** @return array<string, mixed> */
@@ -80,6 +85,10 @@ class ClinicalEncounterDirectoryService
             'visit' => [
                 'visitNumber' => $encounter->visit->visit_number,
                 'priority' => $encounter->visit->priority,
+                // TRI-1c: the zone chip for the attending doctor (the page's own viewer) and CA, CA Supervisor; never a reading here.
+                'triage' => app(TriageZoneProjection::class)->forVisits($actor, [
+                    TriageZoneProjection::subject($encounter->visit, $encounter->visit->queueEntry, $encounter->attending_clinician_user_id),
+                ])[$encounter->visit->id] ?? null,
                 'isPanel' => $encounter->visit->coverage_type === 'panel',
                 'panelNote' => $encounter->visit->coverage_type === 'panel' ? $encounter->visit->coverage_panel_note : null,
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'
@@ -127,7 +136,17 @@ class ClinicalEncounterDirectoryService
                 'canHold' => $canActOnConsultation && $activeHold === null && $actor->can('consultations.hold.own'),
                 'canResume' => $canActOnConsultation && $activeHold !== null && $actor->can('consultations.hold.own'),
             ],
-            'vitals' => $this->vitals($vitals),
+            'vitals' => [
+                ...$this->vitals($vitals),
+                // TRI-1c: while the vitals are still the copy made at consultation start, who took them at triage and when.
+                'fromTriage' => $vitals?->getAttribute('source_triage_assessment_id') !== null && $vitals->observed_at !== null ? [
+                    'recordedBy' => User::query()->whereKey($vitals->getAttribute('recorded_by_user_id'))->value('name'),
+                    'recordedAt' => $vitals->observed_at->setTimezone($encounter->visit->branch->timezone)->format('j M Y, g:i A'),
+                ] : null,
+            ],
+            // Q-12: the red limits of the triage guideline in force and the patient's age band (never the signs), for the "Check" line on
+            // vitals read from the note. Null when no guideline is in force. Reference limits only; the doctor already sees the date of birth.
+            'vitalLimits' => $this->vitalLimits($actor, $encounter),
             'diagnoses' => $encounter->diagnoses->map(fn (EncounterDiagnosis $diagnosis): array => [
                 'diagnosisText' => $diagnosis->diagnosis_text,
                 'diagnosisCode' => $diagnosis->diagnosis_code,
@@ -287,6 +306,29 @@ class ClinicalEncounterDirectoryService
             ->orderByDesc('started_at')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * @return array{versionNumber: int, ageBand: string, limits: list<array{reading: string, age_band: string, direction: string, limit_value: string, zone: string}>}|null
+     */
+    private function vitalLimits(User $actor, ClinicalEncounter $encounter): ?array
+    {
+        // The caller already proved this is the actor's own consultation (the encounter lookup and the view gate); the limits are
+        // organisation reference data with no patient content, so no further permission is needed (owner decision 21 Nov 2026).
+        $guideline = $this->triageGuidelines->inForce($actor->organisation_id);
+
+        if ($guideline === null) {
+            return null;
+        }
+
+        return [
+            'versionNumber' => $guideline->version_number,
+            'ageBand' => $this->triage->ageBand($encounter->visit, $encounter->visit->branch->timezone, $guideline->child_age_limit_years),
+            'limits' => array_values(array_filter(
+                TriageService::limits($guideline),
+                fn (array $limit): bool => $limit['zone'] === 'red',
+            )),
+        ];
     }
 
     /** @return array<string, mixed> */

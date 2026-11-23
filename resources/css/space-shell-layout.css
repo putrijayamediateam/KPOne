@@ -952,23 +952,6 @@
     width: 16px;
     height: 16px;
 }
-/* UX-24: a space home inside the V2 shell (Me and Management in part 1). The shell draws the sidebar and top bar, so the
-   space is a plain block in the content column, with the page frame's side padding (16 px, 32 px from 1024 px). */
-.space-shell[data-v2-frame] {
-    display: block;
-    min-height: 0;
-    background: transparent;
-    font-family: inherit;
-}
-.space-shell[data-v2-frame] .space-main {
-    padding: 24px 16px;
-}
-@media (min-width: 1024px) {
-    .space-shell[data-v2-frame] .space-main {
-        padding: 24px 32px;
-    }
-}
-
 /* UX-24 part 2 (Daniel): the roster week shows its status as a chip beside the date, and the short-days note on the
    right stays on one line. */
 .space-shell .space-roster-head {
@@ -1049,4 +1032,72 @@
     .space-shell[data-classic-frame] .space-tab {
         min-height: 36px;
     }
+}
+
+/* DAY-1a (Daniel, 22 Nov 2026): the compact Today on My day: the time, the status and an outline Clock in in one calm card. */
+.space-shell .me-compact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    padding: 16px;
+    border: 1px solid var(--space-line);
+    border-radius: var(--space-radius-card);
+    background: var(--space-surface);
+}
+.space-shell .me-compact .me-time {
+    margin: 0;
+    font-size: 32px;
+}
+.space-shell .me-compact .me-status {
+    margin-top: 8px;
+    justify-content: flex-start;
+}
+.space-shell .me-compact-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 24px;
+    border: 2px solid var(--space-brand);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--space-brand);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+.space-shell .me-compact-button:focus-visible {
+    outline: 3px solid var(--space-accent);
+    outline-offset: 3px;
+}
+@media (min-width: 1024px) {
+    .space-shell .me-compact-button {
+        min-height: 36px;
+    }
+}
+
+/* DAY-1b (Daniel): the routine tick box has a measurable border (muted foreground on the card: 7.8:1 dark, 4.8:1 light, well over 3:1). */
+.space-shell .routine-check {
+    appearance: none;
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--muted-foreground);
+    border-radius: 5px;
+    background: transparent center / 14px no-repeat;
+    cursor: pointer;
+}
+.space-shell .routine-check:checked {
+    border-color: #be185d;
+    background-color: #be185d;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8'/%3E%3C/svg%3E");
+}
+.space-shell .routine-check:focus-visible {
+    outline: 3px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .routine-check:disabled {
+    opacity: 0.6;
 }

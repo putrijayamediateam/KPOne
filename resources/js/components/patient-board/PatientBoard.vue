@@ -104,6 +104,22 @@ const durationIconClass = (tone: WaitingTone) =>
     tone === 'normal' ? 'text-muted-foreground' : 'text-current';
 const rowWaitingTone = (row: PatientBoardRow) =>
     waitingTone(row.waitingMinutes);
+// TRI-1c: the triage zone chip. A readings-only triage (no approved guideline yet) shows "Triaged".
+type TriageZone = 'red' | 'yellow' | 'green';
+const triageLabel = (zone: TriageZone | null) =>
+    zone
+        ? { red: 'Red zone', yellow: 'Yellow zone', green: 'Green zone' }[zone]
+        : 'Triaged';
+const triageDotClass = (zone: TriageZone) =>
+    ({ red: 'bg-destructive', yellow: 'bg-warning', green: 'bg-success' })[
+        zone
+    ];
+const triageTextClass = (zone: TriageZone | null) =>
+    zone === 'red'
+        ? 'text-destructive'
+        : zone === 'yellow'
+          ? 'text-warning-strong'
+          : 'text-foreground';
 </script>
 
 <template>
@@ -293,6 +309,26 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                 v-if="row.priority === 'urgent'"
                                 class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-normal text-destructive"
                                 >Urgent</span
+                            >
+                            <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
+                                 sends nothing to anyone else). The word is always shown, never colour alone. -->
+                            <span
+                                v-if="row.triage?.triaged"
+                                class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
+                                :class="triageTextClass(row.triage.zone)"
+                                data-testid="triage-zone-chip"
+                                ><span
+                                    v-if="row.triage.zone"
+                                    aria-hidden="true"
+                                    class="size-2 shrink-0 rounded-full"
+                                    :class="triageDotClass(row.triage.zone)"
+                                />{{ triageLabel(row.triage.zone) }}</span
+                            >
+                            <span
+                                v-else-if="row.triage"
+                                class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
+                                data-testid="triage-missing-chip"
+                                >No triage yet</span
                             >
                             <span
                                 v-if="row.returnedFromDispensary"
@@ -560,7 +596,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     >
                         {{
                             emptyMessage ??
-                            'No Patients match this operational view.'
+                            'No patients match. Clear the search, or try another tab.'
                         }}
                     </td>
                 </tr>

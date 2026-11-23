@@ -23,10 +23,9 @@ import type {
 import { useScrollStrip } from '@/composables/useScrollStrip';
 
 /**
- * The Attendance page's state and actions, shared by Classic (`pages/HR/Attendance.vue`) and Version 2
- * (`pages/HR/V2/Attendance.vue`), so both send the same requests with the same lock versions and idempotency keys.
- * Moved out of the Classic page unchanged; the Classic template did not change. The `tabStrip` template ref is read
- * here through `useTemplateRef`, so a page that shows the tab strip names its wrapper `ref="tabStrip"`.
+ * The Attendance page's state and actions for `pages/HR/Attendance.vue`: every request, lock version and idempotency
+ * key. The `tabStrip` template ref is read here through `useTemplateRef`, so the page names its tab strip's wrapper
+ * `ref="tabStrip"`.
  */
 export type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
 export type Kind = 'change_in' | 'set_out' | 'add_day';
@@ -87,7 +86,7 @@ export type Correction = {
     lockedMonth?: string | null;
 };
 
-export type AttendanceProps = {
+type AttendanceProps = {
     /** HR-5a: your own expiring or expired credentials, in words. */
     credentialReminders?: string[];
     attendance: {
@@ -626,10 +625,7 @@ export const useAttendancePage = (props: AttendanceProps) => {
         processing: false,
         key: crypto.randomUUID(),
     });
-    // Version 2 uses saveSettingsKeepingState: the page keeps its state through the save, so the other Settings cards keep
-    // their unsaved typing, and `onSaved` puts this card back to the saved values (also for a version dated later).
-    // Classic keeps saveSettings, unchanged.
-    const sendSettings = (preserveState: boolean, onSaved?: () => void) => {
+    const sendSettings = () => {
         settingsForm.processing = true;
         router.put(
             '/hr/attendance/settings',
@@ -642,18 +638,14 @@ export const useAttendancePage = (props: AttendanceProps) => {
             },
             {
                 preserveScroll: true,
-                ...(preserveState ? { preserveState: true } : {}),
                 onSuccess: () => {
                     settingsForm.key = crypto.randomUUID();
-                    onSaved?.();
                 },
                 onFinish: () => (settingsForm.processing = false),
             },
         );
     };
-    const saveSettings = () => sendSettings(false);
-    const saveSettingsKeepingState = (onSaved?: () => void) =>
-        sendSettings(true, onSaved);
+    const saveSettings = () => sendSettings();
 
     const reviewBranchOptions = computed(() =>
         (props.attendance.review?.branches ?? []).map((b) => ({
@@ -714,7 +706,6 @@ export const useAttendancePage = (props: AttendanceProps) => {
         openAskFor,
         settingsForm,
         saveSettings,
-        saveSettingsKeepingState,
         reviewBranchOptions,
         staffOptions,
         correctionStatusTone,

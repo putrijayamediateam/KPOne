@@ -273,6 +273,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             key: visit.visitNumber,
             canWhatsapp: visit.canWhatsapp,
             callHold: visit.callHold,
+            triage: visit.triage,
             patientName: visit.patientName,
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,
@@ -763,9 +764,7 @@ onBeforeUnmount(() => {
                     <Button
                         size="sm"
                         type="submit"
-                        :variant="
-                            activeTab === 'triage' ? 'outline' : 'default'
-                        "
+                        variant="outline"
                         :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"

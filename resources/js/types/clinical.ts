@@ -1,3 +1,4 @@
+import type { TriageZoneSummary } from './patientBoard';
 import type { VisitReasonPresentation } from './visit';
 
 export type ClinicalDiagnosis = {
@@ -27,6 +28,8 @@ export type ClinicalVitals = {
     weightKg: string | null;
     heightCm: string | null;
     bmi: number | null;
+    /** TRI-1c: set while the vitals are still the copy made from triage at consultation start (consultation page only). */
+    fromTriage?: { recordedBy: string | null; recordedAt: string } | null;
 };
 
 export type ClinicalAllergyRecord = {
@@ -201,6 +204,8 @@ export type ClinicalEncounterPage = {
     visit: {
         visitNumber: string;
         priority: 'normal' | 'urgent';
+        /** TRI-1c: the triage zone for the patient's own doctor; null when not visible. */
+        triage?: TriageZoneSummary | null;
         isPanel: boolean;
         panelNote: string | null;
         /** PNL-26c: the Panel total so far against the Panel's limit per visit; null when there is no limit. */
@@ -245,6 +250,8 @@ export type ClinicalEncounterPage = {
         canResume: boolean;
     };
     vitals: ClinicalVitals;
+    /** Q-12: the triage guideline's red limits and the patient's age band; null when no guideline is in force. */
+    vitalLimits: ClinicalVitalLimits | null;
     diagnoses: ClinicalDiagnosis[];
     allergies: ClinicalAllergySafety | null;
     problems: ClinicalProblemList | null;
@@ -276,4 +283,16 @@ export type ClinicalHistoryDetailPage = {
         backLabel: string;
         backUrl: string;
     };
+};
+
+export type ClinicalVitalLimits = {
+    versionNumber: number;
+    ageBand: 'adult' | 'child' | 'unknown';
+    limits: {
+        reading: string;
+        age_band: 'adult' | 'child';
+        direction: 'very_low' | 'very_high';
+        limit_value: string;
+        zone: 'yellow' | 'red';
+    }[];
 };

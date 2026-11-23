@@ -37,7 +37,7 @@ import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import {
-    isUnusual,
+    crossesRedLimit,
     parseVitalsFromNote,
     planFill,
 } from '@/lib/vitals-from-note';
@@ -179,10 +179,12 @@ const stillAutoFilled = computed(() =>
 const filledFromNote = computed(() =>
     stillAutoFilled.value.map((reading) => reading.label),
 );
-// Filled readings outside the usual ranges: still filled, but flagged "Check" so a typo in the note is not missed.
+// Filled readings at or past the guideline's red limit: still filled, but flagged "Check" so a typo in the note is not missed.
 const filledChecks = computed(() =>
     stillAutoFilled.value
-        .filter((reading) => isUnusual(reading.values))
+        .filter((reading) =>
+            crossesRedLimit(reading.values, props.clinical.vitalLimits),
+        )
         .map((reading) => reading.label),
 );
 // What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
@@ -992,6 +994,40 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
                                     >Urgent</span
                                 >
+                                <!-- TRI-1c: the triage zone (the word always shown, never colour alone). -->
+                                <span
+                                    v-if="clinical.visit.triage?.triaged"
+                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium"
+                                    :class="
+                                        clinical.visit.triage.zone === 'red'
+                                            ? 'text-destructive'
+                                            : clinical.visit.triage.zone ===
+                                                'yellow'
+                                              ? 'text-warning-strong'
+                                              : 'text-foreground'
+                                    "
+                                    data-testid="consultation-triage-zone"
+                                    ><span
+                                        v-if="clinical.visit.triage.zone"
+                                        aria-hidden="true"
+                                        class="size-2 shrink-0 rounded-full"
+                                        :class="
+                                            {
+                                                red: 'bg-destructive',
+                                                yellow: 'bg-warning',
+                                                green: 'bg-success',
+                                            }[clinical.visit.triage.zone]
+                                        "
+                                    />{{
+                                        clinical.visit.triage.zone
+                                            ? {
+                                                  red: 'Red zone',
+                                                  yellow: 'Yellow zone',
+                                                  green: 'Green zone',
+                                              }[clinical.visit.triage.zone]
+                                            : 'Triaged'
+                                    }}</span
+                                >
                             </div>
                             <div
                                 class="flex shrink-0 flex-col items-end gap-2 text-right text-xs text-muted-foreground"
@@ -1202,6 +1238,28 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Record new</Button
                             >
                         </div>
+                        <!-- TRI-1c: the vitals were copied from triage when the consultation started. TRI-1d (Daniel): while the
+                             doctor has unsaved changes the label stays, marked "(edited)" ("Not saved yet" stays on the summary
+                             line); saving a change clears the triage source on the server, so the label goes. -->
+                        <p
+                            v-if="clinical.vitals.fromTriage"
+                            class="text-xs text-muted-foreground"
+                            data-testid="vitals-from-triage"
+                        >
+                            From triage, last taken by
+                            {{
+                                clinical.vitals.fromTriage.recordedBy ??
+                                'a clinic assistant'
+                            }}
+                            at {{ clinical.vitals.fromTriage.recordedAt
+                            }}<span
+                                v-if="vitalsUnsaved"
+                                class="font-medium text-warning-strong"
+                                data-testid="vitals-from-triage-edited"
+                            >
+                                (edited)</span
+                            >.
+                        </p>
                         <div
                             v-if="hasVitals"
                             class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"
@@ -1482,8 +1540,17 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     />
                                     <span
                                         >Check:
-                                        {{ filledChecks.join(', ') }} (unusual
-                                        value; is it a typo in the note?)</span
+                                        {{ filledChecks.join(', ') }} (at or
+                                        past the clinic's red limit; is it a
+                                        typo in the note?)
+                                        <span
+                                            v-if="clinical.vitalLimits"
+                                            class="font-normal text-muted-foreground"
+                                            >Triage guideline v{{
+                                                clinical.vitalLimits
+                                                    .versionNumber
+                                            }}.</span
+                                        ></span
                                     >
                                 </p>
                                 <p

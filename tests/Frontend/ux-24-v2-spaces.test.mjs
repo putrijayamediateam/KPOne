@@ -5,13 +5,10 @@ import test from 'node:test';
 const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const page = read('resources/js/pages/Spaces/Show.vue');
-const shell = read('resources/js/components/workspace/V2AppShell.vue');
 const menu = read('resources/js/components/UserMenuContent.vue');
 const clock = read('resources/js/composables/useClockShortcut.ts');
 
-test('UX-24 (owner, 18 Nov 2026): there is one Clock in, on Me home; the shell, the menus and the space pages have none', () => {
-    assert.doesNotMatch(shell, /data-test="clock-shortcut"/);
-    assert.doesNotMatch(shell, /TOP_BAR_CLOCK|useClockShortcut/);
+test('UX-24 (owner, 18 Nov 2026): there is one Clock in, on Me home; the menus and the space pages have none', () => {
     assert.doesNotMatch(page, /data-test="v2-space-clock"/);
     assert.doesNotMatch(page, /data-test="clock-shortcut"/);
     assert.doesNotMatch(page, /useClockShortcut/);

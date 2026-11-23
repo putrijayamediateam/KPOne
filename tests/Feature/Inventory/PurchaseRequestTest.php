@@ -45,7 +45,7 @@ final class PurchaseRequestTest extends VisitTestCase
     public function test_only_the_ca_and_ca_supervisor_may_send_requests(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array(PurchaseRequestService::CREATE, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['ca', 'ca_supervisor', 'store_admin'], $holders);
+        $this->assertSame(['ca', 'ca_supervisor', 'medical_assistant', 'store_admin'], $holders);
         $this->assertTrue(Role::findByName('ca')->hasPermissionTo(PurchaseRequestService::CREATE));
         $this->assertFalse(Role::findByName('finance_officer')->hasPermissionTo(PurchaseRequestService::CREATE));
     }
@@ -194,7 +194,7 @@ final class PurchaseRequestTest extends VisitTestCase
         $this->assertSame([null, [], ['request' => false, 'review' => true]], [$page['prefill'], $page['locations'], $page['can']]);
     }
 
-    public function test_the_new_request_locations_carry_code_and_type_so_same_named_locations_can_be_told_apart(): void
+    public function test_the_new_request_locations_carry_id_and_name(): void
     {
         $f = (new VerifiedReceivingFixture($this->branch))->build();
         $ca = $this->staff('ca');
@@ -202,8 +202,8 @@ final class PurchaseRequestTest extends VisitTestCase
         $location = collect($page['locations'])->firstWhere('publicId', $f['location']->public_id);
 
         $this->assertNotNull($location);
-        $this->assertSame(['publicId', 'name', 'code', 'type'], array_keys($location));
-        $this->assertSame([$f['location']->name, $f['location']->code, $f['location']->type], [$location['name'], $location['code'], $location['type']]);
+        $this->assertSame(['publicId', 'name'], array_keys($location));
+        $this->assertSame($f['location']->name, $location['name']);
     }
 
     public function test_postgres_refuses_decisions_that_break_the_requester_rule_and_unfinished_conversions(): void

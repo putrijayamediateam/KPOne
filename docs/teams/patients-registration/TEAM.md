@@ -69,6 +69,11 @@ team's Reviewer is Hafiz, with the same role and rules.
 | `patients.history.view.organisation` | Director, CA Supervisor | Patient change history on the patient page (REG-4) |
 | `patients.merge.propose.organisation` | Director, CA, CA Supervisor | Propose a merge or unmerge, withdraw own request (REG-3) |
 | `patients.merge.approve.organisation` | Director, CA Supervisor | Approve or reject someone else's merge request (REG-3) |
+| `treatment_room.record.branch`, `queue.treatment_call.branch` | Medical Assistant, CA Supervisor | Treatment-room record and call (MA-1a grants them; MA-1b uses them) |
+| `treatment_room.view.branch` | CA, CA Supervisor, Medical Assistant | Read treatment-room records (MA-1c screens) |
+
+The **Medical Assistant** (`medical_assistant`, MA-1a) holds everything the CA holds, plus the two treatment-room
+permissions above (catalogue rule at the end of `PermissionCatalogue::roles()`; `MedicalAssistantRoleTest` pins it).
 
 `app/Domain/Access/PermissionCatalogue.php` is the source of truth; check it before relying on this table.
 
@@ -184,6 +189,8 @@ team's Reviewer is Hafiz, with the same role and rules.
 29. **Soft duplicates on the QR review (owner, 2026-11-13, through B.E.R.N.I.S.S):** the owner chose to fix the list in Classic and V2 as its own backend PR (#758). Cause: the list passed the stored payload to the duplicate check, which needs the normalised search name and phone. After a refusal at Accept the page reloads its intake data, shows the tick and the plain message. Known limit: if normalising throws, the list falls back to the raw payload and shows only exact identifier matches.
 30. **Registration V2 follow-ups (merged 2026-11-15; each opened only on the owner's own ship-it in this session):** Register visit (#761): the summary rail shows from 1280 px (`rail-from="xl"`) and the rail-aware sticky bar carries the one Register visit button below it, shown from the start (disabled with a reason); a leave guard for unsaved work; six recent patients; picker names wrap on phones; the search placeholder is "Search patients" with a visible help line; `V2PatientPickRow` has an accessible name that starts with the visible name, KP number and date (the masked identifier is spoken as "identifier ending 1234", an accepted exception to label-in-name because asterisks cannot be spoken). Edit visit (#760): rail from 1280 px, a leave guard and a two-item crumb. Visit page (#764): rail from 1280 px stacked below, and the visit type shown through a V2 label map ("OTC", not "Otc"). Board (#765): the not-ready reason wraps to two lines and is left-aligned on phones. Rule from each PR: exactly one filled action at every width, counted in the browser at 1440, 1280, 1024, 768, 390 and 320 px.
 31. **TRI-1b triage rules (owner, 20 Nov 2026):** a zone may be lowered only after the reading that crossed its limit has been retaken and is within limits, and never while a red flag is ticked; a reading may have a yellow and a red limit (TRI-1b-PLAN sections 1 and 2). The defaults R1 to R5 were kept by the owner ("yes, approve a to d and keep R1-R5", relayed word for word by B.E.R.N.I.S.S, 20 Nov 2026): R1 a red flag ticked at a visit keeps it red; R2 every reading crossed in any earlier save must be retaken; R3 a zone below a yellow-sign suggestion is allowed with a lower reason; R4 a zone raised only by a sign or a higher override may come down on a later save; R5 "within limits" means within the limits of the chosen zone. The same message approved the four existing assertion changes a to d listed in TRI-1b-PLAN section 5.1.
+32. **TRI-1c choices (owner, in this team session, 22 Nov 2026):** the triage zone chip shows only to the CA, the CA Supervisor and the patient's own doctor; the triage readings are copied into the encounter's vitals when the consultation starts, each reading from the latest triage save that has it, labelled "From triage, last taken by <CA> at <time>" until the doctor changes them; Call In and Call next warn with "No triage yet" (a chip on both boards and a note in the Queue Call In and Call next dialogs), never block, and Registration's Call In stays one click; the "No triage yet" warning (no zone, no reading) also shows to anyone who may call the patient, such as the Director. TRI-1c-PLAN sections 0 and 6.
+33. **Medical Assistant (owner, coordinator session, 23 Nov 2026, relayed by B.E.R.N.I.S.S):** "MA: approve all recommended, start MA-1a". Every recommendation in MA-ROLE-DESIGN section 9 is approved (listed in its section 9a); MA-1a is the role, the three permissions, the migrations, the catalogue rule, the role-name sites and the provisioning tests, with no screen.
 
 ## 7. Open items and known limits
 
@@ -317,6 +324,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    a reason, no reason refused, each entry point, and an audit row with the reason and no personal data. Until then the staff procedure in
    `docs/pilot/PATIENT-DUPLICATES.md` applies. A new permission comes back to the coordinator and the owner first.
 
-- **Follow-up (Lead UI/UX Designer, 20 Nov 2026, not in TRI-1b):** make "Apply" an outline button on every
-  Registration board tab (one filled button per view). TRI-1b makes it outline on the Triage tab only. A separate
-  small piece; check the frontend tests that mount the board before changing it.
+- **Follow-up (Lead UI/UX Designer, 20 Nov 2026, not in TRI-1b), built 21 Nov 2026 on
+  `feature/reg-apply-outline`:** "Apply" is an outline button on every Registration board tab, so Register Visit
+  stays the one filled button (one filled button per view). The owner approved, in this team session, changing
+  the one existing assertion that pinned the TRI-1b rule (`tests/Frontend/tri-1b-triage-zone.test.mjs`, the
+  Apply variant line). Frontend only.

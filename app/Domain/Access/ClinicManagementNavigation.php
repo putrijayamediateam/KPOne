@@ -2,13 +2,14 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Approvals\ApprovalSources;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Models\User;
 
 /** Read-only destinations; their existing controllers remain the authority for access and scope. */
 final class ClinicManagementNavigation
 {
-    public function __construct(private BranchAccessService $branches, private BillingWorkAccess $billing) {}
+    public function __construct(private BranchAccessService $branches, private BillingWorkAccess $billing, private ApprovalSources $approvals) {}
 
     /**
      * The hub's exact rows (ClinicManagementController).
@@ -51,6 +52,7 @@ final class ClinicManagementNavigation
             }
         };
         $add('In-clinic', 'clinic', [
+            [$actor->hasAnyPermission($this->approvals->approvalPermissions()), 'Approvals & tasks', 'Everything waiting for your decision, with how long it has waited.', 'approvals.index'],
             [$settings, 'Business details', 'Manage organisation identity, branch contact details and the shared logo.', 'business-details.index'],
             [$actor->can('compliance.licences.manage.organisation') || $actor->can('compliance.fridge.manage.organisation') || $actor->can('compliance.fridge.record.branch') || $actor->can('compliance.fridge.review.branch'), 'Clinic compliance', 'Clinic licences and the vaccine fridge log.', 'clinic-compliance.index'],
             [$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'],
