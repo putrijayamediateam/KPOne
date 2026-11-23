@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { myr } from '@/types/billing';
+import { myr, myrNoBreak } from '@/types/billing';
 
 // BIL-30 (owner P7, answer 2): the signed-in doctor's own monthly sales target. The server sends only this doctor's
 // line; there is no branch total and no other doctor here.
@@ -41,8 +41,8 @@ const bar = computed(() =>
             <h2 id="my-sales-target-title" class="min-w-0 font-medium">
                 My sales target, {{ month }}
                 <span class="font-normal tabular-nums"
-                    >· {{ myr(target.achievedSen) }} of
-                    {{ myr(target.targetSen ?? 0) }} ({{
+                    >· {{ myrNoBreak(target.achievedSen) }} of
+                    {{ myrNoBreak(target.targetSen ?? 0) }} ({{
                         target.percent ?? 0
                     }}%)</span
                 >
