@@ -14,9 +14,8 @@ import { myr } from '@/types/billing';
 
 /**
  * HR-7a /hr/payroll page state: runs, exports, pay profiles, tables and settings. Every request, lock version and
- * idempotency key lives here, shared by the Classic page (`pages/HR/Payroll.vue`) and Version 2
- * (`pages/HR/V2/Payroll.vue`), so both send identical requests. Moved out of the Classic page unchanged; the Classic
- * template did not change. KPOne ships no statutory number, makes no payment and files nothing.
+ * idempotency key of `pages/HR/Payroll.vue` lives here. KPOne ships no statutory number, makes no payment and files
+ * nothing.
  */
 export type Tab = 'runs' | 'profiles' | 'tables' | 'settings' | 'exports';
 export type Group = {

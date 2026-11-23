@@ -3,14 +3,13 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 // HR month dry run M1 (owner, 16 Nov 2026): reversing overtime a locked payroll run already paid is allowed, but the
-// reverse dialog names that run and says a recovery goes on an adjustment run, in Classic and in Version 2.
+// reverse dialog names that run and says a recovery goes on an adjustment run, in Classic.
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-test('the reverse dialog names the locked run that paid the overtime, in Classic and V2', () => {
+test('the reverse dialog names the locked run that paid the overtime, in Classic', () => {
     for (const file of [
         'resources/js/components/hr/attendance/OvertimeTab.vue',
-        'resources/js/components/hr/attendance/v2/OvertimeTabV2.vue',
     ]) {
         const source = read(file);
         assert.match(

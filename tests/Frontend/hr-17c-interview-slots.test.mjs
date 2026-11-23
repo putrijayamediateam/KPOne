@@ -94,8 +94,10 @@ test('HR confirms a time through a dialog and moves to Interview only when arran
     assert.match(t, /'passed',\s*'failed',\s*\]\.includes\(step\.value\)/);
     assert.match(t, /`Confirm \$\{confirming\?\.label \?\? ''\}\?`/);
     assert.match(source.hr, /const arrangedOutside = /);
+    // HR-15e (owner-approved change): the confirm also sends In person or Online, so the page calls confirmInterview.
+    assert.match(source.hr, /@confirm="confirmInterview"/);
     assert.match(
         source.hr,
-        /interviewPost\('confirm', \{ start: confirming\.start \}\)/,
+        /interviewPost\('confirm', \{\s+start: confirming\.value\.start,/,
     );
 });

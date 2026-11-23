@@ -396,7 +396,7 @@ final class SpaceAskService
         return [
             'sentence' => $low + $expiring + $expired === 0
                 ? 'No stock needs attention.'
-                : "$low below reorder level, $expiring expiring in {$watch['windowDays']} days, $expired expired on hand.",
+                : "$low below reorder level, $expiring expiring soon, $expired expired on hand.",
             'columns' => [],
             'rows' => [],
         ];

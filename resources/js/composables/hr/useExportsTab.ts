@@ -2,9 +2,8 @@ import { reactive, ref } from 'vue';
 import type { ExportRun } from '@/components/hr/payroll/types';
 
 /**
- * HR-7c Exports tab state: the password dialog and the recorded download. The request lives here, shared by the Classic
- * tab (`components/hr/payroll/ExportsTab.vue`) and V2 Payroll, so both send the same request; the password is sent once
- * and never kept. Moved unchanged.
+ * HR-7c Exports tab state: the password dialog and the recorded download. The request of
+ * `components/hr/payroll/ExportsTab.vue` lives here; the password is sent once and never kept.
  */
 export type ExportsTabProps = { runs: ExportRun[] };
 

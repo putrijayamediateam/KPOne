@@ -1,9 +1,6 @@
 <!DOCTYPE html>
-@php
-    // Version 2 look: only for a person who switched on "Try the new layout", and for pages inside the spaces shell.
-    $uiVersion = (($page['props']['workspace']['spaces']['enabled'] ?? false) === true || request()->is('spaces', 'spaces/*')) ? 'v2' : 'classic';
-@endphp
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-ui="{{ $uiVersion }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+{{-- Classic only (CO-1, owner decision 19 Nov 2026): every page is Classic, the spaces included. --}}
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,14 +61,6 @@
             html.dark {
                 background-color: oklch(0.145 0 0);
                 color-scheme: dark;
-            }
-
-            html[data-ui='v2'] {
-                background-color: #f4f6fb;
-            }
-
-            html[data-ui='v2'].dark {
-                background-color: #12141a;
             }
         </style>
 

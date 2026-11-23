@@ -197,7 +197,8 @@ final class DailyRun
     public static function hanaCounts(int $organisationId, Branch $branch, string $date): array
     {
         $types = [InventoryAnalyst::RESTOCK => 'restock', InventoryAnalyst::EXPIRY => 'expiry', InventoryAnalyst::TRANSFER => 'transfer', InventoryAnalyst::SLOW => 'slowMoving'];
-        $rows = AiProposal::query()->where('organisation_id', $organisationId)->where('branch_id', $branch->id)
+        $rows = AiProposal::query()->where('organisation_id', $organisationId)
+            // By the run's branch (named in the key), not the holder's: a transfer suggestion is held by the sending branch.
             ->where('idempotency_key', 'like', 'hana:%:'.$branch->id.':'.$date.':%')
             ->selectRaw("type, count(*) as total, count(*) filter (where status = 'pending') as pending")->groupBy('type')->get()->keyBy('type');
         $counts = [];
@@ -205,6 +206,17 @@ final class DailyRun
             $counts[$key] = ['total' => (int) ($rows[$type]->total ?? 0), 'pending' => (int) ($rows[$type]->pending ?? 0)];
         }
 
-        return ['date' => $date, 'counts' => $counts];
+        // The receiving branch cannot decide a transfer (the sending branch holds it), so it sees, read only, who is asked.
+        $senders = DB::table('ai_proposals')->where('ai_proposals.organisation_id', $organisationId)->where('ai_proposals.type', InventoryAnalyst::TRANSFER)
+            ->where('ai_proposals.idempotency_key', 'like', 'hana:%:'.$branch->id.':'.$date.':%')
+            ->join('branches', 'branches.id', '=', 'ai_proposals.branch_id')
+            ->selectRaw("branches.name as name, count(*) as total, count(*) filter (where ai_proposals.status = 'pending') as pending")
+            ->groupBy('branches.id', 'branches.name')->orderBy('branches.name')->get();
+
+        return [
+            'date' => $date,
+            'counts' => $counts,
+            'transferFrom' => $senders->map(fn (\stdClass $row): array => ['branch' => (string) $row->name, 'total' => (int) $row->total, 'pending' => (int) $row->pending])->all(),
+        ];
     }
 }

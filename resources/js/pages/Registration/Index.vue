@@ -76,6 +76,7 @@ const page = usePage();
 type BoardTab =
     | 'all'
     | 'waiting'
+    | 'triage'
     | 'serving'
     | 'dispensary'
     | 'billing'
@@ -88,6 +89,18 @@ const tabs = computed<
 >(() => [
     { value: 'all', label: 'All', count: tabCounts.value?.all },
     { value: 'waiting', label: 'Waiting', count: tabCounts.value?.waiting },
+    // TRI-1b: only for CA and CA Supervisor, whose board counts carry `triage` (the first load decides, so the tab
+    // stays while a refresh fails).
+    ...(tabCounts.value?.triage !== undefined ||
+    props.visits?.tabCounts?.triage !== undefined
+        ? [
+              {
+                  value: 'triage' as const,
+                  label: 'Triage',
+                  count: tabCounts.value?.triage,
+              },
+          ]
+        : []),
     { value: 'serving', label: 'Serving Now', count: tabCounts.value?.serving },
     {
         value: 'dispensary',
@@ -119,11 +132,16 @@ const tabs = computed<
           ]
         : []),
 ]);
+const initialTab = new URLSearchParams(page.url.split('?', 2)[1] ?? '').get(
+    'tab',
+);
 const activeTab = ref<BoardTab>(
-    new URLSearchParams(page.url.split('?', 2)[1] ?? '').get('tab') ===
-        'qr-intake' && props.qrIntakes
+    initialTab === 'qr-intake' && props.qrIntakes
         ? 'qr-intake'
-        : 'all',
+        : initialTab === 'triage' &&
+            props.visits.tabCounts?.triage !== undefined
+          ? 'triage'
+          : 'all',
 );
 const rows = ref(props.visits.data);
 const total = ref(props.visits.total);
@@ -149,7 +167,7 @@ const form = reactive({
     visit_type: '',
     priority: '',
     coverage_type: '',
-    board_status: 'all' as BoardTab,
+    board_status: (activeTab.value === 'triage' ? 'triage' : 'all') as BoardTab,
     date_from: today,
     date_to: today,
 });
@@ -225,7 +243,10 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                           label:
                               visit.dispensaryStatus === 'pending'
                                   ? 'Pending'
-                                  : 'Dispensing',
+                                  : visit.dispensaryStatus ===
+                                      'awaiting_doctor_check'
+                                    ? "Waiting for doctor's check"
+                                    : 'Dispensing',
                           tone:
                               visit.dispensaryStatus === 'pending'
                                   ? ('waiting' as const)
@@ -252,6 +273,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             key: visit.visitNumber,
             canWhatsapp: visit.canWhatsapp,
             callHold: visit.callHold,
+            triage: visit.triage,
             patientName: visit.patientName,
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,
@@ -288,6 +310,22 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             source: visit,
         };
     }),
+);
+
+const triageRows = computed(() =>
+    rows.value.map((visit) => ({
+        key: visit.visitNumber,
+        patientName: visit.patientName,
+        patientNumber: visit.patientNumber,
+        queueNumber: visit.queueNumber,
+        arrivedTime: compactTime(visit.registeredAt),
+        waitingLabel: waitingDurationLabel(visit.durationMinutes),
+        doctorName: visit.doctorName,
+        priority: visit.priority,
+        triageUrl:
+            (visit as VisitRow & { triageUrl?: string | null }).triageUrl ??
+            null,
+    })),
 );
 
 const clearBoard = () => {
@@ -723,7 +761,11 @@ onBeforeUnmount(() => {
                         label="Urgency"
                         :options="urgencyOptions"
                     />
-                    <Button size="sm" type="submit" :disabled="loading"
+                    <Button
+                        size="sm"
+                        type="submit"
+                        variant="outline"
+                        :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"
                             class="size-4 animate-spin"
@@ -798,7 +840,138 @@ onBeforeUnmount(() => {
                         ></span
                     ><span>25 per page</span>
                 </div>
+                <!-- TRI-1b: consultations waiting with no triage yet, longest wait first. No zone or reading here. -->
+                <div v-if="activeTab === 'triage'">
+                    <p
+                        v-if="triageRows.length === 0"
+                        class="px-4 py-10 text-center text-sm text-muted-foreground"
+                    >
+                        {{
+                            boardEmptyMessage ??
+                            'Every waiting consultation has a triage.'
+                        }}
+                    </p>
+                    <table v-else class="hidden w-full text-sm md:table">
+                        <caption class="sr-only">
+                            Consultations waiting for triage, longest wait first
+                        </caption>
+                        <thead
+                            class="border-y bg-muted/40 text-left text-xs text-muted-foreground"
+                        >
+                            <tr>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    Queue
+                                </th>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    Patient
+                                </th>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    Arrived
+                                </th>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    Waiting
+                                </th>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    Doctor
+                                </th>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    <span class="sr-only">Action</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="row in triageRows"
+                                :key="row.key"
+                                class="border-b last:border-b-0"
+                            >
+                                <td
+                                    class="px-3 py-2 font-semibold tabular-nums"
+                                >
+                                    {{ row.queueNumber ?? '—' }}
+                                </td>
+                                <td class="px-3 py-2">
+                                    <span class="font-medium">{{
+                                        row.patientName
+                                    }}</span>
+                                    <span
+                                        class="ml-2 text-xs text-muted-foreground"
+                                        >{{ row.patientNumber }}</span
+                                    >
+                                    <span
+                                        v-if="row.priority === 'urgent'"
+                                        class="ml-2 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
+                                        >Urgent</span
+                                    >
+                                </td>
+                                <td class="px-3 py-2 tabular-nums">
+                                    {{ row.arrivedTime }}
+                                </td>
+                                <td class="px-3 py-2">
+                                    {{ row.waitingLabel }}
+                                </td>
+                                <td class="px-3 py-2">
+                                    {{ row.doctorName ?? '—' }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    <Button
+                                        v-if="row.triageUrl"
+                                        as-child
+                                        size="sm"
+                                        variant="outline"
+                                        class="max-lg:h-11"
+                                        ><Link
+                                            :href="row.triageUrl"
+                                            :aria-label="`Triage ${row.patientName}`"
+                                            >Triage</Link
+                                        ></Button
+                                    >
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <ul
+                        v-if="triageRows.length"
+                        class="divide-y md:hidden"
+                        aria-label="Consultations waiting for triage"
+                    >
+                        <li
+                            v-for="row in triageRows"
+                            :key="row.key"
+                            class="flex items-center gap-3 px-3 py-3"
+                        >
+                            <span
+                                class="w-14 shrink-0 font-semibold tabular-nums"
+                                >{{ row.queueNumber ?? '—' }}</span
+                            >
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate font-medium">
+                                    {{ row.patientName }}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    {{ row.patientNumber }} ·
+                                    {{ row.waitingLabel
+                                    }}<span v-if="row.priority === 'urgent'">
+                                        · Urgent</span
+                                    >
+                                </p>
+                            </div>
+                            <Button
+                                v-if="row.triageUrl"
+                                as-child
+                                variant="outline"
+                                class="h-11 shrink-0"
+                                ><Link
+                                    :href="row.triageUrl"
+                                    :aria-label="`Triage ${row.patientName}`"
+                                    >Triage</Link
+                                ></Button
+                            >
+                        </li>
+                    </ul>
+                </div>
                 <PatientBoard
+                    v-else
                     :branch-id="options.branch.id"
                     from="registration"
                     :rows="boardRows"

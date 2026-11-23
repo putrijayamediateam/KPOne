@@ -5,7 +5,9 @@ import { computed, reactive, ref } from 'vue';
 import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSectionHeading.vue';
 import CatalogueOptionPicker from '@/components/catalogue/CatalogueOptionPicker.vue';
 import ConsultationTariffPanel from '@/components/catalogue/ConsultationTariffPanel.vue';
-import PanelTariffEditor from '@/components/catalogue/PanelTariffEditor.vue';
+import PanelPricesReadOnly from '@/components/catalogue/PanelPricesReadOnly.vue';
+import type { PanelPriceLine } from '@/components/catalogue/PanelPricesReadOnly.vue';
+import PanelPriceValue from '@/components/catalogue/PanelPriceValue.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,6 +65,7 @@ type ConsultationTariff = {
         amountRm: string | null;
         version: number;
     }[];
+    panelPrices: PanelPriceLine[];
 };
 
 const props = defineProps<{
@@ -137,7 +140,10 @@ const categoryOptions = computed(() => {
     return options;
 });
 
+// Panel prices of the item being edited: read-only, loaded with its setup details (owner decision 27).
+const panelPriceLines = ref<PanelPriceLine[]>([]);
 const openCreate = () => {
+    panelPriceLines.value = [];
     editing.value = null;
     editLoadError.value = '';
     editLoading.value = false;
@@ -163,6 +169,7 @@ const openEdit = async (row: ServiceRow) => {
     try {
         const details = await requestJson<{
             service: Record<string, string>;
+            panel_prices: PanelPriceLine[];
             prices: {
                 self_pay_rm: string | null;
                 panel_default_rm: string | null;
@@ -176,6 +183,7 @@ const openEdit = async (row: ServiceRow) => {
         Object.assign(form, details.service);
         form.prices.self_pay_rm = details.prices.self_pay_rm ?? '';
         form.prices.panel_default_rm = details.prices.panel_default_rm ?? '';
+        panelPriceLines.value = details.panel_prices ?? [];
         form.prices.panel_overrides = details.prices.panel_overrides.map(
             ({ panel_id, amount_rm }) => ({ panel_id, amount_rm }),
         );
@@ -200,13 +208,6 @@ const submit = () => {
             ? {
                   prices: {
                       self_pay_sen: rmToSen(data.prices.self_pay_rm),
-                      panel_default_sen: rmToSen(data.prices.panel_default_rm),
-                      panel_overrides: data.prices.panel_overrides.map(
-                          (override) => ({
-                              panel_id: override.panel_id,
-                              amount_sen: rmToSen(override.amount_rm),
-                          }),
-                      ),
                   },
               }
             : {}),
@@ -607,7 +608,7 @@ const toggleDescription = computed(() => {
                             :description="
                                 editing
                                     ? 'Update default self-pay and Panel tariffs. Existing published prices remain in immutable version history.'
-                                    : 'Set default self-pay and Panel tariffs. Published prices are retained as versioned records.'
+                                    : 'Set the Self-pay price. Panel prices change by proposal. Published prices are retained as versioned records.'
                             "
                         />
                         <template v-if="setup.canPublishPrices">
@@ -617,8 +618,8 @@ const toggleDescription = computed(() => {
                                         Default pricing
                                     </h4>
                                     <p class="text-xs text-muted-foreground">
-                                        These rates apply unless a
-                                        Panel-specific override is added below.
+                                        The Self-pay price is typed here. Panel
+                                        prices are shown below.
                                     </p>
                                 </div>
                                 <div class="overflow-hidden rounded-lg border">
@@ -667,50 +668,21 @@ const toggleDescription = computed(() => {
                                             >Default for Panels without a custom
                                             rate</span
                                         >
-                                        <div class="grid gap-1">
-                                            <Input
-                                                v-model="
-                                                    form.prices.panel_default_rm
-                                                "
-                                                aria-label="Default Panel price in RM"
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <InputError
-                                                :message="
-                                                    formError(
-                                                        'prices.panel_default_sen',
-                                                    )
-                                                "
-                                            />
-                                        </div>
+                                        <PanelPriceValue
+                                            :line="
+                                                panelPriceLines.find(
+                                                    (line) => line.isDefault,
+                                                )
+                                            "
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="grid gap-2">
-                                <div>
-                                    <h4 class="text-sm font-medium">
-                                        Panel-specific price overrides
-                                    </h4>
-                                    <p class="text-xs text-muted-foreground">
-                                        Add a Panel only when its tariff differs
-                                        from the default Panel price.
-                                    </p>
-                                </div>
-                                <PanelTariffEditor
-                                    v-model="form.prices.panel_overrides"
-                                    :panels="setup.panels"
-                                />
-                                <p
-                                    v-if="editing"
-                                    class="text-xs text-muted-foreground"
-                                >
-                                    Published Panel rates are versioned.
-                                    Removing a row here does not erase its
-                                    existing price history or disable that Panel
-                                    rate.
-                                </p>
+                                <h4 class="text-sm font-medium">
+                                    Panel prices
+                                </h4>
+                                <PanelPricesReadOnly :lines="panelPriceLines" />
                             </div>
                             <div class="grid gap-1 text-xs">
                                 <span id="service-publication-branch-label"

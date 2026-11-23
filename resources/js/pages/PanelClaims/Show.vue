@@ -3,6 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import PanelClaimVersions from '@/components/billing/PanelClaimVersions.vue';
+import IssuedPacksList from '@/components/panel/IssuedPacksList.vue';
+import type { IssuedPackRow } from '@/components/panel/IssuedPacksList.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,8 @@ type ClaimData = {
         adjustment: boolean;
     }[];
     events: {
+        auto?: boolean;
+        approvedBy?: string | null;
         type: string;
         previousAmountSen: number | null;
         amountSen: number | null;
@@ -99,6 +103,8 @@ const props = defineProps<{
     branch: { id: number; name: string; today: string };
     claim: ClaimData;
     panelAdjustment?: PanelAdjustment | null;
+    /** PNL-25: frozen claim packs that include this claim; null without the claims permission here. */
+    issuedPacks?: IssuedPackRow[] | null;
 }>();
 const page = usePage();
 const busy = ref(false);
@@ -182,6 +188,12 @@ const adjust = () => {
         confirm_over_invoice: confirmAboveInvoice.value,
     });
 };
+// The server's branch-local date: the submitted date is the moment Submit is pressed.
+const todayLabel = computed(() => {
+    const [year, month, day] = props.branch.today.split('-');
+
+    return `${day}/${month}/${year}`;
+});
 const submit = () =>
     post('post', `/panel-claims/${props.claim.publicId}/submit`, {
         ...context(),
@@ -427,6 +439,12 @@ const eventTitle = (type: string) =>
             v-if="claim.adjustmentClaim"
             :claim="claim.adjustmentClaim"
             :public-id="claim.publicId"
+            class="print:hidden"
+        />
+        <IssuedPacksList
+            v-if="issuedPacks && issuedPacks.length > 0"
+            :packs="issuedPacks"
+            :from-claim="claim.publicId"
             class="print:hidden"
         />
         <PanelAdjustmentPanel
@@ -855,7 +873,11 @@ const eventTitle = (type: string) =>
                             :key="`${event.type}-${index}`"
                             class="rounded-lg border p-3 text-sm"
                         >
-                            <strong>{{ eventTitle(event.type) }}</strong>
+                            <strong>{{
+                                event.auto
+                                    ? `Claim prepared automatically when the Panel bill was approved by ${event.approvedBy ?? 'Staff member'}`
+                                    : eventTitle(event.type)
+                            }}</strong>
                             <p class="text-xs text-muted-foreground">
                                 {{ event.occurredAt }} · {{ event.actor }}
                             </p>
@@ -958,8 +980,12 @@ const eventTitle = (type: string) =>
                                 class="w-full rounded-md border bg-background px-3 py-2"
                             />
                         </label>
+                        <p class="text-sm text-muted-foreground">
+                            Submitted date will be today,
+                            {{ todayLabel }} (branch time).
+                        </p>
                         <Button type="submit" :disabled="busy">
-                            Record submission
+                            Submit claim
                         </Button>
                     </form>
 

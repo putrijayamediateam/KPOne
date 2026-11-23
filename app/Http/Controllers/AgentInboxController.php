@@ -22,7 +22,18 @@ class AgentInboxController extends Controller
 
     public function approve(Request $request, AiProposal $proposal, ProposalService $proposals): RedirectResponse
     {
-        return $this->decide($request, $proposal, fn () => $proposals->approve($request->user(), $proposal, $request->only(['lock_version', 'reason'])), 'Proposal approved. Nothing in stock has changed; act on it from the Inventory screens.');
+        /** @var \ArrayObject<string, AiProposal> $result */
+        $result = new \ArrayObject;
+
+        return $this->decide($request, $proposal, function () use ($request, $proposal, $proposals, $result): void {
+            $result['approved'] = $proposals->approve($request->user(), $proposal, $request->only(['lock_version', 'reason', 'mode', 'edits']));
+        }, function () use ($result): string {
+            $approved = $result['approved'] ?? null;
+
+            return $approved !== null && $approved->prepared_record_label !== null
+                ? 'Proposal approved. '.($approved->prepared_record_type === 'inventory.stock_request' ? 'Stock request ' : 'Purchase request ').$approved->prepared_record_label.' created.'
+                : 'Proposal approved. Nothing in stock has changed; act on it from the Inventory screens.';
+        });
     }
 
     public function reject(Request $request, AiProposal $proposal, ProposalService $proposals): RedirectResponse
@@ -30,7 +41,8 @@ class AgentInboxController extends Controller
         return $this->decide($request, $proposal, fn () => $proposals->reject($request->user(), $proposal, $request->only(['lock_version', 'reason'])), 'Proposal rejected.');
     }
 
-    private function decide(Request $request, AiProposal $proposal, callable $action, string $message): RedirectResponse
+    /** @param string|callable(): string $message */
+    private function decide(Request $request, AiProposal $proposal, callable $action, string|callable $message): RedirectResponse
     {
         abort_unless($proposal->organisation_id === $request->user()->organisation_id, 404);
         $back = route('agents.inbox', array_filter([
@@ -44,7 +56,7 @@ class AgentInboxController extends Controller
         } catch (AuthorizationException $exception) {
             throw ValidationException::withMessages(['status' => $exception->getMessage()])->redirectTo($back);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message instanceof \Closure ? $message() : $message]);
 
         return redirect($back);
     }

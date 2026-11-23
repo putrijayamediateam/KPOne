@@ -67,7 +67,7 @@ class SalesSummaryExportTest extends BillingTestCase
     public function test_default_holders_and_additive_migration_preserve_unrelated_grants(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn ($p) => in_array(SalesSummaryExportService::PERMISSION, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['administrator', 'director', 'finance_officer'], $holders);
+        $this->assertSame(['administrator', 'branch_manager', 'director', 'finance_officer'], $holders);
         $role = Role::findByName('administrator');
         $role->revokePermissionTo(SalesSummaryExportService::PERMISSION);
         $before = $role->permissions()->pluck('name')->sort()->values()->all();

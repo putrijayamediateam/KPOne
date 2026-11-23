@@ -64,7 +64,8 @@ final class ComplianceWarnings
         // Each doctor's on-duty spans: the shift less any approved leave inside it, so half-day leave removes only its half
         // (Suresh, M1).
         $doctors = collect();
-        foreach ($shifts->filter(fn (RosterShift $s): bool => $this->isDoctor($people->get($s->staff_user_id))) as $s) {
+        // HR-20: an on-call shift is no clinic hours, so it never covers a gap.
+        foreach ($shifts->filter(fn (RosterShift $s): bool => ! RosterRules::isOnCall($s->session_type) && $this->isDoctor($people->get($s->staff_user_id))) as $s) {
             $spans = [[$s->starts_at->getTimestamp(), $s->ends_at->getTimestamp()]];
             foreach ($leave->where('user', $s->staff_user_id) as $l) {
                 [$lf, $lt] = [$l['from']->getTimestamp(), $l['to']->getTimestamp()];
@@ -254,7 +255,9 @@ final class ComplianceWarnings
             if (! $this->isDoctor($user)) {
                 continue;
             }
-            $local = $items->map(fn (RosterShift $s): array => ['day' => $s->starts_at->setTimezone($branch->timezone), 'night' => $s->session_type === 'night']);
+            // HR-20: on call counts here; it is a night when it crosses midnight or starts at 20:00 or later.
+            $local = $items->map(fn (RosterShift $s): array => ['day' => $s->starts_at->setTimezone($branch->timezone),
+                'night' => RosterRules::countsAsNight((string) $s->session_type, $s->starts_at->setTimezone($branch->timezone), $s->ends_at->setTimezone($branch->timezone))]);
             $rows[] = ['name' => $user->name ?? 'Staff member',
                 'weekends' => $local->filter(fn (array $x): bool => $x['day']->isoWeekday() >= 6)->count(),
                 'holidays' => $local->filter(fn (array $x): bool => isset($holidays[$x['day']->toDateString()]))->count(),
@@ -277,7 +280,10 @@ final class ComplianceWarnings
     {
         $from = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->subDays($windowDays)->utc();
         $to = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->addDays(7 + $windowDays)->utc();
+        // HR-20: on call is left out of weekly hours, the weekly limit, days in a row and daily rest.
+        $shifts = $shifts->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type));
         $other = RosterShift::query()->with('version.week.branch')->where('organisation_id', $branch->organisation_id)->whereIn('staff_user_id', $ids)
+            ->where('session_type', '<>', RosterRules::ON_CALL)
             ->whereIn('roster_version_id', RosterVersion::query()->select('id')->where('status', 'approved')->where('roster_week_id', '<>', $shown->roster_week_id))
             ->where('starts_at', '>=', $from)->where('starts_at', '<', $to)->get();
         $map = fn (RosterShift $s, string $zone): array => ['user' => (int) $s->staff_user_id, 'start' => $s->starts_at, 'end' => $s->ends_at,

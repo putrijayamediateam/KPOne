@@ -4,10 +4,9 @@ import type FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import { csrf } from '@/components/hr/records/types';
 
 /**
- * The Memos page's state and actions (HR-8), shared by Classic (`pages/HR/Memos.vue`) and Version 2
- * (`pages/HR/V2/Memos.vue`), so both send the same requests with the same lock versions and idempotency keys. Moved out
- * of the Classic page unchanged; the Classic template did not change. A memo's text is fetched only when a person presses
- * Open (the server records the open first); nothing is prefetched or kept in props.
+ * The Memos page's state and actions (HR-8) for `pages/HR/Memos.vue`: every request, lock version and idempotency key.
+ * A memo's text is fetched only when a person presses Open (the server records the open first); nothing is prefetched
+ * or kept in props.
  */
 export type Tab = 'my' | 'manage';
 export type Status = 'open' | 'closed' | 'replaced' | 'withdrawn';

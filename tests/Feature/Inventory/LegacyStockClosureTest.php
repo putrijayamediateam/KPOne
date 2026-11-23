@@ -53,8 +53,11 @@ class LegacyStockClosureTest extends VisitTestCase
                 fn () => $ledger->recordStocktakeVariance($actor, $f['location'], $f['sku'], $f['batch'], '0.000', $history->public_id),
                 fn () => $ledger->recordAdjustment($actor, $f['location'], $f['sku'], $f['batch'], 'out', '1.000', (string) Str::uuid()),
             ];
-            foreach ($operations as $operation) {
-                if ($role === 'ca_supervisor') {
+            // Operations 0-4 and 6 check the stocktake permission; 5 and 7 (manual adjustment) check the adjustment permission,
+            // which the Store Admin does not hold (ROLE-1, owner-approved: it gets the closed message only on stocktake paths).
+            foreach ($operations as $index => $operation) {
+                $closedForRole = $role === 'ca_supervisor' || ($role === 'store_admin' && in_array($index, [0, 1, 2, 3, 4, 6], true));
+                if ($closedForRole) {
                     $this->expectLegacyRefusal($operation);
                 } else {
                     $before = $this->legacyStockSnapshot();
@@ -68,16 +71,17 @@ class LegacyStockClosureTest extends VisitTestCase
             }
             $this->actingAs($actor);
             $routes = [['inventory.stocktakes.store', []], ['inventory.stocktakes.start', ['stocktake' => $history]], ['inventory.stocktakes.count', ['stocktake' => $history]], ['inventory.stocktakes.post', ['stocktake' => $history]], ['inventory.stocktakes.cancel', ['stocktake' => $history]], ['inventory.adjustments.store', []]];
-            foreach ($routes as [$name, $parameters]) {
+            foreach ($routes as $routeIndex => [$name, $parameters]) {
+                $closedForRole = $role === 'ca_supervisor' || ($role === 'store_admin' && $routeIndex < 5);
                 $before = $this->legacyStockSnapshot();
                 $response = $this->post(route($name, $parameters), $payload);
-                if ($role === 'ca_supervisor') {
+                if ($closedForRole) {
                     $response->assertRedirect(route('inventory.index'))->assertSessionHasErrors(['legacy_stock_path' => LegacyStockPath::MESSAGE]);
                 } else {
                     $response->assertForbidden();
                 }
                 $after = $this->legacyStockSnapshot();
-                if ($role !== 'ca_supervisor') {
+                if (! $closedForRole) {
                     $this->assertSame(count(json_decode($before['audit_logs'], true)) + 1, AuditLog::query()->count());
                     $this->assertSame('authorization.denied', AuditLog::query()->orderByDesc('id')->firstOrFail()->event);
                     unset($before['audit_logs'], $after['audit_logs']);
