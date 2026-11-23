@@ -11,6 +11,80 @@ final class InvoiceSalesProjection
     public const PAYABLE = 'kpone_invoice_payable(invoices.id)';
 
     /**
+     * BIL-30 (design note K1): the one place that limits a query to branch periods. Each period is that branch's
+     * window in UTC, [start, end). An empty list matches nothing. Insights and sales targets both call it.
+     *
+     * @param  array<int, array{start: \DateTimeInterface, end: \DateTimeInterface}>  $periods  keyed by branch id
+     */
+    public static function scopePeriods(Builder $query, array $periods, string $dateColumn, string $branchColumn): void
+    {
+        if ($periods === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        $query->where(function (Builder $ranges) use ($periods, $dateColumn, $branchColumn): void {
+            foreach ($periods as $branchId => $period) {
+                $ranges->orWhere(fn (Builder $range) => $range
+                    ->where($branchColumn, $branchId)
+                    ->where($dateColumn, '>=', $period['start'])
+                    ->where($dateColumn, '<', $period['end']));
+            }
+        });
+    }
+
+    /**
+     * BIL-30 (design note K1 and K2): net invoice sales for branch periods, optionally for one attending doctor. This
+     * is the Insights Sales headline and, with a doctor, that doctor's Provider row: the payable total of invoices
+     * finalised in the period, minus refund credits approved in it, plus Panel claim adjustments confirmed in it.
+     * Each part counts on its own day. With a doctor, all three parts are limited to that doctor's consultation
+     * invoices, so OTC sales never count for a doctor.
+     *
+     * @param  array<int, array{start: \DateTimeInterface, end: \DateTimeInterface}>  $periods  keyed by branch id
+     * @return array{invoiceSen: int, refundCreditsSen: int, panelAdjustmentsSen: int, netSen: int}
+     */
+    public static function netSales(int $organisationId, array $periods, ?int $doctorId = null): array
+    {
+        $invoiceSen = (int) self::invoices($organisationId, $periods, $doctorId)->sum(DB::raw(self::PAYABLE));
+        $credits = self::approvedCredits($organisationId);
+        self::scopePeriods($credits, $periods, 'decided_at', 'branch_id');
+        $adjustments = self::confirmedPanelAdjustments($organisationId);
+        self::scopePeriods($adjustments, $periods, 'confirmed_at', 'branch_id');
+        if ($doctorId !== null) {
+            $checkouts = DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id');
+            $credits->whereIn('consultation_checkout_id', $checkouts);
+            $adjustments->whereIn('consultation_checkout_id', (clone $checkouts));
+        }
+        $creditSen = (int) $credits->sum('amount_sen');
+        $adjustmentSen = (int) $adjustments->sum('amount_sen');
+
+        return ['invoiceSen' => $invoiceSen, 'refundCreditsSen' => $creditSen, 'panelAdjustmentsSen' => $adjustmentSen, 'netSen' => $invoiceSen - $creditSen + $adjustmentSen];
+    }
+
+    /**
+     * BIL-30: finalised invoices of one organisation in branch periods (by finalisation time), optionally limited to
+     * one attending doctor's consultation invoices. The Insights Sales cohort.
+     *
+     * @param  array<int, array{start: \DateTimeInterface, end: \DateTimeInterface}>  $periods  keyed by branch id
+     */
+    public static function invoices(int $organisationId, array $periods, ?int $doctorId = null): Builder
+    {
+        $query = DB::table('invoices')
+            ->where('invoices.organisation_id', $organisationId)
+            ->where('invoices.status', 'finalized');
+        self::scopePeriods($query, $periods, 'invoices.finalized_at', 'invoices.branch_id');
+        if ($doctorId !== null) {
+            $query->whereExists(fn (Builder $checkout) => $checkout
+                ->selectRaw('1')
+                ->from('consultation_checkouts')
+                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
+                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+        }
+
+        return $query;
+    }
+
+    /**
      * BIL-10 (decisions 2026-11-06, A and B): refund credits are their own row, taken off net sales on the day the
      * refund was approved, so past days never change. Pass the credits approved in the same period as the cohort.
      *
