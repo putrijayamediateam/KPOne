@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Models\ConsultationCheckout;
+use App\Domain\Patient\Services\ForeignPatientRule;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
@@ -57,7 +58,9 @@ class BillingDirectoryService
                     'remainingSen' => $record instanceof PatientReceivable ? $record->remaining_sen : null, 'dueDate' => $record instanceof PatientReceivable ? $record->due_date->toDateString() : null] : null;
             };
 
-            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null],
+            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null,
+                // BIL-29: yes or no only; no identifier value or country. No SST is charged on it yet.
+                'foreign' => $printing ? null : app(ForeignPatientRule::class)->isForeign((int) $visit->organisation_id, (int) $visit->patient_id)],
                 'backLink' => $this->backLink($actor),
                 'billTo' => $printing ? null : app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
                 'notes' => $printing ? null : app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
