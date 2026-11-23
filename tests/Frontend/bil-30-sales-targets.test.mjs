@@ -17,14 +17,13 @@ test('BIL-30: the doctor card sits below the room picker on the consultation que
     assert.ok(room > 0 && card > room, 'card after the room picker');
 });
 
-test('BIL-30: the doctor card is one calm line with a thin brand bar and the rest under Details', () => {
+test('BIL-30: the doctor card is one calm line with a thin brand bar and the rest under an outline Details button', () => {
     const card = read('resources/js/components/billing/MySalesTarget.vue');
     assert.match(card, /class="h-1\.5 [^"]*bg-muted"/);
     assert.match(card, /class="h-full bg-brand"/);
-    assert.match(
-        card,
-        /<details class="group" data-testid="my-sales-target-details">/,
-    );
+    assert.match(card, /data-testid="my-sales-target-toggle"/);
+    assert.match(card, /:aria-expanded="open \? 'true' : 'false'"/);
+    assert.match(card, /h-11 shrink-0 [^"]*border[^"]*lg:h-7/);
     assert.doesNotMatch(card, /branchTargetSen|doctors/);
 });
 
