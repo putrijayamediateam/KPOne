@@ -44,6 +44,7 @@ const disconnect = () => {
         {
             preserveScroll: true,
             onSuccess: async () => {
+                done = true;
                 confirming.value = null;
                 await nextTick();
                 heading.value?.focus();
@@ -53,6 +54,10 @@ const disconnect = () => {
             },
             onFinish: () => {
                 processing.value = false;
+
+                if (!done && error.value === '') {
+                    error.value = 'This app was not disconnected. Try again.';
+                }
             },
         },
     );
