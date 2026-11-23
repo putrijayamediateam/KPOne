@@ -199,6 +199,34 @@ const guardianAcceptError = computed(() =>
 );
 const rejectionCategory = ref('insufficient_information');
 const medicineOnly = computed(() => props.intake.fields.visit_kind === 'otc');
+// Fixed choices for the review forms (DD-73: the shared select, not the browser's own chevron).
+const sexOptions = [
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'indeterminate', label: 'Indeterminate' },
+    { value: 'unknown', label: 'Unknown' },
+];
+const visitPurposeOptions = [
+    { value: 'doctor_illness', label: 'See a doctor / illness' },
+    { value: 'pregnancy_check', label: 'Pregnancy check' },
+    { value: 'scan', label: 'Scan' },
+    { value: 'vaccination', label: 'Vaccination' },
+    { value: 'medical_checkup', label: 'Medical check-up' },
+    { value: 'procedure', label: 'Procedure' },
+    { value: 'other', label: 'Other' },
+];
+const reportedCoverageOptions = [
+    { value: 'self_pay', label: 'Self-pay' },
+    { value: 'panel', label: 'Panel' },
+];
+const verifiedCoverageOptions = [
+    { value: '', label: 'Select after verification', disabled: true },
+    ...reportedCoverageOptions,
+];
+const priorityOptions = [
+    { value: 'normal', label: 'Normal' },
+    { value: 'urgent', label: 'Urgent' },
+];
 const doctorOptions = computed(() =>
     props.visitOptions.doctors.map((d) => ({ value: d.id, label: d.name })),
 );
@@ -376,18 +404,11 @@ watch(
                                 " /></label
                         ><label class="grid gap-1"
                             ><span class="text-sm font-medium">Gender</span
-                            ><select
+                            ><OperationalSelect
                                 v-model="correction.sex"
-                                class="h-10 rounded-md border bg-background px-3"
-                            >
-                                <option value="female">Female</option>
-                                <option value="male">Male</option>
-                                <option value="indeterminate">
-                                    Indeterminate
-                                </option>
-                                <option value="unknown">Unknown</option>
-                            </select></label
-                        >
+                                :options="sexOptions"
+                                label="Gender"
+                        /></label>
                     </div>
                     <div class="grid content-start gap-2">
                         <label class="grid gap-1"
@@ -467,25 +488,11 @@ watch(
                     </p>
                     <label v-if="!medicineOnly" class="grid gap-1"
                         ><span class="text-sm font-medium">Visit purpose</span
-                        ><select
+                        ><OperationalSelect
                             v-model="correction.visit_purpose"
-                            class="h-10 rounded-md border bg-background px-3"
-                        >
-                            <option value="doctor_illness">
-                                See a doctor / illness
-                            </option>
-                            <option value="pregnancy_check">
-                                Pregnancy check
-                            </option>
-                            <option value="scan">Scan</option>
-                            <option value="vaccination">Vaccination</option>
-                            <option value="medical_checkup">
-                                Medical check-up
-                            </option>
-                            <option value="procedure">Procedure</option>
-                            <option value="other">Other</option>
-                        </select></label
-                    >
+                            :options="visitPurposeOptions"
+                            label="Visit purpose"
+                    /></label>
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">{{
                             medicineOnly
@@ -520,13 +527,10 @@ watch(
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium"
                             >Patient-reported coverage</span
-                        ><select
+                        ><OperationalSelect
                             v-model="correction.coverage_type"
-                            class="h-10 rounded-md border bg-background px-3"
-                        >
-                            <option value="self_pay">Self-pay</option>
-                            <option value="panel">Panel</option>
-                        </select>
+                            :options="reportedCoverageOptions"
+                            label="Patient-reported coverage" />
                         <InputError :message="correction.errors.coverage_type"
                     /></label>
                     <label
@@ -563,16 +567,10 @@ watch(
                         <label class="grid gap-1"
                             ><span class="text-sm font-medium"
                                 >Verified coverage *</span
-                            ><select
+                            ><OperationalSelect
                                 v-model="acceptance.coverage_type"
-                                class="h-10 rounded-md border bg-background px-3"
-                            >
-                                <option value="" disabled>
-                                    Select after verification
-                                </option>
-                                <option value="self_pay">Self-pay</option>
-                                <option value="panel">Panel</option>
-                            </select>
+                                :options="verifiedCoverageOptions"
+                                label="Verified coverage" />
                             <InputError
                                 :message="acceptance.errors.coverage_type"
                         /></label>
@@ -833,14 +831,11 @@ watch(
                     /></label>
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">Priority</span
-                        ><select
+                        ><OperationalSelect
                             v-model="acceptance.priority"
-                            class="h-10 rounded-md border bg-background px-3"
-                        >
-                            <option value="normal">Normal</option>
-                            <option value="urgent">Urgent</option>
-                        </select></label
-                    >
+                            :options="priorityOptions"
+                            label="Priority"
+                    /></label>
                     <div v-if="!medicineOnly" class="md:col-span-2">
                         <VisitReasonPicker
                             v-model="acceptance.visit_reason_public_ids"
