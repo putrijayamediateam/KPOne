@@ -119,6 +119,96 @@ class TriageChipsAndVitalsTest extends TriageTestCase
         $this->assertStringNotContainsString('yellow', $feed);
     }
 
+    /**
+     * Daniel's check (23 Nov 2026): a role without the triage view (Director, Finance Officer, Administrator and the TV
+     * account) never receives a zone, on any surface that shows one: the Registration board, the Queue board (whose rows
+     * also feed the Call In dialog), the Call next card, the consultation page (and the Director's read-only review) and
+     * the TV feed. The screens render the chip only from this `triage` entry, so no zone in the payload means none on
+     * screen. A positive control proves the same payloads do carry the zone for the CA.
+     */
+    public function test_roles_without_the_triage_view_never_receive_a_zone_on_any_surface(): void
+    {
+        $this->approvedGuideline();
+        [$ca, $waiting] = $this->waitingFixture();
+        $doctor = User::query()->findOrFail($waiting->assigned_doctor_user_id);
+        $this->triage($ca, $waiting, ['pulse_bpm' => 130, 'chosen_zone' => 'yellow']);
+        // A second doctor serves a red patient in consultation, so the first doctor stays free for Call next.
+        [$servingDoctor, , $serving, $queue] = $this->servingFixture(null, $ca);
+        $this->triage($ca, $serving, ['temperature_celsius' => 40.1, 'chosen_zone' => 'red']);
+        $this->startEncounter($servingDoctor, $serving, $queue);
+        [, $untriaged] = $this->waitingFixture($ca);
+
+        $this->selectBranch($ca);
+        $caPayload = [
+            $this->actingAs($ca)->postJson(route('registration.search'))->assertOk()->json(),
+            $this->actingAs($ca)->postJson(route('queue.search'), ['doctor_id' => $doctor->id])->assertOk()->json(),
+            $this->actingAs($ca)->postJson(route('queue.search'))->assertOk()->json(),
+        ];
+        $this->assertContains('yellow', $this->zonesIn($caPayload), 'control: the CA receives the zone in the same payloads');
+        $this->assertContains('red', $this->zonesIn($caPayload));
+
+        foreach (['director', 'finance_officer', 'administrator', 'queue_display'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor);
+            $surfaces = [
+                'Registration board' => $this->actingAs($actor)->postJson(route('registration.search')),
+                'Queue board and Call In dialog' => $this->actingAs($actor)->postJson(route('queue.search')),
+                'Call next card (branch board, doctor chosen)' => $this->actingAs($actor)->postJson(route('queue.search'), ['doctor_id' => $doctor->id]),
+                'Call next card (own block)' => $this->actingAs($actor)->getJson(route('queue.call-next.block', ['expected_branch_id' => $this->branch->id])),
+                'Queue page' => $this->actingAs($actor)->get(route('queue.index')),
+                'Consultation page' => $this->actingAs($actor)->get(route('encounters.show', $serving)),
+                'Read-only consultation review' => $this->actingAs($actor)->get(route('encounters.review', $serving)),
+                'TV feed' => $this->actingAs($actor)->getJson(route('queue-display.feed')),
+            ];
+            foreach ($surfaces as $surface => $response) {
+                if (! $response->isSuccessful()) {
+                    $this->assertContains($response->status(), [302, 403, 404], "{$role}, {$surface}: refused, not an error");
+
+                    continue;
+                }
+                $payload = $response->headers->get('Content-Type') === 'application/json'
+                    ? $response->json()
+                    : ($response->viewData('page')['props'] ?? []);
+                $this->assertSame([], $this->zonesIn($payload), "{$role}, {$surface}: no zone");
+                $json = json_encode($payload, JSON_THROW_ON_ERROR);
+                $this->assertStringNotContainsString('"triaged":true', $json, "{$role}, {$surface}: not even \"Triaged\"");
+            }
+        }
+
+        // The Director's branch board offers a Call next patient (the yellow one), so the check above saw a real card.
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->actingAs($director)->postJson(route('queue.search'), ['doctor_id' => $doctor->id])->assertOk()
+            ->assertJsonPath('callNext.candidate.visitNumber', $waiting->visit_number)
+            ->assertJsonPath('callNext.candidate.triage', null);
+
+        // Owner choice 5: the Director, who may call from the branch board, still gets "No triage yet", never a colour.
+        $row = collect($this->actingAs($director)->postJson(route('registration.search'))->assertOk()->json('data'))
+            ->firstWhere('visitNumber', $untriaged->visit_number);
+        $this->assertSame(['zone' => null, 'triaged' => false], $row['triage']);
+    }
+
+    /**
+     * Every zone value found under a `triage` key anywhere in the payload.
+     *
+     * @return list<string>
+     */
+    private function zonesIn(mixed $payload): array
+    {
+        $zones = [];
+        if (! is_array($payload)) {
+            return $zones;
+        }
+        foreach ($payload as $key => $value) {
+            if ($key === 'triage' && is_array($value) && ($value['zone'] ?? null) !== null) {
+                $zones[] = (string) $value['zone'];
+            }
+            array_push($zones, ...$this->zonesIn($value));
+        }
+
+        return $zones;
+    }
+
     public function test_consultation_start_copies_the_latest_of_each_reading_and_labels_it(): void
     {
         $this->approvedGuideline();
