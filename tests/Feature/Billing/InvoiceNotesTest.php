@@ -88,7 +88,7 @@ class InvoiceNotesTest extends BillingTestCase
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
-            $allowed = in_array($role, ['ca', 'ca_supervisor', 'finance_officer', 'director'], true);
+            $allowed = in_array($role, ['ca', 'ca_supervisor', 'medical_assistant', 'finance_officer', 'director'], true);
             $this->assertSame($allowed, in_array('billing.notes.view.branch', $permissions, true));
             $this->assertSame($allowed, in_array('billing.notes.add.branch', $permissions, true));
             $this->assertSame(in_array($role, ['ca_supervisor', 'finance_officer', 'director'], true), in_array('billing.notes.retract.branch', $permissions, true));

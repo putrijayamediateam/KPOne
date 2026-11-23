@@ -144,8 +144,8 @@ class GuardianContactTest extends PatientTestCase
     {
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $this->actor($role);
-            $this->assertSame(in_array($role, ['director', 'ca', 'ca_supervisor'], true), $actor->can('patients.create.organisation'), $role);
-            $this->assertSame(in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor'], true), $actor->can('patients.view.organisation'), $role);
+            $this->assertSame(in_array($role, ['director', 'ca', 'ca_supervisor', 'medical_assistant'], true), $actor->can('patients.create.organisation'), $role);
+            $this->assertSame(in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true), $actor->can('patients.view.organisation'), $role);
         }
         $actor = $this->actor('ca');
         GuardianFixture::assign($actor);

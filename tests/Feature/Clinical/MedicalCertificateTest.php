@@ -121,7 +121,7 @@ class MedicalCertificateTest extends BillingTestCase
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $role === 'resident_doctor' ? $doctor : $this->actor($role);
             $this->selectBranch($actor);
-            $allowed = in_array($role, ['resident_doctor', 'ca', 'ca_supervisor'], true);
+            $allowed = in_array($role, ['resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true);
             $this->get("/visits/{$visit->visit_number}/medical-certificates")->assertStatus($allowed ? 200 : 403);
             $response = $this->get("/visits/{$visit->visit_number}/medical-certificates/{$id}?print=1");
             $response->assertStatus($allowed ? 200 : 403);
