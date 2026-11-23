@@ -11,6 +11,7 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import MySalesTarget from '@/components/billing/MySalesTarget.vue';
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
@@ -57,6 +58,8 @@ const props = defineProps<{
         currentRoomId: number | null;
         operationalDate: string;
     } | null;
+    mySalesTarget?:
+        InstanceType<typeof MySalesTarget>['$props']['target'] | null;
 }>();
 const roomSaving = ref(false);
 const roomError = ref('');
@@ -723,6 +726,7 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Consultation queue</h1>
+        <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"

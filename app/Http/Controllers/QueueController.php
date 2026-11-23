@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Domain\Visit\Billing\Services\SalesTargetService;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -41,6 +42,7 @@ class QueueController extends Controller
         DoctorRoomService $rooms,
         RoomCallService $calls,
         BranchAccessService $branches,
+        SalesTargetService $salesTargets,
     ): Response {
         $this->authorize('viewAny', QueueEntry::class);
         $branch = $branches->activeBranch($request->user());
@@ -50,6 +52,8 @@ class QueueController extends Controller
             'snapshot' => $directory->snapshot($request->user()),
             'roomChoice' => $rooms->choice($request->user()),
             'treatmentRooms' => $branch && $canCall ? $calls->rooms($branch, BranchRoom::KIND_TREATMENT) : [],
+            // BIL-30 (owner P7, answer 2): only the signed-in doctor's own target; null when none is set or allowed.
+            'mySalesTarget' => $salesTargets->own($request->user()),
         ]);
     }
 
