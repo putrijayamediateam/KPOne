@@ -35,8 +35,9 @@ return new class extends Migration
         });
 
         DB::unprepared(<<<'SQL'
-CREATE OR REPLACE FUNCTION kpone_branch_local_date(p_branch bigint, p_ts timestamptz) RETURNS date LANGUAGE sql STABLE AS $$
-  SELECT (p_ts AT TIME ZONE b.timezone)::date FROM branches b WHERE b.id = p_branch
+-- Stored times are UTC "timestamp without time zone"; read them as UTC so the session TimeZone never matters.
+CREATE OR REPLACE FUNCTION kpone_branch_local_date(p_branch bigint, p_ts timestamp) RETURNS date LANGUAGE sql STABLE AS $$
+  SELECT ((p_ts AT TIME ZONE 'UTC') AT TIME ZONE b.timezone)::date FROM branches b WHERE b.id = p_branch
 $$;
 CREATE OR REPLACE FUNCTION kpone_branch_day_locked(p_branch bigint, p_date date) RETURNS boolean LANGUAGE sql STABLE AS $$
   SELECT p_date IS NOT NULL AND EXISTS (SELECT 1 FROM cash_closing_locks l WHERE l.branch_id = p_branch AND l.business_date = p_date)
@@ -92,7 +93,7 @@ END $$;
 CREATE TRIGGER invoice_branch_day BEFORE UPDATE OF status ON invoices FOR EACH ROW EXECUTE FUNCTION guard_branch_day_invoice();
 
 CREATE OR REPLACE FUNCTION guard_branch_day_reversal() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE received timestamptz;
+DECLARE received timestamp;
 BEGIN
  SELECT p.received_at INTO received FROM payments p WHERE p.id = NEW.payment_id;
  -- The lock part runs at commit (guard_branch_day_reversal_lock), so here only the pause.
@@ -103,7 +104,7 @@ END $$;
 CREATE TRIGGER payment_reversals_branch_day BEFORE INSERT ON payment_reversals FOR EACH ROW EXECUTE FUNCTION guard_branch_day_reversal();
 
 CREATE OR REPLACE FUNCTION guard_branch_day_reversal_lock() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE received timestamptz;
+DECLARE received timestamp;
 BEGIN
  SELECT p.received_at INTO received FROM payments p WHERE p.id = NEW.payment_id;
  IF kpone_branch_day_locked(NEW.branch_id, kpone_branch_local_date(NEW.branch_id, received))
@@ -117,7 +118,7 @@ CREATE CONSTRAINT TRIGGER payment_reversals_branch_day_lock AFTER INSERT ON paym
   FOR EACH ROW EXECUTE FUNCTION guard_branch_day_reversal_lock();
 
 CREATE OR REPLACE FUNCTION guard_branch_day_correction() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE received timestamptz;
+DECLARE received timestamp;
 BEGIN
  SELECT p.received_at INTO received FROM payments p WHERE p.id = NEW.original_payment_id;
  PERFORM kpone_branch_day_refuse(NEW.branch_id, kpone_branch_local_date(NEW.branch_id, received), true);
@@ -126,7 +127,7 @@ END $$;
 CREATE TRIGGER payment_corrections_branch_day BEFORE INSERT ON payment_corrections FOR EACH ROW EXECUTE FUNCTION guard_branch_day_correction();
 
 CREATE OR REPLACE FUNCTION guard_branch_day_adjustment() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE finalized timestamptz;
+DECLARE finalized timestamp;
 BEGIN
  SELECT i.finalized_at INTO finalized FROM invoices i WHERE i.id = NEW.invoice_id;
  PERFORM kpone_branch_day_refuse(NEW.branch_id, kpone_branch_local_date(NEW.branch_id, finalized), true);
@@ -137,7 +138,7 @@ CREATE TRIGGER invoice_adjustments_branch_day BEFORE INSERT ON invoice_adjustmen
 CREATE TRIGGER invoice_adjustment_reversals_branch_day BEFORE INSERT ON invoice_adjustment_reversals FOR EACH ROW EXECUTE FUNCTION guard_branch_day_adjustment();
 
 CREATE OR REPLACE FUNCTION guard_branch_day_responsibility() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE finalized timestamptz;
+DECLARE finalized timestamp;
 BEGIN
  IF TG_OP = 'UPDATE' AND NOT (NEW.status = 'approved' AND OLD.status IS DISTINCT FROM 'approved') THEN RETURN NEW; END IF;
  SELECT i.finalized_at INTO finalized FROM invoices i WHERE i.id = NEW.invoice_id;

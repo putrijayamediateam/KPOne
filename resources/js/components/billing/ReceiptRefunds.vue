@@ -187,7 +187,18 @@ const decide = (
                     v-if="refund.canDecide"
                     class="mt-2 flex flex-wrap items-end gap-2"
                 >
-                    <label class="grid gap-1 text-xs font-medium">
+                    <p
+                        v-if="refund.canReject === false"
+                        class="w-full text-xs text-muted-foreground"
+                        data-testid="refund-reject-locked"
+                    >
+                        This receipt's day is closed and locked, so this refund
+                        can be approved but not rejected.
+                    </p>
+                    <label
+                        v-if="refund.canReject !== false"
+                        class="grid gap-1 text-xs font-medium"
+                    >
                         Reason (needed to reject)
                         <select
                             :value="rejectReason[refund.publicId] ?? ''"
@@ -209,6 +220,7 @@ const decide = (
                         </select>
                     </label>
                     <Button
+                        v-if="refund.canReject !== false"
                         variant="outline"
                         size="sm"
                         class="max-sm:min-h-11"

@@ -121,11 +121,21 @@ const openEntry = (kind: 'payment' | 'panel' | 'deferment') => {
         responsibilityOpen.value = true;
     }
 };
+// BIL-32: a locked day's receipt is reversed only together with its refund (the day-close notice offers that).
+const lockedReceiptIds = computed(
+    () =>
+        new Set(
+            (props.billing.dayClose?.lockedReceipts ?? []).map(
+                (r) => r.publicId,
+            ),
+        ),
+);
 const openReversal = (receipt: Receipt) => {
     if (
         busy.value ||
         !props.billing.can.reverse ||
-        receipt.status !== 'posted'
+        receipt.status !== 'posted' ||
+        lockedReceiptIds.value.has(receipt.publicId)
     ) {
         return;
     }
@@ -613,7 +623,8 @@ const reverse = (receipt: Receipt) =>
                             <Button
                                 v-if="
                                     billing.can.reverse &&
-                                    receipt.status === 'posted'
+                                    receipt.status === 'posted' &&
+                                    !lockedReceiptIds.has(receipt.publicId)
                                 "
                                 variant="secondary"
                                 size="sm"
@@ -962,7 +973,11 @@ const reverse = (receipt: Receipt) =>
                                             /><Button
                                                 v-if="
                                                     billing.can.reverse &&
-                                                    receipt.status === 'posted'
+                                                    receipt.status ===
+                                                        'posted' &&
+                                                    !lockedReceiptIds.has(
+                                                        receipt.publicId,
+                                                    )
                                                 "
                                                 type="button"
                                                 variant="outline"
@@ -1027,7 +1042,8 @@ const reverse = (receipt: Receipt) =>
                                 /><Button
                                     v-if="
                                         billing.can.reverse &&
-                                        receipt.status === 'posted'
+                                        receipt.status === 'posted' &&
+                                        !lockedReceiptIds.has(receipt.publicId)
                                     "
                                     type="button"
                                     variant="outline"

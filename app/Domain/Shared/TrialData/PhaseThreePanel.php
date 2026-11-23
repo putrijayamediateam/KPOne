@@ -96,7 +96,9 @@ final class PhaseThreePanel
     /**
      * BIL-32: phase 2 counts the day's cash, and money actions of a counted day pause until its count is decided. This
      * Panel work happens later the same day, so phase 3 first returns phase 2's waiting count for a recount, as a
-     * supervisor would in the clinic. Only the first count (revision 1) is returned, so a rerun adds nothing.
+     * supervisor would in the clinic. Only the first count (revision 1) is returned, so a rerun adds nothing. Known limit
+     * (Kumar R7): a rerun that still has Panel money steps to redo after the recount (revision 2) is refused as paused;
+     * a complete phase 3 never needs that.
      */
     private function reopenTodaysCount(string $code, Branch $branch): void
     {

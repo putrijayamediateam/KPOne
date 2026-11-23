@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\PatientReceivable;
@@ -182,8 +183,14 @@ class ReceiptCorrectionService
             'invoiceLockVersion' => $invoice->lock_version,
             'methods' => PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()
                 ->map(fn (PaymentMethod $m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all(),
-            'receipts' => $payments->where('status', 'posted')->map(function (Payment $p) use ($allocations, $splits, $actor): array {
+            'receipts' => $payments->where('status', 'posted')->map(function (Payment $p) use ($allocations, $splits, $actor, $timezone): array {
+                // BIL-32 (Kumar R2): the same day rules the service applies, shown before anyone fills the form.
+                $branch = Branch::query()->whereKey($p->branch_id)->first();
+                $day = $p->received_at->setTimezone($timezone)->toDateString();
+                $gate = app(BranchDayGate::class);
                 $refused = match (true) {
+                    $branch !== null && $gate->locked($branch, $day) => BranchDayGate::LOCKED,
+                    $branch !== null && ($gate->paused($branch, $day) || $gate->paused($branch, now($timezone)->toDateString())) => BranchDayGate::PAUSED_EARLIER,
                     $p->recorded_by_user_id === $actor->id => 'You recorded this receipt, so someone else must correct it.',
                     (int) ($splits[$p->id] ?? 0) !== 1 => 'This receipt pays more than one invoice.',
                     $this->refunds->openRefund($p) !== null => 'This receipt has a refund, so it cannot be corrected.',

@@ -168,6 +168,124 @@ class DailyCloseLockTest extends BillingTestCase
             ->where('cashClosing.status', 'approved')->where('cashClosing.locked', true));
     }
 
+    public function test_a_paused_day_refuses_adjustments_and_panel_or_pay_later_and_the_page_turns_money_off(): void
+    {
+        $this->travelTo(CarbonImmutable::now('Asia/Kuala_Lumpur')->setTime(20, 0));
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->selectBranch($ca);
+        $this->post(route('cash-closings.store'), $this->countInput(CarbonImmutable::now('Asia/Kuala_Lumpur')->startOfDay(), '0.00'))->assertSessionHasNoErrors();
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+
+        $this->post(route('billing.adjustment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'threshold_version' => 0,
+            'direction' => 'deduct', 'input_type' => 'fixed', 'input_value' => '100', 'reason' => 'Synthetic', 'idempotency_key' => (string) Str::uuid(), 'confirm_above_limit' => true])
+            ->assertSessionHasErrors(['adjustment' => BranchDayGate::PAUSED]);
+        $this->selectBranch($ca);
+        $this->post(route('billing.propose', [$visit, $invoice, 'deferment']), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version,
+            'amount_sen' => 500, 'reason' => 'Synthetic', 'due_date' => now()->addWeek()->toDateString()])
+            ->assertSessionHasErrors(['responsibility' => BranchDayGate::PAUSED]);
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page
+            ->where('billing.can.pay', false)->where('billing.can.deferPropose', false)->where('billing.dayClose.paused', true));
+        // The database refuses a direct pay-later or Panel proposal on that day too.
+        $this->assertDatabaseRefuses(fn () => DB::table('patient_receivables')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id,
+            'invoice_id' => $invoice->id, 'current_invoice_guard' => $invoice->id, 'amount_sen' => 100, 'remaining_sen' => 100, 'status' => 'proposed', 'lock_version' => 1,
+            'expected_invoice_version' => $invoice->lock_version, 'requested_by_user_id' => $ca->id, 'reason' => 'Synthetic', 'due_date' => now()->addWeek()->toDateString(),
+            'created_at' => now(), 'updated_at' => now()]), 'waiting for approval');
+    }
+
+    public function test_a_locked_day_turns_void_and_reverse_off_on_the_page_and_refuses_a_direct_adjustment(): void
+    {
+        $f = $this->paidFixture('1000', '4000');
+        $closing = $this->countDay($f['ca']);
+        $this->travelBack();
+        $this->approve($closing);
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $this->get(route('billing.show', $f['visit']))->assertInertia(fn (Assert $page) => $page
+            ->where('billing.can.void', false)
+            ->where('billing.dayClose.lockedReceipts.0.publicId', $f['receipt']->public_id)
+            ->where('billing.dayClose.message', BranchDayGate::LOCKED));
+    }
+
+    public function test_an_adjustment_on_an_unpaid_invoice_of_a_locked_day_is_refused(): void
+    {
+        // An adjustment is already refused once money is recorded, so the lock matters for an unpaid finalised invoice.
+        $this->travelTo($this->day);
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(4000);
+        $this->cashMethod($visit);
+        $closing = $this->countDay($ca, '0.00');
+        $this->travelBack();
+        $this->approve($closing);
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->post(route('billing.adjustment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'threshold_version' => 0,
+            'direction' => 'deduct', 'input_type' => 'fixed', 'input_value' => '100', 'reason' => 'Synthetic', 'idempotency_key' => (string) Str::uuid(), 'confirm_above_limit' => true])
+            ->assertSessionHasErrors(['adjustment' => BranchDayGate::LOCKED]);
+        $this->assertSame(0, DB::table('invoice_adjustments')->where('invoice_id', $invoice->id)->count());
+    }
+
+    public function test_reverse_and_refund_together_is_refused_on_a_day_that_is_not_locked(): void
+    {
+        $f = $this->paidFixture();
+        $this->travelBack();
+        $finance = $this->actor('finance_officer');
+        $finance->givePermissionTo('payments.refunds.record.branch');
+        $this->selectBranch($finance);
+        $this->post(route('billing.refund-with-reversal', [$f['visit'], $f['invoice'], $f['receipt']]), [...$this->reverseInput($f), ...$this->refundInput($f)])
+            ->assertSessionHasErrors('refund');
+        $this->assertSame('posted', $f['receipt']->refresh()->status);
+    }
+
+    public function test_a_refund_on_a_counted_day_is_accepted_and_the_approval_then_asks_for_a_recount(): void
+    {
+        $f = $this->paidFixture();
+        $finance = $this->actor('finance_officer');
+        $finance->givePermissionTo('payments.refunds.record.branch');
+        // Reverse before the count (allowed), count, then record the refund on the counted day: refunds are not paused.
+        $this->selectBranch($finance);
+        $this->post(route('billing.reverse', [$f['visit'], $f['invoice'], $f['receipt']]), $this->reverseInput($f))->assertSessionHasNoErrors();
+        $closing = $this->countDay($f['ca'], '0.00'); // the reversed receipt has no refund yet, so nothing is expected
+        // The money goes back by card: the reversed cash receipt now counts as received on its day, with no cash paid out.
+        $card = (new PaymentMethod)->forceFill(['organisation_id' => $f['visit']->organisation_id, 'code' => 'card', 'name' => 'Synthetic card', 'classification' => 'non_cash']);
+        $card->save();
+        $this->selectBranch($finance);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), ['expected_branch_id' => $f['visit']->branch_id, ...$this->refundInput($f), 'payment_method_id' => $card->id])->assertSessionHasNoErrors();
+        $this->travelBack();
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $refund = PaymentRefund::query()->sole();
+        $this->post(route('billing.refund.decide', [$f['visit'], $refund->public_id, 'approved']), ['expected_branch_id' => $f['visit']->branch_id, 'reason_code' => null, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->post(route('cash-closings.decide', [$closing->public_id, 'approved']), $this->decideInput())->assertSessionHasErrors('cash_closing');
+        $this->assertFalse(app(BranchDayGate::class)->locked($this->branch, $this->day->toDateString()));
+    }
+
+    public function test_the_day_follows_kuala_lumpur_midnight_not_utc(): void
+    {
+        // 23:59 local belongs to the counted day; 00:01 the next local day does not (yet both are the same UTC date).
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 23:59:00', 'Asia/Kuala_Lumpur'));
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(4000);
+        $this->cashMethod($visit);
+        $this->selectBranch($ca);
+        $this->post(route('cash-closings.store'), $this->countInput(CarbonImmutable::parse('2026-11-10', 'Asia/Kuala_Lumpur'), '0.00'))->assertSessionHasNoErrors();
+        $this->post(route('billing.payment', [$visit, $invoice]), $this->paymentInput($visit, $invoice, '500'))->assertSessionHasErrors(['payment' => BranchDayGate::PAUSED]);
+        $this->travelTo(CarbonImmutable::parse('2026-11-11 00:01:00', 'Asia/Kuala_Lumpur'));
+        $this->pay($ca, $visit, $invoice, '500');
+        $this->assertSame(1, Payment::query()->count());
+        $this->assertSame('2026-11-10', CarbonImmutable::parse('2026-11-11 00:01:00', 'Asia/Kuala_Lumpur')->utc()->toDateString());
+    }
+
+    public function test_the_branch_manager_sees_daily_cash_closing_in_clinic_management_but_not_terminal_reconciliation(): void
+    {
+        $manager = $this->actor('branch_manager');
+        $this->selectBranch($manager);
+        $this->get(route('cash-closings.index'))->assertOk();
+        $this->get(route('payment-reconciliations.index'))->assertForbidden();
+        $this->assertFalse($manager->can('payments.reconcile.branch'));
+    }
+
     /** @return array{ca: User, visit: Visit, invoice: Invoice, receipt: Payment} */
     private function paidFixture(string $paid = '1000', string $price = '1000'): array
     {
@@ -179,10 +297,10 @@ class DailyCloseLockTest extends BillingTestCase
         return ['ca' => $ca, 'visit' => $visit->refresh(), 'invoice' => $invoice->refresh(), 'receipt' => Payment::query()->sole()];
     }
 
-    private function countDay(User $ca): CashClosing
+    private function countDay(User $ca, string $counted = '10.00'): CashClosing
     {
         $this->selectBranch($ca);
-        $this->post(route('cash-closings.store'), $this->countInput($this->day->startOfDay(), '10.00'))->assertSessionHasNoErrors();
+        $this->post(route('cash-closings.store'), $this->countInput($this->day->startOfDay(), $counted))->assertSessionHasNoErrors();
 
         return CashClosing::query()->latest('id')->firstOrFail();
     }

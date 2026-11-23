@@ -25,13 +25,16 @@ const errors = computed(
 const open = ref<string | null>(null);
 const busy = ref(false);
 const form = reactive({ reason: '', method: '', reasonCode: '', key: '' });
-const errorMessage = computed(
-    () =>
-        errors.value.correction ??
-        errors.value.refund ??
-        errors.value.reason ??
-        errors.value.reason_code ??
-        errors.value.payment_method_id,
+// Kumar (R6): show errors only under the form that was sent, not errors from other forms on the page.
+const sent = ref<string | null>(null);
+const errorMessage = computed(() =>
+    sent.value === null
+        ? undefined
+        : (errors.value.correction ??
+          errors.value.refund ??
+          errors.value.reason ??
+          errors.value.reason_code ??
+          errors.value.payment_method_id),
 );
 
 const start = (publicId: string) => {
@@ -46,6 +49,7 @@ const start = (publicId: string) => {
 
 const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
     busy.value = true;
+    sent.value = receipt.publicId;
     router.post(
         `${props.base}/payments/${receipt.publicId}/refund-with-reversal`,
         {
@@ -63,6 +67,7 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
             preserveState: true,
             onSuccess: () => {
                 open.value = null;
+                sent.value = null;
             },
             onFinish: () => {
                 busy.value = false;
@@ -129,7 +134,7 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                     <label class="grid gap-1"
                         >Given back by<select
                             v-model="form.method"
-                            class="h-11 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
+                            class="h-11 rounded-md border border-input bg-background px-2 text-sm lg:h-9"
                             required
                         >
                             <option value="" disabled>Choose</option>
@@ -145,7 +150,7 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                     <label class="grid gap-1"
                         >Refund reason<select
                             v-model="form.reasonCode"
-                            class="h-11 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
+                            class="h-11 rounded-md border border-input bg-background px-2 text-sm lg:h-9"
                             required
                         >
                             <option value="" disabled>Choose</option>

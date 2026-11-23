@@ -1386,7 +1386,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['payment_corrections', 'issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['payment_corrections', 'issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_locks', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

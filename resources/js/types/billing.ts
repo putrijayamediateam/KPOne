@@ -75,6 +75,8 @@ export type RefundEntry = {
     decidedBy: string | null;
     rejectReason: string | null;
     canDecide: boolean;
+    /** BIL-32: false for the refund of a locked day's reversed receipt (approve only). */
+    canReject?: boolean;
     recordedByYou: boolean;
 };
 export type RefundsContext = {
