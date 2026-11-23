@@ -58,6 +58,7 @@
             <exclude>tests/Feature/PostgresBranchAssignmentRegressionTest.php</exclude>
             <exclude>tests/Feature/PostgresBusinessDetailsRegressionTest.php</exclude>
             <exclude>tests/Feature/PostgresCashClosingRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresSalesTargetRegressionTest.php</exclude>
             <exclude>tests/Feature/PostgresClinicalEncounterRegressionTest.php</exclude>
             <exclude>tests/Feature/PostgresClinicalSafetyRegressionTest.php</exclude>
             <exclude>tests/Feature/PostgresDispensaryInventoryRegressionTest.php</exclude>
@@ -124,6 +125,7 @@
             <file>tests/Feature/PostgresBillingRegressionTest.php</file>
             <file>tests/Feature/PostgresBranchAssignmentRegressionTest.php</file>
             <file>tests/Feature/PostgresBusinessDetailsRegressionTest.php</file>
+            <file>tests/Feature/PostgresSalesTargetRegressionTest.php</file>
             <file>tests/Feature/PostgresCashClosingRegressionTest.php</file>
             <file>tests/Feature/PostgresClinicalEncounterRegressionTest.php</file>
             <file>tests/Feature/PostgresClinicalSafetyRegressionTest.php</file>
@@ -181,6 +183,7 @@
             <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
             <file>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</file>
             <file>tests/Feature/PilotStorageIsolationTest.php</file>
+            <file>tests/Feature/PostgresSalesTargetRegressionTest.php</file>
             <file>tests/Feature/PostgresCashClosingRegressionTest.php</file>
             <file>tests/Feature/PostgresQueueRegressionTest.php</file>
             <file>tests/Feature/PostgresReferralNumberTest.php</file>
