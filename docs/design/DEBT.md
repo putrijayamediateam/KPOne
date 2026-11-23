@@ -124,6 +124,8 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-114 | Doctor's Treatment Plan list (Queue & TV consultation page) | Quantities show trailing zeros ("60.000 ml") while Dispensary and the doctor check show "60 ml"; use the shared quantity formatter | 15 | Queue & TV | Minor | DSP-24 shots (2026-11-21) | Open |
 | DD-115 | Completed Invoice page, `Billing/Invoice.vue` | Buttons (View activity log, Add note, Note history, Change, History) are about 30 px tall at 390 px, against 44 px on Patient Billing; apply the 44 px touch target below 1024 px to every button on the page | 16 | Billing | Major | BIL-35 shots (2026-11-21) | Open |
 | DD-116 | Shared print toolbar (PNL-8 claim pack, BIL-5 invoice and receipt copies): "Print or save as PDF" | The filled button is blue, not the KPOne black; use the primary button token | 5 | Staff Experience | Minor | PNL-25 shots (2026-11-21) | Open |
+| DD-117 | Vitals display on the consultation page (shared vitals formatter) | Readings show two decimals the person never measured ("Temp 40.10 °C", "SpO₂ 97.00%", "Weight 62.00 kg"); show whole or one decimal as entered | 15 | Queue & TV | Minor | TRI-1c shots (2026-11-23) | Open |
+| DD-118 | Approvals inbox expanded date links (APPR-1a) | If the links stay pink with no underline, they look like labels; underline them or add a chevron (asked in review, to confirm when built) | 12 | Staff Experience | Minor | APPR-1a v2 shots (2026-11-22) | Open |
 
 ## Not debt (out of scope, owner-approved)
 
