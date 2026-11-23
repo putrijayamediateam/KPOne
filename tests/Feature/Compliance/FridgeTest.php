@@ -49,7 +49,7 @@ class FridgeTest extends VisitTestCase
     {
         $holders = fn (string $p) => collect(PermissionCatalogue::roles())->filter(fn (array $perms) => in_array($p, $perms, true))->keys()->sort()->values()->all();
         $this->assertSame(['administrator', 'director'], $holders(CompliancePermissions::FRIDGE_MANAGE));
-        $this->assertSame(['administrator', 'ca', 'ca_supervisor', 'director'], $holders(CompliancePermissions::FRIDGE_RECORD));
+        $this->assertSame(['administrator', 'ca', 'ca_supervisor', 'director', 'medical_assistant'], $holders(CompliancePermissions::FRIDGE_RECORD));
         $this->assertSame(['administrator', 'ca_supervisor', 'director'], $holders(CompliancePermissions::FRIDGE_REVIEW));
         foreach ([CompliancePermissions::FRIDGE_MANAGE, CompliancePermissions::FRIDGE_RECORD, CompliancePermissions::FRIDGE_REVIEW] as $p) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($p));

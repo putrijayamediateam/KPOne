@@ -79,6 +79,9 @@ try {
         'bill-correct' => app(ReceiptCorrectionService::class)->correct($actor, $visit, $invoice, Payment::query()->where('public_id', $a['payment'])->firstOrFail(), $a),
         'bill-refund-decide' => app(RefundService::class)->decide($actor, $visit, $a['refund'], $a['decision'], $a),
         'bill-cash-decide' => app(CashClosingService::class)->decide($actor, $a['closing'], $a['decision'], $a),
+        // BIL-32: a cash count, and a locked day's receipt reversed and refunded in one action.
+        'bill-cash-count' => app(CashClosingService::class)->count($actor, $a),
+        'bill-refund-with-reversal' => app(RefundService::class)->reverseAndRecord($actor, $visit, $invoice, Payment::query()->where('public_id', $a['payment'])->firstOrFail(), $a, $a),
         'bill-price' => app(PricePublicationService::class)->publish($actor, PriceBook::query()->findOrFail($a['book']), ChargeDefinition::query()->findOrFail($a['charge']), $a['amount_sen'], $a['price_version'], (int) $argv[3]),
         default => throw new RuntimeException('Unknown test worker mode'),
     };

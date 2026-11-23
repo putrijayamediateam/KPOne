@@ -44,10 +44,16 @@ class RoleOneRolesTest extends VisitTestCase
                 'inventory.view.branch',
                 'outstanding.view.branch',
                 'payments.cash_closing.approve.branch',
+                // BIL-32 (owner approved 2026-11-22): the cash closing pages, read only.
+                'payments.cash_closing.view.branch',
                 'profile.view.own',
                 'queue.view.branch',
                 'reports.daily_summary.export.branch',
                 'reports.daily_summary.view.branch',
+                'reports.panel_summary.export.branch',
+                'reports.panel_summary.view.branch',
+                'reports.payments.export.organisation',
+                'reports.sales.export.organisation',
                 'reports.stock_movement.export.branch',
                 'reports.stock_movement.view.branch',
                 'staff.view.branch',
@@ -262,6 +268,10 @@ class RoleOneRolesTest extends VisitTestCase
         $migration->up();
         $migration->up();
         $migration->down();
+        // BM reports B (owner, 22 Nov 2026): the additive follow-up migration adds the Branch Manager's aggregate report grants.
+        $followUp = require database_path('migrations/2026_11_22_000100_grant_branch_manager_aggregate_report_exports.php');
+        $followUp->up();
+        $followUp->up();
         foreach ($this->tables() as $role => $expected) {
             $this->assertEqualsCanonicalizing($expected, Role::findByName($role)->permissions()->pluck('name')->all(), $role);
         }

@@ -140,7 +140,7 @@ final class BillingSpace
      */
     public function cashClosing(User $actor): ?array
     {
-        if ($this->branches->activeBranch($actor) === null || ! $actor->can('payments.reconcile.branch')) {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->canAny(['payments.reconcile.branch', 'payments.cash_closing.view.branch'])) { // BIL-32
             return null;
         }
         $page = $this->closings->page($actor, null);
@@ -162,7 +162,7 @@ final class BillingSpace
      */
     public function monthDays(User $actor): ?array
     {
-        if ($this->branches->activeBranch($actor) === null || ! $actor->can('payments.reconcile.branch')) {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->canAny(['payments.reconcile.branch', 'payments.cash_closing.view.branch'])) { // BIL-32
             return null;
         }
         $month = $this->closings->month($actor, null);

@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
+use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\QueueEntry;
@@ -145,6 +146,8 @@ class QueueDirectoryService
                 ->select([
                     'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
                     'coverage_panel_name_snapshot', 'coverage_panel_note', 'assigned_doctor_user_id', 'status', 'lock_version',
+                    // TRI-1c: the zone projection shows a chip on consultation visits only.
+                    'visit_type',
                 ])
                 ->with([
                     'patient:id,organisation_id,patient_number,full_name,mobile_phone',
@@ -172,9 +175,13 @@ class QueueDirectoryService
             + $checkWaiting;
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($entries->modelKeys()));
         $treatment = app(TreatmentStepProjection::class)->rows($actor, $entries);
+        // TRI-1c: the zone chip, only for CA, CA Supervisor and the patient's own doctor (one query).
+        $triageZones = app(TriageZoneProjection::class)->forVisits($actor, $entries
+            ->map(fn (QueueEntry $entry): array => TriageZoneProjection::subject($entry->visit, $entry))->all());
         foreach ($entries as $entry) {
             $entry->setRelation('callReadiness', $readiness[$entry->id] ?? null);
             $entry->setRelation('treatmentProgress', $treatment[$entry->id] ?? null);
+            $entry->setRelation('triageZone', $triageZones[$entry->visit_id] ?? null);
         }
 
         $dynamic = [
@@ -356,6 +363,8 @@ class QueueDirectoryService
             // Q-13: true only on the assigned doctor's own removed row whose dispensary case waits for the doctor's check.
             'dispensaryCheckWaiting' => $dispensaryCheckWaiting,
             'callHold' => $entry->getRelation('callReadiness'),
+            // TRI-1c: { zone, triaged } or null when this viewer may not see the zone; never a reading, never on the TV feed.
+            'triage' => $entry->relationLoaded('triageZone') ? $entry->getRelation('triageZone') : null,
             // Q-2: only Serving consultations carry this; never on the TV feed.
             'treatmentProgress' => $entry->relationLoaded('treatmentProgress') ? $entry->getRelation('treatmentProgress') : null,
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),

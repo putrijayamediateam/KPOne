@@ -6,6 +6,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
@@ -74,6 +75,13 @@ final class PermissionCatalogue
 
     public const STORE_ADMIN_ROLE = 'store_admin';
 
+    /**
+     * MA-1a (owner decision 23 Nov 2026; docs/teams/patients-registration/MA-ROLE-DESIGN.md): everything the CA holds, plus
+     * the treatment room (and triage). Built as "the CA's list, then the additions" at the end of roles(), so the two
+     * cannot drift. Never people or access authority; in practice only a Director provisions it (canAssignRoles).
+     */
+    public const MEDICAL_ASSISTANT_ROLE = 'medical_assistant';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -81,6 +89,7 @@ final class PermissionCatalogue
             ...array_keys(CallHoldPermissions::grants()),
             ...array_keys(TreatmentStepPermissions::grants()),
             ...array_keys(TriagePermissions::grants()),
+            ...array_keys(TreatmentRoomPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -198,6 +207,7 @@ final class PermissionCatalogue
             'inventory.cost.view.organisation',
             'inventory.valuation.view.organisation',
             'inventory.pack_conversions.verify.organisation',
+            'inventory.medicine_sales.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -487,7 +497,9 @@ final class PermissionCatalogue
             $roles[$role][] = 'reports.patient_billing.export.branch';
         }
 
-        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
+        // ROLE-1 follow-up (owner, 22 Nov 2026, "BM reports B"): the Branch Manager also downloads Sales summary and Payments;
+        // the export services keep a branch-only account to its own branch (see BranchOnlyExportScope).
+        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE, self::BRANCH_MANAGER_ROLE] as $role) {
             $roles[$role][] = 'reports.sales.export.organisation';
             $roles[$role][] = 'reports.payments.export.organisation';
         }
@@ -507,6 +519,13 @@ final class PermissionCatalogue
         // TRI-1 (owner decisions 19 Nov 2026): triage readings for CA and CA Supervisor; the guideline for the
         // Director and the HR Manager only (the HR Manager never sees triage readings).
         foreach (TriagePermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        // MA-1a (owner decision 23 Nov 2026): the treatment room for the Medical Assistant and the CA Supervisor.
+        foreach (TreatmentRoomPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
@@ -616,6 +635,12 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.pack_conversions.verify.organisation';
         }
 
+        // STK-44 (owner, P9: "the medicine sales page with profit: Director, Finance Officer"): only these two open the
+        // medicine sales page. It is separate from cost view, so the Store Admin and Account Assistant don't get it.
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.medicine_sales.view.organisation';
+        }
+
         // DSP-23 (owner answers 21 Nov 2026: P3, 12 = A, 13 = B): the attending doctor checks the prepared medicine; a
         // CA Supervisor may check instead with a reason; the Director and CA Supervisor turn the branch switch on or off.
         $roles['resident_doctor'][] = 'dispensary.doctor_check.own';
@@ -645,6 +670,10 @@ final class PermissionCatalogue
                 $roles[$role][] = $permission;
             }
         }
+
+        // MA-1a catalogue rule (MA-ROLE-DESIGN section 7): the Medical Assistant holds every permission the CA holds, plus
+        // its own grants above. Built last, so a permission later granted to `ca` here reaches the MA automatically.
+        $roles[self::MEDICAL_ASSISTANT_ROLE] = array_values(array_unique([...$roles['ca'], ...($roles[self::MEDICAL_ASSISTANT_ROLE] ?? [])]));
 
         return $roles;
     }

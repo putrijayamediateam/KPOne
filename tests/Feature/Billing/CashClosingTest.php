@@ -195,12 +195,16 @@ class CashClosingTest extends ClinicalTestCase
         $this->selectBranch($ca);
         $this->post(route('cash-closings.store'), $this->countInput('35.50', null))->assertSessionHasNoErrors();
         $closing = CashClosing::query()->sole();
-        $this->payment($ca, $cash, 700, $this->day->setTime(18, 0)->utc()); // Recorded late, for the same day.
+        // BIL-32 (owner approved 2026-11-22): a late receipt for the counted day is now refused while the count waits.
+        $this->assertDatabaseRefuses('P0001', fn () => $this->payment($ca, $cash, 700, $this->day->setTime(18, 0)->utc()), 'waiting for approval');
+        // The figures can still change after the count another way: the method stops counting as Cash.
+        DB::table('payment_methods')->where('id', $cash->id)->update(['classification' => 'non_cash']);
 
         $supervisor = $this->actor('ca_supervisor');
         $this->selectBranch($supervisor);
         $this->post(route('cash-closings.decide', [$closing->public_id, 'approved']), $this->decideInput())->assertSessionHasErrors('cash_closing');
         $this->assertSame(0, CashClosingDecision::query()->count());
+        DB::table('payment_methods')->where('id', $cash->id)->update(['classification' => 'cash']);
 
         $puchong = Branch::query()->where('organisation_id', $this->branch->organisation_id)->where('code', 'PUCHONG')->firstOrFail();
         $other = $this->actor('ca_supervisor', $puchong);
@@ -220,14 +224,15 @@ class CashClosingTest extends ClinicalTestCase
 
         $this->selectBranch($supervisor);
         $this->post(route('cash-closings.decide', [$closing->public_id, 'returned']), $this->decideInput('Synthetic: a late cash receipt was added'))->assertSessionHasNoErrors();
-        $this->post(route('cash-closings.store'), [...$this->countInput('42.50', null)])->assertSessionHasNoErrors();
+        // BIL-32 (owner approved 2026-11-23): no late receipt can be added any more, so the recount is the day's RM 35.50.
+        $this->post(route('cash-closings.store'), [...$this->countInput('35.50', null)])->assertSessionHasNoErrors();
         $this->selectBranch($this->actor('finance_officer'));
         $this->post(route('cash-closings.decide', [CashClosing::query()->where('revision', 2)->value('public_id'), 'approved']), $this->decideInput())->assertSessionHasNoErrors();
 
         // A receipt recorded for that day after approval: the approved snapshot is kept and the page flags the change.
         $this->payment($ca, $cash, 100, $this->day->setTime(19, 0)->utc());
         $this->get(route('cash-closings.index', ['date' => $this->day->toDateString()]))->assertInertia(fn (Assert $page) => $page
-            ->where('cashClosing.status', 'approved')->where('cashClosing.changedSinceApproval', true)->where('cashClosing.closings.0.expectedCashSen', 4250));
+            ->where('cashClosing.status', 'approved')->where('cashClosing.changedSinceApproval', true)->where('cashClosing.closings.0.expectedCashSen', 3550)); // BIL-32 (owner approved 2026-11-23): was 4250 with the late receipt.
     }
 
     /** Cash receipts for the day: RM 10.00 and RM 25.50 posted; excluded: a reversed one, a card one, the day before, the day after, another branch. */

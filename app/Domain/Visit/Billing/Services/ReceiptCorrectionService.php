@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\PatientReceivable;
@@ -14,6 +15,7 @@ use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -41,6 +43,7 @@ class ReceiptCorrectionService
         private RefundService $refunds,
         private AuditRecorder $audit,
         private StaffAccessService $staff,
+        private BranchDayGate $gate,
     ) {}
 
     /** @param array<string, mixed> $a */
@@ -60,6 +63,9 @@ class ReceiptCorrectionService
         return DB::transaction(function () use ($actor, $visit, $invoice, $payment, $a, $received, $method): PaymentCorrection {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, self::PERMISSION);
             abort_unless($actor->can('payments.add.branch'), 403);
+            // BIL-32: judged on the original receipt's day, which a lock refuses; a pause on that day or today refuses too.
+            $receivedAt = Payment::query()->whereKey($payment->id)->where('organisation_id', $actor->organisation_id)->value('received_at');
+            $this->gate->guard($branch, $receivedAt === null ? null : CarbonImmutable::parse($receivedAt), true, 'correction');
             Organisation::query()->whereKey($actor->organisation_id)->sharedLock()->firstOrFail();
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
             $this->ledger->lock($invoice);
@@ -177,8 +183,14 @@ class ReceiptCorrectionService
             'invoiceLockVersion' => $invoice->lock_version,
             'methods' => PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()
                 ->map(fn (PaymentMethod $m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all(),
-            'receipts' => $payments->where('status', 'posted')->map(function (Payment $p) use ($allocations, $splits, $actor): array {
+            'receipts' => $payments->where('status', 'posted')->map(function (Payment $p) use ($allocations, $splits, $actor, $timezone): array {
+                // BIL-32 (Kumar R2): the same day rules the service applies, shown before anyone fills the form.
+                $branch = Branch::query()->whereKey($p->branch_id)->first();
+                $day = $p->received_at->setTimezone($timezone)->toDateString();
+                $gate = app(BranchDayGate::class);
                 $refused = match (true) {
+                    $branch !== null && $gate->locked($branch, $day) => BranchDayGate::LOCKED,
+                    $branch !== null && ($gate->paused($branch, $day) || $gate->paused($branch, now($timezone)->toDateString())) => BranchDayGate::PAUSED_EARLIER,
                     $p->recorded_by_user_id === $actor->id => 'You recorded this receipt, so someone else must correct it.',
                     (int) ($splits[$p->id] ?? 0) !== 1 => 'This receipt pays more than one invoice.',
                     $this->refunds->openRefund($p) !== null => 'This receipt has a refund, so it cannot be corrected.',

@@ -19,7 +19,7 @@ final class RosterPermissions
 
     /** Every human role in the catalogue; the shared waiting-room TV account is deliberately absent. */
     public const HUMAN_ROLES = ['director', 'resident_doctor', 'ca', 'ca_supervisor', 'panel_officer', 'finance_officer',
-        'administrator', 'business_development', 'marketing', 'hr_manager', 'technical_admin', 'branch_manager', 'account_assistant', 'store_admin'];
+        'administrator', 'business_development', 'marketing', 'hr_manager', 'technical_admin', 'branch_manager', 'account_assistant', 'store_admin', 'medical_assistant'];
 
     /** @return array<string, list<string>> */
     public static function grants(): array

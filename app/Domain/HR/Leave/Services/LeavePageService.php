@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Leave\Services;
 
+use App\Domain\HR\Approvals\HrWaiting;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveAdjustment;
 use App\Domain\HR\Leave\Models\LeaveBalanceEntry;
@@ -51,7 +52,7 @@ final class LeavePageService
         return [
             'tab' => $tab, 'tabs' => $tabs, 'today' => $today->toDateString(), 'year' => $year,
             'setUp' => $types->contains(fn (LeaveType $t): bool => $t->is_active),
-            'approvalCount' => $pending->count(),
+            'approvalCount' => $canApprove ? HrWaiting::leave($actor)->count() : 0,
             'branches' => $branches->map(fn (Branch $b): array => ['id' => $b->id, 'name' => $b->name])->values()->all(),
             'branchId' => $branch?->id,
             'my' => $canOwn ? $this->my($actor, $types, $today) : null,
@@ -97,8 +98,7 @@ final class LeavePageService
     /** @return Collection<int, LeaveRequest> */
     private function pendingForApprover(User $actor): Collection
     {
-        return LeaveRequest::query()->with(['person.roles', 'type'])->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
-            ->where('user_id', '<>', $actor->id)->orderBy('start_date')->orderBy('id')->limit(200)->get();
+        return HrWaiting::leave($actor)->with(['person.roles', 'type'])->orderBy('start_date')->orderBy('id')->limit(200)->get();
     }
 
     /**

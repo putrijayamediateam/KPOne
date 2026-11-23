@@ -9,6 +9,7 @@ import PatientMergePanel from '@/components/patient/PatientMergePanel.vue';
 import type { PatientMergePanelData } from '@/components/patient/PatientMergePanel.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import type { PatientDetail, PatientIdentifier } from '@/types';
 
 defineOptions({
@@ -68,16 +69,33 @@ const startCorrection = (identifier: PatientIdentifier) => {
     identifierForm.value = '';
     addOpen.value = true;
 };
+// Retiring asks in the themed confirm dialog, not the browser's own box (DD-18).
+const retireTarget = ref<PatientIdentifier | null>(null);
+const retireProcessing = ref(false);
 const retire = (identifier: PatientIdentifier) => {
-    if (
-        confirm(
-            'Retire this identifier? The value remains permanently reserved in Patient Master history.',
-        )
-    ) {
-        router.patch(
-            patientUrl() + '/identifiers/' + identifier.id + '/retire',
-        );
+    retireTarget.value = identifier;
+};
+const confirmRetire = () => {
+    const identifier = retireTarget.value;
+
+    if (!identifier || retireProcessing.value) {
+        return;
     }
+
+    router.patch(
+        patientUrl() + '/identifiers/' + identifier.id + '/retire',
+        {},
+        {
+            preserveScroll: true,
+            onStart: () => {
+                retireProcessing.value = true;
+            },
+            onFinish: () => {
+                retireProcessing.value = false;
+                retireTarget.value = null;
+            },
+        },
+    );
 };
 const formatTime = (value: string) =>
     new Intl.DateTimeFormat('en-MY', {
@@ -388,5 +406,21 @@ const formatTime = (value: string) =>
                 the guardian details.
             </p>
         </section>
+
+        <OperationalConfirmDialog
+            :open="retireTarget !== null"
+            title="Retire this identifier?"
+            description="The value remains permanently reserved in Patient Master history."
+            confirm-label="Retire identifier"
+            processing-label="Retiring…"
+            :processing="retireProcessing"
+            destructive
+            @update:open="
+                (open) => {
+                    if (!open) retireTarget = null;
+                }
+            "
+            @confirm="confirmRetire"
+        />
     </main>
 </template>

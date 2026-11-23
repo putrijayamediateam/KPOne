@@ -4,6 +4,7 @@ namespace App\Domain\Queue\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Models\QueueEntry;
@@ -94,7 +95,7 @@ class CallNextService
             return [...$base, ...$this->emptyState($actor, $branch, $doctor->id, $today)];
         }
 
-        return [...$base, 'state' => self::STATE_READY, 'reason' => null, 'candidate' => $this->candidate($entry, $today, $room?->name)];
+        return [...$base, 'state' => self::STATE_READY, 'reason' => null, 'candidate' => $this->candidate($actor, $entry, $today, $room?->name)];
     }
 
     /**
@@ -219,7 +220,7 @@ class CallNextService
             ->select('queue_entries.*')
             // QueueEntryService::call() reads only these Visit columns before it re-locks the row; add any column
             // it starts reading earlier here too.
-            ->with(['visit:id,organisation_id,branch_id,patient_id,visit_number,priority,assigned_doctor_user_id,status,lock_version', 'visit.patient:id,patient_number,full_name'])
+            ->with(['visit:id,organisation_id,branch_id,patient_id,visit_number,visit_type,priority,assigned_doctor_user_id,status,lock_version', 'visit.patient:id,patient_number,full_name'])
             ->first();
     }
 
@@ -245,9 +246,11 @@ class CallNextService
     }
 
     /** @return array<string, mixed> */
-    private function candidate(QueueEntry $entry, string $today, ?string $roomName): array
+    private function candidate(User $actor, QueueEntry $entry, string $today, ?string $roomName): array
     {
         $visit = $entry->visit;
+        // TRI-1c: the zone, or "No triage yet", only for CA, CA Supervisor and the patient's own doctor.
+        $triage = app(TriageZoneProjection::class)->forVisits($actor, [TriageZoneProjection::subject($visit, $entry)])[$visit->id] ?? null;
 
         return [
             'visitNumber' => $visit->visit_number,
@@ -258,6 +261,7 @@ class CallNextService
             'carryOver' => $entry->operational_date->toDateString() !== $today,
             'operationalDate' => $entry->operational_date->toDateString(),
             'roomName' => $roomName,
+            'triage' => $triage,
             'visitLockVersion' => $visit->lock_version,
             'queueLockVersion' => $entry->lock_version,
         ];

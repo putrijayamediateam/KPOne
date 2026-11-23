@@ -346,7 +346,7 @@ class PostgresCashClosingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['cash_closing_decisions', 'cash_closings'] as $table) {
+            foreach (['cash_closing_locks', 'cash_closing_decisions', 'cash_closings'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

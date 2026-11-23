@@ -75,6 +75,8 @@ export type RefundEntry = {
     decidedBy: string | null;
     rejectReason: string | null;
     canDecide: boolean;
+    /** BIL-32: false for the refund of a locked day's reversed receipt (approve only). */
+    canReject?: boolean;
     recordedByYou: boolean;
 };
 export type RefundsContext = {
@@ -125,7 +127,13 @@ export type BillingPage = {
     /** BIL-35: the Panel claim button, for Panel Claims users only. */
     panelClaim?: PanelClaimLink | null;
     backLink: { label: string; href: string } | null;
-    patient: { name: string; patientNumber: string; profileUrl: string | null };
+    patient: {
+        name: string;
+        patientNumber: string;
+        profileUrl: string | null;
+        /** BIL-29: foreign (passport) patient; no SST is charged yet. */
+        foreign?: boolean;
+    };
     visit: {
         visitNumber: string;
         status: string;
@@ -182,6 +190,8 @@ export type BillingPage = {
     payments: Receipt[];
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
     refunds?: RefundsContext | null;
+    /** BIL-32: a paused or locked day's notice and the locked-day refund. */
+    dayClose?: DayCloseContext | null;
     corrections?: CorrectionsContext | null;
     /** BIL-17: voided invoices of this visit, kept visible after a void. */
     voidedInvoices?: Array<{
@@ -346,6 +356,21 @@ export type PanelAdjustmentClaim = {
         claimAmountSen: number;
         recordedAt: string;
     }[];
+};
+
+/** BIL-32: daily close pause and lock, on Patient Billing. */
+export type DayCloseContext = {
+    paused: boolean;
+    message: string;
+    lockedReceipts: {
+        publicId: string;
+        number: string;
+        amountSen: number;
+        lockVersion: number;
+    }[];
+    canRefundLocked: boolean;
+    methods: { id: number; name: string }[];
+    reasons: Record<string, string>;
 };
 
 /** BIL-35: straight to the invoice's Panel claim, or Create claim (read-only navigation). */

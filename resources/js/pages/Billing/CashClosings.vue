@@ -40,6 +40,7 @@ const props = defineProps<{
         status: 'not_counted' | 'waiting' | 'returned' | 'approved';
         dayEnded: boolean;
         changedSinceApproval: boolean;
+        locked?: boolean;
         can: { count: boolean; approve: boolean };
         closings: Closing[];
     };
@@ -195,6 +196,23 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 {{ statusText }}
             </p>
             <InputError class="w-full" :message="errors.business_date" />
+            <p
+                v-if="day.status === 'waiting'"
+                class="w-full text-sm text-amber-900 dark:text-amber-100"
+                data-testid="cash-closing-paused"
+            >
+                Waiting for approval: new payments and changes to this day's
+                bills are paused until it is approved or returned for a recount.
+                Registration and consultations carry on.
+            </p>
+            <p
+                v-else-if="day.locked"
+                class="w-full text-sm text-emerald-900 dark:text-emerald-100"
+                data-testid="cash-closing-locked"
+            >
+                Locked: this day's bills and receipts cannot be changed or
+                voided. Only a refund is possible.
+            </p>
         </section>
 
         <section class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -405,7 +423,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                         class="grid gap-1 text-sm font-medium"
                         :for="`return-${closing.publicId}`"
                     >
-                        Reason to return (only for Return)
+                        Reason for recount (needed to return)
                         <Input
                             :id="`return-${closing.publicId}`"
                             v-model="returnReasons[closing.publicId]"

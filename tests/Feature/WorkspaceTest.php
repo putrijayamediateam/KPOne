@@ -13,9 +13,18 @@ class WorkspaceTest extends VisitTestCase
             'ca' => 'registration.index',
             'ca_supervisor' => 'registration.index',
             'resident_doctor' => 'queue.index',
-            'director' => 'dashboard',
-            'technical_admin' => 'dashboard',
-            'hr_manager' => 'dashboard',
+            // DAY-1a (owner, 22 Nov 2026): the roles that used to land on the Main Menu land on My day.
+            'director' => 'my-day',
+            'technical_admin' => 'my-day',
+            'hr_manager' => 'my-day',
+            'finance_officer' => 'my-day',
+            'panel_officer' => 'my-day',
+            'administrator' => 'my-day',
+            'marketing' => 'my-day',
+            'business_development' => 'my-day',
+            'branch_manager' => 'my-day',
+            'account_assistant' => 'my-day',
+            'store_admin' => 'my-day',
         ] as $role => $destination) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);

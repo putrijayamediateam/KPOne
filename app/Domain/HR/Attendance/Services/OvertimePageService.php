@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Attendance\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\HR\Approvals\HrWaiting;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
@@ -45,8 +46,7 @@ final class OvertimePageService
 
     public function pendingCount(User $actor): int
     {
-        return OvertimeRequest::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
-            ->where('user_id', '<>', $actor->id)->where('requested_by_user_id', '<>', $actor->id)->count();
+        return HrWaiting::overtime($actor)->count();
     }
 
     /**
@@ -246,7 +246,7 @@ final class OvertimePageService
         $current = $this->settings->forDate($actor->organisation_id, $today);
         $creators = User::query()->whereIn('id', $versions->map(fn (OvertimeSettingsVersion $v): int => $v->createdByUserId)->unique()->values())->pluck('name', 'id');
         // The app's role labels (resources/js/lib/displayLabels.ts): "CA", "CA Supervisor", "HR Manager" (Daniel).
-        $roleLabel = fn (string $role): string => ['ca' => 'CA', 'ca_supervisor' => 'CA Supervisor', 'hr_manager' => 'HR Manager'][$role]
+        $roleLabel = fn (string $role): string => ['ca' => 'CA', 'ca_supervisor' => 'CA Supervisor', 'hr_manager' => 'HR Manager', 'medical_assistant' => 'Medical Assistant'][$role]
             ?? ucwords(str_replace('_', ' ', $role));
 
         return [

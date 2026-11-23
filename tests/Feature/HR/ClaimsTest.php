@@ -3,8 +3,11 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Approvals\Sources\StaffClaimSource;
+use App\Domain\DepartmentSpace\HrSpace;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Claims\Services\ClaimService;
+use App\Domain\HR\Claims\Services\ClaimsPageService;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -47,7 +50,7 @@ class ClaimsTest extends VisitTestCase
         $this->assertSame(['director', 'hr_manager'], $holders(ClaimPermissions::MANAGE));
         $this->assertSame(['director', 'finance_officer'], $holders(ClaimPermissions::PAY));
         $own = $holders(ClaimPermissions::SUBMIT_OWN);
-        $this->assertCount(14, $own);
+        $this->assertCount(15, $own);
         $this->assertNotContains('queue_display', $own);
         foreach (array_keys(ClaimPermissions::grants()) as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
@@ -125,6 +128,35 @@ class ClaimsTest extends VisitTestCase
         $this->post(route('hr.claims.withdraw', $claim->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->assertSame('withdrawn', DB::table('hr_staff_claims')->where('id', $claim->id)->value('status'));
         $this->assertNoSecretsInAudit();
+    }
+
+    public function test_appr_1d_the_inbox_source_counts_only_the_claims_the_viewer_may_decide(): void
+    {
+        $director = $this->actor('director');
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $travel = $this->makeCategory($hr, 'Travel', false, '500.00', '2000.00');
+        $this->settings($hr, ['director_level' => '100.00', 'days_back' => 30, 'expected_version' => 0])->assertSessionHasNoErrors();
+        $this->send($ca, ['category_id' => $travel, 'spent_on' => '2026-11-03', 'amount' => '45.60', 'purpose' => self::PURPOSE])->assertSessionHasNoErrors();
+        $this->travel(1)->hours();
+        $this->send($ca, ['category_id' => $travel, 'spent_on' => '2026-11-04', 'amount' => '150.00', 'purpose' => self::PURPOSE])->assertSessionHasNoErrors();
+        $this->travel(1)->hours();
+        $this->send($hr, ['category_id' => $travel, 'spent_on' => '2026-11-04', 'amount' => '20.00', 'purpose' => self::PURPOSE])->assertSessionHasNoErrors();
+        $numbers = DB::table('hr_staff_claims')->orderBy('id')->pluck('number')->all();
+        $source = app(StaffClaimSource::class);
+
+        // The Approvals tab lists all three for both; each may decide only those with no refusal.
+        foreach ([[$hr, [$numbers[0]]], [$director, $numbers]] as [$viewer, $decidable]) {
+            $rows = app(ClaimsPageService::class)->page($viewer, $this->branch, ['tab' => 'approvals'])['approvals']['claims'];
+            $this->assertCount(3, $rows);
+            $this->assertSame(count(array_filter($rows, fn (array $r): bool => $r['refusal'] === null)), $source->count($viewer, null));
+            $this->assertSame($decidable, array_map(fn ($item) => $item->reference, $source->items($viewer, null, 5)));
+        }
+        $this->assertSame('2026-11-06 01:00:00', $source->oldest($hr, null)?->utc()->format('Y-m-d H:i:s'));
+        // The HR space count is the same: never the viewer's own claim, never one only a Director decides.
+        $this->selectBranch($hr);
+        $kinds = collect(app(HrSpace::class)->approvals($hr)['kinds'] ?? [])->keyBy('key');
+        $this->assertSame(1, $kinds['claims']['count']);
     }
 
     public function test_someone_else_decides_the_director_level_and_limits_warn_and_a_wrong_amount_is_sent_again(): void
