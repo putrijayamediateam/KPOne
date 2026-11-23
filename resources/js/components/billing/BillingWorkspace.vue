@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { TriangleAlert } from '@lucide/vue';
 import { ArrowLeft, Check, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
@@ -394,6 +395,27 @@ const reverse = (receipt: Receipt) =>
         >
             {{ error }}
         </p>
+        <!-- BIL-32 (Daniel): the day-close state sits at the top, above the columns, so nobody hunts for a missing button. -->
+        <div
+            v-if="billing.dayClose"
+            class="mx-3 mt-3 flex items-start gap-2 rounded-xl border p-3 text-sm"
+            :class="
+                billing.dayClose.paused
+                    ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+                    : 'border-border bg-muted/40'
+            "
+            role="status"
+            data-testid="day-close-banner"
+        >
+            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <p>
+                {{
+                    billing.dayClose.paused
+                        ? billing.dayClose.message
+                        : 'This day is locked. Only a refund is possible.'
+                }}
+            </p>
+        </div>
         <div
             :class="
                 manage
@@ -531,13 +553,6 @@ const reverse = (receipt: Receipt) =>
                         </ul>
                     </div>
                 </section>
-                <DayCloseNotice
-                    v-if="billing.dayClose"
-                    :day-close="billing.dayClose"
-                    :base="invoiceBase"
-                    :invoice-lock-version="billing.invoice?.lockVersion ?? null"
-                    :manage="manage"
-                />
                 <ReceiptRefunds
                     v-if="billing.refunds"
                     :refunds="billing.refunds"
@@ -1114,6 +1129,18 @@ const reverse = (receipt: Receipt) =>
                         </li>
                     </ul>
                 </section>
+                <!-- BIL-32: the locked receipts and their Reverse and refund, beside the receipts they explain. -->
+                <DayCloseNotice
+                    v-if="
+                        billing.dayClose &&
+                        !billing.dayClose.paused &&
+                        billing.dayClose.lockedReceipts.length
+                    "
+                    :day-close="billing.dayClose"
+                    :base="invoiceBase"
+                    :invoice-lock-version="billing.invoice?.lockVersion ?? null"
+                    :manage="manage"
+                />
                 <div
                     v-for="kind in ['panel', 'deferment'] as const"
                     :key="kind"

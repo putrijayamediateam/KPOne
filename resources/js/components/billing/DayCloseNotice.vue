@@ -37,6 +37,17 @@ const errorMessage = computed(() =>
           errors.value.payment_method_id),
 );
 
+// Daniel (BIL-32): say what is still missing under the disabled button, as the other reason forms do.
+const missing = computed(() =>
+    !form.reason
+        ? 'Write why the receipt is reversed to continue.'
+        : !form.method
+          ? 'Pick how the money was given back to continue.'
+          : !form.reasonCode
+            ? 'Pick a refund reason to continue.'
+            : null,
+);
+
 const start = (publicId: string) => {
     open.value = publicId;
     Object.assign(form, {
@@ -79,12 +90,7 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
 
 <template>
     <section
-        class="space-y-3 rounded-xl border p-4 text-sm"
-        :class="
-            dayClose.paused
-                ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
-                : 'border-border bg-muted/40'
-        "
+        class="space-y-3 rounded-lg border border-border bg-muted/40 p-3 text-sm"
         aria-label="Daily cash close"
         data-testid="day-close-notice"
     >
@@ -131,10 +137,10 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                             required
                         />
                     </label>
-                    <label class="grid gap-1"
+                    <label class="grid min-w-0 gap-1"
                         >Given back by<select
                             v-model="form.method"
-                            class="h-11 rounded-md border border-input bg-background px-2 text-sm lg:h-9"
+                            class="h-11 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm lg:h-9"
                             required
                         >
                             <option value="" disabled>Choose</option>
@@ -147,10 +153,10 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                             </option>
                         </select></label
                     >
-                    <label class="grid gap-1"
+                    <label class="grid min-w-0 gap-1"
                         >Refund reason<select
                             v-model="form.reasonCode"
-                            class="h-11 rounded-md border border-input bg-background px-2 text-sm lg:h-9"
+                            class="h-11 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm lg:h-9"
                             required
                         >
                             <option value="" disabled>Choose</option>
@@ -175,7 +181,6 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                         >
                         <Button
                             type="submit"
-                            variant="destructive"
                             class="max-lg:min-h-11"
                             :disabled="
                                 busy ||
@@ -186,6 +191,13 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                             >Reverse and record refund</Button
                         >
                     </div>
+                    <p
+                        v-if="missing"
+                        class="text-xs text-muted-foreground sm:col-span-2"
+                        data-testid="refund-locked-missing"
+                    >
+                        {{ missing }}
+                    </p>
                 </form>
             </li>
         </ul>

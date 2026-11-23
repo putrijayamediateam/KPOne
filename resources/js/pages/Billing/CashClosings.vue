@@ -423,7 +423,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                         class="grid gap-1 text-sm font-medium"
                         :for="`return-${closing.publicId}`"
                     >
-                        Reason to return (only for Return)
+                        Reason for recount (needed to return)
                         <Input
                             :id="`return-${closing.publicId}`"
                             v-model="returnReasons[closing.publicId]"
