@@ -63,13 +63,18 @@ final class RosterRules
             && ($localStart->hour >= 20 || $localStart->hour < 6 || $localEnd->toDateString() !== $localStart->toDateString() && ! $localEnd->isStartOfDay());
     }
 
-    /** Roles counted for minimum staffing (B.E.R.N.I.S.S for the owner, 2026-11-05). */
-    public const STAFFING_ROLES = ['resident_doctor' => ['Resident Doctor', 'Resident Doctors'], 'ca' => ['CA', 'CAs'], 'ca_supervisor' => ['CA Supervisor', 'CA Supervisors']];
+    /**
+     * Roles counted for minimum staffing (B.E.R.N.I.S.S for the owner, 2026-11-05). MA-1a (owner decision 23 Nov 2026,
+     * MA-ROLE-DESIGN question 8): the Medical Assistant has a line of its own and never counts towards the CA minimum.
+     */
+    public const STAFFING_ROLES = ['resident_doctor' => ['Resident Doctor', 'Resident Doctors'], 'ca' => ['CA', 'CAs'], 'ca_supervisor' => ['CA Supervisor', 'CA Supervisors'],
+        'medical_assistant' => ['Medical Assistant', 'Medical Assistants']];
 
     public const ROLE_LABELS = ['director' => 'Director', 'resident_doctor' => 'Resident Doctor', 'ca' => 'CA', 'ca_supervisor' => 'CA Supervisor',
         'panel_officer' => 'Panel Officer', 'finance_officer' => 'Finance Officer', 'administrator' => 'Administrator',
         'business_development' => 'Business Development', 'marketing' => 'Marketing', 'hr_manager' => 'HR Manager', 'technical_admin' => 'Technical Admin',
-        'branch_manager' => 'Branch Manager', 'account_assistant' => 'Account Assistant', 'store_admin' => 'Store Admin'];
+        'branch_manager' => 'Branch Manager', 'account_assistant' => 'Account Assistant', 'store_admin' => 'Store Admin',
+        'medical_assistant' => 'Medical Assistant'];
 
     public const MAX_SHIFT_MINUTES = 16 * 60;
 

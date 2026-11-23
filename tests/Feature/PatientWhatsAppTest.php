@@ -36,7 +36,7 @@ class PatientWhatsAppTest extends BillingTestCase
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             $response = $this->get(route('patients.whatsapp', ['context' => 'patient', 'key' => $patient->patient_number]));
-            if (in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor'], true)) {
+            if (in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true)) {
                 $response->assertStatus(302)->assertRedirect('https://wa.me/60123456789');
                 $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
                 $response->assertHeader('Referrer-Policy', 'no-referrer');

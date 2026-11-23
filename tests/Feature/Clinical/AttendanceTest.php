@@ -111,20 +111,20 @@ class AttendanceTest extends BillingTestCase
         $id = $service->act($doctor, $visit, $command);
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
             foreach (['issue.own', 'view.own', 'print.own', 'view.branch', 'print.branch'] as $ability) {
-                $expected = str_ends_with($ability, '.own') ? $role === 'resident_doctor' : in_array($role, ['ca', 'ca_supervisor'], true);
+                $expected = str_ends_with($ability, '.own') ? $role === 'resident_doctor' : in_array($role, ['ca', 'ca_supervisor', 'medical_assistant'], true);
                 $this->assertSame($expected, in_array('attendance_documents.'.$ability, $permissions, true), $role.' '.$ability);
             }
             $actor = $role === 'resident_doctor' ? $doctor : $this->actor($role);
             $this->selectBranch($actor);
             $this->get(route('attendance.index', $visit))->assertStatus($role === 'resident_doctor' ? 200 : 403);
             $this->get(route('attendance.source', $visit))->assertStatus($role === 'resident_doctor' ? 200 : 403);
-            $this->get(route('attendance.show', [$visit, $id]))->assertStatus(in_array($role, ['resident_doctor', 'ca', 'ca_supervisor'], true) ? 200 : 403);
+            $this->get(route('attendance.show', [$visit, $id]))->assertStatus(in_array($role, ['resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true) ? 200 : 403);
             foreach (['issue', 'replace', 'void'] as $action) {
                 if ($role !== 'resident_doctor') {
                     $this->postJson(route('attendance.store', $visit), [...$command, 'action' => $action])->assertForbidden();
                 }
             }
-            if (in_array($role, ['ca', 'ca_supervisor'], true)) {
+            if (in_array($role, ['ca', 'ca_supervisor', 'medical_assistant'], true)) {
                 $copies = $service->currentCopies($actor, $visit);
                 $this->assertSame([['id' => $id, 'number' => 'ATT/KP/CHR/'.now()->setTimezone($this->branch->timezone)->year.'/000001']], $copies);
                 $this->get(route('visits.show', $visit))->assertOk()->assertInertia(fn ($page) => $page->has('attendanceCopies', 1));

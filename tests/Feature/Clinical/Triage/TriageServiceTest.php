@@ -27,10 +27,10 @@ class TriageServiceTest extends TriageTestCase
     public function test_exact_grants_for_every_catalogue_role_and_the_grant_migration_replays_without_revoking(): void
     {
         foreach (PermissionCatalogue::roles() as $name => $permissions) {
-            $this->assertSame(in_array($name, ['ca', 'ca_supervisor'], true), in_array(P::RECORD_BRANCH, $permissions, true), "$name record");
+            $this->assertSame(in_array($name, ['ca', 'ca_supervisor', 'medical_assistant'], true), in_array(P::RECORD_BRANCH, $permissions, true), "$name record");
             $this->assertSame(in_array($name, ['director', 'hr_manager'], true), in_array(P::GUIDELINE_MANAGE_ORGANISATION, $permissions, true), "$name guideline");
             $actor = $this->actor($name);
-            $this->assertSame(in_array($name, ['ca', 'ca_supervisor'], true), $actor->can(P::RECORD_BRANCH), "$name installed record");
+            $this->assertSame(in_array($name, ['ca', 'ca_supervisor', 'medical_assistant'], true), $actor->can(P::RECORD_BRANCH), "$name installed record");
             $this->assertSame(in_array($name, ['director', 'hr_manager'], true), $actor->can(P::GUIDELINE_MANAGE_ORGANISATION), "$name installed guideline");
         }
         $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority(P::RECORD_BRANCH));
@@ -66,7 +66,7 @@ class TriageServiceTest extends TriageTestCase
     public function test_every_other_role_is_refused_and_writes_nothing(): void
     {
         [, $visit] = $this->waitingFixture();
-        foreach (array_diff(array_keys(PermissionCatalogue::roles()), ['ca', 'ca_supervisor']) as $role) {
+        foreach (array_diff(array_keys(PermissionCatalogue::roles()), ['ca', 'ca_supervisor', 'medical_assistant']) as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             try {
