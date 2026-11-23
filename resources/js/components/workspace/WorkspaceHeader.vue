@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
+import { useApprovalCount } from '@/composables/useApprovalCount';
 import { getInitials } from '@/composables/useInitials';
 import {
     headerDestinations,
@@ -28,6 +29,7 @@ import {
 const props = defineProps<{ context: 'clinic' | 'admin' }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
+const { count: approvalCount, label: approvalLabel } = useApprovalCount();
 const workspace = computed(() => page.props.workspace);
 const items = computed(() =>
     workspace.value
@@ -153,8 +155,12 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            class="size-10 rounded-full hover:bg-muted/60"
-                            aria-label="Open user menu"
+                            class="relative size-10 rounded-full hover:bg-muted/60"
+                            :aria-label="
+                                approvalCount > 0
+                                    ? `Open user menu, ${approvalLabel}`
+                                    : 'Open user menu'
+                            "
                         >
                             <Avatar class="size-9.5">
                                 <AvatarFallback
@@ -163,6 +169,16 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                                     {{ getInitials(user.name) }}
                                 </AvatarFallback>
                             </Avatar>
+                            <!-- APPR-1a: the number of things waiting for this person; hidden at zero. -->
+                            <span
+                                v-if="approvalCount > 0"
+                                data-test="approvals-pill"
+                                class="absolute -top-1.5 -right-2.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#be185d] px-1 text-[11px] leading-none font-semibold text-white ring-2 ring-background"
+                                aria-hidden="true"
+                                >{{
+                                    approvalCount > 99 ? '99+' : approvalCount
+                                }}</span
+                            >
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
