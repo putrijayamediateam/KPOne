@@ -17,9 +17,15 @@ use Illuminate\Support\Collection;
  * person may decide: never their own ({@see HrWaiting::claims()}), and only where {@see ClaimService::deciderRefusal()}, the
  * service's own rank rule, has no refusal (an HR Manager's claim and a claim over the Director level go to a Director). The
  * row shows the claim number (SC-), never a name, amount or reason.
+ *
+ * So this count (and the HR space's "Staff claims" count) can be lower than the number of rows on the Approvals tab, which
+ * lists every waiting claim with the reason the viewer may not decide it. That difference is intended.
  */
 final class StaffClaimSource implements ApprovalSource
 {
+    /** @var array<int, Collection<int, \stdClass>> the decidable claims per viewer, worked out once per request */
+    private array $decidable = [];
+
     public function __construct(private ClaimService $claims) {}
 
     public function key(): string
@@ -70,7 +76,7 @@ final class StaffClaimSource implements ApprovalSource
     /** @return Collection<int, \stdClass> oldest first */
     private function decidable(User $actor): Collection
     {
-        return HrWaiting::claims($actor)->orderBy('created_at')->orderBy('id')->get()
+        return $this->decidable[$actor->id] ??= HrWaiting::claims($actor)->orderBy('created_at')->orderBy('id')->get()
             ->filter(fn (\stdClass $claim): bool => $this->claims->deciderRefusal($actor, $claim) === null)->values();
     }
 
