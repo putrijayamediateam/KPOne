@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Attendance\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\HR\Approvals\HrWaiting;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
@@ -42,8 +43,7 @@ final class AttendancePageService
             'kinds' => collect(CorrectionService::KINDS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'reasons' => collect(CorrectionService::REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'rejectReasons' => collect(CorrectionService::REJECT_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
-            'pendingCount' => $canReview ? AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
-                ->where('user_id', '<>', $actor->id)->where('proposed_by_user_id', '<>', $actor->id)->count() : 0,
+            'pendingCount' => $canReview ? HrWaiting::corrections($actor)->count() : 0,
             'overtimeOptions' => $this->overtime->options(),
             'overtimePendingCount' => $canApprove ? $this->overtime->pendingCount($actor) : 0,
             'my' => $canClock ? $this->my($actor) : null,
