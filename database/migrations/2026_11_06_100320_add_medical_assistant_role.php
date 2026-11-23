@@ -10,8 +10,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 /**
  * MA-1a (owner decision 23 Nov 2026, "MA: approve all recommended, start MA-1a"; MA-ROLE-DESIGN sections 7 and 9): the
- * `medical_assistant` role, created with exactly its catalogue permissions (everything the CA holds at migration time,
- * plus the treatment room and triage), and the three new treatment-room permissions for their existing holders (CA:
+ * `medical_assistant` role, created with exactly its catalogue permissions as the code defines them when it runs
+ * (everything the CA holds, plus the treatment room and triage), and the three new treatment-room permissions for their existing holders (CA:
  * view; CA Supervisor: record, treatment-room call and view). Additive: `firstOrCreate`, give only what is missing, never
  * revoke, a missing existing role is logged and skipped, `down()` a no-op.
  */

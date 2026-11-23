@@ -17,6 +17,7 @@ use App\Domain\Identity\Services\StaffProvisioningService;
 use App\Domain\Identity\Services\StaffRoleService;
 use App\Domain\Organisation\Models\Department;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -334,6 +335,39 @@ class MedicalAssistantRoleTest extends VisitTestCase
         $migration->up();
         $this->assertStringContainsString("'store_admin'", $definition('hr_sop_audiences_role'));
         $this->assertStringContainsString("'medical_assistant'", $definition('hr_open_shifts_shape'));
+    }
+
+    public function test_an_open_shift_needing_a_medical_assistant_is_saved(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 09:00', $this->branch->timezone));
+        $hr = $this->actor('hr_manager');
+        $this->selectBranch($hr);
+
+        app(OpenShiftService::class)->post($hr, [
+            'branch_id' => $this->branch->id, 'date' => '2026-11-17', 'start_time' => '08:00', 'end_time' => '14:00', 'break_minutes' => '30',
+            'session_type' => 'morning', 'role_needed' => self::MA, 'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        $this->assertSame(1, DB::table('hr_open_shifts')->where('role_needed', self::MA)->count());
+    }
+
+    /**
+     * Drift rule (MA-ROLE-DESIGN section 7): the catalogue copies the CA's list to the MA, but an existing database only
+     * gets a new grant through a migration. A grant migration added after MA-1a that names 'ca' must name the MA too.
+     */
+    public function test_a_later_grant_migration_that_names_the_ca_also_names_the_medical_assistant(): void
+    {
+        $offenders = [];
+        foreach (glob(database_path('migrations/*.php')) ?: [] as $path) {
+            if (strcmp(basename($path), '2026_11_23_100100_allow_medical_assistant_in_hr_role_checks.php') <= 0) {
+                continue;
+            }
+            $source = (string) file_get_contents($path);
+            if (str_contains($source, 'givePermissionTo') && str_contains($source, "'ca'") && ! str_contains($source, "'medical_assistant'") && ! str_contains($source, 'MEDICAL_ASSISTANT_ROLE')) {
+                $offenders[] = basename($path);
+            }
+        }
+        $this->assertSame([], $offenders, 'Grant the permission to medical_assistant as well (MA-1a drift rule).');
     }
 
     /** @return array<string, mixed> */

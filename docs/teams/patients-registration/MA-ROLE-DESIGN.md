@@ -24,8 +24,8 @@ Owner decisions already given (19 Nov 2026): KPOne calls no AI service; staging 
 
 ## 2. What KPOne has today
 
-- **The CA role** (`app/Domain/Access/PermissionCatalogue.php`, plus the grants classes it merges) holds 70
-  effective permissions (section 3.1). Today it cannot call a patient to a treatment room and cannot write
+- **The CA role** (`app/Domain/Access/PermissionCatalogue.php`, plus the grants classes it merges) holds 72
+  effective permissions (at MA-1a) (section 3.1). Today it cannot call a patient to a treatment room and cannot write
   anything clinical except the OTC allergy record (`allergies.record_otc.branch`, DSP-5); TRI-1, once built, adds
   triage (`visits.triage.record.branch`).
 - **Q-2 treatment progress** (`docs/teams/queue-tv/Q-2-DESIGN.md`, PR #256, Q-2c PR #316): CA, CA Supervisor
@@ -128,7 +128,7 @@ complete the whole CA flow, Dispensary included:
   `DispensaryDirectoryService.php` (the case list, search and case page): `hasAnyRole(['ca', 'ca_supervisor'])`.
 - `app/Domain/DepartmentSpace/PharmacySpace.php`, `app/Domain/Visit/Services/VisitDirectoryService.php` (the "Open
   Dispensary" hint) and `app/Domain/Access/WorkspaceLandingService.php` (landing on Registration after sign-in).
-- KPOne HR: `RosterPermissions::HUMAN_ROLES` (11 roles; the other HR grants classes use it), `RosterRules::ROLE_LABELS`
+- KPOne HR: `RosterPermissions::HUMAN_ROLES` (14 roles at MA-1a; the other HR grants classes use it), `RosterRules::ROLE_LABELS`
   (memo and SOP audiences refuse a role that is not in it), `RosterRules::STAFFING_ROLES`, `OpenShiftService::ROLES`
   and the overtime role options (`OvertimePageService`).
 
@@ -224,7 +224,7 @@ that lasts.
 ## 7. Provisioning and governance
 
 - **In practice only the Director can assign the MA role.** `canAssignRoles` lets a non-Director grant a role only
-  if they hold all of its permissions. The CA Supervisor already holds all 70 CA permissions, so if the owner gives
+  if they hold all of its permissions. The CA Supervisor already holds all the CA's permissions (72 at MA-1a), so if the owner gives
   it `treatment_room.record.branch` and `queue.treatment_call.branch` (owner question 3), `canAssignRoles` would
   return true for it; it still cannot provision or change anyone's roles, because it holds no
   `staff.manage.organisation` or `access.manage.organisation`. A test pins "only the Director can provision an MA"
@@ -239,7 +239,7 @@ that lasts.
   holds **at migration time**.
 - **Drift rule for every team:** a future migration that grants a permission to `ca` must grant it to
   `medical_assistant` too. A pin test fails if the CA holds a permission the MA does not.
-- **KPOne HR:** `RosterPermissions::HUMAN_ROLES` gains `medical_assistant` (11 becomes 12; the `locum` role stays
+- **KPOne HR:** `RosterPermissions::HUMAN_ROLES` gains `medical_assistant` (14 becomes 15 at MA-1a; the `locum` role stays
   outside it, as today), so the MA has their own roster, leave, attendance and other own HR pages, and the role
   labels, memo and SOP audiences and overtime role options gain it too (section 3.4). Roster minimum staffing (HR-1) does not count an
   MA as a CA unless the owner says so (owner question 8).
@@ -333,12 +333,16 @@ recommended, start MA-1a"**. Each question in section 9 is answered with its rec
   `medical_assistant`, and the three audience checks also by `branch_manager`, `account_assistant` and `store_admin`
   (ROLE-1 had left them out; the owner asked for them on 23 Nov 2026); it must sit after the HR tables, so it cannot use
   the 2026-11-06 range.
-- **Existing test assertions:** 42 changed lines in 34 files, each adding the MA beside the CA in an exact-holder list
-  or counting 15 human roles instead of 14 (owner, 23 Nov 2026: "approve the 42 MA-1a test changes").
+- **Existing test assertions:** 33 files: 40 changed lines, each adding the MA beside the CA in an exact-holder list
+  or counting 15 human roles instead of 14, plus the MA row added to the department-space map and to the nav-02 top-bar
+  list (the owner's "42" counted those two rows) (owner, 23 Nov 2026: "approve the 42 MA-1a test changes").
 - Role-name sites (section 3.4) now include `medical_assistant`: `DispensaryAuthorityService`,
   `DispensaryDirectoryService`, `PharmacySpace`, `VisitDirectoryService` (Open Dispensary), `WorkspaceLandingService`
   (lands on Registration), `RosterPermissions::HUMAN_ROLES`, `RosterRules::ROLE_LABELS` and `STAFFING_ROLES` (own line),
   `OpenShiftService::ROLES` and the overtime role labels.
+- `hr_open_shifts.role_needed` widens from varchar(16) to varchar(32) in the same migration, because
+  'medical_assistant' has 17 characters (Imran's review; a test posts a real MA open shift). A source test fails if a
+  grant migration added after MA-1a names `'ca'` without `'medical_assistant'` (the drift rule).
 - No screen, route or service uses the three new permissions yet; the treatment-room call still needs
   `queue.call.own` or `queue.call.branch` until MA-1b.
 

@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\DB;
  * SOP or credential-type audience and as the role an open shift needs, like any other human role. The owner also asked
  * (23 Nov 2026) to add the three ROLE-1 roles (Branch Manager, Account Assistant, Store Admin) to the three audience
  * checks, which ROLE-1 had left out although they are in RosterPermissions::HUMAN_ROLES. Every other value is unchanged.
- * It sits after the HR tables (2026-11-10 and 2026-11-13), which is why it cannot use the Patients & Registration range.
- * `down()` refuses while a row uses one of the added roles.
+ * `hr_open_shifts.role_needed` was varchar(16), one character short of 'medical_assistant', so it becomes varchar(32)
+ * (Imran's review); `down()` leaves it wide, which is harmless. It sits after the HR tables (2026-11-10 and 2026-11-13),
+ * which is why it cannot use the Patients & Registration range. `down()` refuses while a row uses one of the added roles.
  */
 return new class extends Migration
 {
@@ -35,6 +36,7 @@ return new class extends Migration
 
     public function up(): void
     {
+        DB::statement('ALTER TABLE hr_open_shifts ALTER COLUMN role_needed TYPE varchar(32)');
         $this->apply(self::ROLES.", 'branch_manager', 'account_assistant', 'store_admin', 'medical_assistant'", "'resident_doctor', 'ca', 'medical_assistant', 'other'");
     }
 

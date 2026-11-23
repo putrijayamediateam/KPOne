@@ -673,7 +673,7 @@ final class PermissionCatalogue
 
         // MA-1a catalogue rule (MA-ROLE-DESIGN section 7): the Medical Assistant holds every permission the CA holds, plus
         // its own grants above. Built last, so a permission later granted to `ca` here reaches the MA automatically.
-        $roles[self::MEDICAL_ASSISTANT_ROLE] = array_values(array_unique([...$roles['ca'], ...$roles[self::MEDICAL_ASSISTANT_ROLE]]));
+        $roles[self::MEDICAL_ASSISTANT_ROLE] = array_values(array_unique([...$roles['ca'], ...($roles[self::MEDICAL_ASSISTANT_ROLE] ?? [])]));
 
         return $roles;
     }
