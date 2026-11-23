@@ -25,6 +25,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
     ].map((match) => match[1]);
     // DD-75: the same 16 links, grouped, once for lg and once for the phone disclosures, in the same order; Stock value
     // (Director only) closes Reports and checks in both, as in the new layout (owner decision 2026-11-19).
+    // STK-44 (owner-approved assertion change): Medicine sales (Director and Finance Officer) follows Stock value.
     const grouped = [
         '/inventory/counts',
         '/inventory/writeoffs',
@@ -43,6 +44,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/stock-health',
         '/inventory/readiness',
         '/inventory/stock-value',
+        '/inventory/medicine-sales',
     ];
     assert.deepEqual(links, [...grouped, ...grouped]);
     assert.doesNotMatch(page, /<a\s/);
@@ -65,9 +67,11 @@ test('DD-75: both link layouts show the controlled register only to its viewers,
         /Count and adjust ·\s+\{\{ canViewControlledRegister \? 6 : 5 \}\}/,
     );
     assert.match(page, /Orders and suppliers · 7/);
+    assert.match(page, /Reports and checks ·\s+\{\{ reportsCount \}\}/);
+    // STK-44 (owner-approved assertion change): the count adds the Medicine sales link for its holders.
     assert.match(
-        page,
-        /Reports and checks ·\s+\{\{ referenceData\.canViewStockValue \? 4 : 3 \}\}/,
+        read('resources/js/pages/Inventory/Index.vue'),
+        /const reportsCount = computed\(\s*\(\) =>\s*3 \+\s*\(props\.referenceData\.canViewStockValue \? 1 : 0\) \+\s*\(props\.referenceData\.canViewMedicineSales \? 1 : 0\),\s*\);/,
     );
     assert.equal(
         [
