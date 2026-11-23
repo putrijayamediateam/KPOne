@@ -136,6 +136,12 @@ name on the consultation page (one small query per load).
 same-patient check compares lock versions, which a green triage does not change), so it can still say "No triage yet";
 it is a warning only. The zone on a board follows the board's poll.
 
+**Daniel's design review (23 Nov 2026):** OK as built. Screen 5 shows the triage label (5a) and Q-12's "Check" line
+(5b) separately: the "Check" line only appears when the note fills an empty box, which leaves the vitals unsaved and
+hides the triage label. Not done: running Q-12's check on the copied readings (option b). **Follow-up (backlog):** keep
+the label while unsaved as "From triage … (edited, not saved)" (Daniel's option a). The 390 px sticky-footer overlap in
+the full-page shots is existing design debt DD-111.
+
 ## 7. Out of TRI-1c
 
 TRI-2 (emergency lane, all-doctor alert), TRI-3 (standing order), any zone on the TV or QR page, any change to queue
