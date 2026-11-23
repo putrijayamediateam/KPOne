@@ -61,3 +61,10 @@ test('while the connector is switched off the empty state does not invite connec
         /<template v-if="canConnect" #actions>[\s\S]*variant="outline"[\s\S]*\/agents\/connected-apps/,
     );
 });
+
+test('the Agents header button is 44 px tall below 1024 px', () => {
+    assert.match(
+        read('resources/js/pages/Agents/Index.vue'),
+        /variant="outline"\s+class="max-lg:min-h-11"/,
+    );
+});

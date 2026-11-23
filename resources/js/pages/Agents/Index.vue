@@ -123,7 +123,7 @@ const toggle = () => {
             description="The AI agents registered in KPOne and what they did recently."
         >
             <template v-if="canConnect" #actions>
-                <Button variant="outline" as-child>
+                <Button variant="outline" class="max-lg:min-h-11" as-child>
                     <Link
                         href="/agents/connected-apps"
                         data-test="connected-apps-link"
