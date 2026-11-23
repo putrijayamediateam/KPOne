@@ -44,7 +44,7 @@ class OtcAllergyDetailsTest extends VisitTestCase
         $holders = array_keys(array_filter(PermissionCatalogue::roles(), fn (array $permissions): bool => in_array('allergies.record_otc.branch', $permissions, true)));
         sort($holders);
 
-        $this->assertSame(['ca', 'ca_supervisor'], $holders);
+        $this->assertSame(['ca', 'ca_supervisor', 'medical_assistant'], $holders);
         $this->assertTrue($this->actor('ca')->can('allergies.record_otc.branch'));
         $this->assertFalse($this->actor('resident_doctor')->can('allergies.record_otc.branch'));
     }

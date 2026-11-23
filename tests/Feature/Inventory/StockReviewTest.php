@@ -67,7 +67,7 @@ class StockReviewTest extends VisitTestCase
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
-            $view = in_array($role, ['director', 'ca', 'ca_supervisor', 'finance_officer', 'administrator', 'branch_manager', 'account_assistant', 'store_admin'], true);
+            $view = in_array($role, ['director', 'ca', 'ca_supervisor', 'medical_assistant', 'finance_officer', 'administrator', 'branch_manager', 'account_assistant', 'store_admin'], true);
             $this->get(route('inventory.stock-review'))->assertStatus($view ? 200 : 403);
             try {
                 $version = (int) DB::table('inventory_stock_reviews')->max('lock_version');

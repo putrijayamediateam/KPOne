@@ -41,7 +41,7 @@ class RecordsTest extends VisitTestCase
         $this->assertSame(['director', 'hr_manager'], $holders(RecordPermissions::VIEW_ORGANISATION));
         $this->assertSame(['director', 'hr_manager'], $holders(RecordPermissions::MANAGE));
         $this->assertNotContains('queue_display', $holders(RecordPermissions::VIEW_OWN));
-        $this->assertCount(14, $holders(RecordPermissions::VIEW_OWN));
+        $this->assertCount(15, $holders(RecordPermissions::VIEW_OWN));
         foreach ([RecordPermissions::VIEW_ORGANISATION, RecordPermissions::MANAGE, RecordPermissions::VIEW_OWN] as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
         }

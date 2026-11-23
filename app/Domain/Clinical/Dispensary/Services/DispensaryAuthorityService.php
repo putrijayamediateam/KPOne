@@ -34,7 +34,7 @@ class DispensaryAuthorityService
         $assignments = $profile ? StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->orderBy('id')->lockForUpdate()->get() : collect();
         $date = now()->setTimezone($branch->timezone)->toDateString();
         $assigned = $assignments->contains(fn (StaffBranchAssignment $a): bool => $a->branch_id === $branch->id && $a->valid_from->toDateString() <= $date && ($a->valid_until === null || $a->valid_until->toDateString() >= $date));
-        if (! $locked->is_active || ! $profile || ! $locked->hasAnyRole(['ca', 'ca_supervisor']) || ! $locked->can($permission) || ! $assigned) {
+        if (! $locked->is_active || ! $profile || ! $locked->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant']) || ! $locked->can($permission) || ! $assigned) {
             throw new AuthorizationException('You may not access this Dispensary workflow.');
         }
 
