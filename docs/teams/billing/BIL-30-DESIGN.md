@@ -31,7 +31,8 @@ mark where). Classic only. Synthetic data only; nothing here is production appro
   periods in private methods (`ClinicInsightsReportService::scopePeriod` and the headline total,
   `ClinicInsightsService`). BIL-30 moves this into one public method, `InvoiceSalesProjection::netSales(organisation,
   branch, startUtc, endUtc, ?doctor)`, and makes the Insights headline and Provider rows call it. Targets call the same
-  method, so the two cannot drift. Insights' output must stay identical; the existing Insights tests prove it.
+  method, so the two cannot drift. This is an internal move only: Insights' figures, screens and access stay exactly as
+  they are (coordinator: "don't change Insights in BIL-30"), and the existing Insights tests, unchanged, prove it.
 - **Month boundaries:** local midnight on the 1st of the month, in the branch timezone, converted to UTC; the end is
   local midnight on the 1st of the next month.
 - **Achieved (branch)** = net invoice sales for the month at that branch:
@@ -109,8 +110,9 @@ mark where). Classic only. Synthetic data only; nothing here is production appro
   - the doctor's id comes only from the signed-in user, never from the request;
   - the doctor card's payload holds only that doctor's line; no branch total or other doctor's figure is sent in its
     page props or any shared props;
-  - **note for the owner:** every role holds `insights.view.organisation`, so per-doctor sales are already visible in
-    the Insights Provider table. P7 restricts targets only, not those sales figures.
+  - **owner answer (22-23 Nov 2026):** "in insight everyone can see also if the have insight access". Insights stays as
+    it is: anyone with Insights access sees per-doctor sales there. P7 applies to targets only: each doctor sees only
+    their own target. BIL-30 changes nothing in what Insights shows or who sees it.
 - The Director and Finance overview (BIL-31) reads targets through the manage permission.
 
 ## 6. Screens (Daniel's look)
@@ -159,3 +161,5 @@ mark where). Classic only. Synthetic data only; nothing here is production appro
 1. Past months: fully locked (1A).
 2. Doctor card: the consultation queue page, and "My day" later.
 3. Panel sales count.
+4. Doctor targets are independent of the branch target (accepted, coordinator for the owner, 22 Nov 2026).
+5. Insights stays as it is; P7 covers targets only (owner, 22-23 Nov 2026).
