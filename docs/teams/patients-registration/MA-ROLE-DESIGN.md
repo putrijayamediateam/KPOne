@@ -1,8 +1,9 @@
 # MA role design note: the Medical Assistant
 
-Status: **DESIGN NOTE, NOT BUILT, NOT AUTHORISED.** The owner has decided what an MA does (section 1). Nothing is
-built until the owner answers section 9, approves the new role and permissions, and says to start MA-1a.
-Synthetic data only.
+Status: **APPROVED BY THE OWNER ON 23 NOV 2026; MA-1a BUILDING.** The owner typed in the coordinator session on
+23 Nov 2026 (relayed by B.E.R.N.I.S.S): "MA: approve all recommended, start MA-1a". That approves every recommendation
+in section 9 (recorded in section 9a) and starts slice MA-1a only (section 10); MA-1b and MA-1c each still need their
+own start and ship-it. Synthetic data only.
 
 Owners: Patients & Registration (the role, provisioning tests and the treatment-room record), with Queue & TV
 (the treatment-room call and the Q-2 steps) and Staff Experience (the menus). The Lead UI/UX Designer reviews
@@ -293,6 +294,53 @@ that lasts.
     usually runs while the consultation is held. Recommended: allow it under `queue.treatment_call.branch` only
     (section 3.3).
 11. **Approve `treatment_room.view.branch`** for CA, CA Supervisor and MA (section 3.3).
+
+## 9a. Owner decisions (23 Nov 2026)
+
+The owner's words, typed in the coordinator session on 23 Nov 2026 and relayed by B.E.R.N.I.S.S: **"MA: approve all
+recommended, start MA-1a"**. Each question in section 9 is answered with its recommendation:
+
+1. **Approved:** the role `medical_assistant` ("Medical Assistant") with `treatment_room.record.branch`,
+   `queue.treatment_call.branch` and `treatment_room.view.branch`. This is the explicit role decision for a clinical
+   write that `AGENTS.md` requires.
+2. **Yes:** the Medical Assistant joins `visits.triage.record.branch` (TRI-1), so `TriageZoneProjection` shows the MA
+   the zone, as for the CA.
+3. **Yes:** the CA Supervisor may also record treatment-room entries (and holds `queue.treatment_call.branch`); the CA
+   may not.
+4. The procedure and sample list is the eight Q-2 step codes plus `blood_sample_outside_lab`, `urine_sample` and
+   `swab_sample` (section 4.2), fixed in code.
+5. No free text in v1.
+6. The doctor still completes the consultation after reading the record; the MA never completes one.
+7. Readers of the record are doctors, CA, CA Supervisor and MA only (not the Director, Finance, Panel or
+   Administrator).
+8. The MA has a separate line on the roster planner's minimum staffing and never counts towards the CA minimum.
+9. No result values in v1.
+10. The treatment-room call is allowed for a held patient, under `queue.treatment_call.branch` only (built in MA-1b).
+11. `treatment_room.view.branch` goes to CA, CA Supervisor and MA.
+
+### What MA-1a built
+
+- `App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions` (the three permissions and their holders) and
+  `PermissionCatalogue::MEDICAL_ASSISTANT_ROLE`. **Catalogue rule:** at the end of `PermissionCatalogue::roles()` the MA
+  gets everything the CA holds plus its own grants, so a permission later given to `ca` in the catalogue reaches the MA
+  automatically; `MedicalAssistantRoleTest` pins the exact list (74: the CA's 72 plus `treatment_room.record.branch`
+  and `queue.treatment_call.branch`) and fails if the CA holds anything the MA does not. **Drift rule:** a migration that
+  grants a permission to `ca` on existing databases must grant it to `medical_assistant` too.
+- Migration `2026_11_06_100320_add_medical_assistant_role` (Patients & Registration range): additive, the role with
+  exactly its catalogue permissions, the three permissions for CA (view) and CA Supervisor (all three); a missing role is
+  logged and skipped, `down()` a no-op. Migration `2026_11_23_100100_allow_medical_assistant_in_hr_role_checks` widens
+  the PostgreSQL role checks of `hr_memo_roles`, `hr_sop_audiences`, `hr_credential_type_roles` and `hr_open_shifts` by
+  `medical_assistant`, and the three audience checks also by `branch_manager`, `account_assistant` and `store_admin`
+  (ROLE-1 had left them out; the owner asked for them on 23 Nov 2026); it must sit after the HR tables, so it cannot use
+  the 2026-11-06 range.
+- **Existing test assertions:** 42 changed lines in 34 files, each adding the MA beside the CA in an exact-holder list
+  or counting 15 human roles instead of 14 (owner, 23 Nov 2026: "approve the 42 MA-1a test changes").
+- Role-name sites (section 3.4) now include `medical_assistant`: `DispensaryAuthorityService`,
+  `DispensaryDirectoryService`, `PharmacySpace`, `VisitDirectoryService` (Open Dispensary), `WorkspaceLandingService`
+  (lands on Registration), `RosterPermissions::HUMAN_ROLES`, `RosterRules::ROLE_LABELS` and `STAFFING_ROLES` (own line),
+  `OpenShiftService::ROLES` and the overtime role labels.
+- No screen, route or service uses the three new permissions yet; the treatment-room call still needs
+  `queue.call.own` or `queue.call.branch` until MA-1b.
 
 ## 10. Slices
 

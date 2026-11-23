@@ -6,6 +6,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
@@ -74,6 +75,13 @@ final class PermissionCatalogue
 
     public const STORE_ADMIN_ROLE = 'store_admin';
 
+    /**
+     * MA-1a (owner decision 23 Nov 2026; docs/teams/patients-registration/MA-ROLE-DESIGN.md): everything the CA holds, plus
+     * the treatment room (and triage). Built as "the CA's list, then the additions" at the end of roles(), so the two
+     * cannot drift. Never people or access authority; in practice only a Director provisions it (canAssignRoles).
+     */
+    public const MEDICAL_ASSISTANT_ROLE = 'medical_assistant';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -81,6 +89,7 @@ final class PermissionCatalogue
             ...array_keys(CallHoldPermissions::grants()),
             ...array_keys(TreatmentStepPermissions::grants()),
             ...array_keys(TriagePermissions::grants()),
+            ...array_keys(TreatmentRoomPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -515,6 +524,13 @@ final class PermissionCatalogue
             }
         }
 
+        // MA-1a (owner decision 23 Nov 2026): the treatment room for the Medical Assistant and the CA Supervisor.
+        foreach (TreatmentRoomPermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
         foreach (WebsitePermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
@@ -654,6 +670,10 @@ final class PermissionCatalogue
                 $roles[$role][] = $permission;
             }
         }
+
+        // MA-1a catalogue rule (MA-ROLE-DESIGN section 7): the Medical Assistant holds every permission the CA holds, plus
+        // its own grants above. Built last, so a permission later granted to `ca` here reaches the MA automatically.
+        $roles[self::MEDICAL_ASSISTANT_ROLE] = array_values(array_unique([...$roles['ca'], ...$roles[self::MEDICAL_ASSISTANT_ROLE]]));
 
         return $roles;
     }
