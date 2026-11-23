@@ -386,5 +386,14 @@ the Director's AI app can use as a custom connector. **Claude calls KPOne; KPOne
   (organisation-wide, counts only). Each is a `ConnectorQuery` class that returns an explicit list of keys (no pass-through), at most
   25 rows with a `limits` note, staff-typed names cleaned and cut to 80 characters, dates validated (a range is at most 31 days),
   plus `definitions` and `asOf`. The connector agent's allowlist is the union of their sources. CN-3 adds `visits_by_state`,
-  `queue_now` and `panel_claims_made`.
+  `queue_now` and `panel_claims_made`: three small data sources of their own (`connector.visits_by_state`, `connector.queue_now`,
+  `connector.panel_claims_made`, permission `insights.view.organisation`) whose numbers reconcile with the clinic day summary
+  and the Panel Claims list in tests. `queue_now` counts patients carried over from earlier days (`carriedOver`).
+- **Validation:** a request is checked (dates, range, branch) before anything is counted or recorded; an invalid or refused
+  request neither uses the daily limit nor creates a run, and is audited as `invalid_input` or `branch_not_allowed`.
+- **Connected apps (CN-4):** `GET /agents/connected-apps` lists the signed-in holder's own live connections (when connected,
+  when last asked) and `DELETE /agents/connected-apps/{client}` revokes that person's tokens for that app (audited as
+  `ai_connector.tokens_revoked`, scope `one_app`). Nobody sees another person's connections.
+- **Operating:** [CONNECTOR-OWNER-GUIDE.md](CONNECTOR-OWNER-GUIDE.md) (what the owner does in the Claude app) and
+  [CONNECTOR-TRIAL-CHECKLIST.md](CONNECTOR-TRIAL-CHECKLIST.md) (switching it on and off on the trial server).
 - **Data rule:** fictional data only until the PDPA review (design note section 8).
