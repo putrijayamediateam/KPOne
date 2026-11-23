@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\SyntheticVisitCompletion;
 
 /**
- * BIL-29 (owner decision 12): foreign (passport) patients are marked on the bill with "SST: to be confirmed". The mark
+ * BIL-29 (owner decision 12): foreign (passport) patients are marked on the bill with "SST is not charged yet" (owner, 22 Nov 2026; was "SST: to be confirmed". The mark
  * is a yes or no only, no identifier value or country reaches billing, and no money changes.
  */
 class ForeignPatientMarkerTest extends BillingTestCase

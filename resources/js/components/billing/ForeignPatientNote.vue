@@ -16,7 +16,7 @@ defineProps<{ foreign?: boolean }>();
             label="Foreign patient (passport)"
         />
         <p class="text-xs text-muted-foreground">
-            SST: to be confirmed (no SST is charged yet).
+            SST is not charged yet.
         </p>
     </div>
 </template>

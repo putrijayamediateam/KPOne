@@ -8,7 +8,7 @@ Design note for review (Kumar). Synthetic data only; nothing here is production 
 
 ## 1. What changes
 
-- Billing shows a plain marker for a foreign patient, with "SST: to be confirmed". Places:
+- Billing shows a plain marker for a foreign patient, with "SST is not charged yet." (owner, 22 Nov 2026). Places:
   - the Patient Billing page;
   - Manage payments;
   - the completed-visit Invoice;
@@ -67,7 +67,7 @@ REVISED.
 ## 5. Screens (Daniel's look)
 
 - A neutral chip, "Foreign patient (passport)", beside the patient name.
-- Under it, a muted line: "SST: to be confirmed (no SST is charged yet)."
+- Under it, a muted line: "SST is not charged yet." (owner "BIL-29: A, ship it", 22 Nov 2026, Daniel's wording; first drafted as "SST: to be confirmed (no SST is charged yet).")
 - No colour that suggests an error. 44 px is not affected (it is not a control).
 - Classic only (the V2 billing pages were removed in CO-5).
 
@@ -106,5 +106,5 @@ REVISED.
   is derived from identity data; they never see the identifier, its type value or its country.
 - Kumar's review (22 Nov 2026): approve with changes; the docs, the skipped computation when printing and the extra
   tests were added.
-- Open for the owner: decision 49 treats the clinic as not SST-registered. "SST: to be confirmed" stays until the
-  accountant confirms; the owner may prefer different wording.
+- Wording (owner 22 Nov 2026, "BIL-29: A"): the chip stays and its line reads "SST is not charged yet." (Daniel: "to be
+  confirmed" is a note for Finance, not the front desk). Daniel: look OK.

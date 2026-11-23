@@ -16,7 +16,7 @@ test('BIL-29: the note shows only when the server says so, with a neutral badge 
         flatNote,
         /<StatusBadge status="foreign" tone="neutral" label="Foreign patient \(passport\)" \/>/,
     );
-    assert.match(flatNote, /SST: to be confirmed \(no SST is charged yet\)\./);
+    assert.match(flatNote, /SST is not charged yet\./);
     assert.doesNotMatch(note, /myr\(|Sen\b|%/);
 });
 
