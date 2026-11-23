@@ -9,11 +9,11 @@ const read = (p) =>
 
 test('CO-1: the look is always Classic on first paint and after every visit', () => {
     const blade = read('resources/views/app.blade.php');
-    assert.match(blade, /data-ui="classic"/);
-    assert.doesNotMatch(blade, /\$uiVersion|data-look="new"/);
-    assert.match(
-        read('resources/js/lib/ui-version.ts'),
-        /\): UiVersion => 'classic';/,
+    assert.doesNotMatch(blade, /data-ui=|data-look=|\$uiVersion/);
+    assert.ok(
+        !existsSync(
+            new URL('../../resources/js/lib/ui-version.ts', import.meta.url),
+        ),
     );
 });
 

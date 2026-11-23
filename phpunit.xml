@@ -13,9 +13,13 @@
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelClaimPackIssueRaceTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDispensaryPackTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
             <exclude>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
@@ -28,6 +32,7 @@
             <exclude>tests/Feature/HR/PostgresDisciplineContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresIncidentsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</exclude>
+            <exclude>tests/Feature/PostgresMyRoutineContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresCredentialsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresClaimsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresPayrollContentionTest.php</exclude>
@@ -36,6 +41,7 @@
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresPackConversionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresProposalPrepareTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresSupplierReturnTest.php</exclude>
@@ -71,12 +77,16 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimPackIssueRaceTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryPackTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
             <file>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</file>
             <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
@@ -89,6 +99,7 @@
             <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
             <file>tests/Feature/HR/PostgresIncidentsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</file>
+            <file>tests/Feature/PostgresMyRoutineContentionTest.php</file>
             <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresPayrollContentionTest.php</file>
@@ -97,6 +108,7 @@
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPackConversionTest.php</file>
             <file>tests/Feature/Inventory/PostgresProposalPrepareTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
@@ -135,6 +147,8 @@
         <testsuite name="Contention1">
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryDoctorCheckTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryPackTest.php</file>
             <file>tests/Feature/Clinical/Triage/PostgresTriageContentionTest.php</file>
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
@@ -152,7 +166,9 @@
             <file>tests/Feature/PostgresDispensaryInventoryRegressionTest.php</file>
         </testsuite>
         <testsuite name="Contention2">
+            <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimPackIssueRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
@@ -177,12 +193,14 @@
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPackConversionTest.php</file>
             <file>tests/Feature/Inventory/PostgresProposalPrepareTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
             <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
+            <file>tests/Feature/PostgresMyRoutineContentionTest.php</file>
             <file>tests/Feature/PostgresBusinessDetailsRegressionTest.php</file>
             <file>tests/Feature/PostgresClinicalEncounterRegressionTest.php</file>
             <file>tests/Feature/PostgresPatientMasterRegressionTest.php</file>
@@ -217,5 +235,8 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true" force="true"/>
         <server name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true"/>
+        <!-- PNL-28a: existing Panel fixtures approve a bill and then create the claim themselves, so the automatic claim is off in tests. Tests of the automatic claim switch it on. -->
+        <env name="PANEL_AUTO_CLAIMS" value="false" force="true"/>
+        <server name="PANEL_AUTO_CLAIMS" value="false"/>
     </php>
 </phpunit>

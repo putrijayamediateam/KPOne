@@ -186,7 +186,9 @@ test("Daniel's review: the zone selector, the Held box, reading notes, outline b
     assert.match(show, /Retake: this reading crossed a limit earlier/);
     assert.match(show, /border-2 border-warning/);
     const board = read('resources/js/pages/Registration/Index.vue').replace(/\s+/g, ' ');
-    assert.match(board, /:variant=" activeTab === 'triage' \? 'outline' : 'default' "/);
+    // Apply is outline on every tab, so Register Visit stays the board's one filled button.
+    assert.match(board, /type="submit" variant="outline" :disabled="loading"/);
+    assert.doesNotMatch(board, /activeTab === 'triage' \? 'outline'/);
     const page = read('resources/js/pages/TriageGuideline/Index.vue').replace(/\s+/g, ' ');
     assert.match(page, /it becomes the guideline in force/);
     assert.match(page, /<DateField id="tg-signed"/);

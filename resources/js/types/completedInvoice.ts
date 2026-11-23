@@ -1,4 +1,4 @@
-import type { OutstandingBills } from '@/types/billing';
+import type { OutstandingBills, PanelClaimLink } from '@/types/billing';
 import type { BillToContext } from '@/types/billTo';
 import type { InvoiceActivityLink } from '@/types/invoiceActivity';
 import type {
@@ -27,5 +27,7 @@ export type CompletedInvoicePage = {
         billing: string | null;
         payments: string | null;
         activity: InvoiceActivityLink;
+        /** BIL-35: the Panel claim button, for Panel Claims users only. */
+        panelClaim?: PanelClaimLink | null;
     };
 };

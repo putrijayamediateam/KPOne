@@ -4,10 +4,9 @@ import { toast } from 'vue-sonner';
 import type FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 
 /**
- * The Applications page's state and actions (HR-13 to HR-17e), shared by Classic (`pages/HR/Applications.vue`) and
- * Version 2 (`pages/HR/V2/Applications.vue`), so both send the same requests with the same lock versions and idempotency
- * keys. Moved out of the Classic page unchanged; the Classic template did not change. Contact details arrive masked and
- * are shown only through the audited Show; nothing is prefetched, cached or put in props.
+ * The Applications page's state and actions (HR-13 to HR-17e) for `pages/HR/Applications.vue`: every request, lock
+ * version and idempotency key. Contact details arrive masked and are shown only through the audited Show; nothing is
+ * prefetched, cached or put in props.
  */
 export type Tab = 'applications' | 'pool' | 'positions' | 'settings';
 export type Option = { value: string; label: string };

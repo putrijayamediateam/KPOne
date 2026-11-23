@@ -10,17 +10,12 @@ import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { myr } from '@/types/billing';
 import type { CompletedInvoicePage } from '@/types/completedInvoice';
 
 const props = defineProps<{ invoice: CompletedInvoicePage }>();
 const tab = ref('all');
-// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
-// 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
-const receiptTone = (status: string) =>
-    status === 'reversed' ? ('neutral' as const) : undefined;
 // BIL-5: billing prints are recorded; the old print address only redirects to Issued copies (BIL-14).
 const billingPrint = /\/billing\/[^/]+\/(?:receipts\/[^/]+\/)?print$/;
 const isBillingPrint = (url: string) => billingPrint.test(url);
@@ -124,6 +119,13 @@ const totals = computed(() => {
                 :context="invoice.links.activity"
                 :notes-context="invoice.notes"
             />
+            <ActionLink
+                v-if="invoice.links.panelClaim"
+                :href="invoice.links.panelClaim.href"
+                variant="outline"
+                data-testid="panel-claim-link"
+                >{{ invoice.links.panelClaim.label }}</ActionLink
+            >
             <span class="ml-auto text-xs text-muted-foreground"
                 >{{ invoice.visit.branch }} ·
                 {{ invoice.visit.visitNumber }}</span
@@ -416,19 +418,12 @@ const totals = computed(() => {
                                 >
                                     {{ payment.receiptNumber }} ·
                                     {{ payment.receivedAt }}
-                                    <span class="v2:hidden"
+                                    <span
                                         >·
                                         <span class="capitalize">{{
                                             payment.status
                                         }}</span></span
                                     >
-                                </div>
-                                <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
-                                <div class="mt-1 hidden v2:block">
-                                    <StatusBadge
-                                        :status="payment.status"
-                                        :tone="receiptTone(payment.status)"
-                                    />
                                 </div>
                                 <p
                                     v-if="payment.refundedSen"

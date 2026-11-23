@@ -1,7 +1,7 @@
 import { trimQuantity } from '@/lib/supplier-terms';
 
 /**
- * Inventory wording (Classic and, until they are removed, the V2 pages): "5 units", "1 unit", "2.5 tablets",
+ * Inventory wording: "5 units", "1 unit", "2.5 tablets",
  * "3 boxes". A stored quantity has three decimals ("5.000"); decimals show only when there is a fraction (Daniel,
  * page 2b). Without a unit, just the number.
  */

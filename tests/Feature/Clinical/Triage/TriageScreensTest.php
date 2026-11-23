@@ -6,6 +6,7 @@ use App\Domain\Clinical\Triage\TriageGuidelineVersion;
 use App\Domain\Clinical\Triage\VisitTriageAssessment;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Services\VisitDirectoryService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -14,6 +15,9 @@ class TriageScreensTest extends TriageTestCase
 {
     public function test_the_triage_tab_lists_waiting_consultations_without_triage_oldest_first_for_ca_only(): void
     {
+        // Start at 10:00 branch-local so the two-minute step below can never cross Kuala Lumpur midnight
+        // (16:00 UTC), where the board's default "today" filter would split the two visits across days.
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         $this->approvedGuideline();
         [$ca, $first] = $this->waitingFixture();
         $this->travel(2)->minutes();

@@ -22,14 +22,16 @@ test('2a: Classic Inventory operations import no V2 code', () => {
     }
 });
 
-test('2a: the Classic panel leaves out suppliers and purchase orders only when the V2 page asks', () => {
-    assert.match(classicPanel, /hideOrders\?: boolean;/);
+test('2a: the Classic panel always shows suppliers and purchase orders', () => {
+    assert.doesNotMatch(classicPanel, /hideOrders/);
     assert.match(
         classicPanel,
-        /v-if="operations\.permissions\.manageSuppliers && !hideOrders"/,
+        /v-if="operations\.permissions\.manageSuppliers"/,
     );
-    assert.match(classicPanel, /v-if="!hideOrders"/);
-    assert.ok(!/withDefaults[\s\S]*hideOrders/.test(classicPanel));
+    assert.match(
+        classicPanel,
+        /<section class="space-y-3 rounded-xl border bg-card p-4">\s*<h3 class="font-semibold">Purchase Orders & Receiving<\/h3>/,
+    );
     assert.ok(
         !read('resources/js/pages/Inventory/Index.vue').includes('hide-orders'),
     );

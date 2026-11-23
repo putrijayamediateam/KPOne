@@ -13,9 +13,18 @@ class WorkspaceTest extends VisitTestCase
             'ca' => 'registration.index',
             'ca_supervisor' => 'registration.index',
             'resident_doctor' => 'queue.index',
-            'director' => 'dashboard',
-            'technical_admin' => 'dashboard',
-            'hr_manager' => 'dashboard',
+            // DAY-1a (owner, 22 Nov 2026): the roles that used to land on the Main Menu land on My day.
+            'director' => 'my-day',
+            'technical_admin' => 'my-day',
+            'hr_manager' => 'my-day',
+            'finance_officer' => 'my-day',
+            'panel_officer' => 'my-day',
+            'administrator' => 'my-day',
+            'marketing' => 'my-day',
+            'business_development' => 'my-day',
+            'branch_manager' => 'my-day',
+            'account_assistant' => 'my-day',
+            'store_admin' => 'my-day',
         ] as $role => $destination) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
@@ -54,10 +63,13 @@ class WorkspaceTest extends VisitTestCase
             'ca' => [true, true, true, false, false, false, false, false],
             'resident_doctor' => [true, true, true, false, false, false, false, false],
             'ca_supervisor' => [true, true, true, false, false, false, false, false],
-            'panel_officer' => [false, false, false, true, true, false, false, false],
+            'panel_officer' => [false, false, false, true, true, false, false, true],
             // PCA-1 (owner decision 2026-11-13): Finance Officer and Director handle Panel claims too.
-            'finance_officer' => [false, false, false, false, true, true, false, false],
+            'finance_officer' => [false, false, false, false, true, true, false, true],
             'technical_admin' => [false, false, false, false, false, false, true, true],
+            // ROLE-1: the Account Assistant reads the audit log without administering access.
+            'account_assistant' => [false, false, false, false, false, false, false, true],
+            'store_admin' => [false, false, false, false, false, false, false, false],
             'director' => [true, true, true, true, true, true, true, true],
         ];
 

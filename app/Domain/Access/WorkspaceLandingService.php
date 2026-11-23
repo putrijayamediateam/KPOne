@@ -24,7 +24,8 @@ final class WorkspaceLandingService
             return 'registration.index';
         }
 
-        return 'dashboard';
+        // DAY-1a (owner, 22 Nov 2026): the roles that used to land on the Main Menu now land on My day; the Main Menu stays one link away.
+        return 'my-day';
     }
 
     public function path(User $actor): string

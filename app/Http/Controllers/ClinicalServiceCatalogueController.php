@@ -12,6 +12,7 @@ use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\ConsultationTariffAdministrationService;
 use App\Domain\Visit\Billing\Services\CurrentCatalogueTariffReader;
+use App\Domain\Visit\Billing\Services\PanelPriceLines;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Http\Requests\ClinicalServiceCatalogueStoreRequest;
@@ -167,6 +168,7 @@ class ClinicalServiceCatalogueController extends Controller
                 'panelDefaultAmountRm' => $amountRm($latestForBook($defaultPanel)),
                 'panelDefaultVersion' => $latestForBook($defaultPanel)->version ?? 0,
                 'panelOverrides' => $consultationPanelOverrides,
+                'panelPrices' => app(PanelPriceLines::class)->forCharge($actor->organisation_id, $consultationCharge?->id, (string) $branches->activeBranch($actor)->timezone),
             ],
         ]);
     }
@@ -266,6 +268,7 @@ class ClinicalServiceCatalogueController extends Controller
                 'panel_default_rm' => $panelDefault instanceof PriceBook ? $toRm($latestFor($panelDefault)) : null,
                 'panel_overrides' => $overrides,
             ],
+            'panel_prices' => app(PanelPriceLines::class)->forCharge($actor->organisation_id, $charge?->id, (string) app(BranchAccessService::class)->activeBranch($actor)->timezone),
         ]);
     }
 

@@ -155,8 +155,21 @@ class QueueDirectoryService
         ]);
 
         $removedVisits = $removedEntries->map(fn (QueueEntry $entry) => $entry->visit);
+        // Q-13: the doctor's own removed rows whose dispensary case waits for the doctor's check (one batched read, ids only).
+        // It is its own array for the board's block; it also lets the doctor open the consultation (the way in).
+        $checkWaiting = $this->dispensaryAttention->checksForVisits($actor, $removedVisits);
+        // Q-15: when this page already holds EVERY removed entry in scope (the Completed tab, unfiltered, nothing cut off by the 25-row
+        // limit), the flags just read are the whole answer, so no second query. Otherwise one aggregate count over all the doctor's cases.
+        $showsAllRemoved = $status === QueueEntry::STATUS_REMOVED
+            && ! filled($criteria['priority'] ?? null)
+            && trim((string) ($criteria['query'] ?? '')) === ''
+            && $removedEntries->count() >= $counts['tabs']['removed'];
+        $checksWaiting = $showsAllRemoved
+            ? count($checkWaiting)
+            : $this->dispensaryAttention->checksWaitingCount($actor, $branch);
         $removedHints = $this->dispensaryAttention->pendingForVisits($actor, $removedVisits)
-            + app(CheckoutReopenEligibility::class)->forVisits($actor, $removedVisits);
+            + app(CheckoutReopenEligibility::class)->forVisits($actor, $removedVisits)
+            + $checkWaiting;
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($entries->modelKeys()));
         $treatment = app(TreatmentStepProjection::class)->rows($actor, $entries);
         foreach ($entries as $entry) {
@@ -166,13 +179,15 @@ class QueueDirectoryService
 
         $dynamic = [
             'tabCounts' => $counts['tabs'],
+            // Q-15: every dispensary case waiting for this doctor's check (0 for anyone else); a top-level key, so tabCounts keeps its shape.
+            'checksWaiting' => $checksWaiting,
             'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
             'serverNow' => $now->toIso8601String(),
             'operationalDate' => $today,
             'waiting' => ['data' => $this->rows($actor, $waitingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$waitingMeta],
             'carryOver' => ['data' => $this->rows($actor, $carryOverEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$carryOverMeta],
             'serving' => $this->rows($actor, $servingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints),
-            'removed' => $this->rows($actor, $removedEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints),
+            'removed' => $this->rows($actor, $removedEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints, $checkWaiting),
             // Q-4: who "Call next" would call. Only the applied doctor filter matters; null when this board cannot call.
             'callNext' => app(CallNextService::class)->block(
                 $actor,
@@ -200,6 +215,7 @@ class QueueDirectoryService
      * @param  list<int>  $eligibleDoctorIds
      * @param  array<string, array{update: bool, cancel: bool}>  $visitActionHints
      * @param  array<int, bool>  $removedHints
+     * @param  array<int, bool>  $checkWaiting
      * @return Collection<int, array<string, mixed>>
      */
     private function rows(
@@ -210,10 +226,11 @@ class QueueDirectoryService
         array $eligibleDoctorIds,
         array &$visitActionHints,
         array $removedHints = [],
+        array $checkWaiting = [],
     ): Collection {
         return $entries
-            ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints, $removedHints): array {
-                return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints[$entry->visit_id] ?? false);
+            ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints, $removedHints, $checkWaiting): array {
+                return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints[$entry->visit_id] ?? false, $checkWaiting[$entry->visit_id] ?? false);
             })
             ->values();
     }
@@ -309,6 +326,7 @@ class QueueDirectoryService
         array $eligibleDoctorIds,
         array &$visitActionHints,
         bool $removedCanOpen = false,
+        bool $dispensaryCheckWaiting = false,
     ): array {
         $visit = $entry->visit;
         $entry->setRelation('visit', $visit);
@@ -335,6 +353,8 @@ class QueueDirectoryService
         $elapsedSeconds = $entry->called_at ? $entry->called_at->diffInSeconds($now) : 0;
 
         return [
+            // Q-13: true only on the assigned doctor's own removed row whose dispensary case waits for the doctor's check.
+            'dispensaryCheckWaiting' => $dispensaryCheckWaiting,
             'callHold' => $entry->getRelation('callReadiness'),
             // Q-2: only Serving consultations carry this; never on the TV feed.
             'treatmentProgress' => $entry->relationLoaded('treatmentProgress') ? $entry->getRelation('treatmentProgress') : null,

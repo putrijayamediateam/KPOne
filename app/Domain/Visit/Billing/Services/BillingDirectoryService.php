@@ -64,6 +64,8 @@ class BillingDirectoryService
                 'backLink' => $this->backLink($actor),
                 'billTo' => $printing ? null : app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
                 'notes' => $printing ? null : app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
+                // BIL-35: straight to the Panel claim, or Create claim, for Panel Claims users only (read-only navigation).
+                'panelClaim' => $printing ? null : app(PanelClaimLink::class)->for($actor, $visit, $invoice, 'billing'),
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id, $invoice, false),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
@@ -72,6 +74,8 @@ class BillingDirectoryService
                     'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice), 'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'), 'adjustmentControls' => $printing ? null : InvoiceAdjustmentService::controls($actor, $visit, $invoice),
                     'lines' => ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')) ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,
                 'panel' => ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? $proposal(CoverageAllocation::class) : null,
+                // PNL-26b: the Panel's limit per visit warns only (never blocks); the invoice total is at Panel prices.
+                'panelVisitLimit' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? app(PanelVisitLimit::class)->forInvoiceTotal($visit, (int) $state['total']) : null,
                 'panelShortfall' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? PanelShortfall::forInvoice($invoice) : null,
                 // PCA-2: Panel share as original + confirmed adjustments, beside the amount claimed; actions only with the adjustment permissions.
                 'panelAdjustment' => ! $printing && $invoice ? PanelAdjustmentView::forInvoice($actor, $invoice, $branch, 'billing') : null,

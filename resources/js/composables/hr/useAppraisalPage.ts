@@ -3,9 +3,7 @@ import { computed, reactive, ref } from 'vue';
 
 /**
  * HR-10b one appraisal page state: rating and sending (manager), the person's one comment, and the Director's sign-off.
- * Every request, lock version and idempotency key lives here, shared by the Classic page (`pages/HR/Appraisal.vue`) and
- * Version 2 (`pages/HR/V2/Appraisal.vue`), so both send identical requests. Moved out of the Classic page unchanged; the
- * Classic template did not change. No total score.
+ * Every request, lock version and idempotency key of `pages/HR/Appraisal.vue` lives here. No total score.
  */
 export type Summary = {
     late: number;
