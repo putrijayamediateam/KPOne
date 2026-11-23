@@ -56,6 +56,8 @@ const props = defineProps<{
     timezone: string | null;
     // DAY-1a (Daniel, 22 Nov 2026): My day shows a compact Today (time, status and an outline Clock in); the big ring stays on Me.
     compact?: boolean;
+    // DAY-1c (Daniel): My day shows the Today card first and the week strip and tiles after the other cards: 'top' is the card, 'rest' the strip, tiles and photo link.
+    part?: 'all' | 'top' | 'rest';
 }>();
 
 // The browser only ticks a display. It starts from the server's own "now", so a wrong device clock cannot change it,
@@ -170,7 +172,11 @@ const tileList = computed(() =>
 
 <template>
     <div class="me-home">
-        <div v-if="compact && ring" class="me-compact" data-test="me-compact">
+        <div
+            v-if="compact && ring && part !== 'rest'"
+            class="me-compact"
+            data-test="me-compact"
+        >
             <div class="min-w-0 space-y-1">
                 <p class="me-time" data-test="me-time">{{ time }}</p>
                 <div
@@ -208,7 +214,7 @@ const tileList = computed(() =>
                 Clock out
             </button>
         </div>
-        <div v-else-if="!compact" class="me-top">
+        <div v-else-if="!compact && part !== 'rest'" class="me-top">
             <p v-if="greeting" class="me-greet">{{ greeting.text }}</p>
             <p v-if="greeting" class="me-date">{{ greeting.date }}</p>
             <p class="me-time" data-test="me-time">{{ time }}</p>
@@ -281,7 +287,7 @@ const tileList = computed(() =>
         </div>
 
         <section
-            v-if="week"
+            v-if="week && part !== 'top'"
             class="me-week"
             aria-labelledby="me-week-title"
             data-test="me-week"
@@ -311,7 +317,11 @@ const tileList = computed(() =>
             </ul>
         </section>
 
-        <ul v-if="tileList.length" class="me-tiles" data-test="me-tiles">
+        <ul
+            v-if="tileList.length && part !== 'top'"
+            class="me-tiles"
+            data-test="me-tiles"
+        >
             <li v-for="t in tileList" :key="t.key">
                 <Link :href="t.href" :class="`me-tile is-${t.key}`">
                     <span class="me-tile-icon" aria-hidden="true">
@@ -325,7 +335,7 @@ const tileList = computed(() =>
             </li>
         </ul>
 
-        <p v-if="ring" class="me-photo-link">
+        <p v-if="ring && part !== 'top'" class="me-photo-link">
             <button
                 type="button"
                 data-test="about-photos"
