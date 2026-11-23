@@ -9,6 +9,7 @@ use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageService;
+use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -84,6 +85,10 @@ class ClinicalEncounterDirectoryService
             'visit' => [
                 'visitNumber' => $encounter->visit->visit_number,
                 'priority' => $encounter->visit->priority,
+                // TRI-1c: the zone chip for the attending doctor (the page's own viewer) and CA, CA Supervisor; never a reading here.
+                'triage' => app(TriageZoneProjection::class)->forVisits($actor, [
+                    TriageZoneProjection::subject($encounter->visit, $encounter->visit->queueEntry, $encounter->attending_clinician_user_id),
+                ])[$encounter->visit->id] ?? null,
                 'isPanel' => $encounter->visit->coverage_type === 'panel',
                 'panelNote' => $encounter->visit->coverage_type === 'panel' ? $encounter->visit->coverage_panel_note : null,
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'
@@ -131,7 +136,14 @@ class ClinicalEncounterDirectoryService
                 'canHold' => $canActOnConsultation && $activeHold === null && $actor->can('consultations.hold.own'),
                 'canResume' => $canActOnConsultation && $activeHold !== null && $actor->can('consultations.hold.own'),
             ],
-            'vitals' => $this->vitals($vitals),
+            'vitals' => [
+                ...$this->vitals($vitals),
+                // TRI-1c: while the vitals are still the copy made at consultation start, who took them at triage and when.
+                'fromTriage' => $vitals?->getAttribute('source_triage_assessment_id') !== null && $vitals->observed_at !== null ? [
+                    'recordedBy' => User::query()->whereKey($vitals->getAttribute('recorded_by_user_id'))->value('name'),
+                    'recordedAt' => $vitals->observed_at->setTimezone($encounter->visit->branch->timezone)->format('j M Y, g:i A'),
+                ] : null,
+            ],
             // Q-12: the red limits of the triage guideline in force and the patient's age band (never the signs), for the "Check" line on
             // vitals read from the note. Null when no guideline is in force. Reference limits only; the doctor already sees the date of birth.
             'vitalLimits' => $this->vitalLimits($actor, $encounter),

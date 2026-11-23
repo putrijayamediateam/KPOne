@@ -994,6 +994,40 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
                                     >Urgent</span
                                 >
+                                <!-- TRI-1c: the triage zone (the word always shown, never colour alone). -->
+                                <span
+                                    v-if="clinical.visit.triage?.triaged"
+                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium"
+                                    :class="
+                                        clinical.visit.triage.zone === 'red'
+                                            ? 'text-destructive'
+                                            : clinical.visit.triage.zone ===
+                                                'yellow'
+                                              ? 'text-warning-strong'
+                                              : 'text-foreground'
+                                    "
+                                    data-testid="consultation-triage-zone"
+                                    ><span
+                                        v-if="clinical.visit.triage.zone"
+                                        aria-hidden="true"
+                                        class="size-2 shrink-0 rounded-full"
+                                        :class="
+                                            {
+                                                red: 'bg-destructive',
+                                                yellow: 'bg-warning',
+                                                green: 'bg-success',
+                                            }[clinical.visit.triage.zone]
+                                        "
+                                    />{{
+                                        clinical.visit.triage.zone
+                                            ? {
+                                                  red: 'Red zone',
+                                                  yellow: 'Yellow zone',
+                                                  green: 'Green zone',
+                                              }[clinical.visit.triage.zone]
+                                            : 'Triaged'
+                                    }}</span
+                                >
                             </div>
                             <div
                                 class="flex shrink-0 flex-col items-end gap-2 text-right text-xs text-muted-foreground"
@@ -1204,6 +1238,19 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Record new</Button
                             >
                         </div>
+                        <!-- TRI-1c: the vitals were copied from triage when the consultation started and are unchanged. -->
+                        <p
+                            v-if="clinical.vitals.fromTriage && !vitalsUnsaved"
+                            class="text-xs text-muted-foreground"
+                            data-testid="vitals-from-triage"
+                        >
+                            From triage, last taken by
+                            {{
+                                clinical.vitals.fromTriage.recordedBy ??
+                                'a clinic assistant'
+                            }}
+                            at {{ clinical.vitals.fromTriage.recordedAt }}.
+                        </p>
                         <div
                             v-if="hasVitals"
                             class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"
