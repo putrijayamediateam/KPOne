@@ -18,14 +18,21 @@ test('Classic Inventory home keeps its 16 task links in order', () => {
         ),
     ]
         .map((m) => `${m[1]}=${m[2]}`)
-        // Stock value is not in the shared list: each layout adds it for the Director (asserted below).
+        // Stock value and Medicine sales are not in the shared list: each layout adds them for their holders (asserted
+        // below). STK-44 (owner-approved assertion change): Medicine sales joins this filter, so the count stays 16.
         .filter(
-            (link) => link !== '/inventory/stock-value=Stock value and cost',
+            (link) =>
+                link !== '/inventory/stock-value=Stock value and cost' &&
+                link !== '/inventory/medicine-sales=Medicine sales',
         );
     assert.equal(classicLinks.length, 16);
     assert.match(
         desktop,
         /href="\/inventory\/stock-value"\s+variant="outline"\s+v-if="referenceData\.canViewStockValue"[\s\S]*?>Stock value and cost<\/ActionLink/,
+    );
+    assert.match(
+        desktop,
+        /href="\/inventory\/medicine-sales"\s+variant="outline"\s+v-if="referenceData\.canViewMedicineSales"[\s\S]*?>Medicine sales<\/ActionLink/,
     );
 });
 
