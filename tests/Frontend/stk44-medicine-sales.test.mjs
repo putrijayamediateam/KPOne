@@ -44,7 +44,7 @@ test('STK-44: money and count cards are two groups, two per row on a phone', () 
         assert.ok(ui.includes(`label: '${label}'`), label);
     }
 
-    assert.ok(ui.includes('left out of profit and margin.'));
+    assert.ok(ui.includes('left out of cost, profit and margin.'));
     // On the cost card "(estimate)" is its own line, so a narrow card never grows wider than the screen.
     assert.match(ui, /note: s\.value\.estimate \? '\(estimate\)' : null/);
     assert.ok(ui.includes('data-testid="sales-card-note"'));
@@ -114,6 +114,7 @@ test('STK-44: the disclosure explains the rules and stays closed', () => {
     assert.ok(ui.includes('How this page counts'));
     assert.ok(ui.includes('A line charged RM 0.00 is a free line'));
     assert.ok(ui.includes('"(estimate)" means'));
+    assert.ok(ui.includes('rows can add up to a few sen different'));
 });
 
 test('STK-44: the page shows no patient or doctor field and offers no download', () => {

@@ -283,7 +283,7 @@ const countCards = computed(() => [
                             ? 'medicine with cost not complete is'
                             : 'medicines with cost not complete are'
                     }}
-                    left out of profit and margin.</span
+                    left out of cost, profit and margin.</span
                 >
             </p>
             <ul
@@ -648,13 +648,18 @@ const countCards = computed(() => [
                 </li>
                 <li>
                     "Cost not complete" means some stock sold has no cost
-                    recorded. Those medicines are left out of the profit and
-                    margin totals; margin is profit divided by the sales of the
-                    other medicines.
+                    recorded. Those medicines are left out of the cost, profit
+                    and margin totals (their sales still count); margin is
+                    profit divided by the sales of the other medicines.
                 </li>
                 <li>
                     A line charged RM 0.00 is a free line, not a sale below
                     cost. Its cost still counts in the cost and profit totals.
+                </li>
+                <li>
+                    Each row's profit is rounded on its own and the totals are
+                    rounded once, so rows can add up to a few sen different from
+                    the totals.
                 </li>
                 <li>
                     Medicine returned after dispensing is not taken off, and

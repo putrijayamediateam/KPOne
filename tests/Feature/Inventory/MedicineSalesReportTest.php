@@ -11,6 +11,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\MedicineSalesReportService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\StockValuationReportService;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\PriceBook;
@@ -241,6 +242,33 @@ final class MedicineSalesReportTest extends VisitTestCase
         $this->get(route('inventory.medicine-sales', ['month' => '2026-10']))->assertOk()->assertInertia(fn (Assert $page) => $page->where('report.summary.salesSen', 0));
         $this->get(route('inventory.medicine-sales', ['month' => '2026-11']))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('report.summary.salesSen', 500)->where('report.summary.costSen', 200)->where('report.summary.lineCount', 1));
+    }
+
+    public function test_all_branches_keeps_a_branch_that_was_closed_after_its_sales(): void
+    {
+        $f = $this->sold(250);
+        DB::table('branches')->where('id', $f['visit']->branch_id)->update(['is_active' => false]);
+        $other = Branch::query()->where('organisation_id', $f['visit']->branch->organisation_id)->where('is_active', true)->firstOrFail();
+        $director = $this->actor('director', $other);
+        $this->selectBranch($director, $other);
+        $this->get(route('inventory.medicine-sales', ['branch' => 'all']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('report.summary.salesSen', 500)
+            // The picker offers active branches only.
+            ->where('report.branches', fn ($branches) => collect($branches)->pluck('id')->doesntContain((string) $f['visit']->branch_id)));
+    }
+
+    public function test_each_branch_cuts_the_month_in_its_own_time_zone(): void
+    {
+        // A branch an hour ahead of Kuala Lumpur: 23:30 on 31 Oct in Kuala Lumpur is already 1 Nov there.
+        DB::table('branches')->where('id', $this->branch->id)->update(['timezone' => 'Asia/Tokyo']);
+        $this->branch->refresh();
+        $this->travelTo(CarbonImmutable::parse('2026-10-31 23:30:00', 'Asia/Kuala_Lumpur'));
+        $f = $this->sold(250);
+        $this->travelTo(CarbonImmutable::parse('2026-11-05 10:00:00', 'Asia/Tokyo'));
+        $director = $this->actor('director');
+        $this->selectBranch($director, $f['visit']->branch);
+        $this->get(route('inventory.medicine-sales', ['month' => '2026-11']))->assertOk()->assertInertia(fn (Assert $page) => $page->where('report.summary.salesSen', 500));
+        $this->get(route('inventory.medicine-sales', ['month' => '2026-10']))->assertOk()->assertInertia(fn (Assert $page) => $page->where('report.summary.salesSen', 0));
     }
 
     public function test_every_medicine_line_has_a_dispensary_item(): void

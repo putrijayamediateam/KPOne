@@ -54,7 +54,11 @@ final class MedicineSalesReportService
         $months = $this->months($now);
         $filters = $this->filters($query, array_values($branches->pluck('id')->map(fn ($id): int => (int) $id)->all()), (int) $active->id, array_keys($months));
         $scope = $filters['branch'];
-        $inScope = $scope === 'all' ? $branches : $branches->where('id', (int) $scope)->values();
+        // "All branches" reads every branch of the organisation, active or not, so a branch closed later never drops
+        // out of past months. The picker offers active branches only.
+        $inScope = $scope === 'all'
+            ? Branch::query()->where('organisation_id', $organisationId)->orderBy('name')->get(['id', 'name', 'timezone'])
+            : $branches->where('id', (int) $scope)->values();
 
         $lines = $this->lines($organisationId, array_values($inScope->all()), $filters['month']);
         $computed = $this->compute($organisationId, $lines);
@@ -229,7 +233,7 @@ final class MedicineSalesReportService
             ksort($units);
             $out[] = [
                 'id' => $id,
-                'medicine' => (string) ($names[$id]->display_name ?? 'Medicine'),
+                'medicine' => $id === 0 ? 'Dispensed without a medicine link' : (string) ($names[$id]->display_name ?? 'Medicine'),
                 'code' => (string) ($names[$id]->code ?? ''),
                 'units' => array_map(fn (int|string $unit, int $milli): array => ['unit' => (string) $unit, 'quantity' => self::quantity($milli)], array_keys($units), array_values($units)),
                 'salesSen' => $med['salesSen'],
