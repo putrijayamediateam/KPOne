@@ -4,9 +4,11 @@ namespace Tests\Feature\HR;
 
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Approvals\Sources\AttendanceCorrectionSource;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\Identity\Models\StaffProfile;
@@ -687,6 +689,28 @@ class AttendanceTest extends VisitTestCase
             'leave_type_id' => $type, 'branch_id' => $this->branch->id, 'start_date' => self::WEEK, 'end_date' => self::WEEK, 'start_part' => 'full', 'end_part' => 'full',
             'slot_start' => '2027-03-08 00:00:00', 'slot_end' => '2027-03-09 00:00:00', 'year' => 2027, 'halves' => 2, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('hr_leave_requests')->where('id', $id)->update(['status' => 'approved', 'decided_by_user_id' => $director->id, 'decided_at' => now()]);
+    }
+
+    public function test_appr_1d_the_inbox_source_counts_the_review_waiting_list_without_the_subject_or_proposer(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->sole();
+        $this->at('2027-03-08 18:00');
+        $this->propose($hr, ['user_id' => $ca->id, 'kind' => 'set_out', 'session_id' => $session->public_id, 'out_time' => '2027-03-08T17:00', 'reason_code' => 'forgot', 'tab' => 'review'])
+            ->assertSessionHasNoErrors();
+        $source = app(AttendanceCorrectionSource::class);
+
+        foreach ([[$hr, 0], [$director, 1]] as [$viewer, $expected]) {
+            $this->assertSame([$expected, $expected], [app(AttendancePageService::class)->page($viewer, [])['pendingCount'], $source->count($viewer, null)]);
+        }
+        $this->assertSame('2027-03-08 10:00:00', $source->oldest($director, null)?->utc()->format('Y-m-d H:i:s'));
+        $this->assertNull($source->oldest($hr, null), 'the proposer never decides their own correction');
+        $this->assertSame([], $source->items($director, null, 5));
     }
 
     private function at(string $time): void

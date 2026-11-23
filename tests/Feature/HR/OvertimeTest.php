@@ -3,9 +3,11 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Approvals\Sources\OvertimeRequestSource;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
+use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -235,6 +237,26 @@ class OvertimeTest extends VisitTestCase
         $this->selectBranch($hr);
         $this->get(route('hr.attendance.index', ['tab' => 'overtime']))->assertInertia(fn (Assert $page) => $page
             ->where('attendance.overtime.pending.0.sentAt', '2027-03-14T01:00:00+00:00'));
+    }
+
+    public function test_appr_1d_the_inbox_source_counts_the_overtime_waiting_list_without_the_viewers_own(): void
+    {
+        [$hr, $director] = $this->setUpClinic(['ca', 'hr_manager']);
+        $ca = $this->actor('ca');
+        $this->roster($hr, $director, [[$ca, '08:00', '14:00', 30]]);
+        $caDay = $this->closedSession($ca, '2027-03-09', '09:00', '12:00');
+        $hrDay = $this->closedSession($hr, '2027-03-10', '09:00', '12:00');
+        $this->at('2027-03-14 09:00');
+        $this->ask($ca, $caDay, 60)->assertSessionHasNoErrors();
+        $this->at('2027-03-14 10:00');
+        $this->ask($hr, $hrDay, 60)->assertSessionHasNoErrors();
+        $source = app(OvertimeRequestSource::class);
+
+        foreach ([[$hr, 1], [$director, 2]] as [$viewer, $expected]) {
+            $this->assertSame([$expected, $expected], [app(AttendancePageService::class)->page($viewer, [])['overtimePendingCount'], $source->count($viewer, null)]);
+        }
+        $this->assertSame('2027-03-14 01:00:00', $source->oldest($director, null)?->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame([], $source->items($director, null, 5));
     }
 
     public function test_only_time_outside_the_shift_window_counts_so_a_late_arrival_never_gains_the_break(): void
