@@ -32,6 +32,7 @@
             <exclude>tests/Feature/HR/PostgresDisciplineContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresIncidentsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</exclude>
+            <exclude>tests/Feature/PostgresMyRoutineContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresCredentialsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresClaimsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresPayrollContentionTest.php</exclude>
@@ -98,6 +99,7 @@
             <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
             <file>tests/Feature/HR/PostgresIncidentsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</file>
+            <file>tests/Feature/PostgresMyRoutineContentionTest.php</file>
             <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresPayrollContentionTest.php</file>
@@ -198,6 +200,7 @@
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
             <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
+            <file>tests/Feature/PostgresMyRoutineContentionTest.php</file>
             <file>tests/Feature/PostgresBusinessDetailsRegressionTest.php</file>
             <file>tests/Feature/PostgresClinicalEncounterRegressionTest.php</file>
             <file>tests/Feature/PostgresPatientMasterRegressionTest.php</file>

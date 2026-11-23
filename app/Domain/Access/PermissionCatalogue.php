@@ -487,7 +487,9 @@ final class PermissionCatalogue
             $roles[$role][] = 'reports.patient_billing.export.branch';
         }
 
-        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
+        // ROLE-1 follow-up (owner, 22 Nov 2026, "BM reports B"): the Branch Manager also downloads Sales summary and Payments;
+        // the export services keep a branch-only account to its own branch (see BranchOnlyExportScope).
+        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE, self::BRANCH_MANAGER_ROLE] as $role) {
             $roles[$role][] = 'reports.sales.export.organisation';
             $roles[$role][] = 'reports.payments.export.organisation';
         }
