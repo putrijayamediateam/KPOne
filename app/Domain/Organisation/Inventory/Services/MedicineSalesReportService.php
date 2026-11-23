@@ -233,6 +233,7 @@ final class MedicineSalesReportService
             ksort($units);
             $out[] = [
                 'id' => $id,
+                // Defensive only: dispensary_items.medicine_catalogue_item_id is NOT NULL (2026_09_04_000100), so 0 can't occur.
                 'medicine' => $id === 0 ? 'Dispensed without a medicine link' : (string) ($names[$id]->display_name ?? 'Medicine'),
                 'code' => (string) ($names[$id]->code ?? ''),
                 'units' => array_map(fn (int|string $unit, int $milli): array => ['unit' => (string) $unit, 'quantity' => self::quantity($milli)], array_keys($units), array_values($units)),

@@ -62,8 +62,10 @@ const refused = computed(() => props.report.refused ?? []);
 const s = computed(() => props.report.summary);
 
 // ---- Formatting only ----
-const NBSP = ' ';
-/** Whole sen to "RM 1,234.50"; a negative figure gets a minus sign ("-RM 12.00"), never colour alone. */
+const NBSP = '\u00a0';
+/** A real minus sign (−), so a negative figure is never read as a range. */
+const MINUS = '\u2212';
+/** Whole sen to "RM 1,234.50"; a negative figure gets a minus sign ("−RM 12.00"), never colour alone. */
 const money = (sen: number | null): string => {
     if (sen === null) {
         return '—';
@@ -75,12 +77,12 @@ const money = (sen: number | null): string => {
         ',',
     );
 
-    return `${sen < 0 ? '-' : ''}RM${NBSP}${ringgit}.${String(abs % 100).padStart(2, '0')}`;
+    return `${sen < 0 ? MINUS : ''}RM${NBSP}${ringgit}.${String(abs % 100).padStart(2, '0')}`;
 };
 const percent = (value: number | null): string =>
     value === null
         ? '—'
-        : `${value < 0 ? '-' : ''}${Math.abs(value).toFixed(1)}%`;
+        : `${value < 0 ? MINUS : ''}${Math.abs(value).toFixed(1)}%`;
 /** "(estimate)" stays joined to its figure, so it never wraps alone. */
 const withEstimate = (text: string, estimate: boolean): string =>
     estimate ? `${text}${NBSP}(estimate)` : text;
@@ -88,7 +90,7 @@ const count = (n: number): string => (n === 0 ? '—' : String(n));
 const NOT_COMPLETE = 'Cost not complete';
 const NOT_COMPLETE_REASON =
     'Cost not complete: some stock sold has no cost recorded.';
-const unbroken = (code: string) => code.replaceAll('-', '‑');
+const unbroken = (code: string) => code.replaceAll('-', '\u2011');
 
 // ---- Filters: a GET form with an outline Apply and a Reset ----
 const month = ref(props.report.filters.month);
@@ -120,7 +122,12 @@ const moneyCards = computed(() => [
         note: s.value.estimate ? '(estimate)' : null,
     },
     { label: 'Gross profit', value: money(s.value.profitSen) },
-    { label: 'Margin', value: percent(s.value.marginPercent) },
+    {
+        label: 'Margin',
+        value: percent(s.value.marginPercent),
+        // A bare dash must not be read as zero.
+        note: s.value.salesSen === 0 ? 'No sales yet' : null,
+    },
 ]);
 const countCards = computed(() => [
     { label: 'Lines below cost', value: String(s.value.belowLines) },
@@ -308,19 +315,29 @@ const countCards = computed(() => [
 
         <section class="space-y-3" aria-labelledby="sales-top-heading">
             <h2 id="sales-top-heading" class="text-base font-semibold">
-                Top {{ Math.min(25, report.medicineCount) }} medicines by
+                {{
+                    report.medicineCount === 0
+                        ? 'Top medicines'
+                        : `Top ${Math.min(25, report.medicineCount)} medicines`
+                }}
+                by
                 {{
                     report.filters.rank === 'profit' ? 'gross profit' : 'sales'
                 }}
             </h2>
 
-            <div class="hidden lg:block" data-testid="sales-table">
+            <p
+                v-if="report.rows.length === 0"
+                class="hidden rounded-xl border bg-card p-3 text-sm text-muted-foreground lg:block"
+                data-testid="sales-empty"
+            >
+                No medicine was sold this month.
+            </p>
+            <div v-else class="hidden lg:block" data-testid="sales-table">
                 <OperationalTable
                     label="Top medicines"
                     :columns="9"
                     min-width="0px"
-                    :empty="report.rows.length === 0"
-                    empty-message="No medicine was sold this month."
                 >
                     <template #head>
                         <tr>

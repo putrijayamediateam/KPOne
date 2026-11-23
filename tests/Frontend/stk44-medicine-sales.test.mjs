@@ -45,6 +45,7 @@ test('STK-44: money and count cards are two groups, two per row on a phone', () 
     }
 
     assert.ok(ui.includes('left out of cost, profit and margin.'));
+    assert.match(ui, /note: s\.value\.salesSen === 0 \? 'No sales yet' : null/);
     // On the cost card "(estimate)" is its own line, so a narrow card never grows wider than the screen.
     assert.match(ui, /note: s\.value\.estimate \? '\(estimate\)' : null/);
     assert.ok(ui.includes('data-testid="sales-card-note"'));
@@ -53,7 +54,8 @@ test('STK-44: money and count cards are two groups, two per row on a phone', () 
 
 test('STK-44: negative figures get a minus sign and "(estimate)" is joined with a no-break space', () => {
     const ui = page();
-    assert.match(ui, /\$\{sen < 0 \? '-' : ''\}RM\$\{NBSP\}/);
+    assert.match(ui, /\$\{sen < 0 \? MINUS : ''\}RM\$\{NBSP\}/);
+    assert.ok(ui.includes("const MINUS = '\\u2212';"));
     assert.match(ui, /\$\{text\}\$\{NBSP\}\(estimate\)/);
     assert.ok(
         !/text-destructive[^"]*">\s*\{\{ money\(row\.profitSen\)/.test(ui),
@@ -74,7 +76,9 @@ test('STK-44: "Cost not complete" has an accessible name and a visible footnote'
 
 test('STK-44: table from 1024 px, cards below, with the agreed column names', () => {
     const ui = page();
-    assert.ok(ui.includes('class="hidden lg:block" data-testid="sales-table"'));
+    assert.ok(
+        ui.includes('v-else class="hidden lg:block" data-testid="sales-table"'),
+    );
     assert.ok(ui.includes('data-testid="sales-cards"'));
     assert.match(ui, /class="space-y-2 lg:hidden"/);
 
@@ -100,6 +104,10 @@ test('STK-44: table from 1024 px, cards below, with the agreed column names', ()
 test('STK-44: the sold-below-cost list has an empty state and cards with pagination', () => {
     const ui = page();
     assert.ok(ui.includes('No medicine was sold below cost this month.'));
+    // An empty month shows one line, not an empty table, under "Top medicines by …".
+    assert.ok(ui.includes("? 'Top medicines'"));
+    assert.ok(ui.includes('data-testid="sales-empty"'));
+    assert.ok(!ui.includes('empty-message="No medicine was sold this month."'));
     assert.ok(ui.includes('data-testid="sales-below-cards"'));
     assert.match(ui, /<CompactPagination[\s\S]*?@change="belowPage"/);
 });
