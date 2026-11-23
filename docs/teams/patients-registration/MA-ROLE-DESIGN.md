@@ -235,10 +235,13 @@ that lasts.
 - Accounts are created only through `StaffProvisioningService`; no self-registration; no self-escalation (an MA
   cannot add a role to their own account); exactly one effective primary branch.
 - **Migration:** additive, like ADM-01 (`firstOrCreate` the role and the three new permissions, grant only what is
-  missing, log and skip a missing role, `down()` a no-op). It also grants the new role every permission the CA
-  holds **at migration time**.
+  missing, log and skip a missing role, `down()` a no-op). It also grants the new role every permission the CA holds
+  in the code catalogue when the migration runs (on a fresh install that includes permissions later migrations add).
 - **Drift rule for every team:** a future migration that grants a permission to `ca` must grant it to
-  `medical_assistant` too. A pin test fails if the CA holds a permission the MA does not.
+  `medical_assistant` too. A pin test fails if the CA holds a permission the MA does not in the catalogue. In the
+  database, only a source test guards it: it flags a later grant migration whose text names `'ca'` and calls
+  `givePermissionTo` without naming the MA. It cannot see holders read from a grants class, `"ca"` in double quotes,
+  `syncPermissions` or direct inserts, so the rule itself still has to be followed.
 - **KPOne HR:** `RosterPermissions::HUMAN_ROLES` gains `medical_assistant` (14 becomes 15 at MA-1a; the `locum` role stays
   outside it, as today), so the MA has their own roster, leave, attendance and other own HR pages, and the role
   labels, memo and SOP audiences and overtime role options gain it too (section 3.4). Roster minimum staffing (HR-1) does not count an
