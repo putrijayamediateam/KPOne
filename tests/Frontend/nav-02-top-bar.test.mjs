@@ -117,6 +117,10 @@ const expected = {
     hr_manager: ['Insights', 'Staff', 'Clinic management'],
     marketing: ['Insights', 'Clinic management'],
     business_development: ['Insights', 'Clinic management'],
+    // ROLE-1 (owner 21 Nov 2026; Daniel's lists): no Staff item without staff or access administration.
+    branch_manager: ['Registration', 'Consultation', 'Inventory', 'Clinic management'],
+    account_assistant: ['Insights', 'Inventory', 'Clinic management'],
+    store_admin: ['Insights', 'Inventory', 'Clinic management'],
     // HR-15a: a locum lands on My roster; the hub holds their one HR link.
     locum: ['Clinic management'],
 };

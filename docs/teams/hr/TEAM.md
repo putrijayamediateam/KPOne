@@ -518,8 +518,78 @@ check items, keep them"). The rest stand unless the owner changes them.
     figure or schedule changed. The owner also asked for the read-only storage card in Classic ("photo card in classic
     too"), in Classic's own style, Director and HR Manager only. A shorter photo-only time is still unanswered: not built.
     The staff wording "(to confirm)" stays until the owner says the PDPA review covers it (see the open item below).
+98. One Clock in (owner, 2026-11-18): every clock-in and clock-out is pressed on Me. Step 1 moved the location check and
+    the camera onto the Me button; step 3 (PR #976, merged as `86d61da`) replaced the presses on My attendance and My
+    roster (Classic and V2) with outline links, "Clock in on Me" and "Clock out on Me". Someone clocked in with no branch
+    to work at now reads "Ask HR to add your clock-out time as a correction." The owner approved the changed frontend
+    assertions A to J of the plan one by one.
+99. HR-15d (owner, via B.E.R.N.I.S.S, 2026-11-18; PR #977, merged as `47d1dc8`): a passed candidate for a Locum position
+    becomes a locum file in one step, with the HR-15a sign-in request opened with the email they applied with. Nothing
+    there creates an account; the account administrator still creates it through `StaffProvisioningService`.
+100. HR-15e (owner, via B.E.R.N.I.S.S, 2026-11-18; PR #978, merged as `a731de3`): an interview is In person or Online;
+    an online interview carries an https video link that HR types from their own video app. KPOne creates no meeting
+    and calls no video service; the link is stored as typed and the audit records the mode only. The owner approved the
+    changed `hr-17c-interview-slots` assertion.
+101. HR-15f (owner, via B.E.R.N.I.S.S, 2026-11-18; layout by Daniel; PR #979, merged as `e949df2`): My roster gains a
+    Week/Month switch; the month shows only the person's own approved shifts and their own open-shift asks.
+102. HR-15g locum pay statement (the owner himself, 2026-11-18, about 08:30 UTC; his ship-it about 13:01 UTC; PR #980,
+    merged as `e657106`; migrations `2026_11_10_007500` and `007600`). Permissions: `hr.locum_pay.view.own` (locum),
+    `hr.locum_pay.manage.organisation` (Director, HR Manager), `hr.locum_pay.finance.organisation` (Finance Officer,
+    Director). (a) Per hour = hours after the break × the rate, rounded half up to the sen; per session = one rate per
+    approved shift; the confirmed rate in force on the shift's own date. (b) A rate counts once a Finance Officer or
+    Director who did not enter it confirms it (service and PostgreSQL); the Director may confirm, never their own entry.
+    (c) A paid month is locked; a correction for it goes into a later month; no undo in v1. KPOne pays nothing; Finance
+    records the paid date and an optional reference (encrypted, last 4 characters shown). A missing rate reads "Rate
+    missing" and "RM —", never RM 0.00 (Daniel). A "Not worked" mark left on a shift the roster replaced blocks payment
+    until HR removes it (Suresh, M1). CHECK THIS (owner, via B.E.R.N.I.S.S): the locum sees corrections to an unpaid
+    month as HR enters them, labelled "Total so far (not final until paid)".
+103. HR-18, HR-20 and HR-21 (owner, 2026-11-18, before the build): HR-18 adds `hr.labour_cost.view.organisation` for the
+    Director, the HR Manager and the Finance Officer only, by an additive migration, keeping the minimum of 3 people per
+    branch-month before a figure shows. HR-20: on-call time does not count in weekly hours, the 48 h limit or days in a
+    row, but does count in fair rotation. HR-21: the clinic sets the credential warning days per credential type; KPOne
+    ships no number.
+104. Ctrl+K (owner, 2026-11-18): the keyboard search is Version 2 only.
+105. Order after the locum slices (owner, 2026-11-18): the HR docs PR, then HR-21, HR-20, HR-19 and HR-18.
+106. HR-21 foreign worker permits (owner's plan 2026-11-18; ship-it by B.E.R.N.I.S.S for the owner; PR #992, merged as
+    `505c391`; migration `2026_11_10_007700`). A clinic-added credential type may be marked "Work permit": it must expire,
+    is never a health item, and the flag never changes after creation (service, PostgreSQL CHECK and the type guard
+    trigger). No new table or permission (`hr.credentials.manage.organisation`). An accepted permit inside the type's
+    warning days, or expired, shows one line in words, warning tone and never red ("Work permit expires on 2 Jan 2027 (in
+    45 days)"), on the credentials register, the staff file and as a count on the HR dashboard, for credential managers
+    only; names, type and date only, never a permit number or nationality; people who have left are not counted (the
+    register's rule). Daniel: the Work permit answer starts unpicked and saving one asks once more in a confirm dialog;
+    in-sentence links are always underlined.
+107. HR-20 "On call" (owner's slice rules 2026-11-18 and the eight defaults the owner approved himself the same day;
+    ship-it by B.E.R.N.I.S.S for the owner; PR #1006; migration `2026_11_10_007800`). A new session `on_call` for roster
+    shifts and open shifts. Outside weekly hours, the weekly limit, days in a row and daily rest; no clinic hours (not in
+    minimum staffing or cover gaps, no consultation room from the roster); inside fair rotation. No Late, Left early or No
+    clock-in; a call-in is clocked as usual, keeps all its time (no break taken off), has no rostered minutes and may all
+    be claimed as overtime. The HR dashboard shows on-call people on their own line, never as the doctor on duty. Left out
+    of locum pay for now, and cannot be marked not worked. It can be an open shift; overlapping leave still warns. Suresh:
+    on call is never the next shift of a split day (M1), and a clinic shift wins over on call when one session overlaps
+    both (m1). Daniel: the planner footer reads "0 on shift · 1 on call", never folding on call into "on shift"; the label
+    is plain text in the grid, no colour.
+108. HR-20 night rule (B.E.R.N.I.S.S for the owner, 2026-11-18, CHECK THIS on the owner's list): an on-call shift counts
+    as a night for fair rotation when it crosses midnight, starts at 20:00 or later, or starts before 06:00.
+109. Classic only for HR (owner, 2026-11-20): CO-7 deletes every HR and Attendance Version 2 page and merges before HR-20;
+    HR-20 drops its V2 edits and the V2 reads in its frontend test (part of this decision); its Classic changes stay.
+110. HR-19 paused (owner, 2026-11-20, option (b)): the Ctrl+K search entries wait; nothing is built.
+111. HR-18 labour cost (owner, 2026-11-20): the design note is approved with (a) locum pay in its own column; (b) staff
+    count at their primary branch on the month's last day, locum pay at the branch of each paid shift; (c) extra hiding
+    so a small branch cannot be worked out; (d) read only, no CSV. The Clinic management hub line ("KPOne HR labour
+    cost") and its one ClinicManagementTest map line are approved. PR #1011, merged; Daniel OK, Suresh OK.
+112. HR-18 per-figure rule (owner, 2026-11-20, "confirm the HR-18 rule"): every amount on the page covers no one or at
+    least 3 people, checked separately for the staff figures (pay, employer contributions) and the locum figure. A
+    branch with 1 or 2 people is not shown; a column with 1 or 2 people reads "Not shown"; while the clinic total less
+    the shown figures would leave 1 or 2 people in a column, the next smallest branch's figure in that column is
+    withheld, and with nothing left the clinic total of that column is withheld. Locum corrections are never shown as
+    an amount; one line says they are in the clinic total, only when at least 3 locums had one.
 
 ## 7. Open items and known limits
+
+- HR-18: HR-15g locum statement lines store the branch name, not its id, so a renamed branch's locum pay counts outside
+  the branches (follow-up: store the branch id). Comparing two months could narrow a figure down; the page shows one
+  month at a time.
 
 - Every statutory and policy question in `docs/reports/ANALYSIS-HR.md` section 8 is open and is for the clinic's
   accountant, HR adviser or lawyer, not the team.
@@ -627,6 +697,15 @@ check items, keep them"). The rest stand unless the owner changes them.
   says "Kept for 7 years (to confirm)." (Daniel and B.E.R.N.I.S.S, 2026-11-12). Remove both "to confirm" phrases from the
   staff text, and from the `hr-photo-clock-in` and `hr-3a-attendance` frontend pins, once the owner has the PDPA answer
   on retention; raise the notice version with the wording.
+- HR-15e note: the video link is stored exactly as typed (only its shape is checked: https, no spaces or `<>{}"`, at
+  most 500 characters, no `@` in the address part).
+- HR-15f note (Daniel, m2): where the start date of a long shift sits in a month cell is left as built.
+- HR-21 note: a work permit's warning line counts accepted records only, so a renewal still waiting for a check does
+  not hide an expiring permit. The dashboard count reads once per page view and each staff file view (one query).
+- HR-20 notes: on-call shifts are left out of locum pay for now (an on-call rate for locums is a later owner decision);
+  a call-in on an on-call shift counts as worked minutes for payroll, as any clocked session does.
+- HR-15g known limits: the Statements tab builds each locum's statement separately (about 6 queries a locum); batch it
+  if the list grows. A paid month has no undo in v1. Locum pay stays synthetic-only until the PDPA review.
 - Payroll note go-live item (M4, Daniel, 2026-11-16): the payroll pages, the payslip footer and the accountant CSV end
   with "Synthetic data only." Remove it together with the PDPA review, in `AccountantNote.vue`, `Payslip.vue` and
   `PayrollExportService`, and in the `hr-7a-payroll`, `hr-7c-payslips-exports` and `PayrollRunsTest` pins.

@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Laravel\Passport\Contracts\OAuthenticatable;
+use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -36,10 +38,16 @@ use Spatie\Permission\Traits\HasRoles;
     'email',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+
+    /**
+     * Roles and permissions live in the `web` guard. The connector's `api` (bearer token) guard becomes the default guard
+     * on the MCP route, and Spatie would then look for `api` roles; pinning the name keeps every check on `web`.
+     */
+    protected string $guard_name = 'web';
 
     /**
      * Get the attributes that should be cast.

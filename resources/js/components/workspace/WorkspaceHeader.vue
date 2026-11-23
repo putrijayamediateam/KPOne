@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
+import { useApprovalCount } from '@/composables/useApprovalCount';
 import { getInitials } from '@/composables/useInitials';
 import {
     headerDestinations,
@@ -28,6 +29,7 @@ import {
 const props = defineProps<{ context: 'clinic' | 'admin' }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
+const { count: approvalCount, label: approvalLabel } = useApprovalCount();
 const workspace = computed(() => page.props.workspace);
 const items = computed(() =>
     workspace.value
@@ -51,9 +53,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
 </script>
 
 <template>
-    <header
-        class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur v2:bg-card v2:backdrop-blur-none"
-    >
+    <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div
             class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5"
         >
@@ -86,7 +86,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                             "
                             :class="
                                 isActive(item.href)
-                                    ? 'border-brand bg-muted text-foreground v2:border-primary'
+                                    ? 'border-brand bg-muted text-foreground'
                                     : 'border-transparent text-muted-foreground'
                             "
                             @click="mobileNavOpen = false"
@@ -108,7 +108,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                     class="size-8 object-contain"
                 />
                 <span
-                    class="hidden text-sm font-semibold tracking-tight text-brand-strong sm:block v2:text-primary"
+                    class="hidden text-sm font-semibold tracking-tight text-brand-strong sm:block"
                     >KPOne</span
                 >
             </Link>
@@ -128,7 +128,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                         :aria-current="isActive(item.href) ? 'page' : undefined"
                         :class="
                             isActive(item.href)
-                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand v2:after:bg-primary'
+                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand'
                                 : ''
                         "
                     >
@@ -155,8 +155,12 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            class="size-10 rounded-full hover:bg-muted/60"
-                            aria-label="Open user menu"
+                            class="relative size-10 rounded-full hover:bg-muted/60"
+                            :aria-label="
+                                approvalCount > 0
+                                    ? `Open user menu, ${approvalLabel}`
+                                    : 'Open user menu'
+                            "
                         >
                             <Avatar class="size-9.5">
                                 <AvatarFallback
@@ -165,6 +169,16 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                                     {{ getInitials(user.name) }}
                                 </AvatarFallback>
                             </Avatar>
+                            <!-- APPR-1a: the number of things waiting for this person; hidden at zero. -->
+                            <span
+                                v-if="approvalCount > 0"
+                                data-test="approvals-pill"
+                                class="absolute -top-1.5 -right-2.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#be185d] px-1 text-[11px] leading-none font-semibold text-white ring-2 ring-background"
+                                aria-hidden="true"
+                                >{{
+                                    approvalCount > 99 ? '99+' : approvalCount
+                                }}</span
+                            >
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent

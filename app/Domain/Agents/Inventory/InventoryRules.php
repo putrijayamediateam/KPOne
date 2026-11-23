@@ -71,6 +71,54 @@ final class InventoryRules
     }
 
     /**
+     * The two locations of a transfer suggestion (CONTRACT section 15): the sending branch's location with the most spare
+     * stock (eligible quantity above its own reorder level) and the receiving branch's location furthest below its level.
+     * A tie goes to the lower location id text, so the same stock always gives the same answer. Null when either branch
+     * has no such location, in which case no transfer is suggested.
+     *
+     * @param  array<string, mixed>  $balances  the `inventory.branch_balances` result
+     * @param  array<string, string>  $payload  a suggestion from `transfers()`
+     * @return array{source_location_public_id: string, destination_location_public_id: string}|null
+     */
+    public static function transferLocations(array $balances, array $payload): ?array
+    {
+        $sku = collect((array) $balances['skus'])->firstWhere('sku', $payload['sku_public_id']);
+        $source = self::bestLocation(self::locationRows($sku['locations'][$payload['from_branch_code']] ?? []), 1);
+        $destination = self::bestLocation(self::locationRows($sku['locations'][$payload['to_branch_code']] ?? []), -1);
+
+        return $source === null || $destination === null ? null : ['source_location_public_id' => $source, 'destination_location_public_id' => $destination];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private static function locationRows(mixed $rows): array
+    {
+        /** @var list<array<string, mixed>> $list */
+        $list = array_values(array_filter((array) $rows, 'is_array'));
+
+        return $list;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $locations
+     * @param  int  $direction  1 = most spare above the level, -1 = furthest below the level
+     */
+    private static function bestLocation(array $locations, int $direction): ?string
+    {
+        $best = null;
+        foreach ($locations as $row) {
+            $gap = $direction * (self::milli($row['eligible']) - self::milli($row['reorderLevel']));
+            if ($gap <= 0) {
+                continue;
+            }
+            if ($best === null || $gap > $best['gap'] || ($gap === $best['gap'] && strcmp((string) $row['location'], $best['location']) < 0)) {
+                $best = ['gap' => $gap, 'location' => (string) $row['location']];
+            }
+        }
+
+        return $best['location'] ?? null;
+    }
+
+    /**
      * Restock: reorder level minus current quantity, rounded up to whole units, per SKU and location at or below
      * its level. When the location has a maximum (STK-30) the suggestion fills up to the maximum instead (maximum
      * minus current quantity); the trigger is the same, so a location exactly at its reorder level still gets none.

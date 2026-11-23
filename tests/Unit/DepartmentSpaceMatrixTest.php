@@ -23,6 +23,10 @@ final class DepartmentSpaceMatrixTest extends TestCase
         'technical_admin' => 'management,me',
         'queue_display' => '',
         'locum' => 'me',
+        // ROLE-1 (owner 21 Nov 2026): the Account Assistant opens the Panel page, the Store Admin has the stock review right.
+        'branch_manager' => 'billing,panel,me', // BM reports B (owner, 22 Nov 2026): Panel summary opens the Panel space, as for the Account Assistant
+        'account_assistant' => 'panel,me',
+        'store_admin' => 'stock,me',
     ];
 
     public function test_every_catalogue_role_gets_exactly_its_spaces(): void

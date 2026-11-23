@@ -5,6 +5,8 @@ type OperationalTab = {
     value: string;
     label: string;
     count?: number;
+    /** A small warning pill after the count (Q-15): the text is visible, the sentence is for screen readers. */
+    badge?: { text: string; srLabel: string };
     disabled?: boolean;
 };
 
@@ -188,6 +190,14 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
                 class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground"
             >
                 {{ tab.count }}
+            </span>
+            <span
+                v-if="tab.badge"
+                class="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-1.5 py-0.5 text-[11px] font-medium text-warning-strong"
+                data-testid="tab-badge"
+            >
+                <span aria-hidden="true">{{ tab.badge.text }}</span>
+                <span class="sr-only">{{ tab.badge.srLabel }}</span>
             </span>
         </button>
     </nav>

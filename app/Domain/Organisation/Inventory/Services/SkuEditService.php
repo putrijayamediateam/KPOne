@@ -20,7 +20,7 @@ final class SkuEditService
 
     private const SKU_FIELDS = ['sku_code', 'barcode', 'pack_size', 'purchase_unit', 'stock_unit', 'dispensing_unit', 'unit_conversion',
         'storage_type', 'minimum_temperature', 'maximum_temperature', 'cold_chain_required', 'do_not_freeze', 'protect_from_light',
-        'batch_tracking_required', 'expiry_tracking_required'];
+        'batch_tracking_required', 'expiry_tracking_required', 'expiry_alert_days'];
 
     public function __construct(private InventoryReferenceAdministrationService $references) {}
 

@@ -18,6 +18,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Clinical\ClinicalTestCase;
+use Tests\Support\PanelPriceFixture;
 
 /**
  * CAT-3 (owner decision 2026-11-05): a read-only history of every published price of one charge.
@@ -66,7 +67,11 @@ class PriceHistoryTest extends ClinicalTestCase
     {
         $version = (int) DB::table('price_entries')->where('price_book_id', $book->id)
             ->where('charge_definition_id', $charge->id)->max('version');
-        $this->publication->publish($by ?? $this->supervisor, $book, $charge, $sen, $version, $this->branch->id);
+        if ($book->price_tier === 'panel') {
+            PanelPriceFixture::insert($book, $charge, $sen, $by ?? $this->supervisor);
+        } else {
+            $this->publication->publish($by ?? $this->supervisor, $book, $charge, $sen, $version, $this->branch->id);
+        }
         $this->travel(1)->minutes();
 
         return PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->orderByDesc('version')->firstOrFail();
@@ -207,7 +212,7 @@ class PriceHistoryTest extends ClinicalTestCase
         app(PriceHistoryService::class)->history($this->actor('ca'), $charge, $this->branch, null, 1);
     }
 
-    public function test_the_page_is_told_the_time_zone_its_times_are_shown_in(): void
+    public function test_the_page_sends_no_time_zone_prop(): void
     {
         $charge = $this->charge('HIS-ZONE');
         $this->publish($this->book('self_pay'), $charge, 700);
@@ -215,7 +220,7 @@ class PriceHistoryTest extends ClinicalTestCase
 
         $this->actingAs($this->supervisor)->get(route('pricing.charges.history', $charge))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('timezone', $this->branch->timezone)->where('result.total', 1));
+            ->assertInertia(fn ($page) => $page->missing('timezone')->where('result.total', 1));
     }
 
     public function test_another_organisations_charge_is_not_found_and_bad_filters_stay_on_the_page(): void

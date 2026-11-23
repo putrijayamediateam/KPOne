@@ -19,7 +19,18 @@ final class InventoryStockReviewService
 {
     public const MANAGE = 'inventory.stock_reviews.manage.branch';
 
+    /** The default alert window; a SKU may set its own (STK-42, `inventory_skus.expiry_alert_days`, 7 to 365). */
     public const EXPIRY_WINDOW_DAYS = 90;
+
+    /** STK-42: the read-only "At risk in 6 months" section. It is not one of LISTS, so it is never acknowledged. */
+    public const AT_RISK_DAYS = 183;
+
+    /**
+     * STK-42 (Mei Ling's review): above this many at-risk rows the list is not sorted by value, so a cost viewer's page
+     * never loads and costs an unbounded list. It falls back to expiry order and says why. Tests may lower it through
+     * `config('inventory.at_risk_value_sort_limit')`.
+     */
+    public const AT_RISK_VALUE_SORT_LIMIT = 2000;
 
     public const PER_PAGE = 25;
 
@@ -61,11 +72,17 @@ final class InventoryStockReviewService
             ->joinSub($eligibility->query($actor->organisation_id, $branch), 'e', fn ($j) => $j->on('e.id', '=', 'r.inventory_batch_id')->on('e.organisation_id', '=', 'r.organisation_id'))
             ->where('r.organisation_id', $actor->organisation_id)->where('l.organisation_id', $actor->organisation_id)->where('s.organisation_id', $actor->organisation_id)->where('i.organisation_id', $actor->organisation_id)
             ->where('l.branch_id', $branch->id)->where('r.quantity', '>', 0);
-        if ($kind === 'expiring') {
+        if ($kind === 'expiring' || $kind === 'at_risk') {
             // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned
             // stock stays listed below, because it still has to be written off.
             $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
-            $query->where('l.is_active', true)->whereNull('e.eligibility_reason')->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($eligibility->localDate($branch))->addDays(self::EXPIRY_WINDOW_DAYS)->toDateString());
+            $query->where('l.is_active', true)->whereNull('e.eligibility_reason');
+            if ($kind === 'expiring') {
+                // STK-42: each SKU's own alert days, 90 unless set on the SKU.
+                $query->whereRaw('e.expiry_date <= ?::date + COALESCE(s.expiry_alert_days, ?)::int', [$eligibility->localDate($branch), self::EXPIRY_WINDOW_DAYS]);
+            } else {
+                $query->whereRaw('e.expiry_date <= ?::date + ?::int', [$eligibility->localDate($branch), self::AT_RISK_DAYS]);
+            }
         } else {
             // Never hide expired stock because its references are inactive, unavailable or held.
             $query->whereDate('e.expiry_date', '<=', $eligibility->localDate($branch));
@@ -126,6 +143,82 @@ final class InventoryStockReviewService
         unset($list);
 
         return ['branchId' => $branch->id, 'branchName' => $branch->name, 'today' => $today, 'windowDays' => self::EXPIRY_WINDOW_DAYS, 'canManage' => $actor->can(self::MANAGE), 'q' => $data['q'] ?? '', 'lists' => $lists];
+    }
+
+    /**
+     * STK-42: the "At risk in 6 months" section, for the Stock review page only. Usable batches (the STK-2 rule, active
+     * locations, never patient returns) expiring within AT_RISK_DAYS of the branch-local date. A cost viewer gets the
+     * rows sorted by value (quantity x the SKU's current weighted average cost at this branch, STK-27), highest first;
+     * everyone else gets them sorted by expiry with no value or cost key at all. Read only: it writes nothing. page()
+     * never calls this, so the Pharmacy space, the Ask space and agents never receive a cost.
+     *
+     * @param  array<string,mixed>  $input
+     * @return array<string,mixed>
+     */
+    public function atRisk(User $actor, array $input): array
+    {
+        $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
+        abort_unless($actor && $actor->is_active && $actor->can('inventory.view.branch'), 403);
+        $access = app(BranchAccessService::class);
+        $branch = $access->activeBranch($actor);
+        abort_unless($branch && $branch->organisation_id === $actor->organisation_id && $access->hasEffectiveAssignment($actor, $branch), 403);
+        $data = Validator::make($input, ['q' => ['nullable', 'string', 'max:100'], 'at_risk_page' => ['sometimes', 'integer', 'min:1', 'max:1000000']])->validate();
+        $today = app(InventoryBatchEligibility::class)->localDate($branch);
+        $query = DB::query()->fromSub($this->items($actor, $branch, 'at_risk'), 'work');
+        if (filled($data['q'] ?? null)) {
+            $needle = '%'.addcslashes($data['q'], '%_\\').'%';
+            $query->where(fn ($q) => $q->where('sku_code', 'ilike', $needle)->orWhere('item', 'ilike', $needle)->orWhere('batch', 'ilike', $needle)->orWhere('location', 'ilike', $needle));
+        }
+        $page = (int) ($data['at_risk_page'] ?? 1);
+        $withValue = $actor->can(SupplierTermsService::COST_PERMISSION);
+        // Daniel's review: how many batches of the same SKU the whole list holds, shown in each card's heading.
+        $batchCounts = (clone $query)->groupBy('sku_id')->selectRaw('sku_id, COUNT(DISTINCT batch_id) as batches')->pluck('batches', 'sku_id')->map(fn ($n): int => (int) $n)->all();
+        $shape = fn (\stdClass $row): array => ['item_id' => (int) $row->item_id, 'sku_code' => $row->sku_code, 'item' => $row->item, 'location' => $row->location,
+            'stock_unit' => $row->stock_unit, 'batch' => $row->batch, 'expiry' => (string) $row->expiry, 'quantity' => (string) $row->quantity,
+            'skuBatches' => $batchCounts[(int) $row->sku_id] ?? 1,
+            'daysLeft' => (int) CarbonImmutable::parse($today)->diffInDays(CarbonImmutable::parse((string) $row->expiry), false)];
+        $tooMany = $withValue && array_sum($batchCounts) > (int) config('inventory.at_risk_value_sort_limit', self::AT_RISK_VALUE_SORT_LIMIT);
+        $withValue = $withValue && ! $tooMany;
+        $base = ['days' => self::AT_RISK_DAYS, 'sortedBy' => $withValue ? 'value' : 'expiry', 'tooManyToValue' => $tooMany];
+        if (! $withValue) {
+            $p = $query->orderBy('expiry')->orderBy('sku_code')->orderBy('batch')->orderBy('item_id')->paginate(self::PER_PAGE, ['*'], 'at_risk_page', $page);
+
+            return [...$base, 'rows' => array_map($shape, $p->items()), 'total' => $p->total(), 'page' => $p->currentPage(), 'lastPage' => $p->lastPage()];
+        }
+        $rows = $query->get();
+        $skuIds = array_values(array_unique(array_map(fn (\stdClass $row): int => (int) $row->sku_id, $rows->all())));
+        $positions = [];
+        if ($skuIds !== []) {
+            foreach (app(WeightedAverageCostService::class)->replay($actor->organisation_id, null, $skuIds)['positions'] as $position) {
+                if ((int) $position['branch_key'] === (int) $branch->id) {
+                    $positions[(int) $position['sku_id']] = $position;
+                }
+            }
+        }
+        $valued = $rows->map(function (\stdClass $row) use ($shape, $positions): array {
+            $out = $shape($row);
+            $position = $positions[(int) $row->sku_id] ?? null;
+            $total = $position === null ? 0 : (int) $position['quantity'];
+            $costed = $position === null ? 0 : (int) $position['costed_quantity'];
+            if ($costed <= 0 || $total <= 0) {
+                return [...$out, 'valueSen' => null, 'value' => null, 'estimate' => false, 'part' => false];
+            }
+            // The costed part of this batch's quantity, at the branch's average: position value x batch qty / position qty.
+            $quantity = StockUnitQuantity::scaled($row->quantity, true);
+            // Overflow-safe proportional split, rounded half up (STK-27's own helper).
+            $milliSen = WeightedAverageCostService::share((int) $position['value_milli_sen'], $quantity, $total);
+            $sen = WeightedAverageCostService::sen($milliSen);
+
+            return [...$out, 'valueSen' => $sen, 'value' => number_format($sen / 100, 2, '.', ','), 'estimate' => (bool) $position['includes_estimate'], 'part' => $costed < $total];
+        })->all();
+        usort($valued, fn (array $a, array $b): int => [$a['valueSen'] === null ? 1 : 0, -($a['valueSen'] ?? 0), $a['expiry'], $a['sku_code'], (string) $a['batch'], $a['item_id']]
+            <=> [$b['valueSen'] === null ? 1 : 0, -($b['valueSen'] ?? 0), $b['expiry'], $b['sku_code'], (string) $b['batch'], $b['item_id']]);
+        $total = count($valued);
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min($page, $lastPage);
+
+        return [...$base, 'rows' => array_slice($valued, ($page - 1) * self::PER_PAGE, self::PER_PAGE), 'total' => $total, 'page' => $page, 'lastPage' => $lastPage,
+            'banner' => StockValuationReportService::BANNER];
     }
 
     /** @param array<string,mixed> $input */

@@ -2,13 +2,14 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Approvals\ApprovalSources;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Models\User;
 
 /** Read-only destinations; their existing controllers remain the authority for access and scope. */
 final class ClinicManagementNavigation
 {
-    public function __construct(private BranchAccessService $branches, private BillingWorkAccess $billing) {}
+    public function __construct(private BranchAccessService $branches, private BillingWorkAccess $billing, private ApprovalSources $approvals) {}
 
     /**
      * The hub's exact rows (ClinicManagementController).
@@ -51,11 +52,14 @@ final class ClinicManagementNavigation
             }
         };
         $add('In-clinic', 'clinic', [
+            [$actor->hasAnyPermission($this->approvals->approvalPermissions()), 'Approvals & tasks', 'Everything waiting for your decision, with how long it has waited.', 'approvals.index'],
             [$settings, 'Business details', 'Manage organisation identity, branch contact details and the shared logo.', 'business-details.index'],
             [$actor->can('compliance.licences.manage.organisation') || $actor->can('compliance.fridge.manage.organisation') || $actor->can('compliance.fridge.record.branch') || $actor->can('compliance.fridge.review.branch'), 'Clinic compliance', 'Clinic licences and the vaccine fridge log.', 'clinic-compliance.index'],
             [$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'],
             [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'QR check-in links', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
             [$settings, 'Consultation settings', 'Manage preset diagnoses for consultations.', 'diagnosis-presets.index'],
+            // TRI-1b: the triage guideline (Director and HR Manager enter and approve, two people).
+            [$actor->can('triage.guideline.manage.organisation'), 'Triage guideline', 'Enter and approve the signed triage guideline: red flags, yellow signs and limits.', 'triage-guideline.index'],
             [$panels, 'Checkout settings', 'Manage Panels, verification details and claim due rules.', 'panel-settings.index'],
             [$actor->can('payment_methods.manage.organisation'), 'Payment Methods', 'Configure the payment methods available at checkout.', 'payment-methods.index'],
             [$actor->can('billing.approval_limits.manage.organisation'), 'Billing Approval Limits', 'Manage the existing Panel and pay-later approval limits.', 'billing-approval-limits.index'],
@@ -75,6 +79,9 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('inventory.view.branch'), 'Inventory', 'Review stock, batches and movements for this branch.', 'inventory.index'],
             // DSP-7b (B.E.R.N.I.S.S for the owner): only the people who may check a return see the list (v1: a CA Supervisor).
             [$branch && $actor->can('dispensary.view.branch') && app(DispensaryReturnService::class)->canCheckReturns($actor), 'Returns to check', 'Medicine returns at this branch that are waiting for a check, oldest first.', 'dispensary.returns-to-check'],
+            // DSP-23 (owner answers 12 = A and 13 = B): the branch switch, and the list a CA Supervisor checks from instead.
+            [$branch && $actor->can('dispensary.doctor_check.override.branch'), 'Waiting for doctor\'s check', 'Consultation cases waiting for the doctor\'s check at this branch, oldest first.', 'dispensary.doctor-checks'],
+            [$branch && $actor->can('dispensary.settings.manage.branch'), 'Dispensary settings', 'Turn on the doctor\'s check of prepared medicine for this branch.', 'dispensary-settings.show'],
         ]);
         $add('Patients', 'patients', [
             [$actor->can('patients.search.organisation'), 'Patient Records', 'Find patients within your existing access.', 'patients.index'],
@@ -102,6 +109,7 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('panel.claims.manage.branch'), 'Claims follow-up', "Open claims with no action for their Panel's follow-up days.", 'panel-claims.follow-up'],
             [$branch && $actor->can('panel.remittances.record.branch'), 'Panel payments', "Record a Panel's payment and split it across its accepted claims.", 'panel-remittances.index'],
             [$branch && $actor->can('panel.claim_payments.reverse.branch'), 'Correct a Panel payment', 'Reverse a wrongly recorded Panel payment.', 'panel-payment-corrections.index'],
+            [$branch && ($actor->can('panel.prices.propose.organisation') || $actor->can('panel.prices.approve.organisation')), 'Panel price changes', 'Propose a Panel price change, or approve one that someone else proposed.', 'panel-price-changes.index'],
             [$branch && $actor->can('panel.invoices.export.branch'), 'Panel invoices', 'Review the existing branch Panel invoice report.', 'panel-invoices.index'],
             [$panels, 'Claims message template', 'Manage the claim message in Checkout settings.', 'panel-settings.index'],
         ]);
@@ -147,6 +155,8 @@ final class ClinicManagementNavigation
             [$actor->can('hr.appraisal.view.own') || $actor->can('hr.appraisal.manage.organisation'), 'KPOne HR appraisals', 'Your appraisals, and appraisal cycles and criteria for HR.', 'hr.appraisals.index'],
             [$actor->can('hr.incidents.report.own') || $actor->can('hr.incidents.manage.organisation'), 'KPOne HR incidents', 'Report a workplace incident, and handle reports for HR.', 'hr.incidents.index'],
             [$actor->can('hr.open_shifts.request.own') || $actor->can('hr.open_shifts.manage.organisation'), 'KPOne HR open shifts', 'Post shifts for locums, or ask for one as a locum.', 'hr.open-shifts.index'],
+            [$actor->can('hr.locum_pay.view.own') || $actor->can('hr.locum_pay.manage.organisation') || $actor->can('hr.locum_pay.finance.organisation'), 'KPOne HR locum pay', 'Locum pay statements from approved shifts and confirmed rates; payment is recorded, never made.', 'hr.locum-pay.index'],
+            [$actor->can('hr.labour_cost.view.organisation'), 'KPOne HR labour cost', 'Pay, employer contributions and locum pay by branch and month, from approved pay runs. Read only.', 'hr.labour-cost.index'],
             [$actor->can('hr.discipline.manage.organisation'), 'KPOne HR discipline', 'Restricted discipline cases: allegation, show-cause letters, replies and outcome.', 'hr.discipline.index'],
             [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
             [$actor->can('hr.payroll.prepare.organisation') || $actor->can('hr.payroll.export.organisation'), 'KPOne HR payroll', 'Payroll runs, pay profiles, statutory tables and exports, each checked by a second person.', 'hr.payroll.index'],

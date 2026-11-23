@@ -1,4 +1,4 @@
-import type { OutstandingBills } from '@/types/billing';
+import type { OutstandingBills, PanelClaimLink } from '@/types/billing';
 import type { BillToContext } from '@/types/billTo';
 import type { InvoiceActivityLink } from '@/types/invoiceActivity';
 import type {
@@ -11,7 +11,8 @@ import type { InvoiceNotesContext } from './invoiceNotes';
 export type CompletedInvoicePage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
-    patient: VisitHistoryPage['patient'];
+    // BIL-29: foreign (passport) patient; no SST is charged yet.
+    patient: VisitHistoryPage['patient'] & { foreign?: boolean };
     visit: Pick<
         VisitHistoryPage['visit'],
         'visitNumber' | 'branch' | 'coverage' | 'registeredAt' | 'completedAt'
@@ -26,5 +27,7 @@ export type CompletedInvoicePage = {
         billing: string | null;
         payments: string | null;
         activity: InvoiceActivityLink;
+        /** BIL-35: the Panel claim button, for Panel Claims users only. */
+        panelClaim?: PanelClaimLink | null;
     };
 };

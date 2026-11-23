@@ -6,7 +6,6 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const flat = (src) => src.replace(/\s+/g, ' ');
 const classic = read('resources/js/components/billing/BillingWorkspace.vue');
-const v2 = read('resources/js/pages/Billing/V2/Show.vue');
 const invoicePage = read('resources/js/pages/Billing/Invoice.vue');
 const copies = read('resources/js/components/billing/IssuedCopies.vue');
 const types = read('resources/js/types/billing.ts');
@@ -18,7 +17,6 @@ const message =
 test('PCA-1: Print invoice follows the server flag on Classic and Version 2, with the same note', () => {
     for (const [name, src] of [
         ['Classic', classic],
-        ['Version 2', v2],
     ]) {
         assert.match(
             src,

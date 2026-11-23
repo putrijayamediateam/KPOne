@@ -68,7 +68,7 @@ class DailyReportExportTest extends BillingTestCase
     public function test_permissions_are_exact_additive_and_every_role_is_enforced_for_both_exports(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn ($p) => in_array(DailyReportExportService::PAYMENTS_PERMISSION, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['administrator', 'director', 'finance_officer'], $holders);
+        $this->assertSame(['administrator', 'branch_manager', 'director', 'finance_officer'], $holders);
         $role = Role::findByName('administrator');
         $role->revokePermissionTo(DailyReportExportService::PAYMENTS_PERMISSION);
         $before = $role->permissions()->pluck('name')->sort()->values()->all();
@@ -84,7 +84,7 @@ class DailyReportExportTest extends BillingTestCase
             $actor = $this->actor($name);
             $this->selectBranch($actor);
             foreach (['daily_sales', 'daily_receipts'] as $dataset) {
-                $response = $this->get($this->url($dataset));
+                $response = $this->get($this->url($dataset, $name === 'branch_manager' ? ['branch' => $this->branch->code] : [])); // BM reports B: own branch only
                 if (in_array($name, $holders, true)) {
                     $response->assertOk();
                     $this->assertCount(3, $this->csv($response->streamedContent())[1]);

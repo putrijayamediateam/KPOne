@@ -3,8 +3,8 @@ import { computed, reactive } from 'vue';
 import type { Option, RunRow } from '@/components/hr/payroll/types';
 
 /**
- * HR-7b Runs tab state: Prepare a run for a pay group and month. The request lives here, shared by the Classic tab
- * (`components/hr/payroll/RunsTab.vue`) and V2 Payroll, so both send the same request. Moved unchanged.
+ * HR-7b Runs tab state: Prepare a run for a pay group and month. The request of `components/hr/payroll/RunsTab.vue`
+ * lives here.
  */
 export type RunsTabProps = {
     runs: RunRow[];

@@ -12,6 +12,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
@@ -83,6 +84,7 @@ type Props = {
             overdue: boolean;
             remarkNote: string;
         }>;
+        waiting: number;
         claims: PageSet<{
             publicId: string;
             claimNo: string;
@@ -188,9 +190,8 @@ const visibleColumns = ref<Record<ColumnKey, boolean>>({
     updatedBy: true,
     remarks: true,
 });
-const invoiceMode = computed(() =>
-    ['pending', 'overdue'].includes(props.work.filters.tab),
-);
+// PNL-28a: Pending lists approved invoices with no claim; Overdue lists Prepared claims.
+const invoiceMode = computed(() => props.work.filters.tab === 'pending');
 const columnList = computed(() =>
     invoiceMode.value ? invoiceColumns : claimColumns,
 );
@@ -266,6 +267,51 @@ const query = (overrides: Record<string, string | number | null> = {}) => {
     );
 };
 // Any change of tab, filter or page starts a fresh bulk selection (see PNL-2 below).
+type AutoClaimResult = {
+    created: number;
+    skipped: { invoiceNumber: string; code: string; reason: string }[];
+    remaining: number;
+};
+const autoResult = ref<AutoClaimResult | null>(null);
+const creatingWaiting = ref(false);
+const page = usePage();
+watch(
+    () =>
+        (page as unknown as { flash?: { autoClaimResult?: AutoClaimResult } })
+            .flash?.autoClaimResult,
+    (value) => {
+        if (value) {
+            autoResult.value = value;
+        }
+    },
+    { immediate: true },
+);
+const waitingButtonLabel = computed(() => {
+    if (creatingWaiting.value) {
+        return 'Creating…';
+    }
+
+    const waiting = props.work.waiting;
+
+    return waiting > 50
+        ? `Create claims for the oldest 50 of ${waiting} waiting invoices`
+        : `Create claims for ${waiting} waiting ${waiting === 1 ? 'invoice' : 'invoices'}`;
+});
+const confirmingWaiting = ref(false);
+const createWaitingClaims = () => {
+    confirmingWaiting.value = false;
+    creatingWaiting.value = true;
+    router.post(
+        '/panel-claims/auto-create',
+        { expected_branch_id: props.work.branch.id },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                creatingWaiting.value = false;
+            },
+        },
+    );
+};
 const go = (overrides: Record<string, string | number | null> = {}) => {
     selected.value = {};
     router.get('/panel-claims', query(overrides), {
@@ -307,7 +353,6 @@ const createClaim = (allocationId: string) => {
 // PNL-2: bulk claim creation for several invoices of one Panel. Each claim keeps its own idempotency key,
 // so a retry after a refused batch reuses the same keys and never creates a duplicate.
 type EligibleRow = Props['work']['eligible']['data'][number];
-const page = usePage();
 const bulkErrors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
@@ -665,10 +710,7 @@ const visitTypeLabel = (value: string) =>
                         <dt>Overdue</dt>
                         <dd class="font-medium text-destructive tabular-nums">
                             {{
-                                countLabel(
-                                    work.summary.overdue.count,
-                                    'invoice',
-                                )
+                                countLabel(work.summary.overdue.count, 'claim')
                             }}
                         </dd>
                     </div>
@@ -747,15 +789,95 @@ const visitTypeLabel = (value: string) =>
                 </DropdownMenu>
             </div>
 
-            <p v-if="invoiceMode" class="text-sm text-muted-foreground">
-                Approved Panel invoices without a claim yet. Create claim opens
-                the creation page for a submitted claim with invoice lines,
-                patient name, member reference, visit date, branch and invoice
-                number. The claim summary excludes clinical notes, diagnoses,
-                identity documents or attachments. Photos can be added as claim
-                documents. A claim is overdue once the Panel’s due days after
-                the visit have passed.
+            <p
+                v-if="work.filters.tab === 'pending'"
+                class="text-sm text-muted-foreground"
+            >
+                Approved invoices with no claim. Create claim opens the creation
+                page for a submitted claim with invoice lines, patient name,
+                member reference, visit date, branch and invoice number. The
+                claim summary excludes clinical notes, diagnoses, identity
+                documents or attachments. Photos can be added as claim
+                documents.
             </p>
+            <p
+                v-else-if="work.filters.tab === 'overdue'"
+                class="text-sm text-muted-foreground"
+            >
+                Prepared claims not submitted by the Panel's due date.
+            </p>
+
+            <section
+                v-if="work.filters.tab === 'pending' && work.waiting > 0"
+                class="space-y-2 rounded-lg border border-warning/25 bg-warning/10 p-3"
+                data-testid="waiting-invoices"
+            >
+                <p
+                    class="flex items-center gap-2 text-sm font-medium text-warning-strong"
+                >
+                    <span
+                        aria-hidden="true"
+                        class="size-2 shrink-0 rounded-full bg-current"
+                    />
+                    {{ work.waiting }} approved
+                    {{ work.waiting === 1 ? 'invoice has' : 'invoices have' }}
+                    no claim yet
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="max-lg:min-h-11"
+                        :disabled="creatingWaiting"
+                        @click="confirmingWaiting = true"
+                    >
+                        {{ waitingButtonLabel }}
+                    </Button>
+                    <span class="text-sm text-muted-foreground">
+                        Creates a Prepared claim for each. Nothing is submitted.
+                    </span>
+                </div>
+            </section>
+
+            <section
+                v-if="autoResult"
+                class="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm"
+                data-testid="auto-claim-result"
+                aria-label="Result"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <p class="font-medium" role="status">
+                        Created {{ autoResult.created }}
+                        {{ autoResult.created === 1 ? 'claim' : 'claims' }}.
+                        Skipped {{ autoResult.skipped.length }}.
+                        <template v-if="autoResult.remaining > 0">
+                            {{ autoResult.remaining }} still waiting — press
+                            again.
+                        </template>
+                    </p>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        class="max-lg:min-h-11"
+                        @click="autoResult = null"
+                    >
+                        Dismiss
+                    </Button>
+                </div>
+                <ul v-if="autoResult.skipped.length > 0" class="space-y-1">
+                    <li
+                        v-for="item in autoResult.skipped"
+                        :key="`${item.invoiceNumber}-${item.code}`"
+                    >
+                        <span class="font-mono text-xs">{{
+                            item.invoiceNumber
+                        }}</span>
+                        ·
+                        <span :title="item.code">{{ item.reason }}</span>
+                    </li>
+                </ul>
+            </section>
 
             <form
                 class="flex flex-wrap items-end gap-3"
@@ -1013,11 +1135,7 @@ const visitTypeLabel = (value: string) =>
                 </section>
                 <EmptyState
                     v-if="work.eligible.data.length === 0"
-                    :title="
-                        work.filters.tab === 'overdue'
-                            ? 'No overdue invoices'
-                            : 'No pending invoices'
-                    "
+                    title="No pending invoices"
                     description="Approved Panel invoices without a claim appear here. Change the date range or filters to see more."
                 />
                 <div
@@ -1139,7 +1257,8 @@ const visitTypeLabel = (value: string) =>
                                     v-if="row.overdue"
                                     status="overdue"
                                     label="Overdue"
-                                    tone="danger"
+                                    tone="warning"
+                                    dot
                                 />
                                 <span>Visit {{ row.visitDate }}</span>
                             </div>
@@ -1269,7 +1388,8 @@ const visitTypeLabel = (value: string) =>
                                     v-if="row.overdue"
                                     status="overdue"
                                     label="Overdue"
-                                    tone="danger"
+                                    tone="warning"
+                                    dot
                                 />
                                 <StatusBadge
                                     v-else
@@ -1406,8 +1526,12 @@ const visitTypeLabel = (value: string) =>
                 </section>
                 <EmptyState
                     v-if="work.claims.data.length === 0"
-                    title="No claims match"
-                    description="Create a claim from the Pending or Overdue tab, or change the tab, date range or filters."
+                    :title="
+                        work.filters.tab === 'overdue'
+                            ? 'No overdue claims'
+                            : 'No claims match'
+                    "
+                    description="Create a claim from the Pending tab, or change the tab, date range or filters."
                 />
                 <div
                     v-if="work.claims.data.length > 0"
@@ -1514,6 +1638,25 @@ const visitTypeLabel = (value: string) =>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
+                            <div class="flex">
+                                <StatusBadge
+                                    v-if="row.overdue"
+                                    status="overdue"
+                                    label="Overdue"
+                                    tone="warning"
+                                    dot
+                                />
+                                <StatusBadge
+                                    v-else
+                                    :status="row.status"
+                                    :tone="
+                                        row.status === 'Prepared'
+                                            ? 'neutral'
+                                            : undefined
+                                    "
+                                    :dot="row.status === 'Prepared'"
+                                />
+                            </div>
                             <p class="wrap-anywhere text-muted-foreground">
                                 {{ row.panelName }}
                             </p>
@@ -1531,7 +1674,6 @@ const visitTypeLabel = (value: string) =>
                             <div
                                 class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
                             >
-                                <StatusBadge :status="row.status" />
                                 <span>{{ row.createdAt }}</span>
                             </div>
                             <p
@@ -1664,7 +1806,23 @@ const visitTypeLabel = (value: string) =>
                                 </span>
                             </td>
                             <td v-if="visibleColumns.status">
-                                <StatusBadge :status="row.status" />
+                                <StatusBadge
+                                    v-if="row.overdue"
+                                    status="overdue"
+                                    label="Overdue"
+                                    tone="warning"
+                                    dot
+                                />
+                                <StatusBadge
+                                    v-else
+                                    :status="row.status"
+                                    :tone="
+                                        row.status === 'Prepared'
+                                            ? 'neutral'
+                                            : undefined
+                                    "
+                                    :dot="row.status === 'Prepared'"
+                                />
                             </td>
                             <td
                                 v-if="visibleColumns.date"
@@ -1723,4 +1881,12 @@ const visitTypeLabel = (value: string) =>
             </template>
         </section>
     </main>
+    <OperationalConfirmDialog
+        :open="confirmingWaiting"
+        :title="`Create ${Math.min(work.waiting, 50)} Prepared ${Math.min(work.waiting, 50) === 1 ? 'claim' : 'claims'}?`"
+        description="Nothing is submitted. Each claim stays Prepared until you submit it."
+        :confirm-label="`Create ${Math.min(work.waiting, 50)} ${Math.min(work.waiting, 50) === 1 ? 'claim' : 'claims'}`"
+        @update:open="(v: boolean) => (confirmingWaiting = v)"
+        @confirm="createWaitingClaims"
+    />
 </template>
