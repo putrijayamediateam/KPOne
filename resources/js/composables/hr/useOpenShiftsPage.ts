@@ -2,9 +2,8 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 
 /**
- * The Open shifts page's state and actions (HR-15b), shared by Classic (`pages/HR/OpenShifts.vue`) and Version 2
- * (`pages/HR/V2/OpenShifts.vue`), so both send the same requests with the same lock versions and idempotency keys. Moved
- * out of the Classic page unchanged; the Classic template did not change.
+ * The Open shifts page's state and actions (HR-15b) for `pages/HR/OpenShifts.vue`: every request, lock version and
+ * idempotency key.
  */
 export type Tab = 'available' | 'mine' | 'open' | 'closed';
 export type Option = { value: string; label: string };

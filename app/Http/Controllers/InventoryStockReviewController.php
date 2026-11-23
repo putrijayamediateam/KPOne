@@ -13,7 +13,8 @@ final class InventoryStockReviewController extends Controller
 {
     public function index(Request $request, InventoryStockReviewService $service): Response
     {
-        return Inertia::render('Inventory/StockReview', ['review' => $service->page($request->user(), $request->query())]);
+        // STK-42: the at-risk section (with value for cost viewers) comes only from here, never from page().
+        return Inertia::render('Inventory/StockReview', ['review' => $service->page($request->user(), $request->query()), 'atRisk' => $service->atRisk($request->user(), $request->query())]);
     }
 
     public function store(Request $request, string $kind, int $reviewItem, InventoryStockReviewService $service): RedirectResponse

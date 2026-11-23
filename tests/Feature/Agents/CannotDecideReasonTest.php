@@ -34,7 +34,7 @@ class CannotDecideReasonTest extends VisitTestCase
 
         $this->get(route('agents.inbox'))->assertInertia(fn (Assert $page) => $page
             ->where('proposals.0.id', $proposal->id)->where('proposals.0.canDecide', false)
-            ->where('proposals.0.cannotDecideReason', 'You started the run that made this suggestion, so someone else must decide.'));
+            ->missing('proposals.0.cannotDecideReason'));
     }
 
     public function test_someone_else_who_may_decide_gets_no_reason(): void
@@ -43,7 +43,7 @@ class CannotDecideReasonTest extends VisitTestCase
         $this->selectBranch($this->actor('ca_supervisor'));
 
         $this->get(route('agents.inbox'))->assertInertia(fn (Assert $page) => $page
-            ->where('proposals.0.canDecide', true)->where('proposals.0.cannotDecideReason', null));
+            ->where('proposals.0.canDecide', true)->missing('proposals.0.cannotDecideReason'));
     }
 
     public function test_a_decided_proposal_has_no_reason(): void
@@ -54,7 +54,7 @@ class CannotDecideReasonTest extends VisitTestCase
         $this->post(route('agents.inbox.approve', $proposal), ['lock_version' => 0, 'reason' => 'Order placed'])->assertRedirect();
 
         $this->get(route('agents.inbox', ['tab' => 'approved']))->assertInertia(fn (Assert $page) => $page
-            ->where('proposals.0.canDecide', false)->where('proposals.0.cannotDecideReason', null));
+            ->where('proposals.0.canDecide', false)->missing('proposals.0.cannotDecideReason'));
     }
 
     public function test_the_reason_helper_names_each_cause_and_never_a_person(): void

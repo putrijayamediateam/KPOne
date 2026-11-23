@@ -161,13 +161,15 @@ final class HiringMessenger
             return [];
         }
         $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')
-            ->where('i.application_id', $applicationId)->where('i.round', $round)->orderByDesc('i.id')->first(['i.starts_at', 'b.name', 'b.timezone']);
+            ->where('i.application_id', $applicationId)->where('i.round', $round)->orderByDesc('i.id')->first(['i.starts_at', 'i.mode', 'i.video_link', 'b.name', 'b.timezone']);
         if ($interview === null) {
             return [];
         }
         $at = CarbonImmutable::parse($interview->starts_at)->setTimezone((string) ($interview->timezone ?: 'UTC'));
         $params = ['date' => $at->format('D j M Y'), 'time' => $at->format('g:i A')];
-        if ($template === 'interview_confirmed') {
+        if ($template === 'interview_confirmed' && $interview->mode === 'online' && is_string($interview->video_link)) {
+            $params['meeting'] = $interview->video_link;
+        } elseif ($template === 'interview_confirmed') {
             $params['branch'] = trim((string) preg_replace('/[\r\n<>{}]+/u', ' ', (string) $interview->name));
         }
 

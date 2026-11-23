@@ -66,6 +66,8 @@ final class ApplicationsPageService
                     ->get(['id', 'name'])->map(fn (object $b): array => ['value' => (string) $b->id, 'label' => (string) $b->name])->values()->all(),
                 'positions' => $positions->map(fn (object $p): array => ['value' => (string) $p->public_id, 'label' => (string) $p->title])->values()->all(),
                 'graceDays' => JobApplicationService::GRACE_DAYS,
+                // HR-15e: in person or online.
+                'meetingModes' => collect(InterviewSlots::MODES)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
                 'cancelReasons' => collect(InterviewSlots::CANCEL_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
                 'rejectReasons' => collect(JobApplicationService::REJECT_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
                 'types' => collect(JobApplicationService::TYPES)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
@@ -219,6 +221,8 @@ final class ApplicationsPageService
                 'poolUntil' => ($until = TalentPool::until($a)) === null ? null : CarbonImmutable::parse($until)->format('j M Y'),
                 'poolConsent' => (bool) $a->talent_pool_consent && $a->pool_withdrawn_at === null,
                 'accountRequest' => StaffAccountRequests::latestFor((int) $a->id, $zone),
+                // HR-15d: the locum file made from a passed Locum candidate, with its sign-in state.
+                'locumHire' => LocumHires::forApplication((int) $a->id),
                 'lockVersion' => (int) $a->lock_version,
             ])->values()->all(),
         ];
@@ -263,14 +267,16 @@ final class ApplicationsPageService
                 ->whereIn('starts_at', array_map(fn (string $s): CarbonImmutable => CarbonImmutable::parse($s)->utc(), $starts))->pluck('starts_at')
                 ->map(fn ($at): string => InterviewSlots::key(CarbonImmutable::parse($at)))->flip()->all();
 
-            return ['round' => (int) $a->interview_round, 'branch' => $pick?->name, 'confirmed' => null,
+            return ['round' => (int) $a->interview_round, 'branch' => $pick?->name, 'confirmed' => null, 'online' => false, 'videoLink' => null,
                 'picks' => array_map(fn (string $s): array => ['start' => $s, 'label' => $label($s), 'taken' => isset($taken[$s]), 'past' => CarbonImmutable::parse($s)->lte(now())], $starts)];
         }
         $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')->where('i.application_id', $a->id)
-            ->where('i.status', 'confirmed')->first(['i.starts_at', 'b.name']);
+            ->where('i.status', 'confirmed')->first(['i.starts_at', 'i.mode', 'i.video_link', 'b.name']);
 
         return ['round' => (int) $a->interview_round, 'branch' => $interview?->name, 'picks' => [],
             'confirmed' => $interview === null ? null : $label((string) $interview->starts_at),
+            // HR-15e: online or in person, and the link HR typed.
+            'online' => $interview?->mode === 'online', 'videoLink' => $interview?->mode === 'online' ? (string) $interview->video_link : null,
             // HR-17d: which interview documents the candidate has downloaded.
             'documents' => InterviewDocuments::downloadsFor($a, $zone)];
     }

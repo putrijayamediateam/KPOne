@@ -21,9 +21,7 @@ final class MemosPageService
 {
     private const LIMIT = 100;
 
-    private const READER_LIMIT = 1000;
-
-    public function __construct(private MemoAudience $audience, private BranchAccessService $branches) {}
+    public function __construct(private MemoAudience $audience, private BranchAccessService $branches, private MemosToRead $toRead) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -63,33 +61,24 @@ final class MemosPageService
             return 0;
         }
 
-        return collect($this->my($actor, $this->zone($actor)))->where('status', 'open')->whereNull('acknowledgedOn')->count();
+        return $this->toRead->count($actor);
     }
 
     /** @return list<array<string, mixed>> */
     private function my(User $actor, string $zone): array
     {
-        $memos = $this->memos($actor, true);
+        $memos = $this->toRead->expected($actor);
         if ($memos->isEmpty()) {
             return [];
         }
-        $actor->loadMissing('roles');
-        $effective = $this->audience->effective($actor->organisation_id, [(int) $actor->id]);
         $ids = $memos->pluck('id')->all();
-        $branchSets = DB::table('hr_memo_branches')->whereIn('memo_id', $ids)->get(['memo_id', 'branch_id'])->groupBy('memo_id');
-        $roleSets = DB::table('hr_memo_roles')->whereIn('memo_id', $ids)->get(['memo_id', 'role'])->groupBy('memo_id');
         $opens = DB::table('hr_memo_opens')->where('user_id', $actor->id)->whereIn('memo_id', $ids)->get(['memo_id', 'kind'])->groupBy('memo_id');
         $acks = DB::table('hr_memo_acknowledgements')->where('user_id', $actor->id)->whereIn('memo_id', $ids)->pluck('created_at', 'memo_id');
         $replacedBy = $this->replacements($ids);
         $freed = $this->freed($ids);
         $names = User::query()->whereIn('id', $memos->pluck('published_by_user_id')->unique()->all())->pluck('name', 'id');
 
-        $rows = $memos->filter(function (\stdClass $m) use ($actor, $effective, $branchSets, $roleSets): bool {
-            $branchIds = array_values(array_map('intval', ($branchSets->get($m->id) ?? collect())->pluck('branch_id')->all()));
-            $roles = array_map('strval', ($roleSets->get($m->id) ?? collect())->pluck('role')->all());
-
-            return $this->audience->expects($actor, $branchIds, $roles, $effective);
-        })->map(function (\stdClass $m) use ($opens, $acks, $replacedBy, $freed, $names, $zone): array {
+        $rows = $memos->map(function (\stdClass $m) use ($opens, $acks, $replacedBy, $freed, $names, $zone): array {
             $kinds = ($opens->get($m->id) ?? collect())->pluck('kind')->all();
 
             return [
@@ -173,22 +162,15 @@ final class MemosPageService
     }
 
     /**
-     * Readers get every memo that is not withdrawn (and closed no more than 90 days ago), so an old open memo never falls off
-     * their list behind newer memos for other people; managers get the latest 100 of all.
+     * Managers get the latest 100 of all memos; readers' memos come from {@see MemosToRead::expected()}.
      *
      * @return Collection<int, \stdClass>
      */
-    private function memos(User $actor, bool $reader = false): Collection
+    private function memos(User $actor): Collection
     {
-        $query = DB::table('hr_memos')->where('organisation_id', $actor->organisation_id)->orderByDesc('published_at')->orderByDesc('id');
-        if ($reader) {
-            $query->whereNull('withdrawn_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()->utc()->subDays(90)))->limit(self::READER_LIMIT);
-        } else {
-            $query->limit(self::LIMIT);
-        }
-
-        return $query->get(['id', 'public_id', 'title', 'pdf_path', 'published_by_user_id', 'published_at', 'expires_at', 'replaces_memo_id', 'withdrawn_at',
-            'withdrawn_by_user_id', 'withdrawn_reason', 'lock_version']);
+        return DB::table('hr_memos')->where('organisation_id', $actor->organisation_id)->orderByDesc('published_at')->orderByDesc('id')->limit(self::LIMIT)
+            ->get(['id', 'public_id', 'title', 'pdf_path', 'published_by_user_id', 'published_at', 'expires_at', 'replaces_memo_id', 'withdrawn_at',
+                'withdrawn_by_user_id', 'withdrawn_reason', 'lock_version']);
     }
 
     /**
@@ -197,8 +179,7 @@ final class MemosPageService
      */
     private function replacements(array $ids): array
     {
-        return DB::table('hr_memos as n')->join('hr_memos as o', 'o.id', '=', 'n.replaces_memo_id')->whereIn('o.id', $ids)->whereNull('n.withdrawn_at')->pluck('n.public_id', 'o.id')
-            ->map(fn ($v): string => (string) $v)->all();
+        return $this->toRead->replacements($ids);
     }
 
     /**
@@ -214,14 +195,7 @@ final class MemosPageService
     /** @param array<int, string> $replacedBy */
     private function status(\stdClass $memo, array $replacedBy): string
     {
-        if ($memo->withdrawn_at !== null) {
-            return 'withdrawn';
-        }
-        if (isset($replacedBy[$memo->id])) {
-            return 'replaced';
-        }
-
-        return $memo->expires_at !== null && CarbonImmutable::parse((string) $memo->expires_at, 'UTC')->lte(CarbonImmutable::now('UTC')) ? 'closed' : 'open';
+        return MemosToRead::status($memo, $replacedBy);
     }
 
     /**

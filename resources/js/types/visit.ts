@@ -1,4 +1,4 @@
-import type { CallReadiness } from './patientBoard';
+import type { CallReadiness, TriageZoneSummary } from './patientBoard';
 export type VisitType = 'consultation' | 'otc';
 export type VisitPriority = 'normal' | 'urgent';
 export type VisitCoverage = 'self_pay' | 'panel';
@@ -31,6 +31,8 @@ export type PatientRegistrationSummary = {
 
 export type VisitRow = {
     callHold?: CallReadiness | null;
+    /** TRI-1c: the triage zone, or null for a viewer who may not see it. */
+    triage?: TriageZoneSummary | null;
     canWhatsapp: boolean;
     visitNumber: string;
     patientNumber: string;
@@ -53,7 +55,7 @@ export type VisitRow = {
     visitLockVersion: number;
     queueLockVersion: number | null;
     returnedFromDispensary?: boolean;
-    dispensaryStatus?: 'pending' | 'dispensing';
+    dispensaryStatus?: 'pending' | 'dispensing' | 'awaiting_doctor_check';
     medicineCount?: number;
     dispensaryUrl?: string;
     billingUrl?: string | null;
@@ -101,6 +103,9 @@ export type VisitDetail = {
     cancellationReason: string | null;
     lockVersion: number;
     hasConsultation: boolean;
+    /** DSP-25: the Director's read-only dispensary case, or null. */
+    dispensaryReview: { url: string; status: string } | null;
+    consultationReview: { url: string; status: string } | null;
     queue: {
         queueNumber: string;
         operationalDate: string;
@@ -109,5 +114,10 @@ export type VisitDetail = {
         calledAt: string | null;
         lockVersion: number;
     } | null;
-    can: { update: boolean; cancel: boolean; sendToWaiting: boolean };
+    can: {
+        update: boolean;
+        cancel: boolean;
+        sendToWaiting: boolean;
+        triage?: boolean;
+    };
 };

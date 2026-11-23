@@ -73,7 +73,15 @@ final class CredentialService
             if ($health && $expires) {
                 throw ValidationException::withMessages(['expires' => 'A health item records only Done or Not done and a date, so it does not expire.']);
             }
-            $new = ['code' => $code, 'expires' => $expires, 'health' => $health];
+            // HR-21: a work permit type is marked when it is added and never changes; it always expires.
+            $permit = filter_var($input['work_permit'] ?? false, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if ($permit === null) {
+                throw ValidationException::withMessages(['work_permit' => 'Choose whether it is a work permit.']);
+            }
+            if ($permit && ($health || ! $expires)) {
+                throw ValidationException::withMessages(['work_permit' => 'A work permit expires and is not a health item.']);
+            }
+            $new = ['code' => $code, 'expires' => $expires, 'health' => $health, 'permit' => $permit];
         }
 
         return DB::transaction(function () use ($actor, $input, $key, $typeId, $name, $warn, $roles, $new): CredentialType {
@@ -107,7 +115,7 @@ final class CredentialService
                 }
                 $type = new CredentialType;
                 $type->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'code' => $new['code'], 'expires' => $new['expires'],
-                    'health_item' => $new['health'], 'current_version' => 1, 'is_active' => true, 'created_by_user_id' => $actor->id, 'lock_version' => 1])->save();
+                    'health_item' => $new['health'], 'work_permit' => $new['permit'], 'current_version' => 1, 'is_active' => true, 'created_by_user_id' => $actor->id, 'lock_version' => 1])->save();
                 $version = 1;
             } else {
                 /** @var CredentialType $type */

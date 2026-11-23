@@ -40,4 +40,26 @@ class DispensaryAuthorityService
 
         return $locked;
     }
+
+    /**
+     * DSP-23: lock the person who verifies or sends back a case waiting for the doctor's check: a Resident Doctor with
+     * dispensary.doctor_check.own, or a CA Supervisor with dispensary.doctor_check.override.branch, assigned to the
+     * branch today. The case-level rules (attending doctor, never the preparer) are checked under the case lock.
+     */
+    public function lockChecker(User $actor, Branch $branch): User
+    {
+        $locked = User::query()->whereKey($actor->id)->where('organisation_id', $branch->organisation_id)->lockForUpdate()->firstOrFail();
+        $locked->load(['roles.permissions', 'permissions']);
+        $profile = StaffProfile::query()->where('user_id', $locked->id)->lockForUpdate()->first();
+        $assignments = $profile ? StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->orderBy('id')->lockForUpdate()->get() : collect();
+        $date = now()->setTimezone($branch->timezone)->toDateString();
+        $assigned = $assignments->contains(fn (StaffBranchAssignment $a): bool => $a->branch_id === $branch->id && $a->valid_from->toDateString() <= $date && ($a->valid_until === null || $a->valid_until->toDateString() >= $date));
+        $doctor = $locked->hasRole('resident_doctor') && $locked->can('dispensary.doctor_check.own');
+        $supervisor = $locked->hasRole('ca_supervisor') && $locked->can('dispensary.doctor_check.override.branch');
+        if (! $locked->is_active || ! $profile || ! ($doctor || $supervisor) || ! $assigned) {
+            throw new AuthorizationException('You may not check this Dispensary case.');
+        }
+
+        return $locked;
+    }
 }

@@ -8,6 +8,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
+use App\Domain\Clinical\Triage\VisitTriageAssessment;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -19,6 +20,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -94,6 +96,17 @@ class ClinicalEncounterService
                     'to_state' => ClinicalEncounter::STATUS_IN_PROGRESS,
                     'record_version' => 1,
                 ], $lockedActor, $branch, $lockedActor->organisation_id);
+
+                // TRI-1c: a copy that ever fails (for example after a later schema change) must never block the
+                // consultation: it runs in a savepoint, and on a database error the start goes on without it.
+                try {
+                    DB::transaction(fn () => $this->copyTriageVitals($encounter, $lockedVisit, $lockedActor, $branch));
+                } catch (QueryException $exception) {
+                    Log::warning('encounter.vitals_from_triage_skipped', [
+                        'clinical_encounter_id' => $encounter->id,
+                        'sqlstate' => $exception->errorInfo[0] ?? null,
+                    ]);
+                }
 
                 return $encounter->refresh();
             }, 3);
@@ -181,14 +194,18 @@ class ClinicalEncounterService
             if (in_array('vitals', $changedSections, true)) {
                 if ($this->hasVitalMeasurement($validated['vitals'])) {
                     $vitals ??= new EncounterVitalObservation;
+                    // TRI-1c: once the doctor changes vitals copied from triage, they become the doctor's own observation
+                    // (the source is cleared in this same save, or PostgreSQL refuses the changed readings).
+                    $fromTriage = $vitals->getAttribute('source_triage_assessment_id') !== null;
                     $vitals->forceFill([
                         'organisation_id' => $lockedEncounter->organisation_id,
                         'branch_id' => $lockedEncounter->branch_id,
                         'clinical_encounter_id' => $lockedEncounter->id,
                         ...$validated['vitals'],
-                        'observed_at' => $vitals->observed_at ?? now()->utc(),
-                        'recorded_by_user_id' => $vitals->recorded_by_user_id ?? $lockedActor->id,
+                        'observed_at' => $fromTriage ? now()->utc() : ($vitals->observed_at ?? now()->utc()),
+                        'recorded_by_user_id' => $fromTriage ? $lockedActor->id : ($vitals->recorded_by_user_id ?? $lockedActor->id),
                         'updated_by_user_id' => $lockedActor->id,
+                        'source_triage_assessment_id' => null,
                     ])->save();
                 } elseif ($vitals) {
                     $vitals->delete();
@@ -410,6 +427,50 @@ class ClinicalEncounterService
         }
 
         return $changed;
+    }
+
+    /**
+     * TRI-1c (owner decisions 22 Nov 2026): the encounter starts with the visit's triage readings, each from the latest
+     * triage save that has it, labelled "From triage, last taken by <CA> at <time>". Runs inside encounter start, under
+     * the visit row lock that TriageService::record also takes, and triage is refused once the encounter exists, so the
+     * copy is exactly one, final snapshot. No triage, or no reading at all: nothing is copied. Audit holds ids only.
+     */
+    private function copyTriageVitals(ClinicalEncounter $encounter, Visit $visit, User $actor, Branch $branch): void
+    {
+        $rows = VisitTriageAssessment::query()->where('visit_id', $visit->id)->orderByDesc('sequence')->get();
+        $latest = $rows->first();
+        if ($latest === null) {
+            return;
+        }
+        $readings = [];
+        $takenBy = null;
+        foreach (VisitTriageAssessment::READINGS as $field) {
+            $from = $rows->first(fn (VisitTriageAssessment $row): bool => $row->getAttribute($field) !== null);
+            $readings[$field] = $from?->getAttribute($field);
+            if ($from !== null && ($takenBy === null || $from->sequence > $takenBy->sequence)) {
+                $takenBy = $from;
+            }
+        }
+        if ($takenBy === null) {
+            return;
+        }
+
+        $vitals = new EncounterVitalObservation;
+        $vitals->forceFill([
+            'organisation_id' => $encounter->organisation_id,
+            'branch_id' => $encounter->branch_id,
+            'clinical_encounter_id' => $encounter->id,
+            ...$readings,
+            'observed_at' => $takenBy->recorded_at,
+            'recorded_by_user_id' => $takenBy->recorded_by_user_id,
+            'updated_by_user_id' => $actor->id,
+            'source_triage_assessment_id' => $latest->id,
+        ])->save();
+
+        $this->audit->record('encounter.vitals_from_triage', $encounter, [
+            'triage_assessment_id' => $latest->id,
+            'readings_copied' => count(array_filter($readings, fn ($value): bool => $value !== null)),
+        ], $actor, $branch, $actor->organisation_id);
     }
 
     /** @param array<string, mixed> $vitals */

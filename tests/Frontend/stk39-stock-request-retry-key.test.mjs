@@ -8,7 +8,6 @@ const read = (p) =>
 test('STK-39: every form that creates a stock request sends a retry key and renews it after a save', () => {
     for (const file of [
         'resources/js/components/inventory/InventoryOperationsPanel.vue',
-        'resources/js/composables/inventory-v2/useRequestsAndTransfers.ts',
     ]) {
         const source = read(file);
         assert.match(source, /key: crypto\.randomUUID\(\),/, file);
@@ -19,12 +18,6 @@ test('STK-39: every form that creates a stock request sends a retry key and rene
             file,
         );
     }
-
-    const section = read(
-        'resources/js/components/inventory-v2/RequestsSection.vue',
-    );
-    assert.match(section, /retry_key: stockRequest\.key,/);
-    assert.match(section, /stockRequest\.key = crypto\.randomUUID\(\);/);
 
     const replenishment = read(
         'resources/js/pages/Inventory/BranchReplenishment.vue',

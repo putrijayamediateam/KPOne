@@ -2,10 +2,8 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 
 /**
- * The Messages page's state and actions (HR-14), shared by Classic (`pages/HR/Messages.vue`) and Version 2
- * (`pages/HR/V2/Messages.vue`), so both send the same requests with the same lock versions and idempotency keys. Moved
- * out of the Classic page unchanged; the Classic template did not change. Messages are for staff and HR only; the opt-in
- * and delivery wording stays exactly as it is.
+ * The Messages page's state and actions (HR-14) for `pages/HR/Messages.vue`: every request, lock version and
+ * idempotency key. Messages are for staff and HR only; the opt-in and delivery wording stays exactly as it is.
  */
 export type Tab = 'my' | 'settings' | 'sent';
 export type MyChannel = {

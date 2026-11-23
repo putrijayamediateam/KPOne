@@ -263,6 +263,15 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     one-off (Inventory paused, slot unused), because the change must run after DSP-7's `2026_11_07_000500`. The same kind of
     exception as DSP-7's checks table.
 37. DSP-16 race test (2026-11-10): the owner chose it ("go with DSP-16") and said "ship it". Tests only.
+38. DSP-24 whole bottles at Dispensary (2026-11-21): owner decision 17 of 20-21 Nov, answer 14 = A; "ship it for
+    DSP-24" relayed by B.E.R.N.I.S.S. Built on Inventory's STK-52 checked pack conversion (#1027). Stock and billing
+    stay in the base unit (ml); the line keeps the exact conversion version and the packs (1 to 99); the box starts
+    on the ordered unit (Daniel); the label prints "QTY: 2 BTL" and a "Quantity: 2 BOTTLES (120 ML)" row, and an
+    ml-only label is unchanged. Hakim: OK; Daniel: OK.
+39. Migration slot for DSP-24 (2026-11-21): `2026_11_07_003250` in the Inventory range, agreed with Zulkifli as a
+    one-off (his next migration starts at `003400`), because it must run after STK-52's `2026_11_07_003200`. The same
+    kind of exception as DSP-7 and DSP-15. No foreign key to `inventory_pack_conversions` (append-only; the insert
+    trigger checks existence, organisation and a checked outcome), so STK-52's own migration can still roll back.
 
 ## 7. Open items and known limits
 
@@ -404,6 +413,9 @@ order, each its own PR:
 15. **DSP-14 Allergy match with strengths — merged in #428.** Decision 34.
 16. **DSP-15 Quarantine one return across batches — merged in #430.** Decisions 35 and 36.
 17. **DSP-16 Race test for split quarantines — PR #439 (merged).** Decision 37.
+18. **DSP-24 Whole bottles at Dispensary — built 2026-11-21 (branch `feature/dsp-24-unit-conversion`).** Decisions 38
+    and 39. Owner questions still open in the design note: price per ml or per bottle (9a), default unit (9b), label
+    wording (9c); built as recommended.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.

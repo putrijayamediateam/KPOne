@@ -37,19 +37,21 @@ final class DrugLabelLayout
         'clinic' => 40, 'address' => 96, 'phone' => 41, 'patient' => 96, 'name' => 72, 'quantity' => 6,
         'dosage' => 96, 'frequency' => 96, 'instruction' => 144,
         'precaution' => 72, 'duration' => 36, 'indication' => 72,
+        // DSP-24: "2 BOTTLES (120 ML)" on its own "Quantity:" row, only when the CA dispensed whole packs.
+        'packs' => 36,
     ];
 
     /** Row limits per printed block. */
     public const ROW_LIMITS = [
         'clinic' => 1, 'address' => 2, 'phone' => 1, 'patient' => 2, 'name' => 2, 'directions' => 3,
-        'precaution' => 2, 'duration' => 1, 'indication' => 2,
+        'precaution' => 2, 'duration' => 1, 'indication' => 2, 'packs' => 1,
     ];
 
-    private const LABELS = ['precaution' => 'Precaution:', 'duration' => 'Duration:', 'indication' => 'Indication:'];
+    private const LABELS = ['packs' => 'Quantity:', 'precaution' => 'Precaution:', 'duration' => 'Duration:', 'indication' => 'Indication:'];
 
     /**
      * @param  array<string, string|null>  $fields  clinic, address, phone, patient, name, quantity, dosage, frequency,
-     *                                              instruction, precaution, duration, indication
+     *                                              instruction, precaution, duration, indication, and packs (DSP-24)
      * @param  string|null  $expiry  dd/mm/yyyy when the line used exactly one batch with a real expiry, otherwise null
      * @return array{lines: list<string>, emphasis: list<int>, ruleAfter: int, controlled: ?string, errors: list<string>}
      */
@@ -154,6 +156,34 @@ final class DrugLabelLayout
     public static function displayQuantity(string $quantity): string
     {
         return str_contains($quantity, '.') ? rtrim(rtrim($quantity, '0'), '.') : $quantity;
+    }
+
+    /**
+     * DSP-24: the QTY cell value with whole packs, for example "2 BTL"; the short form is the clinic's own for bottles,
+     * otherwise the pack unit in capitals (a long unit goes over the 6-character budget and blocks the label).
+     */
+    public static function packShortQuantity(int $packs, string $packUnit): string
+    {
+        $unit = mb_strtoupper(trim($packUnit), 'UTF-8');
+
+        return $packs.' '.(in_array($unit, ['BOTTLE', 'BOTTLES'], true) ? 'BTL' : $unit);
+    }
+
+    /** DSP-24: the "Quantity:" row, for example "2 bottles (120 ml)" or "1 bottle (60 ml)" (printed in capitals). */
+    public static function packQuantity(int $packs, string $packUnit, string $baseQuantity, string $baseUnit): string
+    {
+        return self::packCount($packs, $packUnit).' ('.self::displayQuantity($baseQuantity).' '.trim($baseUnit).')';
+    }
+
+    /** "1 bottle", "2 bottles", "2 boxes". */
+    public static function packCount(int $packs, string $packUnit): string
+    {
+        $unit = trim($packUnit);
+        if ($packs !== 1 && ! preg_match('/s$/i', $unit)) {
+            $unit .= preg_match('/(x|ch|sh)$/i', $unit) ? 'es' : 's';
+        }
+
+        return $packs.' '.$unit;
     }
 
     private function title(string $name): string

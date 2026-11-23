@@ -41,7 +41,7 @@ final class SkuEditDirectoryService
             ->orderBy('s.sku_code')->orderBy('s.id')
             ->paginate(25, ['s.id', 's.public_id', 's.sku_code', 's.barcode', 's.pack_size', 's.purchase_unit', 's.stock_unit', 's.dispensing_unit', 's.unit_conversion',
                 's.storage_type', 's.minimum_temperature', 's.maximum_temperature', 's.cold_chain_required', 's.do_not_freeze', 's.protect_from_light',
-                's.batch_tracking_required', 's.expiry_tracking_required', 's.is_active', 's.lock_version',
+                's.batch_tracking_required', 's.expiry_tracking_required', 's.expiry_alert_days', 's.is_active', 's.lock_version',
                 'i.public_id as item_public_id', 'i.code as item_code', 'i.generic_name', 'i.brand_name', 'i.is_active as item_active', 'i.lock_version as item_lock_version'],
                 'page', (int) ($data['page'] ?? 1));
         /** @var list<\stdClass> $items */
@@ -58,6 +58,8 @@ final class SkuEditDirectoryService
         $codes = array_values(array_filter(array_map(fn (\stdClass $row): ?string => $row->barcode === null ? null : (string) $row->barcode, $items)));
         $shared = $codes === [] ? [] : DB::table('inventory_skus')->where('organisation_id', $actor->organisation_id)->whereIn('barcode', $codes)
             ->groupBy('barcode')->havingRaw('count(*) > 1')->pluck('barcode')->map(fn ($code) => (string) $code)->all();
+        // STK-52: each SKU's pack conversion block (a checker never receives a waiting change's number).
+        $conversions = app(PackConversionDirectory::class)->blocks($actor, $items, (string) $branch->timezone);
 
         return [
             'branchName' => $branch->name,
@@ -65,17 +67,24 @@ final class SkuEditDirectoryService
             'filters' => ['q' => $data['q'] ?? '', 'status' => $status],
             'rows' => array_map(fn (\stdClass $row): array => [
                 'publicId' => $row->public_id, 'skuCode' => $row->sku_code, 'barcode' => $row->barcode,
-                'packSize' => (string) $row->pack_size, 'purchaseUnit' => $row->purchase_unit, 'stockUnit' => $row->stock_unit,
+                // STK-52 (Daniel): a person who may check a waiting pack change never receives the legacy pack fields,
+                // which would give away the answer to the blind check.
+                ...(($conversions[(int) $row->id]['waiting']['canCheck'] ?? false)
+                    ? ['packSize' => null, 'purchaseUnit' => null, 'legacyHidden' => true]
+                    : ['packSize' => (string) $row->pack_size, 'purchaseUnit' => $row->purchase_unit, 'legacyHidden' => false]),
+                'stockUnit' => $row->stock_unit,
                 'dispensingUnit' => $row->dispensing_unit, 'unitConversion' => (string) $row->unit_conversion,
                 'storageType' => $row->storage_type,
                 'minimumTemperature' => $row->minimum_temperature === null ? null : (string) $row->minimum_temperature,
                 'maximumTemperature' => $row->maximum_temperature === null ? null : (string) $row->maximum_temperature,
                 'coldChainRequired' => (bool) $row->cold_chain_required, 'doNotFreeze' => (bool) $row->do_not_freeze, 'protectFromLight' => (bool) $row->protect_from_light,
                 'batchTrackingRequired' => (bool) $row->batch_tracking_required, 'expiryTrackingRequired' => (bool) $row->expiry_tracking_required,
+                'expiryAlertDays' => $row->expiry_alert_days === null ? null : (int) $row->expiry_alert_days,
                 'active' => (bool) $row->is_active, 'lockVersion' => (int) $row->lock_version, 'unitsLocked' => $locked[(int) $row->id],
                 'onHand' => in_array((int) $row->id, $onHand, true), 'barcodeShared' => $row->barcode !== null && in_array((string) $row->barcode, $shared, true),
                 'item' => ['publicId' => $row->item_public_id, 'code' => $row->item_code, 'genericName' => $row->generic_name, 'brandName' => $row->brand_name,
                     'active' => (bool) $row->item_active, 'lockVersion' => (int) $row->item_lock_version],
+                'packConversion' => $conversions[(int) $row->id],
             ], $items),
             'page' => $rows->currentPage(), 'lastPage' => $rows->lastPage(), 'total' => $rows->total(),
         ];

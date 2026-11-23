@@ -8,15 +8,18 @@ const squash = (s) => s.replace(/\s+/g, ' ');
 const page = read('resources/js/pages/Spaces/Show.vue');
 const css = read('resources/css/space-shell-layout.css');
 
-test('UX-24 part 2 (Daniel): the cash closing status and the roster status are the dot-and-word V2 chip', () => {
-    assert.match(page, /import V2Chip from '@\/components\/v2\/V2Chip\.vue'/);
+test('UX-24 part 2 (Daniel), CO-1: the cash closing status and the roster status are the Classic status badge with the same tones', () => {
     assert.match(
-        squash(page),
-        /<V2Chip :tone="cashTone\(billing\.cashClosing\.status\)" :label="billing\.cashClosing\.statusText" \/>/,
+        page,
+        /import \{ StatusBadge \} from '@\/components\/ui\/status';/,
     );
     assert.match(
         squash(page),
-        /<V2Chip :tone="rosterTone\(hr\.roster\.status\)" :label="hr\.roster\.status"/,
+        /<StatusBadge :status="billing\.cashClosing\.status" :tone="cashTone\(billing\.cashClosing\.status\)" :label="billing\.cashClosing\.statusText" \/>/,
+    );
+    assert.match(
+        squash(page),
+        /<StatusBadge :status="hr\.roster\.status" :tone="rosterTone\(hr\.roster\.status\)" :label="hr\.roster\.status"/,
     );
     // The old pill is gone from the cash closing card.
     assert.doesNotMatch(

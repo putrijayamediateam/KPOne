@@ -3376,3 +3376,47 @@ The owner asked that someone who presses Clock out by mistake can clock in again
 - **The usual protections:** a fresh permission check under lock, `DB::transaction`, a row lock on the session, `lock_version`, an idempotency key, and an audit row `hr.attendance.clock_out_undone` (ids and seconds only).
 - **Known limit (Suresh):** an undo needs no photo, and the next clock-out's photo proves who pressed, not where. With the location check off, someone could clock out, leave, undo from their phone within 15 minutes and clock out later; this is the same limit HR-PHOTO records. The "Clock-out undone at …" line on Review is the safeguard. The button is offered only when the server would accept it (payroll included), and a press in the last seconds that PostgreSQL judges late gets "The time to undo has passed".
 - **Not in this slice:** the global clock shortcut does not offer the undo (it opens the Attendance page, which does); HR cannot undo for someone (HR uses the correction).
+
+## 26. HR-15d to HR-15g, as built (owner, 2026-11-18)
+
+The locum programme's last four slices, each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on
+its exact head. The decisions are TEAM.md 99 to 102.
+
+| Slice | What | PR |
+|---|---|---|
+| HR-15d | A passed Locum-position candidate becomes a locum file in one step, with the sign-in request opened with the email they applied with. No account is created; `StaffProvisioningService` stays the only way. | #977 |
+| HR-15e | An interview is In person or Online; Online carries an https video link HR types from their own video app. No meeting is created and no video service is called. | #978 |
+| HR-15f | My roster's Week/Month switch; the month shows the person's own approved shifts and their own open-shift asks only. | #979 |
+| HR-15g | Locum pay statement: approved shifts × the confirmed rate on each shift's date, "Not worked" marks and corrections. A rate is confirmed by Finance, never by whoever entered it. Finance records a payment made outside KPOne, which locks the month. KPOne pays nothing. | #980 |
+
+Next (owner, 2026-11-18): HR-21 (credential warning days per type, none shipped), HR-20 (on-call outside the hour
+limits, inside fair rotation), HR-19, then HR-18 (labour cost view for the Director, HR Manager and Finance Officer,
+at least 3 people per branch-month). Each still needs its design note, Daniel's look and a ship-it.
+
+## 27. HR-21 and HR-20, as built (owner, 2026-11-18 to 2026-11-20)
+
+Each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on its exact head. The decisions are TEAM.md
+106 to 109.
+
+| Slice | What | PR |
+|---|---|---|
+| HR-21 | A credential type marked "Work permit" (must expire, never a health item, fixed after creation). An expiring or expired permit shows one warning line on the register and the staff file and a count on the HR dashboard, for credential managers only. No new table or permission. | #992 |
+| HR-20 | An "On call" roster session: outside weekly hours, the weekly limit, days in a row and daily rest; no clinic hours; inside fair rotation (a night when it crosses midnight, starts at 20:00 or later, or starts before 06:00). No Late, Left early or No clock-in; a call-in may all be claimed as overtime. Its own dashboard line and planner count; left out of locum pay for now. | #1006 |
+
+Classic only (owner, 2026-11-20): CO-7 removes the HR Version 2 pages before HR-20 merges, so HR-20 keeps its Classic
+changes only.
+
+HR-19 (Ctrl+K search entries) is paused (owner, 2026-11-20, decision 110).
+
+## 28. HR-18 labour cost, as built (owner, 2026-11-20)
+
+Decisions 111 and 112. Suresh's review, Daniel's look and a green PostgreSQL 18 gate. PR #1011.
+
+| What | Detail |
+|---|---|
+| Page | `/hr/labour-cost`, Classic only, read only, one month from the last 12, an "Estimate" badge; no CSV. |
+| Who | `hr.labour_cost.view.organisation`: Director, HR Manager, Finance Officer (additive migration `007900`). |
+| Source | Approved or locked pay runs (the HR-9b staff-cost basis) and locum months Finance recorded as paid (HR-15g). |
+| Branch | Staff at their primary branch on the month's last day; locum pay at the branch of each paid shift. |
+| Hiding | Every amount covers no one or at least 3 people, per column (staff figures and locum figure); the clinic total less the shown figures never isolates 1 or 2 people; locum corrections never shown as an amount. |
+| Limits | Locum statement lines carry the branch name, not its id (follow-up); comparing months could narrow a figure. |

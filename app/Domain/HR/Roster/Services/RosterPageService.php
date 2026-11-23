@@ -21,6 +21,7 @@ use App\Domain\Queue\Models\BranchRoom;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -62,7 +63,13 @@ final class RosterPageService
             'tab' => $tab, 'tabs' => $tabs,
             'week' => $this->week($weekStart) + ['today' => now($branch->timezone)->toDateString()],
             'sessions' => collect(RosterRules::SESSIONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
+            // HR-20: on call is no clinic hours, so the minimum staffing grid lists clinic sessions only.
+            'staffingSessions' => collect(RosterRules::clinicSessions())->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'my' => $canOwn ? $this->my($actor, $weekStart) : null,
+            // HR-15f: the month calendar on My roster, only when asked for (owner, via B.E.R.N.I.S.S, 18 Nov 2026).
+            // Its own key, so it never meets the planner's "view" (Suresh, m1).
+            'view' => $canOwn && ($query['myView'] ?? null) === 'month' ? 'month' : 'week',
+            'month' => $canOwn && ($query['myView'] ?? null) === 'month' ? $this->myMonth($actor, $branch, $query['month'] ?? null) : null,
             'planner' => $planner ? $this->planner($actor, $branches, $branch, $weekStart, $query['view'] ?? null, $canManage, $canApprove) : null,
             'minimums' => $canManage ? $this->minimumsPage($actor, $branches, $branch) : null,
         ];
@@ -103,6 +110,99 @@ final class RosterPageService
         // HR-3a: an outline "Clock in" link on My roster for staff who clock (Daniel: never a second primary).
         // HR-15b: a locum finds open shifts from their own roster.
         return ['days' => $days, 'canClock' => $actor->can(ClockPermissions::CLOCK_OWN), 'canAskOpenShifts' => $actor->can(OpenShiftPermissions::REQUEST_OWN)];
+    }
+
+    /**
+     * HR-15f: one month of the person's own roster, Monday-first weeks, for every branch. Approved shifts by their
+     * branch-local start date, plus their own open-shift asks still waiting or confirmed into a week that is not approved
+     * yet. Nothing about anyone else, no leave type and no pay.
+     *
+     * @return array<string, mixed>
+     */
+    private function myMonth(User $actor, Branch $branch, mixed $month): array
+    {
+        $zone = $branch->timezone;
+        $first = is_string($month) && preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month) === 1
+            ? CarbonImmutable::createFromFormat('!Y-m', $month, $zone) : null;
+        $first = $first instanceof CarbonImmutable ? $first->startOfMonth() : CarbonImmutable::now($zone)->startOfMonth();
+        // A bounded window: 2000 to 2100, so a hand-typed address cannot ask for any year.
+        if ($first->year < 2000 || $first->year > 2100) {
+            $first = CarbonImmutable::now($zone)->startOfMonth();
+        }
+        $last = $first->endOfMonth()->startOfDay();
+        $gridStart = $first->startOfWeek(CarbonImmutable::MONDAY);
+        $gridEnd = $last->endOfWeek(CarbonImmutable::SUNDAY)->startOfDay();
+        $today = CarbonImmutable::now($zone)->toDateString();
+
+        $shifts = RosterShift::query()->with(['version.week.branch'])->where('organisation_id', $actor->organisation_id)->where('staff_user_id', $actor->id)
+            ->whereIn('roster_version_id', RosterVersion::query()->select('id')->where('organisation_id', $actor->organisation_id)->where('status', 'approved'))
+            ->where('starts_at', '>=', $gridStart->subDay()->utc())->where('starts_at', '<', $gridEnd->addDays(2)->utc())
+            ->orderBy('starts_at')->orderBy('id')->get();
+        $rooms = BranchRoom::query()->whereIn('id', $shifts->pluck('branch_room_id')->filter())->pluck('name', 'id');
+        $approvedShiftIds = $shifts->pluck('id')->all();
+
+        // Own asks: waiting, or confirmed into a draft that is not approved yet (an approved one is already a shift).
+        $asks = DB::table('hr_open_shift_requests as r')->join('hr_open_shifts as o', 'o.id', '=', 'r.open_shift_id')->join('branches as b', 'b.id', '=', 'o.branch_id')
+            ->where('r.organisation_id', $actor->organisation_id)->where('r.locum_user_id', $actor->id)
+            // A waiting ask shows only while its open shift is still open (Suresh, m3).
+            ->where(fn ($q) => $q->where(fn ($w) => $w->where('r.status', 'asked')->where('o.status', 'open'))->orWhere('r.status', 'confirmed'))
+            ->where('o.starts_at', '>=', $gridStart->subDay()->utc())->where('o.starts_at', '<', $gridEnd->addDays(2)->utc())
+            ->orderBy('o.starts_at')->get(['r.public_id', 'r.status', 'r.roster_shift_id', 'o.starts_at', 'o.ends_at', 'b.name', 'b.timezone']);
+        // A confirmed ask whose draft shift HR has since removed is not shown; one lookup for all of them.
+        // Only a shift still the person's own, in a draft or a week waiting for approval: a discarded draft, a replaced
+        // approved week or a shift HR gave to someone else never shows as "confirmed, not approved" (Suresh, M1).
+        $draftIds = RosterShift::query()->whereIn('id', $asks->pluck('roster_shift_id')->filter())->where('organisation_id', $actor->organisation_id)
+            ->where('staff_user_id', $actor->id)
+            ->whereIn('roster_version_id', RosterVersion::query()->select('id')->where('organisation_id', $actor->organisation_id)->whereIn('status', ['draft', 'submitted']))
+            ->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $asks = $asks->reject(fn (\stdClass $r): bool => $r->status === 'confirmed' && ($r->roster_shift_id === null
+            || in_array((int) $r->roster_shift_id, $approvedShiftIds, true) || ! in_array((int) $r->roster_shift_id, $draftIds, true)));
+
+        $byDay = [];
+        $minutes = 0;
+        foreach ($shifts as $s) {
+            $shiftBranch = $s->version->week->branch;
+            $item = $this->shift($s, $shiftBranch, $rooms);
+            $byDay[$item['date']]['shifts'][] = $item + ['hours' => self::hoursLabel($s)];
+            if ($item['date'] >= $first->toDateString() && $item['date'] <= $last->toDateString()) {
+                $minutes += (int) max(0, $s->starts_at->diffInMinutes($s->ends_at) - $s->break_minutes);
+            }
+        }
+        foreach ($asks as $r) {
+            $start = CarbonImmutable::parse($r->starts_at)->setTimezone((string) $r->timezone);
+            $end = CarbonImmutable::parse($r->ends_at)->setTimezone((string) $r->timezone);
+            $byDay[$start->toDateString()]['asks'][] = ['id' => (string) $r->public_id, 'status' => (string) $r->status, 'branch' => (string) $r->name,
+                'startLabel' => $this->rules->timeLabel($start), 'endLabel' => $this->rules->timeLabel($end), 'nextDay' => $end->toDateString() !== $start->toDateString(),
+                'label' => $r->status === 'asked' ? 'Asked, waiting for HR' : 'Confirmed, roster not approved yet',
+                // A short word for the grid cell; the full line is in the day sheet (Daniel).
+                'shortLabel' => $r->status === 'asked' ? 'Asked' : 'Not approved yet'];
+        }
+
+        $days = [];
+        for ($day = $gridStart; $day->lte($gridEnd); $day = $day->addDay()) {
+            $date = $day->toDateString();
+            $inMonth = $day->month === $first->month;
+            // Days outside the month are muted and carry nothing; they belong to the month next door (Daniel).
+            $days[] = ['date' => $date, 'day' => (int) $day->format('j'), 'label' => $this->rules->shortDayLabel($day), 'inMonth' => $inMonth,
+                'today' => $date === $today, 'shifts' => $inMonth ? ($byDay[$date]['shifts'] ?? []) : [], 'asks' => $inMonth ? ($byDay[$date]['asks'] ?? []) : []];
+        }
+
+        return ['key' => $first->format('Y-m'), 'label' => $first->format('F Y'), 'previous' => $first->subMonth()->format('Y-m'),
+            'next' => $first->addMonth()->format('Y-m'), 'current' => CarbonImmutable::now($zone)->format('Y-m'), 'days' => $days,
+            'hoursLabel' => self::durationLabel($minutes)];
+    }
+
+    private static function hoursLabel(RosterShift $s): string
+    {
+        return self::durationLabel((int) max(0, $s->starts_at->diffInMinutes($s->ends_at) - $s->break_minutes));
+    }
+
+    private static function durationLabel(int $minutes): string
+    {
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+
+        return $m === 0 ? "{$h} h" : "{$h} h {$m} min";
     }
 
     /**
@@ -156,8 +256,9 @@ final class RosterPageService
                 'returnReason' => $shown->return_reason === null ? null : RosterService::RETURN_REASONS[$shown->return_reason] ?? null,
             ],
             'rows' => $rows,
-            'totals' => collect(range(0, 6))->map(fn (int $i): int => $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->setTimezone($branch->timezone)->toDateString() === $weekStart->addDays($i)->toDateString())
-                ->pluck('staff_user_id')->unique()->count())->all(),
+            // HR-20 (Daniel): on call never folds into the "on shift" count; it has its own count beside it.
+            'totals' => $this->dayCounts($branch, $weekStart, $shifts->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))),
+            'onCallTotals' => $this->dayCounts($branch, $weekStart, $shifts->filter(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))),
             'shortDays' => $shown === null ? [] : $this->shortDays($branch, $weekStart, $shifts, $people),
             'warnings' => $shown === null ? [] : [...$this->warnings($branch, $weekStart, $shown, $shifts, $people, $roomNames), ...$this->leaveWarnings($branch, $shifts, $leave, $people)],
             // HR-5b: compliance warnings in words and the month's rotation counts; warnings only, never a refusal.
@@ -190,6 +291,18 @@ final class RosterPageService
         return ['id' => $version->public_id, 'number' => $version->version_number, 'status' => $version->status, 'lockVersion' => $version->lock_version,
             'createdBy' => $name($version->created_by_user_id), 'submittedBy' => $name($version->submitted_by_user_id), 'submittedAt' => $at($version->submitted_at),
             'decidedBy' => $name($version->decided_by_user_id), 'decidedAt' => $at($version->decided_at), 'changedAt' => $at($version->updated_at)];
+    }
+
+    /**
+     * People with a shift starting on each branch-local day of the week.
+     *
+     * @param  Collection<int, RosterShift>  $shifts
+     * @return array<int, int>
+     */
+    private function dayCounts(Branch $branch, CarbonImmutable $weekStart, Collection $shifts): array
+    {
+        return collect(range(0, 6))->map(fn (int $i): int => $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->setTimezone($branch->timezone)->toDateString() === $weekStart->addDays($i)->toDateString())
+            ->pluck('staff_user_id')->unique()->count())->values()->all();
     }
 
     /**

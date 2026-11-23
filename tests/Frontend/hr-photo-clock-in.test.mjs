@@ -74,16 +74,12 @@ test("someone else's photo stays hidden until Show; your own shows; a correction
     assert.match(thumb, /Show photo/);
     assert.match(thumb, /photo\.label/);
     assert.match(attendance, /<ClockPhotoThumb/);
-    assert.match(attendance, /useClockPhoto\(\)/);
+    // One Clock in: the camera opens from Me, never from this page.
+    assert.doesNotMatch(attendance, /useClockPhoto\(\)/);
 });
 
 test('the dialog is mounted once in each layout', () => {
-    for (const layout of [
-        'AdminLayout.vue',
-        'ClinicLayout.vue',
-        'SpacePassThroughLayout.vue',
-        'V2Layout.vue',
-    ]) {
+    for (const layout of ['AdminLayout.vue', 'ClinicLayout.vue']) {
         const source = read(`resources/js/layouts/${layout}`);
         assert.equal(
             (source.match(/<ClockPhotoDialog \/>/g) ?? []).length,

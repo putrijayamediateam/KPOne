@@ -83,6 +83,8 @@ const props = defineProps<{
             displayName: string;
         }>;
         branches: Array<{ id: number; name: string }>;
+        canViewStockValue?: boolean;
+        canViewMedicineSales?: boolean;
     };
     errors?: Record<string, unknown>;
 }>();
@@ -94,6 +96,13 @@ const dateFrom = ref(props.inventory.filters.dateFrom);
 const dateTo = ref(props.inventory.filters.dateTo);
 const batch = ref(props.inventory.filters.batch);
 const loading = ref(false);
+// STK-44: the phone "Reports and checks" count includes the two links only their holders see.
+const reportsCount = computed(
+    () =>
+        3 +
+        (props.referenceData.canViewStockValue ? 1 : 0) +
+        (props.referenceData.canViewMedicineSales ? 1 : 0),
+);
 const filterError = computed(() => inventoryFilterError(props.errors ?? {}));
 
 watch(
@@ -343,6 +352,20 @@ const clearFilters = () => {
                             class="min-h-9"
                             >Pilot readiness</ActionLink
                         >
+                        <ActionLink
+                            href="/inventory/stock-value"
+                            variant="outline"
+                            v-if="referenceData.canViewStockValue"
+                            class="min-h-9"
+                            >Stock value and cost</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/medicine-sales"
+                            variant="outline"
+                            v-if="referenceData.canViewMedicineSales"
+                            class="min-h-9"
+                            >Medicine sales</ActionLink
+                        >
                     </div>
                 </section>
             </div>
@@ -457,7 +480,8 @@ const clearFilters = () => {
                     <summary
                         class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
-                        Reports and checks · 3
+                        Reports and checks ·
+                        {{ reportsCount }}
                         <ChevronDown
                             class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
                             aria-hidden="true"
@@ -481,6 +505,20 @@ const clearFilters = () => {
                             variant="outline"
                             class="min-h-11"
                             >Pilot readiness</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/stock-value"
+                            variant="outline"
+                            v-if="referenceData.canViewStockValue"
+                            class="min-h-11"
+                            >Stock value and cost</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/medicine-sales"
+                            variant="outline"
+                            v-if="referenceData.canViewMedicineSales"
+                            class="min-h-11"
+                            >Medicine sales</ActionLink
                         >
                     </div>
                 </details>

@@ -3,8 +3,7 @@ import { computed } from 'vue';
 import type { SummaryTabData } from '@/components/hr/attendance/types';
 
 /**
- * Moved unchanged out of `components/hr/attendance/SummaryTab.vue` so Classic and Version 2 share it; the Classic template
- * did not change.
+ * The attendance summary tab's state, moved out of `components/hr/attendance/SummaryTab.vue`.
  */
 export function useSummaryTab(props: { data: SummaryTabData }) {
     const visit = (params: Record<string, string | number | undefined>) =>
