@@ -73,6 +73,33 @@ class PostgresTriageContentionTest extends TriageTestCase
         $this->assertSame('normal', $visit->refresh()->priority);
     }
 
+    /** TRI-1c: with the real copy at encounter start, the vitals carry exactly the committed triage row, or none. */
+    public function test_triage_against_encounter_start_copies_exactly_the_committed_triage_or_nothing(): void
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $first = $this->triage($ca, $visit);
+        $out = $this->race('visits', $visit->id, [
+            ['triage', $ca, $visit, $this->triageInput($visit, ['temperature_celsius' => '37.40'])],
+            ['startcopy', $doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->refresh()->lock_version, 'queue_lock_version' => $queue->refresh()->lock_version]],
+        ]);
+        $this->assertStringContainsString('STARTCOPY_OK', $out[1]);
+        $encounter = ClinicalEncounter::query()->where('visit_id', $visit->id)->sole();
+        $vitals = DB::table('encounter_vital_observations')->where('clinical_encounter_id', $encounter->id)->get();
+        $this->assertCount(1, $vitals, 'exactly one copy');
+        preg_match('/SOURCE (\d+)/', $out[1], $source);
+        $latest = VisitTriageAssessment::query()->where('visit_id', $visit->id)->orderByDesc('sequence')->first();
+        $this->assertSame($latest->id, (int) $source[1], 'the copy names the latest committed triage row');
+        $this->assertSame((int) $vitals[0]->source_triage_assessment_id, (int) $source[1]);
+        if (str_contains($out[0], 'TRIAGE_OK')) {
+            $this->assertNotSame($first->id, $latest->id);
+            $this->assertSame('37.40', (string) $vitals[0]->temperature_celsius, 'the retake reached the encounter');
+        } else {
+            $this->assertStringContainsString('TRIAGE_REFUSED', $out[0]);
+            $this->assertSame($first->id, $latest->id, 'no triage row after the encounter');
+            $this->assertSame('36.80', (string) $vitals[0]->temperature_celsius);
+        }
+    }
+
     public function test_triage_raising_priority_against_call_in_has_exactly_one_winner(): void
     {
         $this->approvedGuideline();

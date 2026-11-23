@@ -254,6 +254,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         key: `${row.operationalDate}-${row.queueNumber}`,
         canWhatsapp: row.canWhatsapp,
         callHold: row.callHold,
+        triage: row.triage,
         treatmentProgress: row.treatmentProgress ?? null,
         treatmentMinutes: treatmentMinutes(
             row.treatmentProgress,
