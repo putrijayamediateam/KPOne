@@ -1238,9 +1238,11 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Record new</Button
                             >
                         </div>
-                        <!-- TRI-1c: the vitals were copied from triage when the consultation started and are unchanged. -->
+                        <!-- TRI-1c: the vitals were copied from triage when the consultation started. TRI-1d (Daniel): while the
+                             doctor has unsaved changes the label stays, marked "(edited)" ("Not saved yet" stays on the summary
+                             line); saving a change clears the triage source on the server, so the label goes. -->
                         <p
-                            v-if="clinical.vitals.fromTriage && !vitalsUnsaved"
+                            v-if="clinical.vitals.fromTriage"
                             class="text-xs text-muted-foreground"
                             data-testid="vitals-from-triage"
                         >
@@ -1249,7 +1251,14 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 clinical.vitals.fromTriage.recordedBy ??
                                 'a clinic assistant'
                             }}
-                            at {{ clinical.vitals.fromTriage.recordedAt }}.
+                            at {{ clinical.vitals.fromTriage.recordedAt
+                            }}<span
+                                v-if="vitalsUnsaved"
+                                class="font-medium text-warning-strong"
+                                data-testid="vitals-from-triage-edited"
+                            >
+                                (edited)</span
+                            >.
                         </p>
                         <div
                             v-if="hasVitals"
