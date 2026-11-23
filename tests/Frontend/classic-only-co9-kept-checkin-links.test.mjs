@@ -80,3 +80,25 @@ test('Classic QR check-in links keeps every wording string', () => {
         );
     }
 });
+
+test('DD-89: a just-created link shows its QR once, above, and the row keeps its buttons', () => {
+    assert.match(
+        tight(classic),
+        /constshownAbove=\(link:LinkRow\)=>issuedLink\.value!==null&&issuedLink\.value\.publicId===link\.publicId/,
+    );
+    const row = classic.slice(classic.indexOf('v-if="link.activeQr"'));
+    assert.ok(row.indexOf('v-if="!shownAbove(link)"') > 0);
+    assert.ok(
+        row.indexOf('v-if="!shownAbove(link)"') <
+            row.indexOf('copyLink(link.activeQr)'),
+        'the row QR image is hidden, the Copy, Download and Print buttons stay',
+    );
+});
+
+test('DD-89: the big QR names its branch for screen readers, with the old wording as the fallback', () => {
+    const source = classic.replace(/\s+/g, ' ');
+
+    assert.ok(source.includes(':alt="issuedAlt"'));
+    assert.ok(source.includes('`Public intake QR for ${branch}`'));
+    assert.ok(source.includes("'Branch public patient intake QR code'"));
+});

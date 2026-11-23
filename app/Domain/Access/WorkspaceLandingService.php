@@ -20,7 +20,7 @@ final class WorkspaceLandingService
             return 'queue.index';
         }
 
-        if ($actor->hasAnyRole(['ca', 'ca_supervisor']) && $actor->can('visits.view.branch')) {
+        if ($actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant']) && $actor->can('visits.view.branch')) {
             return 'registration.index';
         }
 

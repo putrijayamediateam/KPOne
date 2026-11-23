@@ -439,7 +439,7 @@ class VisitDirectoryService
         $otcCase = $visit->visit_type === 'otc' ? $cases->firstWhere('case_type', DispensaryCase::TYPE_OTC) : null;
         $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
         $consultationCase = $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
-            && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])
+            && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant'])
             ? $cases->first(fn (DispensaryCase $case): bool => $case->case_type === DispensaryCase::TYPE_CONSULTATION
                 && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true))
             : null;

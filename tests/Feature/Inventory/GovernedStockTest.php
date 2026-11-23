@@ -81,7 +81,7 @@ class GovernedStockTest extends VisitTestCase
             $f = $this->f();
             $actor = $this->actorAt($role);
             $service = app(Service::class);
-            $view = in_array($role, ['director', 'finance_officer', 'ca_supervisor', 'ca', 'administrator', 'branch_manager', 'account_assistant', 'store_admin'], true);
+            $view = in_array($role, ['director', 'finance_officer', 'ca_supervisor', 'ca', 'medical_assistant', 'administrator', 'branch_manager', 'account_assistant', 'store_admin'], true);
             $this->actingAs($actor)->get(route('inventory.governed-counts'))->assertStatus($view ? 200 : 403);
             $this->get(route('inventory.governed-writeoffs'))->assertStatus($view ? 200 : 403);
             foreach (['count', 'writeoff'] as $kind) {

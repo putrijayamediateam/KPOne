@@ -28,7 +28,7 @@ class OtcDispensaryTest extends VisitTestCase
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn (array $permissions): bool => in_array('dispensary.otc.create.branch', $permissions, true))->keys()->sort()->values()->all();
 
-        $this->assertSame(['ca', 'ca_supervisor'], $holders);
+        $this->assertSame(['ca', 'ca_supervisor', 'medical_assistant'], $holders);
         $this->assertContains('dispensary.otc.create.branch', PermissionCatalogue::all());
         $this->assertTrue(Permission::query()->where('name', 'dispensary.otc.create.branch')->exists());
         $this->assertNotContains('dispensary.otc.create.branch', PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS);
