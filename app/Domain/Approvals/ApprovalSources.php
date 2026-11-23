@@ -4,9 +4,11 @@ namespace App\Domain\Approvals;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Approvals\Sources\CashCloseSource;
+use App\Domain\Approvals\Sources\MemoToReadSource;
 use App\Domain\Approvals\Sources\PanelPriceChangeSource;
 use App\Domain\Approvals\Sources\PatientMergeSource;
 use App\Domain\Approvals\Sources\PurchaseRequestSource;
+use App\Domain\Approvals\Sources\SopToReadSource;
 use App\Domain\Approvals\Sources\SupplierInvoiceSource;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -24,6 +26,8 @@ final class ApprovalSources
         PurchaseRequestSource::class,
         PanelPriceChangeSource::class,
         PatientMergeSource::class,
+        SopToReadSource::class,
+        MemoToReadSource::class,
     ];
 
     public function __construct(private BranchAccessService $branches) {}
