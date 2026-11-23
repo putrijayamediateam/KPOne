@@ -1,8 +1,14 @@
-import type { CallReadiness, TreatmentProgress } from './patientBoard';
+import type {
+    CallReadiness,
+    TreatmentProgress,
+    TriageZoneSummary,
+} from './patientBoard';
 export type QueueStatus = 'waiting' | 'serving' | 'removed';
 
 export type QueueRow = {
     callHold?: CallReadiness | null;
+    /** TRI-1c: the triage zone, or null for a viewer who may not see it. */
+    triage?: TriageZoneSummary | null;
     treatmentProgress?: TreatmentProgress | null;
     canWhatsapp: boolean;
     queueNumber: string;
@@ -81,6 +87,8 @@ export type CallNextCandidate = {
     carryOver: boolean;
     operationalDate: string;
     roomName: string | null;
+    /** TRI-1c: the zone, or triaged false; absent or null for a caller who may not see it. */
+    triage?: TriageZoneSummary | null;
     visitLockVersion: number;
     queueLockVersion: number;
 };
