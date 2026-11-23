@@ -24,6 +24,7 @@
             ul { margin: 0 0 16px; padding-left: 20px; }
             li { margin-bottom: 4px; }
             .notice { color: var(--fg); }
+            a { color: var(--brand); }
             .who { color: var(--fg); font-weight: 600; word-break: break-word; }
             .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
             form { flex: 1 1 8rem; margin: 0; }
@@ -49,7 +50,7 @@
                     <li>Clinical notes, diagnoses or anything typed by staff about a person.</li>
                 </ul>
                 <p>It cannot change anything in KPOne. KPOne never sends anything to the app by itself: the app asks, and each question is recorded.</p>
-                <p>How long: each sign-in lasts about 1 hour and the app renews it by itself while you use it. After 30 days without use it stops. To stop it, disconnect KPOne in the app, or ask the person who manages the KPOne server to switch the connector off.</p>
+                <p>How long: each sign-in lasts about 1 hour and the app renews it by itself while you use it. After 30 days without use it stops. To stop it, use <a href="{{ route('agents.connected-apps') }}" target="_blank" rel="noopener">Connected apps</a> in KPOne, or disconnect KPOne in the app.</p>
                 <div class="actions">
                     <form method="POST" action="{{ route('passport.authorizations.deny') }}">
                         @csrf
