@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
-    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private BillingNumberGenerator $numbers, private AuditRecorder $audit) {}
+    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private BillingNumberGenerator $numbers, private AuditRecorder $audit, private BranchDayGate $gate) {}
 
     /** @param array<string,mixed> $a */
     public function add(User $actor, Visit $visit, Invoice $invoice, array $a): Payment
@@ -31,6 +31,7 @@ class PaymentService
 
         return DB::transaction(function () use ($actor, $visit, $invoice, $a, $amount): Payment {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, 'payments.add.branch');
+            $this->gate->guard($branch, null, false, 'payment'); // BIL-32: a new receipt belongs to today.
             Organisation::query()->whereKey($actor->organisation_id)->sharedLock()->firstOrFail();
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
             $this->ledger->lock($invoice);

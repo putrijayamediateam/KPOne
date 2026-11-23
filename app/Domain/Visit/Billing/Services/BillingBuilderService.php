@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class BillingBuilderService
 {
-    public function __construct(private BillingContextService $context, private BillingSourceService $sources, private PriceResolutionService $prices, private BillingNumberGenerator $numbers, private AuditRecorder $audit) {}
+    public function __construct(private BillingContextService $context, private BillingSourceService $sources, private PriceResolutionService $prices, private BillingNumberGenerator $numbers, private AuditRecorder $audit, private BranchDayGate $gate) {}
 
     /** @param array<string,mixed> $a */
     public function build(User $actor, Visit $visit, array $a): Invoice
@@ -66,6 +66,7 @@ class BillingBuilderService
     {
         return DB::transaction(function () use ($actor, $visit, $invoice, $a): Invoice {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, 'billing.finalize.branch');
+            $this->gate->guard($branch, null, false, 'invoice'); // BIL-32: finalising belongs to today.
             $source = $this->sources->locked($visit);
             $lines = $this->prices->price($visit, $source['lines']);
             $hash = hash('sha256', json_encode([$source['manifest'], $lines], JSON_THROW_ON_ERROR));

@@ -1182,6 +1182,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{invoice}/responsibility/{kind}', 'propose')->whereIn('kind', ['panel', 'deferment'])->middleware(['permission:coverage.propose.branch,outstanding.request.branch', 'throttle:20,1'])->name('billing.propose');
             Route::post('{invoice}/responsibility/{kind}/{proposal}/approve', 'approve')->whereIn('kind', ['panel', 'deferment'])->whereUuid('proposal')->middleware(['permission:coverage.approve.branch,outstanding.approve.branch', 'throttle:20,1'])->name('billing.approve');
             Route::post('{invoice}/payments/{payment}/reverse', 'reverse')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.reverse');
+            // BIL-32 (owner Q5 = A): a receipt of a locked day is reversed and refunded in one action.
+            Route::post('{invoice}/payments/{payment}/refund-with-reversal', 'refundWithReversal')->middleware(['permission:payments.reverse.branch', 'permission:payments.refunds.record.branch', 'throttle:10,1'])->name('billing.refund-with-reversal');
             Route::post('{invoice}/payments/{payment}/correct', 'correctReceipt')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.receipt.correct');
             Route::post('{invoice}/adjustments', 'adjustment')->middleware(['permission:billing.adjustments.add.branch', 'throttle:20,1'])->name('billing.adjustment');
             Route::post('{invoice}/adjustments/{adjustment}/reverse', 'reverseAdjustment')->whereUuid('adjustment')->middleware(['permission:billing.adjustments.reverse.branch', 'throttle:10,1'])->name('billing.adjustment.reverse');
@@ -1378,11 +1380,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [PaymentReconciliationController::class, 'index'])->name('payment-reconciliations.index');
             Route::post('/', [PaymentReconciliationController::class, 'store'])->middleware('throttle:20,1')->name('payment-reconciliations.store');
         });
-        Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
-            Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
-            Route::get('month', [CashClosingController::class, 'month'])->name('cash-closings.month');
-            Route::post('start-date', [CashClosingController::class, 'startDate'])->middleware(['permission:payments.cash_closing.start_date.manage.branch', 'throttle:20,1'])->name('cash-closings.start-date');
-            Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
+        // BIL-32: the pages open with counting or the Branch Manager's view-only permission; Approve needs only the approve
+        // permission (a Branch Manager approves but never counts); counting and the start date keep their permissions.
+        Route::middleware(['sensitive.no-store'])->prefix('cash-closings')->group(function () {
+            Route::get('/', [CashClosingController::class, 'index'])->middleware('permission:payments.reconcile.branch,payments.cash_closing.view.branch')->name('cash-closings.index');
+            Route::get('month', [CashClosingController::class, 'month'])->middleware('permission:payments.reconcile.branch,payments.cash_closing.view.branch')->name('cash-closings.month');
+            Route::post('start-date', [CashClosingController::class, 'startDate'])->middleware(['permission:payments.reconcile.branch', 'permission:payments.cash_closing.start_date.manage.branch', 'throttle:20,1'])->name('cash-closings.start-date');
+            Route::post('/', [CashClosingController::class, 'store'])->middleware(['permission:payments.reconcile.branch', 'throttle:20,1'])->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
                 ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1', 'approvals.forget'])->name('cash-closings.decide');
         });
