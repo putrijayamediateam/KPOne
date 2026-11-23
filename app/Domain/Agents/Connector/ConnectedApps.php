@@ -39,16 +39,30 @@ final class ConnectedApps
     /** @return list<array{clientId: string, name: string, connectedAt: string|null, lastAskedAt: string|null}> */
     public function for(User $user): array
     {
+        // Live means the app could still get an access token: an unexpired access token, or a refresh token that is not revoked
+        // and not expired (access tokens last an hour, refresh tokens 30 days). Revoked tokens never count.
         $tokens = Token::query()->with('client:id,name')
-            ->where('user_id', $user->id)->where('revoked', false)->where('expires_at', '>', now())->get();
-        $lastAsked = AuditLog::query()->where('event', 'ai_connector.tool_called')->where('actor_user_id', $user->id)->max('occurred_at');
+            ->where('user_id', $user->id)->where('revoked', false)
+            ->where(fn ($live) => $live->where('expires_at', '>', now())->orWhereExists(
+                fn ($refresh) => $refresh->selectRaw('1')->from('oauth_refresh_tokens as r')
+                    ->whereColumn('r.access_token_id', 'oauth_access_tokens.id')->where('r.revoked', false)->where('r.expires_at', '>', now())
+            ))->get();
+        // "Connected on" is the first time this person allowed the app (the earliest token, revoked ones included), because
+        // every renewal replaces the access token.
+        $firstSeen = Token::query()->where('user_id', $user->id)->whereIn('client_id', $tokens->pluck('client_id')->unique())
+            ->selectRaw('client_id, min(created_at) as first_at')->groupBy('client_id')->pluck('first_at', 'client_id');
+        // The connector records which app asked; rows without one are not attributed to any app.
+        $lastAsked = AuditLog::query()->where('event', 'ai_connector.tool_called')->where('actor_user_id', $user->id)
+            ->whereNotNull('metadata->client_id')->get(['metadata', 'occurred_at'])
+            ->groupBy(fn (AuditLog $row): string => (string) ($row->metadata['client_id'] ?? ''))
+            ->map(fn ($rows) => $rows->max('occurred_at'));
 
         /** @var list<array{clientId: string, name: string, connectedAt: string|null, lastAskedAt: string|null}> $apps */
         $apps = $tokens->groupBy('client_id')->map(fn ($group, $clientId): array => [
             'clientId' => (string) $clientId,
             'name' => mb_substr((string) ($group->first()->client->name ?? 'Connected app'), 0, 80),
-            'connectedAt' => ($first = $group->min('created_at')) ? Carbon::parse($first)->toIso8601String() : null,
-            'lastAskedAt' => $lastAsked ? Carbon::parse($lastAsked)->toIso8601String() : null,
+            'connectedAt' => ($first = $firstSeen[$clientId] ?? null) ? Carbon::parse($first)->toIso8601String() : null,
+            'lastAskedAt' => ($asked = $lastAsked[(string) $clientId] ?? null) ? Carbon::parse($asked)->toIso8601String() : null,
         ])->sortBy('name')->values()->all();
 
         return $apps;

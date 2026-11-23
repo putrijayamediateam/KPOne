@@ -19,18 +19,26 @@ final class ConnectorRevoker
 
     public function revoke(?User $user = null, ?string $clientId = null): int
     {
+        if ($clientId !== null && $user === null) {
+            throw new \InvalidArgumentException('An app can only be disconnected for one person.');
+        }
+
         return DB::transaction(function () use ($user, $clientId): int {
-            $tokens = Token::query()->where('revoked', false)->when($user, fn ($query) => $query->where('user_id', $user->id))->when($clientId, fn ($query) => $query->where('client_id', $clientId));
+            $tokens = Token::query()->where('revoked', false)->when($user, fn ($query) => $query->where('user_id', $user->id))->when($clientId !== null, fn ($query) => $query->where('client_id', $clientId));
             $ids = $tokens->pluck('id')->all();
             if ($ids !== []) {
                 Token::query()->whereIn('id', $ids)->update(['revoked' => true]);
                 RefreshToken::query()->whereIn('access_token_id', $ids)->update(['revoked' => true]);
             }
-            $this->audit->record('ai_connector.tokens_revoked', null, [
+            if ($clientId !== null && $ids === []) {
+                return 0;
+            }
+            $this->audit->record('ai_connector.tokens_revoked', null, array_filter([
                 'user_id' => $user?->id,
                 'scope' => $clientId !== null ? 'one_app' : ($user ? 'one_user' : 'everyone'),
+                'client_id' => $clientId,
                 'tokens' => count($ids),
-            ], null, null, $user !== null ? $user->organisation_id : User::query()->orderBy('id')->value('organisation_id'));
+            ], fn (mixed $value): bool => $value !== null), null, null, $user !== null ? $user->organisation_id : User::query()->orderBy('id')->value('organisation_id'));
 
             return count($ids);
         });

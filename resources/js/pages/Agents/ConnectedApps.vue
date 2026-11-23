@@ -38,6 +38,7 @@ const disconnect = () => {
     }
 
     processing.value = true;
+    let done = false;
     router.delete(
         `/agents/connected-apps/${encodeURIComponent(app.clientId)}`,
         {

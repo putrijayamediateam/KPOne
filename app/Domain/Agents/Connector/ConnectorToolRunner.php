@@ -197,11 +197,20 @@ final class ConnectorToolRunner
         return $rows;
     }
 
+    /** The OAuth app whose token made this call (not a secret); null when there is none. */
+    private function clientId(User $user): ?string
+    {
+        $client = data_get($user->token(), 'oauth_client_id');
+
+        return is_string($client) && $client !== '' ? mb_substr($client, 0, 100) : null;
+    }
+
     /** @param array<string, mixed> $params */
     private function audit(User $user, string $toolCode, ?Branch $branch, string $outcome, ?string $reason, int $rows = 0, array $params = []): mixed
     {
         return $this->audit->record('ai_connector.tool_called', null, array_filter([
             'tool' => $toolCode,
+            'client_id' => $this->clientId($user),
             'branch_code' => $branch?->code,
             'dates' => $params === [] ? null : array_map(fn (mixed $value): string => mb_substr((string) $value, 0, 10), $params),
             'outcome' => $outcome,

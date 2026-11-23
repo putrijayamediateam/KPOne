@@ -1345,7 +1345,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware(['permission:ai_connector.use.organisation', 'sensitive.no-store'])->prefix('agents/connected-apps')->group(function () {
             Route::get('/', [ConnectedAppsController::class, 'index'])->name('agents.connected-apps');
-            Route::delete('{client}', [ConnectedAppsController::class, 'destroy'])->where('client', '[A-Za-z0-9-]{1,100}')->middleware('throttle:10,1')->name('agents.connected-apps.disconnect');
+            Route::delete('{client}', [ConnectedAppsController::class, 'destroy'])->whereUuid('client')->middleware('throttle:10,1')->name('agents.connected-apps.disconnect');
         });
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
