@@ -690,7 +690,7 @@ class PayrollRunsTest extends VisitTestCase
     {
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
         $this->assertSame(['director', 'hr_manager'], $holders('hr.payroll.export.organisation'));
-        $this->assertCount(14, $holders('hr.payslips.view.own'));
+        $this->assertCount(15, $holders('hr.payslips.view.own'));
         $this->assertNotContains('queue_display', $holders('hr.payslips.view.own'));
         foreach (['hr.payroll.export.organisation', 'hr.payslips.view.own'] as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));

@@ -50,7 +50,7 @@ class ClaimsTest extends VisitTestCase
         $this->assertSame(['director', 'hr_manager'], $holders(ClaimPermissions::MANAGE));
         $this->assertSame(['director', 'finance_officer'], $holders(ClaimPermissions::PAY));
         $own = $holders(ClaimPermissions::SUBMIT_OWN);
-        $this->assertCount(14, $own);
+        $this->assertCount(15, $own);
         $this->assertNotContains('queue_display', $own);
         foreach (array_keys(ClaimPermissions::grants()) as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));

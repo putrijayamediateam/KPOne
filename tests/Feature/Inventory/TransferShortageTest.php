@@ -26,7 +26,7 @@ use Tests\Support\TransferShortageFixture;
 
 class TransferShortageTest extends VisitTestCase
 {
-    private const RECEIVERS = ['ca', 'ca_supervisor'];
+    private const RECEIVERS = ['ca', 'ca_supervisor', 'medical_assistant'];
 
     private const RESOLVERS = ['ca_supervisor', 'director', 'finance_officer'];
 

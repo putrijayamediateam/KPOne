@@ -75,7 +75,7 @@ final class PharmacySpace
     public function toDispense(User $actor): ?array
     {
         $branch = $this->branches->activeBranch($actor);
-        if ($branch === null || ! $actor->can('dispensary.view.branch') || ! $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
+        if ($branch === null || ! $actor->can('dispensary.view.branch') || ! $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant'])) {
             return null;
         }
         $board = $this->dispensary->board($actor, []);
