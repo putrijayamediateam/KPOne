@@ -11,7 +11,8 @@ import type { InvoiceNotesContext } from './invoiceNotes';
 export type CompletedInvoicePage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
-    patient: VisitHistoryPage['patient'];
+    // BIL-29: foreign (passport) patient; no SST is charged yet.
+    patient: VisitHistoryPage['patient'] & { foreign?: boolean };
     visit: Pick<
         VisitHistoryPage['visit'],
         'visitNumber' | 'branch' | 'coverage' | 'registeredAt' | 'completedAt'
