@@ -65,9 +65,11 @@ test('DD-75: both link layouts show the controlled register only to its viewers,
         /Count and adjust ·\s+\{\{ canViewControlledRegister \? 6 : 5 \}\}/,
     );
     assert.match(page, /Orders and suppliers · 7/);
+    assert.match(page, /Reports and checks ·\s+\{\{ reportsCount \}\}/);
+    // STK-44 (owner-approved assertion change): the count adds the Medicine sales link for its holders.
     assert.match(
-        page,
-        /Reports and checks ·\s+\{\{ referenceData\.canViewStockValue \? 4 : 3 \}\}/,
+        read('resources/js/pages/Inventory/Index.vue'),
+        /const reportsCount = computed\(\s*\(\) =>\s*3 \+\s*\(props\.referenceData\.canViewStockValue \? 1 : 0\) \+\s*\(props\.referenceData\.canViewMedicineSales \? 1 : 0\),\s*\);/,
     );
     assert.equal(
         [
