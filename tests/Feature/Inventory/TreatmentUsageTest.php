@@ -24,7 +24,7 @@ use Tests\Support\SupplierReturnFixture;
 
 final class TreatmentUsageTest extends VisitTestCase
 {
-    private const RECORDERS = ['ca', 'ca_supervisor'];
+    private const RECORDERS = ['ca', 'ca_supervisor', 'medical_assistant'];
 
     private const REVERSERS = ['ca_supervisor', 'director', 'finance_officer'];
 
@@ -92,7 +92,7 @@ final class TreatmentUsageTest extends VisitTestCase
                 $this->assertNotContains($role, self::RECORDERS);
             }
         }
-        $this->assertSame((string) (20 - 0.5 * count(self::RECORDERS)).'.000', $this->balance($f));
+        $this->assertSame(number_format(20 - 0.5 * count(self::RECORDERS), 3, '.', ''), $this->balance($f));
     }
 
     public function test_usage_and_waste_debit_the_ledger_and_a_different_supervisor_reverses_once(): void

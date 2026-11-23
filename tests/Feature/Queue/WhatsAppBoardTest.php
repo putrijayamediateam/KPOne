@@ -44,7 +44,7 @@ class WhatsAppBoardTest extends QueueTestCase
         $visit->load('patient');
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $this->actor($role);
-            $this->assertSame(in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor'], true), VisitWhatsAppEligibility::allows($actor, $visit, $this->branch), $role);
+            $this->assertSame(in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true), VisitWhatsAppEligibility::allows($actor, $visit, $this->branch), $role);
         }
         $other = Branch::query()->where('organisation_id', $this->organisation->id)->whereKeyNot($this->branch->id)->firstOrFail();
         $this->assertFalse(VisitWhatsAppEligibility::allows($ca, $visit, $other));

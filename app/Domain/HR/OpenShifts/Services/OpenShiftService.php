@@ -28,7 +28,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class OpenShiftService
 {
-    public const ROLES = ['resident_doctor' => 'Doctor', 'ca' => 'Clinic Assistant', 'other' => 'Other'];
+    public const ROLES = ['resident_doctor' => 'Doctor', 'ca' => 'Clinic Assistant', 'medical_assistant' => 'Medical Assistant', 'other' => 'Other'];
 
     public const DECLINE_REASONS = ['not_suitable' => 'Not suitable for this shift', 'not_assigned' => 'Not assigned to this branch on that day',
         'other' => 'Other reason'];

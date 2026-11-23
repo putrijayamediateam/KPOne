@@ -596,7 +596,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     >
                         {{
                             emptyMessage ??
-                            'No Patients match this operational view.'
+                            'No patients match. Clear the search, or try another tab.'
                         }}
                     </td>
                 </tr>

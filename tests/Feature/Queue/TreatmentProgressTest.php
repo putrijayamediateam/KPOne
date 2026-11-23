@@ -69,9 +69,9 @@ class TreatmentProgressTest extends ClinicalTestCase
     {
         foreach (PermissionCatalogue::roles() as $name => $permissions) {
             $actor = $this->actor($name);
-            $this->assertSame(in_array($name, ['ca', 'ca_supervisor'], true), in_array(P::SET_BRANCH, $permissions, true), "$name catalogue branch");
+            $this->assertSame(in_array($name, ['ca', 'ca_supervisor', 'medical_assistant'], true), in_array(P::SET_BRANCH, $permissions, true), "$name catalogue branch");
             $this->assertSame($name === 'resident_doctor', in_array(P::SET_OWN, $permissions, true), "$name catalogue own");
-            $this->assertSame(in_array($name, ['ca', 'ca_supervisor'], true), $actor->can(P::SET_BRANCH), "$name installed branch");
+            $this->assertSame(in_array($name, ['ca', 'ca_supervisor', 'medical_assistant'], true), $actor->can(P::SET_BRANCH), "$name installed branch");
             $this->assertSame($name === 'resident_doctor', $actor->can(P::SET_OWN), "$name installed own");
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority(P::SET_BRANCH));
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority(P::SET_OWN));

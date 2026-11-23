@@ -57,7 +57,7 @@ class CallReadinessTest extends QueueTestCase
         foreach (PermissionCatalogue::roles() as $name => $permissions) {
             $actor = $this->actor($name);
             foreach ([P::SET, P::CLEAR, P::OVERRIDE] as $permission) {
-                $expected = $permission === P::OVERRIDE ? $name === 'resident_doctor' : in_array($name, ['ca', 'ca_supervisor'], true);
+                $expected = $permission === P::OVERRIDE ? $name === 'resident_doctor' : in_array($name, ['ca', 'ca_supervisor', 'medical_assistant'], true);
                 $this->assertSame($expected, in_array($permission, $permissions, true), "$name catalogue $permission");
                 $this->assertSame($expected, $actor->can($permission), "$name installed $permission");
             }
@@ -216,7 +216,7 @@ class CallReadinessTest extends QueueTestCase
         $visit = $this->consultationVisit($ca, $doctor);
         $queue = $this->send($ca, $visit);
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
-            if (in_array($role, ['ca', 'ca_supervisor'], true)) {
+            if (in_array($role, ['ca', 'ca_supervisor', 'medical_assistant'], true)) {
                 continue;
             }
             $this->selectBranch($this->actor($role));
