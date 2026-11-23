@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageGuidelineVersion;
@@ -52,6 +53,11 @@ try {
                 return (int) (app(TriageService::class)->latest($visit)?->id ?? 0);
             });
             fwrite(STDOUT, 'SEEN '.$seen.PHP_EOL);
+        } elseif ($mode === 'startcopy') {
+            // TRI-1c: the real copy made inside encounter start; report which triage row the vitals came from.
+            $encounter = app(ClinicalEncounterService::class)->start($actor, $visit, $input);
+            $source = (int) (EncounterVitalObservation::query()->where('clinical_encounter_id', $encounter->id)->value('source_triage_assessment_id') ?? 0);
+            fwrite(STDOUT, 'SOURCE '.$source.PHP_EOL);
         } elseif ($mode === 'call') {
             app(QueueEntryService::class)->call($actor, $visit, $input);
         } elseif ($mode === 'callnext') {
