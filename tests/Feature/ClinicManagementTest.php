@@ -38,7 +38,8 @@ class ClinicManagementTest extends VisitTestCase
             '/queue' => ['queue.view.own', 'queue.view.branch'],
             '/registration-review' => ['public_intakes.review.branch'],
             '/payment-reconciliations' => ['payments.reconcile.branch'],
-            '/cash-closings' => ['payments.reconcile.branch'],
+            // BIL-32 (owner approved 2026-11-22): the Branch Manager opens it read only.
+            '/cash-closings' => ['payments.reconcile.branch', 'payments.cash_closing.view.branch'],
             '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/registration-settings' => ['catalogue.settings.manage.organisation'],

@@ -6,6 +6,7 @@ use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
+use App\Domain\Visit\Billing\Models\CashClosing;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
@@ -14,6 +15,7 @@ use App\Domain\Visit\Billing\Models\PanelClaimPayment;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceChangeProposal;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\PanelClaimAdjustmentService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Domain\Visit\Billing\Services\PanelPaymentCorrectionService;
@@ -60,6 +62,7 @@ final class PhaseThreePanel
     {
         $this->created = [];
         foreach ($this->context->branches as $code => $branch) {
+            $this->reopenTodaysCount($code, $branch);
             foreach (array_keys(self::SCENARIOS) as $position) {
                 if ($position === 11) {
                     continue; // made together with 10
@@ -82,9 +85,47 @@ final class PhaseThreePanel
                 }
             }
         }
+        foreach ($this->context->branches as $code => $branch) {
+            $this->recountToday($code, $branch);
+        }
         $this->priceProposals();
 
         return $this->created;
+    }
+
+    /**
+     * BIL-32: phase 2 counts the day's cash, and money actions of a counted day pause until its count is decided. This
+     * Panel work happens later the same day, so phase 3 first returns phase 2's waiting count for a recount, as a
+     * supervisor would in the clinic. Only the first count (revision 1) is returned, so a rerun adds nothing.
+     */
+    private function reopenTodaysCount(string $code, Branch $branch): void
+    {
+        $date = $this->today($branch)->toDateString();
+        $latest = CashClosing::query()->with('decision')->where('branch_id', $branch->id)->whereDate('business_date', $date)->orderByDesc('revision')->first();
+        if ($latest === null || $latest->revision !== 1 || $latest->decision !== null) {
+            return;
+        }
+        app(CashClosingService::class)->decide($this->context->as(TrialDataContext::key($code, 'supervisor1'), $branch), $latest->public_id, 'returned', [
+            'expected_branch_id' => $branch->id, 'reason' => 'Fictional trial data: Panel work came after the count.', 'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $this->count('cash_counts_returned');
+    }
+
+    /** BIL-32: once the Panel work is done, the returned count is counted again with the day's final figure. */
+    private function recountToday(string $code, Branch $branch): void
+    {
+        $date = $this->today($branch);
+        $latest = CashClosing::query()->with('decision')->where('branch_id', $branch->id)->whereDate('business_date', $date->toDateString())->orderByDesc('revision')->first();
+        if ($latest === null || $latest->decision?->decision !== 'returned') {
+            return;
+        }
+        $closings = app(CashClosingService::class);
+        $expected = (int) $closings->expected($branch, $date)['sen'];
+        $closings->count($this->ca($code, $branch), [
+            'expected_branch_id' => $branch->id, 'business_date' => $date->toDateString(),
+            'counted_cash' => number_format($expected / 100, 2, '.', ''), 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $this->count('cash_counts');
     }
 
     /** The approved Panel share on the patient's completed visit, or null when the visit has not been made yet. */

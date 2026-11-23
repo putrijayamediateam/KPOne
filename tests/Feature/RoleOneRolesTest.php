@@ -44,6 +44,8 @@ class RoleOneRolesTest extends VisitTestCase
                 'inventory.view.branch',
                 'outstanding.view.branch',
                 'payments.cash_closing.approve.branch',
+                // BIL-32 (owner approved 2026-11-22): the cash closing pages, read only.
+                'payments.cash_closing.view.branch',
                 'profile.view.own',
                 'queue.view.branch',
                 'reports.daily_summary.export.branch',
