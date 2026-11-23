@@ -38,6 +38,7 @@ by visit id, one query (the latest row per visit by `sequence`, organisation-sco
 "Triaged"). No reading, sign, reason or name ever leaves on the boards.
 
 Used by:
+
 - `VisitDirectoryService::row` (Registration board): new row key `triage`;
 - `QueueDirectoryService::row` (Queue board): new row key `triage`;
 - `CallNextService::candidate` (Call next block): new candidate key `triage` (the actor is passed in);
@@ -141,6 +142,14 @@ it is a warning only. The zone on a board follows the board's poll.
 hides the triage label. Not done: running Q-12's check on the copied readings (option b). **Follow-up (backlog):** keep
 the label while unsaved as "From triage … (edited, not saved)" (Daniel's option a). The 390 px sticky-footer overlap in
 the full-page shots is existing design debt DD-111.
+
+**TRI-1d, the follow-up (owner start "start the edited, not saved follow-up", 23 Nov 2026):** the label now stays while
+the doctor has unsaved vitals and reads "From triage, last taken by <CA> at <time> (edited)." in the warning tone, with
+"Not saved yet" kept on the summary line (Daniel: each idea said once); once a change is saved, the server clears the triage source and the label goes, as before. So Q-12's "Check" line
+and the triage label can show together. Frontend only (`Clinical/Show.vue`). One owner-approved existing assertion
+change: `tests/Frontend/tri-1c-triage-chips.test.mjs`, where the pin `v-if="clinical.vitals.fromTriage && !vitalsUnsaved"`
+becomes a pin on `v-if="clinical.vitals.fromTriage"` plus the "(edited)" part under `v-if="vitalsUnsaved"`. Possible later follow-up
+(Daniel): keep "(edited)" after a save, which needs a server change (the source is cleared today).
 
 ## 7. Out of TRI-1c
 
