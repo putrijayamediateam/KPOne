@@ -142,6 +142,13 @@ hides the triage label. Not done: running Q-12's check on the copied readings (o
 the label while unsaved as "From triage … (edited, not saved)" (Daniel's option a). The 390 px sticky-footer overlap in
 the full-page shots is existing design debt DD-111.
 
+**TRI-1d, the follow-up (owner start "start the edited, not saved follow-up", 23 Nov 2026):** the label now stays while
+the doctor has unsaved vitals and reads "From triage, last taken by <CA> at <time> (edited, not saved)." in the warning
+tone; once a change is saved, the server clears the triage source and the label goes, as before. So Q-12's "Check" line
+and the triage label can show together. Frontend only (`Clinical/Show.vue`). One owner-approved existing assertion
+change: `tests/Frontend/tri-1c-triage-chips.test.mjs`, where the pin `v-if="clinical.vitals.fromTriage && !vitalsUnsaved"`
+becomes a pin on `v-if="clinical.vitals.fromTriage"` plus the "(edited, not saved)" part under `v-if="vitalsUnsaved"`.
+
 ## 7. Out of TRI-1c
 
 TRI-2 (emergency lane, all-doctor alert), TRI-3 (standing order), any zone on the TV or QR page, any change to queue

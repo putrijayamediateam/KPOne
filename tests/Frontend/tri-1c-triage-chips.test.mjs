@@ -63,9 +63,15 @@ test('TRI-1c: both boards pass the server triage summary through untouched', () 
 test('TRI-1c: the consultation page shows the zone and the triage label while the vitals are the copy', () => {
     assert.match(consultation, /v-if="clinical\.visit\.triage\?\.triaged"/);
     assert.match(consultation, /data-testid="consultation-triage-zone"/);
+    // TRI-1d (owner-approved change, 23 Nov 2026): the label stays while the doctor has unsaved changes, marked
+    // "(edited, not saved)"; a saved change clears the triage source on the server, so the label goes.
     assert.match(
         consultation,
-        /v-if="clinical\.vitals\.fromTriage && !vitalsUnsaved"/,
+        /v-if="clinical\.vitals\.fromTriage" class="text-xs text-muted-foreground" data-testid="vitals-from-triage"/,
+    );
+    assert.match(
+        consultation,
+        /v-if="vitalsUnsaved" [^>]*data-testid="vitals-from-triage-edited" > \(edited, not saved\)</,
     );
     assert.match(consultation, /From triage, last taken by/);
     // Q-11 stays untouched: the form is still seeded from the saved vitals.
