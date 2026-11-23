@@ -5,6 +5,7 @@ namespace App\Domain\Agents\Connector;
 use App\Domain\Audit\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Passport\Token;
 
 /**
@@ -53,9 +54,9 @@ final class ConnectedApps
             ->selectRaw('client_id, min(created_at) as first_at')->groupBy('client_id')->pluck('first_at', 'client_id');
         // The connector records which app asked; rows without one are not attributed to any app.
         $lastAsked = AuditLog::query()->where('event', 'ai_connector.tool_called')->where('actor_user_id', $user->id)
-            ->whereNotNull('metadata->client_id')->get(['metadata', 'occurred_at'])
-            ->groupBy(fn (AuditLog $row): string => (string) ($row->metadata['client_id'] ?? ''))
-            ->map(fn ($rows) => $rows->max('occurred_at'));
+            ->where('occurred_at', '>=', now()->subDays(31))
+            ->whereIn(DB::raw("metadata->>'client_id'"), $tokens->pluck('client_id')->map(fn ($id): string => (string) $id)->unique()->all())
+            ->selectRaw("metadata->>'client_id' as cid, max(occurred_at) as last_at")->groupBy('cid')->pluck('last_at', 'cid');
 
         /** @var list<array{clientId: string, name: string, connectedAt: string|null, lastAskedAt: string|null}> $apps */
         $apps = $tokens->groupBy('client_id')->map(fn ($group, $clientId): array => [

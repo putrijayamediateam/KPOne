@@ -23,9 +23,9 @@ class ConnectedAppsController extends Controller
 
     public function destroy(Request $request, ConnectedApps $apps, string $client): RedirectResponse
     {
-        $apps->disconnect($request->user(), $client);
+        $ended = $apps->disconnect($request->user(), $client);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Claude disconnected.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $ended > 0 ? 'Claude disconnected.' : 'Nothing was connected.']);
 
         return to_route('agents.connected-apps');
     }
