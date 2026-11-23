@@ -40,7 +40,9 @@ class PricingController extends Controller
             ->where('organisation_id', $organisationId)
             ->orderBy('name')
             ->get();
-        $activeBookIds = $books->where('is_active', true)->pluck('id')->all();
+        // Owner decision 27: Panel prices change only by proposal, so this page publishes and shows Self-pay prices only.
+        // A Panel price must never be read here as the "current price" to repeat in a Self-pay book.
+        $activeBookIds = $books->where('is_active', true)->where('price_tier', '!=', 'panel')->pluck('id')->all();
         $bookPublicIds = $books->pluck('public_id', 'id');
         // CAT-6: only active books count, as in billing (PriceResolutionService), and publishing to an inactive book
         // is refused anyway.
@@ -113,6 +115,7 @@ class PricingController extends Controller
                     'branchId' => $book->branch_id,
                     'scopeKey' => $book->scope_key,
                     'isActive' => $book->is_active,
+                    'isPanel' => $book->price_tier === 'panel',
                 ])->values(),
             'charges' => $charges->map(function (ChargeDefinition $charge) use ($latestEntries, $bookPublicIds): array {
                 $latest = $latestEntries->get($charge->id);
@@ -189,9 +192,6 @@ class PricingController extends Controller
         return Inertia::render('Pricing/PriceHistory', [
             'filters' => ['book' => $result['book']],
             'from' => $data['from'] ?? null,
-            // The time zone the "In effect from" times are shown in (the active branch's, as in the history service), so
-            // a page can name it. A name only; no branch or patient data.
-            'timezone' => $branch !== null ? $branch->timezone : (string) config('app.timezone'),
             'result' => $result,
         ]);
     }

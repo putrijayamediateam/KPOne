@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimDocument;
+use App\Domain\Visit\Billing\Services\PanelClaimAutoCreator;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
+use App\Domain\Visit\Billing\Services\PanelClaimPackIssueService;
 use App\Domain\Visit\Billing\Services\PanelClaimPackService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
@@ -139,6 +141,22 @@ class PanelClaimsController extends Controller
         return to_route('panel-claims.index', ['tab' => 'submitted']);
     }
 
+    /** PNL-28a: create Prepared claims for the oldest approved Panel shares that have no claim yet. */
+    public function autoCreate(Request $request, PanelClaimAutoCreator $creator): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $data = Validator::make($request->only(['expected_branch_id']), ['expected_branch_id' => ['required', 'integer', 'min:1']])->validate();
+        try {
+            $result = $creator->createWaiting($actor, (int) $data['expected_branch_id']);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('panel-claims.index', ['tab' => 'pending']));
+        }
+        Inertia::flash('autoClaimResult', $result);
+
+        return to_route('panel-claims.index', ['tab' => 'pending']);
+    }
+
     public function prepare(Request $request, CoverageAllocation $allocation, PanelClaimService $claims): RedirectResponse
     {
         $actor = $request->user();
@@ -181,12 +199,13 @@ class PanelClaimsController extends Controller
             'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
-    public function show(Request $request, PanelClaim $claim, PanelClaimDirectoryService $directory): Response
+    public function show(Request $request, PanelClaim $claim, PanelClaimDirectoryService $directory, PanelClaimPackIssueService $issued): Response
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
 
-        return Inertia::render('PanelClaims/Show', $directory->show($actor, $claim));
+        // PNL-25: the frozen packs that include this claim (null for someone without the claims permission here).
+        return Inertia::render('PanelClaims/Show', $directory->show($actor, $claim) + ['issuedPacks' => $issued->forClaim($actor, $claim)]);
     }
 
     public function adjustAmount(Request $request, PanelClaim $claim, PanelClaimService $claims): RedirectResponse

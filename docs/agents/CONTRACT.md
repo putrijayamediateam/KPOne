@@ -8,9 +8,11 @@ follows. Change it only in its own PR, before the slices that depend on the chan
 
 ## 1. Principles (non-negotiable)
 
-1. **Agents propose. People approve. The system executes.** No agent changes clinic data. In wave 1 an
-   approved proposal records the decision only; executing it through a domain service is a later,
-   separately authorised step per proposal type.
+1. **Agents propose. People approve. The system executes.** No agent changes clinic data. An approved proposal
+   records the decision. Since the owner decision of 2026-11-18 (section 15), approving a **transfer** or **restock**
+   suggestion may also **prepare work** (a stock request or a purchase request) through an Inventory service,
+   called as the approving person, in the same transaction as the decision, and only while the switch
+   `agents.prepare_enabled` is on (default off). Every other proposal type stays decision only.
 2. **An agent never sees more than the person who asked.** Every tool call is checked against the
    requesting user's permissions and effective branch, and against the agent's own tool allowlist. A
    scheduled run, which no person asked for, runs as "system" (section 5): its results are filtered by
@@ -46,7 +48,8 @@ the figures are recomputed on demand.
 
 - **Runs:** `queued`, `working`, `awaiting_approval`, `completed`, `failed`, `cancelled`.
 - **Proposals:** `pending`, `approved`, `rejected`, `withdrawn`, `expired`. (`executed` and
-  `execution_failed` are reserved for a later execution step and refused by a check constraint in wave 1.)
+  `execution_failed` stay reserved and refused by the check constraint: a prepared stock request or purchase request
+  still has to be approved, sent and received, so the proposal stays `approved` and carries a link, section 15.)
 - **Office lights:** green = a run `working`; yellow = a proposal `pending` or run `awaiting_approval`;
   red = last run `failed` within 24 hours; grey = idle.
 
@@ -59,6 +62,7 @@ the figures are recomputed on demand.
 | `ai_assistant.use.organisation` | `director` | Use the Director quick answers page. |
 | `ai_proposals.view.branch` | `director`, `ca_supervisor`, `finance_officer` | See the approval inbox for their branches. |
 | `ai_daily_summary.view.branch` | `director`, `ca_supervisor`, `finance_officer`, `administrator` | Open the daily summary page for their branches (sections are filtered further, section 14). |
+| `ai_connector.use.organisation` | `director` | Use the KPOne connector (section 16): the Director's own read-only door for the Director's AI app. Added by migration `2026_11_21_100100` (owner decision 2026-11-21). |
 | Decision on a proposal | Holders of the proposal type's domain permission (section 6) | Approve or reject. |
 
 Added by one additive migration in the registry slice (firstOrCreate, give only what is missing, a missing
@@ -97,15 +101,17 @@ step, and must never be reachable from a request made by a person.
 |---|---|---|---|
 | `inventory.restock_suggestion` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` | SKU public id, location, current quantity, reorder level, suggested quantity, reason code |
 | `inventory.expiry_warning` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` | SKU and batch public ids, location, quantity, expiry date, days left, suggested action code (`use_first` / `write_off_review`) |
-| `inventory.transfer_suggestion` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` at the receiving branch | SKU public id, from branch, to branch, quantity, both branches' current quantity and reorder level |
+| `inventory.transfer_suggestion` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` at the **sending** branch (section 15) | SKU public id, from branch, to branch, quantity, both branches' current quantity and reorder level; from section 15: source and destination location public ids |
 | `inventory.slow_moving` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` | SKU public id, location, quantity, last dispensed date, days without dispensing, suggested action code (`stop_reordering` / `review`) |
 
-Approval records the decision and audit only. It creates no purchase order, transfer, write-off, movement or
-stock change; staff act on an approved item through the existing Inventory screens.
+Approval records the decision and audit. Expiry warnings and slow-moving suggestions stay decision only: they create
+nothing, and staff act on them through the existing Inventory screens. For transfer and restock suggestions,
+approval may also prepare work (section 15); it still moves no stock by itself, because a stock request or purchase
+request has its own approval, dispatch and receiving steps.
 
 **Fixed rules (computed in PHP, never guessed):**
 - Restock: reorder level minus current quantity, rounded up, for SKUs at or below their reorder level.
-- Expiry: batches with positive quantity expiring within 90 days of the branch-local date; `use_first` when
+- Expiry: batches with positive quantity expiring within the SKU's own alert window (STK-42; 7 to 365 days, none set means 90) capped at 90 days, of the branch-local date; `use_first` when
   60 to 90 days remain, `write_off_review` under 60 days or already expired.
 - Transfer: suggested only when the receiving branch is below its reorder level and the sending branch would
   stay at or above its own reorder level after sending; quantity is the smaller of the shortage and that
@@ -117,6 +123,7 @@ stock change; staff act on an approved item through the existing Inventory scree
 - KPOne makes no call to any AI service. There is no API key setting and no AI dependency.
 - A guard test fails if any application code references `api.anthropic.com`, `ANTHROPIC_` settings or an
   AI SDK package.
+- The KPOne connector (section 16) is a door that the owner's AI app calls; KPOne still calls nothing and holds no AI key or SDK.
 - Adding AI calls later needs a new owner decision (API key, spending limit and a data review) and a
   contract change.
 
@@ -139,6 +146,12 @@ wave 1 (owner decision 2026-11-05).
 as it is until then. Names are the owner's draft and can be renamed in the registry.
 
 Seeded by a local and testing seeder only (fictional data), never by a migration.
+
+**Registering them on a real server (AG-36, owner decision 2026-11-21).** The agents are listed once in `App\Domain\Agents\Registry\AgentCatalogue`,
+read by the local and testing seeder and by `php artisan kpone:register-agents` (`--dry-run`, `--force` in production, `--enable`,
+`--add-missing-tools`). The command is idempotent, creates agents disabled, never changes an existing agent's code, name, title,
+enabled state or lock version, never removes a tool, and writes one `ai_agents.registered` audit row. Design:
+[AGENT-REGISTRATION-DESIGN.md](AGENT-REGISTRATION-DESIGN.md).
 
 ## 9. Knowledge pack files
 
@@ -273,3 +286,114 @@ production gate.
 - The summary keeps no free text; it is rebuilt from stored run results and data sources.
 - **Doctor names (owner decision 2026-11-05).** Per-doctor figures in Lina's report and on the daily summary
   show each doctor's display name, as the Insights Provider table does, not an anonymous label.
+
+## 15. Approval that prepares work (owner decision 2026-11-18, agreed with the Inventory team)
+
+Status: **contract only; nothing is built.** Slices follow in this order: this contract change, the proposal changes
+and link columns (no Inventory calls), the Inventory entries, then the wiring and inbox.
+
+**Rules for both types**
+
+1. Approve calls an existing Inventory service **as the approver**, inside the same database transaction as the decision, so
+   permission, branch, row locks, spare-stock and status checks and the Inventory audit run as if that person pressed the
+   button on the Inventory page. If the Inventory call refuses, the whole approval rolls back: the proposal stays pending and
+   the inbox shows the Inventory message. There is never "approved but nothing created".
+2. **Two modes, chosen by the server's check, never by the screen alone.** The approver sends `mode = prepare` or
+   `mode = decision_only`. The server refuses `prepare` unless the approver also holds the Inventory create permission at the
+   right branch. A person who can decide but not prepare (for example a Finance Officer or the Director) sees
+   "Approve (decision only)" and a plain reason; a person who can prepare also sees "Approve and create the stock request"
+   or "Approve and create the purchase request".
+3. **Retry-safe:** the Inventory retry key is a UUID version 5 of `ai-proposal:<proposal id>` with one fixed namespace
+   constant. A double press returns the same record; the proposal row lock serialises two approvers. Retrying an already
+   approved proposal by the same person returns the same link.
+4. **Link, not `executed`:** the proposal stays `approved` and records what it prepared (record type, public id, time) in
+   nullable link columns, shown in the inbox as "Stock request SR-... created" or "Purchase request PR-... created".
+   The link columns can be set only on an approved proposal (check constraint).
+5. **Audit:** the existing `ai_proposal.approved` row, plus the existing Inventory row with the approver as actor and
+   `source: ai_proposal`. Both carry the proposal id. Ids and codes only; no agent text ever reaches an Inventory record.
+6. **Lock order:** the proposal row first, then Inventory rows. Inventory code never locks `ai_proposals`, so there is no cycle.
+7. The existing two-person rules are untouched: the decider is never the person who started the run. The Inventory team adds,
+   on its side, that a stock request carrying a proposal id must be approved by someone other than its requester (service and
+   PostgreSQL); ordinary requests are unchanged.
+8. **Feature switch:** `agents.prepare_enabled`, default **off**. While it is off, every approval is decision only and the
+   inbox shows no "create" button. The owner turns it on (owner decision, marked for his review). Week one of the pilot is
+   Daily summary only, so it stays off then.
+9. A proposal's payload and the approver's edits are validated by the agent platform, and checked again by the Inventory
+   service under its own locks. Nothing is trusted from the screen.
+
+**Transfer suggestion becomes a stock request**
+
+- Hana runs at the **receiving** branch, but since STK-31 only the **sending** branch can create a cross-branch stock request, from
+  its own location. So a transfer proposal's `branch_id` is the **sender**, while its run stays at the receiver, and the
+  receiver is in the payload (`to_branch_code`). This is the one exception to "a proposal is made for the run's own branch",
+  allowed for this type only: the run's branch must equal the payload's receiver and the proposal's branch its sender.
+  Daily counts and de-duplication count transfers by the run's branch, and the receiving branch's Daily summary shows a
+  read-only line "Transfer suggested from <branch>, decided there".
+- Decided by `inventory.stock_reviews.manage.branch` at the sender. Prepared only by someone who also holds
+  `inventory.stock_requests.create.branch` (in practice a CA Supervisor at the sender).
+- New payload fields, both required: `source_location_public_id` (the sender's location with the most spare stock) and
+  `destination_location_public_id` (the receiving branch's location below its level). The approver may change `quantity`
+  (above 0, never above the payload), the source location (active, at the sending branch, not a patient returns location)
+  and the destination location (active, at the receiving branch, not a patient returns location).
+- If stock changed meanwhile, the Inventory service refuses with its own message (for example "This branch can spare N of
+  this item. Lower the quantity."); the approver lowers the quantity or rejects. The inbox shows "Suggested on <date>".
+- Entry (Inventory team): `StockRequestService::createFromProposal(User $approver, int $proposalId, array $values)`.
+
+**Restock suggestion becomes a purchase request**
+
+- The proposal is already at the branch with a location. Approve calls the purchase request service as the approver:
+  destination = the proposal's location, one line with the suggested quantity, and the fixed note
+  "From a restock suggestion" (plain words, not agent text).
+- Prepared only by someone who also holds `inventory.purchase_requests.create.branch`.
+- Live re-check under lock: if the balance is now above the reorder level, refuse with "Stock is now above the reorder level,
+  so there is nothing to order. Reject this suggestion." If an open purchase request or order already holds this item for this
+  location, warn before Approve (not a refusal): "An open purchase request or purchase order already includes this item
+  for this location."
+- Entry (Inventory team): `PurchaseRequestService::sendFromProposal(...)`.
+
+**Interface between the two teams.** The agent platform owns the proposal, the approval, the link columns, the switch and the
+inbox. The Inventory team owns one small class that implements the agent platform's `PreparesWork` interface (name and
+`prepare` signature settled in the interface slice) and the two entries above, which take the proposal id only as an audit and
+link tag. Each Inventory table that records a prepared request gains a nullable `ai_proposal_id` (restrict on delete), for the
+trail only. No new permission is needed (existing grants are used).
+
+**Not changed:** expiry and slow-moving suggestions stay decision only; no agent changes clinic data; KPOne still calls no AI
+service (section 7; the next-wave design is separate and needs the owner's decision).
+
+## 16. The KPOne connector (CN-1, owner decision 2026-11-21)
+
+Design: [MCP-CONNECTOR-DESIGN.md](MCP-CONNECTOR-DESIGN.md). KPOne exposes one read-only MCP endpoint (`POST /mcp`, Streamable HTTP) that
+the Director's AI app can use as a custom connector. **Claude calls KPOne; KPOne never calls an AI service.**
+
+- **Switch:** `agents.connector_enabled` (`AGENTS_CONNECTOR_ENABLED`), default OFF, read on every request. Off: `/mcp`, the OAuth
+  discovery routes, `/oauth/register`, `/oauth/token` and `/oauth/authorize` answer 404 and no token works.
+- **Sign-in:** OAuth 2.1 with PKCE through `laravel/passport` (pinned `~13.7.6`, the last release that uses phpseclib 3, which
+  `laravel/socialite` needs) and the MCP package `laravel/mcp` (1.2.x). Passport's own routes are off; `routes/ai.php` registers
+  only the routes above. The consent page (`/oauth/authorize`) is an ordinary KPOne page behind the normal sign-in, for a holder of
+  `ai_connector.use.organisation` only. One scope, `mcp:use` (read only; there is no write scope). Access tokens last 1 hour,
+  refresh tokens 30 days. A client may register itself only with a redirect origin in `config/mcp.php` (`MCP_REDIRECT_DOMAINS`).
+- **Every call:** token valid, the person still active and still holding the permission (`ConnectorAccess`), 30 calls a minute and
+  500 a day per person, then one short run of the registered agent `claude_connector` ("(AI agent)", created on first use, disabled
+  by the Director on /agents to refuse every call) through `AgentToolGateway`: the agent's allowlist, the tool's permission, the
+  person's effective branch, input validation and `AggregatePayloadGuard`. A 10-second statement timeout and a 64 KB result cap
+  apply.
+- **Audit:** `ai_connector.tool_called` (tool, branch code, outcome, reason, row count; never the figures), `ai_connector.access_refused`
+  and `ai_connector.tokens_revoked`. If the audit row cannot be written, nothing is returned.
+- **Revoke:** `php artisan agents:connector-revoke {--user=<email>}` (one person, or everyone when left out).
+- **Tools:** CN-1: `list_branches` (data source `connector.list_branches`). CN-2 adds seven questions that read existing data
+  sources through the gateway, once for each branch the Director works at (or the one named): `clinic_day_summary` (no doctor rows),
+  `money_day_summary`, `sales_summary`, `panel_claims_outstanding`, `stock_alerts`, `stock_balances_and_counts` and `system_health`
+  (organisation-wide, counts only). Each is a `ConnectorQuery` class that returns an explicit list of keys (no pass-through), at most
+  25 rows with a `limits` note, staff-typed names cleaned and cut to 80 characters, dates validated (a range is at most 31 days),
+  plus `definitions` and `asOf`. The connector agent's allowlist is the union of their sources. CN-3 adds `visits_by_state`,
+  `queue_now` and `panel_claims_made`: three small data sources of their own (`connector.visits_by_state`, `connector.queue_now`,
+  `connector.panel_claims_made`, permission `insights.view.organisation`) whose numbers reconcile with the clinic day summary
+  and the Panel Claims list in tests. `queue_now` counts patients carried over from earlier days (`carriedOver`).
+- **Validation:** a request is checked (dates, range, branch) before anything is counted or recorded; an invalid or refused
+  request neither uses the daily limit nor creates a run, and is audited as `invalid_input` or `branch_not_allowed`.
+- **Connected apps (CN-4):** `GET /agents/connected-apps` lists the signed-in holder's own live connections (when connected,
+  when last asked) and `DELETE /agents/connected-apps/{client}` revokes that person's tokens for that app (audited as
+  `ai_connector.tokens_revoked`, scope `one_app`). Nobody sees another person's connections.
+- **Operating:** [CONNECTOR-OWNER-GUIDE.md](CONNECTOR-OWNER-GUIDE.md) (what the owner does in the Claude app) and
+  [CONNECTOR-TRIAL-CHECKLIST.md](CONNECTOR-TRIAL-CHECKLIST.md) (switching it on and off on the trial server).
+- **Data rule:** fictional data only until the PDPA review (design note section 8).

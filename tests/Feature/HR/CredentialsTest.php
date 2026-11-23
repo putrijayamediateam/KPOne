@@ -43,7 +43,7 @@ class CredentialsTest extends VisitTestCase
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
         $this->assertSame(['director', 'hr_manager'], $holders(CredentialPermissions::MANAGE));
         $own = $holders(CredentialPermissions::VIEW_OWN);
-        $this->assertCount(11, $own);
+        $this->assertCount(14, $own);
         $this->assertNotContains('queue_display', $own);
         foreach (array_keys(CredentialPermissions::grants()) as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));

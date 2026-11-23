@@ -27,6 +27,7 @@ final class SalesSummaryExportService
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 403);
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
+            BranchOnlyExportScope::enforce($actor, $branch, $scope);
             $grants = $actor->getAllPermissions()->pluck('name');
             abort_unless($grants->contains(self::PERMISSION) && $grants->contains('insights.view.organisation'), 403);
             $data = $this->reports->report($actor, 'sales', $scope, $from, $to, $doctor);

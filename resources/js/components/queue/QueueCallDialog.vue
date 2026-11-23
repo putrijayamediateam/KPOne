@@ -123,6 +123,14 @@ const submit = () => {
                 Queue {{ row.queueNumber }} · {{ row.patientNumber }}
             </p>
         </div>
+        <!-- TRI-1c (owner, 22 Nov 2026): a warning only; calling is never blocked. -->
+        <p
+            v-if="row?.triage && !row.triage.triaged"
+            class="mt-3 text-sm text-muted-foreground"
+            data-testid="call-no-triage-note"
+        >
+            No triage yet. You can still call.
+        </p>
         <label
             data-call-readiness-override
             v-if="row?.callHold?.active"

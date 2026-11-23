@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -41,7 +42,7 @@ final class PanelClaimPackService
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    public function pack(User $actor, array $input): array
+    public function pack(User $actor, array $input, bool $forIssue = false): array
     {
         // Lower-case first, so the same claim given twice in different case is refused as a repeat.
         if (isset($input['claims']) && is_array($input['claims'])) {
@@ -66,7 +67,7 @@ final class PanelClaimPackService
         $branch = $this->branches->activeBranch($actor);
         abort_unless($branch !== null && $branch->organisation_id === $actor->organisation_id, 404);
 
-        return DB::transaction(function () use ($actor, $branch, $publicIds, $requestedVersion): array {
+        return DB::transaction(function () use ($actor, $branch, $publicIds, $requestedVersion, $forIssue): array {
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
             $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereIn('public_id', $publicIds)->with(['lines', 'documents'])->orderBy('id')->get();
@@ -89,7 +90,7 @@ final class PanelClaimPackService
                 ->orderBy('occurred_at')->orderBy('id')->get(['panel_claim_id', 'occurred_at'])->unique('panel_claim_id')->keyBy('panel_claim_id');
 
             $snapshots = PanelClaimSnapshot::query()->whereIn('panel_claim_id', $claims->pluck('id')->all())->orderBy('version')->get()->groupBy('panel_claim_id');
-            $rows = $claims->map(function (PanelClaim $claim) use ($branch, $identifiers, $submitted, $canSeeIdentity, $snapshots, $requestedVersion): array {
+            $rows = $claims->map(function (PanelClaim $claim) use ($branch, $identifiers, $submitted, $canSeeIdentity, $snapshots, $requestedVersion, $forIssue): array {
                 $subtotal = (int) $claim->lines->sum('line_total_sen');
                 // PCA-2: the pack shows one recorded version's totals: the latest (with the live claim amount, so a later
                 // claim-only edit is never stale) or, when asked, an earlier one. A claim without versions prints as before.
@@ -149,19 +150,35 @@ final class PanelClaimPackService
                         'reason' => $own === null ? null : (PanelClaimAdjustment::REASONS[$own->reason_code] ?? null),
                         'confirmedOn' => $own?->confirmed_at?->setTimezone($branch->timezone)->format('j M Y'),
                     ],
-                    'photos' => $claim->documents->sortBy('id')->values()->map(static fn ($document): string => (string) $document->original_name)->all(),
+                    // A frozen copy never prints an uploaded file name (it could carry clinical text): "Photo 1", "Photo 2", ...
+                    'photos' => $claim->documents->sortBy('id')->values()->map(static fn ($document, int $index): string => $forIssue ? 'Photo '.($index + 1) : (string) $document->original_name)->all(),
                 ];
             })->values()->all();
 
             $first = $claims->first();
-            $this->audit->record('panel_claim.pack_printed', $first, [
-                'claim_count' => $claims->count(),
-                'claim_ids' => $claims->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
-                'panel_id' => (int) $first->panel_id,
-                'identity_shown' => $canSeeIdentity,
-            ], $actor, $branch);
+            // A frozen copy (PNL-25) is recorded by its own service, with its own audit rows, so the live preview audit is skipped.
+            if (! $forIssue) {
+                $this->audit->record('panel_claim.pack_printed', $first, [
+                    'claim_count' => $claims->count(),
+                    'claim_ids' => $claims->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
+                    'panel_id' => (int) $first->panel_id,
+                    'identity_shown' => $canSeeIdentity,
+                ], $actor, $branch);
+            }
 
-            $letterhead = $this->letterheads->assemble($branch, static fn (string $asset): string => route('panel-claims.letterhead-logo', ['asset' => $asset], absolute: false));
+            // A frozen copy keeps the logo's own bytes (checked against the stored hash); the live page serves it by address.
+            $letterhead = $this->letterheads->assemble($branch, $forIssue
+                ? function (string $asset) use ($actor): string {
+                    $image = DB::table('business_detail_assets')->where('organisation_id', $actor->organisation_id)
+                        ->where('public_id', strtolower($asset))->whereNull('retired_at')->first(['path', 'mime', 'sha256']);
+                    $bytes = $image === null ? null : Storage::disk('local')->get((string) $image->path);
+                    if ($bytes === null || ! hash_equals((string) $image->sha256, hash('sha256', $bytes))) {
+                        throw ValidationException::withMessages(['pack' => 'The letterhead logo is unavailable. Restore it in Business details before printing.']);
+                    }
+
+                    return 'data:'.$image->mime.';base64,'.base64_encode($bytes);
+                }
+                : static fn (string $asset): string => route('panel-claims.letterhead-logo', ['asset' => $asset], absolute: false));
 
             // PNL-19: both clinic phones print in the shared reading format, as on the other printed documents.
             $printed = $letterhead->toArray();

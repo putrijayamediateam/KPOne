@@ -97,7 +97,7 @@ final class StockSpace
         foreach ((array) ($this->reorder->page($actor, ['need' => 'order'])['rows'] ?? []) as $q) {
             $suggested[(string) $q['key']] = (string) $q['suggestedQuantity'];
         }
-        $titles = ['low_stock' => 'Low stock', 'expiring' => 'Expiring within 90 days', 'expired' => 'Expired on hand'];
+        $titles = ['low_stock' => 'Low stock', 'expiring' => 'Expiring soon', 'expired' => 'Expired on hand'];
         $first = $this->review->page($actor, []);
         $today = (string) $first['today'];
         $lists = [];

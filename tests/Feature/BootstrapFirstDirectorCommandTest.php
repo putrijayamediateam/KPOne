@@ -62,10 +62,10 @@ class BootstrapFirstDirectorCommandTest extends TestCase
                 ->value('id'),
             $profile->department_id,
         );
-        $this->assertCount(1, $assignments);
-        $this->assertSame($this->cheras->id, $assignments->sole()->branch_id);
-        $this->assertTrue($assignments->sole()->is_primary);
-        $this->assertSame('permanent', $assignments->sole()->assignment_type);
+        $this->assertCount(3, $assignments);
+        $primary = $assignments->where('is_primary', true)->sole();
+        $this->assertSame($this->cheras->id, $primary->branch_id);
+        $this->assertSame('permanent', $primary->assignment_type);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'staff.director_bootstrapped',
             'subject_id' => $director->id,

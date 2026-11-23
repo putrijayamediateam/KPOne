@@ -6,11 +6,8 @@ const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const flat = (s) => s.replace(/\s+/g, ' ');
 
-test('DD-32: Create patient says what it does in plain words, Classic and V2', () => {
-    for (const file of [
-        'resources/js/pages/Patient/Create.vue',
-        'resources/js/pages/Patient/V2/Create.vue',
-    ]) {
+test('DD-32: Create patient says what it does in plain words, Classic', () => {
+    for (const file of ['resources/js/pages/Patient/Create.vue']) {
         const source = flat(read(file));
         assert.ok(
             source.includes(
@@ -22,7 +19,7 @@ test('DD-32: Create patient says what it does in plain words, Classic and V2', (
     }
 });
 
-test('DD-32: the Classic title matches V2 and drops the internal words', () => {
+test('DD-32: the title says Create patient and drops the internal words', () => {
     const source = flat(read('resources/js/pages/Patient/Create.vue'));
     assert.ok(source.includes('Create patient'));
     assert.ok(!source.includes('Create Patient Master record'));

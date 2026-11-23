@@ -28,11 +28,12 @@ Pada halaman “Clinic management”, taip dalam kotak “Find a page” untuk m
 
 Jika skrin mewajibkan tarikh lahir, jangan masukkan tarikh anggaran. Cara mengurus kes ini apabila tetapan klinik mewajibkan tarikh lahir: [PERLU DISAHKAN].
 
-## Hantar pesakit konsultasi ke ruang menunggu
+## Selepas pendaftaran: pesakit terus menunggu
 
-1. Selepas pendaftaran, cari pesakit pada halaman “Registration”.
-2. Pada menu tindakan pesakit, pilih “Send to Waiting”.
-3. Pastikan status pesakit menunjukkan bahawa dia sedang menunggu.
+1. Selepas “Register Visit”, pesakit konsultasi terus masuk senarai menunggu dan nombor giliran (contoh A-012) dipaparkan dalam mesej di bahagian atas. Anda dibawa kembali ke halaman “Registration”. Pesakit OTC terus masuk senarai B.
+2. Anda tidak perlu menekan “Send to Waiting” selepas mendaftar. Pilihan itu tidak lagi ditawarkan untuk lawatan yang sudah menunggu.
+3. Jika akaun anda boleh mendaftar tetapi tidak boleh memasukkan pesakit ke giliran, lawatan didaftarkan sahaja dan anda dibawa ke halaman lawatan. [PERLU DISAHKAN] Cara akaun begini menghantar pesakit ke giliran mengikut prosedur klinik.
+4. Jika pendaftaran ditolak semasa memasukkan ke giliran, tiada lawatan separuh siap disimpan; baca sebab pada skrin dan cuba lagi.
 
 Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tindakan.
 

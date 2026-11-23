@@ -4,10 +4,12 @@ namespace Tests\Feature\HR;
 
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Approvals\Sources\LeaveRequestSource;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
 use App\Domain\HR\Leave\Services\LeaveEvidenceService;
+use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Models\User;
@@ -623,6 +625,34 @@ class LeaveTest extends VisitTestCase
         });
         $refused(fn () => DB::statement('TRUNCATE hr_leave_ledger CASCADE'));
         $this->assertSame(1, LeaveRequest::query()->count());
+    }
+
+    public function test_appr_1d_the_inbox_source_counts_the_approvals_tab_waiting_list_without_the_viewers_own(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 0);
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.entitlements.save'), ['year' => 2027, 'rows' => [['leave_type_id' => $type->id, 'role' => 'ca', 'days' => '5'],
+            ['leave_type_id' => $type->id, 'role' => 'director', 'days' => '5']]])->assertSessionHasNoErrors();
+        $this->grant($hr)->assertSessionHasNoErrors();
+        $this->travelTo(CarbonImmutable::parse('2027-03-01 09:00', $this->branch->timezone));
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08'])->assertSessionHasNoErrors();
+        $this->travel(1)->hours();
+        $this->apply($director, ['leave_type_id' => $type->id, 'start_date' => '2027-03-09', 'end_date' => '2027-03-09'])->assertSessionHasNoErrors();
+        $source = app(LeaveRequestSource::class);
+
+        foreach ([[$hr, 2], [$director, 1]] as [$viewer, $expected]) {
+            $page = app(LeavePageService::class)->page($viewer, ['tab' => 'approvals']);
+            $this->assertCount($expected, $page['approvals']['pending']);
+            $this->assertSame([$expected, $expected], [$page['approvalCount'], $source->count($viewer, null)]);
+        }
+        $this->assertSame('2027-03-01 01:00:00', $source->oldest($director, null)?->utc()->format('Y-m-d H:i:s'));
+        $this->decide($director, LeaveRequest::query()->where('user_id', $ca->id)->sole(), 'approve')->assertSessionHasNoErrors();
+        $this->assertSame([1, 0], [$source->count($hr, null), $source->count($director, null)], 'the director never decides their own request');
+        $this->assertSame('2027-03-01 02:00:00', $source->oldest($hr, null)?->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame([], $source->items($hr, null, 5));
     }
 
     private function leaveType(User $manager, array $overrides = []): LeaveType

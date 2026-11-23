@@ -7,15 +7,13 @@ const read = (p) =>
 const flat = (s) => s.replace(/\s+/g, ' ');
 const show = {
     classic: read('resources/js/pages/Inventory/ControlledRegisterShow.vue'),
-    v2: read('resources/js/pages/Inventory/V2/ControlledRegisterShow.vue'),
 };
 const list = {
     classic: read('resources/js/pages/Inventory/ControlledRegister.vue'),
-    v2: read('resources/js/pages/Inventory/V2/ControlledRegister.vue'),
 };
 const print = read('resources/js/pages/Inventory/ControlledRegisterPrint.vue');
 
-test('STK-40b: a check that differs reads "Difference: reason needed" until its reason is added, in both layouts and on the print', () => {
+test('STK-40b: a check that differs reads "Difference: reason needed" until its reason is added, on the Classic pages and on the print', () => {
     for (const [name, source] of Object.entries(show)) {
         assert.match(
             flat(source),
@@ -69,17 +67,8 @@ test('STK-40b: only the checker gets the reason step; it is added once, and Othe
         );
     }
 
-    // Classic shows the form on the check itself; V2 opens a sheet from the notice.
+    // Classic shows the form on the check itself.
     assert.match(flat(show.classic), /v-if="check\.canAddReason"/);
-    assert.match(flat(show.v2), /data-testid="cd-add-reason-open"/);
-    assert.match(
-        flat(show.v2),
-        /<V2Dialog :open="reasonOpen && ownReasonNeeded !== null"/,
-    );
-    assert.match(
-        flat(show.v2),
-        /@confirm="ownReasonNeeded && submitReason\(ownReasonNeeded\)"/,
-    );
 });
 
 test('STK-40b (Daniel, owner 16 Nov): no second filled button beside "Add the reason", and the next checker is told an earlier difference still waits for its recorder', () => {
@@ -96,9 +85,5 @@ test('STK-40b (Daniel, owner 16 Nov): no second filled button beside "Add the re
     assert.match(
         flat(show.classic),
         /:variant="ownReasonNeeded \? 'outline' : 'default'"/,
-    );
-    assert.match(
-        flat(show.v2),
-        /ownReasonNeeded \? 'border border-input bg-card text-foreground hover:bg-muted' : 'bg-primary text-primary-foreground hover:bg-primary\/90'/,
     );
 });

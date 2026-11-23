@@ -13,7 +13,7 @@ export type ClockConfirmation = {
     time: string;
     branch: string;
     chip: {
-        code: 'on_time' | 'late' | 'left_early' | 'no_shift';
+        code: 'on_time' | 'late' | 'left_early' | 'no_shift' | 'on_call';
         label: string;
     };
 };

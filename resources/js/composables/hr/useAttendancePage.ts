@@ -20,14 +20,12 @@ import type {
     SummaryTabData,
     WeekHours,
 } from '@/components/hr/attendance/types';
-import { useClockPhoto } from '@/composables/useClockPhoto';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 
 /**
- * The Attendance page's state and actions, shared by Classic (`pages/HR/Attendance.vue`) and Version 2
- * (`pages/HR/V2/Attendance.vue`), so both send the same requests with the same lock versions and idempotency keys.
- * Moved out of the Classic page unchanged; the Classic template did not change. The `tabStrip` template ref is read
- * here through `useTemplateRef`, so a page that shows the tab strip names its wrapper `ref="tabStrip"`.
+ * The Attendance page's state and actions for `pages/HR/Attendance.vue`: every request, lock version and idempotency
+ * key. The `tabStrip` template ref is read here through `useTemplateRef`, so the page names its tab strip's wrapper
+ * `ref="tabStrip"`.
  */
 export type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
 export type Kind = 'change_in' | 'set_out' | 'add_day';
@@ -88,7 +86,7 @@ export type Correction = {
     lockedMonth?: string | null;
 };
 
-export type AttendanceProps = {
+type AttendanceProps = {
     /** HR-5a: your own expiring or expired credentials, in words. */
     credentialReminders?: string[];
     attendance: {
@@ -330,82 +328,9 @@ export const useAttendancePage = (props: AttendanceProps) => {
     );
 
     // ---- Clock in and out ----
-    const clock = reactive({
-        processing: false,
-        confirmOut: false,
-        key: '',
-        locating: false,
-        consentFor: null as 'in' | 'out' | null,
-    });
-    // HR-16a: where the branch checks location, the browser reads it once, at the press, and never before or after. A
-    // refusal, a failure or "without location" still records the press.
-    const press = (kind: 'in' | 'out') => {
-        const location = props.attendance.my?.location;
-
-        if (!location) {
-            send(kind, {});
-
-            return;
-        }
-
-        if (location.consentNeeded) {
-            clock.confirmOut = false;
-            clock.consentFor = kind;
-
-            return;
-        }
-
-        locate(kind, false);
-    };
-    const locate = (kind: 'in' | 'out', consent: boolean) => {
-        clock.consentFor = null;
-        const extra: Record<string, unknown> = consent
-            ? { location_consent: true }
-            : {};
-
-        if (!('geolocation' in navigator)) {
-            send(kind, { ...extra, location_unavailable: 'failed' });
-
-            return;
-        }
-
-        clock.locating = true;
-        clock.processing = true;
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                clock.locating = false;
-                send(kind, {
-                    ...extra,
-                    clock_position: {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                    },
-                });
-            },
-            (error) => {
-                clock.locating = false;
-                // One line, as when this lived in the Classic page (the hr-16a test reads it).
-                // prettier-ignore
-                send(kind, { ...extra, location_unavailable: error.code === 1 ? 'denied' : 'failed' });
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-        );
-    };
-    const withoutLocation = (kind: 'in' | 'out') => {
-        clock.consentFor = null;
-        send(kind, { location_unavailable: 'declined' });
-    };
-    // HR-PHOTO: every press goes through the camera; the location result (HR-16a) rides along with the photo.
-    const { open: openCamera } = useClockPhoto();
-    const send = (kind: 'in' | 'out', extra: Record<string, unknown>) => {
-        clock.confirmOut = false;
-        clock.processing = false;
-        openCamera(kind, {
-            extra,
-            onDone: () => router.reload({ preserveScroll: true } as never),
-        });
-    };
+    // One Clock in (owner, 18 Nov 2026): every press is on Me, through the shared camera dialog, which also runs the
+    // branch's location check. This page links there and keeps the history, corrections, overtime and HR tabs.
+    const clockOnMe = '/spaces/me';
 
     // ---- Corrections ----
     const correction = reactive({
@@ -700,10 +625,7 @@ export const useAttendancePage = (props: AttendanceProps) => {
         processing: false,
         key: crypto.randomUUID(),
     });
-    // Version 2 uses saveSettingsKeepingState: the page keeps its state through the save, so the other Settings cards keep
-    // their unsaved typing, and `onSaved` puts this card back to the saved values (also for a version dated later).
-    // Classic keeps saveSettings, unchanged.
-    const sendSettings = (preserveState: boolean, onSaved?: () => void) => {
+    const sendSettings = () => {
         settingsForm.processing = true;
         router.put(
             '/hr/attendance/settings',
@@ -716,18 +638,14 @@ export const useAttendancePage = (props: AttendanceProps) => {
             },
             {
                 preserveScroll: true,
-                ...(preserveState ? { preserveState: true } : {}),
                 onSuccess: () => {
                     settingsForm.key = crypto.randomUUID();
-                    onSaved?.();
                 },
                 onFinish: () => (settingsForm.processing = false),
             },
         );
     };
-    const saveSettings = () => sendSettings(false);
-    const saveSettingsKeepingState = (onSaved?: () => void) =>
-        sendSettings(true, onSaved);
+    const saveSettings = () => sendSettings();
 
     const reviewBranchOptions = computed(() =>
         (props.attendance.review?.branches ?? []).map((b) => ({
@@ -764,10 +682,7 @@ export const useAttendancePage = (props: AttendanceProps) => {
         serverTime,
         serverDate,
         announcement,
-        clock,
-        press,
-        locate,
-        withoutLocation,
+        clockOnMe,
         correction,
         correctionErrors,
         kindOptions,
@@ -791,7 +706,6 @@ export const useAttendancePage = (props: AttendanceProps) => {
         openAskFor,
         settingsForm,
         saveSettings,
-        saveSettingsKeepingState,
         reviewBranchOptions,
         staffOptions,
         correctionStatusTone,

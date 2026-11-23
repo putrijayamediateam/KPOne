@@ -11,15 +11,14 @@ import {
 } from 'vue';
 
 /**
- * The Leave page's state and actions, shared by Classic (`pages/HR/Leave.vue`) and Version 2 (`pages/HR/V2/Leave.vue`),
- * so both send the same requests with the same lock versions and idempotency keys. Moved out of the Classic page
- * unchanged; the Classic template did not change. The `tabStrip` template ref is read here through `useTemplateRef`, so
- * a page that shows the tab strip names its wrapper `ref="tabStrip"`.
+ * The Leave page's state and actions for `pages/HR/Leave.vue`: every request, lock version and idempotency key. The
+ * `tabStrip` template ref is read here through `useTemplateRef`, so the page names its tab strip's wrapper
+ * `ref="tabStrip"`.
  */
 export type Tab = 'my' | 'approvals' | 'calendar' | 'settings';
 export type Option = { value: string; label: string };
 export type Status = 'pending' | 'approved' | 'rejected' | 'cancelled';
-export type RequestRow = {
+type RequestRow = {
     publicId: string;
     dates: string;
     startDate: string;
@@ -90,7 +89,7 @@ export type Balance = {
     booked: string;
     left: string;
 };
-export type TypeRow = {
+type TypeRow = {
     id: number;
     code: string;
     name: string;
@@ -174,7 +173,7 @@ export type Calendar = {
     rows: { name: string; cells: Record<string, 'full' | 'half'> }[];
 };
 
-export type LeavePageProps = {
+type LeavePageProps = {
     leave: {
         tab: Tab;
         tabs: Tab[];
@@ -348,16 +347,17 @@ export function useLeavePage(props: LeavePageProps) {
         { value: 'full', label: 'None (whole day)' },
         { value: 'am', label: 'End at midday' },
     ];
-    // `counting` (V2, Daniel): true from a change of the dates or type until the server answers, so the working-days
-    // line says "Counting…" and never shows a number for the old dates. Classic does not read it.
-    const preview = reactive({ text: '', error: '', counting: false });
+    const preview = reactive({ text: '', error: '' });
+    // True from a change of the dates or type until the server answers. A send then clears a day count for the old
+    // dates, and re-runs the check afterwards when a field changed while it ran.
+    let previewPending = false;
     let previewTimer: ReturnType<typeof setTimeout> | undefined;
     // The day-count check shares the session with the form. If it ran while the form was being sent, its saved session
     // could overwrite the validation errors of the send, and the sheet would close with nothing shown. So a send first
     // cancels a waiting check and waits for one already running.
     let previewInFlight: Promise<void> | null = null;
-    // Each check has a number (Suresh, V2 Leave review). A changed field or a newer check makes an older check stale:
-    // its answer is dropped and it never clears "Counting…", so the line never shows a number for other dates.
+    // Each check has a number (Suresh). A changed field or a newer check makes an older check stale: its answer is
+    // dropped and it never clears `previewPending`, so the line never shows a number for other dates.
     let previewSeq = 0;
     const runPreview = () => {
         if (applyForm.processing) {
@@ -369,7 +369,7 @@ export function useLeavePage(props: LeavePageProps) {
             previewInFlight = null;
 
             if (seq === previewSeq) {
-                preview.counting = false;
+                previewPending = false;
             }
         });
 
@@ -455,7 +455,7 @@ export function useLeavePage(props: LeavePageProps) {
             );
             clearTimeout(previewTimer);
             previewSeq++;
-            preview.counting = Boolean(
+            previewPending = Boolean(
                 applyForm.leave_type_id &&
                 applyForm.start_date &&
                 applyForm.end_date,
@@ -474,7 +474,7 @@ export function useLeavePage(props: LeavePageProps) {
         applyForm.clearErrors();
         preview.text = '';
         preview.error = '';
-        preview.counting = false;
+        previewPending = false;
         applyOpen.value = true;
     };
     // HR-2b (Daniel): a labelled button opens the file picker; chosen files are listed with a Remove link.
@@ -507,9 +507,9 @@ export function useLeavePage(props: LeavePageProps) {
         clearTimeout(previewTimer);
         await previewInFlight?.catch(() => undefined);
 
-        // A check still waiting was cancelled above: its old number is not for these dates (V2 "Counting…").
-        if (preview.counting) {
-            preview.counting = false;
+        // A check still waiting was cancelled above: its old number is not for these dates.
+        if (previewPending) {
+            previewPending = false;
             preview.text = '';
         }
 
@@ -525,7 +525,7 @@ export function useLeavePage(props: LeavePageProps) {
                 onSuccess: () => (applyOpen.value = false),
                 // A field changed while the send ran: its check was skipped, so run it now (Suresh m1).
                 onFinish: () => {
-                    if (preview.counting && applyOpen.value) {
+                    if (previewPending && applyOpen.value) {
                         void runPreview();
                     }
                 },

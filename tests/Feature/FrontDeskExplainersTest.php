@@ -78,7 +78,8 @@ class FrontDeskExplainersTest extends QueueTestCase
     public function test_each_question_needs_both_permissions_and_every_other_role_gets_403(): void
     {
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
-            $both = in_array('visits.view.branch', $permissions, true) && in_array('queue.view.branch', $permissions, true);
+            $both = in_array('visits.view.branch', $permissions, true) && in_array('queue.view.branch', $permissions, true)
+                && in_array('visits.create.branch', $permissions, true);
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             foreach (self::KEYS as $key) {

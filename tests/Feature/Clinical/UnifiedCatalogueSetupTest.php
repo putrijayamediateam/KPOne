@@ -8,11 +8,14 @@ use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
+use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\PanelPriceFixture;
 
 class UnifiedCatalogueSetupTest extends ClinicalTestCase
 {
@@ -51,14 +54,7 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
                 'dispensing_unit' => 'tablet',
                 'unit_conversion' => '10',
             ],
-            'prices' => [
-                'self_pay_sen' => 250,
-                'panel_default_sen' => 200,
-                'panel_overrides' => [[
-                    'panel_id' => $panel->id,
-                    'amount_sen' => 175,
-                ]],
-            ],
+            'prices' => ['self_pay_sen' => 250],
             'batch' => [
                 'batch_number' => 'SYNTH-BATCH-001',
                 'expiry_date' => now()->addYear()->toDateString(),
@@ -87,15 +83,17 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
             'scope_key' => 'organisation',
             'price_tier' => 'self_pay',
         ]);
-        $this->assertDatabaseHas('price_books', [
-            'scope_key' => 'panel:default',
-            'price_tier' => 'panel',
-        ]);
-        $this->assertDatabaseHas('price_books', [
-            'scope_key' => 'panel:'.$panel->id,
-            'price_tier' => 'panel',
-            'panel_id' => $panel->id,
-        ]);
+        // Panel prices are not saved from this form (owner decision 27): no Panel price book appears, and a save that
+        // carries a Panel price is refused whole.
+        $this->assertDatabaseMissing('price_books', ['price_tier' => 'panel']);
+        $this->post(route('medicines.store'), [
+            'code' => 'UNIFIED-MED-PANEL',
+            'display_name' => 'Synthetic panel-priced medicine',
+            'order_unit' => 'tablet',
+            'expected_branch_id' => $this->branch->id,
+            'prices' => ['self_pay_sen' => 250, 'panel_default_sen' => 200, 'panel_overrides' => [['panel_id' => $panel->id, 'amount_sen' => 175]]],
+        ])->assertSessionHasErrors('prices');
+        $this->assertDatabaseMissing('medicine_catalogue_items', ['code' => 'UNIFIED-MED-PANEL']);
         $this->assertSame('Synthetic category', $medicine->category);
     }
 
@@ -212,15 +210,15 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
                 'dispensing_unit' => 'tablet',
                 'unit_conversion' => '1',
             ],
-            'prices' => [
-                'self_pay_sen' => 100,
-                'panel_default_sen' => 120,
-                'panel_overrides' => [],
-            ],
+            'prices' => ['self_pay_sen' => 100],
         ])->assertRedirect(route('medicines.index'));
 
         $medicine = MedicineCatalogueItem::query()->where('code', 'EDIT-MED')->sole();
         $sku = InventorySku::query()->where('sku_code', 'EDIT-MED-SKU')->sole();
+        // The Panel price is put in place the way an approved proposal leaves it (owner decision 27).
+        $editCharge = ChargeDefinition::query()->where('medicine_catalogue_item_id', $medicine->id)->sole();
+        $panelBook = app(PricingReferenceAdministrationService::class)->createPriceBook($actor, null, ['name' => 'Panel', 'price_tier' => 'panel', 'panel_id' => null]);
+        PanelPriceFixture::insert($panelBook, $editCharge, 120, $actor);
 
         $this->getJson(route('medicines.setup', $medicine->public_id))
             ->assertOk()
@@ -234,11 +232,7 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
             'category' => 'Synthetic updated category',
             'expected_branch_id' => $this->branch->id,
             'sku' => ['barcode' => 'EDIT-BARCODE-2'],
-            'prices' => [
-                'self_pay_sen' => 150,
-                'panel_default_sen' => 120,
-                'panel_overrides' => [],
-            ],
+            'prices' => ['self_pay_sen' => 150],
         ])->assertRedirect(route('medicines.index'));
 
         $this->assertSame('Synthetic updated category', $medicine->fresh()->category);
@@ -278,7 +272,7 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
         }
     }
 
-    public function test_catalogue_dropdown_options_and_panels_are_persisted_and_authorised(): void
+    public function test_catalogue_dropdown_options_are_persisted_and_authorised(): void
     {
         $director = $this->actor('director');
         $this->actingAs($director);
@@ -290,21 +284,6 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
             'type' => 'medicine_category',
             'query' => 'respiratory',
         ]))->assertOk()->assertJsonPath('data.0.label', 'Synthetic respiratory category');
-
-        $this->postJson(route('catalogue-panels.store'), [
-            'code' => 'SYNTH-INLINE-PANEL',
-            'name' => 'Synthetic Inline Panel',
-        ])->assertCreated()->assertJsonPath('data.name', 'Synthetic Inline Panel');
-        $this->assertDatabaseHas('panels', [
-            'organisation_id' => $director->organisation_id,
-            'code' => 'SYNTH-INLINE-PANEL',
-            'name' => 'Synthetic Inline Panel',
-            'is_active' => true,
-        ]);
-        $this->assertDatabaseHas('audit_logs', [
-            'event' => 'panel.created',
-            'actor_user_id' => $director->id,
-        ]);
 
         $this->actingAs($director);
         $this->postJson(route('catalogue-setup.suppliers.store'), [
@@ -337,10 +316,6 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
 
         $technicalAdmin = $this->actor('technical_admin');
         $this->actingAs($technicalAdmin);
-        $this->postJson(route('catalogue-panels.store'), [
-            'code' => 'DENIED-PANEL',
-            'name' => 'Synthetic Denied Panel',
-        ])->assertForbidden();
         $this->postJson(route('catalogue-setup.suppliers.store'), [
             'code' => 'DENIED-SUPPLIER',
             'name' => 'Synthetic Denied Supplier',

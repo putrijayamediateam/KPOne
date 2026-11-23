@@ -6,6 +6,7 @@ const props = defineProps<{
     status: string;
     label?: string;
     tone?: 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
+    dot?: boolean;
 }>();
 
 const classes = computed(() => {
@@ -27,6 +28,11 @@ const classes = computed(() => {
         class="inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap"
         :class="classes"
     >
+        <span
+            v-if="dot"
+            aria-hidden="true"
+            class="mr-1.5 size-1.5 rounded-full bg-current"
+        />
         {{ label ?? formatStatusLabel(status) }}
     </span>
 </template>

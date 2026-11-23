@@ -23,15 +23,18 @@ test('the page compiles', () => {
     );
 });
 
-test('one button with three states; only Clock out asks for confirmation', () => {
-    assert.match(template, /data-test="clock-in"/);
-    assert.match(template, /data-test="clock-out"/);
+test('Clock in and Clock out are links to Me; Done for today stays', () => {
+    assert.match(
+        template,
+        /<Link :href="clockOnMe" data-test="clock-in-on-me"\s*>Clock in on Me/,
+    );
+    assert.match(
+        template,
+        /<Link :href="clockOnMe" data-test="clock-out-on-me"\s*>Clock out on Me/,
+    );
+    assert.match(source, /const clockOnMe = '\/spaces\/me';/);
     assert.match(template, /data-test="done-today"/);
-    assert.match(template, /'Clocking in…'/);
-    assert.match(template, /title="Clock out now\?"/);
-    assert.match(template, /@click="clock\.confirmOut = true"/);
-    assert.match(template, /@click="press\('in'\)"/);
-    assert.match(template, /min-h-14/);
+    assert.doesNotMatch(template, /press\(|confirmOut|Clock out now\?/);
 });
 
 test('the ticking server time is never in a live region; one polite region announces state changes', () => {
@@ -58,8 +61,9 @@ test('the privacy line says the time and a photo are recorded', () => {
         template,
         /KPOne records the time and a photo of you at each press\.\s+HR can see it\. Kept for 7 years \(to confirm\)\./,
     );
-    // The camera lives in the shared ClockPhotoDialog; this page only opens it, and never takes a file upload.
-    assert.match(source, /useClockPhoto\(\)/);
+    // One Clock in: the camera lives in the shared ClockPhotoDialog and opens from Me; this page never opens it and
+    // never takes a file upload.
+    assert.doesNotMatch(source, /useClockPhoto\(\)/);
     assert.doesNotMatch(source, /getUserMedia|capture=/);
 });
 
@@ -90,12 +94,15 @@ test('review has a summary line, outline Approve and Reject, and the primary act
     assert.match(template, /'Approve correction'/);
 });
 
-test('My roster links to attendance with an outline button, never a second primary', () => {
+test('My roster links to Me with an outline button, never a second primary', () => {
     assert.match(
         roster,
         /v-if="roster\.my\.canClock"\s+as-child\s+variant="outline"/,
     );
-    assert.match(roster, /href="\/hr\/attendance"/);
+    assert.match(
+        roster,
+        /href="\/spaces\/me" data-test="roster-clock-link"\s*>Clock in on Me/,
+    );
 });
 
 test('a clock refusal is read once and the branch hint is muted text only before clocking in', () => {

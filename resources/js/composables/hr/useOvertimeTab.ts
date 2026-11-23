@@ -7,8 +7,7 @@ import type {
 } from '@/components/hr/attendance/types';
 
 /**
- * Moved unchanged out of `components/hr/attendance/OvertimeTab.vue` so Classic and Version 2 share it; the Classic template
- * did not change.
+ * The overtime tab's state and actions, moved out of `components/hr/attendance/OvertimeTab.vue`.
  */
 export function useOvertimeTab(props: {
     data: OvertimeTabData;
