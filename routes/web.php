@@ -79,6 +79,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
+use App\Http\Controllers\MedicineSalesController;
 use App\Http\Controllers\MyDayController;
 use App\Http\Controllers\MyRoutineController;
 use App\Http\Controllers\OpeningImportController;
@@ -993,6 +994,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/controlled-register/{sku}/checks/{check}/reason', [ControlledRegisterController::class, 'addReason'])->whereUuid('sku')->whereUuid('check')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.reason');
         Route::get('inventory/stock-value/journal', [StockValuationController::class, 'journal'])->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:10,1'])->name('inventory.stock-value.journal');
         Route::get('inventory/stock-value', StockValuationController::class)->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.stock-value');
+        Route::get('inventory/medicine-sales', MedicineSalesController::class)->middleware(['permission:inventory.medicine_sales.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.medicine-sales');
         Route::get('inventory/recalls', [InventoryRecallController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.recalls');
         Route::get('inventory/recalls/batches', [InventoryRecallController::class, 'batches'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.recalls.batches');
         Route::post('inventory/recalls', [InventoryRecallController::class, 'store'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.store');
