@@ -125,9 +125,9 @@ const submit = (receipt: DayCloseContext['lockedReceipts'][number]) => {
                     @submit.prevent="submit(receipt)"
                 >
                     <p class="text-muted-foreground sm:col-span-2">
-                        The receipt is reversed and the money given back in one
-                        step. Someone else must then approve the refund. This
-                        day's cash figure does not change.
+                        Reverses the receipt and records the money given back.
+                        Someone else approves the refund. This day's cash figure
+                        does not change.
                     </p>
                     <label class="grid gap-1 sm:col-span-2"
                         >Why is it reversed?<textarea
