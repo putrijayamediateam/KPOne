@@ -30,6 +30,7 @@ use App\Http\Controllers\ClinicianCredentialController;
 use App\Http\Controllers\ClinicInsightsController;
 use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
+use App\Http\Controllers\ConnectedAppsController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
 use App\Http\Controllers\ConsultationReviewController;
@@ -1343,6 +1344,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('agents/daily-summary', [AgentDailySummaryController::class, 'index'])
             ->middleware(['permission:ai_daily_summary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('agents.daily-summary');
+
+        Route::middleware(['permission:ai_connector.use.organisation', 'sensitive.no-store'])->prefix('agents/connected-apps')->group(function () {
+            Route::get('/', [ConnectedAppsController::class, 'index'])->name('agents.connected-apps');
+            Route::delete('{client}', [ConnectedAppsController::class, 'destroy'])->whereUuid('client')->middleware('throttle:10,1')->name('agents.connected-apps.disconnect');
+        });
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
             Route::get('/', [AgentRegistryController::class, 'index'])->name('agents.index');

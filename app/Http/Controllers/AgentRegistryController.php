@@ -30,6 +30,7 @@ class AgentRegistryController extends Controller
 
         return Inertia::render('Agents/Index', [
             'canManage' => $request->user()->can(AgentPermissions::MANAGE),
+            'canConnect' => $request->user()->can('ai_connector.use.organisation'),
             'agents' => $agents->map(fn (AiAgent $agent): array => [
                 'id' => $agent->id,
                 'code' => $agent->code,
