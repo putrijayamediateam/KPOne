@@ -25,6 +25,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
     ].map((match) => match[1]);
     // DD-75: the same 16 links, grouped, once for lg and once for the phone disclosures, in the same order; Stock value
     // (Director only) closes Reports and checks in both, as in the new layout (owner decision 2026-11-19).
+    // STK-44 (owner-approved assertion change): Medicine sales (Director and Finance Officer) follows Stock value.
     const grouped = [
         '/inventory/counts',
         '/inventory/writeoffs',
@@ -43,6 +44,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/stock-health',
         '/inventory/readiness',
         '/inventory/stock-value',
+        '/inventory/medicine-sales',
     ];
     assert.deepEqual(links, [...grouped, ...grouped]);
     assert.doesNotMatch(page, /<a\s/);
