@@ -140,9 +140,9 @@ class UnknownDobConfirmationTest extends PatientTestCase
             $actor = $this->assigned($role);
             try {
                 app(PatientAdministrationService::class)->create($actor, $this->input());
-                $this->assertContains($role, ['director', 'ca', 'ca_supervisor']);
+                $this->assertContains($role, ['director', 'ca', 'ca_supervisor', 'medical_assistant']);
             } catch (AuthorizationException $e) {
-                $this->assertNotContains($role, ['director', 'ca', 'ca_supervisor']);
+                $this->assertNotContains($role, ['director', 'ca', 'ca_supervisor', 'medical_assistant']);
             }
         }
         $actor = $this->assigned();

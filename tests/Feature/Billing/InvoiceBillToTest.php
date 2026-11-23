@@ -118,7 +118,7 @@ class InvoiceBillToTest extends BillingTestCase
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
-            $view = in_array($role, ['ca', 'ca_supervisor', 'finance_officer', 'director', 'panel_officer'], true);
+            $view = in_array($role, ['ca', 'ca_supervisor', 'medical_assistant', 'finance_officer', 'director', 'panel_officer'], true);
             $manage = $view && $role !== 'panel_officer';
             $this->assertSame($view, in_array('billing.bill_to.view.branch', $permissions, true));
             $this->assertSame($manage, in_array('billing.bill_to.manage.branch', $permissions, true));

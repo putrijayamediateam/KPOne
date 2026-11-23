@@ -63,6 +63,21 @@ class TriageChipsAndVitalsTest extends TriageTestCase
         $this->assertNull($this->zoneFor($otherDoctor, $visit));
     }
 
+    /** MA-1a (owner decision 2, 23 Nov 2026): the Medical Assistant records triage, so it sees the zone as the CA does. */
+    public function test_the_medical_assistant_sees_the_zone_and_records_triage_like_the_ca(): void
+    {
+        $this->approvedGuideline();
+        [$ca, $visit] = $this->waitingFixture();
+        $assistant = $this->actor('medical_assistant');
+
+        $this->assertSame(['zone' => null, 'triaged' => false], $this->zoneFor($assistant, $visit));
+
+        $this->triage($assistant, $visit, ['pulse_bpm' => 130, 'chosen_zone' => 'yellow']);
+        $yellow = ['zone' => 'yellow', 'triaged' => true];
+        $this->assertSame($yellow, $this->zoneFor($assistant, $visit));
+        $this->assertSame($yellow, $this->zoneFor($ca, $visit), 'a triage the MA recorded shows to the CA too');
+    }
+
     public function test_an_otc_visit_and_a_triaged_row_that_left_waiting_carry_no_warning(): void
     {
         [$ca] = $this->waitingFixture();

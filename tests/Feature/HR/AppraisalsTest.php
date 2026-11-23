@@ -40,7 +40,7 @@ class AppraisalsTest extends VisitTestCase
     {
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
         $this->assertSame(['director', 'hr_manager'], $holders(AppraisalPermissions::MANAGE));
-        $this->assertCount(14, $holders(AppraisalPermissions::VIEW_OWN));
+        $this->assertCount(15, $holders(AppraisalPermissions::VIEW_OWN));
         $this->assertNotContains('queue_display', $holders(AppraisalPermissions::VIEW_OWN));
         foreach (array_keys(AppraisalPermissions::grants()) as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));

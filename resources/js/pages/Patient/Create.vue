@@ -134,11 +134,11 @@ const submit = () => {
             </div>
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">
-                    Create Patient Master record
+                    Create patient
                 </h1>
                 <p class="text-sm text-muted-foreground">
-                    Organisation-level canonical identity. This is not a
-                    registration or encounter.
+                    Add a patient to the clinic's patient list. This does not
+                    register a visit.
                 </p>
             </div>
         </div>

@@ -123,6 +123,14 @@ const expected = {
     store_admin: ['Insights', 'Inventory', 'Clinic management'],
     // HR-15a: a locum lands on My roster; the hub holds their one HR link.
     locum: ['Clinic management'],
+    // MA-1a (owner, 23 Nov 2026): the Medical Assistant has the CA's functions, so the CA's list.
+    medical_assistant: [
+        'Registration',
+        'Consultation',
+        'Inventory',
+        'Patient Records',
+        'Clinic management',
+    ],
 };
 
 test('every standard role gets exactly its approved daily list in both page contexts', () => {
