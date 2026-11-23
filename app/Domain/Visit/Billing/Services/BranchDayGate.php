@@ -110,8 +110,8 @@ final class BranchDayGate
             'message' => $paused ? ($this->paused($branch, $today) ? self::PAUSED : self::PAUSED_EARLIER) : self::LOCKED,
             'lockedReceipts' => $locked,
             'canRefundLocked' => $canRefund && $locked !== [] && ! $paused,
-            'methods' => $canRefund ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()
-                ->map(fn ($m): array => ['id' => (int) $m->id, 'name' => (string) $m->name])->all() : [],
+            'methods' => $canRefund ? array_values(PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()
+                ->map(fn ($m): array => ['id' => (int) $m->id, 'name' => (string) $m->name])->all()) : [],
             'reasons' => PaymentRefund::REASONS,
         ];
     }
