@@ -3,6 +3,7 @@
 namespace Tests\Feature\Approvals;
 
 use App\Domain\Approvals\ApprovalInbox;
+use App\Domain\Approvals\ApprovalSource;
 use App\Domain\Approvals\ApprovalSources;
 use App\Domain\Approvals\Sources\PanelPriceChangeSource;
 use App\Domain\Approvals\Sources\PatientMergeSource;
@@ -108,7 +109,8 @@ final class ApprovalInboxTest extends ClinicalTestCase
         $this->proposePrice();
         $doctor = $this->actor('resident_doctor');
         $this->selectBranch($doctor);
-        $this->assertSame([], app(ApprovalSources::class)->visibleTo($doctor, $this->branch));
+        $this->assertSame(['sops_to_read', 'memos_to_read'], array_map(fn ($s) => $s->key(), app(ApprovalSources::class)->visibleTo($doctor, $this->branch))); // APPR-1d step 0, owner approved 2026-11-22
+        $this->assertSame([], array_values(array_filter(app(ApprovalSources::class)->visibleTo($doctor, $this->branch), fn ($s) => $s->kind() === ApprovalSource::APPROVAL)));
         $this->actingAs($doctor)->getJson(route('approvals.count'))->assertOk()->assertJson(['showNumber' => false, 'total' => 0, 'areas' => []]);
     }
 
