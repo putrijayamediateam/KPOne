@@ -115,7 +115,9 @@ const moneyCards = computed(() => [
     { label: 'Medicine sales', value: money(s.value.salesSen) },
     {
         label: 'Cost of medicines sold',
-        value: withEstimate(money(s.value.costSen), s.value.estimate),
+        value: money(s.value.costSen),
+        // On a narrow card "(estimate)" sits on its own line under the figure, so it never pushes the card wider.
+        note: s.value.estimate ? '(estimate)' : null,
     },
     { label: 'Gross profit', value: money(s.value.profitSen) },
     { label: 'Margin', value: percent(s.value.marginPercent) },
@@ -252,9 +254,16 @@ const countCards = computed(() => [
                         {{ card.label }}
                     </p>
                     <p
-                        class="mt-1 text-lg font-semibold tabular-nums sm:text-xl"
+                        class="mt-1 text-lg font-semibold break-words tabular-nums sm:text-xl"
                     >
                         {{ card.value }}
+                    </p>
+                    <p
+                        v-if="'note' in card && card.note"
+                        class="text-xs text-muted-foreground"
+                        data-testid="sales-card-note"
+                    >
+                        {{ card.note }}
                     </p>
                 </li>
             </ul>

@@ -45,6 +45,9 @@ test('STK-44: money and count cards are two groups, two per row on a phone', () 
     }
 
     assert.ok(ui.includes('left out of profit and margin.'));
+    // On the cost card "(estimate)" is its own line, so a narrow card never grows wider than the screen.
+    assert.match(ui, /note: s\.value\.estimate \? '\(estimate\)' : null/);
+    assert.ok(ui.includes('data-testid="sales-card-note"'));
     assert.match(ui, /size-2 shrink-0 rounded-full bg-warning/);
 });
 
