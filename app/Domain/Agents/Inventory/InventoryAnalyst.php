@@ -72,7 +72,14 @@ final class InventoryAnalyst
             }
         }
         if (in_array('transfer', $checks, true)) {
-            foreach (InventoryRules::transfers($read('inventory.branch_balances'), $branch->code, $outgoing) as $payload) {
+            $balances = $read('inventory.branch_balances');
+            foreach (InventoryRules::transfers($balances, $branch->code, $outgoing) as $payload) {
+                // A transfer needs a real location at each end; without one nothing is suggested and restock covers the shortage.
+                $locations = InventoryRules::transferLocations($balances, $payload);
+                if ($locations === null) {
+                    continue;
+                }
+                $payload += $locations;
                 $identity = [$payload['sku_public_id'], $payload['from_branch_code']];
                 $planned[] = ['transfer', self::TRANSFER, $payload, $identity];
                 if (! $this->exists($run->organisation_id, $this->key('transfer', $branch, $date, $identity))) {

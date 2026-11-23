@@ -2,6 +2,7 @@
 // HR-4a /hr/records/{worker}: one staff file with Employment, Personal and Bank tabs (Documents and Checklist arrive with
 // HR-4b). Sensitive values arrive masked; only Show (audited) releases one. HR-PLAN 11.2, 11.3 and 11.6.
 import { Head, Link } from '@inertiajs/vue3';
+import WorkPermitWarnings from '@/components/hr/credentials/WorkPermitWarnings.vue';
 import ChecklistTab from '@/components/hr/records/ChecklistTab.vue';
 import DocumentList from '@/components/hr/records/DocumentList.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
@@ -104,6 +105,10 @@ const {
                 />
             </div>
             <SyntheticNote />
+            <WorkPermitWarnings
+                :items="file.workPermits.map((line) => ({ line }))"
+                heading-id="file-permits-title"
+            />
             <p
                 v-if="file.manageRefusal"
                 class="text-sm text-muted-foreground"

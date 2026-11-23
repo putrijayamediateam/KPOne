@@ -191,6 +191,23 @@ class DemoSetupSeederTest extends TestCase
         $this->assertSame(1, DB::table('business_detail_assets')->count());
     }
 
+    public function test_it_adds_the_starter_visit_reasons_once_through_the_audited_service(): void
+    {
+        $this->seed(KPOneDemoSetupSeeder::class);
+        $this->seed(KPOneDemoSetupSeeder::class);
+
+        $ca = User::query()->where('email', 'demo.ca@kpone.test')->firstOrFail();
+        $reasons = DB::table('visit_reason_catalogue_items')->whereIn('name', KPOneDemoSetupSeeder::VISIT_REASONS)->get();
+
+        $this->assertCount(count(KPOneDemoSetupSeeder::VISIT_REASONS), $reasons);
+        foreach ($reasons as $reason) {
+            $this->assertTrue((bool) $reason->is_active, $reason->name);
+            $this->assertSame($ca->id, (int) $reason->created_by_user_id, $reason->name);
+        }
+        $this->assertSame(count(KPOneDemoSetupSeeder::VISIT_REASONS), DB::table('audit_logs')
+            ->where('event', 'visit_reason.created')->where('actor_user_id', $ca->id)->count());
+    }
+
     public function test_running_it_twice_duplicates_nothing(): void
     {
         $this->seed(KPOneDemoSetupSeeder::class);

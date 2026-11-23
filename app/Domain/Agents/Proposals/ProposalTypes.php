@@ -32,6 +32,7 @@ final class ProposalTypes
                 'sku_public_id' => self::UUID, 'from_branch_code' => ['required', 'string', 'max:40'], 'to_branch_code' => ['required', 'string', 'max:40', 'different:from_branch_code'],
                 'quantity' => self::QUANTITY, 'from_current_quantity' => self::QUANTITY, 'from_reorder_level' => self::QUANTITY,
                 'to_current_quantity' => self::QUANTITY, 'to_reorder_level' => self::QUANTITY,
+                'source_location_public_id' => self::UUID, 'destination_location_public_id' => self::UUID,
             ]],
             'inventory.slow_moving' => ['label' => 'Slow-moving item', 'agent' => 'inventory_analyst', 'permission' => $decide, 'rules' => [
                 'sku_public_id' => self::UUID, 'location_public_id' => self::UUID, 'quantity' => self::QUANTITY,
@@ -39,6 +40,25 @@ final class ProposalTypes
                 'suggested_action' => ['required', 'in:stop_reordering,review'],
             ]],
         ];
+    }
+
+    /**
+     * The fields an approver may change when approving a suggestion that prepares work, or null when the type never prepares
+     * work (decision only). Every field is optional; a changed quantity may only go down (checked by ProposalService).
+     *
+     * @return array<string, list<string>>|null
+     */
+    public static function editRules(string $type): ?array
+    {
+        return match ($type) {
+            'inventory.restock_suggestion' => [],
+            'inventory.transfer_suggestion' => [
+                'quantity' => ['nullable', 'string', self::QUANTITY[2]],
+                'source_location_public_id' => ['nullable', 'uuid'],
+                'destination_location_public_id' => ['nullable', 'uuid'],
+            ],
+            default => null,
+        };
     }
 
     /** @return array{label: string, agent: string, permission: string, rules: array<string, list<string>>} */

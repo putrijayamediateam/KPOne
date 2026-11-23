@@ -37,12 +37,39 @@ class TransactionalActorAuthority
         DB::table('model_has_permissions')->where('model_id', $user->id)->where('model_type', $user->getMorphClass())->orderBy('permission_id')->lockForUpdate()->get();
         $user->load(['roles.permissions', 'permissions']);
         $assignments = $profile ? StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->orderBy('id')->lockForUpdate()->get() : collect();
-        $date = now()->setTimezone($branch->timezone)->toDateString();
-        $assigned = $assignments->contains(fn ($a): bool => $a->branch_id === $branch->id && $a->valid_from->toDateString() <= $date && ($a->valid_until === null || $a->valid_until->toDateString() >= $date));
+        $assigned = self::assignedToday($assignments, $branch);
         if (! $user->is_active || ! $profile || ! $assigned || ! $user->can($permission)) {
             throw new AuthorizationException('You may not perform this operation.');
         }
 
         return $user;
+    }
+
+    /**
+     * BIL-35: the same rule as lock(), read only and without row locks, for deciding whether to offer a link to a page
+     * that will call lock(). It never authorises a write; lock() stays the authority.
+     */
+    public function wouldAllow(User $actor, Branch $branch, string $permission): bool
+    {
+        if (! $actor->is_active || $actor->organisation_id !== $branch->organisation_id || ! $actor->can($permission)) {
+            return false;
+        }
+        $profile = StaffProfile::query()->where('user_id', $actor->id)->first();
+
+        return $profile !== null
+            && self::assignedToday(StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->get(), $branch);
+    }
+
+    /** @param  iterable<StaffBranchAssignment>  $assignments */
+    private static function assignedToday(iterable $assignments, Branch $branch): bool
+    {
+        $date = now()->setTimezone($branch->timezone)->toDateString();
+        foreach ($assignments as $a) {
+            if ($a->branch_id === $branch->id && $a->valid_from->toDateString() <= $date && ($a->valid_until === null || $a->valid_until->toDateString() >= $date)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

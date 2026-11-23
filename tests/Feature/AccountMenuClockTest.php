@@ -26,11 +26,11 @@ class AccountMenuClockTest extends VisitTestCase
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('workspace.accountMenu.clock', true)
-            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['My space', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
+            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['My day', 'Main menu', 'Me', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
 
         // The waiting-room TV account gets no own pages and no clock.
         $tv = $this->actor('queue_display');
-        $this->assertSame(['links' => [], 'clock' => false], app(AccountMenuLinks::class)->for($tv));
+        $this->assertSame(['links' => [], 'clock' => false, 'spaces' => false], app(AccountMenuLinks::class)->for($tv));
         $this->actingAs($tv)->get('/spaces/me')->assertForbidden();
     }
 

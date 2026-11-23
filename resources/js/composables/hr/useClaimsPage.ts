@@ -10,10 +10,8 @@ import type {
 import { myr } from '@/types/billing';
 
 /**
- * HR staff claims page state (HR-6): every request, lock version and idempotency key of /hr/claims. Shared by the
- * Classic page (`pages/HR/Claims.vue`) and Version 2 (`pages/HR/V2/Claims.vue`), so both send identical requests.
- * Moved out of the Classic page unchanged; the Classic template did not change. KPOne pays nothing: Pay records that
- * someone paid outside KPOne.
+ * HR staff claims page state (HR-6): every request, lock version and idempotency key of /hr/claims
+ * (`pages/HR/Claims.vue`). KPOne pays nothing: Pay records that someone paid outside KPOne.
  */
 export type Tab = 'my' | 'approvals' | 'pay' | 'monthly' | 'settings';
 export type Category = {
@@ -224,7 +222,7 @@ export function useClaimsPage(props: ClaimsPageProps) {
             },
         );
     };
-    // What the Record payment dialog still needs, in words ("" when it is ready): shared by Classic and Version 2.
+    // What the Record payment dialog still needs, in words ("" when it is ready).
     const payMissing = computed(() => {
         if (payment.method === '') {
             return 'Pick how it was paid to continue.';

@@ -24,6 +24,25 @@ type ProposalRow = {
     lockVersion: number;
     lines: { label: string; value: string }[];
     canDecide: boolean;
+    // Approval that can also create the stock request or purchase request (null when approval is a decision only).
+    prepare?: PrepareOffer | null;
+    prepared?: { kind: string; label: string; text: string } | null;
+};
+
+type Location = { id: string; name: string };
+type PrepareOffer = {
+    canPrepare: boolean;
+    cannotPrepareReason: string | null;
+    actionLabel: string;
+    recordLabel: string;
+    warning: string | null;
+    edits: {
+        maxQuantity: string;
+        source: string;
+        destination: string;
+        sourceLocations: Location[];
+        destinationLocations: Location[];
+    } | null;
 };
 
 const props = defineProps<{
@@ -53,11 +72,39 @@ const reason = ref('');
 const processing = ref(false);
 const error = ref('');
 const needsReason = computed(() => deciding.value?.action === 'reject');
+// Approving can also create the stock request or purchase request (only when the server offers it). The server checks
+// every value again.
+const mode = ref<'prepare' | 'decision_only'>('decision_only');
+const editQuantity = ref('');
+const editSource = ref('');
+const editDestination = ref('');
+const plainQuantity = (value: string) =>
+    value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
 const open = (proposal: ProposalRow, action: 'approve' | 'reject') => {
     deciding.value = { proposal, action };
     reason.value = '';
     error.value = '';
+    mode.value =
+        action === 'approve' && proposal.prepare?.canPrepare
+            ? 'prepare'
+            : 'decision_only';
+    editQuantity.value = plainQuantity(
+        proposal.prepare?.edits?.maxQuantity ?? '',
+    );
+    editSource.value = proposal.prepare?.edits?.source ?? '';
+    editDestination.value = proposal.prepare?.edits?.destination ?? '';
 };
+const offer = computed(() =>
+    deciding.value?.action === 'approve'
+        ? (deciding.value.proposal.prepare ?? null)
+        : null,
+);
+const preparing = computed(
+    () => offer.value !== null && mode.value === 'prepare',
+);
+const anyPrepare = computed(() =>
+    props.proposals.some((row) => row.prepare != null || row.prepared != null),
+);
 const close = (value: boolean) => {
     if (!value) {
         deciding.value = null;
@@ -76,12 +123,39 @@ const submit = () => {
         return;
     }
 
+    const extra: Record<string, unknown> = {};
+
+    if (offer.value) {
+        extra.mode = mode.value;
+
+        if (mode.value === 'prepare' && offer.value.edits) {
+            const wanted = Number(editQuantity.value);
+
+            if (
+                !/^\d{1,12}(\.\d{1,3})?$/.test(editQuantity.value.trim()) ||
+                wanted <= 0 ||
+                wanted > Number(offer.value.edits.maxQuantity)
+            ) {
+                error.value = `Enter a quantity above 0, up to ${plainQuantity(offer.value.edits.maxQuantity)}. You can only lower it.`;
+
+                return;
+            }
+
+            extra.edits = {
+                quantity: editQuantity.value.trim(),
+                source_location_public_id: editSource.value,
+                destination_location_public_id: editDestination.value,
+            };
+        }
+    }
+
     processing.value = true;
     router.post(
         `/agents/inbox/${current.proposal.id}/${current.action}?tab=${props.tab}&page=${props.pagination.page}`,
         {
             lock_version: current.proposal.lockVersion,
             reason: reason.value.trim() || null,
+            ...extra,
         },
         {
             preserveScroll: true,
@@ -98,6 +172,9 @@ const submit = () => {
                 }
 
                 error.value =
+                    errors.mode ??
+                    errors.quantity ??
+                    errors.edits ??
                     errors.reason ??
                     errors.lock_version ??
                     errors.status ??
@@ -122,10 +199,23 @@ const pageLink = (page: number) =>
             title="Approval inbox"
             :description="`Suggestions from AI agents for ${branch.label}.`"
         />
-        <p class="text-sm text-muted-foreground" data-test="inbox-notice">
+        <p
+            v-if="!anyPrepare"
+            class="text-sm text-muted-foreground"
+            data-test="inbox-notice"
+        >
             AI agents suggest; you decide. Approving records your decision only:
             nothing in stock changes. Act on an approved suggestion from the
             Inventory screens.
+        </p>
+        <p
+            v-else
+            class="text-sm text-muted-foreground"
+            data-test="inbox-notice"
+        >
+            AI agents suggest; you decide. Approving records your decision. If
+            you choose, it also creates the stock request or purchase request
+            for you, as you. Nothing is created unless you choose that.
         </p>
 
         <nav
@@ -200,6 +290,13 @@ const pageLink = (page: number) =>
                         · Reason: {{ proposal.reason }}
                     </template>
                 </p>
+                <p
+                    v-if="proposal.prepared"
+                    class="mt-3 text-sm font-medium"
+                    :data-test="`prepared-${proposal.id}`"
+                >
+                    {{ proposal.prepared.text }}
+                </p>
                 <div
                     v-if="proposal.canDecide"
                     class="mt-3 flex flex-wrap gap-2"
@@ -257,10 +354,16 @@ const pageLink = (page: number) =>
             :description="
                 deciding?.action === 'reject'
                     ? 'Say briefly why. Do not enter patient details.'
-                    : 'Approving records your decision only. Nothing in stock changes.'
+                    : preparing
+                      ? `Approving records your decision and creates the ${offer?.recordLabel} as you. The ${offer?.recordLabel} still needs its own approval.`
+                      : 'Approving records your decision only. Nothing in stock changes.'
             "
             :confirm-label="
-                deciding?.action === 'reject' ? 'Reject' : 'Approve'
+                deciding?.action === 'reject'
+                    ? 'Reject'
+                    : preparing
+                      ? (offer?.actionLabel ?? 'Approve')
+                      : 'Approve'
             "
             :processing="processing"
             :destructive="deciding?.action === 'reject'"
@@ -268,6 +371,100 @@ const pageLink = (page: number) =>
             @update:open="close"
             @confirm="submit"
         >
+            <fieldset
+                v-if="offer"
+                class="mb-3 grid gap-2 text-sm"
+                data-test="prepare-choice"
+            >
+                <legend class="mb-1 font-medium">
+                    How do you want to approve it?
+                </legend>
+                <label class="flex items-center gap-2">
+                    <input
+                        v-model="mode"
+                        type="radio"
+                        name="mode"
+                        value="prepare"
+                        :disabled="!offer.canPrepare"
+                    />
+                    {{ offer.actionLabel }}
+                </label>
+                <label class="flex items-center gap-2">
+                    <input
+                        v-model="mode"
+                        type="radio"
+                        name="mode"
+                        value="decision_only"
+                    />
+                    Approve (decision only)
+                </label>
+                <p
+                    v-if="!offer.canPrepare && offer.cannotPrepareReason"
+                    class="text-xs text-muted-foreground"
+                    data-test="cannot-prepare"
+                >
+                    {{ offer.cannotPrepareReason }}
+                </p>
+                <template v-if="preparing">
+                    <p
+                        v-if="offer.warning"
+                        class="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs"
+                        data-test="prepare-warning"
+                    >
+                        {{ offer.warning }}
+                    </p>
+                    <template v-if="offer.edits">
+                        <label class="grid gap-1">
+                            Quantity to send
+                            <input
+                                v-model="editQuantity"
+                                type="text"
+                                inputmode="decimal"
+                                autocomplete="off"
+                                class="h-9 rounded-md border bg-background px-2"
+                                data-test="edit-quantity"
+                            />
+                            <span class="text-xs text-muted-foreground">
+                                Up to
+                                {{ plainQuantity(offer.edits.maxQuantity) }}.
+                                You can only lower it.
+                            </span>
+                        </label>
+                        <label class="grid gap-1">
+                            Sending location
+                            <select
+                                v-model="editSource"
+                                class="h-9 rounded-md border bg-background px-2"
+                            >
+                                <option
+                                    v-for="location in offer.edits
+                                        .sourceLocations"
+                                    :key="location.id"
+                                    :value="location.id"
+                                >
+                                    {{ location.name }}
+                                </option>
+                            </select>
+                        </label>
+                        <label class="grid gap-1">
+                            Receiving location
+                            <select
+                                v-model="editDestination"
+                                class="h-9 rounded-md border bg-background px-2"
+                            >
+                                <option
+                                    v-for="location in offer.edits
+                                        .destinationLocations"
+                                    :key="location.id"
+                                    :value="location.id"
+                                >
+                                    {{ location.name }}
+                                </option>
+                            </select>
+                        </label>
+                    </template>
+                </template>
+            </fieldset>
             <label class="grid gap-1 text-sm">
                 {{ needsReason ? 'Reason (required)' : 'Reason (optional)' }}
                 <Textarea

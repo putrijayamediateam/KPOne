@@ -12,11 +12,22 @@ import {
     TriangleAlert,
 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
+import PackQuantityField from '@/components/dispensary/PackQuantityField.vue';
+import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
+import {
+    displayQuantity,
+    packChoiceLabel,
+    packsOnHand,
+    parsePacks,
+    usablePackConversion,
+} from '@/lib/dispensary-packs';
+import type { PackConversion } from '@/lib/dispensary-packs';
 import {
     boxBatchCheck,
     checkScan,
@@ -38,6 +49,7 @@ import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import type { Gs1Read, ScannedSku } from '@/lib/scan';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
+import type { DispensarySupervisorCheck } from '@/types';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
@@ -73,6 +85,10 @@ type Item = {
     unit: string;
     quantityOrdered: string;
     quantityDispensed: string | null;
+    // DSP-24: whole packs on a saved line ("2 bottles (120 ml)"), and the SKU's current checked conversion.
+    packsDispensed?: number | null;
+    packText?: string | null;
+    packConversion?: PackConversion | null;
     status: 'pending' | 'dispensed' | 'partial' | 'not_dispensed';
     reason: string | null;
     dosage: string;
@@ -125,7 +141,7 @@ type Page = {
     canPrintLabels?: boolean;
     labelLimits?: Record<string, number>;
     publicId: string;
-    status: 'pending' | 'dispensing';
+    status: 'pending' | 'dispensing' | 'awaiting_doctor_check';
     lockVersion: number;
     receivedAt: string;
     patient: { patientNumber: string; name: string };
@@ -156,6 +172,23 @@ type Page = {
         canCall: boolean;
         rooms: Array<{ id: number; name: string }>;
     };
+    // DSP-23: null on an OTC case.
+    doctorCheck?: {
+        required: boolean;
+        waiting: boolean;
+        sentAt: string | null;
+        sentBy: string | null;
+        sentBack: {
+            reason: string;
+            note: string | null;
+            by: string | null;
+            at: string | null;
+            checkedAs: 'doctor' | 'supervisor';
+        } | null;
+        canCheck: boolean;
+        preparedByYou: boolean;
+        supervisorCheck: DispensarySupervisorCheck | null;
+    } | null;
 };
 type Medicine = {
     publicId: string;
@@ -164,11 +197,15 @@ type Medicine = {
     strength: string | null;
     unit: string;
     sku: { publicId: string; unit: string };
+    packConversion?: PackConversion | null;
     availability: Availability[];
     allergyMatches?: AllergyMatch[];
 };
 type LineForm = {
     quantity: string;
+    // DSP-24: the packs typed when the CA chose "Bottles"; the quantity then holds the matching ml.
+    packs: string;
+    packMode: 'base' | 'packs';
     dosage: string;
     frequency: string;
     duration: string;
@@ -188,6 +225,8 @@ const branchId = () => page.props.branchContext?.active?.id ?? 0;
 // A line the CA has not saved yet shows the doctor's quantity; a saved line shows the CA's.
 const formFor = (item: Item): LineForm => ({
     quantity: item.quantityDispensed ?? item.quantityOrdered,
+    packs: item.packsDispensed ? String(item.packsDispensed) : '',
+    packMode: item.packsDispensed ? 'packs' : 'base',
     dosage: item.dosage ?? '',
     frequency: item.frequency ?? '',
     duration: item.duration ?? '',
@@ -231,6 +270,7 @@ const isDirty = (item: Item): boolean => {
         (
             [
                 'quantity',
+                'packs',
                 'dosage',
                 'frequency',
                 'duration',
@@ -707,6 +747,27 @@ const allocationFor = (
               },
           ]
         : [];
+// DSP-24: with "Bottles" chosen, the packs and the conversion version the CA saw go with the ml; the server refuses a
+// save when the bottle size changed meanwhile.
+const packPayload = (
+    form: LineForm,
+    conversion: PackConversion | null | undefined,
+    unit: string,
+) => {
+    const usable = usablePackConversion(conversion, unit);
+    const packs = parsePacks(form.packs);
+
+    return form.packMode === 'packs' && usable && packs !== null
+        ? {
+              packs,
+              pack_conversion_public_id: usable.publicId,
+              pack_conversion_version: usable.version,
+          }
+        : {};
+};
+// DSP-24 (Daniel): Save and Add stay off while "Bottles" holds something other than 1 to 99 whole bottles.
+const packsInvalid = (form: LineForm | undefined): boolean =>
+    form?.packMode === 'packs' && parsePacks(form.packs) === null;
 const linePayload = (form: LineForm) => ({
     quantity_dispensed: form.quantity,
     dosage: form.dosage,
@@ -727,6 +788,7 @@ const saveItem = (item: Item, done?: () => void) => {
             case_lock_version: props.dispensary.lockVersion,
             item_lock_version: item.lockVersion,
             ...linePayload(form),
+            ...packPayload(form, item.packConversion, item.unit),
             allocations: allocationFor(
                 item.availability[form.availabilityIndex],
                 item.sku?.publicId,
@@ -755,6 +817,20 @@ const saveAll = () => {
 
     if (unticked) {
         actionError.value = `${unticked.name} may match a recorded allergy. Tick "I have checked with the patient/doctor" on that line first.`;
+
+        return;
+    }
+
+    // DSP-24 (Daniel): check every line first, so an invalid bottles number never leaves a partly saved set.
+    const badPacks = unsaved.value.find((item) =>
+        packsInvalid(forms[item.publicId]),
+    );
+
+    if (badPacks) {
+        const packs = packChoiceLabel(
+            badPacks.packConversion?.packUnit ?? 'pack',
+        ).toLowerCase();
+        actionError.value = `${badPacks.name}: enter whole ${packs}, 1 to 99, before saving. Nothing was saved.`;
 
         return;
     }
@@ -834,19 +910,29 @@ const stockAmount = (quantity: string, unit: string): string => {
 
     return `${text} ${unit}`.trim();
 };
-const batchOptionText = (stock: Availability, unit: string): string =>
-    `${stock.held ? `Held: ${formatInventoryReason(stock.holdReason)} · ` : ''}${stockAmount(stock.quantity, unit)} on hand · exp ${formatDate(stock.expiryDate)} · ${stock.batchNumber} · ${stock.locationName}`;
+// DSP-24: "180 ml (3 bottles) on hand" when the stock divides evenly into whole bottles.
+const batchOptionText = (
+    stock: Availability,
+    unit: string,
+    conversion: PackConversion | null = null,
+): string =>
+    `${stock.held ? `Held: ${formatInventoryReason(stock.holdReason)} · ` : ''}${stockAmount(stock.quantity, unit)}${packsOnHand(stock.quantity, conversion)} on hand · exp ${formatDate(stock.expiryDate)} · ${stock.batchNumber} · ${stock.locationName}`;
 const selectedBatchText = (
     stock: Availability | undefined,
     unit: string,
+    conversion: PackConversion | null = null,
 ): string =>
     stock === undefined
         ? 'No batch selected.'
         : stock.held
           ? 'No usable batch: every batch here is on hold.'
-          : `Selected: ${batchOptionText(stock, unit)}`;
+          : conversion
+            ? `Selected: ${batchOptionText(stock, unit, conversion)}`
+            : `Selected: ${batchOptionText(stock, unit)}`;
 const addForm = reactive<LineForm>({
     quantity: '1.000',
+    packs: '',
+    packMode: 'base',
     dosage: '',
     frequency: '',
     duration: '',
@@ -898,6 +984,13 @@ const searchMedicines = async () => {
 const chooseMedicine = (medicine: Medicine) => {
     chosen.value = medicine;
     clearBatchHint('add');
+    addForm.packs = '';
+    addForm.packMode = 'base';
+
+    if (addForm.quantity === '') {
+        addForm.quantity = '1.000';
+    }
+
     addAllergyCheck.value = false;
     addForm.availabilityIndex = Math.max(
         0,
@@ -1058,6 +1151,7 @@ const addMedicine = () => {
             case_lock_version: props.dispensary.lockVersion,
             medicine_public_id: medicine.publicId,
             ...linePayload(addForm),
+            ...packPayload(addForm, medicine.packConversion, medicine.unit),
             allocations: allocationFor(
                 medicine.availability[addForm.availabilityIndex],
                 medicine.sku.publicId,
@@ -1085,6 +1179,8 @@ const addMedicine = () => {
                 searchTerm.value = '';
                 Object.assign(addForm, {
                     quantity: '1.000',
+                    packs: '',
+                    packMode: 'base',
                     dosage: '',
                     frequency: '',
                     duration: '',
@@ -1147,8 +1243,26 @@ const completeBlockedReason = computed(() => {
 
     return '';
 });
+// DSP-23: with the branch's doctor's check on, Complete becomes "Send to doctor for check"; the server reads the
+// switch again under lock and refuses a stale page.
+const checkRequired = computed(
+    () => !isOtc.value && props.dispensary.doctorCheck?.required === true,
+);
+const waitingForCheck = computed(
+    () => props.dispensary.doctorCheck?.waiting === true,
+);
+const sendBackReasonLabels: Record<string, string> = {
+    wrong_medicine: 'Wrong medicine',
+    wrong_quantity: 'Wrong quantity',
+    wrong_batch: 'Wrong batch',
+    label_problem: 'Label problem',
+    other: 'Other',
+};
 const completeCase = () => {
     caseAction('complete');
+};
+const sendForCheck = () => {
+    caseAction('send-for-check', { retry_key: crypto.randomUUID() });
 };
 const changeLabel = (item: Item) =>
     ({
@@ -1204,6 +1318,79 @@ const exceptionStatusLabels: Record<string, string> = {
                 </Button>
             </template>
         </PageHeader>
+
+        <!-- DSP-23, Daniel's note 5: the waiting banner, with the hand-over instruction in a warning box. -->
+        <section
+            v-if="waitingForCheck"
+            class="mb-4 rounded-xl border bg-muted/40 p-4 text-sm"
+            role="status"
+            data-testid="doctor-check-waiting"
+        >
+            <p class="font-medium">
+                Waiting for {{ dispensary.doctor ?? 'the doctor' }}'s check
+                <template v-if="dispensary.doctorCheck?.sentAt">
+                    since {{ dispensary.doctorCheck.sentAt }}</template
+                >
+            </p>
+            <p class="text-xs text-muted-foreground">
+                Sent{{
+                    dispensary.doctorCheck?.sentBy
+                        ? ` by ${dispensary.doctorCheck.sentBy}`
+                        : ''
+                }}. The case can't be changed while it waits. You can still
+                print labels and call the patient.
+            </p>
+            <p
+                class="mt-2 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-warning-strong"
+            >
+                <TriangleAlert
+                    class="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                />
+                Do not hand over the medicine until the doctor has checked it.
+            </p>
+        </section>
+        <!-- DSP-23, Daniel's note 4: the doctor's reason, in a warning box, not red. -->
+        <section
+            v-if="dispensary.doctorCheck?.sentBack"
+            class="mb-4 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-strong"
+            role="status"
+            data-testid="doctor-check-sent-back"
+        >
+            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <div class="min-w-0">
+                <p class="font-medium">
+                    Sent back{{
+                        dispensary.doctorCheck.sentBack.by
+                            ? ` by ${dispensary.doctorCheck.sentBack.by}`
+                            : ''
+                    }}:
+                    {{
+                        sendBackReasonLabels[
+                            dispensary.doctorCheck.sentBack.reason
+                        ] ?? 'Other'
+                    }}
+                </p>
+                <p
+                    v-if="dispensary.doctorCheck.sentBack.note"
+                    class="break-words"
+                >
+                    {{ dispensary.doctorCheck.sentBack.note }}
+                </p>
+                <p class="text-xs">
+                    Correct the case, then send it to the doctor again.
+                </p>
+                <SupervisorCheckNote
+                    v-if="
+                        dispensary.doctorCheck.sentBack.checkedAs ===
+                            'supervisor' &&
+                        dispensary.doctorCheck.supervisorCheck
+                    "
+                    class="mt-2 text-foreground"
+                    :check="dispensary.doctorCheck.supervisorCheck"
+                />
+            </div>
+        </section>
 
         <div
             class="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
@@ -1530,7 +1717,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             >
                                 Doctor ordered
                                 <strong class="text-foreground"
-                                    >{{ item.quantityOrdered }}
+                                    >{{ displayQuantity(item.quantityOrdered) }}
                                     {{ item.unit }}</strong
                                 >
                             </p>
@@ -1604,13 +1791,20 @@ const exceptionStatusLabels: Record<string, string> = {
                                 printed rows. Route is not printed. Over-budget
                                 labels are blocked, never truncated.
                             </p>
-                            <label
-                                >Quantity ({{ item.unit }})<input
-                                    v-model="forms[item.publicId].quantity"
-                                    :class="inputClass"
-                                    inputmode="decimal"
-                                    data-field="quantity"
-                            /></label>
+                            <PackQuantityField
+                                v-model:quantity="forms[item.publicId].quantity"
+                                v-model:packs="forms[item.publicId].packs"
+                                v-model:mode="forms[item.publicId].packMode"
+                                :unit="item.unit"
+                                :conversion="item.packConversion"
+                                :ordered="
+                                    item.source === 'doctor'
+                                        ? item.original.quantity
+                                        : null
+                                "
+                                :input-class="inputClass"
+                                data-field="quantity"
+                            />
                             <label
                                 >Dosage (label max
                                 {{ dispensary.labelLimits?.dosage }}
@@ -1693,6 +1887,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                             batchOptionText(
                                                 stock,
                                                 item.sku?.unit ?? item.unit,
+                                                usablePackConversion(
+                                                    item.packConversion,
+                                                    item.sku?.unit ?? item.unit,
+                                                ),
                                             )
                                         }}
                                     </option>
@@ -1729,6 +1927,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                                 .availabilityIndex
                                         ],
                                         item.sku?.unit ?? item.unit,
+                                        usablePackConversion(
+                                            item.packConversion,
+                                            item.sku?.unit ?? item.unit,
+                                        ),
                                     )
                                 }}
                             </p>
@@ -1796,6 +1998,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     :disabled="
                                         busy ||
                                         needsAllergyCheck(item) ||
+                                        packsInvalid(forms[item.publicId]) ||
                                         (item.status !== 'pending' &&
                                             !isDirty(item) &&
                                             !item.allergyUnconfirmed)
@@ -1824,11 +2027,16 @@ const exceptionStatusLabels: Record<string, string> = {
                             <p>
                                 <span class="text-muted-foreground"
                                     >Quantity</span
-                                ><br />{{
-                                    item.quantityDispensed ??
-                                    item.quantityOrdered
-                                }}
-                                {{ item.unit }}
+                                ><br /><template v-if="item.packText">{{
+                                    item.packText
+                                }}</template
+                                ><template v-else
+                                    >{{
+                                        item.quantityDispensed ??
+                                        item.quantityOrdered
+                                    }}
+                                    {{ item.unit }}</template
+                                >
                             </p>
                             <p>
                                 <span class="text-muted-foreground">Dosage</span
@@ -2047,13 +2255,15 @@ const exceptionStatusLabels: Record<string, string> = {
                         <p class="text-sm font-medium sm:col-span-full">
                             {{ chosen.name }}
                         </p>
-                        <label
-                            >Quantity ({{ chosen.unit }})<input
-                                v-model="addForm.quantity"
-                                :class="inputClass"
-                                inputmode="decimal"
-                                data-field="add-quantity"
-                        /></label>
+                        <PackQuantityField
+                            v-model:quantity="addForm.quantity"
+                            v-model:packs="addForm.packs"
+                            v-model:mode="addForm.packMode"
+                            :unit="chosen.unit"
+                            :conversion="chosen.packConversion"
+                            :input-class="inputClass"
+                            data-field="add-quantity"
+                        />
                         <label
                             >Dosage (label max
                             {{ dispensary.labelLimits?.dosage }}
@@ -2129,6 +2339,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                         batchOptionText(
                                             stock,
                                             chosen.sku?.unit ?? chosen.unit,
+                                            usablePackConversion(
+                                                chosen.packConversion,
+                                                chosen.sku?.unit ?? chosen.unit,
+                                            ),
                                         )
                                     }}
                                 </option>
@@ -2162,6 +2376,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                         addForm.availabilityIndex
                                     ],
                                     chosen.sku?.unit ?? chosen.unit,
+                                    usablePackConversion(
+                                        chosen.packConversion,
+                                        chosen.sku?.unit ?? chosen.unit,
+                                    ),
                                 )
                             }}
                         </p>
@@ -2222,7 +2440,8 @@ const exceptionStatusLabels: Record<string, string> = {
                                     (matchesFor(chosen).length > 0 &&
                                         !addAllergyCheck) ||
                                     !addForm.dosage.trim() ||
-                                    !addForm.frequency.trim()
+                                    !addForm.frequency.trim() ||
+                                    packsInvalid(addForm)
                                 "
                                 data-action="add-medicine"
                                 @click="addMedicine"
@@ -2558,6 +2777,14 @@ const exceptionStatusLabels: Record<string, string> = {
                         @click="callPatient"
                         ><Megaphone class="size-4" />Call patient</Button
                     >
+                    <p
+                        v-if="dispensary.tvCall?.canCall && waitingForCheck"
+                        class="text-xs text-muted-foreground"
+                        data-testid="doctor-check-call-help"
+                    >
+                        Do not hand over the medicine until the doctor has
+                        checked it.
+                    </p>
                     <Button
                         v-if="dispensary.can.start"
                         :disabled="busy"
@@ -2579,8 +2806,11 @@ const exceptionStatusLabels: Record<string, string> = {
                         "
                         data-testid="dispensary-complete-open"
                         @click="confirming = true"
-                        ><CheckCircle2 class="size-4" />Complete
-                        Dispensary</Button
+                        ><CheckCircle2 class="size-4" />{{
+                            checkRequired
+                                ? 'Send to doctor for check'
+                                : 'Complete Dispensary'
+                        }}</Button
                     >
                     <p
                         v-if="dispensary.can.complete && completeBlockedReason"
@@ -2595,12 +2825,20 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border border-pink-300 bg-pink-50/60 p-3 text-sm dark:border-pink-900 dark:bg-pink-950/30"
                     data-testid="dispensary-verify"
                 >
-                    <p class="font-medium">Verify before completing</p>
+                    <p class="font-medium">
+                        {{
+                            checkRequired
+                                ? 'Send to the doctor for check'
+                                : 'Verify before completing'
+                        }}
+                    </p>
                     <p class="mb-2 text-xs text-muted-foreground">
                         {{
-                            isOtc
-                                ? 'There is no doctor on an OTC visit. Completing now records your verification of the list below and takes the stock out.'
-                                : 'The doctor has verified the order. Completing now records your verification of the final list below and takes the stock out.'
+                            checkRequired
+                                ? "The doctor checks the prepared medicine before the visit goes to billing. The stock is taken out only when the doctor verifies. You can't change the case while it waits."
+                                : isOtc
+                                  ? 'There is no doctor on an OTC visit. Completing now records your verification of the list below and takes the stock out.'
+                                  : 'The doctor has verified the order. Completing now records your verification of the final list below and takes the stock out.'
                         }}
                     </p>
                     <div class="mt-2 flex gap-2">
@@ -2608,9 +2846,14 @@ const exceptionStatusLabels: Record<string, string> = {
                             size="sm"
                             :disabled="busy"
                             data-testid="dispensary-complete-confirm"
-                            @click="completeCase"
-                            ><CheckCircle2 class="size-4" />Confirm and
-                            complete</Button
+                            @click="
+                                checkRequired ? sendForCheck() : completeCase()
+                            "
+                            ><CheckCircle2 class="size-4" />{{
+                                checkRequired
+                                    ? 'Confirm and send'
+                                    : 'Confirm and complete'
+                            }}</Button
                         >
                         <Button
                             size="sm"
@@ -2621,6 +2864,37 @@ const exceptionStatusLabels: Record<string, string> = {
                         >
                     </div>
                 </section>
+                <!-- DSP-23, owner answer 13 = B: a CA Supervisor who did not prepare the case may check instead. -->
+                <section
+                    v-if="dispensary.doctorCheck?.canCheck"
+                    class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
+                    data-testid="doctor-check-supervisor"
+                >
+                    <h2
+                        class="text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                        Check instead of the doctor
+                    </h2>
+                    <p class="text-xs text-muted-foreground">
+                        Only when the doctor can't check. You give a reason, and
+                        it is recorded.
+                    </p>
+                    <DoctorCheckActions
+                        :verify-url="`/dispensary/${dispensary.publicId}/doctor-check/verify`"
+                        :send-back-url="`/dispensary/${dispensary.publicId}/doctor-check/send-back`"
+                        :case-lock-version="dispensary.lockVersion"
+                        :expected-branch-id="branchId()"
+                        :doctor-name="dispensary.doctor"
+                        as-supervisor
+                    />
+                </section>
+                <p
+                    v-else-if="dispensary.doctorCheck?.preparedByYou"
+                    class="text-xs text-muted-foreground"
+                    data-testid="doctor-check-prepared-by-you"
+                >
+                    You prepared this case, so someone else must check it.
+                </p>
             </aside>
         </div>
     </main>

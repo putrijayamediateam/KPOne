@@ -32,6 +32,7 @@ final class DailyReportExportService
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 403);
             $actor = $this->authority->lock($actor, $branch, $permission);
+            BranchOnlyExportScope::enforce($actor, $branch, $scope);
             $grants = $actor->getAllPermissions()->pluck('name');
             abort_unless($grants->contains($permission) && $grants->contains('insights.view.organisation'), 403);
             $data = $this->reports->report($actor, $section, $scope, $from, $to, $doctor);

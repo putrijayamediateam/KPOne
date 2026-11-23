@@ -19,6 +19,9 @@ If `PROJECT.md` and `docs/BASELINE.md` disagree about what is delivered, trust `
 ## Working rules for Claude
 
 - Never open, print, or edit `.env`. Use `.env.example` only.
+- KPOne's rules always win over any coding-style plugin or skill (for example a "smallest change" or "lazy" mode):
+  permission and branch checks, `DB::transaction`, row locks, `lock_version`, idempotency keys, audit records,
+  the full quality gate and the team review steps are part of every change, never optional extras.
 - Do not commit, push, rebase, or open a PR unless the user asks after reviewing the diff.
 - One scoped change per branch: `feature/<id>-<slug>`, `fix/<id>-<slug>`, `validation/<id>-<slug>`.
 - A module not marked delivered or authorised in `docs/BASELINE.md` is not authorised — ask before building it.

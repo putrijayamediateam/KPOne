@@ -32,6 +32,8 @@ export type DispensaryReturnLine = {
     unit: string;
     controlled: boolean;
     dispensed: string;
+    // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+    dispensedPacks?: string | null;
     returned: string;
     returnable: string;
     returnCount: number;

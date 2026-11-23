@@ -7,6 +7,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
+use App\Domain\Organisation\Inventory\Services\MedicineSalesReportService;
 use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use App\Domain\Organisation\Inventory\Services\StockValuationReportService;
 use App\Domain\Organisation\Models\Branch;
@@ -72,8 +73,10 @@ class InventoryController extends Controller
 
         return [
             'canManage' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
-            // STK-28: the V2 home links "Stock value and cost" for its holders only (the Director); Classic ignores it.
+            // STK-28: both Inventory homes link "Stock value and cost" for its holders only (the Director).
             'canViewStockValue' => $actor->can(StockValuationReportService::PERMISSION),
+            // STK-44: the "Medicine sales" link, for its holders only (the Director and Finance Officer).
+            'canViewMedicineSales' => $actor->can(MedicineSalesReportService::PERMISSION),
             'expectedBranchId' => $activeBranch->id,
             'items' => $picker->choices($actor, $activeBranch, 'items'),
             'skus' => $picker->choices($actor, $activeBranch, 'skus'),

@@ -3,9 +3,7 @@ import { computed, reactive, ref } from 'vue';
 
 /**
  * HR-10b /hr/appraisals page state: your appraisals, cycles and criteria. Every request, lock version and idempotency
- * key lives here, shared by the Classic page (`pages/HR/Appraisals.vue`) and Version 2 (`pages/HR/V2/Appraisals.vue`),
- * so both send identical requests. Moved out of the Classic page unchanged; the Classic template did not change.
- * No ranking and no total score: each criterion is rated on its own.
+ * key of `pages/HR/Appraisals.vue` lives here. No ranking and no total score: each criterion is rated on its own.
  */
 export type Tab = 'mine' | 'cycles' | 'criteria';
 export type Status = 'draft' | 'sent' | 'signed_off';

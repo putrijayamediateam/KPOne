@@ -2,6 +2,8 @@
 
 namespace App\Domain\DepartmentSpace;
 
+use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Approvals\ApprovalSources;
 use App\Models\User;
 
 /**
@@ -11,16 +13,32 @@ use App\Models\User;
  */
 final class AccountMenuLinks
 {
-    public function __construct(private DepartmentSpaceNavigation $spaces) {}
+    public function __construct(private DepartmentSpaceNavigation $spaces, private ApprovalSources $approvals) {}
 
     /**
-     * @return array{links: list<array{title: string, href: string}>, clock: bool}
+     * `spaces`: Classic only (CO-1, 19 Nov 2026), the account menu's Spaces row, shown to everyone who can enter at least
+     * one department space (Me is its own row). Before CO-1 it showed only with "Try the new layout" switched on.
+     *
+     * @return array{links: list<array{title: string, href: string}>, clock: bool, spaces: bool}
      */
     public function for(User $actor): array
     {
         $links = [];
-        if ($this->spaces->canEnter($actor, 'me')) {
-            $links[] = ['title' => 'My space', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
+        // DAY-1a: My day first, and the Main Menu as a link (owner, 22 Nov 2026). Neither is shown to the TV account, which gets none.
+        $human = ! $actor->hasRole(PermissionCatalogue::QUEUE_DISPLAY_ROLE);
+        if ($human) {
+            $links[] = ['title' => 'My day', 'href' => route('my-day', absolute: false)];
+        }
+        if ($human && $actor->can('dashboard.view.own')) {
+            $links[] = ['title' => 'Main menu', 'href' => route('dashboard', absolute: false)];
+        }
+        $keys = array_column($this->spaces->spaces($actor), 'key');
+        if (in_array(DepartmentSpaceNavigation::ME[0], $keys, true)) {
+            $links[] = ['title' => 'Me', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
+        }
+        // APPR-1a: only for someone who can decide something; the number sits on the account button, not on this row.
+        if ($actor->hasAnyPermission($this->approvals->approvalPermissions())) {
+            $links[] = ['title' => 'Approvals & tasks', 'href' => route('approvals.index', absolute: false)];
         }
         foreach ([
             ['hr.roster.view.own', 'My roster', 'hr.roster.index'],
@@ -35,6 +53,6 @@ final class AccountMenuLinks
             }
         }
 
-        return ['links' => $links, 'clock' => $actor->can('hr.attendance.clock.own')];
+        return ['links' => $links, 'clock' => $actor->can('hr.attendance.clock.own'), 'spaces' => array_diff($keys, [DepartmentSpaceNavigation::ME[0]]) !== []];
     }
 }

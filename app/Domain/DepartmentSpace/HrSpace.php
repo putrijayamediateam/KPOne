@@ -3,8 +3,8 @@
 namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Approvals\Sources\StaffClaimSource;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
-use App\Domain\HR\Claims\Services\ClaimsPageService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Roster\Services\RosterPageService;
@@ -25,7 +25,7 @@ final class HrSpace
         private BranchAccessService $branches,
         private LeavePageService $leave,
         private AttendancePageService $attendance,
-        private ClaimsPageService $claims,
+        private StaffClaimSource $claims,
         private RosterPageService $roster,
         private CredentialsPageService $credentials,
     ) {}
@@ -95,9 +95,8 @@ final class HrSpace
             }
         }
         if ($actor->can('hr.claims.approve.organisation')) {
-            $branch = $this->branches->activeBranch($actor);
-            $claims = $this->claims->page($actor, $branch, ['tab' => 'approvals']);
-            $kinds[] = ['key' => 'claims', 'title' => 'Staff claims', 'count' => count((array) ($claims['approvals']['claims'] ?? [])), 'href' => route('hr.claims.index', ['tab' => 'approvals'], absolute: false)];
+            // APPR-1d: the claims this person may decide (never their own, and the service's rank rule), as the Approvals inbox counts them.
+            $kinds[] = ['key' => 'claims', 'title' => 'Staff claims', 'count' => $this->claims->count($actor, null), 'href' => route('hr.claims.index', ['tab' => 'approvals'], absolute: false)];
         }
         if ($kinds === [] && ! $this->mayApprove($actor)) {
             return null;

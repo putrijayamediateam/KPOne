@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $code
  * @property bool $expires
  * @property bool $health_item
+ * @property bool $work_permit
  * @property int $current_version
  * @property bool $is_active
  * @property int $created_by_user_id
@@ -29,7 +30,7 @@ class CredentialType extends Model
 
     protected function casts(): array
     {
-        return ['expires' => 'boolean', 'health_item' => 'boolean', 'is_active' => 'boolean', 'current_version' => 'integer', 'lock_version' => 'integer',
+        return ['expires' => 'boolean', 'health_item' => 'boolean', 'work_permit' => 'boolean', 'is_active' => 'boolean', 'current_version' => 'integer', 'lock_version' => 'integer',
             'created_by_user_id' => 'integer', 'created_at' => 'immutable_datetime'];
     }
 }

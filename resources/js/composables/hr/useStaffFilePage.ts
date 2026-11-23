@@ -9,11 +9,9 @@ import type {
 } from '@/components/hr/records/types';
 
 /**
- * HR-4a /hr/records/{worker} staff file state: Employment, Personal, Bank, Documents and Checklist. Every request,
- * lock version and idempotency key lives here, shared by the Classic page (`pages/HR/StaffFile.vue`) and Version 2
- * (`pages/HR/V2/StaffFile.vue`), so both send identical requests. Moved out of the Classic page unchanged; the Classic
- * template did not change. Sensitive values arrive masked; only the audited Show (a separate request, never made here)
- * releases one.
+ * HR-4a /hr/records/{worker} staff file state: Employment, Personal, Bank, Documents and Checklist. Every request, lock
+ * version and idempotency key of `pages/HR/StaffFile.vue` lives here. Sensitive values arrive masked; only the audited
+ * Show (a separate request, never made here) releases one.
  */
 export type Tab =
     'employment' | 'personal' | 'bank' | 'documents' | 'checklist';
@@ -58,6 +56,8 @@ export type StaffFilePageProps = {
         options: RecordOptions;
         canManage: boolean;
         manageRefusal: string | null;
+        /** HR-21: the staff member's work permits that expire soon or have expired, in words (managers only). */
+        workPermits: string[];
         isSelf: boolean;
         workers: { id: string; name: string }[];
         worker: WorkerHeader & { lockVersion: number };
