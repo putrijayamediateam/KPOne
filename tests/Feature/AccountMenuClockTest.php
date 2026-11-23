@@ -26,7 +26,7 @@ class AccountMenuClockTest extends VisitTestCase
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('workspace.accountMenu.clock', true)
-            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['Me', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
+            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['My day', 'Main menu', 'Me', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
 
         // The waiting-room TV account gets no own pages and no clock.
         $tv = $this->actor('queue_display');

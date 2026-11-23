@@ -2,6 +2,7 @@
 
 use App\Domain\Audit\AuditRecorder;
 use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\ForgetApprovalCounts;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSensitiveResponseCaching;
@@ -41,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle' => RouteIsolatedThrottle::class,
             'permission' => RequireAnyPermission::class,
             'sensitive.no-store' => PreventSensitiveResponseCaching::class,
+            'approvals.forget' => ForgetApprovalCounts::class,
             'public-intake.proxy' => ValidatePublicIntakeProxy::class,
             'same-origin.open' => RefuseCrossSiteOpen::class,
         ]);
