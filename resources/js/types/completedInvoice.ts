@@ -29,5 +29,7 @@ export type CompletedInvoicePage = {
         activity: InvoiceActivityLink;
         /** BIL-35: the Panel claim button, for Panel Claims users only. */
         panelClaim?: PanelClaimLink | null;
+        // BIL-37: the Resident Doctor's read-only bill of their own patient.
+        billView?: string | null;
     };
 };

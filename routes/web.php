@@ -14,6 +14,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BillingApprovalLimitController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BillingReviewController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
@@ -1180,6 +1181,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/billing/{invoice}/notes', [InvoiceNoteController::class, 'store'])
             ->whereUuid('invoice')->middleware(['permission:billing.notes.view.branch', 'throttle:30,1', 'sensitive.no-store'])->name('billing.notes.store');
 
+        // BIL-37: the Resident Doctor's read-only bill of their own patient's visit; every open recorded. GET only.
+        Route::get('visits/{visit}/billing/review', [BillingReviewController::class, 'show'])
+            ->middleware(['permission:billing.view_readonly.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('billing.review');
         Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
             Route::get('outstanding/{group}', 'outstanding')->whereIn('group', ['patient', 'panel'])->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.outstanding');

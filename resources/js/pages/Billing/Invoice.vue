@@ -120,6 +120,13 @@ const totals = computed(() => {
                 :notes-context="invoice.notes"
             />
             <ActionLink
+                v-if="invoice.links.billView"
+                :href="invoice.links.billView"
+                variant="outline"
+                data-testid="invoice-view-bill"
+                >View bill</ActionLink
+            >
+            <ActionLink
                 v-if="invoice.links.panelClaim"
                 :href="invoice.links.panelClaim.href"
                 variant="outline"

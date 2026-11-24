@@ -62,6 +62,8 @@ const props = defineProps<{
     treatmentRooms?: Array<{ id: number; name: string }>;
     // Q-2: the Serving consultation's treatment step (board only; never the TV).
     treatmentProgress?: TreatmentProgress | null;
+    // BIL-37: the doctor's read-only bill of this visit (only once a finalised invoice exists).
+    billViewUrl?: string | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -735,6 +737,14 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     {{ clinical.hold.activeMinutes }} min · Held
                     {{ clinical.hold.heldMinutes }} min</span
                 >
+                <Link
+                    v-if="billViewUrl"
+                    :href="billViewUrl"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-success hover:underline"
+                    data-testid="consultation-view-bill"
+                >
+                    View bill
+                </Link>
                 <span
                     v-if="treatmentProgress?.state"
                     class="inline-flex max-w-full"
