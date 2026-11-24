@@ -333,7 +333,8 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->get(route('dispensary.labels', $fixture['case']))->assertOk()->assertInertia(fn (Assert $page) => $page->has('labels.items', 1));
         $this->assertSame($before, $this->fulfilmentSnapshot());
         $this->assertPrivateCaseUrls([$url]);
-        foreach (['resident_doctor', 'director', 'technical_admin'] as $role) {
+        // DSP-26 (owner, 24 Nov: "lulus 2 test DSP-26"): the doctor opens this page view only (DispensaryDoctorViewTest).
+        foreach (['director', 'technical_admin'] as $role) {
             $this->selectBranch($this->actor($role));
             $this->get($url)->assertForbidden();
         }

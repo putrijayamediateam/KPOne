@@ -4,6 +4,7 @@ namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
+use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryDoctorCheck;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
@@ -152,6 +153,8 @@ class DoctorDispensaryAttentionService
             'reasons' => DispensaryDoctorCheck::REASONS,
             'verifyUrl' => route('dispensary.doctor-check.verify', $case),
             'sendBackUrl' => route('dispensary.doctor-check.send-back', $case),
+            // DSP-26: the case page view only, with a "Back to consultation" link (Daniel).
+            'viewUrl' => $actor->can(DrugLabelService::VIEW_PERMISSION) ? route('dispensary.show', ['dispensaryCase' => $case, 'from' => 'consultation']) : null,
         ];
     }
 

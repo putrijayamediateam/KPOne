@@ -4,6 +4,11 @@
  * info tone (Daniel), with Back as the only control, passed in the slot.
  */
 import { Eye } from '@lucide/vue';
+
+// DSP-26: the Resident Doctor's Dispensary pages pass their own line; the Director's default is unchanged.
+withDefaults(defineProps<{ message?: string }>(), {
+    message: 'Read only. Every view is recorded.',
+});
 </script>
 
 <template>
@@ -17,7 +22,7 @@ import { Eye } from '@lucide/vue';
                 class="size-4 shrink-0 text-muted-foreground"
                 aria-hidden="true"
             />
-            Read only. Every view is recorded.
+            {{ message }}
         </p>
         <slot />
     </div>

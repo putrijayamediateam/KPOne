@@ -51,7 +51,7 @@ class DrugLabelTest extends BillingTestCase
         $this->assertSame(['ca', 'ca_supervisor', 'medical_assistant'], $holders);
         [$f, $case] = $this->ready();
         $url = route('dispensary.labels', $case);
-        foreach (['resident_doctor', 'director', 'administrator', 'technical_admin', 'finance_officer', 'panel_officer', 'hr_manager', 'marketing', 'business_development', 'queue_display'] as $role) {
+        foreach (['director', 'administrator', 'technical_admin', 'finance_officer', 'panel_officer', 'hr_manager', 'marketing', 'business_development', 'queue_display'] as $role) {
             $this->selectBranch($this->actor($role), $f['visit']->branch);
             $this->get($url)->assertForbidden();
         }
