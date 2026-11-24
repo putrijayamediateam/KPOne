@@ -2,6 +2,7 @@
 // DSP-23: "Medicine ready for your check" on the consultation page. Each line shows what the doctor ordered beside
 // what the CA prepared, the batch and expiry, and the patient's allergy status line (Daniel, note 3). CA changes show
 // as a dot and a word, never colour alone. At 390 px the lines stack and both buttons are full width (note 9).
+import { Link } from '@inertiajs/vue3';
 import { ClipboardCheck, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
@@ -59,6 +60,14 @@ const directions = (line: {
                 Sent{{ check.sentBy ? ` by ${check.sentBy}` : '' }}
                 {{ check.sentAt ? `at ${check.sentAt}` : '' }}
             </p>
+            <!-- DSP-26: the doctor may open the case in Dispensary, view only. -->
+            <Link
+                v-if="check.viewUrl"
+                :href="check.viewUrl"
+                class="ml-auto inline-flex min-h-11 items-center text-xs font-medium text-brand-strong underline-offset-4 hover:underline sm:min-h-0"
+                data-testid="dispensary-check-view"
+                >View in Dispensary</Link
+            >
         </header>
         <p
             v-if="allergyRecorded"

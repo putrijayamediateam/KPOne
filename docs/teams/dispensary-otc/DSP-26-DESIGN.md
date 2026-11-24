@@ -185,9 +185,10 @@ Shots for Daniel's look, at 1440 and 390 in light and dark:
 ## 6. Questions for the owner
 
 Owner's answers, 24 Nov 2026, relayed by B.E.R.N.I.S.S ("approve the test change, 2 no, 3 no"): the
-`DrugLabelTest.php:54` change is approved; (a) no; (b) no. Question (c) came in the revised note and is still open.
+`DrugLabelTest.php:54` change is approved; (a) no; (b) no. Question (c), from the revised note: "(c) no, ship it for
+DSP-26 for aisyah".
 
 a. Should each doctor open be recorded in the audit log? **Owner: no.** No audit row per doctor open.
 b. Should the doctor also see the "Returns to check" list? **Owner: no.**
 c. Label preview while the CA is still preparing (pending or dispensing)? Recommended: no, only completed and awaiting
-   the doctor's check, because until then the label isn't final. **Still open.**
+   the doctor's check, because until then the label isn't final. **Owner: no.** Only completed and awaiting the check.

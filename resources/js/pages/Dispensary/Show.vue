@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
+    ArrowLeft,
     CheckCircle2,
+    Eye,
     LoaderCircle,
     Megaphone,
     Plus,
@@ -16,6 +18,7 @@ import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
 import PackQuantityField from '@/components/dispensary/PackQuantityField.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import ReadOnlyBanner from '@/components/ReadOnlyBanner.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
@@ -139,6 +142,10 @@ type ServiceResult = {
 };
 type Page = {
     canPrintLabels?: boolean;
+    // DSP-26: the Resident Doctor's view-only page; the label preview without printing; the back link.
+    viewOnly?: boolean;
+    canPreviewLabels?: boolean;
+    backLink?: { label: string; href: string };
     labelLimits?: Record<string, number>;
     publicId: string;
     status: 'pending' | 'dispensing' | 'awaiting_doctor_check';
@@ -1290,7 +1297,32 @@ const exceptionStatusLabels: Record<string, string> = {
         class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
     >
         <!-- DD-25: the page title names the task; the patient card below is the one place that names the patient. -->
+        <!-- DSP-26: the Resident Doctor's view-only header; the CA's header below is unchanged. -->
         <PageHeader
+            v-if="dispensary.viewOnly"
+            class="mb-4 border-b pb-3"
+            title="Dispensary"
+            description="The medicine the CA prepared for this visit."
+        >
+            <template
+                v-if="visibleItems.length && dispensary.canPreviewLabels"
+                #actions
+            >
+                <Button as-child variant="outline" size="sm">
+                    <a
+                        :href="`/dispensary/${dispensary.publicId}/labels`"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid="view-labels"
+                    >
+                        <Eye class="size-4" />View labels
+                        <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                </Button>
+            </template>
+        </PageHeader>
+        <PageHeader
+            v-else
             class="mb-4 border-b pb-3"
             title="Dispensary"
             description="Check each line, save it, then complete."
@@ -1319,6 +1351,25 @@ const exceptionStatusLabels: Record<string, string> = {
             </template>
         </PageHeader>
 
+        <!-- DSP-26 (Daniel): the Resident Doctor sees one muted view-only line, with the way back. -->
+        <ReadOnlyBanner
+            v-if="dispensary.viewOnly"
+            class="mb-4"
+            message="View only. You cannot change this case."
+        >
+            <Button
+                v-if="dispensary.backLink"
+                as-child
+                variant="outline"
+                size="sm"
+            >
+                <Link :href="dispensary.backLink.href"
+                    ><ArrowLeft class="size-4" />{{
+                        dispensary.backLink.label
+                    }}</Link
+                >
+            </Button>
+        </ReadOnlyBanner>
         <!-- DSP-23, Daniel's note 5: the waiting banner, with the hand-over instruction in a warning box. -->
         <section
             v-if="waitingForCheck"
@@ -1337,10 +1388,15 @@ const exceptionStatusLabels: Record<string, string> = {
                     dispensary.doctorCheck?.sentBy
                         ? ` by ${dispensary.doctorCheck.sentBy}`
                         : ''
-                }}. The case can't be changed while it waits. You can still
-                print labels and call the patient.
+                }}.<template v-if="dispensary.viewOnly">
+                    The doctor checks it on the consultation page.</template
+                ><template v-else>
+                    The case can't be changed while it waits. You can still
+                    print labels and call the patient.</template
+                >
             </p>
             <p
+                v-if="!dispensary.viewOnly"
                 class="mt-2 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-warning-strong"
             >
                 <TriangleAlert
@@ -1377,7 +1433,7 @@ const exceptionStatusLabels: Record<string, string> = {
                 >
                     {{ dispensary.doctorCheck.sentBack.note }}
                 </p>
-                <p class="text-xs">
+                <p v-if="!dispensary.viewOnly" class="text-xs">
                     Correct the case, then send it to the doctor again.
                 </p>
                 <SupervisorCheckNote
@@ -2727,8 +2783,12 @@ const exceptionStatusLabels: Record<string, string> = {
                             <dt class="text-muted-foreground">Services</dt>
                             <dd>{{ visibleServices.length }}</dd>
                         </template>
-                        <dt class="text-muted-foreground">Not saved yet</dt>
-                        <dd>{{ unsaved.length + unsavedServices.length }}</dd>
+                        <template v-if="!dispensary.viewOnly">
+                            <dt class="text-muted-foreground">Not saved yet</dt>
+                            <dd>
+                                {{ unsaved.length + unsavedServices.length }}
+                            </dd>
+                        </template>
                         <template v-if="dispensary.can.update && scanTotal">
                             <dt class="text-muted-foreground">
                                 Checked by scan
@@ -2740,6 +2800,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     </dl>
                 </section>
                 <section
+                    v-if="!dispensary.viewOnly"
                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-actions"
                 >

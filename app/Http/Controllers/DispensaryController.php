@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Clinical\Dispensary\Labels\DrugLabelLayout;
+use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
@@ -46,8 +47,16 @@ class DispensaryController extends Controller
         $detail['labelLimits'] = DrugLabelLayout::FIELD_BUDGETS;
         // DSP-23: a case waiting for the doctor's check may be printed again (the doctor may ask for a reprint).
         $detail['canPrintLabels'] = $request->user()->can('dispensary.labels.print.branch') && ($dispensaryCase->status === 'completed' || $dispensaryCase->status === DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK || ($dispensaryCase->status === 'dispensing' && $dispensaryCase->current_handler_user_id === $request->user()->id));
-        if ($detail['canPrintLabels']) {
+        // DSP-26: the Resident Doctor sees the case view only. The label preview opens only for a finished case or one
+        // waiting for the doctor's check; the back link returns to the consultation only for its attending clinician.
+        $viewOnly = $request->user()->can(DrugLabelService::VIEW_PERMISSION) && ! $request->user()->can('dispensary.view.branch');
+        $detail['canPreviewLabels'] = $detail['canPrintLabels'] || ($viewOnly && in_array($dispensaryCase->status, [DispensaryCase::STATUS_COMPLETED, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true));
+        if ($detail['canPreviewLabels']) {
             $detail['labelUrl'] = route('dispensary.labels', $dispensaryCase);
+        }
+        if ($viewOnly) {
+            $detail['viewOnly'] = true;
+            $detail['backLink'] = $this->viewerBackLink($request, $dispensaryCase);
         }
         if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED && $dispensaryCase->case_type !== DispensaryCase::TYPE_OTC) {
             $detail['tvCall'] = [
@@ -73,6 +82,23 @@ class DispensaryController extends Controller
         }
 
         return Inertia::render('Dispensary/Show', ['dispensary' => $detail]);
+    }
+
+    /**
+     * DSP-26 (Daniel): "Back to consultation" only when the page was opened from the consultation and the viewer is
+     * that visit's attending clinician; otherwise back to the Registration board.
+     *
+     * @return array{label: string, href: string}
+     */
+    private function viewerBackLink(Request $request, DispensaryCase $case): array
+    {
+        $from = in_array($request->query('from'), ['consultation', 'registration'], true) ? $request->query('from') : 'registration';
+        $attending = $case->encounter()->value('attending_clinician_user_id');
+        if ($from === 'consultation' && $attending !== null && (int) $attending === $request->user()->id) {
+            return ['label' => 'Back to consultation', 'href' => route('encounters.show', $case->visit()->value('visit_number'))];
+        }
+
+        return ['label' => 'Back to Registration', 'href' => route('registration.index')];
     }
 
     public function openOtc(OpenOtcDispensaryRequest $request, Visit $visit, OtcDispensaryService $service): RedirectResponse
@@ -138,7 +164,8 @@ class DispensaryController extends Controller
     {
         ['labels' => $labels, 'batchNotes' => $batchNotes, 'reprints' => $reprints] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
 
-        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes, 'labelReprints' => $reprints]);
+        // DSP-26: a separate prop, so the label payload keeps its keys; the Resident Doctor previews and never prints.
+        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes, 'labelReprints' => $reprints, 'labelCanPrint' => $request->user()->can(DrugLabelService::PERMISSION)]);
     }
 
     /**
