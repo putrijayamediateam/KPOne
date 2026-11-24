@@ -105,3 +105,25 @@ net sales per doctor, branch scope, existing `SalesTargetService::progress`).
   the doctor's room. AUTO-1 depends on it; the room check in section 3 reads the room from this lookup.
 - Stations (Registration, MA, Dispensary, Treatment) on CA and MA shifts are background only and do not change who gets
   patients.
+
+## 8. Owner answers 2026-11-24 (final decisions)
+
+- Q-A: rank by progress %; if two doctors are within 5 points, the lower sales-per-patient doctor wins.
+- Q-B (stronger than recommended): when the day's roster is published, a doctor not on it is never auto-picked and is
+  also left out of the Recommended list and the CA's manual picker (no roster means no shift, no room).
+- Q-C: all busy: the lowest-sales doctor is capped at 3 waiting, then the next lowest.
+- Q-D: "previous doctor" = seen in the last 30 days.
+- Q-E: turning the switch off leaves existing assignments untouched.
+- Q-F: roster not published: auto is unavailable; the CA picks manually from the eligible list with a notice.
+- Q-G: `registration.auto_assign.manage.branch` (Director) approved.
+- Go-ahead: build starts after HR's `RosterOnDuty` lookup (slice b) is merged. Before the PR, Daniel looks at the CA
+  screen; B.E.R.N.I.S.S. brings it to the owner for the final typed ship-it.
+
+### Effect of hiding off-roster doctors from the manual picker (Q-B)
+
+The picker data comes from `VisitDoctorEligibilityService::eligibleDoctors` (Registration and Quick create, QR review,
+Queue directory doctor filter). To avoid changing other consumers, the roster filter goes in a new wrapper used only by
+the registration pickers, applied only when the branch switch is on and a roster is published for the day; otherwise
+behaviour is unchanged. Tests that pin the doctor list (`QueueDirectoryTest`, `QueuePerformanceTest`, registration and
+QR feature tests) run with the switch off, so I expect no existing assertion to change. Confirm at build time. Edit
+visit keeps showing the current assigned doctor even if off-roster, so an existing visit never loses its doctor.
