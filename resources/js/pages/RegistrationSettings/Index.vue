@@ -264,7 +264,7 @@ const submit = () => {
                     type="submit"
                     :disabled="autoForm.processing"
                     class="min-h-11"
-                    >Save</Button
+                    >Save automatic assignment</Button
                 >
             </form>
         </section>
