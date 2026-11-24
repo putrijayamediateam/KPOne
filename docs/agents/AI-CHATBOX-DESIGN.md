@@ -46,7 +46,7 @@ one small class behind an interface and can be changed.
 
 ## 4. Slice 1 scope
 
-A chat panel on the Director's overview page (which page this is: section 10). Typed questions only. It answers with the
+A chat drawer on the BIL-31 Director and Finance overview page, for the Director only (section 10). Typed questions only. It answers with the
 same read-only questions the connector has (clinic day, money day, sales, Panel claims, stock, queue, visits by state,
 system health, branches), shown as the model's sentence plus a "Figures" block built from the tool result (label, exact amount, as-of time), the "definitions", and a link to the report page. A history list of earlier
 questions and answers. **No writing of any kind**, no patient-level data, no files, no voice, no images, no consultation.
@@ -142,18 +142,28 @@ as OK with these changes and will do a full look on the screenshots (a new kind 
    inventory code imports the chat classes. The test therefore keeps its meaning instead of being deleted. This is an existing-assertion
    change that needs the owner's explicit approval.
 
-## 10. Questions for the owner
+## 10. Owner's answers (24 Nov) and what is still open
 
-1. **Option A, B or C** (section 3), and **which provider** (the team does not choose; it only needs a name and a key in the server secrets).
-2. **Monthly cap** in RM (suggest a small number for the trial, for example RM 50) and messages per day per person.
-3. **"Management":** which roles may see everyone's chat history? (Suggest Director only for slice 1; adding HR Manager, Finance Officer
-   or Administrator later is one permission grant.)
-4. **History retention:** how long to keep message text (suggest 90 days, then the text is removed and the row kept).
-5. **Which page is "Director overview"?** Suggest Insights, Today (the Director's first figures). Alternatives: the Daily summary page or the
-   home dashboard.
-6. **"Everything the Director may access":** confirm it means the existing fixed read-only questions for now, and that any wider source is added as
-   a reviewed tool later (not free database queries).
-7. **Trial data:** confirm synthetic data only on the server where this is switched on.
+Answered by the owner: **"A, RM 50, Director only, 90 days, BIL-31 page."**
+
+| Question | Answer |
+|---|---|
+| Option | **A**: an in-KPOne chatbox through a provider API. The provider is Anthropic. The API key is added by the owner to the server's **environment secrets** only, never in code, `.env`, a commit or chat (the team never asks for it). |
+| Monthly cap | **RM 50** (counted from the provider's reported token use; the chatbox refuses with the limit message when reached). |
+| Daily message limit | Proposed: **30 messages per person per day and 10 a minute** (the Director alone uses it in slice 1). To confirm with the owner. |
+| Management (sees others' history) | **Director only** in slice 1. |
+| Retention | **90 days** for message text, then the text is removed and the row kept. |
+| Which page | The **BIL-31 Director and Finance overview page** (Billing team, Farah; **not merged yet**). The chatbox is for the **Director only**: the Finance Officer who sees that page does **not** get the chatbox (the "Ask KPOne" button is shown only to a holder of `ai_chat.use.organisation`). |
+| Scope of questions | The existing fixed connector questions only; wider sources later as reviewed tools. |
+| Data | Synthetic data only until the PDPA review. |
+
+**Still open:** (a) the owner's written approval of section 9 (the `AGENTS.md` wording, the BASELINE and contract updates, the
+`NoAiServiceGuardTest` change); (b) the daily limit above; (c) the date BIL-31 merges. The build waits for (a) and the owner's ship-it.
+
+**Coordination with the Billing team:** slice 1 adds one button and one drawer to the BIL-31 page and changes none of its
+figures, queries or permissions. The Agent platform team agrees the placement with the Billing Lead (Farah) before building, and
+builds against BIL-31's merged page (or a stub page if it merges later). The drawer is its own component, so the Billing team's
+page only mounts it for the permitted viewer.
 
 ## 11. Tests (for the build)
 
