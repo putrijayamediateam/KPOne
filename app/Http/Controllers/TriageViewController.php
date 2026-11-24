@@ -17,8 +17,10 @@ class TriageViewController extends Controller
 {
     public function show(Request $request, Visit $visit, TriageViewProjection $projection): Response|HttpResponse
     {
-        // A HEAD request shows nothing, so it records nothing.
+        // A HEAD request shows nothing, so it records nothing; it is still refused to anyone who may not open the page.
         if ($request->isMethod('HEAD')) {
+            $projection->authorise($request->user(), $visit);
+
             return response()->noContent();
         }
 

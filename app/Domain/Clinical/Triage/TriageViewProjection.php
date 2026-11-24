@@ -19,7 +19,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  *
  * The own doctor is the encounter's attending clinician once a consultation exists, otherwise the visit's assigned
  * doctor, never both. The visit must be at the actor's active branch (an effective assignment). {@see self::open()}
- * authorises first, then records the open with ReadOnlyReviewAudit, and only then builds the page.
+ * authorises first, then records the open with ReadOnlyReviewAudit, and only then builds the page. The caller must not
+ * hold a database transaction: ReadOnlyReviewAudit commits the audit row on its own only outside one.
  */
 class TriageViewProjection
 {

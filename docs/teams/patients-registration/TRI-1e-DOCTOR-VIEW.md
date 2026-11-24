@@ -162,3 +162,20 @@ Verdict: OK with changes, nothing blocking. The build follows these rules, and t
      - the migration is idempotent and never revokes;
      - the Medical Assistant (once MA-1a lands) and every other role get 403;
      - `POST visits/{visit}/triage` still refuses the doctor.
+
+## 8. Farhana's diff review (24 Nov 2026)
+
+Verdict: OK with changes, nothing blocking. Done:
+- **The Queue link uses the one own-doctor formula** (attending clinician, otherwise the assigned doctor). It reads the
+  already-loaded encounter, so it adds no query. A test covers a Serving row whose assigned doctor is rewritten: the
+  rewritten doctor sees the row but gets no link.
+- **A HEAD request now runs the same authorisation as a GET.** It records nothing.
+- **More route tests:** a held consultation, a completed visit and a cancelled visit with no encounter.
+- **Transaction guard dropped.** The runtime check that refused to open inside a transaction was dropped: Laravel's
+  RefreshDatabase wraps every test in one, and the consultation review has no such guard. Instead, the class comment
+  says the caller must not hold a transaction, and a source test pins that neither the controller nor the projection
+  opens one.
+
+Noted, not done:
+- `canView` on the consultation page costs about four small queries per load.
+- The "Sign no longer listed" fallback has no test. Guideline versions never change, so it should not happen.

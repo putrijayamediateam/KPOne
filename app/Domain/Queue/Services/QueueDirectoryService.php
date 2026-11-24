@@ -367,7 +367,10 @@ class QueueDirectoryService
             // TRI-1c: { zone, triaged } or null when this viewer may not see the zone; never a reading, never on the TV feed.
             'triage' => $entry->relationLoaded('triageZone') ? $entry->getRelation('triageZone') : null,
             // TRI-1e: a link for the patient's own doctor only (the route checks the exact rule again).
-            'triageViewUrl' => $visit->visit_type === 'consultation' && $visit->assigned_doctor_user_id === $actor->id
+            // The own doctor: the attending clinician once a consultation exists, otherwise the assigned doctor (the encounter
+            // is already eager-loaded, so this adds no query).
+            'triageViewUrl' => $visit->visit_type === 'consultation'
+                && ($visit->clinicalEncounter !== null ? $visit->clinicalEncounter->attending_clinician_user_id : $visit->assigned_doctor_user_id) === $actor->id
                 && $actor->hasRole('resident_doctor') && $actor->can(TriagePermissions::VIEW_OWN)
                 ? route('visits.triage.view', $visit) : null,
             // Q-2: only Serving consultations carry this; never on the TV feed.

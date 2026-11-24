@@ -10,11 +10,13 @@ use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Clinical\Triage\TriageViewProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Services\QueueDirectoryService;
+use App\Domain\Visit\Services\VisitAdministrationService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Tests\Support\SyntheticVisitCompletion;
 
 /** TRI-1e: the patient's own doctor's read-only triage view (TRI-1e-DOCTOR-VIEW sections 2 and 7). Synthetic data only. */
 class TriageDoctorViewTest extends TriageTestCase
@@ -115,6 +117,47 @@ class TriageDoctorViewTest extends TriageTestCase
         $this->assertNotNull(ClinicalEncounter::query()->where('visit_id', $visit->id)->value('id'));
     }
 
+    public function test_held_completed_and_cancelled_visits_follow_the_same_own_doctor_rule(): void
+    {
+        $this->approvedGuideline();
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $this->triage($ca, $visit);
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+
+        $this->holdEncounter($doctor, $visit, $queue, $encounter);
+        $this->selectBranch($doctor);
+        $this->actingAs($doctor)->get(route('visits.triage.view', $visit))->assertOk();
+
+        SyntheticVisitCompletion::complete($visit->refresh());
+        $this->actingAs($doctor)->get(route('visits.triage.view', $visit))->assertOk();
+
+        // Cancelled before any consultation: the assigned doctor still reads what triage recorded.
+        [, $cancelled, $cancelledQueue] = $this->waitingFixture($ca);
+        $this->triage($ca, $cancelled);
+        $this->selectBranch($ca);
+        app(VisitAdministrationService::class)->cancel($cancelled->refresh(), [
+            'expected_branch_id' => $cancelled->branch_id, 'lock_version' => $cancelled->lock_version,
+            'queue_lock_version' => $cancelledQueue->refresh()->lock_version, 'cancellation_reason' => 'Synthetic cancellation',
+        ], $ca);
+        $assigned = User::query()->findOrFail($cancelled->assigned_doctor_user_id);
+        $this->selectBranch($assigned);
+        $this->actingAs($assigned)->get(route('visits.triage.view', $cancelled))->assertOk();
+    }
+
+    public function test_a_head_request_is_refused_like_a_get_and_records_nothing(): void
+    {
+        $this->approvedGuideline();
+        [, $visit] = $this->waitingFixture();
+        $doctor = User::query()->findOrFail($visit->assigned_doctor_user_id);
+        $other = $this->doctor();
+
+        $this->selectBranch($other);
+        $this->actingAs($other)->call('HEAD', route('visits.triage.view', $visit))->assertForbidden();
+        $this->selectBranch($doctor);
+        $this->actingAs($doctor)->call('HEAD', route('visits.triage.view', $visit))->assertNoContent();
+        $this->assertSame(0, AuditLog::query()->where('event', 'triage.viewed')->count());
+    }
+
     public function test_a_visit_at_another_branch_is_not_found(): void
     {
         $this->approvedGuideline();
@@ -184,9 +227,25 @@ class TriageDoctorViewTest extends TriageTestCase
 
         [$attending, , $serving, $queue] = $this->servingFixture(null, $ca);
         $this->startEncounter($attending, $serving, $queue);
+
         $this->selectBranch($attending);
         $this->actingAs($attending)->get(route('encounters.show', $serving))->assertOk()
             ->assertInertia(fn ($page) => $page->where('clinical.visit.triageViewUrl', route('visits.triage.view', $serving)));
+
+        // Serving row: the link follows the attending clinician, never the assigned doctor alone. Before any change the
+        // attending (also assigned) doctor has the link; after the assigned doctor is rewritten (only possible by a direct
+        // write, since the doctor cannot change after Call In) the newly assigned doctor sees the row on their own board
+        // but gets no link.
+        $servingRow = fn (User $viewer) => collect(app(QueueDirectoryService::class)->snapshot($viewer, ['status' => 'serving'])['serving'])
+            ->firstWhere('visitNumber', $serving->visit_number);
+        $this->selectBranch($attending);
+        $this->assertSame(route('visits.triage.view', $serving), $servingRow($attending)['triageViewUrl']);
+        $reassigned = $this->doctor();
+        DB::table('visits')->where('id', $serving->id)->update(['assigned_doctor_user_id' => $reassigned->id]);
+        $this->selectBranch($reassigned);
+        $row = $servingRow($reassigned);
+        $this->assertNotNull($row, 'the reassigned doctor sees the row on their own board');
+        $this->assertNull($row['triageViewUrl'], 'but gets no link: the attending clinician is the own doctor');
     }
 
     public function test_the_permission_is_the_resident_doctors_alone_and_the_grant_replays_without_revoking(): void
