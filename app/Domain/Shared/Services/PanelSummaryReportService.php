@@ -48,14 +48,15 @@ class PanelSummaryReportService extends BranchReportService
     /**
      * BIL-31 (design note 2.2): Panel money a branch is still owed, over every finalised Panel invoice up to now, from
      * the same per-allocation adding-up as this report (groups()), so the overview and the report cannot disagree.
-     * Over-90 parts use the report's own age groups.
+     * Over-90 parts use the report's own age groups. It checks no permission: callers must authorise (today only
+     * DirectorOverviewService, after its own checks).
      *
      * @return array{awaitingDecisionSen: int, awaitingDecisionOver90Sen: int, acceptedOutstandingSen: int, acceptedOutstandingOver90Sen: int, unclaimedSen: int, unclaimedOver90Sen: int}
      */
     public function totals(int $organisationId, Branch $branch, ?CarbonImmutable $fromUtc = null, ?CarbonImmutable $toUtc = null): array
     {
         $sums = array_fill(0, 24, 0);
-        foreach ($this->groups($organisationId, $branch, $fromUtc, $toUtc ?? CarbonImmutable::now('UTC')) as $group) {
+        foreach ($this->groups($organisationId, $branch, $fromUtc, $toUtc, true) as $group) {
             for ($i = 0; $i < 24; $i++) {
                 $sums[$i] += (int) ($group['values'][$i] ?? 0);
             }
@@ -69,19 +70,35 @@ class PanelSummaryReportService extends BranchReportService
     }
 
     /**
-     * Per-Panel values for approved Panel shares of invoices finalised in [from, to) at one branch (from null means
-     * since the first). Value indexes follow the report columns after "Panel".
+     * Per-Panel values for approved Panel shares of invoices finalised in [from, to) at one branch (a null from means
+     * since the first; a null to means up to now). Value indexes follow the report columns after "Panel".
      *
      * @return array<int, array{name: string, values: array<int, int>}>
      */
-    private function groups(int $organisationId, Branch $branch, ?CarbonImmutable $fromUtc, CarbonImmutable $toUtc): array
+    private function groups(int $organisationId, Branch $branch, ?CarbonImmutable $fromUtc, ?CarbonImmutable $toUtc, bool $owingOnly = false): array
     {
         $groups = [];
         $query = app(PanelClaimEligibility::class)->approvedAllocations($organisationId, $branch->id);
         if ($fromUtc !== null) {
             $query->where('i.finalized_at', '>=', $fromUtc);
         }
-        $query->where('i.finalized_at', '<', $toUtc)
+        if ($owingOnly) {
+            // BIL-31 (Kumar F2): for totals(), skip Panel shares that can add nothing to the six figures, in SQL: keep a
+            // share that is not yet claimed (no original claim with a submitted event), or that has a claim still
+            // awaiting a decision or accepted for more than has been paid. Anything in doubt is kept.
+            $query->where(function ($owing): void {
+                $owing->whereNotExists(fn ($q) => $q->selectRaw('1')->from('panel_claims as oc')->whereColumn('oc.coverage_allocation_id', 'c.id')
+                    ->where('oc.claim_kind', 'original')
+                    ->whereExists(fn ($e) => $e->selectRaw('1')->from('panel_claim_events as oe')->whereColumn('oe.panel_claim_id', 'oc.id')->where('oe.event_type', 'submitted')))
+                    ->orWhereExists(fn ($q) => $q->selectRaw('1')->from('panel_claims as cl')->whereColumn('cl.coverage_allocation_id', 'c.id')
+                        ->where(fn ($open) => $open->where(fn ($awaiting) => $awaiting->whereIn('cl.status', ['submitted', 'queried'])->whereNull('cl.accepted_amount_sen'))
+                            ->orWhereRaw('COALESCE(cl.accepted_amount_sen, 0) > (SELECT COALESCE(SUM(pay.amount_sen), 0) FROM panel_claim_payments pay WHERE pay.panel_claim_id = cl.id AND NOT EXISTS (SELECT 1 FROM panel_claim_payment_reversals rv WHERE rv.panel_claim_payment_id = pay.id))')));
+            });
+        }
+        if ($toUtc !== null) {
+            $query->where('i.finalized_at', '<', $toUtc); // Null (totals to date): every finalised invoice so far.
+        }
+        $query
             ->orderByRaw('pn.name COLLATE "C"')->orderBy('c.id')->select(['c.id', 'c.panel_id', DB::raw('kpone_panel_effective(i.id) as amount_sen'), 'pn.name', 'i.finalized_at']); // PCA-2: approved and unclaimed use the current Panel share.
         $today = CarbonImmutable::now($branch->timezone)->startOfDay();
         $query->chunk(500, function ($allocations) use ($organisationId, $branch, $today, &$groups): void {

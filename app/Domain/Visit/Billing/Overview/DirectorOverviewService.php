@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Overview;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Shared\Services\InvoiceSalesProjection;
 use App\Domain\Shared\Services\PanelSummaryReportService;
@@ -27,6 +28,7 @@ final class DirectorOverviewService
 
     public function __construct(
         private BranchAccessService $branches,
+        private TransactionalActorAuthority $authority,
         private SalesTargetService $targets,
         private PanelSummaryReportService $panelSummary,
         private CashClosingService $closings,
@@ -41,6 +43,10 @@ final class DirectorOverviewService
         }
         $active = $this->branches->activeBranch($actor);
         abort_unless($active && $active->organisation_id === $actor->organisation_id, 404);
+        // The usual actor rule: an assignment at the active branch that is effective today (Kumar, design review F10).
+        if (! $this->authority->wouldAllow($actor, $active, self::PERMISSION)) {
+            throw new AuthorizationException('You may not perform this operation.');
+        }
         $branches = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('code')->get();
         $waiting = $this->waiting->counts($actor->organisation_id, $branches->pluck('id')->map(fn ($id): int => (int) $id)->all());
 
@@ -49,9 +55,11 @@ final class DirectorOverviewService
             $today = $now->startOfDay();
             $monthStart = $today->startOfMonth();
             $net = fn (CarbonImmutable $from, CarbonImmutable $to): int => InvoiceSalesProjection::netSales($actor->organisation_id, [$branch->id => ['start' => $from->utc(), 'end' => $to->utc()]])['netSen'];
-            // Each part of net sales counts on its own day, so disjoint periods add up: month so far = before today + today.
+            // Each part of net sales counts on its own day. Month to yesterday is read directly (Kumar F4), so a sale
+            // committed between two reads cannot make it short.
             $monthSoFar = $net($monthStart, $now);
             $todaySoFar = $net($today, $now);
+            $monthToYesterday = $net($monthStart, $today);
             $fullDays = $today->day - 1;
             $lastStart = $monthStart->subMonthNoOverflow();
             $lastDays = min($fullDays, $lastStart->daysInMonth);
@@ -64,7 +72,7 @@ final class DirectorOverviewService
                 'code' => $branch->code,
                 'sales' => [
                     'todaySoFarSen' => $todaySoFar,
-                    'monthToYesterdaySen' => $fullDays === 0 ? null : $monthSoFar - $todaySoFar,
+                    'monthToYesterdaySen' => $fullDays === 0 ? null : $monthToYesterday,
                     'lastMonthSameDaysSen' => $lastDays === 0 ? null : $net($lastStart, $lastStart->addDays($lastDays)),
                     'lastMonthFrom' => $lastDays === 0 ? null : $lastStart->toDateString(),
                     'lastMonthTo' => $lastDays === 0 ? null : $lastStart->addDays($lastDays - 1)->toDateString(),

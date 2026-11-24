@@ -329,7 +329,6 @@ final class CashClosingService
         ];
     }
 
-    /** BIL-15: the branch's current cash closing start date (its latest revision), or null when none is set. */
     /**
      * BIL-31 (design note 2.4): one branch-day's close status, read only, by the month view's own rule: approved,
      * waiting, returned, not_counted, before_start (never due) or open (the day has not ended). For the overview, which
@@ -357,6 +356,7 @@ final class CashClosingService
         return $startsOn === null || $day->lessThan($startsOn) ? 'before_start' : 'not_counted';
     }
 
+    /** BIL-15: the branch's current cash closing start date (its latest revision), or null when none is set. */
     public function startDate(Branch $branch): ?CarbonImmutable
     {
         $row = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderByDesc('revision')->first();

@@ -49,7 +49,9 @@ final class OverviewWaitingCounts
         foreach (['coverage_allocations', 'patient_receivables'] as $table) {
             $add('panel_or_pay_later', DB::table($table.' as p')->where('p.organisation_id', $organisationId)->where('p.status', 'proposed')
                 ->whereColumn('p.current_invoice_guard', 'p.invoice_id')
+                // Kumar F7: an invoice on correction hold or with stale sources cannot be approved until that clears.
                 ->join('invoices as i', 'i.id', '=', 'p.invoice_id')->where('i.status', 'finalized')->whereNull('i.voided_at')
+                ->where('i.correction_hold', false)->where('i.source_stale', false)
                 ->whereColumn('p.expected_invoice_version', 'i.lock_version')
                 ->join('visits as v', 'v.id', '=', 'i.visit_id')->where('v.status', Visit::STATUS_REGISTERED), 'p.branch_id');
         }

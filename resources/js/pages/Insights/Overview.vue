@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
 import { myr, myrNoBreak } from '@/types/billing';
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            { title: 'Insights', href: '/insights/today' },
+            { title: 'Overview', href: '/insights/overview' },
+        ],
+    },
+});
 
 // BIL-31: the Director and Finance overview (owner item 32, P8, answers all A). The server works out every figure;
 // counts and amounts only, for every active branch. No red or green anywhere.
@@ -83,6 +93,67 @@ const closeLabels: Record<string, string> = {
     open: 'Open',
 };
 
+// Daniel: every waiting row says its unit, so "3" reads as three days waiting.
+const unit = (kind: string, count: number) =>
+    kind === 'cash_close'
+        ? `${count} ${count === 1 ? 'day' : 'days'} waiting`
+        : `${count} waiting`;
+
+// Neutral dot for "never due", amber for a close that needs work; no red.
+const closeTone: Record<string, string> = {
+    approved: 'bg-muted-foreground/40',
+    open: 'bg-muted-foreground/40',
+    before_start: 'bg-muted-foreground/40',
+    waiting: 'bg-amber-500',
+    returned: 'bg-amber-500',
+    not_counted: 'bg-amber-500',
+};
+
+const panelTotal = computed(() =>
+    props.overview.branches.reduce(
+        (total, row) => ({
+            awaitingDecisionSen:
+                total.awaitingDecisionSen + row.panel.awaitingDecisionSen,
+            awaitingDecisionOver90Sen:
+                total.awaitingDecisionOver90Sen +
+                row.panel.awaitingDecisionOver90Sen,
+            acceptedOutstandingSen:
+                total.acceptedOutstandingSen + row.panel.acceptedOutstandingSen,
+            acceptedOutstandingOver90Sen:
+                total.acceptedOutstandingOver90Sen +
+                row.panel.acceptedOutstandingOver90Sen,
+            unclaimedSen: total.unclaimedSen + row.panel.unclaimedSen,
+            unclaimedOver90Sen:
+                total.unclaimedOver90Sen + row.panel.unclaimedOver90Sen,
+        }),
+        {
+            awaitingDecisionSen: 0,
+            awaitingDecisionOver90Sen: 0,
+            acceptedOutstandingSen: 0,
+            acceptedOutstandingOver90Sen: 0,
+            unclaimedSen: 0,
+            unclaimedOver90Sen: 0,
+        },
+    ),
+);
+const panelColumns = [
+    {
+        label: 'Awaiting decision',
+        key: 'awaitingDecisionSen',
+        over: 'awaitingDecisionOver90Sen',
+    },
+    {
+        label: 'Accepted not paid',
+        key: 'acceptedOutstandingSen',
+        over: 'acceptedOutstandingOver90Sen',
+    },
+    {
+        label: 'Not yet claimed',
+        key: 'unclaimedSen',
+        over: 'unclaimedOver90Sen',
+    },
+] as const;
+
 const kindLabels: Record<string, { label: string; href: string }> = {
     cash_close: { label: 'Daily cash close', href: '/cash-closings' },
     refund: { label: 'Refunds', href: '/financial-work' },
@@ -94,7 +165,10 @@ const kindLabels: Record<string, { label: string; href: string }> = {
         label: 'Panel claim adjustments',
         href: '/panel-claims',
     },
-    supplier_invoice: { label: 'Supplier invoices', href: '/inventory' },
+    supplier_invoice: {
+        label: 'Supplier invoices',
+        href: '/inventory/supplier-invoices',
+    },
     purchase_order: { label: 'Purchase orders', href: '/inventory' },
     panel_price_change: {
         label: 'Panel price changes',
@@ -105,6 +179,7 @@ const kindLabels: Record<string, { label: string; href: string }> = {
 const waitingLines = computed(() => {
     const lines: {
         key: string;
+        kind: string;
         label: string;
         where: string;
         count: number;
@@ -116,6 +191,7 @@ const waitingLines = computed(() => {
             if (count > 0 && kindLabels[kind]) {
                 lines.push({
                     key: `${kind}-${branch.branchId}`,
+                    kind,
                     label: kindLabels[kind].label,
                     where: branch.branch,
                     count,
@@ -131,6 +207,7 @@ const waitingLines = computed(() => {
         if (count > 0 && kindLabels[kind]) {
             lines.push({
                 key: kind,
+                kind,
                 label: kindLabels[kind].label,
                 where: 'All branches',
                 count,
@@ -204,80 +281,75 @@ const firstRow = computed(() => props.overview.branches[0]);
                 aria-labelledby="overview-targets"
                 data-testid="overview-targets"
             >
-                <div class="flex items-baseline justify-between gap-2">
+                <div class="flex items-center justify-between gap-2">
                     <h2 id="overview-targets" class="font-semibold">
                         Targets this month
                     </h2>
                     <a
                         v-if="overview.canSetTargets"
                         href="/sales-targets"
-                        class="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:underline lg:min-h-0"
-                        >View</a
-                    >
+                        class="view-link"
+                        data-testid="overview-view-targets"
+                        >View<ChevronRight class="size-3.5" aria-hidden="true"
+                    /></a>
                 </div>
                 <ul class="mt-3 divide-y">
                     <li
                         v-for="row in overview.branches"
                         :key="row.branchId"
-                        class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                        class="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3"
                         :data-testid="`overview-target-${row.code}`"
                     >
                         <div class="min-w-0">
                             <p class="font-medium">{{ row.branch }}</p>
-                            <template v-if="row.target.targetSen !== null">
-                                <p class="text-sm tabular-nums">
-                                    {{ myrNoBreak(row.target.achievedSen) }} of
-                                    {{ myrNoBreak(row.target.targetSen) }} ({{
-                                        row.target.percent ?? 0
-                                    }}%)
-                                </p>
-                                <div
-                                    class="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
-                                    role="progressbar"
-                                    :aria-valuenow="
-                                        Math.min(100, row.target.percent ?? 0)
-                                    "
-                                    aria-valuemin="0"
-                                    aria-valuemax="100"
-                                    :aria-label="`${row.branch}: ${row.target.percent ?? 0}% of the target reached`"
-                                >
-                                    <div
-                                        class="h-full bg-brand"
-                                        :style="{
-                                            width: `${Math.min(100, row.target.percent ?? 0)}%`,
-                                        }"
-                                    />
-                                </div>
-                            </template>
+                            <p
+                                v-if="row.target.targetSen !== null"
+                                class="text-sm tabular-nums"
+                            >
+                                {{ myrNoBreak(row.target.achievedSen) }} of
+                                {{ myrNoBreak(row.target.targetSen) }} ({{
+                                    row.target.percent ?? 0
+                                }}%)<span class="text-muted-foreground">{{
+                                    row.target.reached
+                                        ? ` · Target reached, ${myrNoBreak(row.target.overSen ?? 0)} over`
+                                        : row.target.neededPerDaySen !== null
+                                          ? ` · ${myrNoBreak(row.target.neededPerDaySen)} a day · ${row.target.daysLeft} ${row.target.daysLeft === 1 ? 'day' : 'days'} left`
+                                          : ''
+                                }}</span>
+                            </p>
                             <p v-else class="text-sm text-muted-foreground">
                                 No target ·
                                 {{ myrNoBreak(row.target.achievedSen) }} so far
                             </p>
+                            <div
+                                v-if="row.target.targetSen !== null"
+                                class="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
+                                role="progressbar"
+                                :aria-valuenow="
+                                    Math.min(100, row.target.percent ?? 0)
+                                "
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                :aria-label="`${row.branch}: ${row.target.percent ?? 0}% of the target reached`"
+                            >
+                                <div
+                                    class="h-full bg-brand"
+                                    :style="{
+                                        width: `${Math.min(100, row.target.percent ?? 0)}%`,
+                                    }"
+                                />
+                            </div>
                         </div>
-                        <p
-                            class="text-sm whitespace-nowrap text-muted-foreground tabular-nums sm:text-right"
+                        <a
+                            v-if="
+                                row.target.targetSen === null &&
+                                overview.canSetTargets
+                            "
+                            href="/sales-targets"
+                            class="view-link justify-self-start sm:justify-self-end"
+                            :data-testid="`overview-set-target-${row.code}`"
+                            >Set target</a
                         >
-                            <template v-if="row.target.targetSen === null">
-                                <a
-                                    v-if="overview.canSetTargets"
-                                    href="/sales-targets"
-                                    class="inline-flex min-h-11 items-center underline-offset-4 hover:underline lg:min-h-0"
-                                    >Set target</a
-                                >
-                            </template>
-                            <template v-else-if="row.target.reached"
-                                >Target reached,
-                                {{ myrNoBreak(row.target.overSen ?? 0) }}
-                                over</template
-                            >
-                            <template
-                                v-else-if="row.target.neededPerDaySen !== null"
-                                >{{ myrNoBreak(row.target.neededPerDaySen) }} a
-                                day · {{ row.target.daysLeft }}
-                                {{ row.target.daysLeft === 1 ? 'day' : 'days' }}
-                                left</template
-                            >
-                        </p>
                     </li>
                 </ul>
             </section>
@@ -295,23 +367,26 @@ const firstRow = computed(() => props.overview.branches[0]);
                     The Approvals inbox shows only what you may decide.
                 </p>
                 <ul v-if="waitingLines.length" class="mt-3 divide-y">
-                    <li
-                        v-for="line in waitingLines"
-                        :key="line.key"
-                        class="flex items-center justify-between gap-3 py-2 text-sm"
-                    >
-                        <span class="min-w-0"
-                            >{{ line.label }}
-                            <span class="text-muted-foreground"
-                                >· {{ line.where }}</span
-                            ></span
-                        >
+                    <li v-for="line in waitingLines" :key="line.key">
                         <a
                             :href="line.href"
-                            class="inline-flex min-h-11 min-w-11 items-center justify-end font-medium tabular-nums underline-offset-4 hover:underline lg:min-h-0"
-                            :aria-label="`${line.label}, ${line.where}: ${line.count} waiting`"
-                            >{{ line.count }}</a
+                            class="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-md px-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            :data-testid="`overview-waiting-${line.key}`"
                         >
+                            <span class="min-w-0"
+                                >{{ line.label }}
+                                <span class="text-muted-foreground"
+                                    >· {{ line.where }}</span
+                                ></span
+                            >
+                            <span
+                                class="flex shrink-0 items-center gap-1 font-medium tabular-nums"
+                                >{{ unit(line.kind, line.count)
+                                }}<ChevronRight
+                                    class="size-4 text-muted-foreground"
+                                    aria-hidden="true"
+                            /></span>
+                        </a>
                     </li>
                 </ul>
                 <p
@@ -332,10 +407,20 @@ const firstRow = computed(() => props.overview.branches[0]);
                         :data-testid="`overview-close-${row.code}`"
                     >
                         <span>{{ row.branch }}</span>
-                        <span class="text-muted-foreground">{{
-                            closeLabels[row.yesterdayClose] ??
-                            row.yesterdayClose
-                        }}</span>
+                        <span
+                            class="inline-flex items-center gap-1.5 text-muted-foreground"
+                            ><span
+                                class="size-2 rounded-full"
+                                :class="
+                                    closeTone[row.yesterdayClose] ??
+                                    'bg-muted-foreground/40'
+                                "
+                                aria-hidden="true"
+                            />{{
+                                closeLabels[row.yesterdayClose] ??
+                                row.yesterdayClose
+                            }}</span
+                        >
                     </li>
                 </ul>
             </section>
@@ -345,95 +430,76 @@ const firstRow = computed(() => props.overview.branches[0]);
                 aria-labelledby="overview-panel"
                 data-testid="overview-panel"
             >
-                <div class="flex items-baseline justify-between gap-2">
+                <div class="flex items-center justify-between gap-2">
                     <h2 id="overview-panel" class="font-semibold">
                         Panel money owed
                     </h2>
-                    <a
-                        href="/panel-claims/follow-up"
-                        class="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:underline lg:min-h-0"
-                        >View</a
-                    >
+                    <a href="/panel-claims/follow-up" class="view-link"
+                        >View<ChevronRight class="size-3.5" aria-hidden="true"
+                    /></a>
                 </div>
                 <p class="mt-1 text-xs text-muted-foreground">
                     All Panel bills to date. The Panel summary report covers at
                     most 31 days.
                 </p>
-                <ul class="mt-3 divide-y">
-                    <li
-                        v-for="row in overview.branches"
-                        :key="row.branchId"
-                        class="py-3"
-                        :data-testid="`overview-panel-${row.code}`"
-                    >
-                        <p class="font-medium">{{ row.branch }}</p>
-                        <dl
-                            class="mt-1 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3"
+                <dl
+                    class="mt-3 grid grid-cols-3 gap-2 text-sm"
+                    data-testid="overview-panel-total"
+                >
+                    <div v-for="col in panelColumns" :key="col.key">
+                        <dt class="text-xs text-muted-foreground">
+                            {{ col.label }}
+                        </dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ myrNoBreak(panelTotal[col.key]) }}
+                        </dd>
+                        <dd
+                            v-if="panelTotal[col.over] > 0"
+                            class="text-xs text-muted-foreground tabular-nums"
                         >
-                            <div>
-                                <dt class="text-xs text-muted-foreground">
-                                    Awaiting decision
-                                </dt>
-                                <dd class="tabular-nums">
-                                    {{
-                                        myrNoBreak(
-                                            row.panel.awaitingDecisionSen,
-                                        )
-                                    }}
-                                </dd>
-                                <dd
-                                    class="text-xs text-muted-foreground tabular-nums"
+                            over 90 days
+                            {{ myrNoBreak(panelTotal[col.over]) }}
+                        </dd>
+                    </div>
+                </dl>
+                <details class="group mt-3">
+                    <summary
+                        class="inline-flex min-h-11 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:min-h-0"
+                    >
+                        By branch
+                    </summary>
+                    <ul class="mt-2 divide-y">
+                        <li
+                            v-for="row in overview.branches"
+                            :key="row.branchId"
+                            class="grid gap-1 py-2 text-sm sm:grid-cols-[8rem_repeat(3,minmax(0,1fr))] sm:items-start"
+                            :data-testid="`overview-panel-${row.code}`"
+                        >
+                            <p class="font-medium">{{ row.branch }}</p>
+                            <div
+                                v-for="col in panelColumns"
+                                :key="col.key"
+                                class="flex justify-between gap-2 sm:block"
+                            >
+                                <span class="text-muted-foreground sm:hidden">{{
+                                    col.label
+                                }}</span>
+                                <span
+                                    class="text-right tabular-nums sm:text-left"
+                                    >{{ myrNoBreak(row.panel[col.key])
+                                    }}<span
+                                        v-if="row.panel[col.over] > 0"
+                                        class="block text-xs text-muted-foreground"
+                                        >over 90 days
+                                        {{
+                                            myrNoBreak(row.panel[col.over])
+                                        }}</span
+                                    ></span
                                 >
-                                    over 90 days
-                                    {{
-                                        myrNoBreak(
-                                            row.panel.awaitingDecisionOver90Sen,
-                                        )
-                                    }}
-                                </dd>
                             </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">
-                                    Accepted not paid
-                                </dt>
-                                <dd class="tabular-nums">
-                                    {{
-                                        myrNoBreak(
-                                            row.panel.acceptedOutstandingSen,
-                                        )
-                                    }}
-                                </dd>
-                                <dd
-                                    class="text-xs text-muted-foreground tabular-nums"
-                                >
-                                    over 90 days
-                                    {{
-                                        myrNoBreak(
-                                            row.panel
-                                                .acceptedOutstandingOver90Sen,
-                                        )
-                                    }}
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">
-                                    Not yet claimed
-                                </dt>
-                                <dd class="tabular-nums">
-                                    {{ myrNoBreak(row.panel.unclaimedSen) }}
-                                </dd>
-                                <dd
-                                    class="text-xs text-muted-foreground tabular-nums"
-                                >
-                                    over 90 days
-                                    {{
-                                        myrNoBreak(row.panel.unclaimedOver90Sen)
-                                    }}
-                                </dd>
-                            </div>
-                        </dl>
-                    </li>
-                </ul>
+                        </li>
+                    </ul>
+                </details>
             </section>
 
             <section
@@ -441,15 +507,13 @@ const firstRow = computed(() => props.overview.branches[0]);
                 aria-labelledby="overview-month"
                 data-testid="overview-month"
             >
-                <div class="flex items-baseline justify-between gap-2">
+                <div class="flex items-center justify-between gap-2">
                     <h2 id="overview-month" class="font-semibold">
                         Month so far
                     </h2>
-                    <a
-                        href="/insights/sales"
-                        class="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:underline lg:min-h-0"
-                        >View</a
-                    >
+                    <a href="/insights/sales" class="view-link"
+                        >View<ChevronRight class="size-3.5" aria-hidden="true"
+                    /></a>
                 </div>
                 <p
                     v-if="firstRow && firstRow.sales.lastMonthFrom"
@@ -472,54 +536,53 @@ const firstRow = computed(() => props.overview.branches[0]);
                     data-testid="overview-month-cards"
                 >
                     <li
-                        v-for="row in overview.branches"
-                        :key="row.branchId"
-                        class="py-3 text-sm"
+                        v-for="row in [
+                            {
+                                key: 'total',
+                                name: 'Total',
+                                today: totals.today,
+                                month: totals.monthToYesterday,
+                                last: totals.lastMonth,
+                            },
+                            ...overview.branches.map((b) => ({
+                                key: b.code,
+                                name: b.branch,
+                                today: b.sales.todaySoFarSen,
+                                month: b.sales.monthToYesterdaySen,
+                                last: b.sales.lastMonthSameDaysSen,
+                            })),
+                        ]"
+                        :key="row.key"
+                        class="py-2 text-sm"
                     >
-                        <p class="font-medium">{{ row.branch }}</p>
-                        <dl class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                            <dt class="text-muted-foreground">Today so far</dt>
-                            <dd class="text-right tabular-nums">
-                                {{ myrNoBreak(row.sales.todaySoFarSen) }}
-                            </dd>
-                            <dt class="text-muted-foreground">
-                                Month to yesterday
-                            </dt>
-                            <dd class="text-right tabular-nums">
+                        <p
+                            :class="
+                                row.key === 'total'
+                                    ? 'font-semibold'
+                                    : 'font-medium'
+                            "
+                        >
+                            {{ row.name }}
+                        </p>
+                        <p class="tabular-nums">
+                            {{
+                                row.month === null ? '—' : myrNoBreak(row.month)
+                            }}
+                            <span class="text-muted-foreground"
+                                >to yesterday ·
                                 {{
-                                    row.sales.monthToYesterdaySen === null
-                                        ? '—'
-                                        : myrNoBreak(
-                                              row.sales.monthToYesterdaySen,
-                                          )
+                                    row.month === null || row.last === null
+                                        ? 'no comparison'
+                                        : `${signed(row.month - row.last)} on last month`
                                 }}
-                            </dd>
-                            <dt class="text-muted-foreground">
-                                Same days last month
-                            </dt>
-                            <dd class="text-right tabular-nums">
+                                · today
                                 {{
-                                    row.sales.lastMonthSameDaysSen === null
+                                    row.today === null
                                         ? '—'
-                                        : myrNoBreak(
-                                              row.sales.lastMonthSameDaysSen,
-                                          )
-                                }}
-                            </dd>
-                            <dt class="text-muted-foreground">Difference</dt>
-                            <dd class="text-right tabular-nums">
-                                {{
-                                    row.sales.monthToYesterdaySen === null ||
-                                    row.sales.lastMonthSameDaysSen === null
-                                        ? '—'
-                                        : signed(
-                                              row.sales.monthToYesterdaySen -
-                                                  row.sales
-                                                      .lastMonthSameDaysSen,
-                                          )
-                                }}
-                            </dd>
-                        </dl>
+                                        : myrNoBreak(row.today)
+                                }}</span
+                            >
+                        </p>
                     </li>
                 </ul>
                 <div class="mt-3 overflow-x-auto max-sm:hidden">
@@ -648,3 +711,30 @@ const firstRow = computed(() => props.overview.branches[0]);
         </div>
     </main>
 </template>
+
+<style scoped>
+.view-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border);
+    padding: 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+.view-link:hover {
+    background: var(--muted);
+}
+.view-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+@media (min-width: 1024px) {
+    .view-link {
+        min-height: 1.75rem;
+        padding: 0 0.5rem;
+    }
+}
+</style>
