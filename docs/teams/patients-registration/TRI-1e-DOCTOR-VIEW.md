@@ -1,6 +1,6 @@
 # TRI-1e design note: the doctor's read-only Triage view
 
-Status: **DESIGN NOTE, NOT BUILT.** Lead: Syazwan. Reviewer: Farhana. Classic only. Synthetic data only.
+Status: **DESIGN NOTE, APPROVED BY THE OWNER, NOT BUILT YET.** Lead: Syazwan. Reviewer: Farhana. Classic only. Synthetic data only.
 
 Owner decision (24 Nov 2026, relayed by B.E.R.N.I.S.S): "Doktor di Triage dan Billing... adakan ia, backend sedang
 built kan?" The doctor gets a read-only Triage view. The Billing part of that sentence belongs to the Billing team
@@ -77,7 +77,11 @@ table or migration apart from the permission grant.
 - Existing assertions that pin the triage permission list (`TriageServiceTest`) would gain this permission. Those
   changes go to the owner first.
 
-## 4. Questions for the owner
+## 4. Questions for the owner (answered)
+
+**Owner, 24 Nov 2026 (relayed by B.E.R.N.I.S.S): "ya semua".** All five recommendations are approved, with the
+permission `visits.triage.view.own` as named and the `TriageServiceTest` permission-list line changes.
+
 
 1. **Permission:** `visits.triage.view.own` for the Resident Doctor only? *Recommended: yes.*
 2. **Which doctor:** only the patient's own doctor (assigned, or attending once started)? *Recommended: yes.* The
