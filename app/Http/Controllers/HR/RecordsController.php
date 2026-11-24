@@ -92,7 +92,7 @@ class RecordsController extends Controller
     public function askSignIn(Request $request, LocumSignIns $signIns, string $worker): RedirectResponse
     {
         return $this->run($request, $this->file($worker, 'employment'), 'Sign-in asked for. The account administrator sees it on the Staff page.',
-            fn () => $signIns->request($request->user(), $worker, $request->only(['email', 'idempotency_key'])));
+            fn () => $signIns->request($request->user(), $worker, $request->only(['email', 'role', 'idempotency_key'])));
     }
 
     public function cancelSignIn(Request $request, LocumSignIns $signIns, string $worker, string $signIn): RedirectResponse
