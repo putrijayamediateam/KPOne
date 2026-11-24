@@ -145,7 +145,7 @@ final class HrDashboardService
             // names map still decides who is listed by name; on-call people show on their own line and never count as the
             // doctor on duty (HR-20).
             $onShift = collect($this->onDuty->onDutyNow($branch, $now))->filter(fn (OnDutyShift $s): bool => isset($names[$s->userId]))->values();
-            $onCall = collect($this->onDuty->onCallNow($branch, $now))->filter(fn (OnDutyShift $s): bool => isset($names[$s->userId]))->values();
+            $onCall = collect($this->onDuty->onCallNowForHrDashboard($branch, $now))->filter(fn (OnDutyShift $s): bool => isset($names[$s->userId]))->values();
             $doctors = $onShift->filter(fn (OnDutyShift $s): bool => $s->isDoctor)->pluck('userId')->unique()->count();
             $out['rostered'] = [
                 'count' => $onShift->pluck('userId')->unique()->count(),

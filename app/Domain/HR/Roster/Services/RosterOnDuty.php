@@ -25,8 +25,17 @@ use Illuminate\Support\Collection;
  *   never do.
  * - On-call shifts are never on duty (HR-20). Inactive accounts are left out.
  * - Approved leave: for a moment (`onDutyNow`, `isOnDuty`), a person whose approved leave covers that moment is left out;
- *   for a day (`onDutyOn`), a shift is left out only when one approved leave covers all of it, so someone on a half day
- *   still shows for the shift they work.
+ *   for a day (`onDutyOn`), a shift is left out only when the person's approved leave (slots joined) covers all of it, so
+ *   someone on a half day still shows for the shift they work.
+ * - Time zones: the moment check compares leave slots (branch-local wall-clock times) with this branch's local time, as
+ *   the HR dashboard always has; the day check converts each slot with its own leave branch's zone. Every branch is in
+ *   Kuala Lumpur time today, so both agree; if a branch in another zone is ever added, move the moment check to utcSlots.
+ *
+ * For callers:
+ * - There is no permission check here. A caller must hold its own branch-scoped permission and must never pass this list
+ *   to a page without staff access (the TV, the public QR pages).
+ * - An empty list means either "not published" or "nobody on duty": call `isPublished` first and decide the fallback.
+ * - `isOnDuty` is the moment rule; for "rostered today" use `onDutyOn`.
  *
  * Read only: no lock, no write, no audit and no permission check. The calling domain holds its own branch-scoped
  * permission, and this returns ids, role names, times and room ids only. Batched: shifts, leave, roles and rooms in one
@@ -54,11 +63,11 @@ final class RosterOnDuty
     }
 
     /**
-     * On-call shifts covering `$at`, for HR's own dashboard only. On call is never on duty.
+     * On-call shifts covering `$at`, for HR's own dashboard only (pinned by a test). On call is never on duty.
      *
      * @return list<OnDutyShift>
      */
-    public function onCallNow(Branch $branch, CarbonInterface $at): array
+    public function onCallNowForHrDashboard(Branch $branch, CarbonInterface $at): array
     {
         return $this->now($branch, CarbonImmutable::instance($at)->utc(), onCall: true, userId: null);
     }
@@ -87,12 +96,34 @@ final class RosterOnDuty
             $zones = Branch::query()->whereIn('id', $requests->pluck('branch_id')->unique())->pluck('timezone', 'id');
             $slots = $requests->groupBy('user_id')->map(fn (Collection $rs): Collection => $rs->map(
                 fn (LeaveRequest $r): array => $this->leave->utcSlots($r, (string) ($zones[$r->branch_id] ?? 'UTC'))));
-            $shifts = $shifts->reject(fn (RosterShift $s): bool => ($slots[$s->staff_user_id] ?? collect())->contains(
+            $merged = $slots->map(fn (Collection $userSlots): array => $this->merge($userSlots));
+            $shifts = $shifts->reject(fn (RosterShift $s): bool => collect($merged[$s->staff_user_id] ?? [])->contains(
                 fn (array $slot): bool => $slot[0]->lessThanOrEqualTo($s->starts_at) && $slot[1]->greaterThanOrEqualTo($s->ends_at),
             ))->values();
         }
 
         return $this->build($branch, $shifts);
+    }
+
+    /**
+     * Join a person's leave slots that overlap or touch, so two half days that together cover a shift count as covering it.
+     *
+     * @param  Collection<int, array{CarbonImmutable, CarbonImmutable}>  $slots
+     * @return list<array{CarbonImmutable, CarbonImmutable}>
+     */
+    private function merge(Collection $slots): array
+    {
+        $out = [];
+        foreach ($slots->sortBy(fn (array $slot): int => $slot[0]->getTimestamp())->values() as $slot) {
+            $last = count($out) - 1;
+            if ($last >= 0 && $slot[0]->lessThanOrEqualTo($out[$last][1])) {
+                $out[$last] = [$out[$last][0], $slot[1]->greaterThan($out[$last][1]) ? $slot[1] : $out[$last][1]];
+            } else {
+                $out[] = [$slot[0], $slot[1]];
+            }
+        }
+
+        return $out;
     }
 
     /** @return list<OnDutyShift> */

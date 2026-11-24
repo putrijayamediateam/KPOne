@@ -137,7 +137,7 @@ class RosterOnDutyTest extends VisitTestCase
         $this->assertSame([$doctor->id], $this->ids($service->onDutyOn($this->branch, $this->at('0 00:00'))));
         $this->assertFalse($service->isOnDuty($onCall->id, $this->branch, $this->at('0 10:00')));
         $this->assertFalse($service->isOnDuty($leaver->id, $this->branch, $this->at('0 10:00')));
-        $this->assertSame([$onCall->id], $this->ids($service->onCallNow($this->branch, $this->at('0 10:00'))), 'on call has its own answer for HR');
+        $this->assertSame([$onCall->id], $this->ids($service->onCallNowForHrDashboard($this->branch, $this->at('0 10:00'))), 'on call has its own answer for HR');
     }
 
     public function test_leave_covering_the_moment_removes_a_person_and_only_a_wholly_covered_shift_leaves_the_day(): void
@@ -160,6 +160,28 @@ class RosterOnDutyTest extends VisitTestCase
         $this->assertTrue($service->isOnDuty($morningOff->id, $this->branch, $this->at('0 13:00')));
         // The day: the half day still shows (they work the afternoon); the full day does not.
         $this->assertSame([$morningOff->id], $this->ids($service->onDutyOn($this->branch, $this->at('0 00:00'))));
+    }
+
+    public function test_two_half_days_that_together_cover_a_shift_take_it_off_the_day(): void
+    {
+        $doctor = $this->actor('resident_doctor');
+        $this->approvedWeek(fn (RosterVersion $v) => $this->addShift($v, $doctor, 0, '08:00', '17:00'));
+        $day = $this->week->toDateString();
+        $this->leave($doctor, $day, 'am', '00:00', "{$day} 13:00:00");
+        $this->leave($doctor, $day, 'am', '13:00', $this->week->addDay()->toDateString().' 00:00:00');
+
+        $this->assertSame([], app(RosterOnDuty::class)->onDutyOn($this->branch, $this->at('0 00:00')));
+    }
+
+    public function test_only_the_hr_dashboard_asks_for_on_call(): void
+    {
+        $callers = array_values(array_filter(array_map(fn (string $f): string => str_replace(base_path().'/', '', $f), array_merge(
+            glob(app_path('Domain/*/*.php')) ?: [], glob(app_path('Domain/*/*/*.php')) ?: [], glob(app_path('Domain/*/*/*/*.php')) ?: [],
+            glob(app_path('Domain/*/*/*/*/*.php')) ?: [], glob(app_path('Http/Controllers/*.php')) ?: [], glob(app_path('Http/Controllers/*/*.php')) ?: [],
+        )), fn (string $f): bool => str_contains((string) file_get_contents(base_path($f)), 'onCallNowForHrDashboard(')));
+        sort($callers);
+
+        $this->assertSame(['app/Domain/HR/Dashboard/HrDashboardService.php', 'app/Domain/HR/Roster/Services/RosterOnDuty.php'], $callers);
     }
 
     public function test_pending_leave_changes_nothing(): void
