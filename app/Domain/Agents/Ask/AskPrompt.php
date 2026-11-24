@@ -18,6 +18,7 @@ final class AskPrompt
             .'Request id: '.$code."\n\n"
             .'When you have the answer, call the KPOne tool save_answer with request_id "'.$code.'" and answer_text set to your short plain-text answer '
             .'(at most '.AskRequestService::MAX_ANSWER.' characters; no patient names, identity numbers, phone numbers or emails). '
+            .'Call list_branches and name each branch by its label (for example Sungai Besi), never by its code in capitals such as SUNGAI_BESI. '
             .'If you cannot find the KPOne tools, say so and do not make up numbers.';
     }
 

@@ -19,8 +19,12 @@ test('the drawer talks only to the chat endpoints and renders nothing unless GET
     assert.match(source, /\/agents\/chat\/threads\/\$\{id\}\/archive/);
     assert.match(source, /\/agents\/chat\/others/);
     assert.match(source, /X-XSRF-TOKEN/);
-    assert.match(drawer(), /<div v-if="state" data-ask-kpone>/);
-    assert.match(drawer(), /state\.value = null;/);
+    assert.match(drawer(), /<div v-if="state \|\| ask" data-ask-kpone>/);
+    // CHAT-2b: both probes run together; a path that answers 404 or 403 leaves its state null.
+    assert.match(
+        drawer(),
+        /chat\.status === 'fulfilled' \? chat\.value : null/,
+    );
 });
 
 test('answer text is never rendered as HTML', () => {
@@ -84,7 +88,8 @@ test('the drawer is non-modal, closes with focus back on the Ask KPOne button an
     assert.match(source, /@close-auto-focus="onCloseAutoFocus"/);
     assert.match(source, /aria-live="polite"/);
     assert.match(source, /min-h-11/);
-    assert.doesNotMatch(source, /Claude|AI assistant/);
+    // CHAT-2b: the drawer now names Claude for the "Ask through Claude" path; it still never brands itself as an AI assistant.
+    assert.doesNotMatch(source, /AI assistant/);
 });
 
 test("example chips fill the box without sending, and history and other people's history are wired", () => {
@@ -93,7 +98,7 @@ test("example chips fill the box without sending, and history and other people's
     assert.match(source, /const fill = \(example: string\)/);
     assert.match(source, /@click="fill\(example\)"/);
     assert.match(source, /View other people's history/);
-    assert.match(source, /state\.canViewOthers/);
+    assert.match(source, /state\?\.canViewOthers/);
     assert.match(
         source,
         /You are viewing someone else's questions\. Every view is\s+recorded\./,
@@ -143,7 +148,7 @@ test('the Director overview mounts the drawer only in its reserved header-action
     );
     assert.match(
         page,
-        /data-testid="overview-header-actions"[\s\S]{0,40}>\s*<AskKponeDrawer \/>/,
+        /data-testid="overview-header-actions"[\s\S]{0,40}>\s*<AskKponeDrawer :paths="props\.askKpone" \/>/,
     );
     assert.equal((page.match(/<AskKponeDrawer/g) ?? []).length, 1);
 });
