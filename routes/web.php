@@ -793,18 +793,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('insights.today');
     Route::get('insights/daily-sales/download', [ClinicInsightsController::class, 'downloadDailyReport'])
         ->defaults('dataset', 'daily_sales')
-        ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->middleware(['permission:reports.sales.export.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.daily-sales.download');
     Route::get('insights/daily-receipts/download', [ClinicInsightsController::class, 'downloadDailyReport'])
         ->defaults('dataset', 'daily_receipts')
-        ->middleware(['permission:reports.payments.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->middleware(['permission:reports.payments.export.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.daily-receipts.download');
     Route::get('insights/sales-summary/download', [ClinicInsightsController::class, 'downloadSalesSummary'])
-        ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->middleware(['permission:reports.sales.export.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.sales-summary.download');
     // BIL-31: the Director and Finance overview, before the {section} route.
     Route::get('insights/overview', [ClinicInsightsController::class, 'overview'])
-        ->middleware(['permission:insights.view.organisation', 'permission:insights.overview.view.organisation', 'sensitive.no-store'])
+        ->middleware(['permission:insights.overview.view.organisation', 'sensitive.no-store'])
         ->name('insights.overview');
     Route::get('insights/{section}', [ClinicInsightsController::class, 'report'])
         ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])

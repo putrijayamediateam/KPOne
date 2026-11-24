@@ -29,7 +29,8 @@ final class SalesSummaryExportService
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
             BranchOnlyExportScope::enforce($actor, $branch, $scope);
             $grants = $actor->getAllPermissions()->pluck('name');
-            abort_unless($grants->contains(self::PERMISSION) && $grants->contains('insights.view.organisation'), 403);
+            // INS-1 (owner, 24 Nov 2026): the download stands on its own export permission, not on Insights page access.
+            abort_unless($grants->contains(self::PERMISSION), 403);
             $data = $this->reports->report($actor, 'sales', $scope, $from, $to, $doctor);
             $summary = $data['report']['summary'];
             $zones = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)

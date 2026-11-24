@@ -34,7 +34,8 @@ final class DailyReportExportService
             $actor = $this->authority->lock($actor, $branch, $permission);
             BranchOnlyExportScope::enforce($actor, $branch, $scope);
             $grants = $actor->getAllPermissions()->pluck('name');
-            abort_unless($grants->contains($permission) && $grants->contains('insights.view.organisation'), 403);
+            // INS-1 (owner, 24 Nov 2026): the download stands on its own export permission, not on Insights page access.
+            abort_unless($grants->contains($permission), 403);
             $data = $this->reports->report($actor, $section, $scope, $from, $to, $doctor);
             $zones = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)
                 ->when($scope !== 'all', fn ($q) => $q->where('code', $scope))->orderBy('code')->get()
