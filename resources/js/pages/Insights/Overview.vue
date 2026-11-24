@@ -485,7 +485,16 @@ const firstRow = computed(() => props.overview.branches[0]);
                             aria-hidden="true"
                         />
                     </summary>
-                    <ul class="mt-2 divide-y">
+                    <div
+                        class="mt-2 hidden gap-1 text-xs text-muted-foreground sm:grid sm:grid-cols-[8rem_repeat(3,minmax(0,1fr))]"
+                        aria-hidden="true"
+                    >
+                        <span>Branch</span>
+                        <span v-for="col in panelColumns" :key="col.key">{{
+                            col.label
+                        }}</span>
+                    </div>
+                    <ul class="mt-1 divide-y">
                         <li
                             v-for="row in overview.branches"
                             :key="row.branchId"
