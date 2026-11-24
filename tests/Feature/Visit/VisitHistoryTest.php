@@ -38,7 +38,7 @@ class VisitHistoryTest extends BillingTestCase
             ->filter(fn (array $permissions): bool => in_array(self::PERMISSION, $permissions, true))
             ->keys()->sort()->values()->all();
 
-        $this->assertSame(['ca', 'ca_supervisor', 'director', 'resident_doctor'], $holders);
+        $this->assertSame(['branch_manager', 'ca', 'ca_supervisor', 'director', 'medical_assistant', 'resident_doctor'], $holders);
         $this->assertNotContains(self::PERMISSION, PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS);
     }
 

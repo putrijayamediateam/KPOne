@@ -16,6 +16,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { useApprovalCount } from '@/composables/useApprovalCount';
 import { useClockShortcut } from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
@@ -34,32 +35,30 @@ const handleLogout = () => {
 defineProps<Props>();
 const page = usePage();
 // DS-12: the person's own pages, built on the server from the permissions they hold, and the phone clock row.
+const { count: approvalCount } = useApprovalCount();
 const accountMenu = computed(() => page.props.workspace?.accountMenu);
-// The top-bar button exists only in the space shell, from 1024 px. This row is its twin: it hides exactly where the
-// button shows (the shell, from 1024 px) and shows everywhere else, so the two are never visible together.
-const inSpaceShell = computed(() => page.url.startsWith('/spaces'));
+// Classic only (CO-1, 19 Nov 2026): the Clock in row is the same on every page except Me home, whose big Clock in button
+// is the one Clock in there (owner, 18 Nov 2026: one Clock in on Me home).
 const {
     load: loadClock,
     press: pressClock,
     label: clockLabel,
     visible: clockVisible,
 } = useClockShortcut();
+// The row is gone once the menu closes, so pass the menu's own button (still open while the row is selected); focus goes
+// back to it after the photo dialog closes, instead of to the page.
+const pressClockAfterMenu = () =>
+    pressClock(
+        document.querySelector<HTMLElement>(
+            '[aria-haspopup="menu"][aria-expanded="true"]',
+        ),
+    );
+const onMeHome = computed(() => /^\/spaces\/me(?:[/?#]|$)/.test(page.url));
 onMounted(() => {
-    if (accountMenu.value?.clock) {
+    if (accountMenu.value?.clock && !onMeHome.value) {
         void loadClock();
     }
 });
-// In the new layout (switch on, or any space page) the same row always turns it off, so nobody is stuck.
-const inNewLayout = computed(
-    () =>
-        page.props.workspace?.spaces?.enabled === true ||
-        page.url.startsWith('/spaces'),
-);
-const switchSpaces = (enabled: boolean) =>
-    router.put('/spaces/preference', {
-        enabled,
-        lock_version: page.props.workspace?.spaces?.lockVersion ?? 0,
-    });
 </script>
 
 <template>
@@ -71,11 +70,10 @@ const switchSpaces = (enabled: boolean) =>
     <DropdownMenuSeparator />
     <DropdownMenuGroup v-if="accountMenu?.links.length || accountMenu?.clock">
         <DropdownMenuItem
-            v-if="accountMenu?.clock && clockVisible"
+            v-if="accountMenu?.clock && clockVisible && !onMeHome"
             class="cursor-pointer max-lg:min-h-11"
-            :class="{ 'lg:hidden': inSpaceShell }"
             data-test="clock-shortcut-row"
-            @select="pressClock()"
+            @select="pressClockAfterMenu"
         >
             <Clock class="mr-2 h-4 w-4" />{{ clockLabel }}
         </DropdownMenuItem>
@@ -85,9 +83,17 @@ const switchSpaces = (enabled: boolean) =>
             :as-child="true"
             class="pl-10 max-lg:min-h-11"
         >
-            <Link class="block w-full cursor-pointer" :href="link.href">{{
-                link.title
-            }}</Link>
+            <Link
+                class="flex w-full cursor-pointer items-center justify-between gap-2"
+                :href="link.href"
+                ><span>{{ link.title }}</span>
+                <span
+                    v-if="link.href === '/approvals' && approvalCount > 0"
+                    class="rounded-full bg-[#be185d] px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white"
+                    >{{ approvalCount
+                    }}<span class="sr-only"> waiting</span></span
+                ></Link
+            >
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator
@@ -97,27 +103,22 @@ const switchSpaces = (enabled: boolean) =>
         <DropdownMenuItem
             v-if="page.props.workspace?.navigation.clinicManagement"
             :as-child="true"
+            class="max-lg:min-h-11"
         >
             <Link class="block w-full cursor-pointer" href="/clinic-management">
                 <Building2 class="mr-2 h-4 w-4" />Clinic management
             </Link>
         </DropdownMenuItem>
+        <!-- Classic only (CO-1): the department spaces, for everyone who can enter one (built on the server). -->
         <DropdownMenuItem
-            v-if="page.props.workspace?.spaces?.enabled"
+            v-if="accountMenu?.spaces"
             :as-child="true"
+            class="max-lg:min-h-11"
+            data-test="spaces-row"
         >
             <Link class="block w-full cursor-pointer" href="/spaces">
                 <LayoutGrid class="mr-2 h-4 w-4" />Spaces
             </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-            v-if="page.props.workspace?.spaces?.offered"
-            class="cursor-pointer"
-            @select="switchSpaces(!inNewLayout)"
-        >
-            <LayoutGrid class="mr-2 h-4 w-4" />{{
-                inNewLayout ? 'Use the old layout' : 'Try the new layout'
-            }}
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
@@ -136,7 +137,7 @@ const switchSpaces = (enabled: boolean) =>
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
-    <DropdownMenuItem :as-child="true">
+    <DropdownMenuItem :as-child="true" class="max-lg:min-h-11">
         <Link
             class="block w-full cursor-pointer"
             :href="logout()"

@@ -1,9 +1,7 @@
 <script setup lang="ts">
 // HR-3b Overtime tab (Director, HR Manager): requests waiting with outline buttons, the decision inside the dialog
 // (the HR-2a pattern), and decided requests for a month.
-import { router } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Undo2 } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { MonthField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
@@ -13,11 +11,8 @@ import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
-import type {
-    OvertimeOptions,
-    OvertimeRequestRow,
-    OvertimeTabData,
-} from './types';
+import { useOvertimeTab } from '@/composables/hr/useOvertimeTab';
+import type { OvertimeOptions, OvertimeTabData } from './types';
 import { requestTone, weekTone } from './types';
 
 const props = defineProps<{
@@ -26,148 +21,19 @@ const props = defineProps<{
     error?: string;
 }>();
 
-const monthQuery = computed(() => ({ overtime_month: props.data.month }));
-const visitMonth = (month: string) =>
-    router.get(
-        '/hr/attendance',
-        { tab: 'overtime', month },
-        { preserveScroll: true },
-    );
-
-// Daniel: two buttons per card. The Approve dialog starts at the minutes asked; lowering them makes it
-// "Approve fewer minutes" with a required reason, and the primary label follows the minutes.
-type Mode = 'approve' | 'reject' | 'reverse';
-const dialog = reactive({
-    open: false,
-    mode: 'approve' as Mode,
-    target: null as OvertimeRequestRow | null,
-    minutes: '',
-    reason: '',
-    key: '',
-    error: '',
-    processing: false,
-});
-const open = (row: OvertimeRequestRow, mode: Mode) =>
-    Object.assign(dialog, {
-        open: true,
-        mode,
-        target: row,
-        minutes: String(row.minutesRequested),
-        reason: '',
-        key: crypto.randomUUID(),
-        error: '',
-    });
-const minutesValue = computed(() => {
-    const n = Number(dialog.minutes);
-
-    return /^\d+$/.test(dialog.minutes.trim()) ? n : null;
-});
-const fewer = computed(
-    () =>
-        dialog.mode === 'approve' &&
-        !!dialog.target &&
-        minutesValue.value !== null &&
-        minutesValue.value < dialog.target.minutesRequested,
-);
-const title = computed(() =>
-    dialog.mode === 'reverse'
-        ? 'Reverse this approved overtime?'
-        : dialog.mode === 'reject'
-          ? 'Reject this overtime?'
-          : fewer.value
-            ? 'Approve fewer minutes?'
-            : 'Approve this overtime?',
-);
-const confirmLabel = computed(() =>
-    dialog.mode === 'reverse'
-        ? 'Reverse overtime'
-        : dialog.mode === 'reject'
-          ? 'Reject overtime'
-          : `Approve ${minutesValue.value ?? dialog.target?.minutesRequested ?? ''} min`,
-);
-const needsReason = computed(() => dialog.mode !== 'approve' || fewer.value);
-const reasonOptions = computed(() =>
-    dialog.mode === 'approve'
-        ? props.options.lowerReasons
-        : dialog.mode === 'reject'
-          ? props.options.rejectReasons
-          : props.options.reverseReasons,
-);
-const confirm = () => {
-    const target = dialog.target;
-
-    if (!target) {
-        return;
-    }
-
-    if (dialog.mode === 'approve' && minutesValue.value === null) {
-        dialog.error = `Enter whole minutes from 1 to ${target.minutesRequested}.`;
-
-        return;
-    }
-
-    if (needsReason.value && dialog.reason === '') {
-        dialog.error = fewer.value
-            ? 'Choose why fewer minutes are approved.'
-            : 'Choose a reason.';
-
-        return;
-    }
-
-    const url =
-        dialog.mode === 'reverse'
-            ? `/hr/attendance/overtime/${target.publicId}/reverse`
-            : `/hr/attendance/overtime/${target.publicId}/${dialog.mode}`;
-    dialog.processing = true;
-    router.post(
-        url,
-        {
-            ...monthQuery.value,
-            expected_lock_version: target.lockVersion,
-            minutes: dialog.mode === 'approve' ? dialog.minutes : undefined,
-            reason: needsReason.value ? dialog.reason : undefined,
-            idempotency_key: dialog.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (dialog.open = false),
-            onError: (e) =>
-                (dialog.error =
-                    e.overtime ??
-                    e.attendance ??
-                    e.minutes ??
-                    e.reason ??
-                    'This could not be saved.'),
-            onFinish: () => (dialog.processing = false),
-        },
-    );
-};
-
-const withdrawing = ref('');
-const withdraw = (row: OvertimeRequestRow) => {
-    if (withdrawing.value !== '') {
-        return;
-    }
-
-    withdrawing.value = row.publicId;
-    router.post(
-        `/hr/attendance/overtime/${row.publicId}/withdraw`,
-        {
-            tab: 'overtime',
-            ...monthQuery.value,
-            expected_lock_version: row.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        { preserveScroll: true, onFinish: () => (withdrawing.value = '') },
-    );
-};
-const description = computed(() => {
-    const t = dialog.target;
-
-    return t
-        ? `${t.person} · ${t.dayLabel} · ${t.dayTypeLabel} · asked for ${t.requestedLabel}`
-        : '';
-});
+const {
+    visitMonth,
+    dialog,
+    open,
+    title,
+    confirmLabel,
+    needsReason,
+    reasonOptions,
+    confirm,
+    withdrawing,
+    withdraw,
+    description,
+} = useOvertimeTab(props);
 </script>
 
 <template>
@@ -475,6 +341,23 @@ const description = computed(() => {
                     it to approve fewer minutes; it is never raised.
                 </p>
             </div>
+            <p
+                v-if="dialog.mode === 'approve' && dialog.target?.lockedMonth"
+                class="text-sm"
+                data-test="overtime-locked-month"
+            >
+                {{ dialog.target.lockedMonth }}'s payroll is already locked:
+                after approving, add this on an adjustment run.
+            </p>
+            <p
+                v-if="dialog.mode === 'reverse' && dialog.target?.paidIn"
+                class="text-sm"
+                data-test="overtime-paid-in"
+            >
+                Paid in the locked {{ dialog.target.paidIn }}. Reversing it does
+                not change that run or its payslip: add a recovery on an
+                adjustment run.
+            </p>
             <div
                 v-if="needsReason"
                 class="grid gap-2"

@@ -10,6 +10,10 @@ the same PR as the code.
 |---|---|---|
 | Lead | **Kavitha** | Plans each piece, builds it, keeps this file current |
 | Reviewer | **Aiman** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| Classic-only Lead | **Haris** | Removed the Version 2 (V2) layout slice by slice so everyone sees Classic, losing no function (CO-1 to CO-10c, all merged by PR #1059 on 2026-11-22) |
+| Classic-only Reviewer | **Nadiah** | Reviews every Classic-only plan and slice for missed files, broken links, permission gaps and lost functions |
+
+**Added 2026-11-20 (owner request):** Haris and Nadiah joined this team from a short-term session run on 19 and 20 Nov 2026. The shared shell and layouts are this team's area, so retiring V2 (plan: `docs/design/CLASSIC-ONLY-PLAN.md`) sits here.
 
 Both are Claude builder sessions working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Names chosen by
 the coordinator (2026-11-05).
@@ -81,6 +85,19 @@ usability aid only and must follow the permission the backend already enforces.
 | UX-14 | Malay guides for the 100 × 62 mm landscape drug label (CA and CA Supervisor) | #357 |
 | UX-15 | Shared `PageHeader` on the Staff pages and Clinic management (DD-17, part), with optional `title-extra` and `description` slots | #369 |
 | UX-16 | Confirm dialog's non-destructive tile on the brand tokens; closes DD-20 | #365 |
+| CO-1 | Classic only: the "Try the new layout" switch and the new-look preview are no longer offered; everyone sees Classic, and the department spaces and Me home open in the Classic layout (`user_space_preferences` kept, no longer read) | #1000 |
+| CO-3 | Shared components back to Classic only (the V2 breadcrumb and other V2 branches in shared code removed) | #1002 |
+| CO-4 | V2 front desk and clinical pages removed (Registration, Queue, Consultation, Dispensary and related) | #1003 |
+| CO-5 | V2 money pages removed (Billing, Panel and reports) | #1004 |
+| CO-6 | V2 Inventory pages removed | #1005 |
+| CO-7 | V2 HR pages removed; the HR composables kept for the Classic pages | #1009 |
+| CO-8 | V2 catalogue, pricing, settings, staff, admin, document and agent pages removed | #1034 |
+| CO-9 | V2 public check-in pages removed (never shown) and the V2 page registry emptied | #1044 |
+| CO-10a | The agent office's V2 control-room look removed | #1052 |
+| CO-10b | The V2 machinery removed: `components/v2`, the V2 shell, `V2Layout`, `useUiVersion`, `lib/v2-*`, `v2.css`, `UiVersionResolver`, `V2ShellNavigation`, `config/v2-pages.php`, the Geist font and the V2 shared props | #1056 |
+| CO-10c | The last V2 leftovers: unused V2-only props and options, seven backend fields and the inline "add a Panel" route (`POST /catalogue-panels`), and stale V2 comments | #1059 |
+
+**Classic only: done (2026-11-22).** Every slice of `docs/design/CLASSIC-ONLY-PLAN.md` is merged (its section 8 lists them). Each slice listed its changed or deleted test assertions and had the owner's approval before the commit that changed them. Owner, 22 Nov 2026: keep the unused `user_space_preferences` table (plan Q4), so there is no CO-11. The Classic leave warning (section 7, item 17) remains its own later slice.
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -149,6 +166,9 @@ usability aid only and must follow the permission the backend already enforces.
   it once, some NVDA and Firefox versions twice (Billing team's file, left unchanged). The Panel claim create
   summary (`pages/PanelClaims/Create.vue`, Panel team's file) now announces only the errors no field announces.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
+- **DD-84 follow-up (owner: "classic later"):** the refused-request notice (403 and 419) is V2 only. Classic still shows
+  Inertia's raw error page in a modal. Giving Classic the same handler is a separate, later piece, not yet started
+  (see `lib/v2-refused-request.ts`; Classic is proven untouched by a real-app check).
 
 ## 8. Rules (every task)
 
@@ -275,3 +295,4 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (`bg-brand/10 text-brand-strong dark:bg-brand/15`), which carry their own dark values. It looks almost the
    same: the icon's contrast on its tile is 5.2:1 in light and 6.9:1 in dark (3:1 needed for an icon). A
    destructive question keeps its red tile. No assertion changed.
+17. **Classic leave warning on long forms (not built yet).** Recorded with the owner's approval on 2026-11-20 (CO-3): an unsaved-changes prompt built fresh on Classic's `OperationalConfirmDialog` (not ported from V2), on chosen pages only (consultation note, Register visit, Billing adjustments, HR forms), with the Lead UI/UX Designer's look, as its own slice after CO-10.

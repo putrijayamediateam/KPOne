@@ -5,7 +5,10 @@ import test from 'node:test';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-const page = read('resources/js/pages/HR/Dashboard.vue');
+// The month request moved into a composable shared with Version 2; the page is the file plus its composable.
+const page =
+    read('resources/js/pages/HR/Dashboard.vue') +
+    read('resources/js/composables/hr/useDashboardPage.ts');
 const routes = read('routes/web.php');
 const nav = read('app/Domain/Access/ClinicManagementNavigation.php');
 const service = read('app/Domain/HR/Dashboard/HrDashboardService.php');

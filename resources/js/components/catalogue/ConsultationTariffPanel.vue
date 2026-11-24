@@ -2,6 +2,9 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSectionHeading.vue';
+import PanelPricesReadOnly from '@/components/catalogue/PanelPricesReadOnly.vue';
+import type { PanelPriceLine } from '@/components/catalogue/PanelPricesReadOnly.vue';
+import PanelPriceValue from '@/components/catalogue/PanelPriceValue.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +29,7 @@ type ConsultationTariff = {
     panelDefaultAmountRm: string | null;
     panelDefaultVersion: number;
     panelOverrides: PanelOverride[];
+    panelPrices: PanelPriceLine[];
 };
 
 const props = defineProps<{
@@ -63,16 +67,8 @@ const form = useForm({
     },
 });
 const formError = (key: string) => form.errors[key as keyof typeof form.errors];
-const selectedNewPanel = ref('');
 const saving = ref(false);
 const hasCharge = computed(() => props.tariff.chargeExists);
-const addablePanels = computed(() => {
-    const selected = new Set(
-        form.prices.panel_overrides.map((override) => override.panel_id),
-    );
-
-    return props.panels.filter((panel) => !selected.has(String(panel.id)));
-});
 
 watch(
     () => props.tariff,
@@ -97,19 +93,6 @@ watch(
     { deep: true },
 );
 
-const addPanelOverride = () => {
-    if (!selectedNewPanel.value) {
-        return;
-    }
-
-    form.prices.panel_overrides.push({
-        panel_id: selectedNewPanel.value,
-        amount_rm: '',
-    });
-    form.expected_versions.panel_overrides[selectedNewPanel.value] = 0;
-    selectedNewPanel.value = '';
-};
-
 const submit = () => {
     saving.value = true;
     form.transform((data) => ({
@@ -117,11 +100,6 @@ const submit = () => {
         expected_branch_id: data.expected_branch_id || null,
         prices: {
             self_pay_sen: rmToSen(data.prices.self_pay_rm),
-            panel_default_sen: rmToSen(data.prices.panel_default_rm),
-            panel_overrides: data.prices.panel_overrides.map((override) => ({
-                panel_id: Number(override.panel_id),
-                amount_sen: rmToSen(override.amount_rm),
-            })),
         },
     }));
     form.post('/clinical-services/consultation-tariffs', {
@@ -198,7 +176,8 @@ const submit = () => {
                     <h4 class="text-sm font-medium">Default pricing</h4>
                     <p class="text-xs text-muted-foreground">
                         These organisation-wide prices are shared across
-                        branches. Panel-specific rates can be set below.
+                        branches. Panel prices are shown below and change by
+                        proposal.
                     </p>
                 </div>
                 <div class="overflow-hidden rounded-lg border">
@@ -243,119 +222,20 @@ const submit = () => {
                         <span class="text-xs text-muted-foreground"
                             >Default for Panels without a custom rate</span
                         >
-                        <div class="grid gap-1">
-                            <Label
-                                for="consultation-panel-default-price"
-                                class="text-xs sm:sr-only"
-                                >Default Panel price (RM)</Label
-                            >
-                            <Input
-                                id="consultation-panel-default-price"
-                                v-model="form.prices.panel_default_rm"
-                                aria-label="Default Panel price (RM) for consultation"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                :disabled="!canPublishPrices"
-                            />
-                            <InputError
-                                :message="formError('prices.panel_default_sen')"
-                            />
-                        </div>
+                        <PanelPriceValue
+                            :line="
+                                tariff.panelPrices.find(
+                                    (line) => line.isDefault,
+                                )
+                            "
+                        />
                     </div>
                 </div>
             </div>
 
-            <div class="grid gap-3">
-                <div class="flex flex-wrap items-end justify-between gap-2">
-                    <div>
-                        <h4 class="text-sm font-medium">
-                            Panel-specific price overrides
-                        </h4>
-                        <p class="text-xs text-muted-foreground">
-                            Existing published rates are retained as history;
-                            update them by publishing a new amount.
-                        </p>
-                    </div>
-                    <div
-                        v-if="canPublishPrices && addablePanels.length"
-                        class="flex items-center gap-2"
-                    >
-                        <OperationalSelect
-                            v-model="selectedNewPanel"
-                            label="Choose Panel to add"
-                            :options="[
-                                { value: '', label: 'Select a Panel' },
-                                ...addablePanels.map((panel) => ({
-                                    value: String(panel.id),
-                                    label: panel.name,
-                                })),
-                            ]"
-                        />
-                        <Button
-                            type="button"
-                            variant="outline"
-                            :disabled="!selectedNewPanel"
-                            @click="addPanelOverride"
-                        >
-                            Add override
-                        </Button>
-                    </div>
-                </div>
-                <div
-                    v-if="form.prices.panel_overrides.length"
-                    class="overflow-hidden rounded-lg border"
-                >
-                    <div
-                        class="hidden grid-cols-[minmax(12rem,1fr)_minmax(10rem,1fr)] gap-3 bg-muted/60 px-3 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:grid"
-                    >
-                        <span>Panel</span>
-                        <span>Price (RM)</span>
-                    </div>
-                    <div
-                        v-for="(override, index) in form.prices.panel_overrides"
-                        :key="override.panel_id"
-                        class="grid gap-2 border-t p-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,1fr)] sm:items-center"
-                    >
-                        <span class="font-medium">
-                            {{
-                                panels.find(
-                                    (panel) =>
-                                        String(panel.id) === override.panel_id,
-                                )?.name ??
-                                tariff.panelOverrides.find(
-                                    (saved) =>
-                                        saved.panelId === override.panel_id,
-                                )?.panelName ??
-                                `Panel ${override.panel_id}`
-                            }}
-                        </span>
-                        <div class="grid gap-1">
-                            <Input
-                                v-model="override.amount_rm"
-                                :aria-label="`Consultation tariff for Panel ${override.panel_id} in RM`"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                :disabled="!canPublishPrices"
-                            />
-                            <InputError
-                                :message="
-                                    formError(
-                                        `prices.panel_overrides.${index}.amount_sen`,
-                                    )
-                                "
-                            />
-                        </div>
-                    </div>
-                </div>
-                <p
-                    v-else
-                    class="rounded-md bg-muted/30 p-3 text-sm text-muted-foreground"
-                >
-                    No Panel-specific rates. Panel visits will use the default
-                    Panel price.
-                </p>
+            <div class="grid gap-2">
+                <h4 class="text-sm font-medium">Panel prices</h4>
+                <PanelPricesReadOnly :lines="tariff.panelPrices" />
                 <InputError :message="form.errors.prices" />
                 <InputError :message="form.errors.expected_versions" />
             </div>

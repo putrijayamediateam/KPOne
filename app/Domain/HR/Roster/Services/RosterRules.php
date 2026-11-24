@@ -23,14 +23,58 @@ use Illuminate\Validation\ValidationException;
  */
 final class RosterRules
 {
-    public const SESSIONS = ['morning' => 'Morning', 'afternoon' => 'Afternoon', 'evening' => 'Evening', 'night' => 'Night', 'full_day' => 'Full day', 'other' => 'Other'];
+    public const SESSIONS = ['morning' => 'Morning', 'afternoon' => 'Afternoon', 'evening' => 'Evening', 'night' => 'Night', 'full_day' => 'Full day', 'other' => 'Other',
+        'on_call' => 'On call'];
 
-    /** Roles counted for minimum staffing (B.E.R.N.I.S.S for the owner, 2026-11-05). */
-    public const STAFFING_ROLES = ['resident_doctor' => ['Resident Doctor', 'Resident Doctors'], 'ca' => ['CA', 'CAs'], 'ca_supervisor' => ['CA Supervisor', 'CA Supervisors']];
+    /**
+     * HR-20 (owner, 18 Nov 2026): an on-call shift is availability, not clinic hours. It is left out of weekly hours, the
+     * weekly limit, days in a row and daily rest, minimum staffing and cover gaps, Late, Left early and No clock-in, rostered
+     * minutes, the doctor's room and locum pay; it counts in fair rotation and stays a shift for overlaps and leave.
+     */
+    public const ON_CALL = 'on_call';
+
+    /**
+     * Clinic sessions, for minimum staffing: every session except on call.
+     *
+     * @return array<string, string>
+     */
+    public static function clinicSessions(): array
+    {
+        return array_diff_key(self::SESSIONS, [self::ON_CALL => true]);
+    }
+
+    public static function isOnCall(?string $sessionType): bool
+    {
+        return $sessionType === self::ON_CALL;
+    }
+
+    /**
+     * Whether a shift counts as a night for fair rotation: a Night session, or an on-call shift that crosses midnight,
+     * starts at 20:00 or later, or starts before 06:00, branch-local (owner, 18 Nov 2026; the before-06:00 part approved by
+     * B.E.R.N.I.S.S for the owner the same day).
+     */
+    public static function countsAsNight(string $sessionType, CarbonImmutable $localStart, CarbonImmutable $localEnd): bool
+    {
+        if ($sessionType === 'night') {
+            return true;
+        }
+
+        return $sessionType === self::ON_CALL
+            && ($localStart->hour >= 20 || $localStart->hour < 6 || $localEnd->toDateString() !== $localStart->toDateString() && ! $localEnd->isStartOfDay());
+    }
+
+    /**
+     * Roles counted for minimum staffing (B.E.R.N.I.S.S for the owner, 2026-11-05). MA-1a (owner decision 23 Nov 2026,
+     * MA-ROLE-DESIGN question 8): the Medical Assistant has a line of its own and never counts towards the CA minimum.
+     */
+    public const STAFFING_ROLES = ['resident_doctor' => ['Resident Doctor', 'Resident Doctors'], 'ca' => ['CA', 'CAs'], 'ca_supervisor' => ['CA Supervisor', 'CA Supervisors'],
+        'medical_assistant' => ['Medical Assistant', 'Medical Assistants']];
 
     public const ROLE_LABELS = ['director' => 'Director', 'resident_doctor' => 'Resident Doctor', 'ca' => 'CA', 'ca_supervisor' => 'CA Supervisor',
         'panel_officer' => 'Panel Officer', 'finance_officer' => 'Finance Officer', 'administrator' => 'Administrator',
-        'business_development' => 'Business Development', 'marketing' => 'Marketing', 'hr_manager' => 'HR Manager', 'technical_admin' => 'Technical Admin'];
+        'business_development' => 'Business Development', 'marketing' => 'Marketing', 'hr_manager' => 'HR Manager', 'technical_admin' => 'Technical Admin',
+        'branch_manager' => 'Branch Manager', 'account_assistant' => 'Account Assistant', 'store_admin' => 'Store Admin',
+        'medical_assistant' => 'Medical Assistant'];
 
     public const MAX_SHIFT_MINUTES = 16 * 60;
 

@@ -21,6 +21,8 @@ export type VisitHistoryMedicine = {
     source: 'doctor' | 'ca';
     changeState: VisitHistoryChangeState;
     dispensedQuantity: string | null;
+    // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+    dispensedPacks?: string | null;
     dispensedStatus: string | null;
     dispensed: {
         dosage: string | null;
@@ -85,9 +87,13 @@ export type VisitHistoryFinancial = {
         refundedSen: number;
         method: string;
         status: string;
+        receivedAt: string;
+        recordedBy: string;
         printUrl: string | null;
     }>;
     printUrl: string | null;
+    /** PCA-1: the actor may print, but a Panel patient never gets a printed invoice. */
+    panelNoInvoicePrint?: boolean;
 };
 
 export type VisitHistoryPage = {

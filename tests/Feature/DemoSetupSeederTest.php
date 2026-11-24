@@ -11,6 +11,7 @@ use Database\Seeders\KPOneDemoSetupSeeder;
 use Database\Seeders\KPOnePresentationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use LogicException;
 use Tests\TestCase;
 
@@ -164,6 +165,47 @@ class DemoSetupSeederTest extends TestCase
             $bookId = DB::table('price_books')->where('scope_key', $scope)->value('id');
             $this->assertSame($chargeCount, DB::table('price_entries')->where('price_book_id', $bookId)->count(), $scope);
         }
+    }
+
+    public function test_the_klinik_putrijaya_mark_becomes_the_business_details_logo_and_is_never_replaced(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('The PHP GD extension is needed to store the logo (CI has it).');
+        }
+
+        Storage::fake('local');
+
+        $this->seed(KPOneDemoSetupSeeder::class);
+
+        $profile = DB::table('organisation_business_profiles')->first();
+        $this->assertNotNull($profile->logo_asset_id);
+        $asset = DB::table('business_detail_assets')->find($profile->logo_asset_id);
+        $this->assertSame('image/png', $asset->mime);
+        Storage::disk('local')->assertExists($asset->path);
+        $this->assertSame(1, DB::table('business_detail_assets')->count());
+
+        // A second run keeps the same logo and writes no second asset.
+        $this->seed(KPOneDemoSetupSeeder::class);
+
+        $this->assertSame($profile->logo_asset_id, DB::table('organisation_business_profiles')->value('logo_asset_id'));
+        $this->assertSame(1, DB::table('business_detail_assets')->count());
+    }
+
+    public function test_it_adds_the_starter_visit_reasons_once_through_the_audited_service(): void
+    {
+        $this->seed(KPOneDemoSetupSeeder::class);
+        $this->seed(KPOneDemoSetupSeeder::class);
+
+        $ca = User::query()->where('email', 'demo.ca@kpone.test')->firstOrFail();
+        $reasons = DB::table('visit_reason_catalogue_items')->whereIn('name', KPOneDemoSetupSeeder::VISIT_REASONS)->get();
+
+        $this->assertCount(count(KPOneDemoSetupSeeder::VISIT_REASONS), $reasons);
+        foreach ($reasons as $reason) {
+            $this->assertTrue((bool) $reason->is_active, $reason->name);
+            $this->assertSame($ca->id, (int) $reason->created_by_user_id, $reason->name);
+        }
+        $this->assertSame(count(KPOneDemoSetupSeeder::VISIT_REASONS), DB::table('audit_logs')
+            ->where('event', 'visit_reason.created')->where('actor_user_id', $ca->id)->count());
     }
 
     public function test_running_it_twice_duplicates_nothing(): void

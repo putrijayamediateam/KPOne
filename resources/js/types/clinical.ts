@@ -1,3 +1,4 @@
+import type { TriageZoneSummary } from './patientBoard';
 import type { VisitReasonPresentation } from './visit';
 
 export type ClinicalDiagnosis = {
@@ -27,6 +28,8 @@ export type ClinicalVitals = {
     weightKg: string | null;
     heightCm: string | null;
     bmi: number | null;
+    /** TRI-1c: set while the vitals are still the copy made from triage at consultation start (consultation page only). */
+    fromTriage?: { recordedBy: string | null; recordedAt: string } | null;
 };
 
 export type ClinicalAllergyRecord = {
@@ -141,6 +144,57 @@ export type DoctorDispensaryAttention = {
     acknowledgeUrl: string;
 };
 
+// DSP-23: a case waiting for the attending doctor's check (null when there is none).
+export type DoctorDispensaryCheck = {
+    caseLockVersion: number;
+    expectedBranchId: number;
+    sentAt: string | null;
+    sentBy: string | null;
+    allergies: { status: string; records: string[]; updatedOn: string | null };
+    lines: Array<{
+        name: string;
+        strength: string | null;
+        unit: string;
+        changeState: 'unchanged' | 'edited' | 'added' | 'removed';
+        source: 'doctor' | 'ca';
+        ordered: {
+            quantity: string;
+            dosage: string | null;
+            frequency: string | null;
+            duration: string | null;
+        };
+        prepared: {
+            quantity: string | null;
+            // DSP-24: "2 bottles (120 ml)" for a line dispensed in whole packs.
+            packText?: string | null;
+            dosage: string | null;
+            frequency: string | null;
+            duration: string | null;
+            instruction: string | null;
+        };
+        batches: Array<{
+            batchNumber: string | null;
+            expiryDate: string | null;
+            quantity: string;
+        }>;
+    }>;
+    reasons: string[];
+    verifyUrl: string;
+    // DSP-26: the Dispensary case page, view only (null when the doctor cannot view it).
+    viewUrl?: string | null;
+    sendBackUrl: string;
+};
+
+// DSP-23: a CA Supervisor checked the case instead of the attending doctor (owner answer 13 = B).
+export type DispensarySupervisorCheck = {
+    outcome: 'verified' | 'sent_back';
+    by: string | null;
+    doctor: string | null;
+    at: string | null;
+    overrideReason: 'doctor_off_shift' | 'doctor_emergency' | 'other' | null;
+    overrideNote: string | null;
+};
+
 export type ClinicalEncounterPage = {
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
@@ -152,8 +206,17 @@ export type ClinicalEncounterPage = {
     visit: {
         visitNumber: string;
         priority: 'normal' | 'urgent';
+        /** TRI-1c: the triage zone for the patient's own doctor; null when not visible. */
+        triage?: TriageZoneSummary | null;
         isPanel: boolean;
         panelNote: string | null;
+        /** PNL-26c: the Panel total so far against the Panel's limit per visit; null when there is no limit. */
+        panelEstimate?: {
+            limitSen: number;
+            totalSen: number;
+            over: boolean;
+            partial: boolean;
+        } | null;
         paymentMethodLabel: string;
         registrationReason: string | null;
         registrationReasons: VisitReasonPresentation;
@@ -189,11 +252,15 @@ export type ClinicalEncounterPage = {
         canResume: boolean;
     };
     vitals: ClinicalVitals;
+    /** Q-12: the triage guideline's red limits and the patient's age band; null when no guideline is in force. */
+    vitalLimits: ClinicalVitalLimits | null;
     diagnoses: ClinicalDiagnosis[];
     allergies: ClinicalAllergySafety | null;
     problems: ClinicalProblemList | null;
     treatmentPlan: TreatmentPlanPage;
     dispensaryAttention: DoctorDispensaryAttention[];
+    dispensaryCheck?: DoctorDispensaryCheck | null;
+    dispensaryCheckedInstead?: DispensarySupervisorCheck | null;
     history: ClinicalHistorySummary[];
 };
 
@@ -218,4 +285,16 @@ export type ClinicalHistoryDetailPage = {
         backLabel: string;
         backUrl: string;
     };
+};
+
+export type ClinicalVitalLimits = {
+    versionNumber: number;
+    ageBand: 'adult' | 'child' | 'unknown';
+    limits: {
+        reading: string;
+        age_band: 'adult' | 'child';
+        direction: 'very_low' | 'very_high';
+        limit_value: string;
+        zone: 'yellow' | 'red';
+    }[];
 };

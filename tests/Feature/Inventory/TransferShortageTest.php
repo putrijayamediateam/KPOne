@@ -26,7 +26,7 @@ use Tests\Support\TransferShortageFixture;
 
 class TransferShortageTest extends VisitTestCase
 {
-    private const RECEIVERS = ['ca', 'ca_supervisor'];
+    private const RECEIVERS = ['ca', 'ca_supervisor', 'medical_assistant'];
 
     private const RESOLVERS = ['ca_supervisor', 'director', 'finance_officer'];
 
@@ -433,6 +433,17 @@ class TransferShortageTest extends VisitTestCase
             $this->assertStringContainsString('needs exactly one open difference', $e->getMessage());
         }
         $this->assertSame(0, DB::table('inventory_transfer_receipt_lines')->where('stock_request_id', $g['request']->id)->count());
+    }
+
+    public function test_directory_request_lines_name_the_item_and_its_stock_unit(): void
+    {
+        // V2 page 2b (Daniel): a person counting a transfer must see what the item is, not only its SKU code.
+        $g = $this->fixture()->dispatched('4.000');
+        $line = collect(app(InventoryOperationsDirectoryService::class)->directory($g['supervisor'])['stockRequests'])->firstWhere('publicId', $g['request']->public_id)['lines'][0];
+        $item = DB::table('inventory_items')->where('id', $g['sku']->inventory_item_id)->value('generic_name');
+
+        $row = collect(app(InventoryOperationsDirectoryService::class)->directory($g['supervisor'])['stockRequests'])->firstWhere('publicId', $g['request']->public_id);
+        $this->assertSame([$item, $g['sku']->stock_unit, '4.000'], [$line['item'], $line['stockUnit'], $line['dispatchedQuantity']]);
     }
 
     public function test_directory_shows_differences_and_who_may_resolve_without_names(): void

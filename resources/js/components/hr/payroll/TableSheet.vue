@@ -2,8 +2,6 @@
 // HR-7a statutory banded table (HR-PLAN 14.2): scheme, category, the date it applies from, the rounding rule, where the
 // figures came from, and wage bands with an employee and an employer part. Someone else checks it before it counts.
 // KPOne ships no statutory number. Each band's error sits under its own row (Daniel).
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -19,108 +17,13 @@ import {
 } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/state';
 import { Textarea } from '@/components/ui/textarea';
-import type { Option } from './types';
+import { useTableSheet } from '@/composables/hr/useTableSheet';
+import type { TableSheetProps } from '@/composables/hr/useTableSheet';
 
-const props = defineProps<{
-    open: boolean;
-    schemes: Option[];
-    rounding: Option[];
-    maxRows: number;
-}>();
+const props = defineProps<TableSheetProps>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(() => errors.value.payroll ?? errors.value.records);
-const kinds: Option[] = [
-    { value: 'rate', label: '% of wages' },
-    { value: 'fixed', label: 'Fixed RM' },
-];
-type Band = {
-    from: string;
-    to: string;
-    employee_kind: string;
-    employee: string;
-    employer_kind: string;
-    employer: string;
-};
-const band = (from = ''): Band => ({
-    from,
-    to: '',
-    employee_kind: 'rate',
-    employee: '',
-    employer_kind: 'rate',
-    employer: '',
-});
-const form = reactive({
-    scheme: '',
-    category: '',
-    effectiveFrom: '',
-    rounding: '',
-    sourceNote: '',
-    rows: [band('0.00')] as Band[],
-    key: '',
-    processing: false,
-});
-watch(
-    () => props.open,
-    (open) => {
-        if (open) {
-            Object.assign(form, {
-                scheme: '',
-                category: '',
-                effectiveFrom: '',
-                rounding: '',
-                sourceNote: '',
-                rows: [band('0.00')],
-                key: crypto.randomUUID(),
-            });
-        }
-    },
-);
-/** The next band starts one sen after the last one ends, so bands run on without a gap. */
-const addBand = () => {
-    const last = form.rows[form.rows.length - 1];
-    const match = last?.to.replace(/,/g, '').match(/^(\d+)(?:\.(\d{1,2}))?$/);
-    let next = '';
-
-    if (match) {
-        const sen =
-            Number(match[1]) * 100 +
-            Number((match[2] ?? '').padEnd(2, '0')) +
-            1;
-        next = `${Math.trunc(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
-    }
-
-    form.rows.push(band(next));
-};
-const removeBand = (index: number) => {
-    form.rows = form.rows.filter((_, i) => i !== index);
-};
-const send = () => {
-    form.processing = true;
-    router.post(
-        '/hr/payroll/tables',
-        {
-            scheme: form.scheme,
-            category: form.category,
-            effective_from: form.effectiveFrom,
-            rounding: form.rounding,
-            source_note: form.sourceNote,
-            rows: form.rows,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => emit('update:open', false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
-const rowError = (i: number, field: string) =>
-    errors.value[`rows.${i}.${field}`];
+const { errors, failure, kinds, form, addBand, removeBand, send, rowError } =
+    useTableSheet(props, () => emit('update:open', false));
 </script>
 
 <template>
@@ -217,8 +120,19 @@ const rowError = (i: number, field: string) =>
                         v-model="form.sourceNote"
                         maxlength="200"
                         rows="2"
+                        aria-describedby="table-source-hint"
                         :aria-invalid="!!errors.source_note"
                     />
+                    <p
+                        id="table-source-hint"
+                        class="text-xs text-muted-foreground"
+                        data-test="table-source-hint"
+                    >
+                        Copy the figures from the official KWSP, PERKESO or HRD
+                        Corp schedule, never from memory. Name the schedule and
+                        its date. A second person checks the table before it
+                        counts.
+                    </p>
                     <InputError :message="errors.source_note" />
                 </div>
 

@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * `inventory.branch_balances`: per SKU, the quantity on hand, the eligible (dispensable) quantity and
- * the reorder level at every active branch of the organisation, at active locations. Needs
+ * the reorder level at every active branch of the organisation, at active locations; and, per SKU and branch, the same
+ * eligible quantity and reorder level for each active location (`locations`, used to choose the two locations of a transfer
+ * suggestion). Needs
  * `inventory.view.branch` at the requesting branch (contract section 5).
  */
 final class InventoryBranchBalancesTool implements SystemReadableTool
@@ -44,6 +46,7 @@ final class InventoryBranchBalancesTool implements SystemReadableTool
         assert($branch !== null);
         $branches = $this->branchesForOrganisation($organisationId, null);
         $skus = [];
+        $locations = [];
         foreach ($branches as $each) {
             $stock = DB::table('inventory_stock_balances as b')
                 ->join('inventory_locations as l', 'l.id', '=', 'b.inventory_location_id')
@@ -57,6 +60,24 @@ final class InventoryBranchBalancesTool implements SystemReadableTool
                 ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
                 ->groupBy('r.inventory_sku_id')->selectRaw('r.inventory_sku_id as sku_id, SUM(r.reorder_level) as reorder_level')
                 ->pluck('reorder_level', 'sku_id');
+            $stockByLocation = DB::table('inventory_stock_balances as b')
+                ->join('inventory_locations as l', 'l.id', '=', 'b.inventory_location_id')
+                ->joinSub($this->eligibility->query($organisationId, $each), 'e', fn ($j) => $j->on('e.id', '=', 'b.inventory_batch_id')->on('e.organisation_id', '=', 'b.organisation_id'))
+                ->where('b.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
+                ->groupBy('b.inventory_sku_id', 'l.public_id')
+                ->selectRaw('b.inventory_sku_id as sku_id, l.public_id as location, SUM(CASE WHEN e.eligibility_reason IS NULL THEN b.quantity ELSE 0 END) as eligible')
+                ->get();
+            $levelsByLocation = DB::table('inventory_reorder_levels as r')
+                ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
+                ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
+                ->groupBy('r.inventory_sku_id', 'l.public_id')->selectRaw('r.inventory_sku_id as sku_id, l.public_id as location, SUM(r.reorder_level) as reorder_level')
+                ->get();
+            foreach ($stockByLocation as $row) {
+                $locations[$row->sku_id][$each->code][$row->location]['eligible'] = $this->quantity($row->eligible);
+            }
+            foreach ($levelsByLocation as $row) {
+                $locations[$row->sku_id][$each->code][$row->location]['reorderLevel'] = $this->quantity($row->reorder_level);
+            }
             foreach ($stock->keys()->merge($levels->keys())->unique() as $skuId) {
                 $skus[$skuId][$each->code] = [
                     'branch' => $each->code,
@@ -78,6 +99,9 @@ final class InventoryBranchBalancesTool implements SystemReadableTool
                 'skuCode' => $sku->sku_code,
                 'item' => $sku->generic_name,
                 'stockUnit' => $sku->stock_unit,
+                'locations' => $branches->mapWithKeys(fn (Branch $each): array => [$each->code => collect($locations[$sku->id][$each->code] ?? [])
+                    ->map(fn (array $row, string $location): array => ['location' => $location, 'eligible' => $row['eligible'] ?? '0.000', 'reorderLevel' => $row['reorderLevel'] ?? '0.000'])
+                    ->sortKeys()->values()->all()])->all(),
                 'perBranch' => $branches->map(fn (Branch $each): array => $skus[$sku->id][$each->code]
                     ?? ['branch' => $each->code, 'onHand' => '0.000', 'eligible' => '0.000', 'reorderLevel' => '0.000'])->values()->all(),
             ])->values()->all(),

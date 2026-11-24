@@ -11,6 +11,7 @@ use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Billing\Models\PaymentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -18,16 +19,24 @@ use Illuminate\Validation\ValidationException;
 
 class InvoiceCorrectionService
 {
-    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private AuditRecorder $audit) {}
+    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private AuditRecorder $audit, private BranchDayGate $gate) {}
 
     /** Recording error only, never a cash refund. Post-completion corrections are excluded from v1.
      * @param  array<string,mixed>  $a
      */
-    public function reverse(User $actor, Visit $visit, Invoice $invoice, Payment $payment, array $a): void
+    public function reverse(User $actor, Visit $visit, Invoice $invoice, Payment $payment, array $a, bool $insideRefund = false): void
     {
         Validator::make($a, ['reason' => ['required', 'string', 'max:500'], 'recording_error_only' => ['required', 'accepted']])->validate();
-        DB::transaction(function () use ($actor, $visit, $invoice, $payment, $a): void {
+        DB::transaction(function () use ($actor, $visit, $invoice, $payment, $a, $insideRefund): void {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, 'payments.reverse.branch');
+            // BIL-32: judged on the receipt's own day; on a locked day only inside a refund (owner Q5 = A, RefundService).
+            $received = Payment::query()->whereKey($payment->id)->where('organisation_id', $actor->organisation_id)->value('received_at');
+            $this->gate->guard($branch, $received === null ? null : CarbonImmutable::parse($received), ! $insideRefund, 'correction');
+            // Kumar (R5): reverse-and-refund together is only for a locked day's receipt, checked here under the day lock so a
+            // close being approved at the same moment is seen correctly.
+            if ($insideRefund && ($received === null || ! $this->gate->locked($branch, CarbonImmutable::parse($received)->setTimezone($branch->timezone)->toDateString()))) {
+                throw ValidationException::withMessages(['refund' => 'Reverse and refund together is only for a receipt of a closed and locked day. Reverse the receipt first, then record the refund.']);
+            }
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
             $this->ledger->requireMutable($invoice, $a['lock_version'] ?? null);
             $this->ledger->lock($invoice);
@@ -57,11 +66,15 @@ class InvoiceCorrectionService
         Validator::make($a, ['reason' => ['required', 'string', 'max:500']])->validate();
         DB::transaction(function () use ($actor, $visit, $invoice, $a): void {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, 'invoices.void.branch');
+            $finalized = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->value('finalized_at'); // BIL-32
+            $this->gate->guard($branch, $finalized === null ? null : CarbonImmutable::parse($finalized), true, 'correction');
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
             $this->ledger->requireMutable($invoice, $a['lock_version'] ?? null);
             $this->ledger->lock($invoice);
             $state = $this->ledger->state($invoice);
-            if ($visit->status !== Visit::STATUS_REGISTERED || $state['self_pay'] !== 0 || $state['panel'] !== 0 || $state['deferred'] !== 0) {
+            // PCA-2: an approved Panel share blocks a void even when adjustments brought it to RM 0.00, as before them.
+            $approvedShare = CoverageAllocation::query()->where('invoice_id', $invoice->id)->where('status', 'approved')->exists();
+            if ($visit->status !== Visit::STATUS_REGISTERED || $state['self_pay'] !== 0 || $state['panel'] !== 0 || $approvedShare || $state['deferred'] !== 0) {
                 $this->invalid();
             }
             foreach ([CoverageAllocation::class, PatientReceivable::class] as $class) {

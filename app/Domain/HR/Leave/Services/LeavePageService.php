@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Leave\Services;
 
+use App\Domain\HR\Approvals\HrWaiting;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveAdjustment;
 use App\Domain\HR\Leave\Models\LeaveBalanceEntry;
@@ -9,6 +10,7 @@ use App\Domain\HR\Leave\Models\LeaveEvidenceFile;
 use App\Domain\HR\Leave\Models\LeaveOpening;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
+use App\Domain\HR\Payroll\Services\LateAfterLock;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Organisation\Models\Branch;
@@ -50,7 +52,7 @@ final class LeavePageService
         return [
             'tab' => $tab, 'tabs' => $tabs, 'today' => $today->toDateString(), 'year' => $year,
             'setUp' => $types->contains(fn (LeaveType $t): bool => $t->is_active),
-            'approvalCount' => $pending->count(),
+            'approvalCount' => $canApprove ? HrWaiting::leave($actor)->count() : 0,
             'branches' => $branches->map(fn (Branch $b): array => ['id' => $b->id, 'name' => $b->name])->values()->all(),
             'branchId' => $branch?->id,
             'my' => $canOwn ? $this->my($actor, $types, $today) : null,
@@ -96,8 +98,7 @@ final class LeavePageService
     /** @return Collection<int, LeaveRequest> */
     private function pendingForApprover(User $actor): Collection
     {
-        return LeaveRequest::query()->with(['person.roles', 'type'])->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
-            ->where('user_id', '<>', $actor->id)->orderBy('start_date')->orderBy('id')->limit(200)->get();
+        return HrWaiting::leave($actor)->with(['person.roles', 'type'])->orderBy('start_date')->orderBy('id')->limit(200)->get();
     }
 
     /**
@@ -115,7 +116,12 @@ final class LeavePageService
         // The warning only counts files, so it is the same for approvers who cannot open them.
         $attached = $pending->isEmpty() ? collect() : LeaveEvidenceFile::query()->whereIn('leave_request_id', $pending->pluck('id'))
             ->where('status', 'active')->selectRaw('leave_request_id, count(*) as n')->groupBy('leave_request_id')->pluck('n', 'leave_request_id');
-        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee, $attached): array {
+        // G2b: unpaid leave whose month's payroll is already locked, so the dialogs say it goes on an adjustment run.
+        $late = app(LateAfterLock::class);
+        $lockedMonths = $late->lockedMonths($actor->organisation_id, $pending->filter(fn (LeaveRequest $r): bool => ! $r->type->is_paid)
+            ->mapWithKeys(fn (LeaveRequest $r): array => [(int) $r->id => ['userId' => (int) $r->user_id, 'date' => $r->start_date->toDateString()]])->all(), 'monthly');
+        $taken = $late->takenOffPay($actor->organisation_id, array_values($approvedRequests->map(fn (LeaveRequest $r): int => (int) $r->id)->all()));
+        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee, $attached, $lockedMonths): array {
             $zone = (string) ($zones[$r->branch_id] ?? 'UTC');
             $warnings = [];
             $shifts = $this->approvedShifts($r, $zone);
@@ -140,11 +146,13 @@ final class LeavePageService
             return [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member', 'role' => $this->roleLabel($r->person),
                 'evidenceNeeded' => $r->type->evidence_needed, 'evidenceReference' => $r->evidence_reference_encrypted, 'reason' => $r->reason_encrypted,
                 'leftAfter' => $left === null ? null : LeaveSupport::days($left), 'warnings' => $warnings,
+                // When the request was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse($r->created_at)->utc()->toIso8601String(), 'lockedMonth' => $lockedMonths[(int) $r->id] ?? null,
                 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, $zone, $files) : null];
         })->values()->all();
 
         $approved = $approvedRequests->map(fn (LeaveRequest $r): array => [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member',
-            'role' => $this->roleLabel($r->person), 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, (string) ($zones[$r->branch_id] ?? 'UTC'), $files) : null])
+            'role' => $this->roleLabel($r->person), 'takenInMonth' => $taken[(int) $r->id] ?? null, 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, (string) ($zones[$r->branch_id] ?? 'UTC'), $files) : null])
             ->values()->all();
 
         return ['pending' => $rows, 'approved' => $approved];
@@ -198,6 +206,7 @@ final class LeavePageService
         $names = User::query()->where('organisation_id', $actor->organisation_id)->pluck('name', 'id');
         $typeNames = $types->pluck('name', 'id');
         $rows = $this->settings->entitlementRows($actor->organisation_id, $year);
+        $byDefaults = $this->settings->defaultEntitlementKeys($actor->organisation_id, $year);
         $entry = fn (LeaveBalanceEntry $e, string $kind): array => ['publicId' => $e->public_id, 'kind' => $kind, 'person' => (string) ($names[$e->user_id] ?? 'Staff member'),
             'type' => (string) ($typeNames[$e->leave_type_id] ?? 'Leave'), 'year' => $e->year, 'days' => LeaveSupport::days($e->halves),
             'reason' => $kind === 'adjustment' ? (LeaveEntryService::ADJUSTMENT_REASONS[$e->reason_code ?? ''] ?? null) : null,
@@ -217,16 +226,19 @@ final class LeavePageService
                 'allowHalfDays' => $t->allow_half_days, 'evidenceNeeded' => $t->evidence_needed, 'allowNegative' => $t->allow_negative,
                 'carryMaxDays' => $t->carry_max_halves === null ? '' : LeaveSupport::days($t->carry_max_halves), 'carryExpiresOn' => $t->carry_expires_on ?? '',
                 'isActive' => $t->is_active, 'acceptsEvidenceFiles' => $t->accepts_evidence_files, 'evidenceRetentionDays' => $t->evidence_retention_days === null ? '' : (string) $t->evidence_retention_days,
-                'lockVersion' => $t->lock_version])->values()->all(),
+                'setByDefaults' => (bool) $t->set_by_defaults, 'lockVersion' => $t->lock_version])->values()->all(),
             'roles' => collect(RosterPermissions::HUMAN_ROLES)->map(fn (string $r): array => ['value' => $r, 'label' => RosterRules::ROLE_LABELS[$r] ?? $r])->values()->all(),
-            'entitlements' => collect($rows)->map(function (int $halves, string $key) use ($names): array {
+            'entitlements' => collect($rows)->map(function (int $halves, string $key) use ($names, $byDefaults): array {
                 [$typeId, $who] = explode(':', $key, 2);
                 $isPerson = str_starts_with($who, 'u');
 
                 return ['leaveTypeId' => (int) $typeId, 'role' => $isPerson ? null : $who, 'userId' => $isPerson ? (int) substr($who, 1) : null,
-                    'person' => $isPerson ? (string) ($names[(int) substr($who, 1)] ?? 'Staff member') : null, 'days' => LeaveSupport::days($halves)];
+                    'person' => $isPerson ? (string) ($names[(int) substr($who, 1)] ?? 'Staff member') : null, 'days' => LeaveSupport::days($halves),
+                    'setByDefaults' => in_array($key, $byDefaults, true)];
             })->values()->all(),
             'grantPreview' => $this->settings->grantPreview($actor, $year),
+            // HR-DEFAULTS: what "Use KPOne defaults" would add for the year shown, and the label every default carries.
+            'defaults' => [...app(LeaveDefaultsService::class)->preview($actor, $year), 'label' => LeaveDefaultsService::LABEL],
             'people' => $people->map(fn (User $u): array => ['id' => $u->id, 'label' => trim($u->name.' · '.$this->roleLabel($u), ' ·')])->values()->all(),
             'workingDays' => $branches->map(fn (Branch $b): array => ['branchId' => $b->id, 'branch' => $b->name,
                 'weekdays' => $working->has($b->id) ? array_map('intval', json_decode((string) $working[$b->id]->weekdays, true) ?: []) : [],

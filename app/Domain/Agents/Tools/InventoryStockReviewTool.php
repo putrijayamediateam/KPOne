@@ -7,15 +7,15 @@ use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * `inventory.stock_review`: low-stock, expiring (90 days) and expired counts per SKU at one branch.
- * Uses the same rules as the Stock review page (InventoryStockReviewService); the list totals are
- * proven equal to that page's totals by test. `rows` (AG-6) lists each low-stock SKU and location with its
- * reorder level, and each expiring or expired batch at its location, by public id, for the inventory analyst.
+ * `inventory.stock_review`: low-stock, expiring (per SKU, up to 90 days) and expired counts per SKU at one branch.
+ * Uses the same rules as the Stock review page (InventoryStockReviewService), and the list totals are proven equal to
+ * that page's totals by test, with one deliberate difference (STK-42): a SKU's own expiry alert days above 90 are capped at
+ * 90 here, so such a SKU can be expiring on the page and not yet for the analyst. `rows` (AG-6) lists each low-stock SKU and location with its
+ * reorder level (and `maxLevel`, null when none is set, STK-30), and each expiring or expired batch at its location, by public id, for the inventory analyst.
  */
 final class InventoryStockReviewTool implements SystemReadableTool
 {
@@ -54,7 +54,8 @@ final class InventoryStockReviewTool implements SystemReadableTool
             $totals[$kind] = $rows->count();
             foreach ($rows as $row) {
                 $detail[$kind === 'low_stock' ? 'lowStock' : $kind][] = $kind === 'low_stock'
-                    ? ['sku' => $row->sku_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'reorderLevel' => $this->quantity($row->reorder_level)]
+                    ? ['sku' => $row->sku_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'reorderLevel' => $this->quantity($row->reorder_level),
+                        'maxLevel' => $row->max_level === null ? null : $this->quantity($row->max_level)]
                     : ['sku' => $row->sku_public_id, 'batch' => $row->batch_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'expiryDate' => (string) $row->expiry_date];
                 $sku = $skus[$row->sku_id] ?? ['sku' => $row->sku_public_id, 'skuCode' => $row->sku_code, 'item' => $row->item, 'stockUnit' => $row->stock_unit,
                     'lowStockLocations' => 0, 'expiringBatches' => 0, 'expiringQuantity' => 0, 'expiredBatches' => 0, 'expiredQuantity' => 0];
@@ -105,7 +106,7 @@ final class InventoryStockReviewTool implements SystemReadableTool
                 ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
                 ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('i.is_active', true)
                 ->where('r.reorder_level', '>', 0)->whereRaw('COALESCE(t.eligible, 0) <= r.reorder_level')
-                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity, l.public_id as location_public_id, r.reorder_level');
+                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity, l.public_id as location_public_id, r.reorder_level, r.max_level');
         }
         $query = DB::table('inventory_stock_balances as r')
             ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
@@ -119,7 +120,8 @@ final class InventoryStockReviewTool implements SystemReadableTool
             // stock stays listed below, because it still has to be written off.
             $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
             $query->where('l.is_active', true)->whereNull('e.eligibility_reason')
-                ->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($this->eligibility->localDate($branch))->addDays(InventoryStockReviewService::EXPIRY_WINDOW_DAYS)->toDateString());
+                // STK-42: each SKU's own alert days, capped at 90 for the analyst (agreed with the agent platform).
+                ->whereRaw('e.expiry_date <= ?::date + LEAST(COALESCE(s.expiry_alert_days, ?), ?)::int', [$this->eligibility->localDate($branch), InventoryStockReviewService::EXPIRY_WINDOW_DAYS, InventoryStockReviewService::EXPIRY_WINDOW_DAYS]);
         } else {
             $query->whereDate('e.expiry_date', '<=', $this->eligibility->localDate($branch));
         }

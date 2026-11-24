@@ -46,7 +46,6 @@ test('the Outstanding bill box links the list only when the server sends the lin
     assert.ok(outstanding.includes('v-if="collectionsUrl"'));
     assert.ok(outstanding.includes(':href="collectionsUrl"'));
     assert.ok(outstanding.includes('?.payLaterCollectionsUrl ?? null'));
-    assert.ok(
-        outstanding.includes('View all pay-later to collect at this branch'),
-    );
+    // Owner OK 2026-11-12 (BIL-28): the link names the page it opens, "Bills to collect" (BIL-23).
+    assert.ok(outstanding.includes('View all bills to collect at this branch'));
 });

@@ -44,7 +44,7 @@ class IncidentsTest extends VisitTestCase
         $roles = PermissionCatalogue::roles();
         $holders = fn (string $p): array => collect($roles)->filter(fn (array $ps) => in_array($p, $ps, true))->keys()->sort()->values()->all();
         $this->assertSame(['director', 'hr_manager'], $holders(IncidentPermissions::MANAGE));
-        $this->assertCount(11, $holders(IncidentPermissions::REPORT));
+        $this->assertCount(15, $holders(IncidentPermissions::REPORT));
         $this->assertNotContains('queue_display', $holders(IncidentPermissions::REPORT));
         $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority(IncidentPermissions::MANAGE));
         $this->selectBranch($this->actor('queue_display'));

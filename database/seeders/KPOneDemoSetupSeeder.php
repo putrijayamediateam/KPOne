@@ -27,9 +27,15 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\ConsultationTariffAdministrationService;
+use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
+use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
@@ -86,6 +92,23 @@ class KPOneDemoSetupSeeder extends Seeder
     /** @var array{code: string, display_name: string, self_pay_sen: int, panel_default_sen: int} */
     public const CONSULTATION = ['code' => 'CONSULTATION', 'display_name' => 'General consultation', 'self_pay_sen' => 3000, 'panel_default_sen' => 2500];
 
+    /**
+     * A starter list of common visit reasons, so the Register Visit picker is not empty on a fresh demo. A CA can
+     * still add a new reason from the picker, as before.
+     */
+    public const VISIT_REASONS = [
+        'Fever',
+        'Cough and cold',
+        'Sore throat',
+        'Diarrhoea and vomiting',
+        'Headache',
+        'Rash or skin problem',
+        'Wound dressing',
+        'Follow-up visit',
+        'Medical check-up',
+        'Blood pressure review',
+    ];
+
     public function run(): void
     {
         $this->assertSafeEnvironment();
@@ -113,6 +136,7 @@ class KPOneDemoSetupSeeder extends Seeder
 
         $this->actAs();
         $this->saveBusinessDetails($organisation, $branch, $director);
+        $this->ensureLogo($organisation, $branch, $director);
         $this->saveFooter($organisation, $branch, $director);
 
         $recorder = $this->actAs('demo.ca_supervisor@kpone.test');
@@ -128,27 +152,35 @@ class KPOneDemoSetupSeeder extends Seeder
             $openings[] = $this->ensureOpeningBalance($recorder, $branch, $location, $sku, $index);
         }
 
+        $this->ensureDemoPanelPrices($recorder, $branch);
+
         $verifier = $this->actAs(self::SECOND_SUPERVISOR_EMAIL);
         foreach ($openings as $opening) {
             $this->ensureOpeningSignedOff($verifier, $branch, $opening);
         }
+
+        // VisitReasonService::create returns an existing reason unchanged, so a rerun adds nothing.
+        $counter = $this->actAs('demo.ca@kpone.test');
+        foreach (self::VISIT_REASONS as $reason) {
+            app(VisitReasonService::class)->create($counter, $reason);
+        }
     }
 
-    private function assertSafeEnvironment(): void
+    protected function assertSafeEnvironment(): void
     {
         if (! app()->environment(['local', 'testing'])) {
-            throw new LogicException('KPOneDemoSetupSeeder is restricted to local and testing environments.');
+            throw new LogicException(class_basename(static::class).' is restricted to local and testing environments.');
         }
 
         $nonTest = User::query()
             ->whereRaw("LOWER(email) NOT LIKE '%.test'")
             ->count();
         if ($nonTest > 0) {
-            throw new LogicException("KPOneDemoSetupSeeder stopped: {$nonTest} user account(s) have an email that does not end in .test. Run it only on a synthetic database.");
+            throw new LogicException(class_basename(static::class)." stopped: {$nonTest} user account(s) have an email that does not end in .test. Run it only on a synthetic database.");
         }
     }
 
-    private function requireUser(string $email): User
+    protected function requireUser(string $email): User
     {
         return User::query()->where('email', $email)->first()
             ?? throw new LogicException("Demo account {$email} is missing. Run KPOnePresentationSeeder first.");
@@ -158,7 +190,7 @@ class KPOneDemoSetupSeeder extends Seeder
      * Resets the cached branch context so the next service call resolves the
      * actor's own primary branch, as a fresh sign-in would.
      */
-    private function actAs(?string $email = null): ?User
+    protected function actAs(?string $email = null): ?User
     {
         app()->forgetScopedInstances();
         session()->forget(BranchAccessService::SESSION_KEY);
@@ -267,6 +299,54 @@ class KPOneDemoSetupSeeder extends Seeder
         ]);
     }
 
+    /**
+     * The Klinik Putrijaya mark (public/kp-mark.png, also used by the TV) becomes the Business details logo, through the
+     * Business details service, so every demo MC, referral, attendance letter, invoice and receipt shows it. A logo that is
+     * already set is never replaced. Local and testing only, like the rest of this seeder.
+     */
+    private function ensureLogo(Organisation $organisation, Branch $branch, User $director): void
+    {
+        $profile = OrganisationBusinessProfile::query()->where('organisation_id', $organisation->id)->first();
+        $branchProfile = BranchBusinessProfile::query()
+            ->where('organisation_id', $organisation->id)
+            ->where('branch_id', $branch->id)
+            ->first();
+        $mark = public_path('kp-mark.png');
+        if ($profile === null || $branchProfile === null || $profile->logo_asset_id !== null || ! is_file($mark)) {
+            return;
+        }
+        if (! extension_loaded('gd')) {
+            // Business details checks and re-encodes the image with GD; without it the demo simply has no logo.
+            logger()->warning('The PHP GD extension is not installed, so the Klinik Putrijaya logo was not set.');
+
+            return;
+        }
+
+        $data = [
+            'expected_branch_id' => $branch->id,
+            'idempotency_key' => (string) Str::uuid(),
+            'organisation_lock_version' => $profile->lock_version,
+            'branch_lock_version' => $branchProfile->lock_version,
+            'legal_name' => $profile->legal_name,
+            'registration_type' => $profile->registration_type,
+            'registration_number' => $profile->registration_number,
+            'clinic_name' => $branchProfile->clinic_name,
+            'address_line_1' => $branchProfile->address_line_1,
+            'address_line_2' => $branchProfile->address_line_2,
+            'postcode' => $branchProfile->postcode,
+            'city' => $branchProfile->city,
+            'state' => $branchProfile->state,
+            'country' => $branchProfile->country,
+            'phone' => $branchProfile->phone,
+            'email' => $branchProfile->email,
+        ];
+        if ($branchProfile->phone_secondary !== null) {
+            $data['phone_secondary'] = $branchProfile->phone_secondary;
+        }
+
+        app(BusinessDetailsService::class)->save($director, $data, new UploadedFile($mark, 'kp-mark.png', 'image/png', null, true));
+    }
+
     private function saveFooter(Organisation $organisation, Branch $branch, User $director): void
     {
         $footer = BranchDocumentFooter::query()
@@ -299,6 +379,39 @@ class KPOneDemoSetupSeeder extends Seeder
         ]);
     }
 
+    /**
+     * Panel prices are never published directly (owner decision 27): the demo gets them the way the clinic does, as a
+     * Panel Officer's proposal approved by a Finance Officer. The default Panel price book is created first because the
+     * proposal page only changes the price in an existing book.
+     */
+    private function ensureDemoPanelPrices(User $supervisor, Branch $branch): void
+    {
+        $officer = $this->requireUser('demo.panel_officer@kpone.test');
+        $finance = $this->requireUser('demo.finance_officer@kpone.test');
+        $book = PriceBook::query()->where('organisation_id', $supervisor->organisation_id)->where('scope_key', 'panel:default')->first()
+            ?? app(PricingReferenceAdministrationService::class)->createPriceBook($supervisor, null, ['name' => 'Panel', 'currency' => 'MYR', 'price_tier' => 'panel', 'panel_id' => null]);
+        $service = app(PanelPriceProposalService::class);
+        $prices = [self::CONSULTATION['code'] => self::CONSULTATION['panel_default_sen']];
+        foreach ([...self::SERVICES, ...self::MEDICINES] as $item) {
+            $prices[$item['code']] = $item['panel_default_sen'];
+        }
+        foreach ($prices as $code => $sen) {
+            $charge = ChargeDefinition::query()->where('organisation_id', $supervisor->organisation_id)->where('code', $code)->first();
+            if ($charge === null || PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->exists()) {
+                continue;
+            }
+            $proposal = $service->propose($officer, $book, $charge, [
+                'expected_branch_id' => $branch->id,
+                'expected_version' => 0,
+                'amount_sen' => $sen,
+                'agreement_reference' => 'DEMO-PANEL-PRICE-LIST',
+                'effective_date' => now($branch->timezone)->toDateString(),
+                'idempotency_key' => (string) Str::uuid(),
+            ]);
+            $service->approve($finance, $proposal, ['expected_branch_id' => $branch->id, 'lock_version' => $proposal->lock_version]);
+        }
+    }
+
     private function ensureConsultationTariff(User $actor, Branch $branch): void
     {
         if (ChargeDefinition::query()->where('organisation_id', $actor->organisation_id)->where('source_key', 'consultation')->exists()) {
@@ -311,9 +424,8 @@ class KPOneDemoSetupSeeder extends Seeder
             'expected_branch_id' => $branch->id,
             'prices' => [
                 'self_pay_sen' => self::CONSULTATION['self_pay_sen'],
-                'panel_default_sen' => self::CONSULTATION['panel_default_sen'],
             ],
-            'expected_versions' => ['self_pay' => 0, 'panel_default' => 0],
+            'expected_versions' => ['self_pay' => 0],
         ]);
     }
 
@@ -332,13 +444,12 @@ class KPOneDemoSetupSeeder extends Seeder
             'expected_branch_id' => $branch->id,
             'prices' => [
                 'self_pay_sen' => $service['self_pay_sen'],
-                'panel_default_sen' => $service['panel_default_sen'],
             ],
         ]);
     }
 
     /** @param array{code: string, display_name: string, generic_name: string, strength_text: string, dosage_form: string, order_unit: string, self_pay_sen: int, panel_default_sen: int} $medicine */
-    private function ensureMedicine(User $actor, Branch $branch, array $medicine): InventorySku
+    protected function ensureMedicine(User $actor, Branch $branch, array $medicine): InventorySku
     {
         $existing = MedicineCatalogueItem::query()
             ->where('organisation_id', $actor->organisation_id)
@@ -368,7 +479,6 @@ class KPOneDemoSetupSeeder extends Seeder
                 ],
                 'prices' => [
                     'self_pay_sen' => $medicine['self_pay_sen'],
-                    'panel_default_sen' => $medicine['panel_default_sen'],
                 ],
             ]);
         }
@@ -382,7 +492,7 @@ class KPOneDemoSetupSeeder extends Seeder
         return InventorySku::query()->whereKey($mapping->inventory_sku_id)->firstOrFail();
     }
 
-    private function ensureUnitVerified(User $actor, Branch $branch, InventorySku $sku): void
+    protected function ensureUnitVerified(User $actor, Branch $branch, InventorySku $sku): void
     {
         if (DB::table('inventory_unit_contracts')->where('inventory_sku_id', $sku->id)->exists()) {
             return;
@@ -431,7 +541,7 @@ class KPOneDemoSetupSeeder extends Seeder
         ]);
     }
 
-    private function ensureOpeningSignedOff(User $verifier, Branch $branch, StockMovement $opening): void
+    protected function ensureOpeningSignedOff(User $verifier, Branch $branch, StockMovement $opening): void
     {
         if (DB::table('inventory_opening_verifications')->where('stock_movement_id', $opening->id)->exists()) {
             return;

@@ -59,7 +59,7 @@ class GuardianWhatsAppIsolationTest extends QueueTestCase
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             $response = $this->get(route('patients.show', $patient));
-            if (in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor'], true)) {
+            if (in_array($role, ['director', 'resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true)) {
                 $response->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->where('patient.guardian.full_name', 'Synthetic Guardian'));
             } else {
                 $response->assertForbidden()->assertDontSee('Synthetic Guardian')->assertDontSee('+12025550120')->assertDontSee('guardian@kpone.test');

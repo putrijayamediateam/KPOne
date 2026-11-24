@@ -28,6 +28,7 @@ const props = defineProps<{
     selected: string | null;
     clock: Date;
     canOpenInbox: boolean;
+    motionOff?: boolean;
 }>();
 
 const emit = defineEmits<{ select: [code: string]; openInbox: [] }>();
@@ -391,6 +392,7 @@ const inboxCount = computed(() => props.feed.pendingProposals);
 <template>
     <svg
         class="office-scene h-auto w-full select-none"
+        :data-motion="motionOff ? 'off' : 'on'"
         :viewBox="`0 0 ${VIEW_W} ${VIEW_H}`"
         role="group"
         aria-label="Agent office"
@@ -1266,6 +1268,13 @@ const inboxCount = computed(() => props.feed.pendingProposals);
 </style>
 
 <style>
+/* "Pause motion": the same stillness the reduced-motion preference gives, switched by a button. */
+.office-scene[data-motion='off'],
+.office-scene[data-motion='off'] * {
+    animation: none !important;
+    transition: none !important;
+}
+
 /* Dark mode, limited to the office drawing by its class so no rule reaches the rest of the page. */
 .dark .office-scene.office-scene {
     --office-sky-a: #1e3a8a;

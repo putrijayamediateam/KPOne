@@ -65,6 +65,13 @@ const start = () => {
         return;
     }
 
+    openConfirm();
+};
+const openConfirm = () => {
+    if (unavailable.value || processing.value) {
+        return;
+    }
+
     confirmed.value = { ...props.block.candidate! };
     confirmedDoctorId.value = props.block.doctorUserId;
     gone.value = false;
@@ -209,6 +216,17 @@ const submit = () => {
     );
 };
 onBeforeUnmount(() => clearTimeout(pauseTimer));
+// TRI-1c: the triage zone on the confirm card. A readings-only triage shows "Triaged".
+const triageZoneLabel = (zone: 'red' | 'yellow' | 'green' | null) =>
+    zone
+        ? { red: 'Red zone', yellow: 'Yellow zone', green: 'Green zone' }[zone]
+        : 'Triaged';
+const triageZoneTone = (zone: 'red' | 'yellow' | 'green' | null) =>
+    zone
+        ? ({ red: 'danger', yellow: 'warning', green: 'success' } as const)[
+              zone
+          ]
+        : 'neutral';
 </script>
 
 <template>
@@ -300,6 +318,14 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                         label="Carry-over"
                         tone="neutral"
                     />
+                    <!-- TRI-1c: the zone, only for CA, CA Supervisor and the patient's own doctor. -->
+                    <StatusBadge
+                        v-if="confirmed.triage?.triaged"
+                        status="triage_zone"
+                        :label="triageZoneLabel(confirmed.triage.zone)"
+                        :tone="triageZoneTone(confirmed.triage.zone)"
+                        data-testid="call-next-triage-zone"
+                    />
                 </div>
                 <p class="mt-1 text-xs text-muted-foreground">
                     Queue {{ confirmed.queueNumber }} ·
@@ -310,6 +336,14 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                     class="mt-1 text-xs text-muted-foreground"
                 >
                     Waiting since {{ formatDate(confirmed.operationalDate) }}.
+                </p>
+                <!-- TRI-1c (owner, 22 Nov 2026): a warning only; calling is never blocked. -->
+                <p
+                    v-if="confirmed.triage && !confirmed.triage.triaged"
+                    class="mt-1 text-xs text-muted-foreground"
+                    data-testid="call-next-no-triage"
+                >
+                    No triage yet. You can still call.
                 </p>
             </div>
 

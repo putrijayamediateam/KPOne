@@ -19,13 +19,16 @@ If `PROJECT.md` and `docs/BASELINE.md` disagree about what is delivered, trust `
 ## Working rules for Claude
 
 - Never open, print, or edit `.env`. Use `.env.example` only.
+- KPOne's rules always win over any coding-style plugin or skill (for example a "smallest change" or "lazy" mode):
+  permission and branch checks, `DB::transaction`, row locks, `lock_version`, idempotency keys, audit records,
+  the full quality gate and the team review steps are part of every change, never optional extras.
 - Do not commit, push, rebase, or open a PR unless the user asks after reviewing the diff.
 - One scoped change per branch: `feature/<id>-<slug>`, `fix/<id>-<slug>`, `validation/<id>-<slug>`.
 - A module not marked delivered or authorised in `docs/BASELINE.md` is not authorised — ask before building it.
 - Business rules go in `app/Domain/*` services and policies, never only in controllers or Vue.
 - Every state-changing operation: backend permission + branch scope, `DB::transaction`, row locks,
   optimistic `lock_version`, idempotency key where retries are possible, and an audit record.
-- Patient-facing and staff UI text is Bahasa Melayu unless the surrounding screen is English.
+- Staff screens are in English. Patient-facing screens (the public QR check-in form and status page, and anything a patient reads) are in Bahasa Melayu. "Panggil semula" stays. Printed documents follow their own wording (the medical certificate, referral and attendance letters are bilingual; the drug label marker is "Ubat Terkawal/Controlled Medicine"). The Malay staff guides stay in Malay.
 - Explain findings, plans and reports to the user in English; code, commits and docs stay in English.
 - Test/preview servers: never use a command that loads the real `.env` (e.g. plain `php artisan serve`).
   Start servers with explicit DB env for a task-owned database, and verify the effective DB host/port/name

@@ -12,10 +12,18 @@ const files = {
     records: 'resources/js/pages/HR/Records.vue',
     payroll: 'resources/js/pages/HR/Payroll.vue',
 };
+// The page's script lives in its shared composable (V2 Payroll); the template is still read from the page.
 const source = Object.fromEntries(
-    Object.entries(files).map(([k, p]) => [k, read(p)]),
+    Object.entries(files).map(([k, p]) => [
+        k,
+        k === 'payroll'
+            ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollPage.ts')}`
+            : k === 'exports'
+              ? `${read(p)}\n${read('resources/js/composables/hr/useExportsTab.ts')}`
+              : read(p),
+    ]),
 );
-const template = (key) => parse(source[key]).descriptor.template.content;
+const template = (key) => parse(read(files[key])).descriptor.template.content;
 
 test('the payslip page, the Exports tab and the pages using them compile', () => {
     for (const [key, path] of Object.entries(files)) {
@@ -50,7 +58,7 @@ test('the payslip shows net pay in bold, the bank masked, employer parts as info
     assert.match(template('payslip'), /Employer contributions \(information\)/);
     assert.match(
         template('payslip'),
-        /To confirm with the clinic's accountant before\s+real use\. Synthetic data only\./,
+        /Generated\s+by\s+KPOne\.\s+Statutory\s+figures\s+come\s+from\s+the\s+tables\s+the\s+clinic\s+entered\s+and\s+checked\s+in\s+KPOne\.\s+Check\s+them\s+against\s+current\s+law\s+\(official\s+KWSP\/EPF,\s+PERKESO\/SOCSO,\s+HRD\s+Corp\s+and\s+LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
     );
     assert.match(source.payslip, /import \{ myr \} from '@\/types\/billing';/);
     assert.doesNotMatch(source.payslip, /toFixed\(|\/ 100\b|parseFloat\(/);

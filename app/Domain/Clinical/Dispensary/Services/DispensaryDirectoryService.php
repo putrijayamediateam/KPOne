@@ -3,11 +3,13 @@
 namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryAllergyConfirmation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
@@ -16,6 +18,7 @@ use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryAvailabilityService;
+use App\Domain\Organisation\Inventory\Services\PackConversionReader;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -27,7 +30,7 @@ use Illuminate\Support\Str;
 
 class DispensaryDirectoryService
 {
-    public function __construct(private BranchAccessService $branches, private InventoryAvailabilityService $availability, private VisitReasonService $visitReasons, private DispensaryAllergyMatcher $allergyMatcher) {}
+    public function __construct(private BranchAccessService $branches, private InventoryAvailabilityService $availability, private VisitReasonService $visitReasons, private DispensaryAllergyMatcher $allergyMatcher, private PackConversionReader $packConversions) {}
 
     /**
      * @param  array<string, mixed>  $criteria
@@ -36,7 +39,7 @@ class DispensaryDirectoryService
     public function board(User $actor, array $criteria): array
     {
         $branch = $this->branches->activeBranch($actor);
-        abort_unless($branch && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor']), 404);
+        abort_unless($branch && $this->canView($actor), 404);
         $query = $this->boardQuery($actor, $branch, $criteria)
             ->with(['visit.patient:id,organisation_id,patient_number,full_name,mobile_phone', 'visit.assignedDoctor:id,name', 'visit.reasonAssignments.reason:id,public_id,name', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->withCount('items')]);
         $paginator = $query->latest('received_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
@@ -54,7 +57,7 @@ class DispensaryDirectoryService
     /** @param array<string, mixed> $criteria */
     public function boardCount(User $actor, Branch $branch, array $criteria): ?int
     {
-        if (! $actor->can('dispensary.view.branch') || ! $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
+        if (! $this->canView($actor)) {
             return null;
         }
 
@@ -68,7 +71,7 @@ class DispensaryDirectoryService
     private function boardQuery(User $actor, Branch $branch, array $criteria): Builder
     {
         // The badge intentionally ignores dates and advanced filters, exactly like this list.
-        $query = DispensaryCase::query()->where('dispensary_cases.organisation_id', $actor->organisation_id)->where('dispensary_cases.branch_id', $branch->id)->whereIn('dispensary_cases.status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING]);
+        $query = DispensaryCase::query()->where('dispensary_cases.organisation_id', $actor->organisation_id)->where('dispensary_cases.branch_id', $branch->id)->whereIn('dispensary_cases.status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK]);
         $term = trim((string) ($criteria['patient_query'] ?? ''));
         if ($term !== '') {
             $query->whereHas('visit.patient', fn ($q) => preg_match('/\AKP-\d{8}\z/i', $term) === 1 ? $q->where('patient_number', Str::upper($term)) : $q->whereRaw("search_name LIKE ? ESCAPE '\\'", ['%'.$this->escapeLike(Str::lower($term)).'%']));
@@ -83,7 +86,7 @@ class DispensaryDirectoryService
     /** @return array<string,mixed> */
     public function detail(User $actor, DispensaryCase $case): array
     {
-        $branch = $this->authorizedBranch($actor, $case);
+        $branch = $this->viewableBranch($actor, $case);
         if ($case->status === DispensaryCase::STATUS_COMPLETED) {
             $case->load('visit.patient:id,patient_number,full_name');
 
@@ -94,7 +97,7 @@ class DispensaryDirectoryService
                 'completedAt' => $case->completed_at === null ? null : CarbonImmutable::parse($case->completed_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
             ];
         }
-        $case->load(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'encounter', 'treatmentPlan', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->with(['items.allocations', 'items.exceptions'])]);
+        $case->load(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'encounter', 'treatmentPlan', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->with(['items.allocations.batch:id,public_id,batch_number,expiry_date', 'items.exceptions'])]);
         $handoff = $case->handoffs->first();
         abort_unless($handoff !== null, 404);
         $profile = PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $case->visit->patient_id)->first();
@@ -104,12 +107,42 @@ class DispensaryDirectoryService
         $catalogue = MedicineCatalogueItem::query()->where('organisation_id', $actor->organisation_id)->whereIn('id', $handoff->items->pluck('medicine_catalogue_item_id')->unique())->get(['id', 'display_name', 'generic_name', 'allergy_groups', 'allergy_aliases'])->keyBy('id');
 
         $ownsDispensingCase = $case->status === DispensaryCase::STATUS_DISPENSING && $case->current_handler_user_id === $actor->id;
+        $packs = DispensaryPackDisplay::forItems($handoff->items);
 
-        return ['publicId' => $case->public_id, 'status' => $case->status, 'lockVersion' => $case->lock_version, 'receivedAt' => CarbonImmutable::parse($case->received_at)->setTimezone($branch->timezone)->toIso8601String(), 'patient' => ['patientNumber' => $case->visit->patient->patient_number, 'name' => $case->visit->patient->full_name], 'visit' => ['visitNumber' => $case->visit->visit_number], 'doctor' => $case->visit->assignedDoctor?->name, 'allergySafety' => ['allergies' => $profile ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->get(['allergen_text', 'reaction_text', 'severity'])->map(fn ($a): array => ['allergen' => $a->allergen_text, 'reaction' => $a->reaction_text, 'severity' => $a->severity])->values()->all() : [], 'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN, 'profileVersion' => $profile?->lock_version, 'isCurrent' => $profile !== null && $firstItem !== null && $profile->lock_version === $firstItem->allergy_profile_version_validated], 'items' => $handoff->items->map(function (DispensaryItem $item) use ($actor, $case, $activeAllergies, $catalogue): array {
+        return ['publicId' => $case->public_id, 'status' => $case->status, 'lockVersion' => $case->lock_version, 'receivedAt' => CarbonImmutable::parse($case->received_at)->setTimezone($branch->timezone)->toIso8601String(), 'patient' => ['patientNumber' => $case->visit->patient->patient_number, 'name' => $case->visit->patient->full_name], 'visit' => ['visitNumber' => $case->visit->visit_number], 'doctor' => $case->visit->assignedDoctor?->name, 'allergySafety' => ['allergies' => $profile ? $profile->allergyRecords()->where('status', 'active')->orderBy('id')->get(['allergen_text', 'reaction_text', 'severity'])->map(fn ($a): array => ['allergen' => $a->allergen_text, 'reaction' => $a->reaction_text, 'severity' => $a->severity])->values()->all() : [], 'status' => $profile ? $profile->status : PatientAllergyProfile::STATUS_UNKNOWN, 'profileVersion' => $profile?->lock_version, 'reviewedAt' => $profile?->reviewed_at?->setTimezone($branch->timezone)->toIso8601String(), 'isCurrent' => $profile !== null && $firstItem !== null && $profile->lock_version === $firstItem->allergy_profile_version_validated], 'items' => $handoff->items->map(function (DispensaryItem $item) use ($actor, $case, $activeAllergies, $catalogue, $packs): array {
             $mapping = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $item->medicine_catalogue_item_id)->where('is_active', true)->with('sku')->first();
 
-            return ['publicId' => $item->public_id, 'lockVersion' => $item->lock_version, 'name' => $item->medicine_name_snapshot, 'code' => $item->medicine_code_snapshot, 'strength' => $item->strength_snapshot, 'dosageForm' => $item->dosage_form_snapshot, 'unit' => $item->unit_snapshot, 'quantityOrdered' => $item->quantity_ordered, 'quantityDispensed' => $item->quantity_dispensed, 'status' => $item->status, 'reason' => $item->reason, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'route' => $item->effective('route'), 'instruction' => $item->effective('administration_instruction'), 'precaution' => $item->effective('precaution'), 'source' => $item->source, 'changeState' => $item->change_state, 'original' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration, 'route' => $item->route, 'instruction' => $item->administration_instruction, 'precaution' => $item->precaution], 'sku' => $mapping ? ['publicId' => $mapping->sku->public_id, 'unit' => $mapping->sku->dispensing_unit] : null, 'availability' => $mapping ? $this->availability->forSku($actor, $mapping->inventory_sku_id, $case->branch_id, dispensaryOnly: true) : [], 'allocations' => $item->allocations->map(fn ($a) => ['locationPublicId' => $a->location?->public_id, 'skuPublicId' => $a->sku?->public_id, 'batchPublicId' => $a->batch?->public_id, 'quantity' => $a->quantity])->values(), 'exception' => $item->exceptions->whereIn('status', ['awaiting_acknowledgement', 'acknowledged'])->last()?->only(['public_id', 'status', 'proposed_quantity_dispensed']), 'allergyMatches' => $matches = $this->allergyMatchesFor($activeAllergies, [$item->medicine_name_snapshot, ...($catalogue->get($item->medicine_catalogue_item_id)?->allergyMatchTerms() ?? [])]), 'allergyUnconfirmed' => $this->hasUnconfirmedMatch($item, $activeAllergies, $matches)];
-        })->values(), 'services' => DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get()->map(fn (DispensaryServiceLine $line): array => ['publicId' => $line->public_id, 'lockVersion' => $line->lock_version, 'name' => $line->service_name_snapshot, 'code' => $line->service_code_snapshot, 'unit' => $line->unit_snapshot, 'quantityOrdered' => $line->quantity_ordered, 'quantityPerformed' => $line->quantity_performed, 'disposition' => $line->disposition, 'instruction' => $line->effectiveInstruction(), 'source' => $line->source, 'changeState' => $line->change_state, 'original' => ['quantity' => $line->doctor_quantity_performed, 'instruction' => $line->clinical_instruction]])->values(), 'caseType' => $case->case_type, 'otc' => $case->case_type === DispensaryCase::TYPE_OTC ? ['allergyStatement' => $handoff->otc_allergy_statement, 'allergyConfirmed' => $handoff->otc_allergy_confirmed_at !== null] : null, 'can' => ['start' => $actor->can('dispensary.start.branch') && $case->status === DispensaryCase::STATUS_PENDING, 'update' => $actor->can('dispensary.update.branch') && $ownsDispensingCase, 'complete' => $actor->can('dispensary.complete.branch') && $ownsDispensingCase, 'addOtcAllergy' => $case->case_type === DispensaryCase::TYPE_OTC && $actor->can('allergies.record_otc.branch') && $ownsDispensingCase, 'return' => $actor->can('dispensary.return_to_doctor.branch') && $case->case_type !== DispensaryCase::TYPE_OTC && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true)]];
+            return ['publicId' => $item->public_id, 'lockVersion' => $item->lock_version, 'name' => $item->medicine_name_snapshot, 'code' => $item->medicine_code_snapshot, 'strength' => $item->strength_snapshot, 'dosageForm' => $item->dosage_form_snapshot, 'unit' => $item->unit_snapshot, 'quantityOrdered' => $item->quantity_ordered, 'quantityDispensed' => $item->quantity_dispensed, 'packsDispensed' => $packs[$item->id]['packs'] ?? null, 'packText' => $packs[$item->id]['text'] ?? null, 'packConversion' => $mapping ? $this->packConversion($actor, $mapping->inventory_sku_id) : null, 'status' => $item->status, 'reason' => $item->reason, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'route' => $item->effective('route'), 'instruction' => $item->effective('administration_instruction'), 'precaution' => $item->effective('precaution'), 'source' => $item->source, 'changeState' => $item->change_state, 'original' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration, 'route' => $item->route, 'instruction' => $item->administration_instruction, 'precaution' => $item->precaution], 'sku' => $mapping ? ['publicId' => $mapping->sku->public_id, 'unit' => $mapping->sku->dispensing_unit] : null, 'availability' => $mapping ? $this->availability->forSku($actor, $mapping->inventory_sku_id, $case->branch_id, dispensaryOnly: true) : [], 'allocations' => $item->allocations->map(fn (DispensaryItemBatchAllocation $a): array => $this->allocationProjection($a))->values()->all(), 'exception' => $item->exceptions->whereIn('status', ['awaiting_acknowledgement', 'acknowledged'])->last()?->only(['public_id', 'status', 'proposed_quantity_dispensed']), 'allergyMatches' => $matches = $this->allergyMatchesFor($activeAllergies, [$item->medicine_name_snapshot, ...($catalogue->get($item->medicine_catalogue_item_id)?->allergyMatchTerms() ?? [])]), 'allergyUnconfirmed' => $this->hasUnconfirmedMatch($item, $activeAllergies, $matches)];
+        })->values(), 'services' => DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get()->map(fn (DispensaryServiceLine $line): array => ['publicId' => $line->public_id, 'lockVersion' => $line->lock_version, 'name' => $line->service_name_snapshot, 'code' => $line->service_code_snapshot, 'unit' => $line->unit_snapshot, 'quantityOrdered' => $line->quantity_ordered, 'quantityPerformed' => $line->quantity_performed, 'disposition' => $line->disposition, 'instruction' => $line->effectiveInstruction(), 'source' => $line->source, 'changeState' => $line->change_state, 'original' => ['quantity' => $line->doctor_quantity_performed, 'instruction' => $line->clinical_instruction]])->values(), 'caseType' => $case->case_type, 'otc' => $case->case_type === DispensaryCase::TYPE_OTC ? ['allergyStatement' => $handoff->otc_allergy_statement, 'allergyConfirmed' => $handoff->otc_allergy_confirmed_at !== null] : null, 'can' => ['start' => $actor->can('dispensary.start.branch') && $case->status === DispensaryCase::STATUS_PENDING, 'update' => $actor->can('dispensary.update.branch') && $ownsDispensingCase, 'complete' => $actor->can('dispensary.complete.branch') && $ownsDispensingCase, 'addOtcAllergy' => $case->case_type === DispensaryCase::TYPE_OTC && $actor->can('allergies.record_otc.branch') && $ownsDispensingCase, 'return' => $actor->can('dispensary.return_to_doctor.branch') && $case->case_type !== DispensaryCase::TYPE_OTC && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true)], 'doctorCheck' => $this->doctorCheck($actor, $case, $branch)];
+    }
+
+    /**
+     * DSP-23: what the case page needs for the doctor's check. `required` turns Complete into "Send to doctor for
+     * check" (the server reads the switch again under lock); `canCheck` offers a CA Supervisor Verify and Send back.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function doctorCheck(User $actor, DispensaryCase $case, Branch $branch): ?array
+    {
+        if ($case->case_type === DispensaryCase::TYPE_OTC) {
+            return null;
+        }
+        $waiting = $case->status === DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK;
+        $directory = app(DispensaryDoctorCheckDirectory::class);
+        $mayOverride = $actor->hasRole('ca_supervisor') && $actor->can('dispensary.doctor_check.override.branch');
+        $prepared = $case->sent_for_check_by_user_id === $actor->id || $case->current_handler_user_id === $actor->id;
+
+        return [
+            'required' => $case->doctor_check_required === true || app(DispensarySettingsService::class)->doctorCheckRequired($branch),
+            'waiting' => $waiting,
+            'sentAt' => $waiting ? $directory->time($case->sent_for_check_at, $branch) : null,
+            'sentBy' => $waiting ? User::query()->whereKey($case->sent_for_check_by_user_id)->value('name') : null,
+            'sentBack' => $directory->latestSendBack($case, $branch),
+            'supervisorCheck' => $directory->supervisorCheck($case, $branch),
+            'canCheck' => $waiting && $mayOverride && ! $prepared,
+            // Only someone who could otherwise check instead is told why they can't.
+            'preparedByYou' => $waiting && $mayOverride && $prepared,
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -138,10 +171,29 @@ class DispensaryDirectoryService
         return app(DrugLabelService::class)->recordPrint($actor, $case, $itemPublicId, $token, $branchId);
     }
 
+    /**
+     * DSP-26: who may read the Dispensary pages. The CA's check (view permission and a dispensary role) or the
+     * Resident Doctor's view-only permission. Used only by read paths (board, detail); every write path and the
+     * print log keep authorizedBranch(), so a viewer can never reach one through this gate (Hakim).
+     */
+    public static function canView(User $actor): bool
+    {
+        return ($actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant']))
+            || $actor->can(DrugLabelService::VIEW_PERMISSION);
+    }
+
+    private function viewableBranch(User $actor, DispensaryCase $case): Branch
+    {
+        $branch = $this->branches->activeBranch($actor);
+        abort_unless($branch && self::canView($actor) && $case->organisation_id === $actor->organisation_id && $case->branch_id === $branch->id, 404);
+
+        return $branch;
+    }
+
     private function authorizedBranch(User $actor, DispensaryCase $case): Branch
     {
         $branch = $this->branches->activeBranch($actor);
-        abort_unless($branch && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor']) && $case->organisation_id === $actor->organisation_id && $case->branch_id === $branch->id, 404);
+        abort_unless($branch && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant']) && $case->organisation_id === $actor->organisation_id && $case->branch_id === $branch->id, 404);
 
         return $branch;
     }
@@ -259,10 +311,43 @@ class DispensaryDirectoryService
                 return $mapping ? [
                     'publicId' => $medicine->public_id, 'name' => $medicine->display_name, 'code' => $medicine->code, 'strength' => $medicine->strength_text,
                     'unit' => $medicine->order_unit, 'sku' => ['publicId' => $mapping->sku->public_id, 'unit' => $mapping->sku->dispensing_unit],
+                    'packConversion' => $this->packConversion($actor, $mapping->inventory_sku_id),
                     'availability' => $this->availability->forSku($actor, $mapping->inventory_sku_id, $case->branch_id, dispensaryOnly: true),
                     'allergyMatches' => $this->allergyMatchesFor($activeAllergies, $medicine->allergyMatchTerms()),
                 ] : null;
             })->filter()->values()->all();
+    }
+
+    /**
+     * DSP-24: the SKU's current checked STK-52 pack conversion, which the quantity box offers as "Bottles". The save
+     * sends back its public id and version, and the server refuses a save when either has changed.
+     *
+     * @return array{publicId: string, version: int, packUnit: string, basePerPack: int, baseUnit: string}|null
+     */
+    private function packConversion(User $actor, int $skuId): ?array
+    {
+        $conversion = $this->packConversions->checkedFor((int) $actor->organisation_id, $skuId);
+
+        return $conversion === null ? null : ['publicId' => $conversion->publicId, 'version' => $conversion->version, 'packUnit' => $conversion->packUnit, 'basePerPack' => $conversion->basePerPack, 'baseUnit' => $conversion->baseUnit];
+    }
+
+    /**
+     * DSP-20: the batch number and expiry let scan to check compare a GS1 box with the line's saved batches.
+     *
+     * @return array{locationPublicId: ?string, skuPublicId: ?string, batchPublicId: ?string, batchNumber: ?string, expiryDate: ?string, quantity: mixed}
+     */
+    private function allocationProjection(DispensaryItemBatchAllocation $allocation): array
+    {
+        $batch = $allocation->batch;
+
+        return [
+            'locationPublicId' => $allocation->location?->public_id,
+            'skuPublicId' => $allocation->sku?->public_id,
+            'batchPublicId' => $batch?->public_id,
+            'batchNumber' => $batch?->batch_number,
+            'expiryDate' => $batch?->expiry_date ? CarbonImmutable::parse($batch->expiry_date)->toDateString() : null,
+            'quantity' => $allocation->quantity,
+        ];
     }
 
     /**

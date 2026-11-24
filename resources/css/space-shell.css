@@ -40,6 +40,17 @@
     --space-seg-on: #ffffff;
     --space-logo-mark: #e8348c;
 
+    /* Me home (DS-13, §19): the soft gradient behind the top of that page only, the four tile tints, and the muted text
+       colour that keeps 4.5:1 on the gradient. Pink here is the Clock out outline, a small accent. */
+    --space-g1: #ffdcc2;
+    --space-g2: #cfe2ff;
+    --space-t1: #e0ebff;
+    --space-t2: #fde3ee;
+    --space-t3: #e1f3e8;
+    --space-t4: #fcefd0;
+    --space-me-muted: #4a5468;
+    --space-brand: #c4155f;
+
     /* Shape and rhythm. */
     --space-radius-card: 14px;
     --space-radius-control: 9px;
@@ -76,4 +87,13 @@
 
     --space-seg: rgba(118, 118, 128, 0.28);
     --space-seg-on: #636366;
+
+    --space-g1: #5a3550;
+    --space-g2: #1c2a4a;
+    --space-t1: #1e2c4a;
+    --space-t2: #3c2030;
+    --space-t3: #12301f;
+    --space-t4: #3a2a0a;
+    --space-me-muted: #b0b8cc;
+    --space-brand: #ff86ae;
 }

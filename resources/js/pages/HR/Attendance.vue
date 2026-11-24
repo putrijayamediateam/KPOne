@@ -1,36 +1,29 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
-import {
-    computed,
-    nextTick,
-    onBeforeUnmount,
-    onMounted,
-    reactive,
-    ref,
-    useTemplateRef,
-    watch,
-} from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { ArrowRight, CalendarCheck, CalendarX, Clock } from '@lucide/vue';
+import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
+import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
 import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
 import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
 import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
+import PhotoStorageCard from '@/components/hr/attendance/PhotoStorageCard.vue';
 import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
 import type {
     LocationCheckCard,
+    PhotoStorageCard as PhotoStorageData,
     MyOvertime,
-    OvertimeChoice,
     OvertimeOptions,
     OvertimeSettingsCard,
     OvertimeTabData,
     SummaryTabData,
-    WeekHours,
 } from '@/components/hr/attendance/types';
 import { weekTone } from '@/components/hr/attendance/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField, DateTimeField } from '@/components/ui/date-field';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -48,59 +41,13 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-
-type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
-type Kind = 'change_in' | 'set_out' | 'add_day';
-type Option = { value: string; label: string };
-type Flag = { code: string; label: string };
-type Row = {
-    key: string;
-    userId: number;
-    person?: string;
-    date: string;
-    dateLabel: string;
-    shift: { label: string; branch: string } | null;
-    session: {
-        publicId: string;
-        status: 'open' | 'closed' | 'missing_out';
-        branch: string;
-        branchId: number;
-        in: string | null;
-        out: string | null;
-        inValue: string;
-        outValue: string | null;
-    } | null;
-    worked: string | null;
-    flags: Flag[];
-    correctionWaiting: boolean;
-    needsClockOut: boolean;
-    overtimeChoice?: OvertimeChoice | null;
-    week?: WeekHours | null;
-    /** HR-16a: each press's location result in plain words; never a position. */
-    location?: {
-        in: string | null;
-        out: string | null;
-        outside: boolean;
-    } | null;
-};
-type Correction = {
-    publicId: string;
-    person: string;
-    dayLabel: string;
-    branch: string;
-    kind: Kind;
-    kindLabel: string;
-    compare: string;
-    reason: string;
-    note: string | null;
-    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-    statusLabel: string;
-    onBehalf: boolean;
-    proposedBy: string;
-    canDecide: boolean;
-    canCancel: boolean;
-    lockVersion: number;
-};
+import { useAttendancePage } from '@/composables/hr/useAttendancePage';
+import type {
+    Tab,
+    Option,
+    Row,
+    Correction,
+} from '@/composables/hr/useAttendancePage';
 
 const props = defineProps<{
     /** HR-5a: your own expiring or expired credentials, in words. */
@@ -123,8 +70,15 @@ const props = defineProps<{
             state: 'out' | 'in' | 'done';
             clockedInLabel: string | null;
             doneLabel: string | null;
+            undo: {
+                sessionId: string;
+                lockVersion: number;
+                pressedAt: string;
+                until: string;
+            } | null;
             staleLabel: string | null;
             todayShift: string | null;
+            todayHasBreak: boolean;
             week: Row[];
             weekLabel: string;
             attention: Row[];
@@ -176,518 +130,54 @@ const props = defineProps<{
             }[];
             overtime: OvertimeSettingsCard;
             location: LocationCheckCard | null;
+            /** HR-PHOTO-STORAGE (owner, 16 Nov 2026): the read-only storage card, Director and HR Manager only. */
+            photoStorage?: PhotoStorageData;
         } | null;
         overtime: OvertimeTabData | null;
         summary: SummaryTabData | null;
     };
 }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-
-const clockNotes = computed(
-    () =>
-        !!props.attendance.my &&
-        (!props.attendance.my.settingsReady ||
-            !!props.attendance.my.staleLabel),
-);
-const userName = computed(() => page.props.auth?.user?.name ?? '');
-
-const tabLabels: Record<Tab, string> = {
-    my: 'My attendance',
-    review: 'Review',
-    overtime: 'Overtime',
-    summary: 'Summary',
-    settings: 'Settings',
-};
-const tabs = computed(() =>
-    props.attendance.tabs.map((value) => ({
-        value,
-        label:
-            value === 'review' && props.attendance.pendingCount > 0
-                ? `Review (${props.attendance.pendingCount})`
-                : value === 'overtime' &&
-                    props.attendance.overtimePendingCount > 0
-                  ? `Overtime (${props.attendance.overtimePendingCount})`
-                  : tabLabels[value],
-    })),
-);
-const reviewQuery = computed(() => ({
-    review_branch: props.attendance.review?.branch?.id,
-    review_date: props.attendance.review?.date ?? undefined,
-}));
-const visit = (params: Record<string, string | number | undefined>) =>
-    router.get(
-        '/hr/attendance',
-        { tab: props.attendance.tab, ...params },
-        {
-            preserveScroll: true,
-        },
-    );
-
-// ---- Tabs (DD-30 pattern from the Queue board, #296) ----
-const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
-const tabNav = () =>
-    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
-const moreTabsRight = ref(false);
-const updateTabFade = () => {
-    const nav = tabNav();
-
-    moreTabsRight.value =
-        nav !== null &&
-        nav.scrollWidth > nav.clientWidth + 1 &&
-        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
-};
-const selectTab = (tab: string) => visit({ tab });
-
-// ---- Server time (Daniel: ticks every second, never in a live region) ----
-const offset = ref(0);
-const tick = ref(Date.now());
-let timer: ReturnType<typeof setInterval> | undefined;
-const syncClock = () => {
-    if (props.attendance.my) {
-        offset.value = Date.parse(props.attendance.my.serverNow) - Date.now();
-    }
-};
-const serverTime = computed(() => {
-    const my = props.attendance.my;
-
-    if (!my) {
-        return '';
-    }
-
-    return new Intl.DateTimeFormat('en-US', {
-        timeZone: my.timezone,
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-    }).format(new Date(tick.value + offset.value));
-});
-const serverDate = computed(() => {
-    const my = props.attendance.my;
-
-    if (!my) {
-        return '';
-    }
-
-    const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: my.timezone,
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date(tick.value + offset.value));
-
-    return parts;
-});
-watch(() => props.attendance.my?.serverNow, syncClock);
-
-onMounted(() => {
-    syncClock();
-    timer = setInterval(() => (tick.value = Date.now()), 1000);
-    const nav = tabNav();
-    nav?.addEventListener('scroll', updateTabFade, { passive: true });
-    void nextTick().then(updateTabFade);
-});
-onBeforeUnmount(() => {
-    clearInterval(timer);
-    tabNav()?.removeEventListener('scroll', updateTabFade);
-});
-
-// ---- One polite live region for state changes only (a refusal is read once, by its alert under the button) ----
-const announcement = ref('');
-watch(
-    () => [props.attendance.my?.state, props.attendance.my?.clockedInLabel],
-    ([, label], [oldState]) => {
-        const my = props.attendance.my;
-
-        if (my && my.state !== oldState) {
-            announcement.value =
-                my.state === 'in'
-                    ? String(label ?? 'Clocked in.')
-                    : my.state === 'done'
-                      ? String(my.doneLabel ?? 'Clocked out.')
-                      : '';
-        }
-    },
-);
-
-// ---- Clock in and out ----
-const clock = reactive({
-    processing: false,
-    confirmOut: false,
-    key: '',
-    locating: false,
-    consentFor: null as 'in' | 'out' | null,
-});
-// HR-16a: where the branch checks location, the browser reads it once, at the press, and never before or after. A
-// refusal, a failure or "without location" still records the press.
-const press = (kind: 'in' | 'out') => {
-    const location = props.attendance.my?.location;
-
-    if (!location) {
-        send(kind, {});
-
-        return;
-    }
-
-    if (location.consentNeeded) {
-        clock.confirmOut = false;
-        clock.consentFor = kind;
-
-        return;
-    }
-
-    locate(kind, false);
-};
-const locate = (kind: 'in' | 'out', consent: boolean) => {
-    clock.consentFor = null;
-    const extra: Record<string, unknown> = consent
-        ? { location_consent: true }
-        : {};
-
-    if (!('geolocation' in navigator)) {
-        send(kind, { ...extra, location_unavailable: 'failed' });
-
-        return;
-    }
-
-    clock.locating = true;
-    clock.processing = true;
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            clock.locating = false;
-            send(kind, {
-                ...extra,
-                clock_position: {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    accuracy: position.coords.accuracy,
-                },
-            });
-        },
-        (error) => {
-            clock.locating = false;
-            send(kind, {
-                ...extra,
-                location_unavailable: error.code === 1 ? 'denied' : 'failed',
-            });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
-};
-const withoutLocation = (kind: 'in' | 'out') => {
-    clock.consentFor = null;
-    send(kind, { location_unavailable: 'declined' });
-};
-const send = (kind: 'in' | 'out', extra: Record<string, unknown>) => {
-    clock.key = clock.key || crypto.randomUUID();
-    clock.processing = true;
-    router.post(
-        kind === 'in' ? '/hr/attendance/clock-in' : '/hr/attendance/clock-out',
-        { idempotency_key: clock.key, ...extra },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                clock.key = '';
-                clock.confirmOut = false;
-            },
-            onError: () => {
-                clock.key = '';
-                clock.confirmOut = false;
-            },
-            onFinish: () => (clock.processing = false),
-        },
-    );
-};
-
-// ---- Corrections ----
-const correction = reactive({
-    open: false,
-    processing: false,
-    key: '',
-    kind: 'set_out' as Kind,
-    sessionId: '',
-    userId: '' as string | number,
-    branchId: '' as string | number,
-    person: '',
-    recordedIn: null as string | null,
-    recordedOut: null as string | null,
-    inTime: '',
-    outTime: '',
-    reason: '',
-    note: '',
-    fromReview: false,
-});
-const correctionErrors = computed(() => ({
-    kind: errors.value.kind,
-    in_time: errors.value.in_time,
-    out_time: errors.value.out_time,
-    reason_code: errors.value.reason_code,
-    note: errors.value.note,
-    session_id: errors.value.session_id,
-    branch_id: errors.value.branch_id,
-    user_id: errors.value.user_id,
-    attendance: errors.value.attendance,
-}));
-const kindOptions = computed(() =>
-    props.attendance.kinds.filter((k) =>
-        correction.sessionId === ''
-            ? k.value === 'add_day'
-            : k.value !== 'add_day',
-    ),
-);
-const formatLocal = (value: string) => {
-    if (!value) {
-        return '';
-    }
-
-    const [, time] = value.split('T');
-    const [h, m] = time.split(':').map(Number);
-    const suffix = h >= 12 ? 'PM' : 'AM';
-
-    return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${suffix}`;
-};
-const compareLine = computed(() => {
-    if (correction.kind === 'change_in') {
-        return `Recorded: ${correction.recordedIn ?? 'none'} · New: ${formatLocal(correction.inTime) || '–'}`;
-    }
-
-    if (correction.kind === 'set_out') {
-        return `Recorded: ${correction.recordedOut ?? 'none'} · New: ${formatLocal(correction.outTime) || '–'}`;
-    }
-
-    return `Recorded: none · New: ${formatLocal(correction.inTime) || '–'} – ${formatLocal(correction.outTime) || '–'}`;
-});
-const openCorrection = (row: Row | null, fromReview = false) => {
-    const session = row?.session ?? null;
-    Object.assign(correction, {
-        open: true,
-        key: crypto.randomUUID(),
-        sessionId: session?.publicId ?? '',
-        kind: session
-            ? session.out === null
-                ? 'set_out'
-                : 'change_in'
-            : ('add_day' as Kind),
-        userId: fromReview && row ? row.userId : '',
-        branchId: fromReview
-            ? (props.attendance.review?.branch?.id ?? '')
-            : (props.attendance.my?.branch?.id ?? ''),
-        person: fromReview ? (row?.person ?? '') : '',
-        recordedIn: session?.in ?? null,
-        recordedOut: session?.out ?? null,
-        inTime: session?.inValue ?? '',
-        outTime: session?.outValue ?? '',
-        reason: '',
-        note: '',
-        fromReview,
-    });
-};
-const openForgottenDay = (fromReview = false) => {
-    openCorrection(null, fromReview);
-};
-const sendCorrection = () => {
-    correction.processing = true;
-    router.post(
-        '/hr/attendance/corrections',
-        {
-            tab: correction.fromReview ? 'review' : 'my',
-            ...(correction.fromReview ? reviewQuery.value : {}),
-            kind: correction.kind,
-            session_id: correction.sessionId || undefined,
-            user_id: correction.userId || undefined,
-            branch_id:
-                correction.kind === 'add_day' ? correction.branchId : undefined,
-            in_time:
-                correction.kind === 'set_out' ? undefined : correction.inTime,
-            out_time:
-                correction.kind === 'change_in'
-                    ? undefined
-                    : correction.outTime,
-            reason_code: correction.reason,
-            note: correction.note,
-            idempotency_key: correction.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (correction.open = false),
-            onFinish: () => (correction.processing = false),
-        },
-    );
-};
-const withdrawing = ref('');
-const cancelCorrection = (c: Correction, fromReview = false) => {
-    if (withdrawing.value !== '') {
-        return;
-    }
-
-    withdrawing.value = c.publicId;
-    router.post(
-        `/hr/attendance/corrections/${c.publicId}/cancel`,
-        {
-            tab: fromReview ? 'review' : 'my',
-            ...(fromReview ? reviewQuery.value : {}),
-            expected_lock_version: c.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        { preserveScroll: true, onFinish: () => (withdrawing.value = '') },
-    );
-};
-
-// ---- Decisions (outline buttons in the list; the primary action is in the dialog) ----
-const decision = reactive({
-    open: false,
-    processing: false,
-    approve: true,
-    target: null as Correction | null,
-    reason: '',
-    key: '',
-    error: '',
-});
-const openDecision = (c: Correction, approve: boolean) =>
-    Object.assign(decision, {
-        open: true,
-        approve,
-        target: c,
-        reason: '',
-        key: crypto.randomUUID(),
-        error: '',
-    });
-const confirmDecision = () => {
-    const target = decision.target;
-
-    if (!target) {
-        return;
-    }
-
-    if (!decision.approve && decision.reason === '') {
-        decision.error = 'Choose a reason.';
-
-        return;
-    }
-
-    decision.processing = true;
-    router.post(
-        `/hr/attendance/corrections/${target.publicId}/${decision.approve ? 'approve' : 'reject'}`,
-        {
-            ...reviewQuery.value,
-            expected_lock_version: target.lockVersion,
-            reason: decision.approve ? undefined : decision.reason,
-            idempotency_key: decision.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (decision.open = false),
-            onError: (e) =>
-                (decision.error =
-                    e.attendance ?? e.reason ?? 'This could not be saved.'),
-            onFinish: () => (decision.processing = false),
-        },
-    );
-};
-
-// ---- HR-3b overtime ----
-const ask = reactive({
-    open: false,
-    sessionId: '',
-    fromReview: false,
-    person: '',
-    userId: 0,
-    choices: [] as OvertimeChoice[],
-});
-const myChoices = computed(() => props.attendance.my?.overtime.choices ?? []);
-const choiceFor = (row: Row) =>
-    row.session
-        ? (myChoices.value.find((c) => c.sessionId === row.session?.publicId) ??
-          null)
-        : null;
-const openAsk = (sessionId: string) =>
-    Object.assign(ask, {
-        open: true,
-        sessionId,
-        fromReview: false,
-        person: '',
-        userId: 0,
-        choices: myChoices.value,
-    });
-const openAskFor = (row: Row) => {
-    if (!row.overtimeChoice) {
-        return;
-    }
-
-    Object.assign(ask, {
-        open: true,
-        sessionId: row.overtimeChoice.sessionId,
-        fromReview: true,
-        person: row.person ?? '',
-        userId: row.userId,
-        choices: [row.overtimeChoice],
-    });
-};
-
-// ---- Settings ----
-const settingsForm = reactive({
-    grace_minutes: String(
-        props.attendance.settings?.current?.graceMinutes ??
-            props.attendance.settings?.suggested.graceMinutes ??
-            '',
-    ),
-    forgotten_window_minutes: String(
-        props.attendance.settings?.current?.forgottenWindowMinutes ??
-            props.attendance.settings?.suggested.forgottenWindowMinutes ??
-            '',
-    ),
-    correction_days: String(
-        props.attendance.settings?.current?.correctionDays ??
-            props.attendance.settings?.suggested.correctionDays ??
-            '',
-    ),
-    effective_from: props.attendance.settings?.today ?? '',
-    processing: false,
-    key: crypto.randomUUID(),
-});
-const saveSettings = () => {
-    settingsForm.processing = true;
-    router.put(
-        '/hr/attendance/settings',
-        {
-            grace_minutes: settingsForm.grace_minutes,
-            forgotten_window_minutes: settingsForm.forgotten_window_minutes,
-            correction_days: settingsForm.correction_days,
-            effective_from: settingsForm.effective_from,
-            idempotency_key: settingsForm.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (settingsForm.key = crypto.randomUUID()),
-            onFinish: () => (settingsForm.processing = false),
-        },
-    );
-};
-
-const reviewBranchOptions = computed(() =>
-    (props.attendance.review?.branches ?? []).map((b) => ({
-        value: b.id,
-        label: b.name,
-    })),
-);
-const staffOptions = computed(() =>
-    (props.attendance.review?.staff ?? []).map((s) => ({
-        value: s.id,
-        label: s.name,
-    })),
-);
-const correctionStatusTone = (
-    status: Correction['status'],
-): 'neutral' | 'success' | 'danger' =>
-    status === 'approved'
-        ? 'success'
-        : status === 'rejected'
-          ? 'danger'
-          : 'neutral';
+const {
+    errors,
+    clockNotes,
+    userName,
+    tabs,
+    reviewQuery,
+    visit,
+    tabFade,
+    selectTab,
+    aboutPhotos,
+    reviewHasOthersPhotos,
+    serverTime,
+    serverDate,
+    announcement,
+    clockOnMe,
+    correction,
+    correctionErrors,
+    kindOptions,
+    compareLine,
+    openCorrection,
+    openForgottenDay,
+    sendCorrection,
+    withdrawing,
+    cancelCorrection,
+    decision,
+    undo,
+    openUndo,
+    confirmUndo,
+    openDecision,
+    confirmDecision,
+    ask,
+    choiceFor,
+    openAsk,
+    openAskFor,
+    settingsForm,
+    saveSettings,
+    reviewBranchOptions,
+    staffOptions,
+    correctionStatusTone,
+} = useAttendancePage(props);
 </script>
 
 <template>
@@ -705,11 +195,7 @@ const correctionStatusTone = (
                 :tabs="tabs"
                 label="Attendance sections"
                 class="min-w-0 max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
-                :class="
-                    moreTabsRight
-                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
-                        : ''
-                "
+                :style="tabFade"
                 @update:model-value="selectTab"
             />
         </div>
@@ -778,38 +264,65 @@ const correctionStatusTone = (
                     >
                         {{ attendance.my.doneLabel }}
                     </p>
-                    <Button
-                        v-if="attendance.my.state === 'out'"
-                        class="min-h-14 w-full text-base"
-                        :disabled="!attendance.my.canPress || clock.processing"
-                        data-test="clock-in"
-                        @click="press('in')"
+                    <!-- Undo clock-out (owner, 16 Nov 2026): for 15 minutes after the person's own clock-out. -->
+                    <div
+                        v-if="attendance.my.undo"
+                        class="flex flex-col gap-1"
+                        data-test="undo-clock-out"
                     >
-                        <Clock class="size-5" />
-                        {{
-                            clock.locating
-                                ? 'Checking location…'
-                                : clock.processing
-                                  ? 'Clocking in…'
-                                  : 'Clock in'
-                        }}
+                        <Button
+                            variant="outline"
+                            class="min-h-11 self-start"
+                            data-test="undo-clock-out-button"
+                            @click="openUndo"
+                        >
+                            Undo clock-out
+                        </Button>
+                        <p class="text-xs text-muted-foreground">
+                            Clocked out by mistake? You can undo this until
+                            {{ attendance.my.undo.until }}.
+                        </p>
+                    </div>
+                    <!-- One Clock in (owner, 18 Nov 2026): every press is on Me, with the photo and any location check. An
+                         outline link with a 44 px target, shown only when a press is possible (Daniel). -->
+                    <Button
+                        v-if="
+                            attendance.my.state === 'out' &&
+                            attendance.my.canPress
+                        "
+                        as-child
+                        variant="outline"
+                        class="min-h-11 w-full sm:w-auto sm:self-start"
+                    >
+                        <Link :href="clockOnMe" data-test="clock-in-on-me"
+                            >Clock in on Me
+                            <ArrowRight class="size-4" aria-hidden="true"
+                        /></Link>
                     </Button>
                     <Button
+                        v-else-if="
+                            attendance.my.state === 'in' && attendance.my.branch
+                        "
+                        as-child
+                        variant="outline"
+                        class="min-h-11 w-full sm:w-auto sm:self-start"
+                    >
+                        <Link :href="clockOnMe" data-test="clock-out-on-me"
+                            >Clock out on Me
+                            <ArrowRight class="size-4" aria-hidden="true"
+                        /></Link>
+                    </Button>
+                    <!-- Me shows no clock without an active branch, so a person still clocked in with none is pointed to a
+                         correction instead of a link that leads nowhere (Suresh, m1). -->
+                    <p
                         v-else-if="attendance.my.state === 'in'"
-                        class="min-h-14 w-full text-base"
-                        :disabled="clock.processing"
-                        data-test="clock-out"
-                        @click="clock.confirmOut = true"
+                        class="text-sm text-muted-foreground"
+                        data-test="clock-out-no-branch"
                     >
-                        <Clock class="size-5" />
-                        {{
-                            clock.locating
-                                ? 'Checking location…'
-                                : clock.processing
-                                  ? 'Clocking out…'
-                                  : 'Clock out'
-                        }}
-                    </Button>
+                        You are clocked in, but you have no branch to work at
+                        now, so Me cannot clock you out. Ask HR to add your
+                        clock-out time as a correction.
+                    </p>
                     <InputError :message="errors.clock" />
                     <p
                         v-if="attendance.my.location"
@@ -847,13 +360,31 @@ const correctionStatusTone = (
                     <p v-else class="text-sm text-muted-foreground">
                         No approved shift today.
                     </p>
+                    <!-- HR-PHOTO: shown at every branch, beside the location note where the branch checks location. -->
                     <p
-                        v-if="!attendance.my.location"
                         class="text-xs text-muted-foreground"
                         data-test="privacy-line"
                     >
-                        KPOne records the time only. No location or photo.
+                        KPOne records the time and a photo of you at each press.
+                        HR can see it. Kept for 7 years (to confirm).
                     </p>
+                    <!-- HR month dry run S1 (owner, 16 Nov 2026): the break comes off the worked time, so nobody clocks out for it. -->
+                    <p
+                        v-if="attendance.my.todayHasBreak"
+                        class="text-xs text-muted-foreground"
+                        data-test="break-line"
+                    >
+                        Stay clocked in for your break; KPOne takes the rostered
+                        break off.
+                    </p>
+                    <button
+                        type="button"
+                        class="self-start text-xs font-medium text-brand-strong underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        data-test="clock-photo-about"
+                        @click="aboutPhotos = true"
+                    >
+                        About clock-in photos
+                    </button>
                     <p
                         v-if="
                             attendance.my.state !== 'out' ||
@@ -977,6 +508,22 @@ const correctionStatusTone = (
                                 · Worked {{ r.worked }}</span
                             >
                         </p>
+                        <div
+                            v-if="r.photos?.in || r.photos?.out"
+                            class="flex flex-wrap items-center gap-3"
+                            data-test="my-photos"
+                        >
+                            <ClockPhotoThumb
+                                v-if="r.photos?.in"
+                                :photo="r.photos.in"
+                                :name="`Your clock-in photo, ${r.dateLabel}`"
+                            />
+                            <ClockPhotoThumb
+                                v-if="r.photos?.out"
+                                :photo="r.photos.out"
+                                :name="`Your clock-out photo, ${r.dateLabel}`"
+                            />
+                        </div>
                         <div
                             v-if="r.flags.length > 0 || r.correctionWaiting"
                             class="flex flex-wrap gap-1"
@@ -1248,8 +795,19 @@ const correctionStatusTone = (
                                         />
                                     </td>
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
-                                    <td class="tabular-nums">
-                                        {{ r.session?.in ?? '–' }}
+                                    <td class="min-w-64 tabular-nums">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2 xl:flex-nowrap"
+                                        >
+                                            <span>{{
+                                                r.session?.in ?? '–'
+                                            }}</span>
+                                            <ClockPhotoThumb
+                                                v-if="r.photos?.in"
+                                                :photo="r.photos.in"
+                                                :name="`Clock-in photo of ${r.person}`"
+                                            />
+                                        </div>
                                         <p
                                             v-if="r.location?.in"
                                             class="text-xs text-muted-foreground"
@@ -1258,14 +816,32 @@ const correctionStatusTone = (
                                             {{ r.location.in }}
                                         </p>
                                     </td>
-                                    <td class="tabular-nums">
-                                        {{ r.session?.out ?? '–' }}
+                                    <td class="min-w-64 tabular-nums">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2 xl:flex-nowrap"
+                                        >
+                                            <span>{{
+                                                r.session?.out ?? '–'
+                                            }}</span>
+                                            <ClockPhotoThumb
+                                                v-if="r.photos?.out"
+                                                :photo="r.photos.out"
+                                                :name="`Clock-out photo of ${r.person}`"
+                                            />
+                                        </div>
                                         <p
                                             v-if="r.location?.out"
                                             class="text-xs text-muted-foreground"
                                             data-test="review-location-out"
                                         >
                                             {{ r.location.out }}
+                                        </p>
+                                        <p
+                                            v-if="r.undoneLabel"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-undone"
+                                        >
+                                            {{ r.undoneLabel }}
                                         </p>
                                     </td>
                                     <td class="tabular-nums">
@@ -1348,6 +924,39 @@ const correctionStatusTone = (
                                     · Worked {{ r.worked }}</span
                                 >
                             </p>
+                            <div
+                                v-if="r.photos?.in || r.photos?.out"
+                                class="flex flex-col gap-2"
+                                data-test="review-card-photos"
+                            >
+                                <!-- One line each, named In and Out, so each Show or Hide belongs to its own press (Daniel). -->
+                                <div
+                                    v-if="r.photos?.in"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <span
+                                        class="w-8 text-xs text-muted-foreground"
+                                        >In</span
+                                    >
+                                    <ClockPhotoThumb
+                                        :photo="r.photos.in"
+                                        :name="`Clock-in photo of ${r.person}`"
+                                    />
+                                </div>
+                                <div
+                                    v-if="r.photos?.out"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <span
+                                        class="w-8 text-xs text-muted-foreground"
+                                        >Out</span
+                                    >
+                                    <ClockPhotoThumb
+                                        :photo="r.photos.out"
+                                        :name="`Clock-out photo of ${r.person}`"
+                                    />
+                                </div>
+                            </div>
                             <p
                                 v-if="r.location?.in"
                                 class="text-xs text-muted-foreground"
@@ -1359,6 +968,13 @@ const correctionStatusTone = (
                                 class="text-xs text-muted-foreground"
                             >
                                 Clock out: {{ r.location.out }}
+                            </p>
+                            <p
+                                v-if="r.undoneLabel"
+                                class="text-xs text-muted-foreground"
+                                data-test="review-undone"
+                            >
+                                {{ r.undoneLabel }}
                             </p>
                             <div
                                 v-if="r.flags.length > 0 || r.correctionWaiting"
@@ -1404,6 +1020,13 @@ const correctionStatusTone = (
                             </Button>
                         </li>
                     </ul>
+                    <p
+                        v-if="reviewHasOthersPhotos"
+                        class="text-xs text-muted-foreground"
+                        data-test="review-photo-recorded"
+                    >
+                        Showing a photo is recorded.
+                    </p>
                 </template>
 
                 <div
@@ -1625,92 +1248,27 @@ const correctionStatusTone = (
                 v-if="attendance.settings.location"
                 :card="attendance.settings.location"
             />
+            <PhotoStorageCard
+                v-if="attendance.settings.photoStorage"
+                :card="attendance.settings.photoStorage"
+            />
         </section>
 
         <!-- Clock out confirm (Daniel: only Clock out asks) -->
         <OperationalConfirmDialog
-            v-model:open="clock.confirmOut"
-            title="Clock out now?"
-            description="Your clock-out time is the server time when you confirm."
-            confirm-label="Clock out"
-            processing-label="Clocking out…"
-            :processing="clock.processing"
-            @confirm="press('out')"
+            v-model:open="undo.open"
+            :title="`Undo your clock-out at ${attendance.my?.undo?.pressedAt ?? ''}?`"
+            description="You stay clocked in from your clock-in. Clock out again when you leave; that takes a new photo."
+            confirm-label="Undo clock-out"
+            processing-label="Undoing…"
+            :processing="undo.processing"
+            :error="undo.error"
+            @confirm="confirmUndo"
         >
             <template #icon>
                 <Clock class="size-5" />
             </template>
         </OperationalConfirmDialog>
-
-        <!-- HR-16a: consent once per version, before the first press at this branch -->
-        <Sheet
-            :open="clock.consentFor !== null"
-            @update:open="(open: boolean) => !open && (clock.consentFor = null)"
-        >
-            <SheetContent
-                side="bottom"
-                class="flex max-h-[90dvh] flex-col sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
-                data-test="location-consent"
-            >
-                <SheetHeader>
-                    <SheetTitle>Location check at this branch</SheetTitle>
-                    <SheetDescription>
-                        Read this once. You can clock
-                        {{ clock.consentFor === 'out' ? 'out' : 'in' }} without
-                        it.
-                    </SheetDescription>
-                    <p
-                        class="text-xs text-muted-foreground"
-                        data-test="location-consent-draft"
-                    >
-                        Draft wording until the clinic's PDPA review. Synthetic
-                        data only.
-                    </p>
-                </SheetHeader>
-                <!-- Closing with X records nothing and gives no consent; the sheet opens again at the next press (Daniel). -->
-                <div
-                    class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 text-sm"
-                    data-test="location-consent-text"
-                >
-                    <section class="flex flex-col gap-1">
-                        <h3 class="font-medium">English</h3>
-                        <p class="whitespace-pre-line">
-                            {{ attendance.my?.location?.consentEn }}
-                        </p>
-                    </section>
-                    <section class="flex flex-col gap-1" lang="ms">
-                        <h3 class="font-medium">Bahasa Melayu</h3>
-                        <p class="whitespace-pre-line">
-                            {{ attendance.my?.location?.consentBm }}
-                        </p>
-                    </section>
-                </div>
-                <!-- Pinned below the text; two equal choices, neither preselected (Daniel). -->
-                <div
-                    class="grid shrink-0 gap-2 border-t p-4 sm:grid-cols-2"
-                    data-test="location-consent-actions"
-                >
-                    <Button
-                        variant="outline"
-                        class="min-h-11"
-                        data-test="location-without"
-                        @click="withoutLocation(clock.consentFor ?? 'in')"
-                    >
-                        Clock
-                        {{ clock.consentFor === 'out' ? 'out' : 'in' }}
-                        without location
-                    </Button>
-                    <Button
-                        variant="outline"
-                        class="min-h-11"
-                        data-test="location-agree"
-                        @click="locate(clock.consentFor ?? 'in', true)"
-                    >
-                        I understand, check my location
-                    </Button>
-                </div>
-            </SheetContent>
-        </Sheet>
 
         <!-- Decision -->
         <OperationalConfirmDialog
@@ -1737,6 +1295,14 @@ const correctionStatusTone = (
                 <CalendarCheck v-if="decision.approve" class="size-5" />
                 <CalendarX v-else class="size-5" />
             </template>
+            <p
+                v-if="decision.approve && decision.target?.lockedMonth"
+                class="text-sm"
+                data-test="correction-locked-month"
+            >
+                {{ decision.target.lockedMonth }}'s payroll is already locked:
+                after approving, add the hours on an adjustment run.
+            </p>
             <div v-if="!decision.approve" class="grid gap-2">
                 <Label for="decision-reason">Reason *</Label>
                 <OperationalSelect
@@ -1901,5 +1467,14 @@ const correctionStatusTone = (
                 </form>
             </SheetContent>
         </Sheet>
+        <Dialog v-model:open="aboutPhotos">
+            <DialogContent
+                class="flex max-h-[90vh] max-w-[min(32rem,calc(100%-2rem))] flex-col p-0"
+                :show-close-button="false"
+                data-test="clock-photo-about-dialog"
+            >
+                <ClockPhotoNotice mode="info" @cancel="aboutPhotos = false" />
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

@@ -55,6 +55,9 @@ final class PayLaterCollectionService
                 // date travels beside the rows (visit number => date) to stay visible.
                 'payLaterDue' => $rows->filter(fn (object $row): bool => (int) $row->due_now_sen > 0 && $row->pay_later_due !== null)
                     ->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => CarbonImmutable::parse($row->pay_later_due, $branch->timezone)->format('j M Y')])->all(),
+                // BIL-26: visit numbers on this page whose invoice must be reviewed before settlement (Outstanding bills rule).
+                'reviewRequired' => $rows->filter(fn (object $row): bool => (bool) $row->review_required)
+                    ->map(fn (object $row): string => (string) $row->visit_number)->values()->all(),
                 'data' => $rows->map(function (object $row) use ($branch, $today): array {
                     // BIL-23: a bill with only money due now is due from its visit day (past due from the next day).
                     $due = CarbonImmutable::parse($row->effective_due, $branch->timezone)->startOfDay();
@@ -77,6 +80,15 @@ final class PayLaterCollectionService
      */
     private function eligible(int $organisationId, int $branchId, string $timezone): Builder
     {
+        // BIL-24: only invoices that can still owe money are looked at. A visit is completed only when nothing is due
+        // now (CompleteVisitationService), and after completion only payments (which lower it), BIL-10 refund credits
+        // (which lower payable and paid equally) and receipt corrections (BIL-16, which always add a payment reversal)
+        // can change what it owes. So a bill can owe money only while it has approved pay later still to collect, or
+        // when its completed visit's invoice has a reversal. Any new post-completion path that raises what is owed
+        // (for example superseding or writing off a receivable or Panel share) must write a payment reversal or extend
+        // this filter; BillsToCollectTest pins both branches.
+        // The sums stay grouped joins: payment_allocations, payment_reversals and coverage_allocations have no invoice_id
+        // index, so a per-bill subquery would scan each table once per bill (measured far slower at 20,000 bills).
         $sum = fn (string $table) => DB::table($table)->where('organisation_id', $organisationId)
             ->where('branch_id', $branchId)->select('invoice_id')->selectRaw('sum(amount_sen) as amount')->groupBy('invoice_id');
         $bills = DB::table('invoices as i')
@@ -92,13 +104,19 @@ final class PayLaterCollectionService
             ->whereColumn('i.current_visit_guard', 'v.id')
             ->where('v.organisation_id', $organisationId)->where('v.branch_id', $branchId)->whereColumn('v.patient_id', 'p.id')
             ->where('p.organisation_id', $organisationId)
+            ->where(fn ($candidate) => $candidate->whereNotNull('r.id')->orWhere(fn ($corrected) => $corrected->where('v.status', 'completed')
+                ->whereExists(fn ($reversal) => $reversal->from('payment_reversals as pr')->whereColumn('pr.invoice_id', 'i.id')
+                    ->where('pr.organisation_id', $organisationId)->where('pr.branch_id', $branchId))))
             ->select(['i.id as invoice_id', 'i.invoice_number', 'v.visit_number', 'v.registered_at', 'p.full_name', 'p.patient_number',
                 // REG-5: a bill of a merged-away record lists under the kept record, noting the old KP number.
                 'kp.full_name as kept_full_name', 'kp.patient_number as kept_patient_number', 'r.approved_at'])
             ->selectRaw('coalesce(r.amount_sen, 0) as amount_sen, coalesce(r.remaining_sen, 0) as remaining_sen')
+            // The Outstanding bill formula (OutstandingBillService): payable, less paid, plus reversed, less approved Panel.
             ->selectRaw("case when v.status = 'completed' then greatest(kpone_invoice_payable(i.id) - coalesce(paid.amount, 0)
                 + coalesce(reversed.amount, 0) - coalesce(covered.amount, 0) - coalesce(r.remaining_sen, 0), 0) else 0 end as due_now_sen")
             ->selectRaw('r.due_date as pay_later_due')
+            // BIL-26: an invoice on hold for a correction or with out-of-date source must be reviewed before settlement.
+            ->selectRaw('(i.correction_hold or i.source_stale) as review_required')
             // registered_at is stored as UTC without a zone: read it as UTC, then take the branch's calendar day.
             ->selectRaw("((v.registered_at at time zone 'UTC') at time zone ?)::date as visit_day", [$timezone]);
 

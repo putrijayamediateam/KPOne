@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceCredit;
 use App\Domain\Visit\Billing\Models\Payment;
@@ -14,6 +15,7 @@ use App\Domain\Visit\Billing\Models\PaymentRefundDecision;
 use App\Domain\Visit\Billing\Models\PaymentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +33,7 @@ final class RefundService
 
     public const APPROVE_PERMISSION = 'payments.refunds.approve.branch';
 
-    public function __construct(private BillingContextService $context, private StaffAccessService $staff, private AuditRecorder $audit) {}
+    public function __construct(private BillingContextService $context, private StaffAccessService $staff, private AuditRecorder $audit, private BranchDayGate $gate) {}
 
     /** @param array<string, mixed> $input */
     public function record(User $actor, Visit $visit, string $paymentPublicId, array $input): PaymentRefund
@@ -75,6 +77,29 @@ final class RefundService
             $this->audit->record('billing.refund_recorded', $refund, ['amount_sen' => $refund->amount_sen, 'payment_method_id' => $method->id], $actor, $branch);
 
             return $refund;
+        }, 3);
+    }
+
+    /**
+     * BIL-32 (owner Q5 = A, 2026-11-22): a receipt of a locked day is reversed and refunded in one action, so the locked
+     * day's figure never changes (a reversed receipt with an open refund still counts on its own day). A reversal alone
+     * of such a receipt is refused (BranchDayGate and the commit-time PostgreSQL check); a pause still refuses both.
+     *
+     * @param  array<string, mixed>  $reversal  expected_branch_id, lock_version, payment_lock_version, reason, recording_error_only
+     * @param  array<string, mixed>  $refund  expected_branch_id, payment_method_id, reason_code, idempotency_key
+     */
+    public function reverseAndRecord(User $actor, Visit $visit, Invoice $invoice, Payment $payment, array $reversal, array $refund): PaymentRefund
+    {
+        return DB::transaction(function () use ($actor, $visit, $invoice, $payment, $reversal, $refund): PaymentRefund {
+            $existing = PaymentRefund::query()->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $this->key($refund['idempotency_key'] ?? null))->first();
+            if ($existing !== null && $existing->payment_id === $payment->id) {
+                return $this->record($actor, $visit, $payment->public_id, $refund); // same-key retry: its own replay rules
+            }
+            // Kumar (R5): only for a locked day's receipt. InvoiceCorrectionService::reverse checks it under the day lock.
+            // The reversal is this refund's bookkeeping (as in BIL-6), so it is not a separate "recording error" confirmation.
+            app(InvoiceCorrectionService::class)->reverse($actor, $visit, $invoice, $payment, [...$reversal, 'recording_error_only' => true], insideRefund: true);
+
+            return $this->record($actor, $visit, $payment->public_id, $refund);
         }, 3);
     }
 
@@ -190,6 +215,12 @@ final class RefundService
             if ($refund->decision()->exists()) {
                 throw ValidationException::withMessages(['refund' => 'This refund was already decided. Reload the page.']);
             }
+            // BIL-32 (Kumar R2): a reversed receipt counts on its day only while its refund is open, so rejecting the
+            // refund of a locked day's reversed receipt would change that day's figure.
+            if ($decision === 'rejected' && $payment->status === 'reversed'
+                && $this->gate->locked($branch, CarbonImmutable::parse($payment->received_at)->setTimezone($branch->timezone)->toDateString())) {
+                throw ValidationException::withMessages(['refund' => 'This receipt\'s day is closed and locked, so its refund can be approved but not rejected.']);
+            }
 
             $row = new PaymentRefundDecision;
             $row->forceFill(['organisation_id' => $actor->organisation_id, 'payment_refund_id' => $refund->id, 'decision' => $decision, 'reason_code' => $reason,
@@ -239,6 +270,9 @@ final class RefundService
                     'state' => $r->decision->decision ?? 'waiting', 'decidedBy' => $r->decision ? ($people[$r->decision->decided_by_user_id] ?? 'Staff member') : null,
                     'rejectReason' => $r->decision?->reason_code ? (PaymentRefund::REJECT_REASONS[$r->decision->reason_code] ?? $r->decision->reason_code) : null,
                     'canDecide' => $canApprove && $r->decision === null && $r->recorded_by_user_id !== $actor->id,
+                    // BIL-32 (Kumar R2): the refund of a locked day's reversed receipt can be approved, not rejected.
+                    'canReject' => ! ($p->status === 'reversed' && ($branch = Branch::query()->whereKey($p->branch_id)->first()) !== null
+                        && $this->gate->locked($branch, $p->received_at->setTimezone($timezone)->toDateString())),
                     'recordedByYou' => $r->recorded_by_user_id === $actor->id,
                 ])->values()->all();
                 $open = collect($history)->first(fn (array $h): bool => $h['state'] !== 'rejected');

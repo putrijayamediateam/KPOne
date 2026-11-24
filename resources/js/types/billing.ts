@@ -75,6 +75,8 @@ export type RefundEntry = {
     decidedBy: string | null;
     rejectReason: string | null;
     canDecide: boolean;
+    /** BIL-32: false for the refund of a locked day's reversed receipt (approve only). */
+    canReject?: boolean;
     recordedByYou: boolean;
 };
 export type RefundsContext = {
@@ -122,8 +124,16 @@ export type BillingPage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
     activity: InvoiceActivityLink;
+    /** BIL-35: the Panel claim button, for Panel Claims users only. */
+    panelClaim?: PanelClaimLink | null;
     backLink: { label: string; href: string } | null;
-    patient: { name: string; patientNumber: string; profileUrl: string | null };
+    patient: {
+        name: string;
+        patientNumber: string;
+        profileUrl: string | null;
+        /** BIL-29: foreign (passport) patient; no SST is charged yet. */
+        foreign?: boolean;
+    };
     visit: {
         visitNumber: string;
         status: string;
@@ -169,10 +179,19 @@ export type BillingPage = {
     };
     panel: Responsibility | null;
     panelShortfall: PanelShortfall | null;
+    /** PNL-26b: the Panel's limit per visit; a warning only. */
+    panelVisitLimit?: {
+        limitSen: number;
+        totalSen: number;
+        over: boolean;
+    } | null;
+    panelAdjustment?: PanelAdjustment | null;
     deferment: Responsibility | null;
     payments: Receipt[];
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
     refunds?: RefundsContext | null;
+    /** BIL-32: a paused or locked day's notice and the locked-day refund. */
+    dayClose?: DayCloseContext | null;
     corrections?: CorrectionsContext | null;
     /** BIL-17: voided invoices of this visit, kept visible after a void. */
     voidedInvoices?: Array<{
@@ -201,7 +220,8 @@ export type BillingPage = {
         | 'reverse'
         | 'void'
         | 'complete'
-        | 'print',
+        | 'print'
+        | 'printInvoice',
         boolean
     >;
 };
@@ -216,6 +236,9 @@ export const amount = (sen: number): string => {
 /** "RM 1,234.50"; negative amounts read "−RM 12.00" (BIL-9 fixed "RM -1.-50"). */
 export const myr = (sen: number): string =>
     sen < 0 ? `\u2212RM ${amount(-sen)}` : `RM ${amount(sen)}`;
+/** Money that never breaks across lines (a no-break space between RM and the number). */
+export const myrNoBreak = (sen: number): string =>
+    myr(sen).replace(/ /g, '\u00a0');
 export const outstandingSen = (state: BillingState): number =>
     state.deferred + state.due_now;
 export const toSen = (text: string): string | null => {
@@ -239,4 +262,121 @@ export type IssuedCopy = {
     issuedBy: string;
     prints: number;
     latest: boolean;
+    /** PCA-1: false for a Panel patient's invoice copy (view only). */
+    reprintable?: boolean;
+    viewUrl?: string | null;
+};
+
+/** PCA-2: the Panel share as original + confirmed Panel claim adjustments, with the waiting request and history. */
+export type PanelAdjustmentClaimRow = {
+    number: string;
+    url: string | null;
+    statusKey: string;
+    amountSen: number;
+    acceptedSen: number | null;
+    decided: boolean;
+    reason: string | null;
+};
+
+export type PanelAdjustment = {
+    invoiceNumber: string | null;
+    invoicePayableSen: number;
+    reasonsApplied: string[];
+    claim:
+        null | (PanelAdjustmentClaimRow & { changedAfterSubmission: boolean });
+    supplementaryClaims: PanelAdjustmentClaimRow[];
+    originalShareSen: number;
+    adjustmentSen: number;
+    shareSen: number;
+    claimedSen: number;
+    claimUrl: string | null;
+    invoiceLockVersion: number;
+    canRequest: boolean;
+    requestUrl: string;
+    from: 'billing' | 'claim';
+    reasons: { value: string; label: string }[];
+    waiting: null | {
+        publicId: string;
+        direction: 'add' | 'deduct';
+        amountSen: number;
+        reason: string;
+        note: string | null;
+        requestedBy: string;
+        requestedAt: string | null;
+        newShareSen: number;
+        requestedByYou: boolean;
+        lockVersion: number;
+        canConfirm: boolean;
+        canWithdraw: boolean;
+        confirmUrl: string;
+        withdrawUrl: string;
+    };
+    confirmed: {
+        direction: 'add' | 'deduct';
+        amountSen: number;
+        reason: string;
+        confirmedAt: string | null;
+        requestedBy: string;
+        confirmedBy: string;
+        confirmedByRole: string | null;
+        samePerson: boolean;
+    }[];
+};
+
+/** PCA-2: a claim's kind, its links and its recorded pack versions. */
+export type PanelAdjustmentClaim = {
+    kind: 'original' | 'supplementary';
+    number: string;
+    amountSen: number;
+    cancelled: boolean;
+    decided: boolean;
+    cancelledNote: string | null;
+    reason: string | null;
+    parent: null | {
+        claimNo: string;
+        number: string;
+        url: string;
+        amountSen: number;
+        acceptedSen: number | null;
+        statusKey: string;
+    };
+    supplementary: {
+        claimNo: string;
+        number: string;
+        url: string;
+        amountSen: number;
+        statusKey: string;
+        reason: string | null;
+    }[];
+    versions: {
+        version: number;
+        invoiceTotalSen: number;
+        panelAdjustmentSen: number;
+        panelShareSen: number;
+        claimAmountSen: number;
+        recordedAt: string;
+    }[];
+};
+
+/** BIL-32: daily close pause and lock, on Patient Billing. */
+export type DayCloseContext = {
+    paused: boolean;
+    message: string;
+    lockedReceipts: {
+        publicId: string;
+        number: string;
+        amountSen: number;
+        lockVersion: number;
+    }[];
+    canRefundLocked: boolean;
+    methods: { id: number; name: string }[];
+    reasons: Record<string, string>;
+};
+
+/** BIL-35: straight to the invoice's Panel claim, or Create claim (read-only navigation). */
+export type PanelClaimLink = {
+    kind: 'open' | 'create';
+    label: string;
+    href: string;
+    claimNumber: string | null;
 };

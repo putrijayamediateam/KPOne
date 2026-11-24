@@ -128,7 +128,12 @@ const decide = (
             >
                 If the receipt was entered wrongly, use Correct a receipt below.
             </p>
-            <p v-else class="text-xs text-muted-foreground">
+            <!-- One explainer at a time: this one is for an open visit only (a completed visit has its own above). -->
+            <p
+                v-if="!refunds.visitCompleted"
+                class="text-xs text-muted-foreground"
+                data-testid="refund-reversed-note"
+            >
                 Record money handed back to the patient for a reversed receipt.
                 Someone else must approve it. The invoice and receipt do not
                 change.
@@ -182,7 +187,18 @@ const decide = (
                     v-if="refund.canDecide"
                     class="mt-2 flex flex-wrap items-end gap-2"
                 >
-                    <label class="grid gap-1 text-xs font-medium">
+                    <p
+                        v-if="refund.canReject === false"
+                        class="w-full text-xs text-muted-foreground"
+                        data-testid="refund-reject-locked"
+                    >
+                        This receipt's day is closed and locked, so this refund
+                        can be approved but not rejected.
+                    </p>
+                    <label
+                        v-if="refund.canReject !== false"
+                        class="grid gap-1 text-xs font-medium"
+                    >
                         Reason (needed to reject)
                         <select
                             :value="rejectReason[refund.publicId] ?? ''"
@@ -204,6 +220,7 @@ const decide = (
                         </select>
                     </label>
                     <Button
+                        v-if="refund.canReject !== false"
                         variant="outline"
                         size="sm"
                         class="max-sm:min-h-11"

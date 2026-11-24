@@ -3,6 +3,7 @@ export type InvoiceSalesReconciliation = {
     discountsSen: number;
     surchargesSen: number;
     refundCreditsSen: number;
+    panelAdjustmentsSen: number;
     netSen: number;
 };
 export type InsightRankingItem = {
@@ -144,6 +145,7 @@ export type InsightsRangeReport =
               lowStockItems: number;
               expiringBatchesNext30Days: number;
               wastageUnits: number;
+              treatmentWasteUnits: number;
               inventoryValueAvailable: boolean;
               costOfInventorySoldAvailable: boolean;
           };

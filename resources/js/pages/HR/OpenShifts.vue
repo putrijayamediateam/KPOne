@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // HR-15b /hr/open-shifts: a linked locum sees open shifts at their branches and asks for one; the Director and HR
 // Manager post shifts and confirm one locum, which adds the shift to the branch's next draft roster week.
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -22,225 +21,33 @@ import {
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
+import { useOpenShiftsPage } from '@/composables/hr/useOpenShiftsPage';
+import type { OpenShiftsPageProps } from '@/composables/hr/useOpenShiftsPage';
 
-type Tab = 'available' | 'mine' | 'open' | 'closed';
-type Option = { value: string; label: string };
-type Shift = {
-    id: string;
-    branch: string;
-    when: string;
-    sessionLabel: string;
-    roleLabel: string;
-    breakMinutes: number;
-    status: 'open' | 'filled' | 'withdrawn';
-    lockVersion: number;
-};
-type Ask = {
-    id: string;
-    locum: string;
-    askedOn: string;
-    status: 'asked' | 'confirmed' | 'declined' | 'withdrawn';
-    statusLabel: string;
-    own: boolean;
-    lockVersion: number;
-};
-type ManagedShift = Shift & { started: boolean; asks: Ask[] };
-type MyAsk = Shift & {
-    requestId: string;
-    requestStatus: Ask['status'];
-    requestStatusLabel: string;
-    requestLockVersion: number;
-};
+const props = defineProps<OpenShiftsPageProps>();
 
-const props = defineProps<{
-    openShifts: {
-        tab: Tab;
-        tabs: Tab[];
-        canManage: boolean;
-        canAsk: boolean;
-        linked: boolean;
-        available: Shift[];
-        mine: MyAsk[];
-        open: ManagedShift[];
-        closed: ManagedShift[];
-        branches: Option[];
-        sessions: Option[];
-        roles: Option[];
-        declineReasons: Option[];
-        maxDaysAhead: number;
-        today: string;
-    };
-}>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(() => errors.value.open_shift ?? errors.value.records);
-const tabLabels: Record<Tab, string> = {
-    available: 'Open shifts',
-    mine: 'My asks',
-    open: 'Open',
-    closed: 'Filled and withdrawn',
-};
-const tabs = computed(() =>
-    props.openShifts.tabs.map((value) => ({ value, label: tabLabels[value] })),
-);
-const selectTab = (value: string | number) =>
-    router.get('/hr/open-shifts', { tab: value }, { preserveScroll: true });
-const managed = computed(() =>
-    props.openShifts.tab === 'closed'
-        ? props.openShifts.closed
-        : props.openShifts.open,
-);
-const shiftTone = (status: Shift['status']) =>
-    status === 'open' ? 'accent' : status === 'filled' ? 'success' : 'neutral';
-const askTone = (status: Ask['status']) =>
-    status === 'confirmed'
-        ? 'success'
-        : status === 'asked'
-          ? 'warning'
-          : 'neutral';
-
-const post = (url: string, data: Record<string, unknown>, done?: () => void) =>
-    router.post(url, data as never, {
-        preserveScroll: true,
-        onSuccess: () => done?.(),
-        onFinish: () => (busy.id = null),
-    });
-const busy = reactive<{ id: string | null }>({ id: null });
-
-// ---- Post an open shift ----
-const form = reactive({
-    open: false,
-    branch: '',
-    date: '',
-    start_time: '08:00',
-    end_time: '14:00',
-    break_minutes: '0',
-    session_type: 'morning',
-    role_needed: '',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const startPost = () =>
-    Object.assign(form, {
-        open: true,
-        branch: props.openShifts.branches[0]?.value ?? '',
-        date: props.openShifts.today,
-        start_time: '08:00',
-        end_time: '14:00',
-        break_minutes: '0',
-        session_type: 'morning',
-        role_needed: '',
-        key: crypto.randomUUID(),
-    });
-const missing = computed(() =>
-    !form.role_needed
-        ? 'Choose who is needed.'
-        : !form.date
-          ? 'Choose the date.'
-          : null,
-);
-const submit = () => {
-    form.processing = true;
-    router.post(
-        '/hr/open-shifts',
-        {
-            branch_id: form.branch,
-            date: form.date,
-            start_time: form.start_time,
-            end_time: form.end_time,
-            break_minutes: form.break_minutes,
-            session_type: form.session_type,
-            role_needed: form.role_needed,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (form.open = false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
-
-// ---- Confirm, decline, withdraw ----
-const confirming = reactive<{ ask: Ask | null; shift: ManagedShift | null }>({
-    ask: null,
-    shift: null,
-});
-const confirm = () => {
-    const ask = confirming.ask;
-
-    if (!ask) {
-        return;
-    }
-
-    busy.id = ask.id;
-    post(
-        `/hr/open-shifts/asks/${ask.id}/confirm`,
-        {
-            expected_lock_version: ask.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        () => (confirming.ask = null),
-    );
-};
-const declining = reactive<{ ask: Ask | null; reason: string }>({
-    ask: null,
-    reason: '',
-});
-const decline = () => {
-    const ask = declining.ask;
-
-    if (!ask) {
-        return;
-    }
-
-    busy.id = ask.id;
-    post(
-        `/hr/open-shifts/asks/${ask.id}/decline`,
-        {
-            reason: declining.reason,
-            expected_lock_version: ask.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        () => (declining.ask = null),
-    );
-};
-const withdrawing = reactive<{ shift: ManagedShift | null }>({ shift: null });
-const withdraw = () => {
-    const shift = withdrawing.shift;
-
-    if (!shift) {
-        return;
-    }
-
-    busy.id = shift.id;
-    post(
-        `/hr/open-shifts/${shift.id}/withdraw`,
-        {
-            expected_lock_version: shift.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        () => (withdrawing.shift = null),
-    );
-};
-
-// ---- A locum asks or withdraws ----
-const ask = (shift: Shift) => {
-    busy.id = shift.id;
-    post(`/hr/open-shifts/${shift.id}/ask`, {
-        idempotency_key: crypto.randomUUID(),
-    });
-};
-const withdrawAsk = (mine: MyAsk) => {
-    busy.id = mine.requestId;
-    post(`/hr/open-shifts/asks/${mine.requestId}/withdraw`, {
-        expected_lock_version: mine.requestLockVersion,
-        idempotency_key: crypto.randomUUID(),
-    });
-};
+const {
+    errors,
+    failure,
+    tabs,
+    selectTab,
+    managed,
+    shiftTone,
+    askTone,
+    busy,
+    form,
+    startPost,
+    missing,
+    submit,
+    confirming,
+    confirm,
+    declining,
+    decline,
+    withdrawing,
+    withdraw,
+    ask,
+    withdrawAsk,
+} = useOpenShiftsPage(props);
 </script>
 
 <template>
@@ -410,12 +217,27 @@ const withdrawAsk = (mine: MyAsk) => {
                                 :label="
                                     s.status === 'open'
                                         ? 'Open'
-                                        : s.status === 'filled'
-                                          ? 'Filled'
-                                          : 'Withdrawn'
+                                        : s.needsPosting
+                                          ? 'Needs posting again'
+                                          : s.status === 'filled'
+                                            ? 'Filled'
+                                            : 'Withdrawn'
                                 "
-                                :tone="shiftTone(s.status)"
+                                :tone="
+                                    s.needsPosting
+                                        ? 'warning'
+                                        : shiftTone(s.status)
+                                "
                             />
+                        </p>
+                        <p
+                            v-if="s.needsPosting"
+                            class="text-sm text-muted-foreground"
+                            data-test="open-shift-needs-posting"
+                        >
+                            The roster no longer has this shift for the
+                            confirmed locum. Post it again if it is still
+                            needed.
                         </p>
                         <p class="text-sm text-muted-foreground">
                             {{ s.branch }} · {{ s.sessionLabel }} ·

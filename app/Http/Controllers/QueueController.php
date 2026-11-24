@@ -14,6 +14,7 @@ use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Queue\Services\QueueWaitingCountService;
+use App\Domain\Visit\Billing\Services\SalesTargetService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\CallQueueEntryRequest;
 use App\Http\Requests\SearchQueueEntriesRequest;
@@ -41,6 +42,7 @@ class QueueController extends Controller
         DoctorRoomService $rooms,
         RoomCallService $calls,
         BranchAccessService $branches,
+        SalesTargetService $salesTargets,
     ): Response {
         $this->authorize('viewAny', QueueEntry::class);
         $branch = $branches->activeBranch($request->user());
@@ -50,6 +52,8 @@ class QueueController extends Controller
             'snapshot' => $directory->snapshot($request->user()),
             'roomChoice' => $rooms->choice($request->user()),
             'treatmentRooms' => $branch && $canCall ? $calls->rooms($branch, BranchRoom::KIND_TREATMENT) : [],
+            // BIL-30 (owner P7, answer 2): only the signed-in doctor's own target; null when none is set or allowed.
+            'mySalesTarget' => $salesTargets->own($request->user()),
         ]);
     }
 

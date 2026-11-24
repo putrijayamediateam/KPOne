@@ -363,22 +363,23 @@ const totals = computed(() => {
                                         >{{ medicine.strength }}</span
                                     >
                                 </span>
-                                <span
+                                <StatusBadge
                                     v-if="
                                         changeLabel(
                                             medicine.changeState,
                                             medicine.source,
                                         )
                                     "
-                                    class="rounded bg-pink-100 px-1.5 py-0.5 text-xs text-pink-900"
-                                    data-testid="change-label"
-                                    >{{
+                                    status="ca_change"
+                                    tone="accent"
+                                    :label="
                                         changeLabel(
                                             medicine.changeState,
                                             medicine.source,
                                         )
-                                    }}</span
-                                >
+                                    "
+                                    data-testid="change-label"
+                                />
                             </div>
                             <div
                                 class="grid gap-2 sm:grid-cols-2"
@@ -424,10 +425,21 @@ const totals = computed(() => {
                                     <div class="font-medium">Dispensed</div>
                                     <template v-if="medicine.dispensed">
                                         <div>
-                                            {{
-                                                text(medicine.dispensedQuantity)
-                                            }}
-                                            {{ medicine.unit }} ({{
+                                            <template
+                                                v-if="medicine.dispensedPacks"
+                                                >{{
+                                                    medicine.dispensedPacks
+                                                }}</template
+                                            >
+                                            <template v-else
+                                                >{{
+                                                    text(
+                                                        medicine.dispensedQuantity,
+                                                    )
+                                                }}
+                                                {{ medicine.unit }}</template
+                                            >
+                                            ({{
                                                 statusLabel(
                                                     medicine.dispensedStatus,
                                                 )
@@ -485,22 +497,23 @@ const totals = computed(() => {
                                 <span class="font-medium">{{
                                     service.name
                                 }}</span>
-                                <span
+                                <StatusBadge
                                     v-if="
                                         changeLabel(
                                             service.changeState,
                                             service.source,
                                         )
                                     "
-                                    class="rounded bg-pink-100 px-1.5 py-0.5 text-xs text-pink-900"
-                                    data-testid="service-change-label"
-                                    >{{
+                                    status="ca_change"
+                                    tone="accent"
+                                    :label="
                                         changeLabel(
                                             service.changeState,
                                             service.source,
                                         )
-                                    }}</span
-                                >
+                                    "
+                                    data-testid="service-change-label"
+                                />
                             </div>
                             <div class="text-xs text-muted-foreground">
                                 <template
@@ -542,7 +555,11 @@ const totals = computed(() => {
                         "
                         class="text-sm text-muted-foreground"
                     >
-                        No printable documents for your access.
+                        {{
+                            history.financial?.panelNoInvoicePrint
+                                ? 'Panel patient: no invoice is printed. A receipt prints only for cash the patient paid.'
+                                : 'No printable documents for your access.'
+                        }}
                     </p>
                     <ul v-else class="grid gap-1 text-sm">
                         <li v-if="history.financial?.printUrl">

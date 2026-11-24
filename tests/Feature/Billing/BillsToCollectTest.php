@@ -65,6 +65,55 @@ class BillsToCollectTest extends BillingTestCase
             ->where('collections.data.0.dueDate', $visit->refresh()->registered_at->setTimezone($this->branch->timezone)->format('j M Y')));
     }
 
+    /**
+     * BIL-24 (Kumar): with its pay later fully collected there is no live receivable, so a later receipt correction
+     * keeps the bill on the list only through its payment reversal.
+     */
+    public function test_a_settled_pay_later_bill_that_owes_again_after_a_correction_is_still_listed(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->payTenAndDeferThirty($ca, $visit, $invoice);
+        $this->pay($ca, $visit, $invoice, '3000'); // The pay later is collected in full after completion.
+        $this->assertSame(0, (int) DB::table('patient_receivables')->where('invoice_id', $invoice->id)->value('remaining_sen'));
+
+        $this->selectBranch($ca);
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page->where('collections.all.count', 0));
+
+        $this->correct($visit, $invoice, '500'); // The first RM 10.00 receipt was really RM 5.00: RM 5.00 now due.
+        $this->selectBranch($ca);
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.all', ['count' => 1, 'totalSen' => 500, 'overdueCount' => 0, 'overdueSen' => 0])
+            ->where('collections.dueNow', [$visit->visit_number => 500])
+            ->where('collections.data.0.visitNumber', $visit->visit_number)
+            ->where('collections.data.0.approvedSen', 0)->where('collections.data.0.remainingSen', 0));
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.invoice.state.due_now', 500));
+    }
+
+    /**
+     * BIL-26: a bill whose invoice is on hold for a correction or has out-of-date source is flagged for review (the
+     * Outstanding bills rule), beside the rows so each row keeps its agreed fields. The amounts do not change.
+     */
+    public function test_a_bill_on_hold_for_correction_is_flagged_for_review(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->payTenAndDeferThirty($ca, $visit, $invoice);
+
+        $this->selectBranch($ca);
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.all.count', 1)->where('collections.reviewRequired', []));
+
+        // source_stale is frozen once an invoice is finalised (kpone_invoice_immutable); correction_hold can change.
+        $invoice->refresh()->forceFill(['correction_hold' => true])->save();
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.reviewRequired', [$visit->visit_number])
+            ->where('collections.all', ['count' => 1, 'totalSen' => 3000, 'overdueCount' => 0, 'overdueSen' => 0])
+            ->where('collections.data.0.remainingSen', 3000));
+        $invoice->refresh()->forceFill(['correction_hold' => false])->save();
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page->where('collections.reviewRequired', []));
+    }
+
     public function test_an_open_visit_still_paying_at_the_counter_is_not_listed(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();

@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\ClockPhotoFixture;
 
 /**
  * HR-16a location check at clock-in (HR-PLAN 22; B.E.R.N.I.S.S for the owner, 2026-11-10). Off by default, one branch
@@ -115,6 +116,30 @@ class LocationCheckTest extends VisitTestCase
         $this->selectBranch($ca);
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.location.consentNeeded', true)
             ->where('attendance.my.location.consentEn', 'Synthetic changed consent text.'));
+    }
+
+    /**
+     * One Clock in (owner, 18 Nov 2026): the Me press runs the check itself, so the clock state and the Me ring carry the
+     * consent wording (until consent is given) and never a position or the last result.
+     */
+    public function test_the_clock_state_and_the_me_ring_carry_the_location_check_for_the_me_press(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $this->getJson(route('hr.attendance.clock-state'))->assertOk()->assertJsonPath('location', null);
+
+        $this->turnOn($this->director)->assertSessionHasNoErrors();
+        $this->selectBranch($ca);
+        $needed = ['consentNeeded' => true, 'consentEn' => LocationCheckService::DRAFT_CONSENT_EN, 'consentBm' => LocationCheckService::DRAFT_CONSENT_BM];
+        $this->assertSame($needed, $this->getJson(route('hr.attendance.clock-state'))->assertOk()->json('location'));
+        $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $page) => $page->where('me.ring.location', $needed));
+
+        $this->clock($ca, 'in', ['clock_position' => self::NEAR, 'location_consent' => true])->assertSessionHasNoErrors();
+        $this->selectBranch($ca);
+        $this->assertSame(['consentNeeded' => false, 'consentEn' => null, 'consentBm' => null],
+            $this->getJson(route('hr.attendance.clock-state'))->assertOk()->json('location'));
+        $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $page) => $page->where('me.ring.location.consentNeeded', false)
+            ->missing('me.ring.location.lastResult')->missing('me.ring.needsAttendancePage'));
     }
 
     public function test_denied_failed_and_rough_readings_are_not_available(): void
@@ -254,7 +279,7 @@ class LocationCheckTest extends VisitTestCase
     {
         $this->selectBranch($actor);
 
-        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...$extra]);
+        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, $kind), ...$extra]);
     }
 
     /** @return array{0: string, 1: ?string, 2: ?string} */

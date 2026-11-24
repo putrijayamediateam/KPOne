@@ -37,7 +37,7 @@ class MessagesTest extends VisitTestCase
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
         $this->assertSame(['director', 'hr_manager'], $holders(MessagePermissions::MANAGE));
         $own = $holders(MessagePermissions::RECEIVE_OWN);
-        $this->assertCount(11, $own);
+        $this->assertCount(15, $own);
         $this->assertNotContains('queue_display', $own);
         foreach (array_keys(MessagePermissions::grants()) as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));

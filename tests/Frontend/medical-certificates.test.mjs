@@ -65,11 +65,12 @@ test('retained print renderer enforces white A4 output and distinguishes pre-sig
 
 test('Encounter MC entry opens separately and preserves the unsaved clinical form', () => {
     const encounter = read('resources/js/pages/Clinical/Show.vue');
-    const anchor = encounter.match(/<a\b[^>]*medical_certificates\.view\.own[\s\S]*?<\/a\s*>/)?.[0];
+    const anchor = encounter.match(/<Button\b[^>]*medical_certificates\.view\.own[\s\S]*?<\/Button\s*>/)?.[0];
     assert.ok(anchor);
     assert.match(anchor, /target="_blank"/);
     assert.match(anchor, /rel="noopener"/);
-    assert.match(anchor, /Medical certificates \(new tab\)/);
+    assert.match(anchor, /Medical certificates/);
+    assert.match(anchor, /\(opens in a new tab\)/);
 });
 
 
@@ -90,4 +91,41 @@ test('MC branch-local history crosses midnight and New Year without changing the
     const format = runInNewContext(`${javascript.replaceAll('export ', '')}\nformatDateTime`);
     assert.equal(format('2026-12-31T16:10:00+00:00', 'Asia/Kuala_Lumpur'), '1 Jan 2027, 12:10 AM');
     assert.equal(format('2026-10-19T06:46:47+00:00', 'Asia/Kuala_Lumpur'), '19 Oct 2026, 2:46 PM');
+});
+
+test('DD-87: Classic Void starts with no reason picked and Confirm void is off until one is; Replace keeps its default', () => {
+    const source = readFileSync(
+        new URL(
+            '../../resources/js/pages/MedicalCertificates/Index.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    ).replace(/\s+/g, ' ');
+
+    assert.ok(
+        source.includes(
+            "form.change_reason = action === 'void' ? '' : 'dates_corrected';",
+        ),
+    );
+    assert.ok(
+        source
+            .replace(/\s+/g, '')
+            .includes(
+                '<optionv-if="form.action===\'void\'"value=""disabled>Chooseareason</option>',
+            ),
+    );
+    assert.ok(
+        source.includes("(form.action === 'void' && !form.change_reason)"),
+    );
+    assert.ok(source.includes("change_reason: 'dates_corrected',"));
+    assert.ok(source.includes('Pick a reason to continue.'));
+    // Daniel's look: the label says "Reason" for a void, and Confirm void is the destructive red like other confirm sheets.
+    assert.ok(
+        source.includes(
+            "form.action === 'void' ? 'Reason' : 'Change category'",
+        ),
+    );
+    assert.ok(
+        source.includes("form.action === 'void' ? 'destructive' : 'default'"),
+    );
 });

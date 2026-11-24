@@ -3,6 +3,7 @@
 namespace App\Domain\Shared\Services;
 
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
@@ -154,29 +155,35 @@ class ClinicInsightsReportService
      */
     private function scopePeriod(Builder $query, array $periods, string $dateColumn, string $branchColumn): void
     {
-        if ($periods === []) {
-            $query->whereRaw('1 = 0');
-
-            return;
-        }
-        $query->where(function (Builder $ranges) use ($periods, $dateColumn, $branchColumn): void {
-            foreach ($periods as $branchId => $period) {
-                $ranges->orWhere(fn (Builder $range) => $range
-                    ->where($branchColumn, $branchId)
-                    ->where($dateColumn, '>=', $period['start'])
-                    ->where($dateColumn, '<', $period['end']));
-            }
-        });
+        InvoiceSalesProjection::scopePeriods($query, $periods, $dateColumn, $branchColumn); // BIL-30: one shared scope.
     }
 
     /**
-     * BIL-10: approved refund credits by approval time, in the same branch periods and doctor filter as invoices.
+     * PCA-3: confirmed Panel claim adjustments by confirmation time (signed), in the same branch periods and doctor
+     * filter as invoices.
      *
      * @param  InsightPeriods  $periods
      */
-    private function creditQuery(User $actor, array $periods, ?int $doctorId): Builder
+    private function panelAdjustmentQuery(User $actor, array $periods, ?int $doctorId): Builder
     {
-        $query = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        $query = InvoiceSalesProjection::confirmedPanelAdjustments($actor->organisation_id);
+        $this->scopePeriod($query, $periods, 'confirmed_at', 'branch_id');
+        if ($doctorId !== null) {
+            $query->whereIn('consultation_checkout_id', DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id'));
+        }
+
+        return $query;
+    }
+
+    /**
+     * PCA-3: refund credits and Panel claim adjustments as one credit-shaped table (amount taken off, by its own day),
+     * for the daily trend and the provider rows.
+     *
+     * @param  InsightPeriods  $periods
+     */
+    private function offsetQuery(User $actor, array $periods, ?int $doctorId): Builder
+    {
+        $query = InvoiceSalesProjection::netOffsets($actor->organisation_id);
         $this->scopePeriod($query, $periods, 'decided_at', 'branch_id');
         if ($doctorId !== null) {
             $query->whereIn('consultation_checkout_id', DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id'));
@@ -190,20 +197,7 @@ class ClinicInsightsReportService
      */
     private function invoiceQuery(User $actor, array $periods, ?int $doctorId = null): Builder
     {
-        $query = DB::table('invoices')
-            ->where('invoices.organisation_id', $actor->organisation_id)
-            ->where('invoices.status', 'finalized');
-        $this->scopePeriod($query, $periods, 'invoices.finalized_at', 'invoices.branch_id');
-
-        if ($doctorId !== null) {
-            $query->whereExists(fn (Builder $checkout) => $checkout
-                ->selectRaw('1')
-                ->from('consultation_checkouts')
-                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
-                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
-        }
-
-        return $query;
+        return InvoiceSalesProjection::invoices($actor->organisation_id, $periods, $doctorId); // BIL-30: shared cohort.
     }
 
     /**
@@ -215,13 +209,17 @@ class ClinicInsightsReportService
     {
         $current = $this->invoiceQuery($actor, $periods, $doctorId);
         $prior = $this->invoiceQuery($actor, $previous, $doctorId);
-        $credits = $this->creditQuery($actor, $periods, $doctorId);
-        $creditSen = (int) (clone $credits)->sum('amount_sen');
-        $invoiceTotal = (int) (clone $current)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
-        // BIL-10: refund credits come off net sales on the day the refund was approved.
-        $total = $invoiceTotal - $creditSen;
+        // BIL-10: refund credits come off net sales on the day the refund was approved. PCA-3: confirmed Panel claim
+        // adjustments count on the day they were confirmed, so past days never change. BIL-30: one shared sum, so
+        // sales targets read the same figure.
+        $net = InvoiceSalesProjection::netSales($actor->organisation_id, $periods, $doctorId);
+        $creditSen = $net['refundCreditsSen'];
+        $adjustmentSen = $net['panelAdjustmentsSen'];
+        $offsets = $this->offsetQuery($actor, $periods, $doctorId);
+        $invoiceTotal = $net['invoiceSen'];
+        $total = $net['netSen'];
         $patientCount = (int) (clone $current)->distinct()->count('invoices.patient_id');
-        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - (int) $this->creditQuery($actor, $previous, $doctorId)->sum('amount_sen');
+        $previousTotal = InvoiceSalesProjection::netSales($actor->organisation_id, $previous, $doctorId)['netSen'];
         $previousPatients = (int) (clone $prior)->distinct()->count('invoices.patient_id');
 
         $returning = DB::table('invoices')
@@ -252,7 +250,7 @@ class ClinicInsightsReportService
             $days[$key] = ($days[$key] ?? 0) + (int) $row->total_sen;
             $dailyPatients[$key][$row->patient_id] = true;
         }
-        foreach ((clone $credits)->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
+        foreach ((clone $offsets)->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
             $key = CarbonImmutable::parse($credit->decided_at, 'UTC')->setTimezone($periods[$credit->branch_id]['branch']->timezone)->toDateString();
             $days[$key] = ($days[$key] ?? 0) - (int) $credit->amount_sen;
         }
@@ -322,14 +320,15 @@ class ClinicInsightsReportService
             $otc = OtcProviderRow::from($otcQuery);
         }
         // BIL-12: refund credits come off their invoice's doctor (or the OTC row) on the approval day.
-        $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $providers, $credits, $otc, $doctorId === null, $providersTruncated);
+        // PCA-3: Panel claim adjustments are added to the same rows on their confirmation day.
+        $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $providers, $offsets, $otc, $doctorId === null, $providersTruncated);
         $providers = $withCredits['otc'] === null ? $withCredits['doctors'] : [...$withCredits['doctors'], $withCredits['otc']];
 
         return [
             'kind' => 'sales',
             'summary' => [
                 'totalSen' => $total,
-                'reconciliation' => InvoiceSalesProjection::reconciliation($current, $creditSen),
+                'reconciliation' => InvoiceSalesProjection::reconciliation($current, $creditSen, $adjustmentSen),
                 'newSen' => $newTotal,
                 'returningSen' => $returningTotal,
                 'patients' => $patientCount,
@@ -597,6 +596,10 @@ class ClinicInsightsReportService
             ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'self_pay'))->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $panelSales = (int) (clone $invoices)->whereExists(fn (Builder $visit) => $visit->selectRaw('1')->from('visits')
             ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'panel'))->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+        // PCA-3: confirmed Panel claim adjustments count as Panel sales on the day they were confirmed.
+        $panelAdjustments = $this->panelAdjustmentQuery($actor, $periods, $doctorId);
+        $panelSales += (int) (clone $panelAdjustments)->sum('amount_sen');
+        $adjustmentByPanel = (clone $panelAdjustments)->selectRaw('panel_name, SUM(amount_sen) AS amount')->groupBy('panel_name')->pluck('amount', 'panel_name');
         $paid = DB::table('payments')
             ->join('payment_allocations', 'payment_allocations.payment_id', '=', 'payments.id')
             ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
@@ -739,7 +742,7 @@ class ClinicInsightsReportService
             'paymentMethods' => $methodRows,
             'dailyReceipts' => $this->dailyReceipts($actor, $periods, $doctorId),
             'panelClaims' => $claimRanking,
-            'panels' => $panelRows->selectRaw('coverage_allocations.panel_name_snapshot as name, SUM(coverage_allocations.amount_sen) as billed_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as approved_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as rejected_sen', ['approved', 'rejected'])
+            'panels' => self::withPanelAdjustments($panelRows->selectRaw('coverage_allocations.panel_name_snapshot as name, SUM(coverage_allocations.amount_sen) as billed_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as approved_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as rejected_sen', ['approved', 'rejected'])
                 ->groupBy('coverage_allocations.panel_name_snapshot')
                 ->orderByDesc('billed_sen')
                 ->limit(50)
@@ -749,8 +752,30 @@ class ClinicInsightsReportService
                     'billedSen' => (int) $row->billed_sen,
                     'approvedSen' => (int) $row->approved_sen,
                     'rejectedSen' => (int) $row->rejected_sen,
-                ])->all(),
+                ])->all(), $adjustmentByPanel->all()),
         ];
+    }
+
+    /**
+     * PCA-3: confirmed Panel claim adjustments are added to each Panel's billed and approved figures on the day they
+     * were confirmed. A Panel with only an adjustment in the period still gets its row.
+     *
+     * @param  array<int, array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>  $rows
+     * @param  array<string, int|string>  $adjustments  signed sum by Panel name
+     * @return array<int, array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>
+     */
+    private static function withPanelAdjustments(array $rows, array $adjustments): array
+    {
+        if ($adjustments === []) {
+            return $rows;
+        }
+        $byName = collect($rows)->keyBy('name')->all();
+        foreach ($adjustments as $name => $amount) {
+            $row = $byName[$name] ?? ['name' => (string) $name, 'billedSen' => 0, 'approvedSen' => 0, 'rejectedSen' => 0];
+            $byName[$name] = [...$row, 'billedSen' => $row['billedSen'] + (int) $amount, 'approvedSen' => $row['approvedSen'] + (int) $amount];
+        }
+
+        return collect($byName)->sortByDesc('billedSen')->take(50)->values()->all();
     }
 
     /**
@@ -790,10 +815,20 @@ class ClinicInsightsReportService
             ->where('balances.quantity', '>', 0)
             ->distinct('batches.id')
             ->count('batches.id');
+        // STK-15c: a governed count loss whose reversal was later approved is left out, the same rule as write-offs
+        // (STK-15b), whenever the reversal happened. Legacy stocktake losses have no governed case and still count.
         $stocktakeLoss = DB::table('stock_movements')
             ->join('inventory_locations as source_locations', 'source_locations.id', '=', 'stock_movements.source_location_id')
             ->where('stock_movements.organisation_id', $actor->organisation_id)
             ->where('stock_movements.movement_type', 'stocktake_loss')
+            ->whereNotExists(fn (Builder $reversed) => $reversed->selectRaw('1')->from('inventory_governed_cases as counts')
+                ->join('inventory_governed_cases as reversals', 'reversals.reverses_case_id', '=', 'counts.id')
+                ->join('inventory_governed_actions as approvals', 'approvals.case_id', '=', 'reversals.id')
+                // Deliberately inside the subquery: a legacy loss (other reference type) never matches and still counts.
+                ->where('stock_movements.reference_type', 'inventory_governed_case')
+                ->whereColumn('counts.public_id', 'stock_movements.reference_public_id')
+                ->whereColumn('counts.organisation_id', 'stock_movements.organisation_id')
+                ->where('approvals.action', 'approved'))
             ->whereIn('source_locations.branch_id', $branchIds)
             ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
             ->sum('stock_movements.quantity');
@@ -807,7 +842,35 @@ class ClinicInsightsReportService
             ->whereIn('source_locations.branch_id', $branchIds)
             ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
             ->sum('stock_movements.quantity');
-        $wastage = (float) $stocktakeLoss + (float) $damageAdjustments;
+        // STK-15b: approved STK-5 governed write-offs (expired and other). A write-off whose reversal was later approved
+        // is left out, whenever the reversal happened, so the figure belongs to the period of the original write-off.
+        // Governed count losses already post stocktake_loss above (reversed ones left out, STK-15c), so nothing is counted twice.
+        $writeOffs = DB::table('stock_movements')
+            ->join('inventory_locations as source_locations', 'source_locations.id', '=', 'stock_movements.source_location_id')
+            ->join('inventory_governed_cases as cases', function ($join): void {
+                $join->on('cases.public_id', '=', 'stock_movements.reference_public_id')->on('cases.organisation_id', '=', 'stock_movements.organisation_id');
+            })
+            ->where('stock_movements.organisation_id', $actor->organisation_id)
+            ->whereIn('stock_movements.movement_type', [StockMovement::TYPE_EXPIRY_WRITEOFF, StockMovement::TYPE_STOCK_WRITEOFF])
+            ->where('stock_movements.reference_type', 'inventory_governed_case')
+            ->where('cases.kind', 'writeoff')
+            ->whereNotExists(fn (Builder $reversed) => $reversed->selectRaw('1')->from('inventory_governed_cases as reversals')
+                ->join('inventory_governed_actions as approvals', 'approvals.case_id', '=', 'reversals.id')
+                ->whereColumn('reversals.reverses_case_id', 'cases.id')->where('approvals.action', 'approved'))
+            ->whereIn('source_locations.branch_id', $branchIds)
+            ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
+            ->sum('stock_movements.quantity');
+        $wastage = (float) $stocktakeLoss + (float) $damageAdjustments + (float) $writeOffs;
+        // STK-15: treatment-room waste (STK-8), shown on its own line. An entry a supervisor later reversed is left out,
+        // whenever the reversal happened, so the figure belongs to the period of the original entry.
+        $treatmentWaste = DB::table('inventory_treatment_usages as usages')
+            ->leftJoin('inventory_treatment_usage_reversals as reversals', 'reversals.usage_id', '=', 'usages.id')
+            ->where('usages.organisation_id', $actor->organisation_id)
+            ->where('usages.kind', 'waste')
+            ->whereNull('reversals.id')
+            ->whereIn('usages.branch_id', $branchIds)
+            ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'usages.created_at', 'usages.branch_id'))
+            ->sum('usages.quantity');
         $medicines = DB::table('invoice_lines as lines')
             ->join('invoices', 'invoices.id', '=', 'lines.invoice_id')
             ->where('invoices.organisation_id', $actor->organisation_id)
@@ -821,6 +884,7 @@ class ClinicInsightsReportService
                 'lowStockItems' => $low,
                 'expiringBatchesNext30Days' => $expiring,
                 'wastageUnits' => $wastage,
+                'treatmentWasteUnits' => (float) $treatmentWaste,
                 'inventoryValueAvailable' => false,
                 'costOfInventorySoldAvailable' => false,
             ],

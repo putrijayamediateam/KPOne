@@ -42,7 +42,8 @@ final class LeaveSettingsService
             if ($type->exists && $changed === []) {
                 return $type;
             }
-            $type->forceFill([...$values, 'organisation_id' => $actor->organisation_id, 'updated_by_user_id' => $actor->id,
+            // HR-DEFAULTS: once HR changes a type that KPOne's defaults added, it is the clinic's own type.
+            $type->forceFill([...$values, 'set_by_defaults' => false, 'organisation_id' => $actor->organisation_id, 'updated_by_user_id' => $actor->id,
                 'lock_version' => $type->exists ? $type->lock_version + 1 : 1])->save();
             $this->support->audit->record($id === false ? 'hr.leave.type_created' : 'hr.leave.type_updated', $type, ['leave_type_code' => $type->code, 'changed_fields' => $changed], $actor);
 
@@ -326,6 +327,17 @@ final class LeaveSettingsService
         }, 3);
     }
 
+    /** @return list<string> "typeId:role" or "typeId:u{userId}" keys whose latest row KPOne's defaults wrote (HR-DEFAULTS). */
+    public function defaultEntitlementKeys(int $organisationId, int $year): array
+    {
+        $latest = [];
+        foreach (DB::table('hr_leave_entitlements')->where('organisation_id', $organisationId)->where('year', $year)->orderBy('id')->get(['leave_type_id', 'role', 'user_id', 'set_by_defaults']) as $row) {
+            $latest[$row->leave_type_id.':'.($row->role ?? 'u'.$row->user_id)] = (bool) $row->set_by_defaults;
+        }
+
+        return array_keys(array_filter($latest));
+    }
+
     /** @return list<int> Active staff of the organisation who hold a human role, in id order. */
     public function humanIds(int $organisationId): array
     {
@@ -450,9 +462,11 @@ final class LeaveSettingsService
         // HR-2b: files are off until HR switches them on and sets how many days to keep them after the leave ends.
         $acceptsFiles = $flag('accepts_evidence_files');
         $retention = $input['evidence_retention_days'] ?? null;
-        $retention = $retention === null || $retention === '' ? null : filter_var($retention, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3650]]);
+        $retention = $retention === null || $retention === '' ? null : filter_var($retention, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => LeaveRetentionPurge::MAX_EVIDENCE_DAYS]]);
         if ($retention === false || ($acceptsFiles && $retention === null)) {
-            throw ValidationException::withMessages(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 3650).']);
+            // PDPA 15: at most 7 years (2,555 days), the leave records' own retention. A type saved with more before the
+            // cap keeps its number until it is next saved; the leave purge deletes its files with their request anyway.
+            throw ValidationException::withMessages(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 2555).']);
         }
         // Files already kept must still be deleted on time, so the days cannot be cleared while any remain (Suresh).
         if ($retention === null && $type->exists && DB::table('hr_leave_evidence_files')->where('status', 'active')

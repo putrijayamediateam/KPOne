@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
+use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -56,7 +57,8 @@ final class PanelClaimDirectoryService
 
     private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'rejected', 'received'];
 
-    private const INVOICE_TABS = ['pending', 'overdue'];
+    /** PNL-28a: Pending lists approved invoices with no claim; Overdue lists Prepared claims past the Panel's due date. */
+    private const INVOICE_TABS = ['pending'];
 
     /**
      * @param  array<string, mixed>  $filters
@@ -73,10 +75,11 @@ final class PanelClaimDirectoryService
             $tab = in_array($filters['tab'] ?? 'all', self::TABS, true) ? (string) ($filters['tab'] ?? 'all') : 'all';
             $onInvoices = in_array($tab, self::INVOICE_TABS, true);
 
-            $eligible = $invoices($onInvoices ? $tab : null)
+            $overdueIds = $this->overdueClaimIds($base(), $branch, $today);
+            $eligible = $invoices(null)
                 ->orderBy('v.registered_at')->orderBy('c.id')
                 ->paginate(20, ['*'], 'allocations_page', $allocationsPage);
-            $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab)
+            $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab, $overdueIds)
                 ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
             $paymentRemarks = $this->latestPaymentReferences(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
@@ -93,8 +96,10 @@ final class PanelClaimDirectoryService
                     'currentPage' => $eligible->currentPage(),
                     'lastPage' => $eligible->lastPage(),
                 ],
-                'summary' => $this->summary($base, $invoices),
-                'tabs' => $this->tabCounts($base, $invoices, $filters),
+                // PNL-28a: every approved Panel share at this branch with no claim, whatever the list filters.
+                'waiting' => app(PanelClaimEligibility::class)->query($actor->organisation_id, $branch->id)->count(),
+                'summary' => $this->summary($base, $invoices, $overdueIds),
+                'tabs' => $this->tabCounts($base, $invoices, $filters, $overdueIds),
                 'panels' => DB::table('panels')->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->pluck('name')->all(),
                 'filters' => [
                     'tab' => $tab,
@@ -128,6 +133,7 @@ final class PanelClaimDirectoryService
                         'panelId' => (int) $claim->panel_id,
                         'claimAmountSen' => $claim->claim_amount_sen,
                         'status' => self::statusLabel($claim),
+                        'overdue' => in_array($claim->id, $overdueIds, true),
                         'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
                         'updatedBy' => $latest[$claim->id]['actor'] ?? null,
                         'remarks' => $paymentRemarks[$claim->id] ?? ($latest[$claim->id]['note'] ?? null),
@@ -188,7 +194,7 @@ final class PanelClaimDirectoryService
                 'c.public_id as allocation_id',
                 'c.lock_version as allocation_lock_version',
                 'i.lock_version as invoice_lock_version',
-                'c.amount_sen',
+                DB::raw('kpone_panel_effective(i.id) as amount_sen'), // PCA-2: the effective Panel share.
                 'c.panel_name_snapshot',
                 'pn.code as panel_code',
                 'c.reason',
@@ -232,10 +238,10 @@ final class PanelClaimDirectoryService
             $query->where('v.registered_at', '<=', $end);
         }
         if (($filters['amount_min'] ?? '') !== '') {
-            $query->where('c.amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
+            $query->whereRaw('kpone_panel_effective(i.id) >= ?', [(int) round(((float) $filters['amount_min']) * 100)]);
         }
         if (($filters['amount_max'] ?? '') !== '') {
-            $query->where('c.amount_sen', '<=', (int) round(((float) $filters['amount_max']) * 100));
+            $query->whereRaw('kpone_panel_effective(i.id) <= ?', [(int) round(((float) $filters['amount_max']) * 100)]);
         }
 
         $this->applyClinicalFilters($query, 'v.id', $actor, $branch, $filters);
@@ -369,11 +375,13 @@ final class PanelClaimDirectoryService
     /**
      * @param  \Illuminate\Database\Eloquent\Builder<PanelClaim>  $query
      * @param  array<string, mixed>  $filters
+     * @param  list<int>  $overdueIds
      * @return \Illuminate\Database\Eloquent\Builder<PanelClaim>
      */
-    private function applyListFilters($query, array $filters, string $tab)
+    private function applyListFilters($query, array $filters, string $tab, array $overdueIds = [])
     {
         match ($tab) {
+            'overdue' => $query->whereIn('id', $overdueIds),
             'submitted' => $query->whereIn('status', self::SUBMITTED),
             'approved' => $query->whereIn('status', self::APPROVED),
             'rejected' => $query->where('status', 'rejected'),
@@ -405,20 +413,21 @@ final class PanelClaimDirectoryService
     /**
      * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
      * @param  callable(?string): Builder  $invoices
+     * @param  list<int>  $overdueIds
      * @return array<string, array{count: int, amountSen: int}>
      */
-    private function summary(callable $base, callable $invoices): array
+    private function summary(callable $base, callable $invoices, array $overdueIds): array
     {
         $paid = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
         $approved = $base()->whereIn('status', self::APPROVED);
         $received = $base()->where('status', 'paid');
         $rejected = $base()->where('status', 'rejected');
         $outstanding = $base()->whereIn('status', self::APPROVED)->whereRaw("coalesce(accepted_amount_sen, 0) - {$paid} > 0");
-        $figure = static fn (Builder $query): array => ['count' => (clone $query)->count(), 'amountSen' => (int) (clone $query)->sum('c.amount_sen')];
+        $figure = static fn (Builder $query): array => ['count' => (clone $query)->count(), 'amountSen' => (int) (clone $query)->sum(DB::raw('kpone_panel_effective(i.id)'))];
 
         return [
-            'pending' => $figure($invoices('pending')),
-            'overdue' => $figure($invoices('overdue')),
+            'pending' => $figure($invoices(null)),
+            'overdue' => ['count' => count($overdueIds), 'amountSen' => $overdueIds === [] ? 0 : (int) $base()->whereIn('id', $overdueIds)->sum('claim_amount_sen')],
             'approved' => ['count' => (clone $approved)->count(), 'amountSen' => (int) (clone $approved)->sum('accepted_amount_sen')],
             'received' => ['count' => (clone $received)->count(), 'amountSen' => (int) (clone $received)->sum('accepted_amount_sen')],
             'rejected' => ['count' => (clone $rejected)->count(), 'amountSen' => (int) (clone $rejected)->sum('claim_amount_sen')],
@@ -427,20 +436,50 @@ final class PanelClaimDirectoryService
     }
 
     /**
+     * PNL-28a: Prepared claims that were never submitted and are past their Panel's due date. The due date uses the
+     * Panel's rule (days, daily, weekly or monthly) from the visit, as the Pending list always has.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
+     * @return list<int>
+     */
+    private function overdueClaimIds($base, Branch $branch, CarbonImmutable $today): array
+    {
+        $ids = [];
+        $rows = DB::table('panel_claims as c')
+            ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
+            ->join('visits as v', 'v.id', '=', 'i.visit_id')
+            ->join('panels as pn', function ($join): void {
+                $join->on('pn.id', '=', 'c.panel_id')->on('pn.organisation_id', '=', 'c.organisation_id');
+            })
+            ->whereIn('c.id', (clone $base)->where('status', 'prepared')->select('id'))
+            ->whereNotExists(fn (Builder $e) => $e->selectRaw('1')->from('panel_claim_events as ev')->whereColumn('ev.panel_claim_id', 'c.id')->where('ev.event_type', 'submitted'))
+            ->get(['c.id', 'v.registered_at', 'pn.claim_due_days', 'pn.claim_due_rule', 'pn.claim_due_time', 'pn.claim_due_offset']);
+        foreach ($rows as $row) {
+            $due = PanelClaimDueRule::dueAt($row, CarbonImmutable::parse((string) $row->registered_at, 'UTC')->setTimezone($branch->timezone));
+            if (PanelClaimDueRule::isOverdue($row, $due, $today)) {
+                $ids[] = (int) $row->id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * Tab counts follow every filter except the tab itself.
      *
      * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
      * @param  callable(?string): Builder  $invoices
      * @param  array<string, mixed>  $filters
+     * @param  list<int>  $overdueIds
      * @return array<string, int>
      */
-    private function tabCounts(callable $base, callable $invoices, array $filters): array
+    private function tabCounts(callable $base, callable $invoices, array $filters, array $overdueIds): array
     {
         $counts = [];
         foreach (self::TABS as $tab) {
             $counts[$tab] = in_array($tab, self::INVOICE_TABS, true)
-                ? $invoices($tab)->count()
-                : $this->applyListFilters($base(), $filters, $tab)->count();
+                ? $invoices(null)->count()
+                : $this->applyListFilters($base(), $filters, $tab, $overdueIds)->count();
         }
 
         return $counts;
@@ -492,7 +531,7 @@ final class PanelClaimDirectoryService
             $id = (int) $row->panel_claim_id;
             $latest[$id] ??= ['actor' => null, 'note' => null];
             $latest[$id]['actor'] = $names[(int) $row->actor_user_id] ?? 'Staff member';
-            if ($row->note !== null) {
+            if ($row->note !== null && $row->note !== PanelClaimService::AUTO_NOTE) {
                 $latest[$id]['note'] = (string) $row->note;
             }
         }
@@ -513,14 +552,20 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
             abort_unless($allocation->status === 'approved' && (int) $allocation->current_invoice_guard === $invoice->id
                 && $invoice->status === 'finalized' && ! $invoice->correction_hold && ! $invoice->source_stale
-                && $allocation->amount_sen > 0, 422);
+                && PanelShare::effective($allocation) > 0, 422);
             // PNL-15: compare with the payable total after any invoice discount or surcharge, as creation does.
             $payableSen = app(FinancialLedger::class)->chargedBeforeCredits($invoice);
-            abort_unless($allocation->amount_sen <= $payableSen, 422);
-            $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first();
+            $shareSen = PanelShare::effective($allocation); // PCA-2: the effective Panel share.
+            abort_unless($shareSen <= $payableSen, 422);
+            $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->where('claim_kind', 'original')->first();
             $patient = DB::table('patients')->where('id', $invoice->patient_id)
                 ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
             abort_unless($patient !== null, 422);
+
+            // Read-only: the Panel's own claim due rule, in words, and the date it falls due for this visit (Create claim page).
+            $dueRow = DB::table('panels')->where('id', $allocation->panel_id)->where('organisation_id', $actor->organisation_id)
+                ->first(['claim_due_days', 'claim_due_rule', 'claim_due_time', 'claim_due_offset']);
+            $visitLocal = $visit->registered_at->setTimezone($branch->timezone);
 
             return [
                 'existingClaimUrl' => $existing === null ? null : route('panel-claims.show', $existing),
@@ -528,10 +573,12 @@ final class PanelClaimDirectoryService
                 'allocation' => [
                     'publicId' => $allocation->public_id, 'lockVersion' => $allocation->lock_version,
                     'invoiceLockVersion' => $invoice->lock_version, 'panelName' => $allocation->panel_name_snapshot,
-                    'amountSen' => $allocation->amount_sen, 'patientName' => $patient->full_name,
+                    'amountSen' => $shareSen, 'patientName' => $patient->full_name,
                     'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $payableSen, 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
                     'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
                     'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                    'dueRule' => $dueRow === null ? null : PanelClaimDueRule::describe($dueRow),
+                    'dueBy' => $dueRow === null ? null : PanelClaimDueRule::dueAt($dueRow, CarbonImmutable::instance($visitLocal))->format('j M Y'),
                     'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
                         ->map(static fn (InvoiceLine $line): array => [
                             'id' => $line->id, 'name' => $line->display_name, 'quantity' => (string) $line->quantity,
@@ -555,6 +602,9 @@ final class PanelClaimDirectoryService
             $amounts = PanelClaimAmounts::summary($claim, $paid);
             // Only saved claim evidence: never reconstruct older claims from the live Invoice.
             $originalSubtotal = (int) $claim->lines->sum('line_total_sen');
+            $latestVersion = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->first(['invoice_total_sen', 'panel_adjustment_sen']);
+            $currentInvoiceTotal = (int) ($latestVersion->invoice_total_sen ?? $claim->invoice_total_sen);
+            $panelAdjustment = (int) ($latestVersion->panel_adjustment_sen ?? 0);
             $lineRows = $claim->lines->map(static fn ($line): array => [
                 'number' => $line->line_number,
                 'type' => $line->line_type,
@@ -581,12 +631,17 @@ final class PanelClaimDirectoryService
                     'panel_claim_events.actor_user_id',
                 ]);
             $actorNames = $this->staffNames($actor, $eventRows->pluck('actor_user_id')->all());
+            $approverId = (int) DB::table('coverage_allocations')->where('id', $claim->coverage_allocation_id)->value('approved_by_user_id');
+            $approverName = $this->staffNames($actor, [$approverId])[$approverId] ?? 'Staff member';
             $events = $eventRows->map(fn (object $event): array => [
+                // PNL-28a: a claim made by the system step reads as such, naming whoever approved the Panel bill.
+                'auto' => $event->note === PanelClaimService::AUTO_NOTE,
+                'approvedBy' => $event->note === PanelClaimService::AUTO_NOTE ? $approverName : null,
                 'type' => (string) $event->event_type,
                 'previousAmountSen' => $event->previous_amount_sen === null ? null : (int) $event->previous_amount_sen,
                 'amountSen' => $event->amount_sen === null ? null : (int) $event->amount_sen,
                 'externalReference' => $event->external_reference === null ? null : (string) $event->external_reference,
-                'note' => $event->note === null ? null : (string) $event->note,
+                'note' => $event->note === null || $event->note === PanelClaimService::AUTO_NOTE ? null : (string) $event->note,
                 'occurredAt' => CarbonImmutable::parse((string) $event->occurred_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                 'actor' => $actorNames[(int) $event->actor_user_id] ?? 'Staff member',
             ])->all();
@@ -653,7 +708,8 @@ final class PanelClaimDirectoryService
                     'dueRule' => PanelClaimDueRule::describe($panel ?? (object) []),
                     'verificationUrl' => $panel?->verification_url,
                     'receivedOn' => $lastPayment?->received_at->setTimezone($branch->timezone)->format('j F Y'),
-                    'amountDueSen' => max(0, $payoutBase - $paid),
+                    // PCA-2: a cancelled supplementary claim is counted in no total, so nothing is due on it.
+                    'amountDueSen' => $claim->status === 'cancelled' ? 0 : max(0, $payoutBase - $paid),
                     'identityVisible' => $canSeeIdentity,
                     'canWhatsapp' => $canSeeIdentity && WhatsAppNumber::normalize($patientRow?->mobile_phone) !== null,
                     'patientPhone' => $canSeeIdentity ? $patientRow?->mobile_phone : null,
@@ -668,12 +724,15 @@ final class PanelClaimDirectoryService
                     'visitNumber' => $claim->visit_number,
                     'visitDate' => $claim->visit_date->format('j M Y'),
                     'invoiceNumber' => $claim->invoice_number,
-                    'invoiceTotalSen' => $claim->invoice_total_sen,
+                    // PCA-2: the latest recorded claim version holds the invoice payable after confirmed Panel
+                    // adjustments, so a plus is never mistaken for a claim-only amount above the invoice.
+                    'invoiceTotalSen' => $currentInvoiceTotal,
                     'invoiceSubtotalSen' => $originalSubtotal,
-                    'invoiceAdjustmentSen' => $claim->invoice_total_sen - $originalSubtotal,
-                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
+                    'invoiceAdjustmentSen' => $currentInvoiceTotal - $panelAdjustment - $originalSubtotal,
+                    'panelAdjustmentSen' => $panelAdjustment,
+                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $currentInvoiceTotal),
                     'claimAmountSen' => $claim->claim_amount_sen,
-                    'adjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
+                    'adjustmentSen' => max(0, $claim->claim_amount_sen - $currentInvoiceTotal),
                     'acceptedAmountSen' => $claim->accepted_amount_sen,
                     'paidAmountSen' => $paid,
                     'outstandingSen' => $amounts['outstanding'],
@@ -687,7 +746,14 @@ final class PanelClaimDirectoryService
                     'canRecordDecision' => in_array($claim->status, ['submitted', 'queried'], true) && $paid === 0,
                     'canRecordPayment' => in_array($claim->status, ['accepted', 'partially_accepted', 'partially_paid'], true)
                         && $claim->accepted_amount_sen !== null && $paid < $claim->accepted_amount_sen,
+                    // PCA-2: the claim's kind, links and recorded pack versions.
+                    'adjustmentClaim' => PanelAdjustmentView::forClaim($claim, $branch),
                 ],
+                // PCA-2: the Panel share (original + adjustments) beside what is claimed, and the adjustment actions.
+                // PCA-2 (Daniel): invoice-level figures and requests belong to the Billing page and the original claim. A
+                // supplementary claim's page shows only that claim (adjustmentClaim), never the invoice's waiting request.
+                'panelAdjustment' => $claim->claim_kind === 'supplementary' ? null
+                    : PanelAdjustmentView::forInvoice($actor, Invoice::query()->findOrFail($claim->invoice_id), $branch, 'claim'),
             ];
         });
     }
@@ -738,6 +804,7 @@ final class PanelClaimDirectoryService
             'rejected' => 'Rejected',
             'partially_paid' => 'Partially paid',
             'paid' => 'Paid',
+            'cancelled' => 'Cancelled', // PCA-2: a supplementary claim fully covered by a later minus adjustment.
             default => 'Unknown',
         };
     }

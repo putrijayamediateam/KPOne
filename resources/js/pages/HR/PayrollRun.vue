@@ -2,12 +2,10 @@
 // HR-7b one payroll run (HR-PLAN 16.4, 16.5 and 16.9, with Daniel's early look). Draft: prepare again, MTD, manual
 // lines and Send. Sent: someone other than the preparer approves or returns it. Approved: the approver locks it. Errors
 // stop sending; warnings never do. KPOne pays nothing and files nothing.
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import AccountantNote from '@/components/hr/payroll/AccountantNote.vue';
 import RmInput from '@/components/hr/payroll/RmInput.vue';
-import type { Option, RunStatus } from '@/components/hr/payroll/types';
-import { on, rmText, runWords } from '@/components/hr/payroll/types';
+import { on, runWords } from '@/components/hr/payroll/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -23,225 +21,37 @@ import {
 } from '@/components/ui/sheet';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
+import { usePayrollRunPage } from '@/composables/hr/usePayrollRunPage';
+import type { PayrollRunPageProps } from '@/composables/hr/usePayrollRunPage';
 import { myr } from '@/types/billing';
 
-type Totals = {
-    earnings: number;
-    deduction: number;
-    refund: number;
-    employee: number;
-    employer: number;
-    mtd: number;
-    net: number;
-};
-type Line = {
-    kind: string;
-    section:
-        'earnings' | 'deduction' | 'refund' | 'employee' | 'employer' | 'mtd';
-    amountSen: number;
-    explanation: string;
-};
-type RunPerson = {
-    id: string;
-    name: string;
-    totals: Totals;
-    mtdSen: number | null;
-    needsMtd: boolean;
-    errors: string[];
-    warnings: string[];
-    lines: Line[];
-    manual: { id: string }[];
-};
-type Step = 'approve' | 'return' | 'lock';
-
-const props = defineProps<{
-    run: {
-        id: string;
-        kind: 'regular' | 'adjustment';
-        status: RunStatus;
-        month: string;
-        group: string;
-        payDay: number | null;
-        lockVersion: number;
-        preparedBy: string;
-        sentBy: string | null;
-        approvedBy: string | null;
-        lockedAt: string | null;
-        people: RunPerson[];
-        total: Totals;
-        errorCount: number;
-        canEdit: boolean;
-        sendRefusal: string | null;
-        draftRefusal: string | null;
-        steps: Record<Step, { refusal: string | null }>;
-        options: {
-            itemTypes: Option[];
-            manualReasons: Option[];
-            returnReasons: Option[];
-        };
-    };
-}>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(() => errors.value.payroll ?? errors.value.records);
-const busy = ref(false);
-const post = (
-    step: string,
-    data: Record<string, unknown>,
-    done?: () => void,
-) => {
-    busy.value = true;
-    router.post(
-        `/hr/payroll/runs/${props.run.id}/${step}`,
-        {
-            ...data,
-            expected_lock_version: props.run.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => done?.(),
-            onFinish: () => (busy.value = false),
-        },
-    );
-};
-const sections: { key: Line['section']; label: string }[] = [
-    { key: 'earnings', label: 'Earnings' },
-    { key: 'deduction', label: 'Deductions' },
-    { key: 'refund', label: 'Refunds' },
-    { key: 'employee', label: 'Employee contributions' },
-    { key: 'mtd', label: 'MTD (PCB)' },
-    { key: 'employer', label: 'Employer contributions (information)' },
-];
-
-// HR-7d: an employer-only scheme (the HRD levy) has no employee part, so its zero employee line is not shown (Daniel).
-const shownLines = (lines: Line[], section: Line['section']) =>
-    lines.filter(
-        (l) =>
-            l.section === section &&
-            !(
-                l.amountSen === 0 &&
-                l.explanation.startsWith('HRD levy employee')
-            ),
-    );
-// HR-7d: which MTD figure counts, said next to the figure (Daniel).
-const mtdNote = (lines: Line[]): string | null => {
-    const line = lines.find((l) => l.section === 'mtd');
-
-    if (!line) {
-        return null;
-    }
-
-    if (line.explanation.includes('(worked out:')) {
-        return "The typed figure counts for this run. KPOne's worked-out figure is in brackets for comparison. Check both with the clinic's accountant.";
-    }
-
-    return line.explanation.startsWith('MTD (PCB) · worked out')
-        ? "Worked out by KPOne. Check it with the clinic's accountant before real use."
-        : null;
-};
-
-// ---- one person's lines ----
-const panel = reactive({ person: null as RunPerson | null, mtd: '' });
-const openPerson = (p: RunPerson) =>
-    Object.assign(panel, { person: p, mtd: rmText(p.mtdSen) });
-const current = computed(
-    () =>
-        props.run.people.find((p) => p.id === panel.person?.id) ?? panel.person,
-);
-const saveMtd = () =>
-    current.value &&
-    post('mtd', { worker_id: current.value.id, mtd: panel.mtd });
-const manual = reactive({ type: '', amount: '', reason: '' });
-const addManual = () =>
-    current.value &&
-    post(
-        'manual',
-        {
-            worker_id: current.value.id,
-            item_type_id: manual.type,
-            amount: manual.amount,
-            reason_code: manual.reason,
-        },
-        () => Object.assign(manual, { type: '', amount: '', reason: '' }),
-    );
-const manualLines = computed(() =>
-    (current.value?.lines ?? []).filter((l) => l.kind === 'manual'),
-);
-const removeManual = (index: number) => {
-    const line = current.value?.manual[index];
-
-    if (!line) {
-        return;
-    }
-
-    busy.value = true;
-    router.post(
-        `/hr/payroll/runs/${props.run.id}/manual/${line.id}/remove`,
-        {
-            expected_lock_version: props.run.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        { preserveScroll: true, onFinish: () => (busy.value = false) },
-    );
-};
-
-// ---- steps ----
-const asking = ref<'send' | Step | null>(null);
-const returnReason = ref('');
-const confirm = () => {
-    const step = asking.value;
-
-    if (!step) {
-        return;
-    }
-
-    post(
-        step,
-        step === 'return' ? { reason: returnReason.value } : {},
-        () => (asking.value = null),
-    );
-};
-const dialog = computed(() => {
-    switch (asking.value) {
-        case 'send':
-            return {
-                title: 'Send this run for approval?',
-                description: `${props.run.group} · ${props.run.month}. Sending freezes it: nothing in it changes unless it is returned.`,
-                label: 'Send for approval',
-            };
-        case 'approve':
-            return {
-                title: 'Approve this run?',
-                description: `${props.run.group} · ${props.run.month} · net ${myr(props.run.total.net)}. You then lock it to finish.`,
-                label: 'Approve',
-            };
-        case 'return':
-            return {
-                title: 'Return this run to draft?',
-                description:
-                    'The preparer can change it and send it again. The reason is kept.',
-                label: 'Return to draft',
-            };
-        case 'lock':
-            return {
-                title: 'Lock this run?',
-                description:
-                    'A locked run never changes; a correction is an adjustment run. Staff claims in this run are recorded as paid through payroll.',
-                label: 'Lock run',
-            };
-        default:
-            return { title: '', description: '', label: '' };
-    }
-});
-const statusTone = computed(() =>
-    props.run.status === 'approved' || props.run.status === 'locked'
-        ? 'success'
-        : 'neutral',
-);
+const props = defineProps<PayrollRunPageProps>();
+const {
+    errors,
+    failure,
+    busy,
+    post,
+    sections,
+    shownLines,
+    mtdNote,
+    panel,
+    openPerson,
+    current,
+    saveMtd,
+    manual,
+    addManual,
+    manualLines,
+    removeManual,
+    asking,
+    returnReason,
+    addLate,
+    removeLate,
+    lateOnlyOvertime,
+    startAdjustment,
+    confirm,
+    dialog,
+    statusTone,
+} = usePayrollRunPage(props);
 </script>
 
 <template>
@@ -377,6 +187,299 @@ const statusTone = computed(() =>
         >
             Warnings don't stop you sending.
         </p>
+
+        <p
+            v-if="run.lateHoursUnknown > 0"
+            class="text-sm text-muted-foreground"
+            data-test="run-late-hours-unknown"
+        >
+            Hours changed after this lock can't be checked for
+            {{
+                run.lateHoursUnknown === 1
+                    ? '1 person paid by the hour'
+                    : `${run.lateHoursUnknown} people paid by the hour`
+            }}: add any correction as a manual line on an adjustment run.
+        </p>
+
+        <section
+            v-if="run.late.length"
+            class="grid gap-3 rounded-xl border bg-card p-4"
+            aria-labelledby="run-late-heading"
+            data-test="run-late"
+        >
+            <div class="grid gap-1">
+                <span
+                    class="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                >
+                    <span
+                        class="size-2 rounded-full bg-muted-foreground"
+                        aria-hidden="true"
+                    /><template v-if="lateOnlyOvertime">Late overtime</template
+                    ><template v-else>Late changes</template>
+                </span>
+                <h2 id="run-late-heading" class="font-semibold">
+                    <template v-if="lateOnlyOvertime"
+                        >Approved after this run was locked</template
+                    ><template v-else
+                        >Changed after this run was locked</template
+                    >
+                </h2>
+                <p class="text-sm text-muted-foreground">
+                    <template v-if="lateOnlyOvertime">{{
+                        run.kind === 'regular'
+                            ? 'This overtime is in this month but was approved after the lock, so this run does not pay it. Pay is worked out on an adjustment run.'
+                            : 'Overtime approved after the locked run. Nothing is added unless you add it here.'
+                    }}</template
+                    ><template v-else>{{
+                        run.kind === 'regular'
+                            ? 'These changes are in this month but came after the lock, so this run does not include them. They are worked out on an adjustment run.'
+                            : 'Changes made after the locked run. Nothing is added or taken unless you add it here.'
+                    }}</template>
+                </p>
+            </div>
+
+            <div
+                v-if="run.lateAdjustment"
+                class="flex flex-wrap items-center gap-2"
+                data-test="run-late-next"
+            >
+                <template v-if="run.lateAdjustment.id === null">
+                    <p class="text-sm">Start an adjustment run to add these.</p>
+                    <Button
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        :disabled="busy"
+                        data-test="run-late-start"
+                        @click="startAdjustment"
+                    >
+                        Start adjustment run
+                    </Button>
+                </template>
+                <template v-else-if="run.lateAdjustment.draft">
+                    <p class="text-sm">
+                        An adjustment run for this month is open: add these
+                        there.
+                    </p>
+                    <Button
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        as-child
+                    >
+                        <Link
+                            :href="`/hr/payroll/runs/${run.lateAdjustment.id}`"
+                            data-test="run-late-open"
+                            >Open adjustment run</Link
+                        >
+                    </Button>
+                </template>
+                <p v-else class="text-sm text-muted-foreground">
+                    An adjustment run for this month is waiting for approval.
+                    Once it is locked, start another to add these.
+                </p>
+            </div>
+
+            <!-- 1024 px and wider: a table. -->
+            <div class="hidden overflow-x-auto lg:block">
+                <table class="w-full text-sm" data-test="run-late-table">
+                    <thead class="text-left text-muted-foreground">
+                        <tr>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Person
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                What changed
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                For
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Change
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Decided on
+                            </th>
+                            <th scope="col" class="py-2 font-medium">
+                                <span class="sr-only">Status or action</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="item in run.late"
+                            :key="`${item.kind}:${item.id}`"
+                            class="border-t align-middle"
+                            data-test="run-late-item"
+                        >
+                            <td class="py-2 pr-3 font-medium break-words">
+                                {{ item.name }}
+                            </td>
+                            <td class="py-2 pr-3">
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap"
+                                    data-test="run-late-kind"
+                                    ><span
+                                        class="size-2 rounded-full bg-muted-foreground"
+                                        aria-hidden="true"
+                                    />{{ item.kindLabel }}</span
+                                >
+                            </td>
+                            <td class="py-2 pr-3 whitespace-nowrap">
+                                {{ item.date }}
+                            </td>
+                            <td class="py-2 pr-3" data-test="run-late-change">
+                                {{ item.change }}
+                            </td>
+                            <td class="py-2 pr-3 whitespace-nowrap">
+                                {{
+                                    item.approvedAt ? on(item.approvedAt) : '—'
+                                }}
+                            </td>
+                            <td class="py-2">
+                                <div
+                                    class="flex flex-wrap items-center justify-end gap-2"
+                                >
+                                    <template
+                                        v-if="
+                                            run.kind === 'adjustment' &&
+                                            run.canEdit &&
+                                            item.state === 'waiting'
+                                        "
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            :disabled="busy"
+                                            data-test="run-late-add"
+                                            @click="addLate(item)"
+                                        >
+                                            Add to this adjustment<span
+                                                class="sr-only"
+                                            >
+                                                : {{ item.name }},
+                                                {{ item.kindLabel }},
+                                                {{ item.date }}</span
+                                            >
+                                        </Button>
+                                    </template>
+                                    <template v-else-if="item.state === 'here'">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                            data-test="run-late-added"
+                                            ><span
+                                                class="size-2 rounded-full bg-success"
+                                                aria-hidden="true"
+                                            />Added to this adjustment</span
+                                        >
+                                        <Button
+                                            v-if="run.canEdit"
+                                            variant="ghost"
+                                            size="sm"
+                                            :disabled="busy"
+                                            data-test="run-late-remove"
+                                            @click="removeLate(item)"
+                                        >
+                                            Take off<span class="sr-only">
+                                                : {{ item.name }},
+                                                {{ item.kindLabel }},
+                                                {{ item.date }}</span
+                                            >
+                                        </Button>
+                                    </template>
+                                    <span
+                                        v-else-if="item.state === 'elsewhere'"
+                                        class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                        data-test="run-late-elsewhere"
+                                        ><span
+                                            class="size-2 rounded-full bg-muted-foreground"
+                                            aria-hidden="true"
+                                        />On an adjustment run</span
+                                    >
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Below 1024 px: one card per item. -->
+            <ul class="grid gap-2 lg:hidden">
+                <li
+                    v-for="item in run.late"
+                    :key="`${item.kind}:${item.id}`"
+                    class="grid gap-2 rounded-lg border p-3"
+                    data-test="run-late-card"
+                >
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium break-words">{{
+                            item.name
+                        }}</span>
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                            ><span
+                                class="size-2 rounded-full bg-muted-foreground"
+                                aria-hidden="true"
+                            />{{ item.kindLabel }}</span
+                        >
+                    </div>
+                    <span class="text-sm">{{ item.change }}</span>
+                    <span class="text-sm text-muted-foreground"
+                        >For {{ item.date
+                        }}<template v-if="item.approvedAt">
+                            · decided on {{ on(item.approvedAt) }}</template
+                        ></span
+                    >
+                    <Button
+                        v-if="
+                            run.kind === 'adjustment' &&
+                            run.canEdit &&
+                            item.state === 'waiting'
+                        "
+                        variant="outline"
+                        class="min-h-11"
+                        :disabled="busy"
+                        @click="addLate(item)"
+                    >
+                        Add to this adjustment<span class="sr-only">
+                            : {{ item.name }}, {{ item.kindLabel }},
+                            {{ item.date }}</span
+                        >
+                    </Button>
+                    <div
+                        v-else-if="item.state === 'here'"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                            ><span
+                                class="size-2 rounded-full bg-success"
+                                aria-hidden="true"
+                            />Added to this adjustment</span
+                        >
+                        <Button
+                            v-if="run.canEdit"
+                            variant="ghost"
+                            class="min-h-11"
+                            :disabled="busy"
+                            @click="removeLate(item)"
+                        >
+                            Take off<span class="sr-only">
+                                : {{ item.name }}, {{ item.kindLabel }},
+                                {{ item.date }}</span
+                            >
+                        </Button>
+                    </div>
+                    <span
+                        v-else-if="item.state === 'elsewhere'"
+                        class="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                        data-test="run-late-elsewhere"
+                        ><span
+                            class="size-2 rounded-full bg-muted-foreground"
+                            aria-hidden="true"
+                        />On an adjustment run</span
+                    >
+                </li>
+            </ul>
+        </section>
 
         <EmptyState
             v-if="!run.people.length"

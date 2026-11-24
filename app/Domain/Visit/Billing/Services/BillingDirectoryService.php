@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Models\ConsultationCheckout;
+use App\Domain\Patient\Services\ForeignPatientRule;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
@@ -36,6 +37,12 @@ class BillingDirectoryService
             $case = DispensaryCase::query()->where('visit_id', $visit->id)->first();
             $invoice = $document ? Invoice::query()->whereKey($document->id)->where('visit_id', $visit->id)->firstOrFail() : Invoice::query()->where('current_visit_guard', $visit->id)->first();
             $mutable = $visit->status === Visit::STATUS_REGISTERED && $invoice?->status === 'finalized' && ! $invoice->correction_hold;
+            // BIL-32 (Kumar R2): a paused day turns money actions off; a locked invoice day turns Void off. The notice says why.
+            $gate = app(BranchDayGate::class);
+            $invoiceDay = $invoice?->finalized_at?->setTimezone($branch->timezone)->toDateString();
+            $paused = $gate->paused($branch, now($branch->timezone)->toDateString()) || ($invoiceDay !== null && $gate->paused($branch, $invoiceDay));
+            $invoiceLocked = $invoiceDay !== null && $gate->locked($branch, $invoiceDay);
+            $money = $mutable && ! $paused;
             $state = $invoice ? $this->ledger->state($invoice) : null;
             $payments = $invoice ? Payment::query()->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))->orderBy('id')->get() : collect();
             $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
@@ -57,10 +64,14 @@ class BillingDirectoryService
                     'remainingSen' => $record instanceof PatientReceivable ? $record->remaining_sen : null, 'dueDate' => $record instanceof PatientReceivable ? $record->due_date->toDateString() : null] : null;
             };
 
-            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null],
+            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null,
+                // BIL-29: yes or no only; no identifier value or country. No SST is charged on it yet.
+                'foreign' => $printing ? null : app(ForeignPatientRule::class)->isForeign((int) $visit->organisation_id, (int) $visit->patient_id)],
                 'backLink' => $this->backLink($actor),
                 'billTo' => $printing ? null : app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
                 'notes' => $printing ? null : app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
+                // BIL-35: straight to the Panel claim, or Create claim, for Panel Claims users only (read-only navigation).
+                'panelClaim' => $printing ? null : app(PanelClaimLink::class)->for($actor, $visit, $invoice, 'billing'),
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id, $invoice, false),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
@@ -69,13 +80,19 @@ class BillingDirectoryService
                     'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice), 'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'), 'adjustmentControls' => $printing ? null : InvoiceAdjustmentService::controls($actor, $visit, $invoice),
                     'lines' => ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')) ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,
                 'panel' => ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? $proposal(CoverageAllocation::class) : null,
+                // PNL-26b: the Panel's limit per visit warns only (never blocks); the invoice total is at Panel prices.
+                'panelVisitLimit' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? app(PanelVisitLimit::class)->forInvoiceTotal($visit, (int) $state['total']) : null,
                 'panelShortfall' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? PanelShortfall::forInvoice($invoice) : null,
+                // PCA-2: Panel share as original + confirmed adjustments, beside the amount claimed; actions only with the adjustment permissions.
+                'panelAdjustment' => ! $printing && $invoice ? PanelAdjustmentView::forInvoice($actor, $invoice, $branch, 'billing') : null,
                 'deferment' => ($actor->can('outstanding.view.branch') || $actor->can('outstanding.request.branch') || $actor->can('outstanding.approve.branch')) ? $proposal(PatientReceivable::class) : null,
                 'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'refundedSen' => $refunded[$p->id] ?? 0, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                     // BIL-2: screens only, never prints; the same name rule as the invoice activity log.
                     ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
                 // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.
                 'refunds' => $printing ? null : app(RefundService::class)->forVisit($actor, $visit, $branch->timezone),
+                // BIL-32: a paused or locked day's notice, and the reverse-and-refund action for a locked day's receipt.
+                'dayClose' => $printing ? null : app(BranchDayGate::class)->billingState($actor, $branch, $visit, $invoice, $payments),
                 'corrections' => $printing ? null : app(ReceiptCorrectionService::class)->forVisit($actor, $visit, $invoice, $branch->timezone),
                 // BIL-17: voided invoices of this visit stay visible (number, total, when and by whom, and their receipts),
                 // never the void reason, following the activity log rule.
@@ -84,12 +101,14 @@ class BillingDirectoryService
                 'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
                 'panels' => $actor->can('coverage.propose.branch') ? Panel::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'name'])->toArray() : [],
                 'can' => ['build' => $actor->can('billing.build.branch') && $visit->status === Visit::STATUS_REGISTERED && (($checkout !== null && ($checkout->route === 'billing' || $case?->status === DispensaryCase::STATUS_COMPLETED)) || ($visit->visit_type === 'otc' && $case?->case_type === DispensaryCase::TYPE_OTC && $case->status === DispensaryCase::STATUS_COMPLETED)) && (! $invoice || $invoice->status === 'draft'),
-                    'finalize' => $visit->status === Visit::STATUS_REGISTERED && $actor->can('billing.finalize.branch') && $invoice?->status === 'draft' && ! $invoice->source_stale,
-                    'pay' => in_array($visit->status, [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED], true) && $actor->can('payments.add.branch') && $invoice?->status === 'finalized' && ! $invoice->correction_hold && ($state['due_now'] + $state['deferred']) > 0,
-                    'panelPropose' => $mutable && $actor->can('coverage.propose.branch'), 'panelApprove' => $mutable && $actor->can('coverage.approve.branch') && in_array('panel', $approvalCapabilities, true),
-                    'deferPropose' => $mutable && $actor->can('outstanding.request.branch'), 'deferApprove' => $mutable && $actor->can('outstanding.approve.branch') && in_array('deferment', $approvalCapabilities, true),
-                    'reverse' => $mutable && $actor->can('payments.reverse.branch'), 'void' => $mutable && $actor->can('invoices.void.branch'),
-                    'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch')]];
+                    'finalize' => ! $paused && $visit->status === Visit::STATUS_REGISTERED && $actor->can('billing.finalize.branch') && $invoice?->status === 'draft' && ! $invoice->source_stale,
+                    'pay' => ! $paused && in_array($visit->status, [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED], true) && $actor->can('payments.add.branch') && $invoice?->status === 'finalized' && ! $invoice->correction_hold && ($state['due_now'] + $state['deferred']) > 0,
+                    'panelPropose' => $money && $actor->can('coverage.propose.branch'), 'panelApprove' => $money && $actor->can('coverage.approve.branch') && in_array('panel', $approvalCapabilities, true),
+                    'deferPropose' => $money && $actor->can('outstanding.request.branch'), 'deferApprove' => $money && $actor->can('outstanding.approve.branch') && in_array('deferment', $approvalCapabilities, true),
+                    'reverse' => $money && $actor->can('payments.reverse.branch'), 'void' => $money && ! $invoiceLocked && $actor->can('invoices.void.branch'),
+                    'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch'),
+                    // PCA-1: receipts still print for a Panel patient; the invoice does not.
+                    'printInvoice' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch') && ! PanelInvoicePrinting::blocked($visit, $invoice)]];
         });
     }
 

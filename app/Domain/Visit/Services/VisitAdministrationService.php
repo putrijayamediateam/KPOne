@@ -4,10 +4,13 @@ namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Visit\Models\Panel;
@@ -38,6 +41,16 @@ class VisitAdministrationService
         $validated = $this->validateUpdate($attributes);
 
         return DB::transaction(function () use ($visit, $validated, $actor, $branch): Visit {
+            // Lock order (ConsultationLocks, as Call In and Call next): every user involved first, in ascending id: the
+            // actor, the doctor now assigned and the doctor it may be changed to; then the Visit rows below. A doctor
+            // change then waits for, or is waited for by, a Call In or Call next on the same doctors instead of
+            // crossing it. If the assigned doctor changed meanwhile, the Visit version no longer matches and the edit
+            // is refused as stale before anything is written.
+            ConsultationLocks::users($actor->organisation_id, [
+                $actor->id,
+                $visit->assigned_doctor_user_id,
+                $validated['assigned_doctor_user_id'] ?? null,
+            ]);
             $this->lockActor($actor, $branch, 'visits.update.branch');
             if (array_key_exists('coverage_panel_note', $validated) || filled($validated['panel_note_idempotency_key'] ?? null)) {
                 $this->panelNotes->lockCommands($actor);
@@ -59,6 +72,7 @@ class VisitAdministrationService
                 ->lockForUpdate()
                 ->first();
             $this->assertQueueAllowsUpdate($queueEntry, $validated['queue_lock_version'] ?? null, $validated['visit_type']);
+            $this->assertOtcListAllowsUpdate($locked, $validated['visit_type']);
 
             [, , $effectiveDate] = $this->branchDay($branch);
             $doctor = null;
@@ -116,6 +130,42 @@ class VisitAdministrationService
 
             return $locked->refresh();
         }, 3);
+    }
+
+    /**
+     * TRI-1a: a yellow or red triage zone puts a Waiting consultation into the existing Urgent order. Called only by
+     * TriageService inside its transaction, after it took the users, actor, visit and queue locks in the
+     * ConsultationLocks order and checked the triage permission under lock. Writes the same audit rows a
+     * priority-only visit edit writes. Never lowers priority.
+     */
+    public function raiseToUrgentForTriage(Visit $lockedVisit, QueueEntry $lockedQueue, User $lockedActor, Branch $branch, int $triageAssessmentId): void
+    {
+        abort_unless(DB::transactionLevel() > 0, 409);
+        if (! $lockedActor->is_active || ! $lockedActor->can(TriagePermissions::RECORD_BRANCH)
+            || $lockedVisit->organisation_id !== $lockedActor->organisation_id || $lockedVisit->branch_id !== $branch->id
+            || $lockedQueue->visit_id !== $lockedVisit->id) {
+            throw new AuthorizationException('You may not change this Visit.');
+        }
+        if ($lockedVisit->status !== Visit::STATUS_REGISTERED || $lockedVisit->visit_type !== 'consultation'
+            || $lockedQueue->status !== QueueEntry::STATUS_WAITING || $lockedVisit->priority === 'urgent') {
+            return;
+        }
+        $lockedVisit->forceFill([
+            'priority' => 'urgent',
+            'updated_by_user_id' => $lockedActor->id,
+            'lock_version' => $lockedVisit->lock_version + 1,
+        ])->save();
+        $details = $this->audit->record('visit.details.updated', $lockedVisit, [
+            'changed_fields' => ['priority'],
+            'sensitive_fields_changed' => [],
+            'record_version' => $lockedVisit->lock_version,
+        ], $lockedActor, $branch);
+        $marked = $this->audit->record('visit.priority.marked_urgent', $lockedVisit, [
+            'record_version' => $lockedVisit->lock_version,
+            'source' => 'triage',
+            'triage_assessment_id' => $triageAssessmentId,
+        ], $lockedActor, $branch);
+        abort_if($details === null || $marked === null, 503, 'Unable to record the audit. Try again.');
     }
 
     /** @param array<string, mixed> $attributes */
@@ -271,6 +321,25 @@ class VisitAdministrationService
         if ($visitType !== 'consultation') {
             throw ValidationException::withMessages([
                 'visit_type' => 'A Visit already in the Consultation Queue cannot be changed to OTC.',
+            ]);
+        }
+    }
+
+    /**
+     * A Visit that is on, or has left, the OTC waiting list cannot become a consultation: its B number is never reused and
+     * the other list would not know it. Staff cancel it and register it again. This deliberately covers a removed OTC
+     * entry too: once it has left for dispensing an OTC Dispensary case exists and the Visit has no consultation entry, so
+     * the Visit policy would otherwise still allow the edit. (A cancelled Visit is not editable at all.) (A consultation cannot become OTC while
+     * it is in the Consultation Queue either: assertQueueAllowsUpdate.)
+     */
+    private function assertOtcListAllowsUpdate(Visit $visit, string $visitType): void
+    {
+        if ($visitType === 'otc') {
+            return;
+        }
+        if (OtcQueueEntry::query()->where('visit_id', $visit->id)->lockForUpdate()->exists()) {
+            throw ValidationException::withMessages([
+                'visit_type' => 'This visit is already in the OTC waiting list, so it cannot be changed to a consultation. Cancel it and register it again.',
             ]);
         }
     }

@@ -14,7 +14,15 @@ const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
 const template = (key) => parse(source[key]).descriptor.template.content;
-const script = (key) => parse(source[key]).descriptor.scriptSetup.content;
+// The request logic moved into a composable shared with Version 2; the list page's script is the file plus its composable.
+const script = (key) =>
+    parse(source[key]).descriptor.scriptSetup.content +
+    (key === 'list'
+        ? read('resources/js/composables/hr/useDisciplinePage.ts')
+        : '') +
+    (key === 'case'
+        ? read('resources/js/composables/hr/useDisciplineCasePage.ts')
+        : '');
 
 test('the new pages compile', () => {
     for (const [key, path] of Object.entries(files)) {
@@ -83,8 +91,9 @@ test('disabled actions say why; the file picker is the shared button; closing ha
         script('case'),
         /Issue the warning letter in HR letters first\./,
     );
+    assert.match(template('list'), /\{\{ reasonLine \}\}/);
     assert.match(
-        template('list'),
-        /Open case: choose a staff file and write the allegation\s+first\./,
+        script('list'),
+        /Open case: choose \$\{choose\[0\]\} and write the allegation first\./,
     );
 });

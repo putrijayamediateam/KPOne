@@ -62,19 +62,19 @@ class StockReviewTest extends VisitTestCase
 
     public function test_catalogue_exact_holders_all_roles_view_and_acknowledge(): void
     {
-        $this->assertSame(['ca_supervisor', 'director', 'finance_officer'], collect(PermissionCatalogue::roles())->filter(fn ($p) => in_array(Reviews::MANAGE, $p, true))->keys()->sort()->values()->all());
+        $this->assertSame(['ca_supervisor', 'director', 'finance_officer', 'store_admin'], collect(PermissionCatalogue::roles())->filter(fn ($p) => in_array(Reviews::MANAGE, $p, true))->keys()->sort()->values()->all());
         $f = $this->stock();
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
-            $view = in_array($role, ['director', 'ca', 'ca_supervisor', 'finance_officer', 'administrator'], true);
+            $view = in_array($role, ['director', 'ca', 'ca_supervisor', 'medical_assistant', 'finance_officer', 'administrator', 'branch_manager', 'account_assistant', 'store_admin'], true);
             $this->get(route('inventory.stock-review'))->assertStatus($view ? 200 : 403);
             try {
                 $version = (int) DB::table('inventory_stock_reviews')->max('lock_version');
                 app(Reviews::class)->acknowledge($actor, 'low_stock', $f['reorder'], $this->command($version));
-                $this->assertContains($role, ['director', 'ca_supervisor', 'finance_officer']);
+                $this->assertContains($role, ['director', 'ca_supervisor', 'finance_officer', 'store_admin']);
             } catch (AuthorizationException) {
-                $this->assertNotContains($role, ['director', 'ca_supervisor', 'finance_officer']);
+                $this->assertNotContains($role, ['director', 'ca_supervisor', 'finance_officer', 'store_admin']);
             }
         }
     }
@@ -86,7 +86,7 @@ class StockReviewTest extends VisitTestCase
         $m->up();
         $m->down();
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
-            $this->assertSame(in_array($role, ['director', 'ca_supervisor', 'finance_officer'], true), Role::findByName($role)->hasPermissionTo(Reviews::MANAGE));
+            $this->assertSame(in_array($role, ['director', 'ca_supervisor', 'finance_officer', 'store_admin'], true), Role::findByName($role)->hasPermissionTo(Reviews::MANAGE));
         }
         Role::findByName('finance_officer')->delete();
         Log::spy();

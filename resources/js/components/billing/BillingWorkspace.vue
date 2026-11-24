@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { TriangleAlert } from '@lucide/vue';
 import { ArrowLeft, Check, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
+import DayCloseNotice from '@/components/billing/DayCloseNotice.vue';
+import ForeignPatientNote from '@/components/billing/ForeignPatientNote.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
@@ -11,6 +14,7 @@ import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuedCopies from '@/components/billing/IssuedCopies.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -40,7 +44,7 @@ import type {
     Receipt,
     Responsibility,
 } from '@/types/billing';
-import { myr, outstandingSen, toSen } from '@/types/billing';
+import { myr, myrNoBreak, outstandingSen, toSen } from '@/types/billing';
 
 const props = withDefaults(
     defineProps<{ billing: BillingPage; manage?: boolean }>(),
@@ -59,6 +63,10 @@ const invoiceTabs = [
 ];
 const page = usePage();
 const busy = ref(false);
+// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
+// 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
+const receiptTone = (status: string) =>
+    status === 'reversed' ? ('neutral' as const) : undefined;
 const contextCleared = ref(false);
 const completionOpen = ref(false);
 const paymentOpen = ref(false);
@@ -115,11 +123,21 @@ const openEntry = (kind: 'payment' | 'panel' | 'deferment') => {
         responsibilityOpen.value = true;
     }
 };
+// BIL-32: a locked day's receipt is reversed only together with its refund (the day-close notice offers that).
+const lockedReceiptIds = computed(
+    () =>
+        new Set(
+            (props.billing.dayClose?.lockedReceipts ?? []).map(
+                (r) => r.publicId,
+            ),
+        ),
+);
 const openReversal = (receipt: Receipt) => {
     if (
         busy.value ||
         !props.billing.can.reverse ||
-        receipt.status !== 'posted'
+        receipt.status !== 'posted' ||
+        lockedReceiptIds.value.has(receipt.publicId)
     ) {
         return;
     }
@@ -353,10 +371,17 @@ const reverse = (receipt: Receipt) =>
                 :context="billing.activity"
                 :notes-context="billing.notes"
             />
+            <ActionLink
+                v-if="!manage && billing.panelClaim"
+                :href="billing.panelClaim.href"
+                variant="outline"
+                data-testid="panel-claim-link"
+                >{{ billing.panelClaim.label }}</ActionLink
+            >
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >
-            <span class="ml-auto text-[11px] text-muted-foreground"
+            <span class="ml-auto text-xs text-muted-foreground"
                 >{{ billing.branch }} · {{ billing.visit.visitNumber }}</span
             >
             <ActionLink v-if="manage" :href="base" variant="outline"
@@ -370,6 +395,27 @@ const reverse = (receipt: Receipt) =>
         >
             {{ error }}
         </p>
+        <!-- BIL-32 (Daniel): the day-close state sits at the top, above the columns, so nobody hunts for a missing button. -->
+        <div
+            v-if="billing.dayClose"
+            class="mx-3 mt-3 flex items-start gap-2 rounded-xl border p-3 text-sm"
+            :class="
+                billing.dayClose.paused
+                    ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+                    : 'border-border bg-muted/40'
+            "
+            role="status"
+            data-testid="day-close-banner"
+        >
+            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <p>
+                {{
+                    billing.dayClose.paused
+                        ? billing.dayClose.message
+                        : 'This day is locked. Only a refund is possible.'
+                }}
+            </p>
+        </div>
         <div
             :class="
                 manage
@@ -393,6 +439,9 @@ const reverse = (receipt: Receipt) =>
                             <div class="mt-1 text-xs text-muted-foreground">
                                 {{ billing.patient.patientNumber }}
                             </div>
+                            <ForeignPatientNote
+                                :foreign="billing.patient.foreign"
+                            />
                         </div>
                         <ActionLink
                             v-if="billing.patient.profileUrl"
@@ -542,11 +591,19 @@ const reverse = (receipt: Receipt) =>
                 </template>
                 <div v-else class="space-y-3 p-4">
                     <IssuePrintButton
-                        v-if="billing.can.print"
+                        v-if="billing.can.print && billing.can.printInvoice"
                         :url="`${invoiceBase}/issue`"
                         label="Print invoice"
                         :return-to="manage ? 'payments' : 'billing'"
                     />
+                    <p
+                        v-if="billing.can.print && !billing.can.printInvoice"
+                        class="text-[13px] text-muted-foreground"
+                        data-testid="panel-no-invoice-print"
+                    >
+                        Panel patient: no invoice is printed. A receipt prints
+                        only for cash the patient paid.
+                    </p>
                     <div
                         v-for="receipt in billing.payments"
                         :key="receipt.publicId"
@@ -592,7 +649,8 @@ const reverse = (receipt: Receipt) =>
                             <Button
                                 v-if="
                                     billing.can.reverse &&
-                                    receipt.status === 'posted'
+                                    receipt.status === 'posted' &&
+                                    !lockedReceiptIds.has(receipt.publicId)
                                 "
                                 variant="secondary"
                                 size="sm"
@@ -646,6 +704,9 @@ const reverse = (receipt: Receipt) =>
                             {{ billing.patient.patientNumber }} ·
                             {{ billing.visit.visitNumber }}
                         </p>
+                        <ForeignPatientNote
+                            :foreign="billing.patient.foreign"
+                        />
                     </div>
                     <div class="text-xs sm:ml-auto">
                         <p class="text-muted-foreground">Coverage</p>
@@ -864,7 +925,7 @@ const reverse = (receipt: Receipt) =>
                     >
                         <table class="w-full text-left text-xs">
                             <thead
-                                class="border-b bg-muted/20 text-[11px] text-muted-foreground"
+                                class="border-b bg-muted/20 text-xs text-muted-foreground"
                             >
                                 <tr>
                                     <th class="p-3">Receipt / method</th>
@@ -919,7 +980,10 @@ const reverse = (receipt: Receipt) =>
                                         {{ myr(receipt.amountSen) }}
                                     </td>
                                     <td class="p-3">
-                                        <StatusBadge :status="receipt.status" />
+                                        <StatusBadge
+                                            :status="receipt.status"
+                                            :tone="receiptTone(receipt.status)"
+                                        />
                                     </td>
                                     <td class="p-3">
                                         <div
@@ -938,7 +1002,11 @@ const reverse = (receipt: Receipt) =>
                                             /><Button
                                                 v-if="
                                                     billing.can.reverse &&
-                                                    receipt.status === 'posted'
+                                                    receipt.status ===
+                                                        'posted' &&
+                                                    !lockedReceiptIds.has(
+                                                        receipt.publicId,
+                                                    )
                                                 "
                                                 type="button"
                                                 variant="outline"
@@ -969,7 +1037,7 @@ const reverse = (receipt: Receipt) =>
                                     myr(receipt.amountSen)
                                 }}</span>
                             </div>
-                            <p class="text-[11px] text-muted-foreground">
+                            <p class="text-xs text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
                             </p>
                             <p
@@ -985,11 +1053,14 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
-                            <StatusBadge :status="receipt.status" />
+                            <StatusBadge
+                                :status="receipt.status"
+                                :tone="receiptTone(receipt.status)"
+                            />
                             <div class="flex flex-wrap gap-2">
                                 <IssuePrintButton
                                     v-if="billing.can.print"
@@ -1000,7 +1071,8 @@ const reverse = (receipt: Receipt) =>
                                 /><Button
                                     v-if="
                                         billing.can.reverse &&
-                                        receipt.status === 'posted'
+                                        receipt.status === 'posted' &&
+                                        !lockedReceiptIds.has(receipt.publicId)
                                     "
                                     type="button"
                                     variant="outline"
@@ -1028,12 +1100,14 @@ const reverse = (receipt: Receipt) =>
                                     myr(receipt.amountSen)
                                 }}</span>
                             </div>
-                            <div class="mt-1 text-[11px] text-muted-foreground">
-                                {{ receipt.number }} ·
-                                {{ receipt.receivedAt }} ·
-                                <span class="capitalize">{{
-                                    receipt.status
-                                }}</span>
+                            <div class="mt-1 text-xs text-muted-foreground">
+                                {{ receipt.number }} · {{ receipt.receivedAt }}
+                                <span
+                                    >·
+                                    <span class="capitalize">{{
+                                        receipt.status
+                                    }}</span></span
+                                >
                             </div>
                             <p
                                 v-if="receipt.refundedSen"
@@ -1048,13 +1122,25 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
                         </li>
                     </ul>
                 </section>
+                <!-- BIL-32: the locked receipts and their Reverse and refund, beside the receipts they explain. -->
+                <DayCloseNotice
+                    v-if="
+                        billing.dayClose &&
+                        !billing.dayClose.paused &&
+                        billing.dayClose.lockedReceipts.length
+                    "
+                    :day-close="billing.dayClose"
+                    :base="invoiceBase"
+                    :invoice-lock-version="billing.invoice?.lockVersion ?? null"
+                    :manage="manage"
+                />
                 <div
                     v-for="kind in ['panel', 'deferment'] as const"
                     :key="kind"
@@ -1133,6 +1219,27 @@ const reverse = (receipt: Receipt) =>
                     >
                 </div>
                 <div
+                    v-if="billing.panelVisitLimit?.over"
+                    role="note"
+                    data-testid="panel-visit-limit"
+                    class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-xs text-warning-strong"
+                >
+                    <p class="flex items-center gap-2 font-semibold">
+                        <span
+                            aria-hidden="true"
+                            class="size-2 shrink-0 rounded-full bg-current"
+                        />
+                        Above the Panel's limit per visit
+                    </p>
+                    <p>
+                        This visit's total is
+                        {{ myrNoBreak(billing.panelVisitLimit.totalSen) }}; the
+                        Panel's limit is
+                        {{ myrNoBreak(billing.panelVisitLimit.limitSen) }}. This
+                        is a warning only. You can continue.
+                    </p>
+                </div>
+                <div
                     v-if="billing.panelShortfall"
                     role="note"
                     data-testid="panel-shortfall"
@@ -1160,6 +1267,10 @@ const reverse = (receipt: Receipt) =>
                         unchanged.
                     </p>
                 </div>
+                <PanelAdjustmentPanel
+                    v-if="!manage && billing.panelAdjustment"
+                    :adjustment="billing.panelAdjustment"
+                />
                 <details v-if="!manage && billing.can.void">
                     <summary class="cursor-pointer">
                         Governed correction
@@ -1588,6 +1699,16 @@ const reverse = (receipt: Receipt) =>
 @media (max-width: 639.98px) {
     .billing-entry :deep([data-touch-target]),
     .billing-workspace :deep([data-touch-target]) {
+        height: auto;
+        min-height: 44px;
+    }
+}
+/* DD-29 (owner's design clean-up): below 1024 px every Billing button reaches 44 px, as on the Dispensary pages
+   (DD-24). The compact 30 px height stays on wide screens. */
+@media (max-width: 1023.98px) {
+    .billing-entry :deep(button),
+    .billing-workspace :deep(button),
+    .billing-workspace :deep(a[data-slot='button']) {
         height: auto;
         min-height: 44px;
     }

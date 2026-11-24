@@ -201,12 +201,20 @@ class PanelClaimsTest extends BillingTestCase
         $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
         $claim = PanelClaim::query()->sole();
 
-        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'director', 'finance_officer', 'technical_admin'] as $role) {
+        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->get(route('panel-claims.index'))->assertForbidden();
             $this->get(route('panel-claims.show', $claim))->assertForbidden();
             $this->post(route('panel-claims.submit', $claim), [])->assertForbidden();
+        }
+
+        // PCA-1 (owner decision 2026-11-13): Director and Finance Officer handle Panel claims too.
+        foreach (['director', 'finance_officer'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-claims.index'))->assertOk();
+            $this->get(route('panel-claims.show', $claim))->assertOk();
         }
 
         $otherBranch = Branch::query()
@@ -215,7 +223,7 @@ class PanelClaimsTest extends BillingTestCase
         $this->selectBranch($differentBranchOfficer, $otherBranch);
         $this->get(route('panel-claims.show', $claim))->assertNotFound();
         $this->assertContains('panel.claims.manage.branch', BillingPermissions::roles()['panel_officer']);
-        $this->assertNotContains('panel.claims.manage.branch', BillingPermissions::roles()['director']);
+        $this->assertContains('panel.claims.manage.branch', BillingPermissions::roles()['director']);
         $this->assertSame($invoice->lock_version, $invoice->refresh()->lock_version);
     }
 
@@ -297,27 +305,13 @@ class PanelClaimsTest extends BillingTestCase
             ->where('work.eligible.data.0.invoiceUrl', route('billing.show', ['visit' => $visit->visit_number]))
             ->where('work.eligible.data.0.doctorName', $visit->assignedDoctor?->name));
 
-        // A Panel with a shorter due period makes the same unclaimed invoice overdue.
+        // PNL-28a: an invoice with no claim stays on Pending however old it is; Overdue lists Prepared claims.
         DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()->subDays(3)]);
         DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 2]);
-        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('work.tabs.overdue', 1)->where('work.tabs.pending', 0)
-            ->where('work.summary.overdue.count', 1)->where('work.summary.overdue.amountSen', 3000)
-            ->has('work.eligible.data', 1)->where('work.eligible.data.0.overdue', true));
-        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 30]);
-        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('work.tabs.overdue', 0)->where('work.tabs.pending', 1)->has('work.eligible.data', 0));
-
-        // A scheduled rule (daily, by a time, same day) is overdue once that time has passed on a past visit day.
-        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'daily', 'claim_due_time' => '23:59', 'claim_due_offset' => 0]);
-        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('work.tabs.overdue', 1)->where('work.tabs.pending', 0)->has('work.eligible.data', 1));
-        // Monthly, day 1 of next month: a visit three days ago is still pending.
-        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'monthly', 'claim_due_time' => '23:59', 'claim_due_offset' => 28]);
-        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()]);
         $this->get(route('panel-claims.index', ['tab' => 'pending']))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('work.tabs.pending', 1)->where('work.tabs.overdue', 0));
-        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'days_after_visit', 'claim_due_time' => null, 'claim_due_offset' => null]);
+            ->where('work.tabs.pending', 1)->where('work.tabs.overdue', 0)->has('work.eligible.data', 1));
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 30]);
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()]);
 
         // Date filters are branch-local calendar dates, matching the directory's interpretation.
         $branchToday = CarbonImmutable::now($this->branch->timezone);
@@ -337,6 +331,29 @@ class PanelClaimsTest extends BillingTestCase
             $this->get(route('panel-claims.index', $query))->assertOk()
                 ->assertInertia(fn (Assert $page) => $page->has('work.eligible.data', $expected));
         }
+        // The same due rules now decide when the Prepared claim for this invoice is Overdue.
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $this->branch->id])->assertSessionHasNoErrors();
+        $this->get(route('panel-claims.index', ['tab' => 'pending']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.pending', 0)->has('work.eligible.data', 0));
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()->subDays(3)]);
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 2]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 1)
+            ->where('work.summary.overdue.count', 1)->where('work.summary.overdue.amountSen', 3000)
+            ->has('work.claims.data', 1)->where('work.claims.data.0.overdue', true));
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 30]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 0)->has('work.claims.data', 0));
+        // A scheduled rule (daily, by a time, same day) is overdue once that time has passed on a past visit day.
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'daily', 'claim_due_time' => '23:59', 'claim_due_offset' => 0]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 1)->has('work.claims.data', 1));
+        // Monthly, day 28 of the next month: a visit made now is still on time.
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'monthly', 'claim_due_time' => '23:59', 'claim_due_offset' => 28]);
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 0));
+
         $this->get(route('panel-claims.index', ['tab' => 'bogus']))->assertSessionHasErrors('tab');
         $this->get(route('panel-claims.index', ['visit_type' => 'bogus']))->assertSessionHasErrors('visit_type');
     }
@@ -373,6 +390,18 @@ class PanelClaimsTest extends BillingTestCase
         $this->assertSame($allocation->panel_name_snapshot, $allocation->refresh()->panel_name_snapshot);
     }
 
+    public function test_create_claim_page_carries_the_panels_due_rule_and_the_date_it_falls_due(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 30]);
+        $visitLocal = $visit->registered_at->setTimezone($this->branch->timezone);
+
+        $this->get(route('panel-claims.create', $allocation))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('allocation.dueRule', 'Submit 30 days after the visit')
+            ->where('allocation.dueBy', $visitLocal->startOfDay()->addDays(30)->format('j M Y')));
+    }
+
     public function test_claim_page_shows_summary_identity_for_the_panel_officer_and_hides_it_without_the_permission(): void
     {
         [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
@@ -402,6 +431,29 @@ class PanelClaimsTest extends BillingTestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('claim.identityVisible', false)->where('claim.patientPhone', null)->where('claim.patientIdentifier', null));
+    }
+
+    public function test_claim_page_shows_no_identity_when_its_audit_row_cannot_be_written(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        DB::table('patients')->where('id', $visit->patient_id)->update(['mobile_phone' => '0123456789']);
+        DB::table('patient_identifiers')->insert(['organisation_id' => $visit->organisation_id, 'patient_id' => $visit->patient_id, 'identifier_type' => 'nric', 'issuing_country_code' => 'MY', 'normalized_value' => '900101015555', 'created_at' => now(), 'updated_at' => now()]);
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+
+        // The identity audit row is written in the same request, before anything is returned: if it fails, the page fails.
+        DB::unprepared("create function kpone_test_identity_audit_down() returns trigger as \$\$ begin if new.event = 'panel_claim.identity_viewed' then raise exception 'audit unavailable'; end if; return new; end \$\$ language plpgsql");
+        DB::unprepared('create trigger kpone_test_identity_audit_down before insert on audit_logs for each row execute function kpone_test_identity_audit_down()');
+
+        // Production-like: the debug page would list this test's own fixture queries, which are not what a user sees.
+        config(['app.debug' => false]);
+        $response = $this->get(route('panel-claims.show', $claim));
+
+        $response->assertStatus(500);
+        $this->assertStringNotContainsString('0123456789', (string) $response->getContent());
+        $this->assertStringNotContainsString('900101015555', (string) $response->getContent());
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'panel_claim.identity_viewed', 'subject_id' => $claim->id]);
     }
 
     public function test_notes_remarks_and_photo_documents_are_branch_scoped_audited_and_validated(): void
@@ -440,8 +492,9 @@ class PanelClaimsTest extends BillingTestCase
 
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance, $this->branch);
-        $this->get(route('panel-claims.documents.show', [$claim, $document->public_id]))->assertForbidden();
-        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => 'x'])->assertForbidden();
+        // PCA-1 (owner decision 2026-11-13): Finance Officers open claim photos and add notes too.
+        $this->get(route('panel-claims.documents.show', [$claim, $document->public_id]))->assertOk();
+        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => 'x'])->assertSessionHasNoErrors();
     }
 
     public function test_created_claims_leave_pending_and_show_in_submitted_then_follow_decisions_and_remittances(): void
@@ -577,11 +630,17 @@ class PanelClaimsTest extends BillingTestCase
     {
         [, , $invoice, $allocation] = $this->approvedPanelFixture();
         $payload = $this->creationPayload($allocation, $invoice);
-        foreach (['director', 'technical_admin', 'ca', 'finance_officer'] as $role) {
+        foreach (['technical_admin', 'ca'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->get(route('panel-claims.create', $allocation))->assertForbidden();
             $this->post(route('panel-claims.store', $allocation), $payload)->assertForbidden();
+        }
+        // PCA-1 (owner decision 2026-11-13): Director and Finance Officer may open Create claim.
+        foreach (['director', 'finance_officer'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-claims.create', $allocation))->assertOk();
         }
         $otherBranch = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
         $officer = $this->actor('panel_officer', $otherBranch);
@@ -805,6 +864,30 @@ class PanelClaimsTest extends BillingTestCase
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_invoices.exported')->count());
     }
 
+    public function test_a_ready_panel_invoices_page_carries_a_working_download_link(): void
+    {
+        // The page sent downloadUrl as null even when ready, so its Download CSV button was always disabled.
+        [$panelOfficer, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        $params = ['panel' => $allocation->panel_name_snapshot];
+
+        $this->get(route('panel-invoices.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('ready', false)->where('downloadUrl', null));
+
+        $url = null;
+        $this->get(route('panel-invoices.index', $params))->assertOk()
+            ->assertInertia(function (Assert $page) use (&$url): void {
+                $page->where('ready', true)->where('total', 1)->where('downloadUrl', function ($value) use (&$url): bool {
+                    $url = $value;
+
+                    return is_string($value) && str_starts_with($value, route('panel-invoices.download'));
+                });
+            });
+
+        $response = $this->get((string) $url)->assertOk();
+        $this->assertStringContainsString($invoice->invoice_number, $response->streamedContent());
+    }
+
     public function test_panel_invoices_are_limited_to_panel_officer_finance_officer_and_director_and_the_active_branch(): void
     {
         $holders = Role::query()->whereHas('permissions', fn ($q) => $q->where('name', 'panel.invoices.export.branch'))->pluck('name')->sort()->values()->all();
@@ -824,7 +907,8 @@ class PanelClaimsTest extends BillingTestCase
 
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance, $this->branch);
-        $this->get(route('panel-invoices.index'))->assertInertia(fn (Assert $page) => $page->where('can.clinicalFilters', false));
+        // PCA-1 (owner decision 2026-11-13): Finance Officers get the Diagnosis and Treatment filters.
+        $this->get(route('panel-invoices.index'))->assertInertia(fn (Assert $page) => $page->where('can.clinicalFilters', true));
     }
 
     public function test_csv_cells_that_look_like_formulas_are_neutralised(): void

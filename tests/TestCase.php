@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -45,8 +46,25 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        $this->applyClockOverride();
+
         $this->restoreEmptyCommittedSchemaForCommittingTests();
         $this->withoutVite();
+    }
+
+    /**
+     * B1 (queue midnight and clock suite): `KPONE_TEST_NOW` runs any test at a chosen instant (for example
+     * `2026-11-12T15:59:30Z`, thirty seconds before Kuala Lumpur midnight) so a clock-dependent test shows itself at any hour,
+     * not only when CI happens to run inside the 00:00 to 08:00 Kuala Lumpur window. It is off unless the variable is set. A test
+     * that freezes or travels its own clock still wins, and the database's own clock (PostgreSQL `now()`) is not moved.
+     */
+    private function applyClockOverride(): void
+    {
+        $at = getenv('KPONE_TEST_NOW');
+
+        if (is_string($at) && $at !== '') {
+            Carbon::setTestNow(Carbon::parse($at, 'UTC'));
+        }
     }
 
     /**

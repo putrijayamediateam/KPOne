@@ -1,16 +1,6 @@
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Trash2 } from '@lucide/vue';
-import {
-    computed,
-    nextTick,
-    onBeforeUnmount,
-    onMounted,
-    reactive,
-    ref,
-    useTemplateRef,
-    watch,
-} from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,145 +23,18 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-
-type Tab = 'my' | 'approvals' | 'calendar' | 'settings';
-type Option = { value: string; label: string };
-type Status = 'pending' | 'approved' | 'rejected' | 'cancelled';
-type RequestRow = {
-    publicId: string;
-    dates: string;
-    startDate: string;
-    endDate: string;
-    type: string;
-    days: string;
-    status: Status;
-    statusLabel: string;
-    lockVersion: number;
-};
-type EvidenceFile = {
-    publicId: string;
-    kind: 'jpeg' | 'png' | 'pdf';
-    label: string;
-    size: string;
-    addedBy: string;
-    onBehalf: boolean;
-    addedOn: string;
-    url: string;
-    lockVersion: number;
-    canRemove: boolean;
-};
-type Evidence = {
-    acceptsFiles: boolean;
-    retentionDays: number | null;
-    canAdd: boolean;
-    files: EvidenceFile[];
-} | null;
-type MyRequest = RequestRow & {
-    reason: string | null;
-    canCancel: boolean;
-    evidence: Evidence;
-};
-type PendingRow = RequestRow & {
-    person: string;
-    role: string;
-    evidenceNeeded: boolean;
-    evidenceReference: string | null;
-    reason: string | null;
-    leftAfter: string | null;
-    warnings: string[];
-    evidence: Evidence;
-};
-type ApprovedRow = RequestRow & {
-    person: string;
-    role: string;
-    evidence: Evidence;
-};
-type LeaveTypeOption = {
-    id: number;
-    name: string;
-    allowHalfDays: boolean;
-    evidenceNeeded: boolean;
-    usesBalance: boolean;
-    acceptsFiles: boolean;
-    retentionDays: number | null;
-};
-type Balance = {
-    typeId: number;
-    name: string;
-    counted: boolean;
-    entitled: string;
-    taken: string;
-    booked: string;
-    left: string;
-};
-type TypeRow = {
-    id: number;
-    code: string;
-    name: string;
-    isPaid: boolean;
-    usesBalance: boolean;
-    allowHalfDays: boolean;
-    evidenceNeeded: boolean;
-    allowNegative: boolean;
-    carryMaxDays: string;
-    carryExpiresOn: string;
-    isActive: boolean;
-    acceptsEvidenceFiles: boolean;
-    evidenceRetentionDays: string;
-    lockVersion: number;
-};
-type Entry = {
-    publicId: string;
-    kind: 'opening' | 'adjustment';
-    person: string;
-    type: string;
-    year: number;
-    days: string;
-    reason: string | null;
-    note: string | null;
-    status: 'pending' | 'confirmed' | 'rejected';
-    enteredBy: string;
-    canDecide: boolean;
-    lockVersion: number;
-};
-type Settings = {
-    types: TypeRow[];
-    roles: Option[];
-    entitlements: {
-        leaveTypeId: number;
-        role: string | null;
-        userId: number | null;
-        person: string | null;
-        days: string;
-    }[];
-    grantPreview: { people: number; lines: number };
-    people: { id: number; label: string }[];
-    workingDays: {
-        branchId: number;
-        branch: string;
-        weekdays: number[];
-        lockVersion: number | null;
-    }[];
-    holidays: { id: number; date: string; label: string; name: string }[];
-    entries: Entry[];
-    adjustmentReasons: Option[];
-};
-type Calendar = {
-    month: string;
-    monthLabel: string;
-    previous: string;
-    next: string;
-    workingDaysSet: boolean;
-    days: {
-        date: string;
-        day: number;
-        weekday: string;
-        label: string;
-        holiday: string | null;
-        working: boolean;
-    }[];
-    rows: { name: string; cells: Record<string, 'full' | 'half'> }[];
-};
+import { useLeavePage } from '@/composables/hr/useLeavePage';
+import type {
+    Tab,
+    Option,
+    MyRequest,
+    PendingRow,
+    ApprovedRow,
+    LeaveTypeOption,
+    Balance,
+    Settings,
+    Calendar,
+} from '@/composables/hr/useLeavePage';
 
 const props = defineProps<{
     leave: {
@@ -196,856 +59,90 @@ const props = defineProps<{
     };
 }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-
-const tabLabels: Record<Tab, string> = {
-    my: 'My leave',
-    approvals: 'Approvals',
-    calendar: 'Team calendar',
-    settings: 'Settings',
-};
-const tabs = computed(() =>
-    props.leave.tabs.map((value) => ({
-        value,
-        label:
-            value === 'approvals' && props.leave.approvalCount > 0
-                ? `Approvals (${props.leave.approvalCount})`
-                : tabLabels[value],
-    })),
-);
-const statusTone: Record<Status, 'warning' | 'success' | 'danger' | 'neutral'> =
-    {
-        pending: 'warning',
-        approved: 'success',
-        rejected: 'neutral',
-        cancelled: 'neutral',
-    };
-
-const visit = (params: Record<string, string | number | undefined>) =>
-    router.get(
-        '/hr/leave',
-        {
-            tab: props.leave.tab,
-            branch: props.leave.branchId ?? undefined,
-            year: props.leave.year,
-            ...params,
-        },
-        { preserveScroll: true },
-    );
-const branchOptions = computed(() =>
-    props.leave.branches.map((b) => ({ value: b.id, label: b.name })),
-);
-const yearOptions = computed(() => {
-    const now = Number(props.leave.today.slice(0, 4));
-
-    return [now - 1, now, now + 1].map((y) => ({
-        value: y,
-        label: String(y),
-    }));
-});
-const csrf = () =>
-    decodeURIComponent(
-        document.cookie
-            .split('; ')
-            .find((row) => row.startsWith('XSRF-TOKEN='))
-            ?.split('=')[1] ?? '',
-    );
-
-// ---- Tabs (DD-30 pattern from the Queue board, #296) ----
-const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
-const tabNav = () =>
-    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
-const moreTabsRight = ref(false);
-const updateTabFade = () => {
-    const nav = tabNav();
-
-    moreTabsRight.value =
-        nav !== null &&
-        nav.scrollWidth > nav.clientWidth + 1 &&
-        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
-};
-/** Bring a part-hidden chosen tab fully into view, sideways only. */
-const revealSelectedTab = async () => {
-    await nextTick();
-    const nav = tabNav();
-    const tab = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
-
-    if (!nav || !tab) {
-        return;
-    }
-
-    const navBox = nav.getBoundingClientRect();
-    const tabBox = tab.getBoundingClientRect();
-
-    if (tabBox.left < navBox.left) {
-        nav.scrollLeft -= navBox.left - tabBox.left;
-    } else if (tabBox.right > navBox.right) {
-        nav.scrollLeft += tabBox.right - navBox.right;
-    }
-};
-const selectLeaveTab = (tab: string) => visit({ tab });
-let tabResizeObserver: ResizeObserver | undefined;
-onMounted(() => {
-    const nav = tabNav();
-
-    nav?.addEventListener('scroll', updateTabFade, { passive: true });
-
-    if (nav && typeof ResizeObserver !== 'undefined') {
-        tabResizeObserver = new ResizeObserver(updateTabFade);
-        tabResizeObserver.observe(nav);
-    }
-
-    void revealSelectedTab().then(updateTabFade);
-});
-onBeforeUnmount(() => {
-    tabNav()?.removeEventListener('scroll', updateTabFade);
-    tabResizeObserver?.disconnect();
-});
-
-// ---- Apply ----
-const applyOpen = ref(false);
-const applyKey = ref('');
-const applyForm = useForm({
-    leave_type_id: '' as string | number,
-    start_date: '',
-    end_date: '',
-    start_part: 'full',
-    end_part: 'full',
-    reason: '',
-    evidence_reference: '',
-    evidence_files: [] as File[],
-});
-const chosenType = computed(() =>
-    props.leave.my?.types.find(
-        (t) => String(t.id) === String(applyForm.leave_type_id),
-    ),
-);
-const singleDay = computed(
-    () =>
-        applyForm.start_date !== '' &&
-        applyForm.start_date === applyForm.end_date,
-);
-const firstDayOptions = computed(() =>
-    singleDay.value
-        ? [
-              { value: 'full', label: 'None (whole day)' },
-              { value: 'am', label: 'Morning only' },
-              { value: 'pm', label: 'Afternoon only' },
-          ]
-        : [
-              { value: 'full', label: 'None (whole day)' },
-              { value: 'pm', label: 'Start in the afternoon' },
-          ],
-);
-const lastDayOptions = [
-    { value: 'full', label: 'None (whole day)' },
-    { value: 'am', label: 'End at midday' },
-];
-const preview = reactive({ text: '', error: '' });
-let previewTimer: ReturnType<typeof setTimeout> | undefined;
-// The day-count check shares the session with the form. If it ran while the form was being sent, its saved session
-// could overwrite the validation errors of the send, and the sheet would close with nothing shown. So a send first
-// cancels a waiting check and waits for one already running.
-let previewInFlight: Promise<void> | null = null;
-const runPreview = () => {
-    if (applyForm.processing) {
-        return Promise.resolve();
-    }
-
-    previewInFlight = fetchPreview().finally(() => (previewInFlight = null));
-
-    return previewInFlight;
-};
-const fetchPreview = async () => {
-    preview.text = '';
-    preview.error = '';
-
-    if (
-        !applyForm.leave_type_id ||
-        !applyForm.start_date ||
-        !applyForm.end_date
-    ) {
-        return;
-    }
-
-    const response = await fetch('/hr/leave/preview', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'X-XSRF-TOKEN': csrf(),
-        },
-        body: JSON.stringify({
-            leave_type_id: applyForm.leave_type_id,
-            start_date: applyForm.start_date,
-            end_date: applyForm.end_date,
-            start_part: applyForm.start_part,
-            end_part: singleDay.value ? 'full' : applyForm.end_part,
-        }),
-    });
-    const data = (await response.json().catch(() => ({}))) as {
-        days?: string;
-        skipped?: string[];
-        leftAfter?: string | null;
-        shortfall?: string | null;
-        errors?: Record<string, string>;
-    };
-
-    if (!response.ok) {
-        preview.error = Object.values(data.errors ?? {})[0] ?? '';
-
-        return;
-    }
-
-    if (data.shortfall) {
-        preview.error = data.shortfall;
-
-        return;
-    }
-
-    const skipped =
-        (data.skipped ?? []).length > 0
-            ? ` (${(data.skipped ?? []).join(', ')} not counted)`
-            : '';
-    const left =
-        data.leftAfter !== null && data.leftAfter !== undefined
-            ? ` ${data.leftAfter} left after this.`
-            : '';
-    preview.text = `${data.days} working ${data.days === '1' ? 'day' : 'days'}${skipped}.${left}`;
-};
-watch(
-    () => [
-        applyForm.leave_type_id,
-        applyForm.start_date,
-        applyForm.end_date,
-        applyForm.start_part,
-        applyForm.end_part,
-    ],
-    () => {
-        // A changed field makes the last server message stale; the live line speaks for the new dates.
-        applyForm.clearErrors(
-            'start_date',
-            'end_date',
-            'start_part',
-            'end_part',
-        );
-        clearTimeout(previewTimer);
-        previewTimer = setTimeout(runPreview, 300);
-    },
-);
-watch(singleDay, (single) => {
-    if (!single && applyForm.start_part === 'am') {
-        applyForm.start_part = 'full';
-    }
-});
-const openApply = () => {
-    applyKey.value = crypto.randomUUID();
-    applyForm.reset();
-    applyForm.clearErrors();
-    preview.text = '';
-    preview.error = '';
-    applyOpen.value = true;
-};
-// HR-2b (Daniel): a labelled button opens the file picker; chosen files are listed with a Remove link.
-const applyFileInput = ref<HTMLInputElement | null>(null);
-const sizeLabel = (bytes: number) =>
-    bytes >= 1048576
-        ? `${(bytes / 1048576).toFixed(1)} MB`
-        : `${Math.max(1, Math.round(bytes / 1024))} KB`;
-const chooseApplyFiles = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    applyForm.evidence_files = [
-        ...applyForm.evidence_files,
-        ...Array.from(input.files ?? []),
-    ].slice(0, 3);
-    input.value = '';
-};
-const dropApplyFile = (index: number) => {
-    applyForm.evidence_files = applyForm.evidence_files.filter(
-        (_, i) => i !== index,
-    );
-};
-const applyFileError = computed(
-    () =>
-        applyForm.errors.evidence_files ??
-        (applyForm.errors as Record<string, string | undefined>)[
-            'evidence_files.0'
-        ],
-);
-const sendApply = async () => {
-    clearTimeout(previewTimer);
-    await previewInFlight?.catch(() => undefined);
-    applyForm
-        .transform((data) => ({
-            ...data,
-            end_part: singleDay.value ? 'full' : data.end_part,
-            idempotency_key: applyKey.value,
-        }))
-        .post('/hr/leave/requests', {
-            preserveScroll: true,
-            forceFormData: applyForm.evidence_files.length > 0,
-            onSuccess: () => (applyOpen.value = false),
-        });
-};
-
-// ---- Evidence panel (HR-2b) ----
-type EvidenceRow = RequestRow & { evidence: Evidence; person?: string };
-const evidence = reactive({
-    open: false,
-    row: null as EvidenceRow | null,
-    uploading: false,
-    error: '',
-    key: '',
-});
-const evidenceRow = computed(() => {
-    const id = evidence.row?.publicId;
-
-    if (!id) {
-        return null;
-    }
-
-    const all: EvidenceRow[] = [
-        ...(props.leave.my?.requests ?? []),
-        ...(props.leave.approvals?.pending ?? []),
-        ...(props.leave.approvals?.approved ?? []),
-    ];
-
-    return all.find((r) => r.publicId === id) ?? evidence.row;
-});
-const evidenceFileInput = ref<HTMLInputElement | null>(null);
-const openEvidence = (row: EvidenceRow) => {
-    evidence.row = row;
-    evidence.error = '';
-    evidence.open = true;
-};
-const fileCountText = (files: EvidenceFile[]) =>
-    files.length === 0
-        ? 'No file yet'
-        : `${files.length} ${files.length === 1 ? 'file' : 'files'}`;
-const photoAlt = (file: EvidenceFile, files: EvidenceFile[]) => {
-    const photos = files.filter((f) => f.kind !== 'pdf');
-
-    return `Photo ${photos.indexOf(file) + 1} of ${photos.length}, added by ${file.addedBy} on ${file.addedOn}`;
-};
-const uploadEvidence = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    const row = evidenceRow.value;
-    input.value = '';
-
-    if (!file || !row) {
-        return;
-    }
-
-    evidence.key = crypto.randomUUID();
-    router.post(
-        `/hr/leave/requests/${row.publicId}/evidence`,
-        { file, idempotency_key: evidence.key, tab: props.leave.tab },
-        {
-            forceFormData: true,
-            preserveScroll: true,
-            onStart: () => {
-                evidence.uploading = true;
-                evidence.error = '';
-            },
-            onFinish: () => (evidence.uploading = false),
-            onError: (e: Record<string, string>) =>
-                (evidence.error = e.file ?? e.leave ?? 'Try again.'),
-        },
-    );
-};
-const removal = reactive({
-    open: false,
-    file: null as EvidenceFile | null,
-    reason: '',
-    key: '',
-    processing: false,
-    error: '',
-});
-const removalNeedsReason = computed(
-    () =>
-        evidenceRow.value !== null &&
-        !props.leave.my?.requests.some(
-            (r) => r.publicId === evidenceRow.value?.publicId,
-        ),
-);
-const openRemoval = (file: EvidenceFile) => {
-    removal.file = file;
-    removal.reason = '';
-    removal.error = '';
-    removal.key = crypto.randomUUID();
-    removal.open = true;
-};
-const confirmRemoval = () => {
-    const file = removal.file;
-
-    if (!file) {
-        return;
-    }
-
-    if (removalNeedsReason.value && removal.reason === '') {
-        removal.error = 'Choose a reason.';
-
-        return;
-    }
-
-    router.post(
-        `/hr/leave/evidence/${file.publicId}/remove`,
-        {
-            expected_lock_version: file.lockVersion,
-            reason: removal.reason || undefined,
-            idempotency_key: removal.key,
-            tab: props.leave.tab,
-        },
-        {
-            preserveScroll: true,
-            onStart: () => (removal.processing = true),
-            onFinish: () => (removal.processing = false),
-            onSuccess: () => (removal.open = false),
-            onError: (e: Record<string, string>) =>
-                (removal.error = e.leave ?? e.reason ?? 'Try again.'),
-        },
-    );
-};
-const removalReasons = [
-    { value: 'wrong_file', label: 'Wrong file' },
-    { value: 'wrong_person', label: 'Wrong person' },
-    { value: 'not_readable', label: 'Not readable' },
-];
-
-// ---- Request actions (cancel, approve, reject) ----
-type ActionKind = 'cancel' | 'approve' | 'reject' | 'manager-cancel';
-const action = reactive({
-    open: false,
-    kind: 'cancel' as ActionKind,
-    row: null as RequestRow | PendingRow | null,
-    evidenceNeeded: false,
-    evidenceSeen: false,
-    reason: '',
-    key: '',
-    processing: false,
-    error: '',
-});
-const actionText = computed(() => {
-    const copies = {
-        cancel: {
-            title: 'Cancel this leave request?',
-            description:
-                'The request is cancelled. Any days it used come back.',
-            confirm: 'Cancel request',
-            busy: 'Cancelling…',
-        },
-        approve: {
-            title: 'Approve this leave?',
-            description:
-                'The days are taken from the balance. Shifts already on the roster are not changed.',
-            confirm: 'Approve leave',
-            busy: 'Approving…',
-        },
-        reject: {
-            title: 'Reject this leave request?',
-            description: 'The staff member sees the reason you choose.',
-            confirm: 'Reject',
-            busy: 'Rejecting…',
-        },
-        'manager-cancel': {
-            title: 'Cancel approved leave?',
-            description: 'The days come back to the balance.',
-            confirm: 'Cancel approved leave',
-            busy: 'Cancelling…',
-        },
-    } as const;
-
-    return copies[action.kind];
-});
-const actionDisabled = computed(
-    () =>
-        (action.kind === 'approve' &&
-            action.evidenceNeeded &&
-            !action.evidenceSeen) ||
-        ((action.kind === 'reject' || action.kind === 'manager-cancel') &&
-            action.reason === ''),
-);
-const openAction = (kind: ActionKind, row: RequestRow | PendingRow) => {
-    action.kind = kind;
-    action.row = row;
-    action.evidenceNeeded = 'evidenceNeeded' in row && row.evidenceNeeded;
-    action.evidenceSeen = false;
-    action.reason = '';
-    action.error = '';
-    action.key = crypto.randomUUID();
-    action.open = true;
-};
-const confirmAction = () => {
-    const row = action.row;
-
-    if (!row) {
-        return;
-    }
-
-    // The shared dialog has no disabled state, so the confirm explains what is missing.
-    if (actionDisabled.value) {
-        action.error =
-            action.kind === 'approve'
-                ? 'Tick "Evidence seen" after checking the paper copy.'
-                : 'Choose a reason.';
-
-        return;
-    }
-
-    const path = action.kind === 'manager-cancel' ? 'cancel' : action.kind;
-    router.post(
-        `/hr/leave/requests/${row.publicId}/${path}`,
-        {
-            expected_lock_version: row.lockVersion,
-            idempotency_key: action.key,
-            evidence_seen:
-                action.kind === 'approve' ? action.evidenceSeen : undefined,
-            reason: action.reason || undefined,
-            tab: props.leave.tab,
-        },
-        {
-            preserveScroll: true,
-            onStart: () => (action.processing = true),
-            onFinish: () => (action.processing = false),
-            onSuccess: () => (action.open = false),
-            onError: (e: Record<string, string>) =>
-                (action.error =
-                    e.leave ?? e.reason ?? e.evidence_seen ?? 'Try again.'),
-        },
-    );
-};
-
-// ---- Settings: leave types ----
-const typeOpen = ref(false);
-const typeForm = useForm({
-    leave_type_id: null as number | null,
-    expected_lock_version: null as number | null,
-    code: '',
-    name: '',
-    is_paid: true,
-    uses_balance: true,
-    allow_half_days: true,
-    evidence_needed: false,
-    allow_negative: false,
-    carry_max_days: '',
-    carry_expires_on: '',
-    is_active: true,
-    accepts_evidence_files: false,
-    evidence_retention_days: '',
-});
-const openType = (row?: TypeRow) => {
-    typeForm.clearErrors();
-    typeForm.leave_type_id = row?.id ?? null;
-    typeForm.expected_lock_version = row?.lockVersion ?? null;
-    typeForm.code = row?.code ?? '';
-    typeForm.name = row?.name ?? '';
-    typeForm.is_paid = row?.isPaid ?? true;
-    typeForm.uses_balance = row?.usesBalance ?? true;
-    typeForm.allow_half_days = row?.allowHalfDays ?? true;
-    typeForm.evidence_needed = row?.evidenceNeeded ?? false;
-    typeForm.allow_negative = row?.allowNegative ?? false;
-    typeForm.carry_max_days = row?.carryMaxDays ?? '';
-    typeForm.carry_expires_on = row?.carryExpiresOn ?? '';
-    typeForm.is_active = row?.isActive ?? true;
-    typeForm.accepts_evidence_files = row?.acceptsEvidenceFiles ?? false;
-    typeForm.evidence_retention_days = row?.evidenceRetentionDays ?? '';
-    typeOpen.value = true;
-};
-const saveType = () =>
-    typeForm.put('/hr/leave/types', {
-        preserveScroll: true,
-        onSuccess: () => (typeOpen.value = false),
-    });
-const archiveType = (row: TypeRow) =>
-    router.put(
-        '/hr/leave/types',
-        {
-            leave_type_id: row.id,
-            expected_lock_version: row.lockVersion,
-            name: row.name,
-            is_paid: row.isPaid,
-            uses_balance: row.usesBalance,
-            allow_half_days: row.allowHalfDays,
-            evidence_needed: row.evidenceNeeded,
-            allow_negative: row.allowNegative,
-            carry_max_days: row.carryMaxDays,
-            carry_expires_on: row.carryExpiresOn,
-            is_active: !row.isActive,
-            accepts_evidence_files: row.acceptsEvidenceFiles,
-            evidence_retention_days: row.evidenceRetentionDays,
-        },
-        { preserveScroll: true },
-    );
-const flags: { key: keyof typeof typeForm & string; label: string }[] = [
-    { key: 'is_paid', label: 'Paid' },
-    { key: 'uses_balance', label: 'Counts against a balance' },
-    { key: 'allow_half_days', label: 'Half days allowed' },
-    { key: 'evidence_needed', label: 'Evidence needed' },
-    { key: 'allow_negative', label: 'May go below zero' },
-];
-const setFlag = (key: string, value: boolean) => {
-    (typeForm as unknown as Record<string, boolean>)[key] = value;
-};
-const flagValue = (key: string) =>
-    (typeForm as unknown as Record<string, boolean>)[key];
-const yesNo = (value: boolean) => (value ? 'Yes' : 'No');
-
-// ---- Settings: entitlements ----
-const balanceTypes = computed(
-    () => props.leave.settings?.types.filter((t) => t.usesBalance) ?? [],
-);
-const entitlementValues = reactive<Record<string, string>>({});
-const resetEntitlements = () => {
-    for (const key of Object.keys(entitlementValues)) {
-        delete entitlementValues[key];
-    }
-
-    for (const row of props.leave.settings?.entitlements ?? []) {
-        if (row.role) {
-            entitlementValues[`${row.leaveTypeId}:${row.role}`] = row.days;
-        }
-    }
-};
-watch(() => props.leave.settings?.entitlements, resetEntitlements, {
-    immediate: true,
-});
-const personEntitlements = computed(
-    () => props.leave.settings?.entitlements.filter((e) => e.userId) ?? [],
-);
-const entitlementSaving = ref(false);
-const saveEntitlements = () => {
-    const rows = Object.entries(entitlementValues)
-        .filter(([, days]) => days !== '' && days !== undefined)
-        .map(([key, days]) => {
-            const [typeId, role] = key.split(':');
-
-            return { leave_type_id: Number(typeId), role, days };
-        });
-    router.put(
-        '/hr/leave/entitlements',
-        { year: props.leave.year, rows },
-        {
-            preserveScroll: true,
-            onStart: () => (entitlementSaving.value = true),
-            onFinish: () => (entitlementSaving.value = false),
-        },
-    );
-};
-const personForm = useForm({
-    user_id: '' as string | number,
-    leave_type_id: '' as string | number,
-    days: '',
-});
-const savePerson = () =>
-    personForm
-        .transform((data) => ({
-            year: props.leave.year,
-            rows: [{ ...data, role: null }],
-        }))
-        .put('/hr/leave/entitlements', {
-            preserveScroll: true,
-            onSuccess: () => personForm.reset(),
-        });
-
-// Year-end actions share one dialog.
-type YearAction = 'grant' | 'carry-forward' | 'expire';
-const yearAction = reactive({
-    open: false,
-    kind: 'grant' as YearAction,
-    key: '',
-    processing: false,
-    error: '',
-});
-const yearText = computed(() => {
-    const y = props.leave.year;
-    const preview = props.leave.settings?.grantPreview;
-
-    return {
-        grant: {
-            title: `Give the ${y} entitlement?`,
-            description:
-                preview && preview.lines > 0
-                    ? `This adds ${preview.lines} balance ${preview.lines === 1 ? 'line' : 'lines'} for ${preview.people} ${preview.people === 1 ? 'person' : 'people'}. Pressing it again later adds only what changed.`
-                    : 'Everyone already has this year’s entitlement. Nothing will change.',
-            confirm: 'Give entitlement',
-        },
-        'carry-forward': {
-            title: `Carry forward from ${y}?`,
-            description: `Unused days, up to each type’s limit, move to ${y + 1}. This runs once per type.`,
-            confirm: 'Carry forward',
-        },
-        expire: {
-            title: `Expire carried days for ${y}?`,
-            description:
-                'Carried days not used before each type’s expiry date are removed.',
-            confirm: 'Expire carried days',
-        },
-    }[yearAction.kind];
-});
-const openYear = (kind: YearAction) => {
-    yearAction.kind = kind;
-    yearAction.key = crypto.randomUUID();
-    yearAction.error = '';
-    yearAction.open = true;
-};
-const confirmYear = () =>
-    router.post(
-        `/hr/leave/${yearAction.kind}`,
-        { year: props.leave.year, idempotency_key: yearAction.key },
-        {
-            preserveScroll: true,
-            onStart: () => (yearAction.processing = true),
-            onFinish: () => (yearAction.processing = false),
-            onSuccess: () => (yearAction.open = false),
-            onError: (e: Record<string, string>) =>
-                (yearAction.error = e.year ?? e.leave ?? 'Try again.'),
-        },
-    );
-
-// ---- Settings: working days and holidays ----
-const weekdays = [
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
-    { value: 7, label: 'Sunday' },
-];
-const workingRow = computed(() =>
-    props.leave.settings?.workingDays.find(
-        (w) => w.branchId === props.leave.branchId,
-    ),
-);
-const workingDays = ref<number[]>([]);
-watch(
-    workingRow,
-    (row) => {
-        workingDays.value = [...(row?.weekdays ?? [])];
-    },
-    { immediate: true },
-);
-const toggleDay = (day: number, on: boolean) => {
-    workingDays.value = on
-        ? [...new Set([...workingDays.value, day])].sort()
-        : workingDays.value.filter((d) => d !== day);
-};
-const saveWorkingDays = () =>
-    router.put(
-        '/hr/leave/working-days',
-        {
-            branch_id: props.leave.branchId,
-            year: props.leave.year,
-            weekdays: workingDays.value,
-            expected_lock_version: workingRow.value?.lockVersion ?? null,
-        },
-        { preserveScroll: true },
-    );
-const holidayForm = useForm({ holiday_date: '', name: '' });
-const addHoliday = () =>
-    holidayForm
-        .transform((data) => ({
-            ...data,
-            branch_id: props.leave.branchId,
-            year: props.leave.year,
-        }))
-        .post('/hr/leave/holidays', {
-            preserveScroll: true,
-            onSuccess: () => holidayForm.reset(),
-        });
-const removeHoliday = (id: number) =>
-    router.delete(`/hr/leave/holidays/${id}`, {
-        data: { branch_id: props.leave.branchId, year: props.leave.year },
-        preserveScroll: true,
-    });
-
-// ---- Settings: openings and adjustments ----
-const entryKey = ref(crypto.randomUUID());
-const entryForm = useForm({
-    kind: 'opening' as 'opening' | 'adjustment',
-    user_id: '' as string | number,
-    leave_type_id: '' as string | number,
-    days: '',
-    reason_code: '',
-    note: '',
-});
-const saveEntry = () =>
-    entryForm
-        .transform((data) => ({
-            ...data,
-            year: props.leave.year,
-            idempotency_key: entryKey.value,
-        }))
-        .post(
-            `/hr/leave/${entryForm.kind === 'opening' ? 'openings' : 'adjustments'}`,
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    entryForm.reset();
-                    entryKey.value = crypto.randomUUID();
-                },
-            },
-        );
-const decideEntry = (entry: Entry, decision: 'confirm' | 'reject') =>
-    router.post(
-        `/hr/leave/${entry.kind === 'opening' ? 'openings' : 'adjustments'}/${entry.publicId}/${decision}`,
-        {
-            expected_lock_version: entry.lockVersion,
-            year: props.leave.year,
-            idempotency_key: crypto.randomUUID(),
-        },
-        { preserveScroll: true },
-    );
-const entryTone = {
-    pending: 'warning',
-    confirmed: 'success',
-    rejected: 'danger',
-} as const;
-const entryLabel = {
-    pending: 'Waiting for a check',
-    confirmed: 'Confirmed',
-    rejected: 'Rejected',
-} as const;
-const peopleOptions = computed(() =>
-    (props.leave.settings?.people ?? []).map((p) => ({
-        value: p.id,
-        label: p.label,
-    })),
-);
-const balanceTypeOptions = computed(() =>
-    balanceTypes.value.map((t) => ({ value: t.id, label: t.name })),
-);
-const typeName = (id: number) =>
-    props.leave.settings?.types.find((t) => t.id === id)?.name ?? 'Leave';
-
-// ---- Calendar ----
-const calendar = computed(() => props.leave.calendar);
-const branchName = computed(
-    () =>
-        props.leave.branches.find((b) => b.id === props.leave.branchId)?.name ??
-        '',
-);
-const cellName = (name: string, label: string, cell: 'full' | 'half') =>
-    `${name}, ${label}, ${cell === 'half' ? 'half day' : 'on leave'}`;
-const calendarDays = computed(() =>
-    (calendar.value?.days ?? [])
-        .map((day) => ({
-            ...day,
-            people: (calendar.value?.rows ?? [])
-                .filter((row) => row.cells[day.date])
-                .map((row) =>
-                    row.cells[day.date] === 'half'
-                        ? `${row.name} (half day)`
-                        : row.name,
-                ),
-        }))
-        .filter((day) => day.people.length > 0 || day.holiday),
-);
+const {
+    errors,
+    tabs,
+    statusTone,
+    visit,
+    branchOptions,
+    yearOptions,
+    tabStrip,
+    moreTabsRight,
+    selectLeaveTab,
+    applyOpen,
+    applyForm,
+    chosenType,
+    singleDay,
+    firstDayOptions,
+    lastDayOptions,
+    preview,
+    openApply,
+    applyFileInput,
+    sizeLabel,
+    chooseApplyFiles,
+    dropApplyFile,
+    applyFileError,
+    sendApply,
+    evidence,
+    evidenceRow,
+    evidenceFileInput,
+    openEvidence,
+    fileCountText,
+    photoAlt,
+    uploadEvidence,
+    removal,
+    removalNeedsReason,
+    openRemoval,
+    confirmRemoval,
+    removalReasons,
+    action,
+    actionText,
+    actionPayrollLine,
+    openAction,
+    confirmAction,
+    typeOpen,
+    typeForm,
+    openType,
+    MAX_EVIDENCE_DAYS,
+    savedRetentionDays,
+    saveType,
+    archiveType,
+    flags,
+    setFlag,
+    flagValue,
+    yesNo,
+    balanceTypes,
+    entitlementValues,
+    personEntitlements,
+    entitlementSaving,
+    saveEntitlements,
+    personForm,
+    savePerson,
+    yearAction,
+    yearText,
+    plural,
+    openYear,
+    confirmYear,
+    weekdays,
+    workingDays,
+    toggleDay,
+    saveWorkingDays,
+    holidayForm,
+    addHoliday,
+    removeHoliday,
+    entryForm,
+    saveEntry,
+    decideEntry,
+    entryTone,
+    entryLabel,
+    peopleOptions,
+    balanceTypeOptions,
+    typeName,
+    calendar,
+    branchName,
+    cellName,
+    calendarDays,
+} = useLeavePage(props);
 </script>
 
 <template>
@@ -1659,16 +756,33 @@ const calendarDays = computed(() =>
                     <div>
                         <h3 class="text-base font-semibold">Leave types</h3>
                         <p class="text-xs text-muted-foreground">
-                            KPOne ships none. Add the types the clinic uses.
+                            Add the types the clinic uses, or start from the
+                            KPOne defaults.
                         </p>
                     </div>
-                    <Button
-                        variant="outline"
-                        class="min-h-11 sm:min-h-9"
-                        @click="openType()"
-                        >Add leave type</Button
-                    >
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            variant="outline"
+                            class="min-h-11 sm:min-h-9"
+                            data-test="use-defaults"
+                            @click="openYear('defaults')"
+                            >Use KPOne defaults</Button
+                        >
+                        <Button
+                            variant="outline"
+                            class="min-h-11 sm:min-h-9"
+                            @click="openType()"
+                            >Add leave type</Button
+                        >
+                    </div>
                 </div>
+                <p
+                    v-if="leave.settings.types.some((t) => t.setByDefaults)"
+                    class="mt-2 text-xs text-muted-foreground"
+                    data-test="defaults-label"
+                >
+                    {{ leave.settings.defaults.label }}
+                </p>
                 <p
                     v-if="leave.settings.types.length === 0"
                     class="mt-3 text-sm text-muted-foreground"
@@ -1692,6 +806,12 @@ const calendarDays = computed(() =>
                                     variant="outline"
                                     class="ml-1"
                                     >Archived</Badge
+                                >
+                                <Badge
+                                    v-if="t.setByDefaults"
+                                    variant="outline"
+                                    class="ml-1"
+                                    >KPOne default</Badge
                                 >
                             </p>
                             <p class="text-xs text-muted-foreground">
@@ -1738,6 +858,16 @@ const calendarDays = computed(() =>
                     Days per year by role, in steps of 0.5. A person row wins
                     over the role. Nothing reaches a balance until you give the
                     entitlement.
+                </p>
+                <p
+                    v-if="
+                        leave.settings.entitlements.some((e) => e.setByDefaults)
+                    "
+                    class="mt-1 text-xs text-muted-foreground"
+                    data-test="defaults-entitlement-label"
+                >
+                    Some figures here come from KPOne defaults:
+                    {{ leave.settings.defaults.label }}
                 </p>
                 <ErrorState
                     v-if="errors.entitlements"
@@ -1891,7 +1021,10 @@ const calendarDays = computed(() =>
                             :key="`${e.leaveTypeId}:${e.userId}`"
                         >
                             {{ e.person }} · {{ typeName(e.leaveTypeId) }} ·
-                            {{ e.days }}
+                            {{ e.days
+                            }}<span v-if="e.setByDefaults">
+                                · KPOne default</span
+                            >
                         </li>
                     </ul>
                     <form
@@ -2732,7 +1865,21 @@ const calendarDays = computed(() =>
                                 class="text-xs text-muted-foreground"
                             >
                                 Files are deleted after this. Requests and their
-                                history stay.
+                                history stay. At most 2,555 days (7 years). When
+                                you lower the days, files already older than
+                                that are deleted the next night.
+                            </p>
+                            <p
+                                v-if="savedRetentionDays > MAX_EVIDENCE_DAYS"
+                                class="text-xs text-muted-foreground"
+                                data-test="type-retention-over-cap"
+                            >
+                                This type was saved with
+                                {{ savedRetentionDays.toLocaleString('en-MY') }}
+                                days. Leave records are deleted 7 years after
+                                their leave year, and the files go with them, so
+                                the 7 years win. Enter 2,555 or fewer to save a
+                                change.
                             </p>
                             <InputError
                                 :message="
@@ -2818,6 +1965,13 @@ const calendarDays = computed(() =>
                 />
                 <CalendarX v-else class="size-5" />
             </template>
+            <p
+                v-if="actionPayrollLine"
+                class="text-sm"
+                data-test="leave-locked-month"
+            >
+                {{ actionPayrollLine }}
+            </p>
             <div
                 v-if="action.kind === 'approve' && action.evidenceNeeded"
                 class="flex min-h-11 items-center gap-2"
@@ -2865,6 +2019,101 @@ const calendarDays = computed(() =>
             <template #icon>
                 <CalendarCheck class="size-5" />
             </template>
+            <div
+                v-if="
+                    yearAction.kind === 'defaults' &&
+                    leave.settings &&
+                    (leave.settings.defaults.typesToAdd.length > 0 ||
+                        leave.settings.defaults.rows > 0)
+                "
+                class="grid gap-2 text-sm"
+                data-test="defaults-details"
+            >
+                <ul class="list-disc pl-5">
+                    <li>
+                        Annual leave 8, 12 or 16 days and sick leave 14, 18 or
+                        22 days a year, by service under 2 years, 2 to 5 years,
+                        and 5 years or more at 1 January.
+                    </li>
+                    <li>
+                        Hospitalisation leave: 60 days a year including sick
+                        leave, so 60 less the sick days in force.
+                    </li>
+                    <li>
+                        Maternity leave (98 days a confinement) and paternity
+                        leave (7 days a birth): paid, no yearly balance; the
+                        approver checks the days.
+                    </li>
+                    <li>
+                        Annual leave by completed months for someone who leaves
+                        during the year (Employment Act section 60E(1A)) and, as
+                        KPOne's default, for someone who joins during it. It
+                        uses the dates in the staff file when you press; press
+                        again after a join or a leave to update them. Sick leave
+                        is not pro-rated.
+                    </li>
+                    <li>No carry-forward.</li>
+                </ul>
+                <p class="text-muted-foreground">
+                    Check that the clinic does not already have these types
+                    under other codes.
+                </p>
+                <p class="text-muted-foreground">
+                    {{
+                        plural(leave.settings.defaults.base, 'person', 'people')
+                    }}
+                    under 2 years ·
+                    {{ leave.settings.defaults.middle }} with 2 to 5 years ·
+                    {{ leave.settings.defaults.long }} with 5 years or more.
+                    <template v-if="leave.settings.defaults.prorated > 0"
+                        >{{ ' '
+                        }}{{
+                            plural(
+                                leave.settings.defaults.prorated,
+                                'person joins or leaves',
+                                'people join or leave',
+                            )
+                        }}
+                        during {{ leave.year }}, so their annual leave is
+                        pro-rated.</template
+                    >
+                </p>
+                <p
+                    v-if="
+                        leave.settings.defaults.noRecord > 0 ||
+                        leave.settings.defaults.crossing > 0
+                    "
+                    class="text-muted-foreground"
+                >
+                    Check by hand:
+                    <template v-if="leave.settings.defaults.noRecord > 0"
+                        >{{
+                            plural(
+                                leave.settings.defaults.noRecord,
+                                'person has',
+                                'people have',
+                            )
+                        }}
+                        no employment start date in their staff file, so they
+                        get the first tier.</template
+                    >
+                    <template v-if="leave.settings.defaults.crossing > 0"
+                        >{{ ' '
+                        }}{{
+                            plural(
+                                leave.settings.defaults.crossing,
+                                'person reaches',
+                                'people reach',
+                            )
+                        }}
+                        2 or 5 years during {{ leave.year }}; add a person
+                        entitlement if needed.</template
+                    >
+                </p>
+                <p class="text-xs text-muted-foreground">
+                    {{ leave.settings.defaults.label }}
+                </p>
+            </div>
         </OperationalConfirmDialog>
     </div>
 </template>

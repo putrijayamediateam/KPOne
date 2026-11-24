@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
+use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -46,6 +47,10 @@ try {
             return 1;
         })(),
         'bulk' => count(app(PanelClaimService::class)->bulkCreate($actor, $a)),
+        'claim-decision' => (string) app(PanelClaimService::class)
+            ->recordDecision($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->lock_version,
+        'claim-submit' => (string) app(PanelClaimService::class)
+            ->submit($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->lock_version,
         default => throw new RuntimeException('Unknown test worker mode'),
     };
     fwrite(STDOUT, 'SUCCESS '.$result.PHP_EOL);

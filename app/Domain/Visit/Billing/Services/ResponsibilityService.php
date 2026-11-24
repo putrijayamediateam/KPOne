@@ -3,11 +3,13 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\PatientReceivable;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -15,7 +17,14 @@ use Illuminate\Validation\ValidationException;
 
 class ResponsibilityService
 {
-    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private AuditRecorder $audit) {}
+    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private AuditRecorder $audit, private BranchDayGate $gate) {}
+
+    /** BIL-32: Panel and pay-later are paused on the counted day (the invoice's day or today) but never locked. */
+    private function guardDay(Branch $branch, Visit $visit, Invoice $invoice): void
+    {
+        $finalized = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->value('finalized_at');
+        $this->gate->guard($branch, $finalized === null ? null : CarbonImmutable::parse($finalized), false, 'responsibility');
+    }
 
     /** @param array<string,mixed> $a */
     public function propose(User $actor, Visit $visit, Invoice $invoice, string $kind, array $a): CoverageAllocation|PatientReceivable
@@ -26,6 +35,7 @@ class ResponsibilityService
 
         return DB::transaction(function () use ($actor, $visit, $invoice, $kind, $a, $amount, $class) {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, $kind === 'panel' ? 'coverage.propose.branch' : 'outstanding.request.branch');
+            $this->guardDay($branch, $visit, $invoice);
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
             $this->ledger->requireMutable($invoice, $a['lock_version'] ?? null);
             $this->ledger->lock($invoice);
@@ -62,8 +72,10 @@ class ResponsibilityService
     public function approve(User $actor, Visit $visit, Invoice $invoice, string $kind, string $publicId, array $a): void
     {
         $class = $this->model($kind);
+        $approver = $actor;
         DB::transaction(function () use ($actor, $visit, $invoice, $kind, $publicId, $a, $class): void {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, $kind === 'panel' ? 'coverage.approve.branch' : 'outstanding.approve.branch');
+            $this->guardDay($branch, $visit, $invoice);
             // Approval configuration is part of actor authority, before financial locks.
             $limit = DB::table('billing_approval_limits')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('user_id', $actor->id)->where('capability', $kind)->lockForUpdate()->first();
             $panelActive = true;
@@ -86,6 +98,11 @@ class ResponsibilityService
             $this->ledger->state($invoice);
             $this->audit->record('billing.responsibility_approved', $invoice, ['record_version' => $invoice->lock_version], $actor, $branch);
         }, 3);
+
+        // PNL-28a: after the approval has committed, the system prepares the Panel claim. It never affects the approval.
+        if ($kind === 'panel') {
+            app(PanelClaimAutoCreator::class)->afterApproval($approver, $publicId);
+        }
     }
 
     /** @return class-string<CoverageAllocation>|class-string<PatientReceivable> */

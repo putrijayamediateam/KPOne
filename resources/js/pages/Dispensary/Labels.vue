@@ -19,7 +19,7 @@ const props = defineProps<{
             previewUrl: string;
         }>;
         blocked: Array<{ name: string; errors: string[] }>;
-        token: string;
+        token: string | null;
         branchId: number;
         excludedCount: number;
         pageSize: { width: number; height: number };
@@ -28,7 +28,10 @@ const props = defineProps<{
     labelBatchNotes?: Array<{ name: string; previewUrl: string; note: string }>;
     // DSP-6: labels (by preview URL) printed before; they print with the REPRINT mark.
     labelReprints?: string[];
+    // DSP-26: false for the Resident Doctor's view-only preview (no Print button, no printer checklist).
+    labelCanPrint?: boolean;
 }>();
+const canPrint = computed(() => props.labelCanPrint !== false);
 const page = usePage();
 const batchNotes = computed(() => props.labelBatchNotes ?? []);
 const reprinted = ref<string[]>([...(props.labelReprints ?? [])]);
@@ -133,12 +136,15 @@ const printLabels = async () => {
     >
         <header class="print-toolbar">
             <h1>Medicine label preview</h1>
-            <p>
+            <p v-if="!canPrint" data-testid="label-view-only">
+                View only. Printing is done by the CA.
+            </p>
+            <p v-if="canPrint">
                 Label size {{ labels.pageSize.width }} ×
                 {{ labels.pageSize.height }} mm (provisional). Confirm printer
                 and sticker stock. Print at 100%, browser headers/footers off.
             </p>
-            <p>
+            <p v-if="canPrint">
                 Saved fulfilment data only. Unsaved workspace edits are not
                 included. Printing does not confirm dispensing or change stock.
                 Discard superseded paper labels after an edit.
@@ -153,7 +159,7 @@ const printLabels = async () => {
             </p>
             <p v-if="error" role="alert">{{ error }}</p>
             <p
-                v-if="!changed && !retired && reprintCount"
+                v-if="canPrint && !changed && !retired && reprintCount"
                 aria-live="polite"
                 data-testid="label-reprint-note"
             >
@@ -166,6 +172,7 @@ const printLabels = async () => {
                 }}
             </p>
             <Button
+                v-if="canPrint"
                 :disabled="
                     busy ||
                     changed ||

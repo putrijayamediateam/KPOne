@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 
 type Question = { key: string; label: string };
@@ -23,7 +23,9 @@ const failed = ref<Question | null>(null);
 
 // Below lg an answer shows as cards: the first cell (and the second after a queue number) is the title and the
 // remaining cells are one muted line.
-const cardOf = (cells: string[]): { title: string; line: string } => {
+const cardOf = (
+    cells: string[],
+): { title: string; parts: string[]; change: string | null } => {
     const numbered = answer.value?.columns[0] === 'Number';
     const head = numbered ? 2 : 1;
 
@@ -34,12 +36,33 @@ const cardOf = (cells: string[]): { title: string; line: string } => {
             ? `Inactive since ${cell}`
             : cell,
     );
+    // A "Change" column (the explainers) is shown as its own line, so it is not lost at the end of a muted line.
+    const at = answer.value?.columns.indexOf('Change') ?? -1;
+    const change = at > 0 ? (labelled[at] ?? null) : null;
+    const rest = labelled.filter((_, i) => i >= head && i !== at);
 
-    return {
-        title: labelled.slice(0, head).join(' '),
-        line: labelled.slice(head).join(' · '),
-    };
+    return { title: labelled.slice(0, head).join(' '), parts: rest, change };
 };
+
+// A long answer reads as a semibold first sentence and a regular rest; a short one stays semibold as a whole.
+const sentenceParts = computed((): { lead: string; rest: string } => {
+    const text = answer.value?.sentence ?? '';
+
+    if (text.length > 140) {
+        // Plain string work (no lookbehind, which older Safari cannot parse): the first sentence end from index 30.
+        for (let i = 30; i < text.length - 2; i++) {
+            if (
+                '.!?'.includes(text[i]) &&
+                text[i + 1] === ' ' &&
+                /[A-Z0-9]/.test(text[i + 2])
+            ) {
+                return { lead: text.slice(0, i + 1), rest: text.slice(i + 2) };
+            }
+        }
+    }
+
+    return { lead: text, rest: '' };
+});
 
 const csrf = () =>
     decodeURIComponent(
@@ -120,7 +143,12 @@ const ask = async (question: Question) => {
                 </button>
             </div>
             <template v-else-if="answer">
-                <p class="space-ask-sentence">{{ answer.sentence }}</p>
+                <p class="space-ask-sentence">
+                    <span class="space-ask-lead">{{ sentenceParts.lead }}</span
+                    ><template v-if="sentenceParts.rest">
+                        {{ sentenceParts.rest }}</template
+                    >
+                </p>
                 <div
                     v-if="answer.rows.length"
                     class="space-ask-table"
@@ -150,13 +178,29 @@ const ask = async (question: Question) => {
                 <ul v-if="answer.rows.length" class="space-ask-cards">
                     <li v-for="(r, i) in answer.rows" :key="i">
                         <strong>{{ cardOf(r).title }}</strong>
-                        <span v-if="cardOf(r).line" class="space-muted">{{
-                            cardOf(r).line
-                        }}</span>
+                        <span v-if="cardOf(r).parts.length" class="space-muted"
+                            ><template
+                                v-for="(part, k) in cardOf(r).parts"
+                                :key="k"
+                                ><span v-if="k > 0" aria-hidden="true"> · </span
+                                ><span
+                                    :class="{
+                                        'space-nowrap': part.length <= 20,
+                                    }"
+                                    >{{ part }}</span
+                                ></template
+                            ></span
+                        >
+                        <strong
+                            v-if="cardOf(r).change"
+                            class="space-ask-change"
+                            >{{ cardOf(r).change }}</strong
+                        >
                     </li>
                 </ul>
                 <p class="space-ask-meta space-muted">
-                    as of {{ answer.asOf }} ·
+                    <span>as of {{ answer.asOf }}</span
+                    ><span class="space-ask-dot" aria-hidden="true"> · </span>
                     <Link :href="answer.href" class="space-link"
                         >Open the full list</Link
                     >

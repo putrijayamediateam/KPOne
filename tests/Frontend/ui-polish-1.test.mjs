@@ -271,9 +271,12 @@ test('D010 all hold, receiving and correction reason codes have readable labels 
     assert.match(reviews, /formatInventoryReason\(row\.payload\.reason\)/);
     assert.match(
         reviews,
-        /Receiver: staff #\{\{\s*receipt\.received_by_user_id/,
+        /Received by\s+\{\{ receipt\.received_by_name \?\? 'Staff member' \}\}/,
     );
-    assert.match(reviews, /Receiver: staff #\{\{ row\.receiver_user_id/);
+    assert.match(
+        reviews,
+        /Received by \{\{ row\.receiver_name \?\? 'Staff member' \}\}/,
+    );
 
     for (const source of [
         reviews,

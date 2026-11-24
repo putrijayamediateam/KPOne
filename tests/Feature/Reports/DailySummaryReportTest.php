@@ -39,14 +39,17 @@ class DailySummaryReportTest extends BillingTestCase
     {
         foreach (PermissionCatalogue::roles() as $role => $permissions) {
             $allowed = in_array($role, ['director', 'finance_officer', 'administrator'], true);
-            $this->assertSame($allowed, in_array('reports.daily_summary.view.branch', $permissions, true));
-            $this->assertSame($allowed, in_array('reports.daily_summary.export.branch', $permissions, true));
+            // ROLE-1: the Branch Manager may download its own branch; the Account Assistant may only view.
+            $this->assertSame($allowed || in_array($role, ['branch_manager', 'account_assistant'], true), in_array('reports.daily_summary.view.branch', $permissions, true));
+            $this->assertSame($allowed || $role === 'branch_manager', in_array('reports.daily_summary.export.branch', $permissions, true));
             $actor = $this->actor($role);
             $this->selectBranch($actor);
+            $mayView = $allowed || in_array($role, ['branch_manager', 'account_assistant'], true);
+            $mayDownload = $allowed || $role === 'branch_manager';
             $response = $this->postJson(route('reports.daily-summary.run'), $this->filters());
-            $allowed ? $response->assertOk() : $response->assertForbidden();
+            $mayView ? $response->assertOk() : $response->assertForbidden();
             $response = $this->postJson(route('reports.daily-summary.download'), $this->filters());
-            $allowed ? $response->assertOk() : $response->assertForbidden();
+            $mayDownload ? $response->assertOk() : $response->assertForbidden();
         }
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);
@@ -105,9 +108,10 @@ class DailySummaryReportTest extends BillingTestCase
         $before = $this->sourceEvidence();
         $audits = DB::table('audit_logs')->orderBy('id')->get();
         $result = $this->postJson(route('reports.daily-summary.run'), $filters)->assertOk()->json('result');
-        $this->assertSame(['2026-12-31', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '30.00', '20.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][0]);
-        $this->assertSame(['2027-01-01', '25.00', '25.00', '0.00', '40.00', '0.00', '40.00', '0.00', '0.00', '65.00', '25.00', '40.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][1]);
-        $this->assertSame(array_fill(1, 15, '0.00'), array_combine(range(1, 15), array_slice($result['rows'][2], 1))); // BIL-6b: three refund columns appended; BIL-10: one more (both owner-approved test changes).
+        // PCA-3: one more column, Panel claim adjustments by confirmation date (owner-approved test change).
+        $this->assertSame(['2026-12-31', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '30.00', '20.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][0]);
+        $this->assertSame(['2027-01-01', '25.00', '25.00', '0.00', '40.00', '0.00', '40.00', '0.00', '0.00', '65.00', '25.00', '40.00', '0.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][1]);
+        $this->assertSame(array_fill(1, 16, '0.00'), array_combine(range(1, 16), array_slice($result['rows'][2], 1))); // BIL-6b: three refund columns appended; BIL-10: one more; PCA-3: one more (all owner-approved test changes).
         $this->assertSame($before, $this->sourceEvidence());
         $csv = $this->postJson(route('reports.daily-summary.download'), $filters)->assertOk()->streamedContent();
         [$metadata, $columns, $rows] = $this->decodeReportCsv($csv);

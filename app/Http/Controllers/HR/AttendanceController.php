@@ -2,14 +2,22 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\DepartmentSpace\MeSpace;
+use App\Domain\HR\Attendance\Models\AttendanceCorrection;
+use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Models\OvertimeRequest;
+use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
+use App\Domain\HR\Attendance\Services\ClockResult;
 use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
+use App\Domain\HR\Payroll\Services\LateNotices;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,43 +36,90 @@ class AttendanceController extends Controller
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
-    /** DS-12: the same state My attendance shows, for the top-bar shortcut. Read only: the shortcut opens Attendance and never presses. */
-    public function clockState(Request $request, AttendancePageService $pages): JsonResponse
+    /**
+     * DS-12 and DS-13: the same state My attendance shows, for the top-bar shortcut and the Me home ring. Read only:
+     * HR-PHOTO's camera dialog makes the press. The extra facts (clock-in time, shift, rostered minutes) come from the
+     * same rows and the same Late rule as Review.
+     */
+    public function clockState(Request $request, MeSpace $me): JsonResponse
     {
-        $my = (array) ($pages->page($request->user(), ['tab' => 'my'])['my'] ?? []);
+        $my = $me->attendanceMine($request->user()) ?? [];
 
-        return response()->json([
-            'state' => (string) ($my['state'] ?? 'out'),
+        return response()->json($me->ring($request->user(), $my) + [
             'label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null,
-            'canPress' => (bool) ($my['canPress'] ?? false),
-            'refusal' => $my['refusal'] ?? null,
-            // A branch that checks location needs the consent and position screens, which only the Attendance page has.
-            'needsAttendancePage' => ($my['location'] ?? null) !== null,
+            // HR-PHOTO: every press takes a live photo through the camera dialog, after the one-time notice.
+            'photoRequired' => true,
+            'photoNotice' => ['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => app(ClockPhotoService::class)->noticeSeen($request->user())],
         ]);
     }
 
-    public function clockIn(Request $request, ClockService $clock): RedirectResponse
+    public function clockIn(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
     {
-        $label = null;
-        $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockIn($request->user(), $this->pressInput($request));
-            $label = 'Clocked in at '.$session->clock_in_at->setTimezone($session->timezone)->format('g:i A').'.';
+        return $this->press($request, 'in', fn () => $clock->clockIn($request->user(), $this->pressInput($request)), $result);
+    }
+
+    public function clockOut(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
+    {
+        return $this->press($request, 'out', fn () => $clock->clockOut($request->user(), $this->pressInput($request)), $result);
+    }
+
+    /** Undo clock-out (owner, 16 Nov 2026): the person's own clock-out, within 15 minutes; the same session reopens. */
+    public function undoClockOut(Request $request, ClockService $clock): RedirectResponse
+    {
+        return $this->run($request, 'my', 'Clock-out undone. You are clocked in again.',
+            fn () => $clock->undoClockOut($request->user(), $request->only(['session_id', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    /**
+     * HR-PHOTO: the camera dialog asks for JSON and gets the confirmation (time and chip) or the 422 errors; the
+     * Attendance page's own form keeps its redirect and toast.
+     *
+     * @param  callable(): ClockSession  $action
+     */
+    private function press(Request $request, string $kind, callable $action, ClockResult $result): RedirectResponse|JsonResponse
+    {
+        $session = null;
+        $response = $this->run($request, 'my', null, function () use ($action, &$session): void {
+            $session = $action();
         });
-        Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
+        /** @var ClockSession $session */
+        $confirmation = $result->for($session, $kind);
+        if ($request->wantsJson()) {
+            return response()->json($confirmation, 200, ['Cache-Control' => 'no-store, private']);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => $confirmation['title'].' at '.$confirmation['time'].'.']);
 
         return $response;
     }
 
-    public function clockOut(Request $request, ClockService $clock): RedirectResponse
+    /** HR-PHOTO: the person has read the current "About clock-in photos" notice. */
+    public function photoNotice(Request $request, ClockPhotoService $photos): JsonResponse
     {
-        $label = null;
-        $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockOut($request->user(), $this->pressInput($request));
-            $label = 'Clocked out at '.$session->clock_out_at?->setTimezone($session->timezone)->format('g:i A').'.';
-        });
-        Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
+        $photos->markNoticeSeen($request->user(), $request->input('version'));
 
-        return $response;
+        return response()->json(['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => true], 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /** HR-PHOTO: when the camera opens, a token good for one press of that kind for five minutes. */
+    public function capture(Request $request, ClockPhotoService $photos): JsonResponse
+    {
+        return response()->json($photos->issueToken($request->user(), (string) $request->input('kind')), 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /** HR-PHOTO: your own photo, or (for a reviewer) someone else's, recorded before any byte is sent. */
+    public function photo(Request $request, ClockPhotoService $photos, string $photo, string $size): \Illuminate\Http\Response
+    {
+        // The size is checked here, not in the route, so the cross-site refusal answers first for any address.
+        abort_unless(in_array($size, ['full', 'thumb'], true), 404);
+        $opened = $photos->open($request->user(), $photo, $size);
+
+        return response($opened['content'], 200, [
+            'Content-Type' => 'image/jpeg',
+            'Content-Disposition' => 'inline; filename="clock-photo.jpg"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     public function propose(Request $request, CorrectionService $corrections): RedirectResponse
@@ -78,7 +133,10 @@ class AttendanceController extends Controller
 
     public function decide(Request $request, CorrectionService $corrections, string $correction, string $decision): RedirectResponse
     {
-        return $this->run($request, 'review', $decision === 'approve' ? 'Correction approved.' : 'Correction rejected.',
+        // G2b: an hourly person's hours corrected after the month's payroll was locked are paid only on an adjustment run.
+        return $this->run($request, 'review', $decision === 'approve'
+            ? fn (mixed $done): string => 'Correction approved.'.(($line = $done instanceof AttendanceCorrection ? app(LateNotices::class)->correctionApproved($done) : null) === null ? '' : ' '.$line)
+            : 'Correction rejected.',
             fn () => $corrections->decide($request->user(), $correction, $decision, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 
@@ -99,7 +157,10 @@ class AttendanceController extends Controller
     {
         $position = $request->input('clock_position');
 
+        // HR-PHOTO: the photo is checked and re-encoded when the press reaches it (after the branch and session checks);
+        // the token proves the camera was just opened.
         return ['idempotency_key' => $request->input('idempotency_key'), 'location_consent' => $request->boolean('location_consent'),
+            'photo_prepared' => fn (): array => ClockPhotoFiles::prepare($request->file('photo')), 'capture_token' => $request->input('capture_token'),
             'location_unavailable' => $request->input('location_unavailable'),
             'clock_position' => is_array($position) ? array_intersect_key($position, array_flip(['latitude', 'longitude', 'accuracy'])) : null];
     }
@@ -129,7 +190,11 @@ class AttendanceController extends Controller
 
     public function decideOvertime(Request $request, OvertimeService $overtime, string $overtimeRequest, string $decision): RedirectResponse
     {
-        return $this->run($request, 'overtime', $decision === 'approve' ? 'Overtime approved.' : 'Overtime rejected.',
+        // G2a: overtime approved after its month's payroll was locked is not paid by that run, so the notice says what to do.
+        return $this->run($request, 'overtime', $decision === 'approve'
+            ? fn (OvertimeRequest $approved): string => ($month = $overtime->lockedMonth($approved)) === null ? 'Overtime approved.'
+                : "Overtime approved. {$month}'s payroll is already locked: add it on an adjustment run."
+            : 'Overtime rejected.',
             fn () => $overtime->decide($request->user(), $overtimeRequest, $decision, $request->only(['expected_lock_version', 'minutes', 'reason', 'idempotency_key'])));
     }
 
@@ -142,8 +207,10 @@ class AttendanceController extends Controller
 
     public function reverseOvertime(Request $request, OvertimeService $overtime, string $overtimeRequest): RedirectResponse
     {
-        return $this->run($request, 'overtime', 'Overtime reversed.', fn () => $overtime->reverse($request->user(), $overtimeRequest,
-            $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
+        // M1: overtime a locked payroll run already paid stays paid there, so the notice says where to recover it.
+        return $this->run($request, 'overtime', fn (OvertimeRequest $reversed): string => ($paid = $overtime->paidIn($reversed)) === null ? 'Overtime reversed.'
+            : "Overtime reversed. It was paid in the locked {$paid}: add a recovery on an adjustment run.",
+            fn () => $overtime->reverse($request->user(), $overtimeRequest, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 
     public function saveOvertimeSettings(Request $request, OvertimeSettingsService $settings): RedirectResponse
@@ -153,13 +220,17 @@ class AttendanceController extends Controller
                 'roles' => $request->input('roles', []), 'effective_from' => $request->input('overtime_effective_from')]));
     }
 
-    private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse
+    /** @param  string|(\Closure(mixed): string)|null  $message  a closure is given the action's result */
+    private function run(Request $request, string $tab, string|\Closure|null $message, callable $action): RedirectResponse
     {
         $back = $this->back($request, $tab);
         try {
-            $action();
+            $result = $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        }
+        if ($message instanceof \Closure) {
+            $message = $message($result);
         }
         if ($message !== null) {
             Inertia::flash('toast', ['type' => 'success', 'message' => $message]);

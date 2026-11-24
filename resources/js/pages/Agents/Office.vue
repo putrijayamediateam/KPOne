@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type {
-    FeedAgent,
-    Light,
-    OfficeFeed,
-} from '@/components/agents/office/office-layout';
-import {
-    LIGHT_COLOURS,
-    LIGHT_LABELS,
-    recentMessages,
-} from '@/components/agents/office/office-layout';
+import { Head, Link } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import type { OfficeFeed } from '@/components/agents/office/office-layout';
+import { LIGHT_COLOURS } from '@/components/agents/office/office-layout';
 import OfficeScene from '@/components/agents/office/OfficeScene.vue';
+import { useAgentOffice } from '@/components/agents/office/useAgentOffice';
 import { PageHeader } from '@/components/ui/page-header';
 import {
     Sheet,
@@ -21,160 +14,46 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { StatusBadge } from '@/components/ui/status';
-import { requestJson } from '@/lib/json-client';
 import { formatDateTime } from '@/lib/presentation';
 
-type AgentDetail = {
-    code: string;
-    displayName: string;
-    jobTitle: string;
-    department: string | null;
-    isEnabled: boolean;
-    steps: { kind: string; summary: string; at: string | null }[];
-    pendingTotal: number;
-    pendingBranch: string | null;
-    pending: {
-        id: number;
-        typeLabel: string;
-        createdAt: string | null;
-    }[];
-};
-
+/**
+ * The agent office. The live behaviour (poll, selection, detail, Pause motion) is `useAgentOffice` (AG-23); the page
+ * keeps its sheet.
+ */
 const props = defineProps<{
     feed: OfficeFeed;
     canOpenInbox: boolean;
 }>();
 
-const POLL_MS = 10_000;
+const {
+    feed,
+    paused,
+    osReducedMotion,
+    motionOff,
+    toggleMotion,
+    clock,
+    selected,
+    detail,
+    detailError,
+    selectedAgent,
+    select,
+    closePanel,
+    openInbox,
+    lightFor,
+    statusFor,
+    latestMessage,
+    counts,
+} = useAgentOffice(props);
 
-const feed = ref<OfficeFeed>(props.feed);
-const paused = ref(false);
-const clock = ref(new Date());
-let timer: ReturnType<typeof setTimeout> | undefined;
-let controller: AbortController | undefined;
-let disposed = false;
-
-const schedule = () => {
-    clearTimeout(timer);
-
-    if (!disposed && !document.hidden) {
-        timer = setTimeout(() => void refresh(), POLL_MS);
-    }
-};
-const refresh = async () => {
-    if (disposed) {
-        return;
-    }
-
-    controller?.abort();
-    controller = new AbortController();
-
-    try {
-        feed.value = await requestJson<OfficeFeed>('/agents/office-feed', {
-            signal: controller.signal,
-        });
-        paused.value = false;
-        clock.value = new Date();
-    } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-            paused.value = true;
-        }
-    } finally {
-        schedule();
-    }
-};
-const visibilityChanged = () => {
-    if (document.hidden) {
-        clearTimeout(timer);
-        controller?.abort();
-    } else {
-        void refresh();
-    }
-};
-onMounted(() => {
-    document.addEventListener('visibilitychange', visibilityChanged);
-    schedule();
-});
-onBeforeUnmount(() => {
-    disposed = true;
-    clearTimeout(timer);
-    controller?.abort();
-    detailController?.abort();
-    document.removeEventListener('visibilitychange', visibilityChanged);
-    desktopQuery?.removeEventListener('change', desktopChanged);
-});
-
-const selected = ref<string | null>(null);
-const detail = ref<AgentDetail | null>(null);
-const detailError = ref('');
-const selectedAgent = computed<FeedAgent | null>(
-    () =>
-        feed.value.agents.find((agent) => agent.code === selected.value) ??
-        null,
-);
-// Only the newest detail request may update the panel; older ones are aborted.
-let detailController: AbortController | undefined;
-const loadDetail = async (code: string) => {
-    detailController?.abort();
-    const current = new AbortController();
-    detailController = current;
-    detailError.value = '';
-
-    try {
-        const result = await requestJson<AgentDetail>(
-            `/agents/office/agents/${encodeURIComponent(code)}`,
-            { signal: current.signal },
-        );
-
-        if (detailController === current && selected.value === code) {
-            detail.value = result;
-        }
-    } catch (error) {
-        if (
-            (error as Error).name !== 'AbortError' &&
-            detailController === current &&
-            selected.value === code
-        ) {
-            detailError.value = 'Details are unavailable right now.';
-        }
-    }
-};
-const select = (code: string) => {
-    selected.value = code;
-    detail.value = null;
-    void loadDetail(code);
-};
+// Classic keeps its sheet, which needs the desktop test and the open flag.
 const panelOpen = computed({
     get: () => selected.value !== null,
     set: (value: boolean) => {
         if (!value) {
-            detailController?.abort();
-            selected.value = null;
-            detail.value = null;
+            closePanel();
         }
     },
 });
-// Keep the open panel current as the feed refreshes.
-watch(
-    () => feed.value.serverTime,
-    () => {
-        if (selected.value) {
-            void loadDetail(selected.value);
-        }
-    },
-);
-
-const openInbox = () => {
-    if (props.canOpenInbox) {
-        router.visit('/agents/inbox');
-    }
-};
-
-const lightFor = (agent: FeedAgent): Light =>
-    agent.isEnabled ? agent.light : 'grey';
-const statusFor = (agent: FeedAgent) =>
-    agent.isEnabled ? LIGHT_LABELS[agent.light] : 'Off';
-const latestMessage = computed(() => recentMessages(feed.value));
 const isDesktop = ref(true);
 let desktopQuery: MediaQueryList | undefined;
 const desktopChanged = () => {
@@ -185,11 +64,9 @@ onMounted(() => {
     desktopChanged();
     desktopQuery.addEventListener('change', desktopChanged);
 });
-const counts = computed(() => ({
-    working: feed.value.agents.filter((a) => a.isEnabled && a.light === 'green')
-        .length,
-    waiting: feed.value.pendingProposals,
-}));
+onBeforeUnmount(() => {
+    desktopQuery?.removeEventListener('change', desktopChanged);
+});
 </script>
 
 <template>
@@ -228,6 +105,17 @@ const counts = computed(() => ({
                 />
                 {{ counts.waiting }} waiting for a decision
             </component>
+            <button
+                v-if="!osReducedMotion"
+                type="button"
+                class="inline-flex min-h-11 items-center rounded-full border px-3 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-brand aria-pressed:bg-brand/10 aria-pressed:font-semibold lg:min-h-9"
+                :aria-pressed="motionOff"
+                data-test="office-motion"
+                @click="toggleMotion"
+            >
+                <span v-if="motionOff" aria-hidden="true" class="mr-1">✓</span
+                >Pause motion
+            </button>
             <span
                 v-if="paused"
                 class="rounded-full border border-warning px-3 py-1 text-warning"
@@ -246,6 +134,7 @@ const counts = computed(() => ({
                 :selected="selected"
                 :clock="clock"
                 :can-open-inbox="canOpenInbox"
+                :motion-off="motionOff"
                 @select="select"
                 @open-inbox="openInbox"
             />
@@ -380,7 +269,9 @@ const counts = computed(() => ({
                                 :key="index"
                                 class="rounded-lg border p-2"
                             >
-                                <p class="break-words">{{ step.summary }}</p>
+                                <p class="break-words">
+                                    {{ step.summary }}
+                                </p>
                                 <p class="text-xs text-muted-foreground">
                                     {{ formatDateTime(step.at) }}
                                 </p>

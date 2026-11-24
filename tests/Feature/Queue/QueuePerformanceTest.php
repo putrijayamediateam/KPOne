@@ -64,7 +64,9 @@ class QueuePerformanceTest extends QueueTestCase
             // queries and 25 poll queries. Keep generous ceilings so framework
             // bookkeeping can vary while redundant per-section hydration cannot
             // silently return.
-            $this->assertLessThanOrEqual(20, $getCount);
+            // 21: one read of the person's Version 2 preference, needed on every full page render now that the switch
+            // is offered to every staff account (it was 20 when only the Director was offered it).
+            $this->assertLessThanOrEqual(21, $getCount);
             $this->assertLessThanOrEqual(19, $pollCount);
             $this->assertLessThan(26, $getCount);
             $this->assertLessThan(25, $pollCount);

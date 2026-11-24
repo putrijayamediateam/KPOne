@@ -14,6 +14,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The request logic moved into composables shared with Version 2; the source is the file plus its composable.
+source.records += read('resources/js/composables/hr/useRecordsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('the new page and the changed page compile', () => {
@@ -92,7 +94,9 @@ test('My HR details links to the SOPs still to read, and every write sends an id
     assert.match(records, /v-if="sopsToRead"/);
     assert.match(records, /<Link href="\/hr\/sops">Open SOPs<\/Link>/);
     assert.match(source.records, /sopsToRead\?: number;/);
-    const script = parse(source.page).descriptor.scriptSetup.content;
+    const script =
+        parse(source.page).descriptor.scriptSetup.content +
+        read('resources/js/composables/hr/useSopsPage.ts');
     assert.equal((script.match(/idempotency_key:/g) ?? []).length, 3);
     assert.match(script, /expected_lock_version: sop\.lockVersion/);
     assert.match(script, /forceFormData: true/);

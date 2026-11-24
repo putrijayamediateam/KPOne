@@ -6,6 +6,8 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
 use App\Domain\HR\Attendance\ClockPermissions;
@@ -13,8 +15,10 @@ use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Discipline\DisciplinePermissions;
 use App\Domain\HR\Incidents\IncidentPermissions;
+use App\Domain\HR\LabourCost\LabourCostPermissions;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Letters\LetterPermissions;
+use App\Domain\HR\LocumPay\LocumPayPermissions;
 use App\Domain\HR\Memos\MemoPermissions;
 use App\Domain\HR\Messages\MessagePermissions;
 use App\Domain\HR\OpenShifts\OpenShiftPermissions;
@@ -59,12 +63,33 @@ final class PermissionCatalogue
     /** The clinic manager's operational settings account; never patient, clinical or finance-approval access. */
     public const ADMINISTRATOR_ROLE = 'administrator';
 
+    /**
+     * ROLE-1 (owner decisions 20-21 Nov 2026; permission table approved 21 Nov, plan docs/teams/staff-experience/ROLE-1-PLAN.md).
+     * Branch Manager (per branch: views, daily-close approval, own-branch reports; void and refund approval come with Billing's
+     * slices), Account Assistant (HQ finance: records and views, never approves) and Store Admin (central store: stock and
+     * purchasing only). None holds anything in AUTHORITY_OVER_PEOPLE_AND_ACCESS.
+     */
+    public const BRANCH_MANAGER_ROLE = 'branch_manager';
+
+    public const ACCOUNT_ASSISTANT_ROLE = 'account_assistant';
+
+    public const STORE_ADMIN_ROLE = 'store_admin';
+
+    /**
+     * MA-1a (owner decision 23 Nov 2026; docs/teams/patients-registration/MA-ROLE-DESIGN.md): everything the CA holds, plus
+     * the treatment room (and triage). Built as "the CA's list, then the additions" at the end of roles(), so the two
+     * cannot drift. Never people or access authority; in practice only a Director provisions it (canAssignRoles).
+     */
+    public const MEDICAL_ASSISTANT_ROLE = 'medical_assistant';
+
     /** @return list<string> */
     public static function all(): array
     {
         return [
             ...array_keys(CallHoldPermissions::grants()),
             ...array_keys(TreatmentStepPermissions::grants()),
+            ...array_keys(TriagePermissions::grants()),
+            ...array_keys(TreatmentRoomPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -84,6 +109,8 @@ final class PermissionCatalogue
             ...array_keys(DisciplinePermissions::grants()),
             ...array_keys(IncidentPermissions::grants()),
             ...array_keys(OpenShiftPermissions::grants()),
+            ...array_keys(LocumPayPermissions::grants()),
+            ...array_keys(LabourCostPermissions::grants()),
             ...array_keys(ClaimPermissions::grants()),
             ...array_keys(PayrollPermissions::grants()),
             ...array_keys(ApplicationPermissions::grants()),
@@ -161,15 +188,27 @@ final class PermissionCatalogue
             'dispensary.return_to_doctor.branch',
             'dispensary.otc.create.branch',
             'dispensary.acknowledge_partial.own',
+            'dispensary.doctor_check.own',
+            'dispensary.doctor_check.override.branch',
+            'dispensary.settings.manage.branch',
+            'dispensary.view_readonly.organisation',
+            'dispensary.view_readonly.branch',
+            'consultations.view_readonly.organisation',
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
             'inventory.supplier_invoices.record.branch',
             'inventory.supplier_invoices.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.purchase_requests.create.branch',
             'inventory.controlled_register.view.branch',
             'inventory.controlled_register.check.branch',
+            'inventory.recalls.manage.organisation',
+            'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
+            'inventory.valuation.view.organisation',
+            'inventory.pack_conversions.verify.organisation',
+            'inventory.medicine_sales.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -381,6 +420,41 @@ final class PermissionCatalogue
                 'public_checkin_links.manage.organisation',
                 'queue_display.manage.organisation',
             ],
+            self::BRANCH_MANAGER_ROLE => [
+                ...$branch,
+                'visits.view.branch',
+                'visits.history.view.branch',
+                'queue.view.branch',
+                'billing.view.branch',
+                'billing.summary.branch',
+                'outstanding.view.branch',
+                'payments.cash_closing.approve.branch',
+                'inventory.view.branch',
+            ],
+            self::ACCOUNT_ASSISTANT_ROLE => [
+                ...$organisation,
+                'inventory.view.branch',
+                'inventory.supplier_invoices.record.branch',
+                'inventory.cost.view.organisation',
+                'audit.view.organisation',
+            ],
+            self::STORE_ADMIN_ROLE => [
+                ...$own,
+                'staff.view.branch',
+                'branches.view.organisation',
+                'branch_context.switch.organisation',
+                'inventory.view.branch',
+                'inventory.receiving.branch',
+                'inventory.stocktake.branch',
+                'inventory.stock_reviews.manage.branch',
+                'inventory.warehouse.organisation',
+                'inventory.purchase_orders.create.organisation',
+                'inventory.purchase_requests.create.branch',
+                'inventory.stock_requests.approve.branch',
+                'inventory.transfers.dispatch.branch',
+                'inventory.transfer.organisation',
+                'inventory.cost.view.organisation',
+            ],
             'business_development' => $organisation,
             'marketing' => $organisation,
             'hr_manager' => [
@@ -413,12 +487,20 @@ final class PermissionCatalogue
             }
         }
 
+        // ROLE-1 (owner decision 21 Nov 2026, "33 = A"): the audit log, read only, for the Finance Officer and the Panel
+        // Officer as well (the Account Assistant has it above); Director, HR Manager and Technical Admin keep it.
+        foreach (['finance_officer', 'panel_officer'] as $role) {
+            $roles[$role][] = 'audit.view.organisation';
+        }
+
         foreach (['director', 'finance_officer'] as $role) {
             $roles[$role][] = 'reports.patient_billing.view.branch';
             $roles[$role][] = 'reports.patient_billing.export.branch';
         }
 
-        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
+        // ROLE-1 follow-up (owner, 22 Nov 2026, "BM reports B"): the Branch Manager also downloads Sales summary and Payments;
+        // the export services keep a branch-only account to its own branch (see BranchOnlyExportScope).
+        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE, self::BRANCH_MANAGER_ROLE] as $role) {
             $roles[$role][] = 'reports.sales.export.organisation';
             $roles[$role][] = 'reports.payments.export.organisation';
         }
@@ -430,6 +512,21 @@ final class PermissionCatalogue
         }
 
         foreach (TreatmentStepPermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        // TRI-1 (owner decisions 19 Nov 2026): triage readings for CA and CA Supervisor; the guideline for the
+        // Director and the HR Manager only (the HR Manager never sees triage readings).
+        foreach (TriagePermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        // MA-1a (owner decision 23 Nov 2026): the treatment room for the Medical Assistant and the CA Supervisor.
+        foreach (TreatmentRoomPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
@@ -509,12 +606,63 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.supplier_invoices.approve.branch';
         }
 
+        // STK-18 (owner decision 2026-11-12, "agree purchase requests"): a CA or CA Supervisor asks for stock with a
+        // purchase request; converting it into a draft order uses the existing purchase order permission.
+        foreach (['ca', 'ca_supervisor'] as $holder) {
+            $roles[$holder][] = 'inventory.purchase_requests.create.branch';
+        }
+
         // STK-24 (owner decisions 2026-11-11, "agree all"): the controlled-drug register (DRAFT pending pharmacist
         // review) is viewed and checked by a CA Supervisor, Finance Officer or Director; the checker is a second person.
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.controlled_register.view.branch';
             $roles[$holder][] = 'inventory.controlled_register.check.branch';
         }
+
+        // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. A Director or a Finance
+        // Officer lifts one, never the person who started it (owner decision 2026-11-12, "recall A").
+        $roles['director'][] = 'inventory.recalls.manage.organisation';
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.recalls.lift.organisation';
+        }
+
+        // STK-28 (owner programme 2026-11-11; owner decision 2026-11-15: Director only): the stock value, cost of
+        // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
+        $roles['director'][] = 'inventory.valuation.view.organisation';
+
+        // STK-52 (owner decision 2026-11-21, "A for the bottle check"): only a CA Supervisor or the Director does the blind
+        // check of a pack conversion; anyone who manages inventory references proposes one. Never the proposer.
+        foreach (['ca_supervisor', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.pack_conversions.verify.organisation';
+        }
+
+        // STK-44 (owner, P9: "the medicine sales page with profit: Director, Finance Officer"): only these two open the
+        // medicine sales page. It is separate from cost view, so the Store Admin and Account Assistant don't get it.
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.medicine_sales.view.organisation';
+        }
+
+        // DSP-23 (owner answers 21 Nov 2026: P3, 12 = A, 13 = B): the attending doctor checks the prepared medicine; a
+        // CA Supervisor may check instead with a reason; the Director and CA Supervisor turn the branch switch on or off.
+        $roles['resident_doctor'][] = 'dispensary.doctor_check.own';
+        $roles['ca_supervisor'][] = 'dispensary.doctor_check.override.branch';
+        foreach (['director', 'ca_supervisor'] as $holder) {
+            $roles[$holder][] = 'dispensary.settings.manage.branch';
+        }
+
+        // DSP-25 (owner decision 4 of 20-21 Nov 2026; answer P5): the Director's read-only view of a dispensary case at
+        // any branch, every open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never
+        // implies a Dispensary write permission.
+        $roles['director'][] = 'dispensary.view_readonly.organisation';
+
+        // DSP-26 (owner decision 24 Nov 2026, "pilih (a) lihat sahaja"): the Resident Doctor sees the Dispensary pages
+        // at their active branch, view only. An explicit owner role decision for clinical access (AGENTS.md); it never
+        // implies a Dispensary write permission, and it is not a CA grant (no medical_assistant mirror).
+        $roles['resident_doctor'][] = 'dispensary.view_readonly.branch';
+
+        // Item 4 (owner decision P4 of 20-21 Nov 2026): the Director's read-only view of a consultation at any branch, every
+        // open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never implies a write permission.
+        $roles['director'][] = 'consultations.view_readonly.organisation';
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
@@ -523,11 +671,15 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...LocumPayPermissions::grants(), ...LabourCostPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
         }
+
+        // MA-1a catalogue rule (MA-ROLE-DESIGN section 7): the Medical Assistant holds every permission the CA holds, plus
+        // its own grants above. Built last, so a permission later granted to `ca` here reaches the MA automatically.
+        $roles[self::MEDICAL_ASSISTANT_ROLE] = array_values(array_unique([...$roles['ca'], ...($roles[self::MEDICAL_ASSISTANT_ROLE] ?? [])]));
 
         return $roles;
     }

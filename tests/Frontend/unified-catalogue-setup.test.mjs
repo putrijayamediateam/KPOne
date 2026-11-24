@@ -35,7 +35,8 @@ test('Medicine setup joins catalogue identity, linked inventory, tariffs, and op
         money,
         /typeof amount === 'number' \? String\(amount\) : amount\.trim\(\)/,
     );
-    assert.match(source, /<PanelTariffEditor/);
+    assert.match(source, /<PanelPricesReadOnly/);
+    assert.doesNotMatch(source, /panel_default_sen|<PanelTariffEditor/);
     assert.match(source, /<CatalogueOptionPicker/);
     assert.match(source, /CatalogueFormSectionHeading/);
     assert.match(source, /<InventorySkuPicker/);
@@ -64,10 +65,10 @@ test('Clinical Service setup offers reusable categories, self-pay and panel tari
     assert.match(source, /self_pay_rm/);
     assert.match(source, /panel_default_rm/);
     assert.match(source, /rmToSen\(data\.prices\.self_pay_rm\)/);
-    assert.match(source, /rmToSen\(\s*data\.prices\.panel_default_rm\s*\)/);
-    assert.match(source, /<PanelTariffEditor/);
+    assert.doesNotMatch(source, /panel_default_sen|<PanelTariffEditor/);
+    assert.match(source, /<PanelPricesReadOnly/);
     assert.match(source, /Default pricing/);
-    assert.match(source, /Panel-specific price overrides/);
+    assert.match(source, /Panel prices/);
     assert.match(source, /\/clinical-services\/\$\{row\.publicId\}\/setup/);
     assert.match(source, /rmToSen\(data\.prices\.self_pay_rm\)/);
     assert.match(source, /v-if="setup\.canManagePrices"/);
@@ -107,17 +108,11 @@ test('catalogue edits cannot be saved when loading saved setup details fails', (
     }
 });
 
-test('Panel tariff and descriptive dropdowns persist new options through permissioned JSON endpoints', () => {
-    const panelEditor = read(
-        'resources/js/components/catalogue/PanelTariffEditor.vue',
-    );
+test('Descriptive dropdowns persist new options through permissioned JSON endpoints', () => {
     const optionPicker = read(
         'resources/js/components/catalogue/CatalogueOptionPicker.vue',
     );
 
-    assert.match(panelEditor, /POST/);
-    assert.match(panelEditor, /'\/catalogue-panels'/);
-    assert.match(panelEditor, /Add new Panel/);
     assert.match(optionPicker, /`\/catalogue-options\/\$\{props\.type\}`/);
     assert.match(optionPicker, /`\/catalogue-options\/\$\{props\.type\}\?/);
     assert.match(

@@ -3,6 +3,8 @@
 namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
+use App\Domain\Clinical\Dispensary\DispensaryPackDisplay;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -13,6 +15,7 @@ use App\Domain\Clinical\Models\ServiceDelivery;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Models\TreatmentPlanServiceOrder;
+use App\Domain\Patient\Services\ForeignPatientRule;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\Payment;
@@ -23,6 +26,8 @@ use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceNoteService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
+use App\Domain\Visit\Billing\Services\PanelClaimLink;
+use App\Domain\Visit\Billing\Services\PanelInvoicePrinting;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -82,6 +87,8 @@ class VisitHistoryService
                 'sex' => $visit->patient->sex,
                 'profileUrl' => $actor->can('patients.view.organisation')
                     ? '/patients/'.rawurlencode($visit->patient->patient_number) : null,
+                // BIL-29: yes or no only; no identifier value or country. No SST is charged on it yet.
+                'foreign' => app(ForeignPatientRule::class)->isForeign((int) $visit->organisation_id, (int) $visit->patient_id),
             ],
             'visit' => [
                 'visitNumber' => $visit->visit_number,
@@ -92,7 +99,7 @@ class VisitHistoryService
             ],
             'billTo' => app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
             'notes' => app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
-            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
+            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines, $branch->timezone) : null,
             'outstanding' => $canFinance ? app(OutstandingBillService::class)->summary($actor, $visit) : null,
             'canSeeFinancial' => $canFinance,
             'canSeeLines' => $canFinance && $canLines,
@@ -102,6 +109,8 @@ class VisitHistoryService
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
                 'payments' => $canFinance ? route('billing.payments', $visit) : null,
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id),
+                // BIL-35: straight to the Panel claim, or Create claim, for Panel Claims users only.
+                'panelClaim' => app(PanelClaimLink::class)->for($actor, $visit, $invoice, 'invoice'),
             ],
         ];
     }
@@ -168,7 +177,7 @@ class VisitHistoryService
             'consultation' => $encounter ? $this->consultation($encounter, $timezone) : null,
             'medicines' => $this->medicines($plan, $handoff),
             'services' => $this->services($plan, $handoff, $timezone),
-            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
+            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines, $timezone) : null,
             'canSeeFinancial' => $canFinance,
             'links' => [
                 'back' => $consultationReturnVisit
@@ -251,6 +260,7 @@ class VisitHistoryService
                 'source' => 'doctor',
                 'changeState' => $item->change_state ?? 'unchanged',
                 'dispensedQuantity' => $item?->quantity_dispensed,
+                'dispensedPacks' => $item ? DispensaryPackDisplay::text($item) : null,
                 'dispensedStatus' => $item?->status,
                 'dispensed' => $item ? $this->dispensedText($item) : null,
             ];
@@ -272,6 +282,7 @@ class VisitHistoryService
                 'source' => 'ca',
                 'changeState' => $item->change_state,
                 'dispensedQuantity' => $item->quantity_dispensed,
+                'dispensedPacks' => DispensaryPackDisplay::text($item),
                 'dispensedStatus' => $item->status,
                 'dispensed' => $this->dispensedText($item),
             ];
@@ -340,12 +351,16 @@ class VisitHistoryService
     }
 
     /** @return array<string, mixed> */
-    private function financial(User $actor, Visit $visit, Invoice $invoice, bool $canLines): array
+    private function financial(User $actor, Visit $visit, Invoice $invoice, bool $canLines, string $timezone): array
     {
         $payments = Payment::query()
             ->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))
             ->orderBy('id')->get();
+        // BIL-19: who recorded each receipt, by the same name rule as the Billing page (BIL-2); screens only.
+        $recorders = app(StaffAccessService::class)->visibleUsers($actor)
+            ->whereIn('id', $payments->pluck('recorded_by_user_id')->filter()->unique())->pluck('name', 'id');
         $canPrint = $actor->can('billing.print.branch');
+        $panelPrintBlocked = PanelInvoicePrinting::blocked($visit, $invoice);
         $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
 
         return [
@@ -370,9 +385,13 @@ class VisitHistoryService
                 'refundedSen' => $refunded[$payment->id] ?? 0,
                 'method' => $payment->method_snapshot,
                 'status' => $payment->status,
+                'receivedAt' => $payment->received_at->setTimezone($timezone)->format('j M Y, g:i A'),
+                'recordedBy' => (string) ($recorders[$payment->recorded_by_user_id] ?? 'Staff member'),
                 'printUrl' => $canPrint ? route('billing.receipt', [$visit, $invoice, $payment]) : null,
             ])->all(),
-            'printUrl' => $canPrint ? route('billing.print', [$visit, $invoice]) : null,
+            // PCA-1: a Panel patient never gets a printed invoice; receipts above still print.
+            'printUrl' => $canPrint && ! $panelPrintBlocked ? route('billing.print', [$visit, $invoice]) : null,
+            'panelNoInvoicePrint' => $canPrint && $panelPrintBlocked,
         ];
     }
 

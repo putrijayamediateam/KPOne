@@ -48,10 +48,10 @@ class DrugLabelTest extends BillingTestCase
     public function test_exact_grants_and_permission_only_authorisation_with_fresh_revocation(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn ($p) => in_array(DrugLabelService::PERMISSION, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['ca', 'ca_supervisor'], $holders);
+        $this->assertSame(['ca', 'ca_supervisor', 'medical_assistant'], $holders);
         [$f, $case] = $this->ready();
         $url = route('dispensary.labels', $case);
-        foreach (['resident_doctor', 'director', 'administrator', 'technical_admin', 'finance_officer', 'panel_officer', 'hr_manager', 'marketing', 'business_development', 'queue_display'] as $role) {
+        foreach (['director', 'administrator', 'technical_admin', 'finance_officer', 'panel_officer', 'hr_manager', 'marketing', 'business_development', 'queue_display'] as $role) {
             $this->selectBranch($this->actor($role), $f['visit']->branch);
             $this->get($url)->assertForbidden();
         }

@@ -11,10 +11,13 @@ type Row = {
     medicine: string;
     skuCode: string;
     stockUnit: string;
-    balance: string;
+    balance: string | null;
+    blind: boolean;
     status: 'checked' | 'moved_since' | 'never' | 'no_longer_controlled';
     lastCheckedOn: string | null;
     lastOutcome: 'matches' | 'differs' | null;
+    /** STK-40b: the last check differs and its reason has not been added yet. */
+    reasonNeeded: boolean;
 };
 
 defineProps<{
@@ -90,14 +93,23 @@ const statusTone = (row: Row) =>
                     </div>
                     <p class="text-sm">
                         On hand:
-                        <span class="font-medium tabular-nums"
-                            >{{ row.balance }} {{ row.stockUnit }}</span
-                        >
+                        <span class="font-medium tabular-nums">{{
+                            row.blind
+                                ? 'Shown after your count'
+                                : `${row.balance} ${row.stockUnit}`
+                        }}</span>
                     </p>
                     <StatusBadge
                         :status="row.status"
                         :label="statusLabel(row)"
                         :tone="statusTone(row)"
+                    />
+                    <StatusBadge
+                        v-if="row.reasonNeeded"
+                        status="reason-needed"
+                        label="Difference: reason needed"
+                        tone="warning"
+                        data-testid="cd-row-reason-needed"
                     />
                     <ActionLink
                         :href="`/inventory/controlled-register/${row.skuPublicId}`"
@@ -141,14 +153,26 @@ const statusTone = (row: Row) =>
                             <td
                                 class="p-3 text-right whitespace-nowrap tabular-nums"
                             >
-                                {{ row.balance }} {{ row.stockUnit }}
+                                {{
+                                    row.blind
+                                        ? 'Shown after your count'
+                                        : `${row.balance} ${row.stockUnit}`
+                                }}
                             </td>
                             <td class="p-3">
-                                <StatusBadge
-                                    :status="row.status"
-                                    :label="statusLabel(row)"
-                                    :tone="statusTone(row)"
-                                />
+                                <div class="flex flex-wrap gap-1">
+                                    <StatusBadge
+                                        :status="row.status"
+                                        :label="statusLabel(row)"
+                                        :tone="statusTone(row)"
+                                    />
+                                    <StatusBadge
+                                        v-if="row.reasonNeeded"
+                                        status="reason-needed"
+                                        label="Difference: reason needed"
+                                        tone="warning"
+                                    />
+                                </div>
                             </td>
                             <td class="p-3 text-right">
                                 <ActionLink

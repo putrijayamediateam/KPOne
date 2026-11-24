@@ -26,11 +26,7 @@ declare module '@inertiajs/core' {
                 accountMenu?: {
                     links: Array<{ title: string; href: string }>;
                     clock: boolean;
-                };
-                spaces: {
-                    offered: boolean;
-                    enabled: boolean;
-                    lockVersion: number;
+                    spaces: boolean;
                 };
                 navigation: {
                     clinicManagement: boolean;

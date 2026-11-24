@@ -5,11 +5,10 @@ namespace App\Domain\HR\Applications;
 use InvalidArgumentException;
 
 /**
- * HR-17b fixed hiring messages (HR-PLAN 19.2; owner, 2026-11-10). English and Bahasa Melayu side by side; no free text
+ * HR-17b fixed hiring messages (HR-PLAN 19.2; owner, 2026-11-10). English only (owner, 2026-11-16); no free text
  * from any KPOne user beyond the position title HR entered, and never a rating, a call note, a reason for a decision
  * or anything the candidate sent. The reminder to the hiring mailbox names no candidate, only a short reference. The
- * Malay wording is a draft until the clinic checks it. The text is rebuilt from here whenever it is shown and is
- * never stored.
+ * text is rebuilt from here whenever it is shown and is never stored.
  */
 final class HiringTemplates
 {
@@ -18,79 +17,68 @@ final class HiringTemplates
     /** The pick-times deadline sentences, the same words as the candidate's page (Daniel, #484). */
     public const DEADLINE_EN = 'Choose by the end of {deadline}. After that, the application closes.';
 
-    public const DEADLINE_MS = 'Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.';
-
-    /** @var array<string, array{label:string, subject:string, body:string, candidate_label?:string}> */
+    /** @var array<string, array{label:string, subject:string, body:string, body_online?:string, candidate_label?:string}> */
     public const TEMPLATES = [
         'received' => [
             'label' => 'Application received',
-            'subject' => 'We received your application / Permohonan anda telah diterima',
+            'subject' => 'We received your application',
             'body' => "Thank you for applying for {position} at {clinic}. We will look at your application and contact you. You can follow it with your private link below.\n\n"
-                ."Terima kasih kerana memohon jawatan {position} di {clinic}. Kami akan menyemak permohonan anda dan menghubungi anda. Anda boleh mengikutinya melalui pautan peribadi anda di bawah.\n\n"
-                .'Your private link / Pautan peribadi anda: {link}',
+                .'Your private link: {link}',
         ],
         'screening_passed' => [
             'label' => 'Invited to an interview',
-            'subject' => 'Interview for {position} / Temu duga untuk {position}',
-            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Choose by the end of {deadline}. After that, the application closes.\n\n"
-                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Sila pilih tiga masa yang sesuai di halaman peribadi anda. Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.',
+            'subject' => 'Interview for {position}',
+            'body' => 'Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Choose by the end of {deadline}. After that, the application closes.',
         ],
         'not_taken_forward' => [
             'label' => 'Not taken forward',
-            'subject' => 'Your application for {position} / Permohonan anda untuk {position}',
-            'body' => "Thank you for your interest in {position}. We will not take your application forward this time. We wish you well.\n\n"
-                .'Terima kasih atas minat anda terhadap jawatan {position}. Kami tidak akan meneruskan permohonan anda kali ini. Kami doakan yang terbaik untuk anda.',
+            'subject' => 'Your application for {position}',
+            'body' => 'Thank you for your interest in {position}. We will not take your application forward this time. We wish you well.',
         ],
         'auto_rejected' => [
             'label' => 'Closed without a decision',
             // What the candidate's own list says: the email never tells them nobody decided (Suresh, HR-17b).
             'candidate_label' => 'Not taken forward',
-            'subject' => 'Your application for {position} / Permohonan anda untuk {position}',
-            'body' => "Thank you for applying for {position}. We are not able to take your application forward this time. You are welcome to apply again.\n\n"
-                .'Terima kasih kerana memohon jawatan {position}. Kami tidak dapat meneruskan permohonan anda kali ini. Anda dialu-alukan untuk memohon semula.',
+            'subject' => 'Your application for {position}',
+            'body' => 'Thank you for applying for {position}. We are not able to take your application forward this time. You are welcome to apply again.',
         ],
         'withdrawn' => [
             'label' => 'Withdrawn',
-            'subject' => 'Your application was withdrawn / Permohonan anda telah ditarik balik',
-            'body' => "Your application for {position} has been withdrawn, as you asked. Thank you for your interest.\n\n"
-                .'Permohonan anda untuk jawatan {position} telah ditarik balik seperti yang anda minta. Terima kasih atas minat anda.',
+            'subject' => 'Your application was withdrawn',
+            'body' => 'Your application for {position} has been withdrawn, as you asked. Thank you for your interest.',
         ],
         'passed' => [
             'label' => 'Passed the interview',
-            'subject' => 'Your interview for {position} / Temu duga anda untuk {position}',
-            'body' => "Thank you for attending the interview for {position}. We are pleased to tell you that you passed. The clinic will contact you about the next steps.\n\n"
-                .'Terima kasih kerana menghadiri temu duga untuk jawatan {position}. Dengan sukacitanya kami maklumkan bahawa anda lulus. Pihak klinik akan menghubungi anda tentang langkah seterusnya.',
+            'subject' => 'Your interview for {position}',
+            'body' => 'Thank you for attending the interview for {position}. We are pleased to tell you that you passed. The clinic will contact you about the next steps.',
         ],
         'failed' => [
             'label' => 'Did not pass the interview',
-            'subject' => 'Your interview for {position} / Temu duga anda untuk {position}',
-            'body' => "Thank you for attending the interview for {position}. We will not take your application further this time. We wish you well.\n\n"
-                .'Terima kasih kerana menghadiri temu duga untuk jawatan {position}. Kami tidak akan meneruskan permohonan anda kali ini. Kami doakan yang terbaik untuk anda.',
+            'subject' => 'Your interview for {position}',
+            'body' => 'Thank you for attending the interview for {position}. We will not take your application further this time. We wish you well.',
         ],
         'interview_confirmed' => [
             'label' => 'Interview time confirmed',
-            'subject' => 'Your interview on {date} / Temu duga anda pada {date}',
-            'body' => "Your interview for {position} is on {date} at {time}, at {clinic} {branch}. If you cannot come, you can withdraw on your private page.\n\n"
-                .'Temu duga anda untuk jawatan {position} adalah pada {date} jam {time}, di {clinic} {branch}. Jika anda tidak dapat hadir, anda boleh menarik balik permohonan di halaman peribadi anda.',
+            'subject' => 'Your interview on {date}',
+            'body' => 'Your interview for {position} is on {date} at {time}, at {clinic} {branch}. If you cannot come, you can withdraw on your private page.',
+            // HR-15e: an online interview gives the link HR typed instead of a branch.
+            'body_online' => 'Your interview for {position} is on {date} at {time}. It is online. Join with this link: {meeting} If you cannot come, you can withdraw on your private page.',
         ],
         'pick_again' => [
             'label' => 'Asked for new times',
-            'subject' => 'Please choose new interview times / Sila pilih masa temu duga yang baharu',
-            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.\n\n"
-                .'Masa yang anda pilih untuk jawatan {position} tidak sesuai dengan klinik. Sila pilih tiga masa baharu di halaman peribadi anda. Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.',
+            'subject' => 'Please choose new interview times',
+            'body' => 'The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.',
         ],
         'interview_cancelled' => [
             'label' => 'Interview cancelled',
-            'subject' => 'Your interview on {date} was cancelled / Temu duga anda pada {date} dibatalkan',
-            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.\n\n"
-                .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda. Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.',
+            'subject' => 'Your interview on {date} was cancelled',
+            'body' => 'Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.',
         ],
         'pool_invited' => [
             'label' => 'Invited from the talent pool',
-            'subject' => 'A new opening: {position} / Jawatan baharu: {position}',
+            'subject' => 'A new opening: {position}',
             'body' => "You asked us to keep your details for future openings. We would like to consider you for {position} at {clinic}, using the answers and CV you sent before. We will call you first. You can follow this application, or withdraw it, with your new private link below.\n\n"
-                ."Anda meminta kami menyimpan butiran anda untuk jawatan akan datang. Kami ingin mempertimbangkan anda untuk jawatan {position} di {clinic}, menggunakan jawapan dan CV yang anda hantar sebelum ini. Kami akan menghubungi anda dahulu. Anda boleh mengikuti permohonan ini, atau menariknya balik, melalui pautan peribadi baharu anda di bawah.\n\n"
-                .'Your private link / Pautan peribadi anda: {link}',
+                .'Your private link: {link}',
         ],
         'auto_reject_reminder' => [
             'label' => 'Reminder',
@@ -105,27 +93,28 @@ final class HiringTemplates
         ],
     ];
 
-    public const FOOTER = 'This is an automatic message from KPOne for Klinik Putrijaya. Mesej ini dihantar secara automatik.';
+    public const FOOTER = 'This is an automatic message from KPOne for Klinik Putrijaya.';
 
     /** What a candidate sees in place of the private link when an email is shown again (the token is never kept). */
-    public const LINK_SHOWN_ONCE = 'shown once, when you applied / ditunjukkan sekali, semasa anda memohon';
+    public const LINK_SHOWN_ONCE = 'shown once, when you applied';
 
     /** HR-17e: the same for an invitation from the talent pool, whose link went only in that message. */
-    public const LINK_IN_INVITATION = 'sent once, with the invitation / dihantar sekali, bersama jemputan';
+    public const LINK_IN_INVITATION = 'sent once, with the invitation';
 
     /** @var array<string, string> each placeholder and the only shape its value may take */
     public const PLACEHOLDERS = [
         'position' => '/\A[^\r\n<>{}]{3,80}\z/u',
         'clinic' => '/\AKlinik Putrijaya\z/',
-        'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon|sent once, with the invitation \/ dihantar sekali, bersama jemputan)\z/',
+        'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied|sent once, with the invitation)\z/',
         'reference' => '/\A[0-9A-F]{8}\z/',
         'stage' => '/\A(New|Phone screening)\z/',
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
         'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
         'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',
-        // The last day to choose interview times, as on the candidate's page (Daniel): English and Malay weekday, same date.
+        // HR-15e: the video link HR typed for an online interview.
+        'meeting' => '/\Ahttps:\/\/[^\s<>{}"]{1,492}\z/u',
+        // The last day to choose interview times, as on the candidate's page (Daniel): one date.
         'deadline' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/',
-        'tarikh' => '/\A(Isnin|Selasa|Rabu|Khamis|Jumaat|Sabtu|Ahad) \d{1,2} [A-Z][a-z]{2} \d{4}\z/',
     ];
 
     public static function label(string $template): string
@@ -148,12 +137,15 @@ final class HiringTemplates
     public static function render(string $template, array $params): array
     {
         $fixed = self::TEMPLATES[$template] ?? throw new InvalidArgumentException('Unknown hiring template.');
+        if (isset($params['meeting'], $fixed['body_online'])) {
+            $fixed['body'] = $fixed['body_online'];
+        }
         $params = [...(str_contains($fixed['body'], '{clinic}') ? ['clinic' => self::CLINIC] : []), ...$params];
         // With no deadline (the branch has no working days set, so nothing will close the application), the deadline
         // sentences are left out rather than promising a date.
-        if (str_contains($fixed['body'], '{deadline}') && ! isset($params['deadline'], $params['tarikh'])) {
-            unset($params['deadline'], $params['tarikh']);
-            $fixed['body'] = str_replace([' '.self::DEADLINE_EN, ' '.self::DEADLINE_MS], '', $fixed['body']);
+        if (str_contains($fixed['body'], '{deadline}') && ! isset($params['deadline'])) {
+            unset($params['deadline']);
+            $fixed['body'] = str_replace(' '.self::DEADLINE_EN, '', $fixed['body']);
         }
         preg_match_all('/\{([a-z]+)\}/', $fixed['subject'].' '.$fixed['body'], $m);
         $needed = array_values(array_unique($m[1]));

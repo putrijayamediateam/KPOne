@@ -10,7 +10,6 @@ use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Inventory\Models\StockRequestLine;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -52,37 +51,86 @@ final class StockRequestService
         private InventoryAuthorityService $authority,
         private InventoryMovementService $movements,
         private AuditRecorder $audit,
+        private InventoryBatchEligibility $eligibility,
     ) {}
 
+    /**
+     * STK-41: the stock request an approved agent transfer suggestion prepares. The same checks, locks and audit as `create`, as
+     * the approving person; the suggestion's id is kept as a trail only (never trusted for anything else), and the request then
+     * needs someone other than its requester to approve it (owner decision 2, 18 Nov 2026).
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function createFromProposal(User $approver, int $aiProposalId, array $attributes): StockRequest
+    {
+        return $this->create($approver, $attributes, $aiProposalId);
+    }
+
     /** @param array<string, mixed> $attributes */
-    public function create(User $actor, array $attributes): StockRequest
+    public function create(User $actor, array $attributes, ?int $aiProposalId = null): StockRequest
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
         $lines = $this->validateRequestLines($attributes['lines'] ?? null);
+        // STK-39: an optional retry key. With one, a double press or a retry returns the request already made; without
+        // one (older callers), nothing changes.
+        $retryKey = $attributes['retry_key'] ?? null;
+        if ($retryKey !== null && (! is_string($retryKey) || ! Str::isUuid($retryKey))) {
+            throw ValidationException::withMessages(['retry_key' => 'The request key is missing. Reload the page and try again.']);
+        }
+        $retryKey = $retryKey === null ? null : Str::lower($retryKey);
+        $hash = $retryKey === null ? null : $this->fingerprint(['create', $branch->id, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''), $lines]);
 
-        return DB::transaction(function () use ($actor, $attributes, $branch, $lines): StockRequest {
+        return DB::transaction(function () use ($actor, $attributes, $branch, $lines, $retryKey, $hash, $aiProposalId): StockRequest {
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
+            // Checked under the actor lock, so a concurrent replay of the same key waits and then replays; the unique index
+            // on (organisation_id, retry_key) is the backstop.
+            if ($retryKey !== null) {
+                $earlier = StockRequest::query()->where('organisation_id', $lockedActor->organisation_id)->where('retry_key', $retryKey)->first();
+                if ($earlier !== null) {
+                    if ((int) $earlier->requested_by_user_id !== $lockedActor->id || ! hash_equals((string) $earlier->payload_hash, (string) $hash)) {
+                        throw ValidationException::withMessages(['retry_key' => 'This request key was already used for a different stock request. Reload the page and try again.']);
+                    }
+
+                    return $earlier->load('lines');
+                }
+            }
             [$source, $destination] = $this->lockLocations($lockedActor, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertSourceAuthority($lockedActor, $branch, $source);
-            $this->assertDestinationAuthority($lockedActor, $branch, $destination);
+            $this->assertRequestDestination($lockedActor, $branch, $source, $destination);
             // STK-11: a two-stage transfer never touches a patient returns location.
             if (in_array(InventoryLocation::TYPE_DISPENSARY_RETURNS, [$source->type, $destination->type], true)) {
                 throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
             }
             $skus = InventorySku::query()->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->whereIn('public_id', array_column($lines, 'sku_public_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('public_id');
             abort_unless($skus->count() === count($lines), 404);
+            // STK-31 (Daniel): a cross-branch request never sends more than this location can spare (usable stock above
+            // its own maximum or reorder level, less what is already waiting to be sent). Same-branch requests are unchanged.
+            if ($source->branch_id !== null && $destination->branch_id !== null && $destination->branch_id !== $source->branch_id) {
+                $spare = app(BranchReplenishmentService::class)->spareAt($lockedActor, $branch, $source->id, array_values(array_map(fn (InventorySku $sku): int => (int) $sku->id, $skus->all())));
+                foreach ($lines as $index => $input) {
+                    $available = $spare[(int) $skus[$input['sku_public_id']]->id] ?? 0;
+                    if (StockUnitQuantity::scaled($input['quantity'], true) > $available) {
+                        throw ValidationException::withMessages(["lines.$index.quantity" => 'This branch can spare '.rtrim(rtrim(StockUnitQuantity::format(intdiv($available, 1000) * 1000), '0'), '.').' of this item. Lower the quantity.']);
+                    }
+                }
+            }
             $request = new StockRequest;
             $request->forceFill([
                 'public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'requesting_branch_id' => $branch->id,
                 'source_location_id' => $source->id, 'destination_location_id' => $destination->id,
                 'request_number' => 'SR-'.now()->utc()->format('Ym').'-'.Str::upper(Str::random(8)), 'status' => StockRequest::STATUS_REQUESTED,
                 'lock_version' => 1, 'requested_by_user_id' => $lockedActor->id, 'requested_at' => now()->utc(),
+                'retry_key' => $retryKey, 'payload_hash' => $hash, 'ai_proposal_id' => $aiProposalId,
             ])->save();
             foreach ($lines as $input) {
                 $line = new StockRequestLine;
                 $line->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'stock_request_id' => $request->id, 'inventory_sku_id' => $skus[$input['sku_public_id']]->id, 'requested_quantity' => $input['quantity']])->save();
             }
-            $this->audit->record('inventory.stock_request.requested', $request, ['request_number' => $request->request_number, 'line_count' => count($lines)], $lockedActor, $branch);
+            $this->audit->record('inventory.stock_request.requested', $request, ['request_number' => $request->request_number, 'line_count' => count($lines),
+                // STK-31: a request may now send stock to another branch; the audit names where it goes.
+                'destination_branch_id' => $destination->branch_id, 'cross_branch' => $destination->branch_id !== null && $destination->branch_id !== $branch->id,
+                // STK-41: a request prepared from an agent suggestion says so (ids and codes only).
+                ...($aiProposalId === null ? [] : ['source' => 'ai_proposal', 'ai_proposal_id' => $aiProposalId])], $lockedActor, $branch);
 
             return $request->load('lines');
         }, 3);
@@ -138,6 +186,7 @@ final class StockRequestService
                 $plans[] = ['line' => $line, 'input' => $input];
             }
             usort($plans, fn (array $left, array $right): int => $left['line']->inventory_sku_id <=> $right['line']->inventory_sku_id);
+            $sourceBranch = $source->branch_id === null ? $branch : Branch::query()->findOrFail($source->branch_id);
             $skus = InventorySku::query()->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->whereIn('id', array_map(fn (array $plan): int => $plan['line']->inventory_sku_id, $plans))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             abort_unless($skus->count() === count($plans), 404);
             foreach ($plans as $plan) {
@@ -145,9 +194,13 @@ final class StockRequestService
                 $input = $plan['input'];
                 $sku = $skus->get($line->inventory_sku_id);
                 abort_unless($sku !== null, 404);
-                $batch = InventoryBatch::query()->where('public_id', $input['batch_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->where('status', InventoryBatch::STATUS_AVAILABLE)->lockForUpdate()->firstOrFail();
-                if (CarbonImmutable::parse($batch->expiry_date)->toDateString() <= now()->setTimezone($branch->timezone)->toDateString()) {
-                    throw ValidationException::withMessages(['lines' => 'Expired stock cannot be dispatched.']);
+                $batch = InventoryBatch::query()->where('public_id', $input['batch_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();
+                // STK-37: a stock request sends stock towards use, so it takes only usable stock, by the STK-2 rule
+                // dispensing uses, at the source's branch. Stock in an organisation store has no branch, so the
+                // active branch's date applies and no branch hold can.
+                $problem = $this->eligibility->problem($lockedActor->organisation_id, $sourceBranch, $batch->id, $source->branch_id !== null);
+                if ($problem !== null) {
+                    throw ValidationException::withMessages(['lines' => $sku->sku_code.': this batch can\'t be sent: '.$problem.'. Write it off, or move it to a store at this branch.']);
                 }
                 $this->movements->recordTransferDispatch($lockedActor, $source, $sku, $batch, $input['quantity'], $locked->public_id);
                 $line->forceFill(['inventory_batch_id' => $batch->id, 'dispatched_quantity' => $input['quantity']])->save();
@@ -357,10 +410,17 @@ final class StockRequestService
             $locked = $this->lockRequest($lockedActor, $request, $attributes);
             abort_unless($locked->requesting_branch_id === $branch->id, 404);
             $this->requireStatus($locked, StockRequest::STATUS_REQUESTED);
+            // STK-41 (owner decision 2): a request prepared from an agent suggestion never approves itself (PostgreSQL repeats this).
+            if ($status === StockRequest::STATUS_APPROVED && $locked->ai_proposal_id !== null && (int) $locked->requested_by_user_id === $lockedActor->id) {
+                throw new AuthorizationException('This request was prepared from a suggestion you approved, so someone else must approve it.');
+            }
             if ($status === StockRequest::STATUS_APPROVED) {
                 [$source, $destination] = $this->lockStoredLocations($lockedActor, $locked);
                 $this->assertSourceAuthority($lockedActor, $branch, $source);
-                $this->assertDestinationAuthority($lockedActor, $branch, $destination);
+                $this->assertRequestDestination($lockedActor, $branch, $source, $destination);
+                if ($destination->type === InventoryLocation::TYPE_DISPENSARY_RETURNS) {
+                    throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
+                }
             }
             $locked->forceFill(['status' => $status, 'decided_by_user_id' => $lockedActor->id, 'decided_at' => now()->utc(), 'rejection_reason' => $reason, 'lock_version' => $locked->lock_version + 1])->save();
             $this->audit->record('inventory.stock_request.'.$status, $locked, ['from' => StockRequest::STATUS_REQUESTED, 'to' => $status], $lockedActor, $branch);
@@ -391,6 +451,10 @@ final class StockRequestService
     /** @return array{InventoryLocation,InventoryLocation} */
     private function lockLocations(User $actor, string $sourcePublicId, string $destinationPublicId): array
     {
+        // The same location twice is a mistake the person can fix, so it gets a reason, not a "not found" page.
+        if ($sourcePublicId !== '' && $sourcePublicId === $destinationPublicId) {
+            throw ValidationException::withMessages(['destination_location_public_id' => 'Choose a different location from the one you take from.']);
+        }
         $locations = InventoryLocation::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->whereIn('public_id', [$sourcePublicId, $destinationPublicId])->orderBy('id')->lockForUpdate()->get();
         $source = $locations->firstWhere('public_id', $sourcePublicId);
         $destination = $locations->firstWhere('public_id', $destinationPublicId);
@@ -421,6 +485,26 @@ final class StockRequestService
             return;
         }
         abort_unless($source->branch_id === $branch->id, 404);
+    }
+
+    /**
+     * STK-31 (approved by B.E.R.N.I.S.S for the owner): the branch that holds the stock may send it to another branch of
+     * the same organisation, from its own location. The source stays at the requester's own branch (assertSourceAuthority) and only the
+     * destination branch's own receivers receive it (assertDestinationAuthority at receive). The organisation is enforced
+     * by the location foreign keys; the returns rule by the callers and PostgreSQL.
+     */
+    private function assertRequestDestination(User $actor, Branch $branch, InventoryLocation $source, InventoryLocation $destination): void
+    {
+        // Only a branch sending its own stock may point at another branch. Warehouse stock keeps the old rule (the
+        // destination is the requester's own branch or the warehouse), so no warehouse holder sends to any branch.
+        if ($destination->branch_id === null || $source->branch_id === null) {
+            $this->assertDestinationAuthority($actor, $branch, $destination);
+
+            return;
+        }
+        abort_unless($destination->organisation_id === $actor->organisation_id, 404);
+        // A branch that is no longer active never receives.
+        abort_unless(Branch::query()->whereKey($destination->branch_id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->exists(), 404);
     }
 
     private function assertDestinationAuthority(User $actor, Branch $branch, InventoryLocation $destination): void

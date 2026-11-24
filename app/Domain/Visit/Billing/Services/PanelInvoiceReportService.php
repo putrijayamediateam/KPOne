@@ -59,12 +59,13 @@ final class PanelInvoiceReportService
             $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
             $current = min(max(1, $page), $lastPage);
 
-            return $base + [
+            // array_merge, not +: `+` keeps the left `downloadUrl => null` and the page never got a download link.
+            return array_merge($base, [
                 'ready' => true,
                 'rows' => array_slice($rows, ($current - 1) * self::PER_PAGE, self::PER_PAGE),
                 'total' => $total, 'currentPage' => $current, 'lastPage' => $lastPage, 'truncated' => $truncated,
                 'downloadUrl' => route('panel-invoices.download', $filters['query']),
-            ];
+            ]);
         });
     }
 
@@ -91,18 +92,27 @@ final class PanelInvoiceReportService
                 'treatment_filter' => $filters['echo']['treatment'] !== '' && $actor->can('panel.claims.clinical_filters.branch'),
             ], $actor, $branch);
 
-            $table = [['Invoice number', 'Visit number', 'Visit date', 'Visit time', 'Patient name', 'Member reference', 'Panel', 'Doctor', 'Visit type', 'Invoice total (RM)', 'Panel amount (RM)', 'Claim number', 'Claim status']];
+            $table = [['Invoice number', 'Visit number', 'Visit date', 'Visit time', 'Patient name', 'Member reference', 'Panel', 'Doctor', 'Visit type', 'Invoice total (RM)', 'Panel amount (RM)', 'Panel adjustment, included in Panel amount (RM)', 'Claim number', 'Claim status']];
             foreach ($rows as $row) {
                 $table[] = [
                     $row['invoiceNumber'], $row['visitNumber'], $row['visitDate'], $row['visitTime'], $row['patientName'],
                     $row['memberReference'], $row['panelName'], $row['doctorName'], $row['visitType'],
                     number_format($row['invoiceTotalSen'] / 100, 2, '.', ''), number_format($row['panelAmountSen'] / 100, 2, '.', ''),
-                    $row['claimNo'], $row['claimStatus'],
+                    number_format($row['panelAdjustmentSen'] / 100, 2, '.', ''), $row['claimNo'], $row['claimStatus'],
                 ];
             }
 
             return ['panel-invoices-'.CarbonImmutable::now($branch->timezone)->format('Ymd').'.csv', $table, count($rows)];
         });
+    }
+
+    /**
+     * PCA-3: a plain money figure (such as a Panel adjustment of -5.00) is a number, not a formula, so it is written
+     * as it is; every other cell goes through safeCell().
+     */
+    public static function csvCell(string $value): string
+    {
+        return preg_match('/\A-?\d+\.\d{2}\z/', $value) === 1 ? $value : self::safeCell($value);
     }
 
     /** A spreadsheet reads a leading = + - @ as a formula, so such cells are neutralised. */
@@ -125,7 +135,8 @@ final class PanelInvoiceReportService
             ->leftJoin('users as d', function ($join): void {
                 $join->on('d.id', '=', 'v.assigned_doctor_user_id')->on('d.organisation_id', '=', 'v.organisation_id');
             })
-            ->leftJoin('panel_claims as pc', 'pc.coverage_allocation_id', '=', 'c.id')
+            // PCA-2: the original claim only, so a supplementary claim never doubles the row (its column comes with the reports PR).
+            ->leftJoin('panel_claims as pc', fn ($j) => $j->on('pc.coverage_allocation_id', '=', 'c.id')->where('pc.claim_kind', 'original'))
             ->where('c.organisation_id', $actor->organisation_id)->where('c.branch_id', $branch->id)
             ->where('c.status', 'approved')
             ->whereColumn('c.current_invoice_guard', 'i.id')->whereColumn('c.invoice_id', 'i.id')
@@ -145,10 +156,13 @@ final class PanelInvoiceReportService
         $this->directory->applyClinicalFilters($query, 'v.id', $actor, $branch, ['treatment' => $filters['echo']['treatment']]);
 
         // PNL-15: the invoice total is the payable total after any discount or surcharge, as on the invoice and the claim.
+        // PCA-3: the invoice total and the Panel amount are the current figures, including confirmed Panel claim
+        // adjustments; the adjustment also has its own column.
         $found = $query->orderBy('v.registered_at')->orderBy('c.id')->limit(self::MAX_ROWS + 1)->get([
             'i.invoice_number', 'v.visit_number', 'v.visit_type', 'v.registered_at', 'p.full_name as patient_name',
-            'c.member_reference', 'c.panel_name_snapshot', 'c.amount_sen', 'd.name as doctor_name',
-            DB::raw('kpone_invoice_payable(i.id) as payable_sen'),
+            'c.member_reference', 'c.panel_name_snapshot', 'd.name as doctor_name',
+            DB::raw('kpone_invoice_payable_effective(i.id) as payable_sen'), DB::raw('kpone_panel_effective(i.id) as panel_sen'),
+            DB::raw('kpone_panel_adjustment_sum(i.id) as adjustment_sen'),
             'pc.id as claim_id', 'pc.status as claim_status',
         ]);
         $truncated = $found->count() > self::MAX_ROWS;
@@ -165,7 +179,7 @@ final class PanelInvoiceReportService
                 'patientName' => (string) $row->patient_name, 'memberReference' => (string) ($row->member_reference ?? ''),
                 'panelName' => (string) $row->panel_name_snapshot, 'doctorName' => (string) ($row->doctor_name ?? ''),
                 'visitType' => $row->visit_type === 'otc' ? 'OTC' : 'Consultation',
-                'invoiceTotalSen' => (int) $row->payable_sen, 'panelAmountSen' => (int) $row->amount_sen,
+                'invoiceTotalSen' => (int) $row->payable_sen, 'panelAmountSen' => (int) $row->panel_sen, 'panelAdjustmentSen' => (int) $row->adjustment_sen,
                 'claimNo' => $row->claim_id === null ? '' : (string) $row->claim_id,
                 'claimStatus' => $row->claim_status === null ? 'No claim' : ucfirst(str_replace('_', ' ', (string) $row->claim_status)),
             ];

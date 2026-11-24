@@ -82,34 +82,31 @@ export const validateApplicationStep = (
 
     if (step === 1) {
         if (!v.position) {
-            errors.position =
-                'Choose the position you are applying for. / Pilih jawatan yang anda mohon.';
+            errors.position = 'Choose the position you are applying for.';
         }
 
         const name = clean(v.name);
 
         if (name.length < 2 || name.length > 100) {
-            errors.name =
-                'Enter your name (2 to 100 characters). / Masukkan nama anda (2 hingga 100 aksara).';
+            errors.name = 'Enter your name (2 to 100 characters).';
         }
 
         if (!/^\+?[0-9][0-9 -]{6,18}[0-9]$/.test(clean(v.phone))) {
             errors.phone =
-                'Enter a phone number we can call, for example 012-345 6789. / Masukkan nombor telefon yang boleh dihubungi, contohnya 012-345 6789.';
+                'Enter a phone number we can call, for example 012-345 6789.';
         }
 
         const email = clean(v.email);
 
         if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             errors.email =
-                'Enter an email address, for example name@example.com. / Masukkan alamat e-mel, contohnya nama@example.com.';
+                'Enter an email address, for example name@example.com.';
         }
     }
 
     if (step === 2) {
         if (!v.preferred_branch) {
-            errors.preferred_branch =
-                'Choose a branch, or "Any branch". / Pilih cawangan, atau "Mana-mana cawangan".';
+            errors.preferred_branch = 'Choose a branch, or "Any branch".';
         }
 
         if (
@@ -118,12 +115,11 @@ export const validateApplicationStep = (
             v.start_date > shiftDate(today, 0, 1)
         ) {
             errors.start_date =
-                'Enter the earliest date you can start, within the next year. / Masukkan tarikh terawal anda boleh mula, dalam tempoh setahun.';
+                'Enter the earliest date you can start, within the next year.';
         }
 
         if (!v.education) {
-            errors.education =
-                'Choose your highest education. / Pilih pendidikan tertinggi anda.';
+            errors.education = 'Choose your highest education.';
         }
 
         const yearsText = String(v.years_experience ?? '').trim();
@@ -136,23 +132,20 @@ export const validateApplicationStep = (
             years > 50
         ) {
             errors.years_experience =
-                'Enter your years of relevant work, from 0 to 50. / Masukkan tahun pengalaman kerja berkaitan, dari 0 hingga 50.';
+                'Enter your years of relevant work, from 0 to 50.';
         }
 
         if (!v.languages.length) {
-            errors.languages =
-                'Choose the languages you speak. / Pilih bahasa yang anda tuturkan.';
+            errors.languages = 'Choose the languages you speak.';
         }
 
         if (type === 'intern') {
             if (clean(v.institution).length < 2) {
-                errors.institution =
-                    'Enter your college or university. / Masukkan kolej atau universiti anda.';
+                errors.institution = 'Enter your college or university.';
             }
 
             if (clean(v.programme).length < 2) {
-                errors.programme =
-                    'Enter your course or programme. / Masukkan kursus atau program anda.';
+                errors.programme = 'Enter your course or programme.';
             }
 
             if (
@@ -162,7 +155,7 @@ export const validateApplicationStep = (
                 v.intern_from < today
             ) {
                 errors.intern_from =
-                    'Enter when your internship starts and ends. / Masukkan tarikh latihan industri anda bermula dan tamat.';
+                    'Enter when your internship starts and ends.';
             }
         }
 
@@ -171,14 +164,14 @@ export const validateApplicationStep = (
 
             if (length < 5 || length > 300) {
                 errors.availability =
-                    'Tell us the days and times you are usually free (5 to 300 characters). / Nyatakan hari dan masa anda biasanya lapang (5 hingga 300 aksara).';
+                    'Tell us the days and times you are usually free (5 to 300 characters).';
             }
         }
 
         if (type === 'resident_doctor') {
             if (!/^[0-9]{3,7}$/.test(clean(v.mmc_number))) {
                 errors.mmc_number =
-                    'Enter your MMC registration number (digits only). / Masukkan nombor pendaftaran MMC anda (nombor sahaja).';
+                    'Enter your MMC registration number (digits only).';
             }
 
             const yearText = String(v.apc_year ?? '').trim();
@@ -190,25 +183,22 @@ export const validateApplicationStep = (
                 year < thisYear - 1 ||
                 year > thisYear + 1
             ) {
-                errors.apc_year =
-                    'Enter the year of your current APC. / Masukkan tahun APC semasa anda.';
+                errors.apc_year = 'Enter the year of your current APC.';
             }
 
             if (!iso.test(v.apc_expiry)) {
-                errors.apc_expiry =
-                    'Enter the date your APC expires. / Masukkan tarikh APC anda tamat.';
+                errors.apc_expiry = 'Enter the date your APC expires.';
             }
         }
 
         if (v.message.trim().length > 1000) {
-            errors.message =
-                'Use at most 1,000 characters. / Gunakan tidak lebih 1,000 aksara.';
+            errors.message = 'Use at most 1,000 characters.';
         }
     }
 
     if (step === 3 && !v.privacy_accepted) {
         errors.privacy_accepted =
-            'Read the privacy notice and tick the box to apply. / Baca notis privasi dan tandakan kotak untuk memohon.';
+            'Read the privacy notice and tick the box to apply.';
     }
 
     return errors;

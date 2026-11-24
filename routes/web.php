@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AgentAssistantController;
+use App\Http\Controllers\AgentChatController;
 use App\Http\Controllers\AgentDailySummaryController;
 use App\Http\Controllers\AgentInboxController;
 use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AgentRegistryController;
+use App\Http\Controllers\ApprovalsController;
+use App\Http\Controllers\AskThroughClaudeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -14,11 +17,11 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchReplenishmentController;
 use App\Http\Controllers\BranchReportController;
 use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\CatalogueOptionController;
-use App\Http\Controllers\CataloguePanelController;
 use App\Http\Controllers\CatalogueSetupReferenceController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
@@ -29,13 +32,18 @@ use App\Http\Controllers\ClinicianCredentialController;
 use App\Http\Controllers\ClinicInsightsController;
 use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
+use App\Http\Controllers\ConnectedAppsController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
+use App\Http\Controllers\ConsultationReviewController;
 use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
+use App\Http\Controllers\DispensaryDoctorCheckController;
+use App\Http\Controllers\DispensaryReviewController;
+use App\Http\Controllers\DispensarySettingsController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
@@ -45,8 +53,10 @@ use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
 use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
+use App\Http\Controllers\HR\LabourCostController as HrLabourCostController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
+use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OpenShiftsController as HrOpenShiftsController;
@@ -60,6 +70,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReadinessController;
+use App\Http\Controllers\InventoryRecallController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\InventoryScanController;
 use App\Http\Controllers\InventoryStockReviewController;
@@ -70,9 +81,16 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
+use App\Http\Controllers\MedicineSalesController;
+use App\Http\Controllers\MyDayController;
+use App\Http\Controllers\MyRoutineController;
+use App\Http\Controllers\OpeningImportController;
+use App\Http\Controllers\PanelClaimAdjustmentController;
+use App\Http\Controllers\PanelClaimPackCopiesController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
+use App\Http\Controllers\PanelPriceChangesController;
 use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
@@ -89,6 +107,7 @@ use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\PurchaseOrderPrintController;
+use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
@@ -98,13 +117,15 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
+use App\Http\Controllers\SalesTargetController;
 use App\Http\Controllers\SkuEditController;
 use App\Http\Controllers\SpaceAskController;
-use App\Http\Controllers\SpacePreferenceController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\StockHealthController;
+use App\Http\Controllers\StockValuationController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
@@ -113,6 +134,8 @@ use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
+use App\Http\Controllers\TriageController;
+use App\Http\Controllers\TriageGuidelineController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
@@ -125,6 +148,8 @@ use App\Http\Controllers\WebsitePeopleController;
 use App\Http\Controllers\WebsiteReleaseController;
 use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\AskClaudeEnabled;
+use App\Http\Middleware\ChatEnabled;
 use App\Http\Middleware\PrivateWebsiteRelease;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -164,6 +189,9 @@ Route::post('careers/status/leave-pool', [JobApplicationController::class, 'leav
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
+Route::post('careers/status/delete', [JobApplicationController::class, 'erase'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.delete');
 
 Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
@@ -193,14 +221,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('clinician-credentials/{subject}', [ClinicianCredentialController::class, 'save'])->whereNumber('subject')->middleware(['permission:clinician_credentials.manage.organisation', 'sensitive.no-store', 'throttle:20,1'])->name('clinician-credentials.save');
     Route::get('medical-certificate-templates', [ClinicianCredentialController::class, 'templates'])->middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->name('medical-certificate-templates.index');
 
-    // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
-    Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
+    // DS-1 department spaces. Classic only (CO-1, 19 Nov 2026): shown in the Classic layout and reached from the account
+    // menu's Spaces and Me rows; the "Try the new layout" switch (PUT spaces/preference) is gone.
     Route::post('spaces/{space}/ask', [SpaceAskController::class, 'ask'])->where('space', '[a-z_]+')->middleware(['sensitive.no-store', 'throttle:60,1'])->name('spaces.ask');
+    // DS-13: the Me home lives at /spaces/me; /me is a plain redirect to it.
+    Route::get('me', fn () => to_route('spaces.show', ['space' => 'me']))->middleware('sensitive.no-store')->name('me');
+    // APPR-1a: the number for the account button; read only, human accounts only.
+    Route::get('approvals', [ApprovalsController::class, 'index'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('approvals.index');
+    Route::get('approvals/count', [ApprovalsController::class, 'count'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('approvals.count');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');
+    // TRI-1b: the triage form (CA, CA Supervisor) and the guideline settings (Director, HR Manager). Classic only.
+    Route::middleware(['sensitive.no-store', 'permission:visits.triage.record.branch'])->group(function (): void {
+        Route::get('visits/{visit}/triage', [TriageController::class, 'show'])->name('visits.triage.show');
+        Route::post('visits/{visit}/triage', [TriageController::class, 'store'])->middleware('throttle:30,1')->name('visits.triage.store');
+    });
+    Route::prefix('triage-guideline')->controller(TriageGuidelineController::class)
+        ->middleware(['sensitive.no-store', 'permission:triage.guideline.manage.organisation'])->group(function (): void {
+            Route::get('/', 'index')->name('triage-guideline.index');
+            Route::post('/', 'store')->middleware('throttle:20,1')->name('triage-guideline.store');
+            Route::post('{version}/approve', 'approve')->whereNumber('version')->middleware('throttle:20,1')->name('triage-guideline.approve');
+            Route::post('{version}/discard', 'discard')->whereNumber('version')->middleware('throttle:20,1')->name('triage-guideline.discard');
+        });
 
     // HR-1 roster planner (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Roster.
     Route::prefix('hr/roster')->controller(RosterController::class)->middleware('sensitive.no-store')->group(function (): void {
@@ -229,13 +274,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
         ->middleware(['permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
 
+    // HR-18 labour cost (owner, 18 and 20 Nov 2026). Read-only branch-by-month aggregates; rules in app/Domain/HR/LabourCost.
+    Route::get('hr/labour-cost', [HrLabourCostController::class, 'index'])
+        ->middleware(['permission:hr.labour_cost.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.labour-cost.index');
+
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
+        // HR-PHOTO: a capture token when the camera opens, and the photo itself (own, or a reviewer's audited Show).
+        Route::post('capture', 'capture')->middleware(['permission:hr.attendance.clock.own', 'throttle:20,1'])->name('hr.attendance.capture');
+        Route::post('photo-notice', 'photoNotice')->middleware(['permission:hr.attendance.clock.own', 'throttle:20,1'])->name('hr.attendance.photo-notice');
+        Route::get('photos/{photo}/{size}', 'photo')->whereUuid('photo')
+            ->middleware(['same-origin.open', 'permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:240,1'])->name('hr.attendance.photo');
         Route::get('clock-state', 'clockState')->middleware(['permission:hr.attendance.clock.own', 'throttle:60,1'])->name('hr.attendance.clock-state');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
             Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
             Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');
+            Route::post('clock-out/undo', 'undoClockOut')->name('hr.attendance.clock-out.undo');
         });
         Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('corrections', 'propose')->name('hr.attendance.corrections.store');
@@ -401,6 +456,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('line-types', 'saveLineTypes')->name('hr.payroll.line-types.save');
             Route::post('runs', 'prepareRun')->name('hr.payroll.runs.prepare');
             Route::post('runs/{run}/manual/{line}/remove', 'removeManual')->whereUuid('run')->whereUuid('line')->name('hr.payroll.runs.manual.remove');
+            Route::post('runs/{run}/late/{source}', 'addLate')->whereUuid('run')->whereUuid('source')->name('hr.payroll.runs.late.add');
+            Route::post('runs/{run}/late/{lateItem}/remove', 'removeLate')->whereUuid('run')->whereUuid('lateItem')->name('hr.payroll.runs.late.remove');
             Route::post('runs/{run}/{step}', 'runStep')->whereUuid('run')->whereIn('step', ['again', 'mtd', 'manual', 'send', 'approve', 'return', 'lock'])->name('hr.payroll.runs.step');
         });
     });
@@ -435,6 +492,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/interview/confirm', 'confirmInterview')->whereUuid('application')->name('hr.applications.interview.confirm');
                 Route::post('{application}/interview/ask-again', 'askAgain')->whereUuid('application')->name('hr.applications.interview.ask-again');
                 Route::post('{application}/interview/cancel', 'cancelInterview')->whereUuid('application')->name('hr.applications.interview.cancel');
+                Route::post('{application}/extend-deadline', 'extendDeadline')->whereUuid('application')->name('hr.applications.extend-deadline');
                 Route::post('interview-documents', 'addDocument')->name('hr.applications.documents.store');
                 Route::post('interview-documents/{document}/remove', 'removeDocument')->whereUuid('document')->name('hr.applications.documents.remove');
                 // HR-17e talent pool and staff-account handoff.
@@ -442,6 +500,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/invite', 'invite')->whereUuid('application')->name('hr.applications.invite');
                 Route::post('{application}/account-request', 'requestAccount')->whereUuid('application')->name('hr.applications.account-request');
                 Route::post('account-requests/{accountRequest}/cancel', 'cancelAccountRequest')->whereUuid('accountRequest')->name('hr.applications.account-request.cancel');
+                // HR-15d: a passed Locum candidate becomes a locum file with a sign-in request.
+                Route::post('{application}/locum-file', 'makeLocumFile')->whereUuid('application')->name('hr.applications.locum-file');
                 Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });
@@ -524,6 +584,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    // HR-15g locum pay statement (owner, 18 Nov 2026): KPOne works out the statement and records a payment made outside it.
+    Route::prefix('hr/locum-pay')->controller(HrLocumPayController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.locum_pay.view.own,hr.locum_pay.manage.organisation,hr.locum_pay.finance.organisation')->name('hr.locum-pay.index');
+        Route::middleware(['permission:hr.locum_pay.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('locums/{worker}/rates', 'enterRate')->whereUuid('worker')->name('hr.locum-pay.rates.store');
+            Route::post('rates/{rate}/withdraw', 'withdrawRate')->whereUuid('rate')->name('hr.locum-pay.rates.withdraw');
+            Route::post('locums/{worker}/not-worked', 'markNotWorked')->whereUuid('worker')->name('hr.locum-pay.not-worked.store');
+            Route::post('not-worked/{exclusion}/remove', 'removeNotWorked')->whereUuid('exclusion')->name('hr.locum-pay.not-worked.remove');
+            Route::post('locums/{worker}/corrections', 'addCorrection')->whereUuid('worker')->name('hr.locum-pay.corrections.store');
+            Route::post('corrections/{correction}/remove', 'removeCorrection')->whereUuid('correction')->name('hr.locum-pay.corrections.remove');
+        });
+        Route::middleware(['permission:hr.locum_pay.finance.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('rates/{rate}/confirm', 'confirmRate')->whereUuid('rate')->name('hr.locum-pay.rates.confirm');
+            Route::post('rates/{rate}/reject', 'rejectRate')->whereUuid('rate')->name('hr.locum-pay.rates.reject');
+            Route::post('locums/{worker}/paid', 'markPaid')->whereUuid('worker')->name('hr.locum-pay.paid');
+        });
+    });
+
     Route::prefix('hr/incidents')->controller(HrIncidentsController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.incidents.report.own,hr.incidents.manage.organisation')->name('hr.incidents.index');
         Route::get('{incident}', 'show')->whereUuid('incident')
@@ -579,6 +657,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('types', 'saveType')->name('hr.leave.types.save');
             Route::put('entitlements', 'saveEntitlements')->name('hr.leave.entitlements.save');
             Route::post('grant', 'grant')->name('hr.leave.grant');
+            Route::post('defaults', 'defaults')->name('hr.leave.defaults');
             Route::post('carry-forward', 'carryForward')->name('hr.leave.carry-forward');
             Route::post('expire', 'expire')->name('hr.leave.expire');
             Route::put('working-days', 'workingDays')->name('hr.leave.working-days');
@@ -666,6 +745,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)
         ->middleware('permission:dashboard.view.own')
         ->name('dashboard');
+    // DAY-1a: My day, the person's own first page (the TV account is refused in the controller).
+    Route::get('my-day', [MyDayController::class, 'show'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('my-day');
+    // DAY-1b: the person's own routine (no route takes a user id; the TV account is refused in the service).
+    Route::post('my-day/routine', [MyRoutineController::class, 'store'])->middleware('throttle:30,1')->name('my-day.routine.store');
+    Route::post('my-day/routine/reorder', [MyRoutineController::class, 'reorder'])->middleware('throttle:30,1')->name('my-day.routine.reorder');
+    Route::patch('my-day/routine/{routineItem}', [MyRoutineController::class, 'rename'])->middleware('throttle:30,1')->name('my-day.routine.rename');
+    Route::post('my-day/routine/{routineItem}/hide', [MyRoutineController::class, 'hide'])->middleware('throttle:30,1')->name('my-day.routine.hide');
+    Route::post('my-day/routine/{routineItem}/restore', [MyRoutineController::class, 'restore'])->middleware('throttle:30,1')->name('my-day.routine.restore');
+    Route::put('my-day/routine/{routineItem}/tick', [MyRoutineController::class, 'tick'])->middleware('throttle:120,1')->name('my-day.routine.tick');
 
     Route::middleware('permission:visits.view.branch,queue.view.own,queue.view.branch')->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
@@ -709,6 +797,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('insights/sales-summary/download', [ClinicInsightsController::class, 'downloadSalesSummary'])
         ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.sales-summary.download');
+    // BIL-31: the Director and Finance overview, before the {section} route.
+    Route::get('insights/overview', [ClinicInsightsController::class, 'overview'])
+        ->middleware(['permission:insights.view.organisation', 'permission:insights.overview.view.organisation', 'sensitive.no-store'])
+        ->name('insights.overview');
     Route::get('insights/{section}', [ClinicInsightsController::class, 'report'])
         ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
@@ -723,6 +815,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.claim_payments.reverse.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'index'])->name('panel-payment-corrections.index');
         Route::post('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'store'])->middleware('throttle:10,1')->name('panel-payment-corrections.store');
+    });
+
+    Route::middleware(['permission:panel.prices.propose.organisation,panel.prices.approve.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-price-changes', [PanelPriceChangesController::class, 'index'])->name('panel-price-changes.index');
+        Route::post('panel-price-changes', [PanelPriceChangesController::class, 'store'])->middleware('throttle:20,1')->name('panel-price-changes.store');
+        Route::post('panel-price-changes/{proposal}/approve', [PanelPriceChangesController::class, 'approve'])->whereUuid('proposal')->middleware(['throttle:20,1', 'approvals.forget'])->name('panel-price-changes.approve');
+        Route::post('panel-price-changes/{proposal}/reject', [PanelPriceChangesController::class, 'reject'])->whereUuid('proposal')->middleware(['throttle:20,1', 'approvals.forget'])->name('panel-price-changes.reject');
+        Route::post('panel-price-changes/{proposal}/withdraw', [PanelPriceChangesController::class, 'withdraw'])->whereUuid('proposal')->middleware('throttle:20,1')->name('panel-price-changes.withdraw');
     });
 
     Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
@@ -746,13 +846,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
+    // PCA-2: Panel claim adjustments (request and withdraw need the request permission; confirm needs the confirm permission).
+    Route::post('panel-claims/allocations/{allocation}/adjustments', [PanelClaimAdjustmentController::class, 'request'])->middleware(['permission:panel.claims.adjustments.request.branch', 'throttle:20,1'])->name('panel-claim-adjustments.request');
+    Route::post('panel-claim-adjustments/{adjustment}/confirm', [PanelClaimAdjustmentController::class, 'confirm'])->whereUuid('adjustment')->middleware(['permission:panel.claims.adjustments.confirm.branch', 'throttle:20,1'])->name('panel-claim-adjustments.confirm');
+    Route::post('panel-claim-adjustments/{adjustment}/withdraw', [PanelClaimAdjustmentController::class, 'withdraw'])->whereUuid('adjustment')->middleware(['permission:panel.claims.adjustments.request.branch', 'throttle:20,1'])->name('panel-claim-adjustments.withdraw');
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
         Route::get('panel-claims/follow-up', [PanelClaimsController::class, 'followUp'])->name('panel-claims.follow-up');
         Route::get('panel-claims/pack', [PanelClaimsController::class, 'pack'])->middleware('throttle:30,1')->name('panel-claims.pack');
+        // PNL-25: recorded, frozen claim packs (the live pack above stays as a preview).
+        Route::post('panel-claims/pack/issue', [PanelClaimPackCopiesController::class, 'issue'])->middleware('throttle:30,1')->name('panel-claims.pack.issue');
+        Route::post('panel-claims/pack/copies/{document}/reprint', [PanelClaimPackCopiesController::class, 'reprint'])->whereUuid('document')->middleware('throttle:30,1')->name('panel-claims.pack.reprint');
+        Route::get('panel-claims/pack/copies/{print}', [PanelClaimPackCopiesController::class, 'show'])->whereUuid('print')->middleware('throttle:60,1')->name('panel-claims.pack.copy');
         Route::get('panel-claims/pack/logo/{asset}', [PanelClaimsController::class, 'packLogo'])->whereUuid('asset')->name('panel-claims.letterhead-logo');
         Route::get('panel-claims/allocations/{allocation}/create', [PanelClaimsController::class, 'create'])->name('panel-claims.create');
         Route::post('panel-claims/allocations/{allocation}', [PanelClaimsController::class, 'store'])->middleware('throttle:20,1')->name('panel-claims.store');
+        Route::post('panel-claims/auto-create', [PanelClaimsController::class, 'autoCreate'])->middleware('throttle:10,1')->name('panel-claims.auto-create');
         Route::post('panel-claims/bulk', [PanelClaimsController::class, 'bulkStore'])->middleware('throttle:10,1')->name('panel-claims.bulk-store');
         Route::post('panel-claims/allocations/{allocation}/prepare', [PanelClaimsController::class, 'prepare'])->name('panel-claims.prepare');
         Route::get('panel-claims/{claim}', [PanelClaimsController::class, 'show'])->name('panel-claims.show');
@@ -891,17 +1000,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'print'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.print');
         Route::post('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'recordPrint'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print.record');
         Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
+        Route::post('inventory/controlled-register/{sku}/checks/{check}/reason', [ControlledRegisterController::class, 'addReason'])->whereUuid('sku')->whereUuid('check')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.reason');
+        Route::get('inventory/stock-value/journal', [StockValuationController::class, 'journal'])->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:10,1'])->name('inventory.stock-value.journal');
+        Route::get('inventory/stock-value', StockValuationController::class)->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.stock-value');
+        Route::get('inventory/medicine-sales', MedicineSalesController::class)->middleware(['permission:inventory.medicine_sales.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.medicine-sales');
+        Route::get('inventory/recalls', [InventoryRecallController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.recalls');
+        Route::get('inventory/recalls/batches', [InventoryRecallController::class, 'batches'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.recalls.batches');
+        Route::post('inventory/recalls', [InventoryRecallController::class, 'store'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.store');
+        Route::post('inventory/recalls/{recall}/lift', [InventoryRecallController::class, 'lift'])->whereUuid('recall')->middleware(['permission:inventory.recalls.lift.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.lift');
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
         Route::get('inventory/supplier-invoices', [SupplierInvoiceController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-invoices');
         Route::post('inventory/supplier-invoices', [SupplierInvoiceController::class, 'store'])->middleware(['permission:inventory.supplier_invoices.record.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-invoices.store');
-        Route::post('inventory/supplier-invoices/{supplierInvoice}/{decision}', [SupplierInvoiceController::class, 'decide'])->whereUuid('supplierInvoice')->whereIn('decision', ['accepted', 'rejected'])->middleware(['permission:inventory.supplier_invoices.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-invoices.decide');
+        Route::post('inventory/supplier-invoices/{supplierInvoice}/{decision}', [SupplierInvoiceController::class, 'decide'])->whereUuid('supplierInvoice')->whereIn('decision', ['accepted', 'rejected'])->middleware(['permission:inventory.supplier_invoices.approve.branch', 'sensitive.no-store', 'throttle:30,1', 'approvals.forget'])->name('inventory.supplier-invoices.decide');
         Route::post('inventory/supplier-return-groups', [SupplierReturnController::class, 'storeGroup'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.store');
         Route::post('inventory/supplier-return-groups/{group}/{action}', [SupplierReturnController::class, 'actGroup'])->whereNumber('group')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.act');
+        Route::get('inventory/purchase-requests', [PurchaseRequestController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.purchase-requests');
+        Route::post('inventory/purchase-requests', [PurchaseRequestController::class, 'store'])->middleware(['permission:inventory.purchase_requests.create.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.store');
+        Route::post('inventory/purchase-requests/{purchaseRequest}/{action}', [PurchaseRequestController::class, 'act'])->whereUuid('purchaseRequest')->whereIn('action', ['convert', 'reject', 'withdraw'])->middleware(['sensitive.no-store', 'throttle:30,1', 'approvals.forget'])->name('inventory.purchase-requests.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
+        Route::get('inventory/stock-health', [StockHealthController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-health');
+        Route::get('inventory/branch-replenishment', [BranchReplenishmentController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.branch-replenishment');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
+        // STK-52: pack conversions. Anyone who manages references proposes or withdraws; only a CA Supervisor or the Director checks.
+        Route::post('inventory/skus/{sku}/pack-conversions', [SkuEditController::class, 'proposeConversion'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.pack-conversions.store');
+        Route::post('inventory/pack-conversions/{conversion}/withdraw', [SkuEditController::class, 'withdrawConversion'])->whereUuid('conversion')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.pack-conversions.withdraw');
+        Route::post('inventory/pack-conversions/{conversion}/check', [SkuEditController::class, 'checkConversion'])->whereUuid('conversion')->middleware(['permission:inventory.pack_conversions.verify.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.pack-conversions.check');
+        Route::post('inventory/pack-conversions/{conversion}/refuse', [SkuEditController::class, 'refuseConversion'])->whereUuid('conversion')->middleware(['permission:inventory.pack_conversions.verify.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.pack-conversions.refuse');
         Route::get('inventory/supplier-terms', [SupplierTermsController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-terms');
         Route::post('inventory/supplier-terms', [SupplierTermsController::class, 'store'])->middleware(['permission:inventory.suppliers.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-terms.store');
         Route::put('inventory/supplier-terms/{term}', [SupplierTermsController::class, 'update'])->whereUuid('term')->middleware(['permission:inventory.suppliers.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-terms.update');
@@ -913,6 +1040,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
         Route::post('inventory/batch-holds/{batch}/{action}', [InventoryBatchHoldController::class, 'store'])->whereUuid('batch')->whereIn('action', ['place', 'release'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.batch-holds.store');
+        Route::get('inventory/opening-import', [OpeningImportController::class, 'index'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store'])->name('inventory.opening-import');
+        Route::get('inventory/opening-import/template', [OpeningImportController::class, 'template'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.opening-import.template');
+        Route::post('inventory/opening-import/check', [OpeningImportController::class, 'check'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.opening-import.check');
+        Route::post('inventory/opening-import', [OpeningImportController::class, 'store'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:10,1'])->name('inventory.opening-import.store');
         Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');
         Route::post('inventory/readiness/{kind}/{key}', [InventoryReadinessController::class, 'verify'])->whereIn('kind', ['unit', 'opening'])->whereUuid('key')->middleware('throttle:30,1')->name('inventory.readiness.verify');
         Route::post('inventory/readiness/barcode/{sku}', [InventoryReadinessController::class, 'barcode'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.readiness.barcode');
@@ -943,6 +1074,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/encounter', [ClinicalEncounterController::class, 'show'])
             ->middleware('permission:encounters.view.own')
             ->name('encounters.show');
+        // The Director's read-only consultation at any branch; every open recorded. GET only. {historicalVisit} is
+        // organisation-scoped (the {visit} binding only works inside the active branch).
+        Route::get('visits/{historicalVisit}/encounter/review', [ConsultationReviewController::class, 'show'])
+            ->middleware(['permission:consultations.view_readonly.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('encounters.review');
         Route::get('visits/{historicalVisit}/encounter/history', [ClinicalEncounterController::class, 'history'])
             ->middleware('permission:encounters.history.view.organisation')
             ->name('encounters.history.show');
@@ -1006,10 +1142,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('dispensary/{dispensaryCase}/returns/{returnPublicId}/check', [DispensaryController::class, 'checkReturn'])
             ->whereUuid(['dispensaryCase', 'returnPublicId'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:30,1'])->name('dispensary.returns.check');
         // DSP-7b: the branch list of returns waiting for a check (read only; the check stays on the case page).
+        // DSP-23: the doctor's check (owner decision 14; answers 10 to 13).
+        Route::get('dispensary/doctor-checks', [DispensaryDoctorCheckController::class, 'waiting'])
+            ->middleware(['permission:dispensary.doctor_check.override.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.doctor-checks');
+        Route::post('dispensary/{dispensaryCase}/send-for-check', [DispensaryDoctorCheckController::class, 'send'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.send-for-check');
+        Route::post('dispensary/{dispensaryCase}/doctor-check/verify', [DispensaryDoctorCheckController::class, 'verify'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.doctor_check.own,dispensary.doctor_check.override.branch', 'throttle:20,1'])->name('dispensary.doctor-check.verify');
+        Route::post('dispensary/{dispensaryCase}/doctor-check/send-back', [DispensaryDoctorCheckController::class, 'sendBack'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.doctor_check.own,dispensary.doctor_check.override.branch', 'throttle:20,1'])->name('dispensary.doctor-check.send-back');
+        Route::get('dispensary-settings', [DispensarySettingsController::class, 'show'])
+            ->middleware(['permission:dispensary.settings.manage.branch', 'sensitive.no-store'])->name('dispensary-settings.show');
+        Route::put('dispensary-settings', [DispensarySettingsController::class, 'update'])
+            ->middleware(['permission:dispensary.settings.manage.branch', 'throttle:20,1'])->name('dispensary-settings.update');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
+        // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
+        Route::get('dispensary/{dispensaryCase}/review', [DispensaryReviewController::class, 'show'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.view_readonly.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.review');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch,dispensary.view_readonly.branch')->name('dispensary.show');
 
         Route::get('visits/{visit}/invoice/activity', [InvoiceActivityController::class, 'completed'])
             ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])->name('visits.invoice.activity');
@@ -1039,6 +1191,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{invoice}/responsibility/{kind}', 'propose')->whereIn('kind', ['panel', 'deferment'])->middleware(['permission:coverage.propose.branch,outstanding.request.branch', 'throttle:20,1'])->name('billing.propose');
             Route::post('{invoice}/responsibility/{kind}/{proposal}/approve', 'approve')->whereIn('kind', ['panel', 'deferment'])->whereUuid('proposal')->middleware(['permission:coverage.approve.branch,outstanding.approve.branch', 'throttle:20,1'])->name('billing.approve');
             Route::post('{invoice}/payments/{payment}/reverse', 'reverse')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.reverse');
+            // BIL-32 (owner Q5 = A): a receipt of a locked day is reversed and refunded in one action.
+            Route::post('{invoice}/payments/{payment}/refund-with-reversal', 'refundWithReversal')->middleware(['permission:payments.reverse.branch', 'permission:payments.refunds.record.branch', 'throttle:10,1'])->name('billing.refund-with-reversal');
             Route::post('{invoice}/payments/{payment}/correct', 'correctReceipt')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.receipt.correct');
             Route::post('{invoice}/adjustments', 'adjustment')->middleware(['permission:billing.adjustments.add.branch', 'throttle:20,1'])->name('billing.adjustment');
             Route::post('{invoice}/adjustments/{adjustment}/reverse', 'reverseAdjustment')->whereUuid('adjustment')->middleware(['permission:billing.adjustments.reverse.branch', 'throttle:10,1'])->name('billing.adjustment.reverse');
@@ -1054,10 +1208,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('issued/{document}/reprint', 'reprintIssued')->whereUuid('document')->middleware(['permission:billing.print.branch', 'throttle:30,1'])->name('billing.issued.reprint');
             Route::get('issued/prints/{print}', 'showIssued')->whereUuid('print')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.issued.show');
         });
+        // DSP-26: the Resident Doctor previews labels view only; the print routes below stay print-permission only.
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch,dispensary.view_readonly.branch', 'throttle:30,1'])->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch,dispensary.view_readonly.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/labels/print', [DispensaryController::class, 'printLabels'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels.print');
         Route::post('dispensary/{dispensaryCase}/items/{itemPublicId}/label/print', [DispensaryController::class, 'printLabels'])
@@ -1108,6 +1263,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/purchase-orders/{purchaseOrder}/approve', [InventoryOperationsController::class, 'approvePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.approve');
         Route::post('inventory/purchase-orders/{purchaseOrder}/cancel', [InventoryOperationsController::class, 'cancelPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.cancel');
         Route::post('inventory/purchase-orders/{purchaseOrder}/close', [InventoryOperationsController::class, 'closePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.close');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/short-close', [InventoryOperationsController::class, 'shortClosePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.short-close');
         Route::post('inventory/purchase-orders/{purchaseOrder}/receipts', [InventoryOperationsController::class, 'receivePurchaseOrder'])->middleware(['permission:inventory.receiving.branch', 'throttle:30,1'])->name('inventory.purchase-orders.receipts.store');
         Route::post('inventory/purchase-orders/{purchaseOrder}/receiving-reviews', [InventoryOperationsController::class, 'requestReceivingReview'])->middleware(['permission:inventory.receiving.branch', 'throttle:30,1'])->name('inventory.receiving.reviews.store');
         Route::post('inventory/receiving-reviews/{review}/approve', [InventoryOperationsController::class, 'approveReceivingReview'])->whereUuid('review')->middleware(['permission:inventory.receiving.exceptions.approve.branch', 'throttle:20,1'])->name('inventory.receiving.reviews.approve');
@@ -1124,6 +1280,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stocktakes/{stocktake}/post', [InventoryOperationsController::class, 'postStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.post');
         Route::post('inventory/stocktakes/{stocktake}/cancel', [InventoryOperationsController::class, 'cancelStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.cancel');
         Route::post('inventory/adjustments', [InventoryOperationsController::class, 'adjustment'])->middleware(['permission:inventory.adjust.branch', 'throttle:20,1'])->name('inventory.adjustments.store');
+        Route::get('inventory/reorder-levels/current', [InventoryOperationsController::class, 'currentReorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:120,1'])->name('inventory.reorder-levels.current');
         Route::put('inventory/reorder-levels', [InventoryOperationsController::class, 'reorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:30,1'])->name('inventory.reorder-levels.update');
 
         Route::middleware(['permission:medicines.manage.organisation'])->prefix('medicines')->group(function () {
@@ -1156,8 +1313,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->where('type', '[a-z_]+')->middleware('throttle:60,1')->name('catalogue-options.index');
         Route::post('catalogue-options/{type}', [CatalogueOptionController::class, 'store'])
             ->where('type', '[a-z_]+')->middleware('throttle:30,1')->name('catalogue-options.store');
-        Route::post('catalogue-panels', [CataloguePanelController::class, 'store'])
-            ->middleware(['permission:pricing.references.manage.organisation', 'throttle:30,1'])->name('catalogue-panels.store');
         Route::post('catalogue-setup/suppliers', [CatalogueSetupReferenceController::class, 'storeSupplier'])
             ->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('catalogue-setup.suppliers.store');
         Route::post('catalogue-setup/locations', [CatalogueSetupReferenceController::class, 'storeLocation'])
@@ -1202,6 +1357,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('agents/daily-summary', [AgentDailySummaryController::class, 'index'])
             ->middleware(['permission:ai_daily_summary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('agents.daily-summary');
 
+        Route::middleware(['permission:ai_connector.use.organisation', 'sensitive.no-store'])->prefix('agents/connected-apps')->group(function () {
+            Route::get('/', [ConnectedAppsController::class, 'index'])->name('agents.connected-apps');
+            Route::delete('{client}', [ConnectedAppsController::class, 'destroy'])->whereUuid('client')->middleware('throttle:10,1')->name('agents.connected-apps.disconnect');
+        });
+
+        // CHAT-1: the AI chatbox (Director only). Behind its own kill switch: off means 404.
+        Route::middleware([ChatEnabled::class, 'permission:ai_chat.use.organisation', 'sensitive.no-store'])->prefix('agents/chat')->group(function () {
+            Route::get('/', [AgentChatController::class, 'state'])->middleware('throttle:60,1')->name('agents.chat.state');
+            Route::post('messages', [AgentChatController::class, 'ask'])->middleware('throttle:10,1')->name('agents.chat.ask');
+            Route::get('threads/{thread}', [AgentChatController::class, 'thread'])->whereNumber('thread')->middleware('throttle:60,1')->name('agents.chat.thread');
+            Route::post('threads/{thread}/archive', [AgentChatController::class, 'archive'])->whereNumber('thread')->middleware('throttle:30,1')->name('agents.chat.archive');
+            Route::middleware(['permission:ai_chat.history.view.organisation'])->group(function () {
+                Route::get('others', [AgentChatController::class, 'others'])->middleware('throttle:30,1')->name('agents.chat.others');
+                Route::get('others/{thread}', [AgentChatController::class, 'otherThread'])->whereNumber('thread')->middleware('throttle:30,1')->name('agents.chat.others.thread');
+            });
+        });
+
+        // CHAT-2: Ask through Claude (Director only). Behind its own kill switch: off means 404.
+        Route::middleware([AskClaudeEnabled::class, 'permission:ai_chat.use.organisation', 'sensitive.no-store'])->prefix('agents/ask')->group(function () {
+            Route::get('/', [AskThroughClaudeController::class, 'index'])->middleware('throttle:60,1')->name('agents.ask.index');
+            Route::post('/', [AskThroughClaudeController::class, 'store'])->middleware('throttle:10,1')->name('agents.ask.store');
+            Route::get('{code}', [AskThroughClaudeController::class, 'show'])->where('code', '[A-Za-z0-9]{10,12}')->middleware('throttle:60,1')->name('agents.ask.show');
+            Route::post('{code}/cancel', [AskThroughClaudeController::class, 'cancel'])->where('code', '[A-Za-z0-9]{10,12}')->middleware('throttle:30,1')->name('agents.ask.cancel');
+        });
+
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
             Route::get('/', [AgentRegistryController::class, 'index'])->name('agents.index');
             Route::get('office-feed', [AgentRegistryController::class, 'feed'])->middleware('throttle:30,1')->name('agents.office-feed');
@@ -1230,13 +1410,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [PaymentReconciliationController::class, 'index'])->name('payment-reconciliations.index');
             Route::post('/', [PaymentReconciliationController::class, 'store'])->middleware('throttle:20,1')->name('payment-reconciliations.store');
         });
-        Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
-            Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
-            Route::get('month', [CashClosingController::class, 'month'])->name('cash-closings.month');
-            Route::post('start-date', [CashClosingController::class, 'startDate'])->middleware(['permission:payments.cash_closing.start_date.manage.branch', 'throttle:20,1'])->name('cash-closings.start-date');
-            Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
+        // BIL-32: the pages open with counting or the Branch Manager's view-only permission; Approve needs only the approve
+        // permission (a Branch Manager approves but never counts); counting and the start date keep their permissions.
+        Route::middleware(['sensitive.no-store'])->prefix('cash-closings')->group(function () {
+            Route::get('/', [CashClosingController::class, 'index'])->middleware('permission:payments.reconcile.branch,payments.cash_closing.view.branch')->name('cash-closings.index');
+            Route::get('month', [CashClosingController::class, 'month'])->middleware('permission:payments.reconcile.branch,payments.cash_closing.view.branch')->name('cash-closings.month');
+            Route::post('start-date', [CashClosingController::class, 'startDate'])->middleware(['permission:payments.reconcile.branch', 'permission:payments.cash_closing.start_date.manage.branch', 'throttle:20,1'])->name('cash-closings.start-date');
+            Route::post('/', [CashClosingController::class, 'store'])->middleware(['permission:payments.reconcile.branch', 'throttle:20,1'])->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
-                ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1'])->name('cash-closings.decide');
+                ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1', 'approvals.forget'])->name('cash-closings.decide');
+        });
+
+        // BIL-30: monthly sales targets (Director and Finance Officer); a doctor sees their own on the consultation queue.
+        Route::middleware(['permission:sales_targets.manage.organisation', 'sensitive.no-store'])->prefix('sales-targets')->group(function () {
+            Route::get('/', [SalesTargetController::class, 'index'])->name('sales-targets.index');
+            Route::post('/', [SalesTargetController::class, 'store'])->middleware('throttle:30,1')->name('sales-targets.store');
         });
 
         Route::middleware(['permission:inventory.references.manage.organisation'])->prefix('inventory-references')->group(function () {
@@ -1365,10 +1553,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:patients.merge.propose.organisation,patients.merge.approve.organisation')
             ->name('patient-merges.index');
         Route::post('patient-merges/{mergeRequest}/approve', [PatientMergeController::class, 'approve'])
-            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1', 'approvals.forget'])
             ->name('patient-merges.approve');
         Route::post('patient-merges/{mergeRequest}/reject', [PatientMergeController::class, 'reject'])
-            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1', 'approvals.forget'])
             ->name('patient-merges.reject');
         Route::post('patient-merges/{mergeRequest}/withdraw', [PatientMergeController::class, 'withdraw'])
             ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.propose.organisation', 'throttle:20,1'])

@@ -1,25 +1,20 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
+import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import UserInfo from '@/components/UserInfo.vue';
-import UserMenuContent from '@/components/UserMenuContent.vue';
-import { useClockShortcut } from '@/composables/useClockShortcut';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status';
 import { useScrollStrip } from '@/composables/useScrollStrip';
-import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
 import { waitingTone } from '@/lib/waiting-time';
 
 type Space = { key: string; title: string };
 
-// The space shell draws its own chrome, so it opts out of the staff layouts without touching the shared layout map.
-defineOptions({ layout: SpacePassThroughLayout });
+// Classic only (CO-1, owner 19 Nov 2026): a space home sits inside the Classic clinic layout (app.ts maps Spaces/* to
+// ClinicLayout), which draws the top bar, branch switcher, account menu and the Clock in camera dialog.
 
 type Billing = {
     branchName: string | null;
@@ -222,18 +217,40 @@ type HrHome = {
 type MeHome = {
     branchName: string | null;
     asOf: string | null;
-    shift: {
-        text: string;
-        today: boolean;
-        empty: boolean;
-        href: string;
+    greeting: { text: string; date: string } | null;
+    time: { serverNow: string; timezone: string } | null;
+    ring: {
+        state: 'in' | 'out' | 'done';
+        canPress: boolean;
+        refusal: string | null;
+        location: {
+            consentNeeded: boolean;
+            consentEn: string | null;
+            consentBm: string | null;
+        } | null;
+        serverNow: string;
+        timezone: string;
+        clockedInAt: string | null;
+        clockedInLabel: string | null;
+        doneLabel: string | null;
+        shiftLabel: string | null;
+        rosteredMinutes: number | null;
+        onTime: boolean | null;
+        lateMinutes: number | null;
     } | null;
-    clock: { state: string; text: string } | null;
-    leave:
-        | { notSetUp: true }
-        | { total: number; rows: Array<{ name: string; left: string }> }
-        | null;
-    claims: { text: string } | null;
+    week: {
+        days: Array<{
+            day: string;
+            date: string;
+            result: string;
+            word: string;
+        }>;
+        summary: string;
+    } | null;
+    tiles: Record<
+        'leave' | 'claims' | 'roster' | 'attendance',
+        { title: string; text: string; href: string } | null
+    >;
     credentials: {
         total: number;
         rows: Array<{ name: string; words: string; expired: boolean }>;
@@ -298,30 +315,63 @@ const props = defineProps<{
     me?: MeHome | null;
 }>();
 
-const page = usePage();
-const user = computed(() => page.props.auth.user!);
-const branches = computed(() => page.props.branchContext);
-const hub = computed(
-    () => page.props.workspace?.navigation.clinicManagement === true,
-);
+// A status is the Classic status badge (it was the V2 chip until CO-1). The cash closing and the roster use the page's own words.
+const cashTone = (status: string) =>
+    status === 'approved'
+        ? 'success'
+        : status === 'waiting' || status === 'not_counted'
+          ? 'warning'
+          : status === 'returned'
+            ? 'danger'
+            : 'neutral';
+const rosterTone = (status: string) =>
+    status === 'Approved'
+        ? 'success'
+        : status === 'Waiting for approval'
+          ? 'warning'
+          : 'neutral';
 
 const waitLabel = (minutes: number): string | null =>
     ({ normal: null, amber: 'Long wait', red: 'Very long wait' })[
         waitingTone(minutes)
     ];
 
+// Daniel (UX-24 part 2): Pharmacy's filled header action is its "Open Dispensary list" link (present only when the person
+// may open that list), as Front desk, Billing and HR have theirs. The same link is left out of the Open list below.
+const PHARMACY_PRIMARY = 'Open Dispensary list';
+const pharmacyPrimary = computed(
+    () =>
+        props.pharmacy?.links.find((l) => l.title === PHARMACY_PRIMARY) ?? null,
+);
+
+const pharmacyOpenLinks = computed(() =>
+    (props.pharmacy?.links ?? []).filter((l) => l.title !== PHARMACY_PRIMARY),
+);
+
 const primaryAction = computed(
     () =>
         props.frontDesk?.primaryAction ??
+        pharmacyPrimary.value ??
         props.billing?.primaryAction ??
         props.consultation?.primaryAction ??
         props.panel?.primaryAction ??
         props.stock?.primaryAction ??
         props.hr?.primaryAction ??
         props.management?.primaryAction ??
-        props.me?.primaryAction ??
         null,
 );
+
+// DS-13: the Open list keeps only the rows the four tiles above it do not already cover.
+const meLinks = computed(() => {
+    const covered = new Set<string>();
+    Object.values(props.me?.tiles ?? {}).forEach((t) => {
+        if (t) {
+            covered.add(t.href);
+        }
+    });
+
+    return (props.me?.links ?? []).filter((l) => !covered.has(l.href));
+});
 
 const waitDuration = (minutes: number): string => {
     if (minutes < 1440) {
@@ -352,143 +402,50 @@ const groups = computed(() => {
         .filter((g) => g.items.length > 0);
 });
 
-// A person with no department space and no Clinic management link gets no empty rail: the sidebar (or the phone strip)
-// is collapsed and the page stands alone, reached through the account menu.
-const bare = computed(() => groups.value.length === 0 && !hub.value);
+// The other spaces this person can enter, as a Classic tab strip under the title. DS-12: Me lives in the account menu, so
+// it is not a tab, and a person whose only space is Me gets no strip.
+const tabs = computed(() => groups.value.flatMap((g) => g.items));
 
-const changeBranch = (event: Event) => {
-    const branchId = Number((event.target as HTMLSelectElement).value);
-
-    if (branchId) {
-        router.post(
-            '/branch-context',
-            { branch_id: branchId, return_to: page.url },
-            { preserveScroll: true },
-        );
-    }
-};
-
-// 390 px: the nav is one scrolling row. The current space is brought to the start and the hidden edge fades.
+// 390 px: the strip scrolls sideways, the current space is brought to the start and the hidden edge fades (as before CO-1).
 const side = ref<HTMLElement | null>(null);
 const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
-
-// DS-12: on a phone a light dim layer sits behind the open account menu, as dialogs have.
-const menuOpen = ref(false);
-
-// DS-12: Me lives in the account menu, so it is not a nav item. A person whose only space is Me gets no space items.
-const accountMenu = computed(() => page.props.workspace?.accountMenu);
-const {
-    load: loadClock,
-    press: pressClock,
-    label: clockLabel,
-    visible: clockVisible,
-} = useClockShortcut();
-onMounted(() => {
-    if (accountMenu.value?.clock) {
-        void loadClock();
-    }
-});
 </script>
 
 <template>
     <Head :title="space.title" />
-    <div class="space-shell" :class="{ 'is-bare': bare }">
-        <div
-            ref="side"
-            class="space-side"
-            :style="fadeStyle"
-            @scroll.passive="measure"
-        >
-            <Link href="/" class="space-logo"
-                ><span class="space-logo-mark" aria-hidden="true">K</span
-                >KPOne</Link
-            >
-            <nav aria-label="Spaces" class="space-nav">
-                <div v-for="g in groups" :key="g.title" class="space-block">
-                    <div class="space-group">{{ g.title }}</div>
+    <PageFrame class="space-shell" data-classic-frame>
+        <div class="space-main">
+            <PageHeader :title="space.title" data-test="space-head">
+                <template v-if="primaryAction" #actions>
                     <Link
-                        v-for="s in g.items"
-                        :key="s.key"
-                        :href="`/spaces/${s.key}`"
-                        class="space-item"
-                        :class="{ 'is-on': s.key === space.key }"
-                        :aria-current="s.key === space.key ? 'page' : undefined"
+                        :href="primaryAction.href"
+                        class="inline-flex h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
+                        >{{ primaryAction.title }}</Link
                     >
-                        {{ s.title }}
-                    </Link>
-                </div>
-                <div v-if="hub" class="space-block">
-                    <div class="space-group">More</div>
-                    <Link href="/clinic-management" class="space-item"
-                        >Clinic management</Link
-                    >
-                </div>
-            </nav>
-        </div>
-        <div
-            v-if="menuOpen"
-            class="fixed inset-0 z-40 bg-black/30 sm:hidden"
-            aria-hidden="true"
-        />
-        <main id="main-content" class="space-main" tabindex="-1">
-            <div class="space-top">
-                <label
-                    v-if="branches?.active"
-                    class="space-branch"
-                    for="space-branch"
-                >
-                    <span class="space-muted">Branch</span>
-                    <select
-                        id="space-branch"
-                        class="space-select"
-                        :value="branches.active.id"
-                        @change="changeBranch"
-                    >
-                        <option
-                            v-for="b in branches.available"
-                            :key="b.id"
-                            :value="b.id"
-                        >
-                            {{ b.name }}
-                        </option>
-                    </select>
-                </label>
-                <button
-                    v-if="accountMenu?.clock && clockVisible"
-                    type="button"
-                    class="space-clock"
-                    data-test="clock-shortcut"
-                    @click="pressClock()"
-                >
-                    {{ clockLabel }}
-                </button>
-                <DropdownMenu @update:open="menuOpen = $event">
-                    <DropdownMenuTrigger :as-child="true">
-                        <button
-                            type="button"
-                            class="space-account"
-                            :aria-label="`Account menu, ${user.name}`"
-                        >
-                            <UserInfo :user="user" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                        align="end"
-                        class="w-56 max-sm:[&_[role=menuitem]]:min-h-11"
-                    >
-                        <UserMenuContent :user="user" />
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-            <div class="space-head">
-                <h1 class="space-title">{{ space.title }}</h1>
+                </template>
+            </PageHeader>
+            <nav
+                v-if="
+                    tabs.length > 1 ||
+                    (tabs.length === 1 && tabs[0].key !== space.key)
+                "
+                ref="side"
+                aria-label="Spaces"
+                class="space-tabs"
+                data-test="space-tabs"
+                :style="fadeStyle"
+                @scroll.passive="measure"
+            >
                 <Link
-                    v-if="primaryAction"
-                    :href="primaryAction.href"
-                    class="space-primary"
-                    >{{ primaryAction.title }}</Link
+                    v-for="s in tabs"
+                    :key="s.key"
+                    :href="`/spaces/${s.key}`"
+                    class="space-tab"
+                    :class="{ 'is-on': s.key === space.key }"
+                    :aria-current="s.key === space.key ? 'page' : undefined"
+                    >{{ s.title }}</Link
                 >
-            </div>
+            </nav>
             <template v-if="pharmacy">
                 <SpaceAsOf
                     v-if="pharmacy.branchName"
@@ -615,10 +572,7 @@ onMounted(() => {
                         </li>
                         <li>
                             <strong>{{ pharmacy.stockWatch.expiring }}</strong>
-                            <span class="space-muted"
-                                >expiring in
-                                {{ pharmacy.stockWatch.windowDays }} days</span
-                            >
+                            <span class="space-muted">expiring soon</span>
                         </li>
                         <li>
                             <strong>{{ pharmacy.stockWatch.expired }}</strong>
@@ -627,13 +581,13 @@ onMounted(() => {
                     </ul>
                 </section>
                 <section
-                    v-if="pharmacy.links.length"
+                    v-if="pharmacyOpenLinks.length"
                     class="space-card"
                     aria-labelledby="open-pages"
                 >
                     <h2 id="open-pages">Open</h2>
                     <ul class="space-list">
-                        <li v-for="l in pharmacy.links" :key="l.href">
+                        <li v-for="l in pharmacyOpenLinks" :key="l.href">
                             <Link :href="l.href" class="space-row">
                                 <span>{{ l.title }}</span>
                                 <ChevronRight
@@ -933,11 +887,11 @@ onMounted(() => {
                 >
                     <h2 id="bl-cash">Cash closing today</h2>
                     <p class="space-ask-sentence">
-                        <span
-                            class="space-pill"
-                            :class="`is-${billing.cashClosing.status}`"
-                            >{{ billing.cashClosing.statusText }}</span
-                        >
+                        <StatusBadge
+                            :status="billing.cashClosing.status"
+                            :tone="cashTone(billing.cashClosing.status)"
+                            :label="billing.cashClosing.statusText"
+                        />
                     </p>
                     <p class="space-muted">
                         Expected cash
@@ -1065,7 +1019,13 @@ onMounted(() => {
                     <h2 id="cn-waiting">
                         Waiting for me ({{ consultation.waiting.total }})
                     </h2>
-                    <p v-if="consultation.next" class="space-muted">
+                    <p
+                        v-if="
+                            consultation.next &&
+                            consultation.waiting.rows.length > 0
+                        "
+                        class="space-muted"
+                    >
                         {{ consultation.next.text }}
                     </p>
                     <p
@@ -1142,7 +1102,8 @@ onMounted(() => {
                             "
                             class="space-muted"
                         >
-                            Showing {{ consultation.waiting.rows.length }} of
+                            Showing
+                            {{ consultation.waiting.rows.length }} of
                             {{ consultation.waiting.total }} ·
                             <Link
                                 :href="consultation.waiting.seeAllHref"
@@ -1359,7 +1320,9 @@ onMounted(() => {
                         </p>
                     </template>
                 </section>
-                <p v-if="panel.note" class="space-muted">{{ panel.note }}</p>
+                <p v-if="panel.note" class="space-muted">
+                    {{ panel.note }}
+                </p>
                 <section
                     v-if="panel.links.length"
                     class="space-card"
@@ -1684,14 +1647,15 @@ onMounted(() => {
                     <Link :href="hr.roster.href" class="space-row">
                         <span class="space-row-body">
                             <span class="space-row-text">
-                                <span class="space-row-main">{{
-                                    hr.roster.label
-                                }}</span>
-                                <span class="space-row-sub">{{
-                                    hr.roster.status
-                                }}</span>
+                                <span class="space-row-main space-roster-head"
+                                    >{{ hr.roster.label }}
+                                    <StatusBadge
+                                        :status="hr.roster.status"
+                                        :tone="rosterTone(hr.roster.status)"
+                                        :label="hr.roster.status"
+                                /></span>
                                 <span
-                                    class="space-row-meta"
+                                    class="space-row-meta space-roster-short"
                                     :class="
                                         hr.roster.shortDays > 0
                                             ? 'space-wait is-amber'
@@ -1833,88 +1797,20 @@ onMounted(() => {
                 </section>
             </template>
             <template v-else-if="me">
+                <MeHome
+                    :greeting="me.greeting"
+                    :ring="me.ring"
+                    :week="me.week"
+                    :tiles="me.tiles"
+                    :server-now="me.time?.serverNow ?? null"
+                    :timezone="me.time?.timezone ?? null"
+                />
                 <SpaceAsOf
                     v-if="me.branchName"
                     :branch-name="me.branchName"
                     :as-of="me.asOf"
                     only="me"
                 />
-                <section
-                    v-if="me.shift"
-                    class="space-card"
-                    aria-labelledby="me-shift"
-                >
-                    <h2 id="me-shift">
-                        {{
-                            me.shift.today ? 'My shift today' : 'My next shift'
-                        }}
-                    </h2>
-                    <p :class="me.shift.empty ? 'space-muted' : ''">
-                        {{ me.shift.text }}
-                    </p>
-                    <Link
-                        v-if="me.shift.empty"
-                        :href="me.shift.href"
-                        class="space-row"
-                    >
-                        <span>Open roster</span>
-                        <ChevronRight
-                            class="space-chevron"
-                            aria-hidden="true"
-                        />
-                    </Link>
-                </section>
-                <section
-                    v-if="me.clock"
-                    class="space-card"
-                    aria-labelledby="me-clock"
-                >
-                    <h2 id="me-clock">Clock</h2>
-                    <p>{{ me.clock.text }}</p>
-                </section>
-                <section
-                    v-if="me.leave"
-                    class="space-card"
-                    aria-labelledby="me-leave"
-                >
-                    <h2 id="me-leave">My leave</h2>
-                    <p v-if="'notSetUp' in me.leave" class="space-muted">
-                        Leave is not set up yet.
-                    </p>
-                    <template v-else>
-                        <ul class="space-list">
-                            <li
-                                v-for="r in me.leave.rows"
-                                :key="r.name"
-                                class="space-row"
-                            >
-                                <span class="space-row-body">
-                                    <span class="space-row-text">
-                                        <span class="space-row-main">{{
-                                            r.name
-                                        }}</span>
-                                        <span>{{ r.left }}</span>
-                                    </span>
-                                </span>
-                            </li>
-                        </ul>
-                        <p
-                            v-if="me.leave.total > me.leave.rows.length"
-                            class="space-muted"
-                        >
-                            Showing {{ me.leave.rows.length }} of
-                            {{ me.leave.total }}
-                        </p>
-                    </template>
-                </section>
-                <section
-                    v-if="me.claims"
-                    class="space-card"
-                    aria-labelledby="me-claims"
-                >
-                    <h2 id="me-claims">My claims</h2>
-                    <p class="space-muted">{{ me.claims.text }}</p>
-                </section>
                 <section
                     v-if="me.credentials"
                     class="space-card"
@@ -1977,13 +1873,13 @@ onMounted(() => {
                     </Link>
                 </section>
                 <section
-                    v-if="me.links.length"
+                    v-if="meLinks.length"
                     class="space-card"
                     aria-labelledby="me-open"
                 >
                     <h2 id="me-open">Open</h2>
                     <ul class="space-list">
-                        <li v-for="l in me.links" :key="l.title">
+                        <li v-for="l in meLinks" :key="l.title">
                             <Link :href="l.href" class="space-row">
                                 <span>{{ l.title }}</span>
                                 <ChevronRight
@@ -1996,10 +1892,12 @@ onMounted(() => {
                 </section>
                 <section
                     v-if="
-                        !me.shift &&
-                        !me.clock &&
-                        !me.leave &&
-                        !me.claims &&
+                        !me.ring &&
+                        !me.week &&
+                        !me.tiles.leave &&
+                        !me.tiles.claims &&
+                        !me.tiles.roster &&
+                        !me.tiles.attendance &&
                         !me.credentials &&
                         !me.payslip &&
                         !me.links.length
@@ -2039,6 +1937,6 @@ onMounted(() => {
                 <h2 id="recent">Recent activity</h2>
                 <p class="space-muted">Recent activity will appear here.</p>
             </section>
-        </main>
-    </div>
+        </div>
+    </PageFrame>
 </template>

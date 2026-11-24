@@ -11,18 +11,94 @@ final class InvoiceSalesProjection
     public const PAYABLE = 'kpone_invoice_payable(invoices.id)';
 
     /**
+     * BIL-30 (design note K1): the one place that limits a query to branch periods. Each period is that branch's
+     * window in UTC, [start, end). An empty list matches nothing. Insights and sales targets both call it.
+     *
+     * @param  array<int, array{start: \DateTimeInterface, end: \DateTimeInterface}>  $periods  keyed by branch id
+     */
+    public static function scopePeriods(Builder $query, array $periods, string $dateColumn, string $branchColumn): void
+    {
+        if ($periods === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        $query->where(function (Builder $ranges) use ($periods, $dateColumn, $branchColumn): void {
+            foreach ($periods as $branchId => $period) {
+                $ranges->orWhere(fn (Builder $range) => $range
+                    ->where($branchColumn, $branchId)
+                    ->where($dateColumn, '>=', $period['start'])
+                    ->where($dateColumn, '<', $period['end']));
+            }
+        });
+    }
+
+    /**
+     * BIL-30 (design note K1 and K2): net invoice sales for branch periods, optionally for one attending doctor. This
+     * is the Insights Sales headline and, with a doctor, that doctor's Provider row: the payable total of invoices
+     * finalised in the period, minus refund credits approved in it, plus Panel claim adjustments confirmed in it.
+     * Each part counts on its own day. With a doctor, all three parts are limited to that doctor's consultation
+     * invoices, so OTC sales never count for a doctor.
+     *
+     * @param  array<int, array{start: \DateTimeInterface, end: \DateTimeInterface}>  $periods  keyed by branch id
+     * @return array{invoiceSen: int, refundCreditsSen: int, panelAdjustmentsSen: int, netSen: int}
+     */
+    public static function netSales(int $organisationId, array $periods, ?int $doctorId = null): array
+    {
+        $invoiceSen = (int) self::invoices($organisationId, $periods, $doctorId)->sum(DB::raw(self::PAYABLE));
+        $credits = self::approvedCredits($organisationId);
+        self::scopePeriods($credits, $periods, 'decided_at', 'branch_id');
+        $adjustments = self::confirmedPanelAdjustments($organisationId);
+        self::scopePeriods($adjustments, $periods, 'confirmed_at', 'branch_id');
+        if ($doctorId !== null) {
+            $checkouts = DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id');
+            $credits->whereIn('consultation_checkout_id', $checkouts);
+            $adjustments->whereIn('consultation_checkout_id', (clone $checkouts));
+        }
+        $creditSen = (int) $credits->sum('amount_sen');
+        $adjustmentSen = (int) $adjustments->sum('amount_sen');
+
+        return ['invoiceSen' => $invoiceSen, 'refundCreditsSen' => $creditSen, 'panelAdjustmentsSen' => $adjustmentSen, 'netSen' => $invoiceSen - $creditSen + $adjustmentSen];
+    }
+
+    /**
+     * BIL-30: finalised invoices of one organisation in branch periods (by finalisation time), optionally limited to
+     * one attending doctor's consultation invoices. The Insights Sales cohort.
+     *
+     * @param  array<int, array{start: \DateTimeInterface, end: \DateTimeInterface}>  $periods  keyed by branch id
+     */
+    public static function invoices(int $organisationId, array $periods, ?int $doctorId = null): Builder
+    {
+        $query = DB::table('invoices')
+            ->where('invoices.organisation_id', $organisationId)
+            ->where('invoices.status', 'finalized');
+        self::scopePeriods($query, $periods, 'invoices.finalized_at', 'invoices.branch_id');
+        if ($doctorId !== null) {
+            $query->whereExists(fn (Builder $checkout) => $checkout
+                ->selectRaw('1')
+                ->from('consultation_checkouts')
+                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
+                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+        }
+
+        return $query;
+    }
+
+    /**
      * BIL-10 (decisions 2026-11-06, A and B): refund credits are their own row, taken off net sales on the day the
      * refund was approved, so past days never change. Pass the credits approved in the same period as the cohort.
      *
-     * @return array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, netSen: int}
+     * PCA-3: confirmed Panel claim adjustments are their own row too, added on the day they were confirmed.
+     *
+     * @return array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, panelAdjustmentsSen: int, netSen: int}
      */
-    public static function reconciliation(Builder $invoices, int $refundCreditsSen = 0): array
+    public static function reconciliation(Builder $invoices, int $refundCreditsSen = 0, int $panelAdjustmentsSen = 0): array
     {
         $payable = self::PAYABLE;
         $row = (clone $invoices)->selectRaw("COALESCE(SUM(invoices.total_sen),0) AS gross, COALESCE(SUM(GREATEST(invoices.total_sen-{$payable},0)),0) AS discounts, COALESCE(SUM(GREATEST({$payable}-invoices.total_sen,0)),0) AS surcharges, COALESCE(SUM({$payable}),0) AS net")->first();
 
         return ['grossSen' => (int) $row->gross, 'discountsSen' => (int) $row->discounts, 'surchargesSen' => (int) $row->surcharges,
-            'refundCreditsSen' => $refundCreditsSen, 'netSen' => (int) $row->net - $refundCreditsSen];
+            'refundCreditsSen' => $refundCreditsSen, 'panelAdjustmentsSen' => $panelAdjustmentsSen, 'netSen' => (int) $row->net - $refundCreditsSen + $panelAdjustmentsSen];
     }
 
     /**
@@ -38,6 +114,41 @@ final class InvoiceSalesProjection
             ->leftJoin('consultation_checkouts as cc', 'cc.id', '=', 'i.consultation_checkout_id')
             ->where('d.decision', 'approved')->where('i.organisation_id', $organisationId)->where('i.status', 'finalized')
             ->select(['c.amount_sen', 'i.branch_id', 'd.decided_at', 'i.consultation_checkout_id', 'i.dispensary_case_id', 'cc.attending_doctor_user_id as doctor_id']), 'credits');
+    }
+
+    /**
+     * PCA-3 (design note v3.2, section 6): confirmed Panel claim adjustments of one organisation, one row each, signed
+     * (a plus is positive), as a plain derived table with amount_sen, invoice_id, branch_id, confirmed_at (UTC), panel_id, panel_name,
+     * consultation_checkout_id, dispensary_case_id and doctor_id. Day-story reports count each one on the day it was
+     * confirmed, so past days never change. Only adjustments on an approved Panel share of a finalised invoice count:
+     * the same rule as kpone_panel_adjustment_sum, so the days add up to each invoice's current adjustment.
+     */
+    public static function confirmedPanelAdjustments(int $organisationId): Builder
+    {
+        return DB::query()->fromSub(DB::table('panel_claim_adjustments as a')
+            ->join('coverage_allocations as ca', function ($join): void {
+                $join->on('ca.id', '=', 'a.coverage_allocation_id')->where('ca.status', 'approved');
+            })
+            ->join('invoices as i', 'i.id', '=', 'a.invoice_id')
+            ->leftJoin('consultation_checkouts as cc', 'cc.id', '=', 'i.consultation_checkout_id')
+            ->where('a.status', 'confirmed')->where('a.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)->where('i.status', 'finalized')
+            ->selectRaw("CASE a.direction WHEN 'add' THEN a.amount_sen ELSE -a.amount_sen END AS amount_sen")
+            ->addSelect(['a.invoice_id', 'a.branch_id', 'a.confirmed_at', 'ca.panel_id', 'ca.panel_name_snapshot as panel_name', 'i.consultation_checkout_id', 'i.dispensary_case_id', 'cc.attending_doctor_user_id as doctor_id']), 'panel_adjustments');
+    }
+
+    /**
+     * PCA-3: the offsets that move net sales after the invoice day, as one credit-shaped table (amount taken off,
+     * by its own date): approved refund credits as they are, and confirmed Panel claim adjustments with the sign
+     * turned (a plus adds to sales). Callers scope it with the column `decided_at` like approvedCredits().
+     */
+    public static function netOffsets(int $organisationId): Builder
+    {
+        $credits = DB::query()->fromSub(self::approvedCredits($organisationId), 'c')
+            ->select(['amount_sen', 'branch_id', 'decided_at', 'consultation_checkout_id', 'dispensary_case_id', 'doctor_id']);
+        $adjustments = DB::query()->fromSub(self::confirmedPanelAdjustments($organisationId), 'p')
+            ->selectRaw('-amount_sen AS amount_sen, branch_id, confirmed_at AS decided_at, consultation_checkout_id, dispensary_case_id, doctor_id');
+
+        return DB::query()->fromSub($credits->unionAll($adjustments), 'offsets');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Claims\Services;
 
+use App\Domain\HR\Approvals\HrWaiting;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -104,8 +105,7 @@ final class ClaimsPageService
      */
     private function approvals(User $actor, Collection $categories, string $zone): array
     {
-        $claims = DB::table('hr_staff_claims')->where('organisation_id', $actor->organisation_id)->where('status', 'waiting')
-            ->orderBy('created_at')->orderBy('id')->get();
+        $claims = HrWaiting::claimsListed($actor->organisation_id)->orderBy('created_at')->orderBy('id')->get();
         $rows = $this->rows($actor, $claims, $zone, true, false);
         $hashes = DB::table('hr_staff_claim_receipts')->whereIn('claim_id', $claims->pluck('id')->all())->get(['claim_id', 'sha256']);
         $others = $hashes->isEmpty() ? collect() : DB::table('hr_staff_claim_receipts as r')->join('hr_staff_claims as c', 'c.id', '=', 'r.claim_id')
@@ -139,7 +139,9 @@ final class ClaimsPageService
 
             return [...$row, 'warnings' => array_values(array_unique($warnings)), 'monthTotalSen' => $monthTotal,
                 'perClaimLimitSen' => $category['perClaimLimitSen'] ?? null, 'monthlyLimitSen' => $category['monthlyLimitSen'] ?? null,
-                'refusal' => $this->claims->deciderRefusal($actor, $claim)];
+                'refusal' => $this->claims->deciderRefusal($actor, $claim),
+                // When the claim was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse((string) $claim->created_at, 'UTC')->utc()->toIso8601String()];
         })->values()->all()];
     }
 

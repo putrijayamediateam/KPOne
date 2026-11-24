@@ -56,6 +56,9 @@ const props = defineProps<{
             more: boolean;
         };
         canFixBarcodes: boolean;
+        canImportOpening?: boolean;
+        packConversionsWaiting?: string[];
+        packConversionsWaitingTotal?: number;
     };
 }>();
 const search = ref(props.readiness.q);
@@ -135,24 +138,68 @@ watch(
         >
         <PageHeader
             title="Pilot readiness"
-            :description="`${readiness.branchName} · Review only. No import, balance correction or pilot go-live approval.`"
+            :description="`${readiness.branchName} · Check each SKU and sign off openings. Importing opening stock is a separate page. No balance correction or pilot go-live approval.`"
         />
+        <p
+            v-if="readiness.packConversionsWaiting?.length"
+            class="flex flex-wrap items-center gap-2 text-sm"
+            data-testid="pack-conversions-waiting"
+        >
+            <span
+                class="size-2 rounded-full bg-warning"
+                aria-hidden="true"
+            ></span>
+            {{
+                readiness.packConversionsWaitingTotal ??
+                readiness.packConversionsWaiting.length
+            }}
+            pack
+            {{
+                (readiness.packConversionsWaitingTotal ??
+                    readiness.packConversionsWaiting.length) === 1
+                    ? 'conversion'
+                    : 'conversions'
+            }}
+            waiting for a check:
+            <ActionLink
+                v-for="code in readiness.packConversionsWaiting"
+                :key="code"
+                :href="`/inventory/skus?q=${encodeURIComponent(code)}`"
+                variant="link"
+                class="min-h-11 px-0 lg:min-h-9"
+                >{{ code }}</ActionLink
+            ><span
+                v-if="
+                    (readiness.packConversionsWaitingTotal ?? 0) >
+                    readiness.packConversionsWaiting.length
+                "
+                >and
+                {{
+                    (readiness.packConversionsWaitingTotal ?? 0) -
+                    readiness.packConversionsWaiting.length
+                }}
+                more</span
+            >
+        </p>
+        <div v-if="readiness.canImportOpening" class="flex flex-wrap gap-2">
+            <ActionLink
+                href="/inventory/opening-import"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                >Import opening stock</ActionLink
+            >
+        </div>
         <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
             <p>
-                One base stock unit per SKU. Quantities use exactly up to three
-                decimal places. Input → base uses factor 1.000 only. Non-base
-                units, unsupported conversions, precision loss and overflow are
-                refused; stored purchase/conversion labels are never guessed.
+                Each SKU has one base stock unit, with up to 3 decimals. Other
+                units and conversions are refused.
             </p>
             <p>
-                Reference managers verify the existing base unit. An independent
-                checker must sign each opening; the recorder cannot sign their
-                own count. This page never changes a recorded count.
-            </p>
-            <p>
-                Transfers and treatment-room consumption are outside the pilot.
-                Responsible clinician, FEFO and regulated-item questions remain
-                open.
+                Someone other than the person who recorded an opening must sign
+                it off. This page never changes a count. Open questions
+                (responsible clinician, FEFO, regulated items) are in the
+                pharmacist review pack that goes with the pilot papers, not in
+                KPOne.
             </p>
         </section>
         <p

@@ -2,6 +2,7 @@
 
 use App\Domain\Audit\AuditRecorder;
 use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\ForgetApprovalCounts;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSensitiveResponseCaching;
@@ -16,6 +17,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\TokenMismatchException;
+use Laravel\Passport\Exceptions\InvalidAuthTokenException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -39,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle' => RouteIsolatedThrottle::class,
             'permission' => RequireAnyPermission::class,
             'sensitive.no-store' => PreventSensitiveResponseCaching::class,
+            'approvals.forget' => ForgetApprovalCounts::class,
             'public-intake.proxy' => ValidatePublicIntakeProxy::class,
             'same-origin.open' => RefuseCrossSiteOpen::class,
         ]);
@@ -51,7 +55,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([
             'password',
+            // TRI-1b: triage and vitals readings are clinical values and never flashed into the session
+            'systolic_bp', 'diastolic_bp', 'pulse_bpm', 'temperature_celsius', 'spo2_percent', 'weight_kg', 'height_cm',
+            'file_password', // PDPA 14: the password of a downloaded payroll file is never flashed
+            'file_password_confirmation',
             'clock_position', // HR-16a: a person's position at a press is never flashed
+            'capture_token', // HR-PHOTO: a one-press camera token is never flashed
             'ratings',
             'comment',
             'allegation',
@@ -188,6 +197,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // CN-1: a stale connector consent (the tab was left open, the session ended or the token no longer matches) shows one
+        // plain page instead of a fault. Only a stale token or CSRF mismatch on the consent's own Allow and Cancel posts; every other failure keeps its own page.
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if ($request->is('oauth/authorize') && in_array($request->method(), ['POST', 'DELETE'], true)
+                && ($exception instanceof InvalidAuthTokenException || $exception instanceof TokenMismatchException
+                    || $exception->getPrevious() instanceof InvalidAuthTokenException || $exception->getPrevious() instanceof TokenMismatchException)) {
+                return response()->view('connector.expired', [], 419)->header('Cache-Control', 'no-store');
+            }
+
+            return null;
+        });
 
         $exceptions->render(function (AuthorizationException $exception, Request $request) {
             app(AuditRecorder::class)->record('authorization.denied', $request->user(), [

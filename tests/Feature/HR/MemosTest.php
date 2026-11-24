@@ -48,7 +48,7 @@ class MemosTest extends VisitTestCase
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
         $this->assertSame(['director', 'hr_manager'], $holders(MemoPermissions::PUBLISH));
         $own = $holders(MemoPermissions::READ_OWN);
-        $this->assertCount(11, $own);
+        $this->assertCount(15, $own);
         $this->assertNotContains('queue_display', $own);
         foreach (array_keys(MemoPermissions::grants()) as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));

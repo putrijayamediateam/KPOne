@@ -11,6 +11,7 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import MySalesTarget from '@/components/billing/MySalesTarget.vue';
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
@@ -57,6 +58,8 @@ const props = defineProps<{
         currentRoomId: number | null;
         operationalDate: string;
     } | null;
+    mySalesTarget?:
+        InstanceType<typeof MySalesTarget>['$props']['target'] | null;
 }>();
 const roomSaving = ref(false);
 const roomError = ref('');
@@ -95,7 +98,12 @@ const chooseRoom = (value: string | number) => {
 };
 type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
 const tabs = computed<
-    Array<{ value: QueueTab; label: string; count?: number }>
+    Array<{
+        value: QueueTab;
+        label: string;
+        count?: number;
+        badge?: { text: string; srLabel: string };
+    }>
 >(() => [
     { value: 'all', label: 'All active', count: live.value.tabCounts?.all },
     {
@@ -112,6 +120,14 @@ const tabs = computed<
         value: 'removed',
         label: 'Consultation Completed',
         count: live.value.tabCounts?.removed,
+        // Q-15: the doctor's own medicine checks waiting (only when above 0; not a second control, the tab is the control).
+        badge:
+            (live.value.checksWaiting ?? 0) > 0
+                ? {
+                      text: `${live.value.checksWaiting} to check`,
+                      srLabel: `${live.value.checksWaiting} medicine ${live.value.checksWaiting === 1 ? 'check' : 'checks'} waiting for you`,
+                  }
+                : undefined,
     },
 ]);
 const live = ref(props.snapshot);
@@ -241,6 +257,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         key: `${row.operationalDate}-${row.queueNumber}`,
         canWhatsapp: row.canWhatsapp,
         callHold: row.callHold,
+        triage: row.triage,
         treatmentProgress: row.treatmentProgress ?? null,
         treatmentMinutes: treatmentMinutes(
             row.treatmentProgress,
@@ -269,6 +286,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                 : null,
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
+        dispensaryCheckWaiting: row.dispensaryCheckWaiting,
         statusLabel: row.isHeld
             ? row.isHeldTooLong
                 ? 'On Hold · 30+ min'
@@ -745,6 +763,8 @@ onBeforeUnmount(() => {
             >
             <InputError :message="roomError" />
         </div>
+        <!-- BIL-30 (Daniel): below the room picker, one calm line. -->
+        <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
         <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
         <div
             ref="tabStrip"

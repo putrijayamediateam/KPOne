@@ -67,7 +67,7 @@ class SalesSummaryExportTest extends BillingTestCase
     public function test_default_holders_and_additive_migration_preserve_unrelated_grants(): void
     {
         $holders = collect(PermissionCatalogue::roles())->filter(fn ($p) => in_array(SalesSummaryExportService::PERMISSION, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['administrator', 'director', 'finance_officer'], $holders);
+        $this->assertSame(['administrator', 'branch_manager', 'director', 'finance_officer'], $holders);
         $role = Role::findByName('administrator');
         $role->revokePermissionTo(SalesSummaryExportService::PERMISSION);
         $before = $role->permissions()->pluck('name')->sort()->values()->all();
@@ -95,7 +95,7 @@ class SalesSummaryExportTest extends BillingTestCase
                 $text = $response->streamedContent();
                 $this->assertStringNotContainsString($private, $text);
                 $this->assertStringNotContainsString($visit->patient->patient_number, $text);
-                $this->assertCount(12, $this->csv($text));
+                $this->assertCount(13, $this->csv($text)); // PCA-3: the Panel claim adjustments row (owner-approved).
             } else {
                 $response->assertForbidden();
             }
@@ -219,7 +219,7 @@ class SalesSummaryExportTest extends BillingTestCase
         $this->assertSame($before, $this->evidence());
         $this->assertSame($audits->toJson(), DB::table('audit_logs')->where('id', '<=', $audits->last()->id)->orderBy('id')->get()->toJson());
         $this->assertSame($audits->count() + 1, DB::table('audit_logs')->count());
-        $this->assertSame(['dataset' => 'sales_summary', 'branch_scope' => 'all', 'from' => '2026-10-01', 'to' => '2026-10-01', 'doctor_filter' => false, 'row_count' => 12], AuditLog::query()->latest('id')->first()->metadata);
+        $this->assertSame(['dataset' => 'sales_summary', 'branch_scope' => 'all', 'from' => '2026-10-01', 'to' => '2026-10-01', 'doctor_filter' => false, 'row_count' => 13], AuditLog::query()->latest('id')->first()->metadata); // PCA-3: one more row (owner-approved).
     }
 
     private function approvedPanelFixture(): array

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -40,6 +40,7 @@ type ActivityRow = {
 
 defineProps<{
     canManage: boolean;
+    canConnect: boolean;
     agents: AgentRow[];
     activity: ActivityRow[];
 }>();
@@ -120,7 +121,18 @@ const toggle = () => {
         <PageHeader
             title="AI agents"
             description="The AI agents registered in KPOne and what they did recently."
-        />
+        >
+            <template v-if="canConnect" #actions>
+                <Button variant="outline" class="max-lg:min-h-11" as-child>
+                    <Link
+                        href="/agents/connected-apps"
+                        data-test="connected-apps-link"
+                    >
+                        Connected apps
+                    </Link>
+                </Button>
+            </template>
+        </PageHeader>
         <p class="text-sm text-muted-foreground" data-test="agents-notice">
             These are AI agents, not staff. They follow fixed rules over KPOne
             data, propose work for people to approve and change no clinic data.

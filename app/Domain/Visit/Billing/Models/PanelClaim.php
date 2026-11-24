@@ -32,6 +32,9 @@ use LogicException;
  * @property string $status
  * @property int $lock_version
  * @property string|null $remarks
+ * @property string $claim_kind
+ * @property int|null $parent_claim_id
+ * @property int|null $panel_claim_adjustment_id
  */
 #[Guarded(['*'])]
 class PanelClaim extends Model
@@ -45,6 +48,13 @@ class PanelClaim extends Model
                 throw new LogicException('Panel claim identity and source snapshots are immutable.');
             }
         });
+    }
+
+    public const DECIDED = ['accepted', 'partially_accepted', 'partially_paid', 'paid'];
+
+    public function isSupplementary(): bool
+    {
+        return $this->claim_kind === 'supplementary';
     }
 
     protected function casts(): array

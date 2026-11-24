@@ -160,6 +160,6 @@ class QuickQuestionsTest extends TestCase
         $expiring = $this->build('stock.expiring', $results);
         $this->assertSame([['CHERAS', 'Item B', 'B', 2, '30.500 tablet']], $this->values($expiring));
         $this->assertSame('Nothing to show: no item is expired and still on hand.', $this->build('stock.expired', $results)['sentence']);
-        $this->assertSame('1 item is expiring within 90 days at CHERAS.', $expiring['sentence']);
+        $this->assertSame('1 item is expiring within its alert window (up to 90 days) at CHERAS.', $expiring['sentence']);
     }
 }

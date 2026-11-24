@@ -13,13 +13,16 @@ use Illuminate\Support\Facades\Validator;
  * STK-16: read-only reorder suggestions for the active branch. It writes nothing.
  *
  * A row is every SKU and location that Stock review lists as low stock (usable quantity at or below a positive
- * reorder level). Suggested = reorder level − on hand − on order − incoming + average daily use × lead time,
- * floored at zero, then rounded up to whole packs and at least the preferred supplier's minimum order. All
+ * reorder level). Suggested = target − on hand − on order − incoming + average daily use × lead time, where the
+ * target is the maximum when one is set (STK-30, order up to max) and otherwise the reorder level, floored at zero, then rounded up to whole packs and at least the preferred supplier's minimum order. All
  * arithmetic is in exact thousandths of the SKU's base stock unit, as STK-1 requires.
  */
 final class ReorderSuggestionService
 {
     public const LOOK_BACK_DAYS = 30;
+
+    /** STK-43: the "sold" windows, in branch-local days ending today; the longest equals the look-back. */
+    public const SOLD_WINDOWS = [7, 14, 30];
 
     public const PER_PAGE = 25;
 
@@ -48,7 +51,7 @@ final class ReorderSuggestionService
         /** @var list<\stdClass> $low */
         $low = app(InventoryStockReviewService::class)->lowStockQuery($actor, $branch)
             ->when($needle, fn ($query) => $query->where(fn ($match) => $match->where('s.sku_code', 'ilike', $needle)->orWhere('i.generic_name', 'ilike', $needle)->orWhere('l.name', 'ilike', $needle)))
-            ->addSelect(['s.public_id as sku_public_id'])
+            ->addSelect(['s.public_id as sku_public_id', 'l.public_id as location_public_id', 'r.max_level'])
             ->orderBy('s.sku_code')->orderBy('l.name')->orderBy('l.id')
             ->get()->all();
 
@@ -56,13 +59,16 @@ final class ReorderSuggestionService
         $skuIds = array_values(array_unique(array_map(fn (\stdClass $row): int => (int) $row->sku_id, $low)));
         $onOrder = $this->onOrder($organisationId, $locationIds, $skuIds);
         $incoming = $this->incoming($organisationId, $locationIds, $skuIds);
-        $used = $this->used($organisationId, $branch->timezone, $locationIds, $skuIds);
+        // STK-43: the same query and clock reading also give what was sold (dispensed) in the last 7, 14 and 30 days.
+        [$used, $sold] = $this->used($organisationId, $branch->timezone, $locationIds, $skuIds);
         $terms = $this->preferredTerms($organisationId, $skuIds);
 
         $rows = [];
         foreach ($low as $row) {
             $key = $row->location_id.':'.$row->sku_id;
             $level = StockUnitQuantity::scaled((string) $row->reorder_level, true);
+            // STK-30: a row still appears only at or below its reorder level; then it is filled up to the maximum.
+            $max = $row->max_level === null ? null : StockUnitQuantity::scaled((string) $row->max_level, true);
             $onHand = StockUnitQuantity::scaled((string) $row->quantity, true);
             $ordered = $onOrder[$key] ?? 0;
             $coming = $incoming[$key] ?? 0;
@@ -71,7 +77,7 @@ final class ReorderSuggestionService
             $lead = $term === null ? 0 : (int) $term->lead_time_days;
             // Average daily use × lead time, rounded up to the next thousandth.
             $cover = intdiv($usedMilli * $lead + self::LOOK_BACK_DAYS - 1, self::LOOK_BACK_DAYS);
-            $need = max(0, $level - $onHand - $ordered - $coming + $cover);
+            $need = max(0, ($max ?? $level) - $onHand - $ordered - $coming + $cover);
 
             $packs = null;
             $suggested = 0;
@@ -92,14 +98,20 @@ final class ReorderSuggestionService
                 'key' => $key,
                 'skuCode' => $row->sku_code,
                 'skuPublicId' => $row->sku_public_id,
+                // STK-18: "Request these" sends the row to a purchase request for this location.
+                'locationPublicId' => $row->location_public_id,
                 'itemName' => $row->item,
                 'location' => $row->location,
                 'stockUnit' => $row->stock_unit,
                 'reorderLevel' => StockUnitQuantity::format($level),
+                'maxLevel' => $max === null ? null : StockUnitQuantity::format($max),
                 'onHand' => StockUnitQuantity::format($onHand),
                 'onOrder' => StockUnitQuantity::format($ordered),
                 'incoming' => StockUnitQuantity::format($coming),
                 'averageDailyUse' => StockUnitQuantity::format(intdiv($usedMilli + self::LOOK_BACK_DAYS - 1, self::LOOK_BACK_DAYS)),
+                // STK-43 (owner decision 26): quantity dispensed from this location (consultation and OTC), shown only.
+                ...array_combine(array_map(fn (int $days): string => 'sold'.$days, self::SOLD_WINDOWS),
+                    array_map(fn (int $days): ?string => isset($sold[$key][$days]) ? StockUnitQuantity::format($sold[$key][$days]) : null, self::SOLD_WINDOWS)),
                 'supplier' => $term === null ? null : [
                     'name' => $term->supplier_name,
                     'leadTimeDays' => $lead,
@@ -122,7 +134,7 @@ final class ReorderSuggestionService
 
         return [
             'branchName' => $branch->name,
-            'canSeeCost' => $cost,
+            'canSeeCost' => $cost, 'canRequest' => $actor->can(PurchaseRequestService::CREATE),
             'lookBackDays' => self::LOOK_BACK_DAYS,
             'filters' => ['q' => $data['q'] ?? '', 'need' => $data['need'] ?? 'order'],
             'rows' => array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
@@ -138,7 +150,7 @@ final class ReorderSuggestionService
      * @param  list<int>  $skuIds
      * @return array<string,int>
      */
-    private function onOrder(int $organisationId, array $locationIds, array $skuIds): array
+    public function onOrder(int $organisationId, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [];
@@ -161,7 +173,7 @@ final class ReorderSuggestionService
      * @param  list<int>  $skuIds
      * @return array<string,int>
      */
-    private function incoming(int $organisationId, array $locationIds, array $skuIds): array
+    public function incoming(int $organisationId, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [];
@@ -177,25 +189,43 @@ final class ReorderSuggestionService
             ->get()->all());
     }
 
-    /** Dispensed plus unreversed treatment-room usage out of each location over the look-back window.
+    /** Dispensed plus unreversed treatment-room usage out of each location over the look-back window, and (STK-43) what
+     * was dispensed in each of the "sold" windows, from the same dispense query and the same clock reading.
      *
      * @param  list<int>  $locationIds
      * @param  list<int>  $skuIds
-     * @return array<string,int>
+     * @return array{0: array<string,int>, 1: array<string, array<int,int>>} used, and sold by window (days => thousandths)
      */
     private function used(int $organisationId, string $timezone, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
-            return [];
+            return [[], []];
         }
-        $since = CarbonImmutable::now($timezone)->startOfDay()->subDays(self::LOOK_BACK_DAYS - 1)->utc()->format('Y-m-d H:i:sP');
-        $dispensed = $this->keyed(DB::table('stock_movements as m')
+        $today = CarbonImmutable::now($timezone)->startOfDay();
+        $since = $today->subDays(self::LOOK_BACK_DAYS - 1)->utc()->format('Y-m-d H:i:sP');
+        $sums = [];
+        $bindings = [];
+        foreach (self::SOLD_WINDOWS as $days) {
+            $sums[] = "COALESCE(SUM(m.quantity) FILTER (WHERE m.occurred_at >= ?), 0)::text as sold_{$days}";
+            $bindings[] = $today->subDays($days - 1)->utc()->format('Y-m-d H:i:sP');
+        }
+        $rows = DB::table('stock_movements as m')
             ->where('m.organisation_id', $organisationId)->where('m.movement_type', StockMovement::TYPE_DISPENSE)
             ->whereIn('m.source_location_id', $locationIds)->whereIn('m.inventory_sku_id', $skuIds)
             ->where('m.occurred_at', '>=', $since)
             ->groupBy('m.source_location_id', 'm.inventory_sku_id')
-            ->selectRaw('m.source_location_id as location_id, m.inventory_sku_id as sku_id, SUM(m.quantity)::text as quantity')
-            ->get()->all());
+            ->selectRaw('m.source_location_id as location_id, m.inventory_sku_id as sku_id, SUM(m.quantity)::text as quantity, '.implode(', ', $sums), $bindings)
+            ->get()->all();
+        $dispensed = $this->keyed($rows);
+        $sold = [];
+        foreach ($rows as $row) {
+            foreach (self::SOLD_WINDOWS as $days) {
+                $milli = StockUnitQuantity::scaled((string) $row->{'sold_'.$days}, true);
+                if ($milli > 0) {
+                    $sold[$row->location_id.':'.$row->sku_id][$days] = $milli;
+                }
+            }
+        }
         $treatment = $this->keyed(DB::table('inventory_treatment_usages as u')
             ->leftJoin('inventory_treatment_usage_reversals as r', 'r.usage_id', '=', 'u.id')
             ->where('u.organisation_id', $organisationId)->where('u.kind', 'usage')->whereNull('r.id')
@@ -208,7 +238,7 @@ final class ReorderSuggestionService
             $dispensed[$key] = ($dispensed[$key] ?? 0) + $quantity;
         }
 
-        return $dispensed;
+        return [$dispensed, $sold];
     }
 
     /** The one active preferred supplier term per SKU, from an active supplier (STK-13).

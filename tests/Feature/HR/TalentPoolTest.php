@@ -56,7 +56,7 @@ class TalentPoolTest extends VisitTestCase
         [$poolId, $poolToken] = $this->filedWithToken('Synthetic Assistant Two', true);
         $this->assertSame([false, null], [(bool) $this->row($plainId)->talent_pool_consent, $this->row($plainId)->talent_pool_text_version]);
         // The tick keeps the version of the wording agreed to (Suresh, HR-17e M2).
-        $this->assertSame([true, 'draft-hr17e-pool-v1'], [(bool) $this->row($poolId)->talent_pool_consent, $this->row($poolId)->talent_pool_text_version]);
+        $this->assertSame([true, 'draft-hr17e-pool-en-v2'], [(bool) $this->row($poolId)->talent_pool_consent, $this->row($poolId)->talent_pool_text_version]);
 
         $this->statusPage($plainToken)->assertInertia(fn (Assert $p) => $p->where('application.pool', ['consented' => false, 'left' => false]));
         $this->leave($plainToken)->assertSessionHasErrors('pool');
@@ -176,7 +176,43 @@ class TalentPoolTest extends VisitTestCase
         // PostgreSQL: an invited application can never hold a tick of its own.
         $new = DB::table('hr_job_applications')->where('invited_from_application_id', $this->row($source)->id)->sole();
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $new->id)->update(['talent_pool_consent' => true,
-            'talent_pool_text_version' => 'draft-hr17e-pool-v1']));
+            'talent_pool_text_version' => 'draft-hr17e-pool-en-v2']));
+    }
+
+    public function test_deleting_through_either_link_deletes_the_whole_pool_pair(): void
+    {
+        // Owner decision 2026-11-11 (self-service deletion): the invited application holds copies of the same details, so
+        // deleting through either link clears both and both CV files (Suresh, M1).
+        foreach (['source', 'invited'] as $through) {
+            [$source] = $this->closed("Synthetic Assistant {$through}", 'failed', true);
+            if ($through === 'source') {
+                $this->poolOn();
+            } else {
+                $this->travel(JobApplicationService::GRACE_DAYS + 1)->days(); // closed() went back to the start day
+            }
+            $this->selectBranch($this->hr);
+            $this->post(route('hr.applications.positions.store'), ['title' => "Synthetic Night {$through}", 'branch_id' => 'any', 'position_type' => 'ca',
+                'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+            $night = (string) DB::table('hr_job_positions')->where('title', "Synthetic Night {$through}")->value('public_id');
+            $link = app(TalentPool::class)->invite($this->hr, $source, ['position' => $night, 'expected_lock_version' => $this->row($source)->lock_version,
+                'idempotency_key' => (string) Str::uuid()]);
+            $invitedToken = Str::after((string) $link, '#');
+            $from = $this->row($source);
+            $new = DB::table('hr_job_applications')->where('invited_from_application_id', $from->id)->sole();
+
+            auth()->logout();
+            $this->withCookie('kpone_career_status', $through === 'source' ? $this->tokens[$source] : $invitedToken)
+                ->post(route('hr-applications.status.delete'))->assertSessionHasNoErrors();
+            foreach ([$from, $new] as $application) {
+                $after = DB::table('hr_job_applications')->where('id', $application->id)->sole();
+                $this->assertNotNull($after->purged_at, $through);
+                $this->assertSame([null, null, null], [$after->name_encrypted, $after->cv_path, $after->status_token_hash], $through);
+                Storage::disk(JobApplicationIntake::DISK)->assertMissing($application->cv_path);
+            }
+            $this->assertSame('withdrawn', DB::table('hr_job_applications')->where('id', $new->id)->value('status')); // it was open
+            $this->selectBranch($this->hr);
+            $this->get(route('hr.applications.index', ['tab' => 'pool']))->assertInertia(fn (Assert $p) => $p->where('applications.pool.members', []));
+        }
     }
 
     public function test_the_purge_keeps_a_pool_candidate_until_the_pool_period_ends(): void

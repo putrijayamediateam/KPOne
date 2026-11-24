@@ -94,6 +94,8 @@ const expected = {
         'Finance / Billing',
         'Inventory',
         'Terminal Reconciliation',
+        // PCA-1 (owner decision 2026-11-13): Finance Officers handle Panel claims too.
+        'Panel Claims',
         'Clinic management',
     ],
     panel_officer: [
@@ -115,8 +117,20 @@ const expected = {
     hr_manager: ['Insights', 'Staff', 'Clinic management'],
     marketing: ['Insights', 'Clinic management'],
     business_development: ['Insights', 'Clinic management'],
+    // ROLE-1 (owner 21 Nov 2026; Daniel's lists): no Staff item without staff or access administration.
+    branch_manager: ['Registration', 'Consultation', 'Inventory', 'Clinic management'],
+    account_assistant: ['Insights', 'Inventory', 'Clinic management'],
+    store_admin: ['Insights', 'Inventory', 'Clinic management'],
     // HR-15a: a locum lands on My roster; the hub holds their one HR link.
     locum: ['Clinic management'],
+    // MA-1a (owner, 23 Nov 2026): the Medical Assistant has the CA's functions, so the CA's list.
+    medical_assistant: [
+        'Registration',
+        'Consultation',
+        'Inventory',
+        'Patient Records',
+        'Clinic management',
+    ],
 };
 
 test('every standard role gets exactly its approved daily list in both page contexts', () => {

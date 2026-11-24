@@ -3,11 +3,13 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\HiringMessenger;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -216,6 +218,61 @@ SQL);
         $doc = DB::table('hr_interview_documents')->sole();
         $this->get(route('hr.applications.documents.show', $doc->public_id))->assertOk()
             ->assertHeader('Content-Disposition', 'attachment; filename="'.str_repeat('a', 59).'.pdf"');
+    }
+
+    public function test_an_unsuccessful_candidates_interview_records_go_six_months_after_closing_and_the_clinic_files_stay(): void
+    {
+        // PDPA 15 (owner, 2026-11-11). PostgreSQL checks the 6 months against its own clock, so this test works in real time.
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $this->travelTo($real->subMonths(7));
+        $this->selectBranch($this->hr);
+        $this->upload('ca', 'Clinic induction booklet', $this->pdf('induction'))->assertSessionHasNoErrors();
+        $doc = (string) DB::table('hr_interview_documents')->value('public_id');
+        [$gone, $goneToken] = $this->scheduled('Synthetic Withdrew');
+        [$open, $openToken] = $this->scheduled('Synthetic Still Choosing');
+        $slots = $this->starts($gone);
+        $this->pick($goneToken, array_slice($slots, 0, 3))->assertSessionHasNoErrors();
+        $this->confirm($gone, $slots[0])->assertSessionHasNoErrors();
+        auth()->logout();
+        $this->download($goneToken, $doc)->assertOk();
+        $this->withCookie('kpone_career_status', $goneToken)->post(route('hr-applications.status.withdraw'))->assertSessionHasNoErrors();
+        $this->pick($openToken, array_slice($this->starts($open), 3, 3))->assertSessionHasNoErrors();
+        $this->travelBack();
+        $goneId = (int) $this->row($gone)->id;
+        $this->assertSame('withdrawn', $this->row($gone)->status);
+
+        $this->artisan('hr-interview-records:purge')->expectsOutputToContain('Cleared the interview records of 1 applications (1 time choices, 1 bookings, 1 downloads).')
+            ->assertSuccessful();
+        foreach (['hr_job_interview_picks', 'hr_job_interviews', 'hr_interview_document_events'] as $table) {
+            $this->assertSame(0, DB::table($table)->where('application_id', $goneId)->count(), $table);
+        }
+        $this->assertSame(1, DB::table('hr_job_interview_picks')->where('application_id', $this->row($open)->id)->count()); // still open
+        $this->assertSame(1, DB::table('hr_interview_documents')->where('status', 'active')->count()); // the clinic's file stays
+        $this->assertSame(1, DB::table('hr_interview_document_events')->where('action', 'uploaded')->count()); // and its history
+        $this->assertSame('withdrawn', $this->row($gone)->status); // the application row and its history stay
+        // The confirmation email stays in the history, saying why its details are gone (Suresh).
+        $sent = DB::table('hr_job_application_messages')->where('application_id', $goneId)->where('template', 'interview_confirmed')->first();
+        $this->assertNotNull($sent);
+        $shown = HiringMessenger::shown($sent, (string) $this->row($gone)->public_id, 'Synthetic role');
+        $this->assertSame(HiringMessenger::INTERVIEW_PURGED, $shown['body']);
+        $this->assertSame('Interview time confirmed', $shown['subject']);
+        $this->assertSame([['applications' => 1, 'picks' => 1, 'interviews' => 1, 'downloads' => 1, 'retention_months' => 6]], DB::table('audit_logs')
+            ->where('event', 'hr.applications.interview_records_purged')->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->artisan('hr-interview-records:purge')->expectsOutputToContain('Cleared the interview records of 0 applications')->assertSuccessful();
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-interview-records:purge'))->pluck('expression')->values()->all());
+
+        // Only the purge deletes, and only for an application closed unsuccessfully over 6 months ago; TRUNCATE stays refused.
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_interview_picks')->where('application_id', $this->row($open)->id)->delete());
+        $this->assertDatabaseRefuses(function () use ($open): void {
+            DB::statement("SELECT set_config('kpone.hr_interview_purge', 'on', true)");
+            DB::table('hr_job_interview_picks')->where('application_id', $this->row($open)->id)->delete();
+        });
+        $this->assertDatabaseRefuses(function (): void {
+            DB::statement("SELECT set_config('kpone.hr_interview_purge', 'on', true)");
+            DB::table('hr_interview_document_events')->where('action', 'uploaded')->delete();
+        });
+        $this->assertDatabaseRefuses(fn () => DB::statement('TRUNCATE hr_job_interviews CASCADE'));
     }
 
     private function pdf(string $marker): UploadedFile

@@ -287,7 +287,9 @@ const pants = '#334155';
             />
             <circle
                 class="light"
-                :class="{ pulse: agent.isEnabled && agent.light !== 'grey' }"
+                :class="{
+                    pulse: agent.isEnabled && agent.light !== 'grey',
+                }"
                 cx="10"
                 cy="10"
                 r="4"

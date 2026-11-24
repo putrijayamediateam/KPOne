@@ -7,6 +7,7 @@ use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Payroll\Services\PayrollMath;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
 use App\Domain\HR\Payroll\Services\PayrollSetupService;
+use App\Domain\HR\Payroll\Services\ProtectedZip;
 use App\Domain\HR\Records\Models\Worker;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,9 @@ use Tests\Feature\Visit\VisitTestCase;
  */
 class PayrollRunsTest extends VisitTestCase
 {
+    /** PDPA 14: a synthetic file password; never a real one. */
+    private const FILE_PASSWORD = ['file_password' => 'Synthetic-file-pass-2026', 'file_password_confirmation' => 'Synthetic-file-pass-2026'];
+
     private const MONEY_TABLES = ['invoices', 'invoice_lines', 'payments', 'payment_allocations', 'payment_reversals', 'payment_refunds', 'cash_closings', 'panel_claims'];
 
     private User $hr;
@@ -160,6 +164,34 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertStringNotContainsString('Basic salary', (string) DB::table('hr_payroll_lines')->value('explanation_encrypted'));
     }
 
+    public function test_g1_a_run_whose_sources_changed_after_it_was_sent_is_not_approved_or_locked(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+
+        // Overtime approved after the run was sent: approving is refused, and the run stays Sent.
+        $this->approvedOvertime($aina->user, $this->closedSession($aina->user, '2026-11-20', '18:00', '19:00'), 60);
+        $this->step($this->director, $id, 'approve')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('sent', DB::table('hr_payroll_runs')->value('status'));
+
+        // Sending it back still works; prepared again, it is sent and approved.
+        $this->step($this->director, $id, 'return', ['reason' => 'missing_record'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'again')->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'approve')->assertSessionHasNoErrors();
+
+        // Another change after approval: locking is refused, nothing is paid and no payslip is issued.
+        $this->approvedOvertime($aina->user, $this->closedSession($aina->user, '2026-11-21', '18:00', '18:30'), 30);
+        $this->step($this->director, $id, 'lock')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('approved', DB::table('hr_payroll_runs')->value('status'));
+        $this->assertSame(0, DB::table('hr_payslips')->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'hr.payroll.run_locked')->count());
+    }
+
     public function test_a_stale_draft_is_not_sent_and_a_claim_paid_meanwhile_stops_the_lock(): void
     {
         [$aina] = $this->clinic();
@@ -272,6 +304,246 @@ class PayrollRunsTest extends VisitTestCase
         // A manual line amount is never flashed back into the session.
         $this->step($this->hr, $adjustment, 'manual', ['worker_id' => (string) Str::uuid(), 'item_type_id' => $this->types['Other addition'], 'amount' => '77.00',
             'reason_code' => 'bonus'])->assertSessionMissing('_old_input.amount');
+    }
+
+    public function test_m1_reversing_overtime_a_locked_run_paid_is_allowed_and_says_which_run(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'lock')->assertSessionHasNoErrors();
+        $overtime = DB::table('hr_overtime_requests')->where('user_id', $aina->user_id)->first();
+        $this->assertNotNull($overtime);
+
+        // Before reversing, the Overtime tab names the locked run that paid it.
+        $this->selectBranch($this->director);
+        $this->get(route('hr.attendance.index', ['tab' => 'overtime', 'month' => '2026-11']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('attendance.overtime.decided.0.paidIn', 'November 2026 payroll run'));
+
+        // Reversing is still allowed: the locked run and its payslip keep the line, the notice says where to recover it,
+        // and the audit names the run.
+        $this->post(route('hr.attendance.overtime.reverse', $overtime->public_id), ['reason' => 'mistake', 'expected_lock_version' => $overtime->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success',
+                'message' => 'Overtime reversed. It was paid in the locked November 2026 payroll run: add a recovery on an adjustment run.']);
+        $this->assertSame('reversed', DB::table('hr_overtime_requests')->where('id', $overtime->id)->value('status'));
+        $metadata = json_decode((string) DB::table('audit_logs')->where('event', 'hr.overtime.reversed')->value('metadata'), true);
+        $this->assertSame((int) DB::table('hr_payroll_runs')->value('id'), $metadata['paid_in_run']);
+        $this->assertSame([['overtime', 'earnings', 6563, 'Overtime · 3 h 30 min × 1.5 (normal, 12 Nov)']], array_values(array_filter($this->lines($aina),
+            fn (array $l): bool => $l[0] === 'overtime')));
+    }
+
+    public function test_g2a_overtime_approved_after_the_lock_is_flagged_and_paid_only_when_added_to_an_adjustment(): void
+    {
+        [$aina, , , $id] = $this->lockedClinic();
+        $regular = DB::table('hr_payroll_runs')->where('public_id', $id)->first();
+        $this->assertNotNull($regular);
+
+        // Aina asks for overtime in November after the run was locked; the approve dialog says the month is locked.
+        $session = $this->closedSession($aina->user, '2026-11-26', '18:00', '19:00');
+        $this->approvedOvertime($aina->user, $session, 60, approve: false);
+        $late = DB::table('hr_overtime_requests')->where('clock_session_id', $session->id)->first();
+        $this->assertNotNull($late);
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.attendance.index', ['tab' => 'overtime', 'month' => '2026-11']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('attendance.overtime.pending.0.lockedMonth', 'November 2026'));
+        $this->post(route('hr.attendance.overtime.decide', [$late->public_id, 'approve']), ['expected_lock_version' => (int) $late->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success',
+                'message' => "Overtime approved. November 2026's payroll is already locked: add it on an adjustment run."]);
+
+        // The locked run lists it and pays nothing for it; it cannot go on a regular run.
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('run.late.0.id', $late->public_id)->where('run.late.0.state', 'waiting')->where('run.late.0.duration', '1 h')
+            ->where('run.lateAdjustment.id', null)->where('run.lateAdjustment.month', '2026-11')->where('run.lateAdjustment.payGroupId', $this->group));
+        $this->assertCount(1, array_filter($this->lines($aina), fn (array $l): bool => $l[0] === 'overtime'));
+
+        // A draft adjustment offers it; nothing is added until HR presses the button.
+        $this->prepare($this->hr, 'adjustment')->assertRedirect();
+        $adjustment = (string) DB::table('hr_payroll_runs')->where('kind', 'adjustment')->value('public_id');
+        $this->assertSame(0, DB::table('hr_payroll_late_items')->count());
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('run.lateAdjustment.id', $adjustment)->where('run.lateAdjustment.draft', true));
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $adjustment))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('run.late.0.state', 'waiting')->where('run.late.0.itemId', null));
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $late->public_id)->assertSessionHasNoErrors();
+        $item = (string) DB::table('hr_payroll_late_items')->value('public_id');
+        $overtimeLines = array_values(array_filter($this->lines($aina, $adjustment), fn (array $l): bool => $l[0] === 'overtime'));
+        $this->assertCount(1, $overtimeLines);
+        $this->assertSame('Overtime · 1 h × 1.5 (normal, 26 Nov) · approved after the lock', $overtimeLines[0][3]);
+        $this->assertSame(1875, $overtimeLines[0][2]); // 6,563 sen for 3 h 30 min, so 1 h at the same rate
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $adjustment))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('run.late.0.state', 'here')->where('run.late.0.itemId', $item));
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $late->public_id)->assertSessionHasErrors(['payroll' => 'This overtime is already on an adjustment run.']);
+
+        // Taken off, it leaves the run; added again, it goes through the usual steps.
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.remove', $item)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame([], array_filter($this->lines($aina, $adjustment), fn (array $l): bool => $l[0] === 'overtime'));
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $late->public_id)->assertSessionHasNoErrors();
+        $this->step($this->hr, $adjustment, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director2, $adjustment, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director2, $adjustment, 'lock')->assertSessionHasNoErrors();
+
+        // Once a locked run pays it, it is no longer late, and approving more overtime in November is still flagged.
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', [])->where('run.lateAdjustment', null));
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.payroll.run_late_removed')->count());
+        $this->assertSame(2, DB::table('audit_logs')->where('event', 'hr.payroll.run_late_added')->count());
+
+        // PostgreSQL refuses a late item for overtime a locked run already paid, even on a new draft adjustment.
+        $paid = (int) DB::table('hr_overtime_requests')->where('user_id', $aina->user_id)->where('local_date', '2026-11-12')->value('id');
+        $draft = DB::table('hr_payroll_runs')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id, 'pay_group_id' => $regular->pay_group_id,
+            'month' => $regular->month, 'kind' => 'adjustment', 'adjusts_run_id' => $regular->id, 'status' => 'draft', 'group_name' => $regular->group_name,
+            'prepared_by_user_id' => $this->hr->id, 'prepared_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
+            'run_id' => $draft, 'worker_id' => $aina->id, 'overtime_request_id' => $paid, 'added_by_user_id' => $this->hr->id, 'created_at' => now()]));
+
+        // PostgreSQL refuses a late item on a locked run and refuses to change or remove one there.
+        $adjustmentId = (int) DB::table('hr_payroll_runs')->where('public_id', $adjustment)->value('id');
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
+            'run_id' => $adjustmentId, 'worker_id' => $aina->id, 'overtime_request_id' => $late->id, 'added_by_user_id' => $this->hr->id, 'created_at' => now()]));
+        $this->assertRefused('P0001', fn () => DB::table('hr_payroll_late_items')->where('run_id', $adjustmentId)->update(['created_at' => now()]));
+        $this->assertRefused('P0001', fn () => DB::table('hr_payroll_late_items')->where('run_id', $adjustmentId)->delete());
+    }
+
+    public function test_g1_covers_late_overtime_reversed_after_its_adjustment_run_was_sent(): void
+    {
+        [$aina] = $this->lockedClinic();
+        $session = $this->closedSession($aina->user, '2026-11-26', '18:00', '19:00');
+        $this->approvedOvertime($aina->user, $session, 60);
+        $late = DB::table('hr_overtime_requests')->where('clock_session_id', $session->id)->first();
+        $this->assertNotNull($late);
+        $this->prepare($this->hr, 'adjustment')->assertRedirect();
+        $adjustment = (string) DB::table('hr_payroll_runs')->where('kind', 'adjustment')->value('public_id');
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $late->public_id)->assertSessionHasNoErrors();
+        $this->step($this->hr, $adjustment, 'send')->assertSessionHasNoErrors();
+
+        // The late overtime is reversed after the adjustment was sent: its line would change, so approving is refused.
+        $this->selectBranch($this->director);
+        $this->post(route('hr.attendance.overtime.reverse', $late->public_id), ['reason' => 'mistake', 'expected_lock_version' => (int) DB::table('hr_overtime_requests')
+            ->where('id', $late->id)->value('lock_version'), 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->step($this->director2, $adjustment, 'approve')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('sent', DB::table('hr_payroll_runs')->where('public_id', $adjustment)->value('status'));
+    }
+
+    public function test_g2b_leave_and_hours_changed_after_the_lock_are_flagged_and_go_on_an_adjustment_only_when_added(): void
+    {
+        [$aina, $ben, , $id] = $this->lockedClinic();
+        // The locked run keeps the minutes it paid hourly Ben for (8 h 30 min + 4 h 15 min), and none for monthly Aina.
+        $this->assertSame(765, (int) DB::table('hr_payroll_run_people')->where('worker_id', $ben->id)->value('worked_minutes'));
+        $this->assertNull(DB::table('hr_payroll_run_people')->where('worker_id', $aina->id)->value('worked_minutes'));
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', [])->where('run.lateHoursUnknown', 0));
+
+        // HR cancels Aina's unpaid leave the locked run took off pay: the row and the notice say it goes back on an adjustment.
+        $leave = DB::table('hr_leave_requests')->where('user_id', $aina->user_id)->first();
+        $this->assertNotNull($leave);
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.leave.index', ['tab' => 'approvals']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('leave.approvals.approved.0.takenInMonth', 'November 2026'));
+        $this->post(route('hr.leave.requests.cancel', $leave->public_id), ['expected_lock_version' => (int) $leave->lock_version, 'reason' => 'entered_in_error',
+            'tab' => 'approvals', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success',
+                'message' => "Leave request cancelled. November 2026's payroll is already locked and took this leave off pay: add it back on an adjustment run."]);
+
+        // Unpaid leave in November approved after the lock: the approval row and the notice say so.
+        $late = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id, 'user_id' => $aina->user_id,
+            'leave_type_id' => $leave->leave_type_id, 'branch_id' => $this->branch->id, 'start_date' => '2026-11-25', 'end_date' => '2026-11-25', 'start_part' => 'full',
+            'end_part' => 'full', 'slot_start' => '2026-11-25 00:00:00', 'slot_end' => '2026-11-26 00:00:00', 'year' => 2026, 'halves' => 2, 'status' => 'pending',
+            'created_at' => now(), 'updated_at' => now()]);
+        $lateLeave = DB::table('hr_leave_requests')->where('id', $late)->first();
+        $this->assertNotNull($lateLeave);
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.leave.index', ['tab' => 'approvals']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('leave.approvals.pending.0.lockedMonth', 'November 2026'));
+        $this->post(route('hr.leave.requests.approve', $lateLeave->public_id), ['expected_lock_version' => (int) $lateLeave->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success', 'message' => "Leave approved. November 2026's payroll is already locked: add it on an adjustment run."]);
+
+        // Ben's 24 Nov clock-out is corrected from 13:15 to 14:00 after the lock.
+        $session = DB::table('hr_clock_sessions')->where('user_id', $ben->user_id)->where('local_date', '2026-11-24')->first();
+        $this->assertNotNull($session);
+        DB::table('hr_attendance_corrections')->insert(['public_id' => $correctionId = (string) Str::uuid(), 'organisation_id' => $ben->organisation_id,
+            'user_id' => $ben->user_id, 'branch_id' => $this->branch->id, 'clock_session_id' => $session->id, 'kind' => 'set_out',
+            'proposed_out_at' => CarbonImmutable::parse('2026-11-24 14:00', $this->branch->timezone)->utc(), 'reason_code' => 'wrong_time', 'status' => 'pending',
+            'proposed_by_user_id' => $ben->user_id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.attendance.index', ['tab' => 'review']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('attendance.review.pending.0.lockedMonth', 'November 2026'));
+        $this->post(route('hr.attendance.corrections.decide', [$correctionId, 'approve']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success', 'message' => "Correction approved. November 2026's payroll is already locked: add the hours on an adjustment run."]);
+
+        // The locked run lists all three, with no money; nothing is paid or taken yet.
+        $this->selectBranch($this->hr);
+        $late = collect($this->get(route('hr.payroll.runs.show', $id))->assertOk()->viewData('page')['props']['run']['late'])->keyBy('kind');
+        $this->assertSame(['hours', 'leave_approved', 'leave_cancelled'], $late->keys()->sort()->values()->all());
+        $this->assertSame(['1½ days', $leave->public_id, 'waiting'], [$late['leave_cancelled']['days'], $late['leave_cancelled']['id'], $late['leave_cancelled']['state']]);
+        $this->assertSame(['1 day', $lateLeave->public_id], [$late['leave_approved']['days'], $late['leave_approved']['id']]);
+        $this->assertSame(['12 h 45 min', '13 h 30 min', $ben->public_id], [$late['hours']['was'], $late['hours']['now'], $late['hours']['id']]);
+        $this->assertStringNotContainsString('RM', (string) json_encode($late->all()));
+
+        // A draft adjustment offers them; each is added only when HR presses the button.
+        $this->prepare($this->hr, 'adjustment')->assertRedirect();
+        $adjustment = (string) DB::table('hr_payroll_runs')->where('kind', 'adjustment')->value('public_id');
+        $this->assertSame(0, DB::table('hr_payroll_late_items')->count());
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $leave->public_id, 'leave_cancelled')->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success', 'message' => 'Cancelled leave added to this adjustment.']);
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $lateLeave->public_id, 'leave_approved')->assertSessionHasNoErrors();
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $ben->public_id, 'hours')->assertSessionHasNoErrors();
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $ben->public_id, 'hours')->assertSessionHasErrors(['payroll' => 'This is already on an adjustment run.']);
+        // The kind must match the record: a leave id offered as hours is refused.
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $lateLeave->public_id, 'hours')->assertSessionHasErrors(['payroll' => 'This is not waiting to be added. Reload the page.']);
+
+        $leaveLines = array_values(array_filter($this->lines($aina, $adjustment), fn (array $l): bool => $l[0] === 'unpaid_leave'));
+        $this->assertSame([
+            ['unpaid_leave', 'earnings', 15000, 'Unpaid leave cancelled after the lock · 1½ days from 18 Nov'],
+            ['unpaid_leave', 'deduction', 10000, 'Unpaid leave · 1 day from 25 Nov · approved after the lock'],
+        ], $leaveLines);
+        // The refund equals what the locked run took off.
+        $this->assertSame([['unpaid_leave', 'deduction', 15000]], array_map(fn (array $l): array => [$l[0], $l[1], $l[2]],
+            array_values(array_filter($this->lines($aina), fn (array $l): bool => $l[0] === 'unpaid_leave'))));
+        $hours = array_values(array_filter($this->lines($ben, $adjustment), fn (array $l): bool => $l[0] === 'hourly'));
+        $this->assertCount(1, $hours);
+        $this->assertSame(['hourly', 'earnings', 675], [$hours[0][0], $hours[0][1], $hours[0][2]]); // 45 min at RM 9.00 an hour
+        $this->assertStringStartsWith('Worked hours corrected after the lock · 12 h 45 min → 13 h 30 min', $hours[0][3]);
+
+        // Taken off, it leaves the run; added again, the run goes through the usual steps and the card empties.
+        $approvedItem = (string) DB::table('hr_payroll_late_items')->where('kind', 'leave_approved')->value('public_id');
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.remove', $approvedItem, 'leave_approved')->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success', 'message' => 'Leave approved after the lock taken off this adjustment.']);
+        $this->assertCount(1, array_filter($this->lines($aina, $adjustment), fn (array $l): bool => $l[0] === 'unpaid_leave'));
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $lateLeave->public_id, 'leave_approved')->assertSessionHasNoErrors();
+        $this->step($this->hr, $adjustment, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director2, $adjustment, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director2, $adjustment, 'lock')->assertSessionHasNoErrors();
+        $this->assertSame(810, (int) DB::table('hr_payroll_run_people')->join('hr_payroll_runs as r', 'r.id', '=', 'hr_payroll_run_people.run_id')
+            ->where('r.public_id', $adjustment)->where('worker_id', $ben->id)->value('worked_minutes'));
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', [])->where('run.lateAdjustment', null));
+        $kinds = DB::table('audit_logs')->where('event', 'hr.payroll.run_late_added')->pluck('metadata')->map(fn ($m): string => (string) json_decode((string) $m, true)['kind'])->sort()->values()->all();
+        $this->assertSame(['hours', 'leave_approved', 'leave_approved', 'leave_cancelled'], $kinds);
+
+        // PostgreSQL refuses a second give-back, a second deduction, a kind without its record, and a record on the wrong kind.
+        $regular = DB::table('hr_payroll_runs')->where('public_id', $id)->first();
+        $this->assertNotNull($regular);
+        $draft = DB::table('hr_payroll_runs')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id, 'pay_group_id' => $regular->pay_group_id,
+            'month' => $regular->month, 'kind' => 'adjustment', 'adjusts_run_id' => $regular->id, 'status' => 'draft', 'group_name' => $regular->group_name,
+            'prepared_by_user_id' => $this->hr->id, 'prepared_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $row = fn (array $extra): array => ['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id, 'run_id' => $draft, 'worker_id' => $aina->id,
+            'added_by_user_id' => $this->hr->id, 'created_at' => now(), ...$extra];
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert($row(['kind' => 'leave_cancelled', 'leave_request_id' => $leave->id])));
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert($row(['kind' => 'leave_approved', 'leave_request_id' => $lateLeave->id])));
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert($row(['kind' => 'leave_approved'])));
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert($row(['kind' => 'hours', 'leave_request_id' => $lateLeave->id])));
     }
 
     public function test_postgresql_refuses_what_the_service_refuses(): void
@@ -414,11 +686,11 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertSame('Klinik Contoh Synthetic', $snapshot($aina)['clinicName']);
     }
 
-    public function test_the_director_alone_exports_a_locked_run_and_each_download_is_recorded_first(): void
+    public function test_the_director_and_the_hr_manager_export_a_locked_run_and_each_download_is_recorded_first(): void
     {
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['director'], $holders('hr.payroll.export.organisation'));
-        $this->assertCount(11, $holders('hr.payslips.view.own'));
+        $this->assertSame(['director', 'hr_manager'], $holders('hr.payroll.export.organisation'));
+        $this->assertCount(15, $holders('hr.payslips.view.own'));
         $this->assertNotContains('queue_display', $holders('hr.payslips.view.own'));
         foreach (['hr.payroll.export.organisation', 'hr.payslips.view.own'] as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
@@ -431,15 +703,15 @@ class PayrollRunsTest extends VisitTestCase
         });
         $this->assertSame([(int) DB::table('hr_bank_details')->where('worker_id', $aina->id)->value('id'), null],
             [(int) DB::table('hr_payslips')->where('worker_id', $aina->id)->value('bank_detail_id'), DB::table('hr_payslips')->where('worker_id', $cara->id)->value('bank_detail_id')]);
-        // Only the Director exports; the Finance Officer gets no payroll access in v1.
-        foreach (['hr_manager', 'finance_officer', 'ca'] as $role) {
-            $this->selectBranch($role === 'hr_manager' ? $this->hr : $this->actor($role));
-            $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertForbidden();
+        // The Director and the HR Manager export (PDPA 14, owner 2026-11-11); the Finance Officer gets no payroll access in v1.
+        foreach (['finance_officer', 'ca'] as $role) {
+            $this->selectBranch($this->actor($role));
+            $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), self::FILE_PASSWORD)->assertForbidden();
         }
         $this->selectBranch($this->actor('finance_officer'));
         $this->get(route('hr.payroll.index'))->assertForbidden();
         $this->selectBranch($this->hr);
-        $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings']));
+        $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings', 'exports']));
 
         // The statutory summary is on screen, totalled by hand from the run's own lines.
         $this->selectBranch($this->director);
@@ -457,11 +729,11 @@ class PayrollRunsTest extends VisitTestCase
         // A new account confirmed after locking never changes the file: it pays the account frozen on the payslip (Suresh, S1).
         $this->confirmBank($aina, '9999000011');
         $this->selectBranch($this->director);
-        $response = $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertOk();
-        $this->assertSame('text/csv; charset=UTF-8', $response->headers->get('Content-Type'));
+        $response = $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), self::FILE_PASSWORD)->assertOk();
+        $this->assertSame('application/zip', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
-        $this->assertStringContainsString('payroll-bank-2026-11.csv', (string) $response->headers->get('Content-Disposition'));
-        $csv = $response->streamedContent();
+        $this->assertStringContainsString('payroll-bank-2026-11.zip', (string) $response->headers->get('Content-Disposition'));
+        $csv = $this->unzip((string) $response->getContent(), 'payroll-bank-2026-11.csv');
         $this->assertStringStartsWith("\xEF\xBB\xBFName,\"Account holder\",Bank,\"Account number\",\"Amount (MYR)\",Reference\r\n", $csv);
         // Cara had no confirmed bank details when the run was locked, so she is left out of the file and named on the tab.
         $this->assertSame([
@@ -481,8 +753,13 @@ class PayrollRunsTest extends VisitTestCase
         // The accountant summary: totals by person and item, with the accountant line. Two people who share a name stay
         // apart, because rows are grouped by the worker, not the name (Suresh, S2).
         DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
-        $csv = $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertOk()->streamedContent();
-        $this->assertStringContainsString("To confirm with the clinic's accountant before real use. Synthetic data only.", $csv);
+        $csv = $this->unzip((string) $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertOk()->getContent(), 'payroll-accountant-2026-11.csv');
+        $this->assertStringContainsString('Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only.', $csv);
+        // Daniel (M4): the title row first, then the Note as one quoted cell that never splits on its commas.
+        $lines = explode("\r\n", ltrim($csv, "\xEF\xBB\xBF"));
+        $this->assertSame('Payroll run', str_getcsv($lines[0], ',', '"', '')[0]);
+        $this->assertStringContainsString('"Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only."', $lines[1]);
+        $this->assertSame(['Note', 'Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only.'], str_getcsv($lines[1], ',', '"', ''));
         $rows = $this->csvRows($csv);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '1500.00'], $rows);
@@ -497,6 +774,33 @@ class PayrollRunsTest extends VisitTestCase
             'run_id' => DB::table('hr_payroll_runs')->value('id'), 'kind' => 'bank', 'layout' => 'summary_csv', 'row_count' => 1, 'exported_by_user_id' => $this->director->id, 'created_at' => now()]));
     }
 
+    public function test_an_export_needs_a_password_that_is_never_kept_and_the_hr_manager_can_download(): void
+    {
+        // PDPA 14 (owner, 2026-11-11, "go with b"): the file is an AES-256 zip under a password the downloader types.
+        $this->assertTrue(ProtectedZip::supported(), 'This PHP must support AES-256 zips (CI included).');
+        [$aina, , , $id] = $this->lockedClinic(function (Worker $aina): void {
+            $this->confirmBank($aina, '1111222233');
+        });
+        $this->selectBranch($this->hr);
+        $export = fn (array $input) => $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), $input);
+        $export([])->assertStatus(422)->assertJsonPath('errors.file_password.0', 'Type a password of at least 12 characters for the file.');
+        $export(['file_password' => 'short', 'file_password_confirmation' => 'short'])->assertStatus(422);
+        $export(['file_password' => 'Synthetic pass 2026', 'file_password_confirmation' => 'Synthetic pass 2026'])
+            ->assertStatus(422)->assertJsonPath('errors.file_password.0', 'Use only letters, numbers and symbols, with no spaces.');
+        $export(['file_password' => 'Synthetic-file-pass-2026', 'file_password_confirmation' => 'Something-else-2026'])
+            ->assertStatus(422)->assertJsonPath('errors.file_password.0', 'The two passwords do not match.');
+        $this->assertSame(0, DB::table('hr_payroll_exports')->count()); // a refused password records nothing
+
+        $response = $export(self::FILE_PASSWORD)->assertOk();
+        $this->assertStringContainsString('1111222233', $this->unzip((string) $response->getContent(), 'payroll-bank-2026-11.csv'));
+        $this->assertStringNotContainsString('1111222233', (string) $response->getContent()); // encrypted inside the zip
+        $this->assertSame([(int) $this->hr->id], DB::table('hr_payroll_exports')->pluck('exported_by_user_id')->map(fn ($v): int => (int) $v)->all());
+        // The password is never stored, audited or kept in the session.
+        $everything = json_encode([DB::table('audit_logs')->get(), DB::table('hr_payroll_exports')->get(), DB::table('hr_record_retries')->get(), session()->all()]);
+        $this->assertStringNotContainsString('Synthetic-file-pass-2026', (string) $everything);
+        $this->assertNotNull($aina);
+    }
+
     public function test_only_a_locked_run_is_exported(): void
     {
         [$aina] = $this->clinic();
@@ -504,8 +808,8 @@ class PayrollRunsTest extends VisitTestCase
         $this->prepare($this->hr)->assertRedirect();
         $id = (string) DB::table('hr_payroll_runs')->value('public_id');
         $this->selectBranch($this->director);
-        $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertStatus(422)->assertJsonPath('errors.export.0', 'Only a locked run is exported.');
-        $this->postJson(route('hr.payroll.runs.export', [(string) Str::uuid(), 'accountant']))->assertNotFound();
+        $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertStatus(422)->assertJsonPath('errors.export.0', 'Only a locked run is exported.');
+        $this->postJson(route('hr.payroll.runs.export', [(string) Str::uuid(), 'accountant']), self::FILE_PASSWORD)->assertNotFound();
         $this->get(route('hr.payroll.index', ['tab' => 'exports']))->assertInertia(fn (Assert $page) => $page->where('payroll.exports.runs', []));
         $this->assertSame(0, DB::table('hr_payroll_exports')->count());
         $this->assertSame(0, DB::table('hr_payslips')->count());
@@ -535,6 +839,28 @@ class PayrollRunsTest extends VisitTestCase
     }
 
     /** @return list<list<string>> */
+    /** The CSV inside a protected export, opened with the password it was made with (and refused without it). */
+    private function unzip(string $bytes, string $entry): string
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'kpone-test-zip-');
+        file_put_contents($path, $bytes);
+        try {
+            $zip = new \ZipArchive;
+            $this->assertTrue($zip->open($path));
+            $this->assertSame([$entry], [$zip->getNameIndex(0)]);
+            $this->assertSame(\ZipArchive::EM_AES_256, $zip->statIndex(0)['encryption_method'] ?? null);
+            $this->assertFalse($zip->getFromName($entry)); // no password, no content
+            $zip->setPassword(self::FILE_PASSWORD['file_password']);
+            $csv = $zip->getFromName($entry);
+            $zip->close();
+            $this->assertIsString($csv);
+
+            return $csv;
+        } finally {
+            @unlink($path);
+        }
+    }
+
     private function csvRows(string $csv): array
     {
         $lines = preg_split('/\r\n/', substr($csv, 3), -1, PREG_SPLIT_NO_EMPTY) ?: [];
@@ -629,6 +955,14 @@ class PayrollRunsTest extends VisitTestCase
             'expected_lock_version' => (int) (DB::table('hr_payroll_runs')->where('public_id', $run)->value('lock_version') ?? 1), 'idempotency_key' => (string) Str::uuid()]);
     }
 
+    private function lateStep(string $run, string $route, string $target, ?string $kind = null): TestResponse
+    {
+        $this->selectBranch($this->hr);
+
+        return $this->post(route($route, [$run, $target]), ['expected_lock_version' => (int) DB::table('hr_payroll_runs')->where('public_id', $run)->value('lock_version'),
+            'idempotency_key' => (string) Str::uuid(), ...($kind === null ? [] : ['kind' => $kind])]);
+    }
+
     /** @return list<array{0:string, 1:string, 2:int, 3:string}> */
     private function lines(Worker $worker, ?string $runId = null): array
     {
@@ -674,7 +1008,7 @@ class PayrollRunsTest extends VisitTestCase
         return $session->refresh();
     }
 
-    private function approvedOvertime(User $person, ClockSession $session, int $minutes): void
+    private function approvedOvertime(User $person, ClockSession $session, int $minutes, bool $approve = true): void
     {
         $setting = DB::table('hr_overtime_settings')->where('organisation_id', $person->organisation_id)->value('id') ?? DB::table('hr_overtime_settings')->insertGetId([
             'organisation_id' => $person->organisation_id, 'effective_from' => '2026-01-01', 'normal_multiplier' => '1.50', 'rest_day_multiplier' => '2.00',
@@ -682,6 +1016,9 @@ class PayrollRunsTest extends VisitTestCase
         $id = DB::table('hr_overtime_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $person->organisation_id, 'user_id' => $person->id,
             'requested_by_user_id' => $person->id, 'clock_session_id' => $session->id, 'branch_id' => $session->branch_id, 'local_date' => $session->local_date->toDateString(),
             'minutes_requested' => $minutes, 'reason_code' => 'patient_load', 'day_type' => 'normal', 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        if (! $approve) {
+            return;
+        }
         DB::table('hr_overtime_requests')->where('id', $id)->update(['status' => 'approved', 'minutes_approved' => $minutes, 'overtime_setting_id' => $setting,
             'multiplier' => '1.50', 'worked_minutes_at_decision' => $minutes, 'decided_by_user_id' => $this->hr->id, 'decided_at' => now()]);
     }

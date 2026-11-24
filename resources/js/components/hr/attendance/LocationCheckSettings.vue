@@ -2,9 +2,7 @@
 // HR-16a location check card (Director only). Off by default at every branch and on at one branch at a time. The
 // centre is the branch's own point (pre-filled from its public location), never a person's. A change is a new version,
 // so staff read the consent text again before their next press.
-import { router, usePage } from '@inertiajs/vue3';
 import { MapPin } from '@lucide/vue';
-import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,75 +11,13 @@ import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.v
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocationCheckSettings } from '@/composables/hr/useLocationCheckSettings';
 import type { LocationCheckCard } from './types';
 
 const props = defineProps<{ card: LocationCheckCard }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const onAt = computed(() => props.card.branches.find((b) => b.enabled) ?? null);
-const form = reactive({
-    branchId: String(onAt.value?.id ?? props.card.branches[0]?.id ?? ''),
-    centreLat: '',
-    centreLng: '',
-    radius: '',
-    consentEn: '',
-    consentBm: '',
-    processing: false,
-    confirmOff: false,
-    key: crypto.randomUUID(),
-});
-const branch = computed(
-    () =>
-        props.card.branches.find((b) => String(b.id) === form.branchId) ?? null,
-);
-const fill = () => {
-    const b = branch.value;
-    form.centreLat = b?.centreLat ?? '';
-    form.centreLng = b?.centreLng ?? '';
-    form.radius = String(b?.radiusMetres ?? props.card.suggestedRadius);
-    form.consentEn = b?.consentEn ?? props.card.draftConsentEn;
-    form.consentBm = b?.consentBm ?? props.card.draftConsentBm;
-};
-fill();
-watch(() => [form.branchId, props.card], fill);
-
-const branchOptions = computed(() =>
-    props.card.branches.map((b) => ({
-        value: String(b.id),
-        label: b.enabled ? `${b.name} (on)` : b.name,
-    })),
-);
-const blockedBy = computed(() =>
-    onAt.value && String(onAt.value.id) !== form.branchId ? onAt.value : null,
-);
-
-const put = (enabled: boolean) => {
-    form.processing = true;
-    router.put(
-        '/hr/attendance/location-check',
-        {
-            branch_id: form.branchId,
-            enabled,
-            centre_lat: form.centreLat,
-            centre_lng: form.centreLng,
-            radius_metres: form.radius,
-            consent_en: form.consentEn,
-            consent_bm: form.consentBm,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                form.key = crypto.randomUUID();
-                form.confirmOff = false;
-            },
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
+const { errors, form, branch, branchOptions, blockedBy, put } =
+    useLocationCheckSettings(props);
 </script>
 
 <template>

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
+import {
+    AlertTriangle,
+    Clock3,
+    Ellipsis,
+    LoaderCircle,
+    UserRound,
+} from '@lucide/vue';
 import { ref } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
@@ -98,6 +104,22 @@ const durationIconClass = (tone: WaitingTone) =>
     tone === 'normal' ? 'text-muted-foreground' : 'text-current';
 const rowWaitingTone = (row: PatientBoardRow) =>
     waitingTone(row.waitingMinutes);
+// TRI-1c: the triage zone chip. A readings-only triage (no approved guideline yet) shows "Triaged".
+type TriageZone = 'red' | 'yellow' | 'green';
+const triageLabel = (zone: TriageZone | null) =>
+    zone
+        ? { red: 'Red zone', yellow: 'Yellow zone', green: 'Green zone' }[zone]
+        : 'Triaged';
+const triageDotClass = (zone: TriageZone) =>
+    ({ red: 'bg-destructive', yellow: 'bg-warning', green: 'bg-success' })[
+        zone
+    ];
+const triageTextClass = (zone: TriageZone | null) =>
+    zone === 'red'
+        ? 'text-destructive'
+        : zone === 'yellow'
+          ? 'text-warning-strong'
+          : 'text-foreground';
 </script>
 
 <template>
@@ -288,11 +310,49 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                 class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-normal text-destructive"
                                 >Urgent</span
                             >
+                            <!-- TRI-1c: the triage zone (CA, CA Supervisor and the patient's own doctor only; the server
+                                 sends nothing to anyone else). The word is always shown, never colour alone. -->
+                            <span
+                                v-if="row.triage?.triaged"
+                                class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium"
+                                :class="triageTextClass(row.triage.zone)"
+                                data-testid="triage-zone-chip"
+                                ><span
+                                    v-if="row.triage.zone"
+                                    aria-hidden="true"
+                                    class="size-2 shrink-0 rounded-full"
+                                    :class="triageDotClass(row.triage.zone)"
+                                />{{ triageLabel(row.triage.zone) }}</span
+                            >
+                            <span
+                                v-else-if="row.triage"
+                                class="inline-flex rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground"
+                                data-testid="triage-missing-chip"
+                                >No triage yet</span
+                            >
                             <span
                                 v-if="row.returnedFromDispensary"
                                 class="inline-flex rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-normal text-foreground"
                                 >Returned</span
                             >
+                            <!-- Q-13 (Daniel): the doctor's own row whose dispensary case waits for the doctor's check. Plain text
+                                 under the status; not interactive (the row's open-consultation action is the only way in). -->
+                            <span
+                                v-if="row.dispensaryCheckWaiting"
+                                class="block w-full rounded-md border border-warning/25 bg-warning/10 p-2 text-xs break-words text-warning-strong"
+                                data-testid="dispensary-check-waiting"
+                            >
+                                <span
+                                    class="flex items-start gap-1.5 font-medium"
+                                    ><AlertTriangle
+                                        class="mt-0.5 size-3.5 shrink-0"
+                                        aria-hidden="true"
+                                    />Medicine ready for your check</span
+                                >
+                                <span class="mt-1 block text-warning-strong/80"
+                                    >Open the consultation to verify.</span
+                                >
+                            </span>
                             <span
                                 v-if="row.completedAt"
                                 class="text-[11px] text-muted-foreground"
@@ -536,7 +596,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     >
                         {{
                             emptyMessage ??
-                            'No Patients match this operational view.'
+                            'No patients match. Clear the search, or try another tab.'
                         }}
                     </td>
                 </tr>

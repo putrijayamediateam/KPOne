@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+{{-- Classic only (CO-1, owner decision 19 Nov 2026): every page is Classic, the spaces included. --}}
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -53,12 +54,12 @@
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
-                background-color: #f4f6fb;
+                background-color: oklch(1 0 0);
                 color-scheme: light;
             }
 
             html.dark {
-                background-color: #12141a;
+                background-color: oklch(0.145 0 0);
                 color-scheme: dark;
             }
         </style>

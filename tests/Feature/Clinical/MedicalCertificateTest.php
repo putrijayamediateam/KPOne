@@ -121,7 +121,7 @@ class MedicalCertificateTest extends BillingTestCase
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $role === 'resident_doctor' ? $doctor : $this->actor($role);
             $this->selectBranch($actor);
-            $allowed = in_array($role, ['resident_doctor', 'ca', 'ca_supervisor'], true);
+            $allowed = in_array($role, ['resident_doctor', 'ca', 'ca_supervisor', 'medical_assistant'], true);
             $this->get("/visits/{$visit->visit_number}/medical-certificates")->assertStatus($allowed ? 200 : 403);
             $response = $this->get("/visits/{$visit->visit_number}/medical-certificates/{$id}?print=1");
             $response->assertStatus($allowed ? 200 : 403);
@@ -374,6 +374,73 @@ class MedicalCertificateTest extends BillingTestCase
         Storage::disk('local')->delete($asset->path);
         $this->assertSame($before, app(MedicalCertificateDirectory::class)->snapshot($doctor, $visit, $id));
         $this->assertStringNotContainsString('data:image/png', DB::table('medical_certificates')->find($id)->encrypted_snapshot);
+    }
+
+    private function saveLogo(): BusinessDetailAsset
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        app(BusinessDetailsService::class)->save($director, [
+            'expected_branch_id' => $this->branch->id, 'organisation_lock_version' => 0, 'branch_lock_version' => 0,
+            'idempotency_key' => (string) Str::uuid(), 'legal_name' => 'Synthetic MC Group', 'clinic_name' => 'Synthetic MC Clinic',
+            'address_line_1' => '42 Synthetic Street', 'postcode' => '50000', 'city' => 'Synthetic City', 'state' => 'Synthetic State', 'country' => 'MY', 'email' => 'clinic@mc.test',
+        ], UploadedFile::fake()->image('synthetic-logo.png', 160, 90));
+
+        return BusinessDetailAsset::query()->sole();
+    }
+
+    public function test_an_issued_certificate_and_its_copy_show_the_configured_clinic_logo(): void
+    {
+        Storage::fake('local');
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $this->saveLogo();
+        $this->selectBranch($doctor);
+
+        $id = $this->act($doctor, $visit, $this->command());
+
+        $snapshot = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true);
+        $this->assertStringStartsWith('data:image/png;base64,', $snapshot['letterhead']['logo']['url']);
+        $this->assertStringContainsString('<img class="mc-logo" src="data:image/png;base64,', $snapshot['html']);
+        $this->assertStringContainsString('alt="Clinic logo"', $snapshot['html']);
+        // The copy is the frozen snapshot, so it shows the same logo.
+        $this->get("/visits/{$visit->visit_number}/medical-certificates/{$id}?print=1")->assertOk()
+            ->assertSee('<img class="mc-logo" src="data:image/png;base64,', false);
+    }
+
+    public function test_a_certificate_without_a_configured_logo_prints_no_logo_image(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+
+        $id = $this->act($doctor, $visit, $this->command());
+
+        $snapshot = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true);
+        $this->assertNull($snapshot['letterhead']['logo']);
+        $this->assertStringNotContainsString('class="mc-logo"', $snapshot['html']);
+    }
+
+    public function test_issuing_is_refused_with_the_existing_message_when_the_configured_logo_file_is_missing(): void
+    {
+        Storage::fake('local');
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $asset = $this->saveLogo();
+        $this->selectBranch($doctor);
+        Storage::disk('local')->delete($asset->path);
+
+        try {
+            $this->act($doctor, $visit, $this->command());
+            $this->fail('An MC was issued although the configured logo file is missing');
+        } catch (ValidationException $e) {
+            $this->assertSame(['The letterhead logo is unavailable. Restore it before issuing.'], $e->errors()['certificate']);
+        }
+
+        $this->assertSame(0, DB::table('medical_certificates')->count());
+        $this->assertSame(0, DB::table('mc_number_counters')->count());
     }
 
     public function test_first_issue_after_reopened_checkout_is_still_blocked_and_migration_grants_are_additive(): void

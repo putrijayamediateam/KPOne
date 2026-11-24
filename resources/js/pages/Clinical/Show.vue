@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     ArrowLeft,
     ClipboardCheck,
+    ExternalLink,
     LoaderCircle,
     Megaphone,
     Plus,
@@ -12,10 +13,12 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
+import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
@@ -33,11 +36,19 @@ import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitc
 import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
+import {
+    crossesRedLimit,
+    parseVitalsFromNote,
+    planFill,
+} from '@/lib/vitals-from-note';
+import type { NoteReading } from '@/lib/vitals-from-note';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
+import DispensaryCheckPanel from '@/pages/Clinical/Partials/DispensaryCheckPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
+import { myrNoBreak } from '@/types/billing';
 
 defineOptions({
     layout: {
@@ -138,6 +149,128 @@ const form = useForm({
     vitals: vitalsFromProps(),
     diagnoses: diagnosesFromProps(),
 });
+
+// Q-11 (owner decisions 2026-11-21): vitals the doctor typed into the note are filled straight into the EMPTY vitals boxes (rule-based, in the
+// browser; no AI service). The note is never edited, a box that already has a value is never overwritten, and nothing is saved until the
+// doctor presses Save clinical record. Undo clears what was auto-filled.
+const noteForVitals = ref(form.clinical_note);
+let noteVitalsTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+    () => form.clinical_note,
+    (value) => {
+        clearTimeout(noteVitalsTimer);
+        noteVitalsTimer = setTimeout(() => {
+            noteForVitals.value = value;
+        }, 800);
+    },
+);
+onBeforeUnmount(() => clearTimeout(noteVitalsTimer));
+const noteVitals = computed(() => parseVitalsFromNote(noteForVitals.value));
+const filledReadings = ref<NoteReading[]>([]);
+// Only readings whose boxes still hold what KPOne put there: once the doctor edits a box it drops off this line.
+const stillAutoFilled = computed(() =>
+    filledReadings.value.filter((reading) =>
+        Object.entries(reading.values).every(
+            ([field, value]) =>
+                form.vitals[field as keyof typeof form.vitals] === value,
+        ),
+    ),
+);
+const filledFromNote = computed(() =>
+    stillAutoFilled.value.map((reading) => reading.label),
+);
+// Filled readings at or past the guideline's red limit: still filled, but flagged "Check" so a typo in the note is not missed.
+const filledChecks = computed(() =>
+    stillAutoFilled.value
+        .filter((reading) =>
+            crossesRedLimit(reading.values, props.clinical.vitalLimits),
+        )
+        .map((reading) => reading.label),
+);
+// What KPOne itself put in each box. A box still holding that value counts as empty, so "temp 38" then "38.1" updates it;
+// a box the doctor changed is theirs and is never touched.
+const autoValues: Partial<Record<keyof typeof form.vitals, string>> = {};
+// Field and value pairs already applied once, so Undo (or clearing a box) is not undone by the next typing pause.
+const appliedFromNote = new Set<string>();
+const boxesForPlan = () => {
+    const boxes = { ...form.vitals } as Record<string, string>;
+
+    for (const [field, value] of Object.entries(autoValues)) {
+        if (boxes[field] === value) {
+            boxes[field] = '';
+        }
+    }
+
+    return boxes as typeof form.vitals;
+};
+const noteVitalsPlan = computed(() =>
+    planFill(noteVitals.value, boxesForPlan()),
+);
+const showNoteVitals = computed(
+    () =>
+        noteVitalsPlan.value.skipped.length > 0 ||
+        noteVitals.value.notRead.length > 0,
+);
+const autoFillVitalsFromNote = () => {
+    const plan = noteVitalsPlan.value;
+    const touched: (keyof typeof form.vitals)[] = [];
+
+    for (const [field, value] of Object.entries(plan.fill)) {
+        const key = `${field}:${value}`;
+
+        if (appliedFromNote.has(key)) {
+            continue;
+        }
+
+        appliedFromNote.add(key);
+        form.vitals[field as keyof typeof form.vitals] = value;
+        autoValues[field as keyof typeof form.vitals] = value;
+        touched.push(field as keyof typeof form.vitals);
+    }
+
+    if (touched.length === 0) {
+        return;
+    }
+
+    // Everything KPOne has put in the boxes and the doctor has not changed (so a later update never drops an earlier fill).
+    const autoRead = noteVitals.value.readings.filter((reading) =>
+        Object.entries(reading.values).every(
+            ([field, value]) =>
+                autoValues[field as keyof typeof form.vitals] === value &&
+                form.vitals[field as keyof typeof form.vitals] === value,
+        ),
+    );
+    filledReadings.value = autoRead;
+    // Focus is never moved: the doctor is usually still typing in the note.
+    vitalsExpanded.value = true;
+};
+// Fill only after a typing pause, never on load: a saved record that is reopened is not refilled.
+watch(noteForVitals, () => {
+    autoFillVitalsFromNote();
+});
+const undoNoteVitals = () => {
+    for (const [field, value] of Object.entries(autoValues)) {
+        if (form.vitals[field as keyof typeof form.vitals] === value) {
+            form.vitals[field as keyof typeof form.vitals] = '';
+        }
+
+        delete autoValues[field as keyof typeof form.vitals];
+    }
+
+    filledReadings.value = [];
+};
+const vitalsUnsaved = computed(
+    () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
+);
+// Once the record is saved the "check them" line has done its job.
+watch(
+    () => form.recentlySuccessful,
+    (saved) => {
+        if (saved) {
+            filledReadings.value = [];
+        }
+    },
+);
 
 // OH-06: Hold and Resume intentionally use `preserveState: true` (see
 // changeHoldState below) so a doctor's in-progress edits are never disturbed
@@ -390,6 +523,85 @@ const holdWithoutSaving = () => {
     changeHoldState('hold');
 };
 
+// Q-14 (owner decision 21 Nov 2026): Complete Consultation never goes ahead with unsaved clinical work. The panel's button only
+// asks (request-complete); with nothing unsaved the existing "Complete consultation?" dialog opens as before, otherwise the doctor
+// first chooses. Either choice ends in that same confirm dialog (so the service dispositions are still confirmed), never in a
+// silent completion.
+const continueOpen = ref(false);
+const continueProcessing = ref(false);
+const continueAction = ref<'confirm' | 'secondary'>('confirm');
+const continueError = ref('');
+const requestComplete = () => {
+    if (form.processing || continueProcessing.value) {
+        return;
+    }
+
+    if (!hasUnsavedWork.value) {
+        treatmentPlanPanelRef.value?.openComplete();
+
+        return;
+    }
+
+    continueError.value = '';
+    continueOpen.value = true;
+};
+const saveAndContinue = () => {
+    continueAction.value = 'confirm';
+    continueProcessing.value = true;
+    continueError.value = '';
+
+    const proceed = () => {
+        continueOpen.value = false;
+        continueProcessing.value = false;
+        treatmentPlanPanelRef.value?.openComplete();
+    };
+    const saveTreatmentPlanThenContinue = () => {
+        const panel = treatmentPlanPanelRef.value;
+
+        if (!panel) {
+            proceed();
+
+            return;
+        }
+
+        panel.saveDraft(proceed, (message) => {
+            continueError.value = message;
+            continueProcessing.value = false;
+        });
+    };
+
+    if (!form.isDirty) {
+        saveTreatmentPlanThenContinue();
+
+        return;
+    }
+
+    form.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                adoptLatestRecord();
+                saveTreatmentPlanThenContinue();
+            },
+            onError: () => {
+                continueError.value =
+                    Object.values(form.errors)[0] ??
+                    'The clinical record could not be saved. Review the latest information and try again.';
+                continueProcessing.value = false;
+            },
+        },
+    );
+};
+const continueWithoutSaving = () => {
+    continueAction.value = 'secondary';
+    form.reset();
+    form.clearErrors();
+    treatmentPlanPanelRef.value?.discardDraft();
+    continueOpen.value = false;
+    treatmentPlanPanelRef.value?.openComplete();
+};
+
 const bmi = computed(() => {
     const weight = Number(form.vitals.weight_kg);
     const height = Number(form.vitals.height_cm);
@@ -541,43 +753,67 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </p>
             </div>
             <div
-                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
+                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground max-sm:justify-start max-sm:text-left"
             >
-                <a
+                <Button
                     v-if="
                         page.props.auth.permissions.includes(
                             'medical_certificates.view.own',
                         )
                     "
-                    :href="`/visits/${clinical.visit.visitNumber}/medical-certificates`"
-                    target="_blank"
-                    rel="noopener"
-                    class="rounded-md border bg-card px-3 py-2 text-xs"
-                    >Medical certificates (new tab)</a
+                    variant="outline"
+                    size="sm"
+                    as-child
                 >
-                <a
+                    <a
+                        :href="`/visits/${clinical.visit.visitNumber}/medical-certificates`"
+                        target="_blank"
+                        rel="noopener"
+                        >Medical certificates<ExternalLink
+                            class="size-3.5"
+                            aria-hidden="true"
+                        /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <Button
                     v-if="
                         page.props.auth.permissions.includes(
                             'referrals.view.own',
                         )
                     "
-                    :href="`/visits/${clinical.visit.visitNumber}/referrals`"
-                    target="_blank"
-                    rel="noopener"
-                    class="rounded-md border bg-card px-3 py-2 text-xs"
-                    >Referral letters (new tab)</a
+                    variant="outline"
+                    size="sm"
+                    as-child
                 >
-                <a
+                    <a
+                        :href="`/visits/${clinical.visit.visitNumber}/referrals`"
+                        target="_blank"
+                        rel="noopener"
+                        >Referral letters<ExternalLink
+                            class="size-3.5"
+                            aria-hidden="true"
+                        /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <Button
                     v-if="
                         page.props.auth.permissions.includes(
                             'attendance_documents.view.own',
                         )
                     "
-                    :href="`/visits/${clinical.visit.visitNumber}/attendance`"
-                    target="_blank"
-                    rel="noopener"
-                    class="rounded-md border bg-card px-3 py-2 text-xs"
-                    >Attendance confirmation (new tab)</a
+                    variant="outline"
+                    size="sm"
+                    as-child
+                >
+                    <a
+                        :href="`/visits/${clinical.visit.visitNumber}/attendance`"
+                        target="_blank"
+                        rel="noopener"
+                        >Attendance confirmation<ExternalLink
+                            class="size-3.5"
+                            aria-hidden="true"
+                        /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
                 >
                 <WaitingPatientsButton
                     v-if="
@@ -758,16 +994,55 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
                                     >Urgent</span
                                 >
+                                <!-- TRI-1c: the triage zone (the word always shown, never colour alone). -->
+                                <span
+                                    v-if="clinical.visit.triage?.triaged"
+                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium"
+                                    :class="
+                                        clinical.visit.triage.zone === 'red'
+                                            ? 'text-destructive'
+                                            : clinical.visit.triage.zone ===
+                                                'yellow'
+                                              ? 'text-warning-strong'
+                                              : 'text-foreground'
+                                    "
+                                    data-testid="consultation-triage-zone"
+                                    ><span
+                                        v-if="clinical.visit.triage.zone"
+                                        aria-hidden="true"
+                                        class="size-2 shrink-0 rounded-full"
+                                        :class="
+                                            {
+                                                red: 'bg-destructive',
+                                                yellow: 'bg-warning',
+                                                green: 'bg-success',
+                                            }[clinical.visit.triage.zone]
+                                        "
+                                    />{{
+                                        clinical.visit.triage.zone
+                                            ? {
+                                                  red: 'Red zone',
+                                                  yellow: 'Yellow zone',
+                                                  green: 'Green zone',
+                                              }[clinical.visit.triage.zone]
+                                            : 'Triaged'
+                                    }}</span
+                                >
                             </div>
                             <div
                                 class="flex shrink-0 flex-col items-end gap-2 text-right text-xs text-muted-foreground"
                             >
-                                <Link
+                                <Button
                                     v-if="canViewPatient"
-                                    :href="`/patients/${encodeURIComponent(clinical.patient.patientNumber)}`"
-                                    class="inline-flex h-7 items-center rounded-md border px-2 text-[12px] text-foreground"
-                                    >View profile</Link
+                                    variant="outline"
+                                    as-child
+                                    class="h-11 text-foreground lg:h-9"
                                 >
+                                    <Link
+                                        :href="`/patients/${encodeURIComponent(clinical.patient.patientNumber)}`"
+                                        >View profile</Link
+                                    >
+                                </Button>
                                 <span
                                     >Queue No:
                                     {{ clinical.queue.queueNumber }}</span
@@ -785,6 +1060,39 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 class="inline-flex max-w-full rounded-md bg-muted px-2 py-1 text-xs break-words"
                                 >{{ clinical.visit.paymentMethodLabel }}</span
                             >
+                            <p
+                                v-if="clinical.visit.panelEstimate?.over"
+                                data-testid="consultation-panel-estimate"
+                                class="flex items-start gap-2 text-xs text-warning-strong"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="mt-1 size-2 shrink-0 rounded-full bg-current"
+                                />
+                                <span>
+                                    Estimated Panel total
+                                    {{
+                                        myrNoBreak(
+                                            clinical.visit.panelEstimate
+                                                .totalSen,
+                                        )
+                                    }}
+                                    is over the
+                                    {{
+                                        myrNoBreak(
+                                            clinical.visit.panelEstimate
+                                                .limitSen,
+                                        )
+                                    }}
+                                    limit. Estimate only<template
+                                        v-if="
+                                            clinical.visit.panelEstimate.partial
+                                        "
+                                        >: some items have no Panel price
+                                        yet.</template
+                                    ><template v-else>.</template>
+                                </span>
+                            </p>
                             <div
                                 v-if="clinical.visit.isPanel && panelNote"
                                 data-testid="consultation-panel-note"
@@ -810,6 +1118,15 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
+                />
+
+                <DispensaryCheckPanel
+                    v-if="clinical.dispensaryCheck"
+                    :check="clinical.dispensaryCheck"
+                />
+                <SupervisorCheckNote
+                    v-if="clinical.dispensaryCheckedInstead"
+                    :check="clinical.dispensaryCheckedInstead"
                 />
 
                 <div
@@ -921,11 +1238,39 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Record new</Button
                             >
                         </div>
+                        <!-- TRI-1c: the vitals were copied from triage when the consultation started. TRI-1d (Daniel): while the
+                             doctor has unsaved changes the label stays, marked "(edited)" ("Not saved yet" stays on the summary
+                             line); saving a change clears the triage source on the server, so the label goes. -->
+                        <p
+                            v-if="clinical.vitals.fromTriage"
+                            class="text-xs text-muted-foreground"
+                            data-testid="vitals-from-triage"
+                        >
+                            From triage, last taken by
+                            {{
+                                clinical.vitals.fromTriage.recordedBy ??
+                                'a clinic assistant'
+                            }}
+                            at {{ clinical.vitals.fromTriage.recordedAt
+                            }}<span
+                                v-if="vitalsUnsaved"
+                                class="font-medium text-warning-strong"
+                                data-testid="vitals-from-triage-edited"
+                            >
+                                (edited)</span
+                            >.
+                        </p>
                         <div
                             v-if="hasVitals"
                             class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"
                             data-testid="vitals-summary"
                         >
+                            <span
+                                v-if="vitalsUnsaved"
+                                class="font-medium text-warning-strong"
+                                data-testid="vitals-unsaved"
+                                >Not saved yet</span
+                            >
                             <span class="inline-flex items-baseline gap-1"
                                 ><span
                                     class="text-muted-foreground"
@@ -1013,6 +1358,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Systolic BP
                                 <input
                                     v-model="form.vitals.systolic_bp"
+                                    data-vitals-field="systolic_bp"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1026,6 +1372,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Diastolic BP
                                 <input
                                     v-model="form.vitals.diastolic_bp"
+                                    data-vitals-field="diastolic_bp"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1041,6 +1388,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Pulse (bpm)
                                 <input
                                     v-model="form.vitals.pulse_bpm"
+                                    data-vitals-field="pulse_bpm"
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
@@ -1054,6 +1402,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Temperature (°C)
                                 <input
                                     v-model="form.vitals.temperature_celsius"
+                                    data-vitals-field="temperature_celsius"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1072,6 +1421,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >SpO₂ (%)
                                 <input
                                     v-model="form.vitals.spo2_percent"
+                                    data-vitals-field="spo2_percent"
                                     inputmode="decimal"
                                     type="number"
                                     min="0"
@@ -1089,6 +1439,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Weight (kg)
                                 <input
                                     v-model="form.vitals.weight_kg"
+                                    data-vitals-field="weight_kg"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1103,6 +1454,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 >Height (cm)
                                 <input
                                     v-model="form.vitals.height_cm"
+                                    data-vitals-field="height_cm"
                                     inputmode="decimal"
                                     type="number"
                                     min="0.01"
@@ -1146,6 +1498,88 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 placeholder="Record the clinical consultation note…"
                             />
                             <InputError :message="form.errors.clinical_note" />
+                            <div
+                                v-if="showNoteVitals || filledFromNote.length"
+                                role="status"
+                                aria-live="polite"
+                                data-testid="note-vitals-suggestion"
+                                class="space-y-2 border-t bg-muted/40 px-3 py-2 text-xs"
+                            >
+                                <div
+                                    v-if="filledFromNote.length"
+                                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
+                                >
+                                    <p
+                                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                                    >
+                                        Filled from your note:
+                                        {{ filledFromNote.join(' · ') }}. Check
+                                        them, then save.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="max-lg:h-11"
+                                        data-testid="note-vitals-undo"
+                                        @click="undoNoteVitals"
+                                        >Undo</Button
+                                    >
+                                </div>
+                                <p
+                                    v-if="
+                                        filledFromNote.length &&
+                                        filledChecks.length
+                                    "
+                                    class="flex items-start gap-1.5 font-medium text-warning-strong"
+                                    data-testid="note-vitals-check"
+                                >
+                                    <AlertTriangle
+                                        class="mt-0.5 size-3.5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    <span
+                                        >Check:
+                                        {{ filledChecks.join(', ') }} (at or
+                                        past the clinic's red limit; is it a
+                                        typo in the note?)
+                                        <span
+                                            v-if="clinical.vitalLimits"
+                                            class="font-normal text-muted-foreground"
+                                            >Triage guideline v{{
+                                                clinical.vitalLimits
+                                                    .versionNumber
+                                            }}.</span
+                                        ></span
+                                    >
+                                </p>
+                                <p
+                                    v-if="noteVitalsPlan.skippedDetails.length"
+                                    class="text-muted-foreground"
+                                >
+                                    Not filled:
+                                    {{
+                                        noteVitalsPlan.skippedDetails
+                                            .map(
+                                                (item) =>
+                                                    `${item.label} (box already has ${item.current})`,
+                                            )
+                                            .join(', ')
+                                    }}.
+                                </p>
+                                <p
+                                    v-if="
+                                        showNoteVitals &&
+                                        noteVitals.notRead.length
+                                    "
+                                    class="text-muted-foreground"
+                                >
+                                    Not read:
+                                    {{ noteVitals.notRead.join(', ') }}. Enter
+                                    them in the vitals boxes in the units KPOne
+                                    takes.
+                                </p>
+                            </div>
                             <div class="border-t px-3 py-2">
                                 <div
                                     class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
@@ -1322,36 +1756,30 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     aria-label="Consultation panels"
                     class="flex gap-2 rounded-md border bg-card p-1"
                 >
-                    <button
+                    <Button
                         type="button"
-                        :aria-current="
-                            workspaceTab === 'treatment' ? 'page' : undefined
+                        size="sm"
+                        :variant="
+                            workspaceTab === 'treatment' ? 'secondary' : 'ghost'
                         "
-                        :class="[
-                            'rounded px-3 py-2 text-sm font-medium',
-                            workspaceTab === 'treatment'
-                                ? 'bg-muted'
-                                : 'text-muted-foreground',
-                        ]"
+                        :aria-pressed="workspaceTab === 'treatment'"
+                        class="h-11 lg:h-9"
                         @click="workspaceTab = 'treatment'"
                     >
                         Treatment plan
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        :aria-current="
-                            workspaceTab === 'history' ? 'page' : undefined
+                        size="sm"
+                        :variant="
+                            workspaceTab === 'history' ? 'secondary' : 'ghost'
                         "
-                        :class="[
-                            'rounded px-3 py-2 text-sm font-medium',
-                            workspaceTab === 'history'
-                                ? 'bg-muted'
-                                : 'text-muted-foreground',
-                        ]"
+                        :aria-pressed="workspaceTab === 'history'"
+                        class="h-11 lg:h-9"
                         @click="workspaceTab = 'history'"
                     >
                         Patient history
-                    </button>
+                    </Button>
                 </nav>
                 <div
                     v-show="workspaceTab === 'treatment'"
@@ -1359,6 +1787,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 >
                     <TreatmentPlanPanel
                         ref="treatmentPlanPanelRef"
+                        @request-complete="requestComplete"
                         :visit-number="clinical.visit.visitNumber"
                         :branch-id="clinical.branch.id"
                         :plan="clinical.treatmentPlan"
@@ -1390,6 +1819,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             @update:open="unsavedWorkOpen = $event"
             @save-and-hold="saveAndHold"
             @hold-without-saving="holdWithoutSaving"
+        />
+        <UnsavedClinicalWorkContinueDialog
+            :open="continueOpen"
+            :unsaved-items="unsavedItems"
+            :processing="continueProcessing"
+            :processing-action="continueAction"
+            :error="continueError"
+            @update:open="continueOpen = $event"
+            @save-and-continue="saveAndContinue"
+            @continue-without-saving="continueWithoutSaving"
         />
     </main>
 </template>

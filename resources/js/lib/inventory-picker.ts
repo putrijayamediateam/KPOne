@@ -95,6 +95,8 @@ const reasonLabels: Record<string, string> = {
     incorrect_quantity: 'Incorrect quantity',
     count_variance: 'Count variance',
     incorrect_batch: 'Incorrect batch',
+    // STK-25: an organisation-wide recall, unlike an STK-2 branch hold for "recall".
+    all_branch_recall: 'Recalled at every branch',
 };
 
 export const formatInventoryReason = (

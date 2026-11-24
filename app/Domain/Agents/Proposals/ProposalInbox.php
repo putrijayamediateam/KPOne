@@ -61,9 +61,67 @@ final class ProposalInbox
                 'lockVersion' => $p->lock_version,
                 'lines' => $this->lines($p, $names),
                 'canDecide' => $this->proposals->canDecide($actor, $p, $assigned),
+                'prepare' => $this->prepare($actor, $p),
+                'prepared' => $this->prepared($p),
             ])->values()->all(),
             'pagination' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()],
         ];
+    }
+
+    /**
+     * The "Approve and create ..." offer for a pending proposal (null when approval is decision only), with, for a transfer, the
+     * quantity the approver may lower and the usable locations at each end, preselected from the proposal.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function prepare(User $actor, AiProposal $proposal): ?array
+    {
+        $offer = $this->proposals->prepareOffer($actor, $proposal);
+        if ($offer === null) {
+            return null;
+        }
+        if ($proposal->type !== 'inventory.transfer_suggestion') {
+            return [...$offer, 'edits' => null];
+        }
+        $p = $proposal->payload;
+        $receiver = DB::table('branches')->where('organisation_id', $proposal->organisation_id)->where('code', (string) $p['to_branch_code'])->value('id');
+
+        return [...$offer, 'edits' => [
+            'maxQuantity' => (string) $p['quantity'],
+            'source' => (string) $p['source_location_public_id'],
+            'destination' => (string) $p['destination_location_public_id'],
+            'sourceLocations' => $this->usableLocations($proposal->organisation_id, (int) $proposal->branch_id),
+            'destinationLocations' => $receiver === null ? [] : $this->usableLocations($proposal->organisation_id, (int) $receiver),
+        ]];
+    }
+
+    /** @return list<array{id: string, name: string}> */
+    private function usableLocations(int $organisationId, int $branchId): array
+    {
+        $rows = DB::table('inventory_locations')->where('organisation_id', $organisationId)->where('branch_id', $branchId)->where('is_active', true)
+            ->where('type', '<>', 'dispensary_returns')->orderBy('name')->orderBy('id')->get(['public_id', 'name']);
+
+        $locations = [];
+        foreach ($rows as $row) {
+            $locations[] = ['id' => (string) $row->public_id, 'name' => (string) $row->name];
+        }
+
+        return $locations;
+    }
+
+    /**
+     * The work an approval prepared, for the approved tab: "Stock request SR-... created".
+     *
+     * @return array{kind: string, label: string, text: string}|null
+     */
+    private function prepared(AiProposal $proposal): ?array
+    {
+        if ($proposal->prepared_record_type === null) {
+            return null;
+        }
+        $kind = $proposal->prepared_record_type === 'inventory.stock_request' ? 'Stock request' : 'Purchase request';
+
+        return ['kind' => $kind, 'label' => (string) $proposal->prepared_record_label, 'text' => $kind.' '.$proposal->prepared_record_label.' created'];
     }
 
     /**
@@ -78,9 +136,33 @@ final class ProposalInbox
             'skus' => DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->where('s.organisation_id', $organisationId)
                 ->whereIn('s.public_id', $ids('sku_public_id'))->get(['s.public_id', 's.sku_code', 'i.generic_name', 's.stock_unit'])
                 ->mapWithKeys(fn (\stdClass $row): array => [(string) $row->public_id => ['code' => (string) $row->sku_code, 'name' => (string) $row->generic_name, 'unit' => (string) $row->stock_unit]])->all(),
-            'locations' => DB::table('inventory_locations')->where('organisation_id', $organisationId)->whereIn('public_id', $ids('location_public_id'))->pluck('name', 'public_id')->all(),
+            'locations' => DB::table('inventory_locations')->where('organisation_id', $organisationId)->whereIn('public_id', [...$ids('location_public_id'), ...$ids('source_location_public_id'), ...$ids('destination_location_public_id')])->pluck('name', 'public_id')->all(),
             'batches' => DB::table('inventory_batches')->where('organisation_id', $organisationId)->whereIn('public_id', $ids('batch_public_id'))->pluck('batch_number', 'public_id')->all(),
         ];
+    }
+
+    /**
+     * The restock "Suggested order" line: the quantity with its unit in the plural ("22 tablets"), and, when the location has
+     * a maximum, why that quantity ("22 tablets, to bring stock up to the maximum of 25"). Only this line is worded this way.
+     */
+    private function orderLine(string $quantity, ?string $unit, ?string $maximum): string
+    {
+        $line = $quantity.($unit === null ? '' : ' '.($quantity === '1' ? $unit : $this->plural($unit)));
+
+        return $maximum === null ? $line : $line.', to bring stock up to the maximum of '.$maximum;
+    }
+
+    /** A unit name in the plural: "tablet" to "tablets", "box" to "boxes", "strip" to "strips"; a name already ending in "s" is kept. */
+    private function plural(string $unit): string
+    {
+        $lower = strtolower($unit);
+
+        return match (true) {
+            str_ends_with($lower, 's') => $unit,
+            (bool) preg_match('/(x|z|ch|sh)$/', $lower) => $unit.'es',
+            (bool) preg_match('/[^aeiou]y$/', $lower) => substr($unit, 0, -1).'ies',
+            default => $unit.'s',
+        };
     }
 
     /**
@@ -103,13 +185,15 @@ final class ProposalInbox
         return match ($proposal->type) {
             'inventory.restock_suggestion' => [...$lines, $location(),
                 ['label' => 'Now in stock', 'value' => $qty('current_quantity').$unit], ['label' => 'Reorder level', 'value' => $qty('reorder_level').$unit],
-                ['label' => 'Suggested order', 'value' => $qty('suggested_quantity').$unit]],
+                ['label' => 'Suggested order', 'value' => $this->orderLine($qty('suggested_quantity'), $sku['unit'] ?? null, isset($p['max_level']) ? $qty('max_level') : null)]],
             'inventory.expiry_warning' => [...$lines, $location(), ['label' => 'Batch', 'value' => $names['batches'][$p['batch_public_id']] ?? 'Unknown batch'],
                 ['label' => 'Quantity', 'value' => $qty('quantity').$unit], ['label' => 'Expires', 'value' => (string) $p['expiry_date']],
                 ['label' => 'Days left', 'value' => (string) $p['days_left']],
                 ['label' => 'Suggested action', 'value' => $p['suggested_action'] === 'use_first' ? 'Use this batch first' : 'Review for write-off']],
             'inventory.transfer_suggestion' => [...$lines, ['label' => 'From', 'value' => (string) $p['from_branch_code']], ['label' => 'To', 'value' => (string) $p['to_branch_code']],
                 ['label' => 'Quantity', 'value' => $qty('quantity').$unit],
+                ['label' => 'Sending location', 'value' => $names['locations'][$p['source_location_public_id'] ?? ''] ?? 'Unknown location'],
+                ['label' => 'Receiving location', 'value' => $names['locations'][$p['destination_location_public_id'] ?? ''] ?? 'Unknown location'],
                 ['label' => 'Sender stock / reorder level', 'value' => $qty('from_current_quantity').' / '.$qty('from_reorder_level').$unit],
                 ['label' => 'Receiver stock / reorder level', 'value' => $qty('to_current_quantity').' / '.$qty('to_reorder_level').$unit]],
             default => [...$lines, $location(), ['label' => 'Quantity', 'value' => $qty('quantity').$unit],

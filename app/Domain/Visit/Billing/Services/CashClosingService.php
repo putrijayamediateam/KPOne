@@ -123,6 +123,8 @@ final class CashClosingService
             'refunds' => $this->cashRefunds($branch, $local),
             'status' => $approved ? 'approved' : ($latest === null ? 'not_counted' : ($latest->decision === null ? 'waiting' : 'returned')),
             'dayEnded' => $dayEnded,
+            // BIL-32: an approved day is locked; while the latest count waits, that day's money actions are paused.
+            'locked' => app(BranchDayGate::class)->locked($branch, $local->toDateString()),
             // The approved closing keeps its snapshot; flag it when today's figures no longer match (e.g. a later reversal).
             'changedSinceApproval' => $approvedClosing !== null && ($approvedClosing->expected_receipt_count !== $expected['count'] || $approvedClosing->expected_cash_sen !== $expected['sen']),
             'can' => ['count' => ! $approved && $actor->can(self::COUNT_PERMISSION), 'approve' => $canApprove],
@@ -228,6 +230,11 @@ final class CashClosingService
             $row->forceFill(['organisation_id' => $branch->organisation_id, 'cash_closing_id' => $closing->id, 'decision' => $decision,
                 'reason' => $decision === 'returned' ? $reason : null, 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(),
                 'idempotency_key' => $key, 'payload_hash' => $hash])->save();
+            if ($decision === 'approved') {
+                // BIL-32: approval locks the day (BranchDayGate and PostgreSQL refuse changes to its bills and receipts).
+                DB::table('cash_closing_locks')->insert(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id,
+                    'business_date' => $date->toDateString(), 'cash_closing_decision_id' => $row->id, 'created_at' => now()->utc()]);
+            }
             $this->audit->record($decision === 'approved' ? 'billing.cash_closing_approved' : 'billing.cash_closing_returned', $closing,
                 ['business_date' => $date->toDateString(), 'revision' => $closing->revision, 'variance_sen' => $closing->variance_sen], $actor, $branch);
 
@@ -322,6 +329,33 @@ final class CashClosingService
         ];
     }
 
+    /**
+     * BIL-31 (design note 2.4): one branch-day's close status, read only, by the month view's own rule: approved,
+     * waiting, returned, not_counted, before_start (never due) or open (the day has not ended). For the overview, which
+     * lists every branch; page() and month() stay on the viewer's active branch.
+     */
+    public function status(Branch $branch, CarbonImmutable $date): string
+    {
+        $day = $date->setTimezone($branch->timezone)->startOfDay();
+        $closings = CashClosing::query()->with('decision')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->whereDate('business_date', $day->toDateString())->orderByDesc('revision')->get();
+        if ($closings->contains(fn (CashClosing $c): bool => $c->decision?->decision === 'approved')) {
+            return 'approved';
+        }
+        if (! $this->dayEnded($branch, $day)) {
+            return 'open';
+        }
+        $latest = $closings->first();
+        if ($latest !== null) {
+            return $latest->decision === null ? 'waiting' : 'returned';
+        }
+        $setStart = $this->startDate($branch);
+        $firstCount = $setStart === null ? CashClosing::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->min('business_date') : null;
+        $startsOn = $setStart ?? ($firstCount === null ? null : CarbonImmutable::parse((string) $firstCount, $branch->timezone)->startOfDay());
+
+        return $startsOn === null || $day->lessThan($startsOn) ? 'before_start' : 'not_counted';
+    }
+
     /** BIL-15: the branch's current cash closing start date (its latest revision), or null when none is set. */
     public function startDate(Branch $branch): ?CarbonImmutable
     {
@@ -391,7 +425,7 @@ final class CashClosingService
     /** One writer at a time per branch and business date, then per request key (so a reused key never races). */
     private function serialize(Branch $branch, CarbonImmutable $date, string $key): void
     {
-        DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['cash_closing:'.$branch->organisation_id.':'.$branch->id.':'.$date->toDateString()]);
+        DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', [BranchDayGate::lockKey($branch, $date->toDateString())]);
         DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['cash_closing_key:'.$branch->organisation_id.':'.$key]);
     }
 

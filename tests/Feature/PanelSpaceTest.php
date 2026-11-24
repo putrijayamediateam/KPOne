@@ -24,7 +24,10 @@ class PanelSpaceTest extends VisitTestCase
 
     public function test_a_report_only_viewer_gets_the_summary_link_and_no_claim_widgets_or_questions(): void
     {
-        $this->selectBranch($this->actor('director'));
+        // PCA-1: the Director now handles claims, so a report-only viewer is a CA given only the Panel summary report.
+        $viewer = $this->actor('ca');
+        $viewer->givePermissionTo('reports.panel_summary.view.branch');
+        $this->selectBranch($viewer);
 
         $props = $this->get('/spaces/panel')->assertOk()->viewData('page')['props'];
         $this->assertNull($props['panel']['toClaim']);
@@ -43,7 +46,12 @@ class PanelSpaceTest extends VisitTestCase
         $this->postJson('/spaces/panel/ask', ['question' => 'panel.overdue_amount'])
             ->assertOk()->assertJsonPath('sentence', 'No Panel has overdue claims to make.');
 
+        // PCA-1 (owner decision 2026-11-13): the Director handles claims and may ask too; a report-only viewer may not.
         $this->selectBranch($this->actor('director'));
+        $this->postJson('/spaces/panel/ask', ['question' => 'panel.most_unclaimed'])->assertOk();
+        $viewer = $this->actor('ca');
+        $viewer->givePermissionTo('reports.panel_summary.view.branch');
+        $this->selectBranch($viewer);
         $this->postJson('/spaces/panel/ask', ['question' => 'panel.most_unclaimed'])->assertForbidden();
 
         $this->selectBranch($this->actor('ca'));

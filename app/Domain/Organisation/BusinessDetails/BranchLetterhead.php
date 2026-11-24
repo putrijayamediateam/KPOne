@@ -6,7 +6,7 @@ namespace App\Domain\Organisation\BusinessDetails;
 final readonly class BranchLetterhead
 {
     /** @param array{legal_name: string, registration_type: ?string, registration_number: ?string} $organisation
-     * @param  array{clinic_name: string, address_line_1: string, address_line_2: ?string, postcode: string, city: string, state: string, country: string, phone: ?string, phone_secondary: ?string, email: ?string}  $details
+     * @param  array{clinic_name: string, address_line_1: string, address_line_2: ?string, postcode: string, city: string, state: string, country: string, phone: ?string, phone_secondary: ?string, email: ?string, label_address: ?string}  $details
      * @param  array{url: string, mime: string, width: int, height: int}|null  $logo
      */
     public function __construct(

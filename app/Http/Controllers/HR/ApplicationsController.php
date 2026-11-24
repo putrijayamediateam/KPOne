@@ -4,12 +4,15 @@ namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\Services\ApplicationsPageService;
+use App\Domain\HR\Applications\Services\DeadlineExtensions;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
+use App\Domain\HR\Applications\Services\LocumHires;
 use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -60,13 +63,21 @@ class ApplicationsController extends Controller
     public function confirmInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
     {
         return $this->run($request, $this->back($request), 'Interview confirmed. The candidate is told.',
-            fn () => $slots->confirm($request->user(), $application, $request->only(['start', 'expected_lock_version', 'idempotency_key'])));
+            fn () => $slots->confirm($request->user(), $application, $request->only(['start', 'mode', 'video_link', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function askAgain(Request $request, InterviewSlots $slots, string $application): RedirectResponse
     {
         return $this->run($request, $this->back($request), 'New times asked for. The candidate is told.',
             fn () => $slots->askAgain($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR-17c follow-up (b): 3 more working days before the daily check closes a waiting application. */
+    public function extendDeadline(Request $request, DeadlineExtensions $extensions, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request),
+            fn (mixed $closesOn): string => is_string($closesOn) ? 'More time given. New closing date: '.CarbonImmutable::parse($closesOn)->format('D j M Y').'.' : 'More time given.',
+            fn () => $extensions->extend($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     public function cancelInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
@@ -118,6 +129,13 @@ class ApplicationsController extends Controller
     {
         return $this->run($request, $this->back($request), 'Staff account asked for. The account administrator sees it on the Staff page.',
             fn () => $requests->request($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function makeLocumFile(Request $request, LocumHires $hires, string $application): RedirectResponse
+    {
+        // No toast (Daniel): the sheet stays open and its status line announces the result.
+        return $this->run($request, $this->back($request), '',
+            fn () => $hires->make($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     public function cancelAccountRequest(Request $request, StaffAccountRequests $requests, string $accountRequest): RedirectResponse
@@ -198,17 +216,21 @@ class ApplicationsController extends Controller
         ]);
     }
 
-    private function run(Request $request, string $back, string $message, callable $action): RedirectResponse
+    /** @param  string|\Closure(mixed): string  $message  a closure gets the action's result (follow-up b: the new date) */
+    private function run(Request $request, string $back, string|\Closure $message, callable $action): RedirectResponse
     {
         try {
-            $action();
+            $result = $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         } catch (AuthorizationException $e) {
             app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
             throw ValidationException::withMessages(['applications' => $e->getMessage() !== '' ? $e->getMessage() : 'You may not do this.'])->redirectTo($back);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+        $text = $message instanceof \Closure ? $message($result) : $message;
+        if ($text !== '') {
+            Inertia::flash('toast', ['type' => 'success', 'message' => $text]);
+        }
 
         return redirect($back);
     }

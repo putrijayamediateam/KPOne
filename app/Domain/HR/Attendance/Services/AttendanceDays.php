@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 final class AttendanceDays
 {
     /** An open clock-in this long before a shift starts belongs to that shift. */
-    private const EARLY_ARRIVAL_MINUTES = 120;
+    public const EARLY_ARRIVAL_MINUTES = 120;
 
     public function __construct(private AttendanceSettingsService $settings) {}
 
@@ -85,7 +85,10 @@ final class AttendanceDays
         if ($settings === null || $open->clock_out_at !== null) {
             return false;
         }
-        $shifts = $this->shifts($open->organisation_id, [$open->user_id], $open->local_date, $open->local_date);
+        // HR-20 (Suresh, M1): on call is never the "next shift" of a split day, nor the shift being worked; a late-running
+        // clinic session that runs into an on-call shift stays open, and a call-in is a session of its own.
+        $shifts = $this->shifts($open->organisation_id, [$open->user_id], $open->local_date, $open->local_date)
+            ->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))->values();
         $own = $shifts->first(fn (RosterShift $s): bool => $s->ends_at->greaterThan($open->clock_in_at)
             && $s->starts_at->lessThanOrEqualTo($open->clock_in_at->addMinutes(self::EARLY_ARRIVAL_MINUTES)));
         if ($own === null || ! $now->greaterThan($own->ends_at->addMinutes($settings->forgottenWindowMinutes))) {
@@ -118,30 +121,55 @@ final class AttendanceDays
         if ($session->clock_out_at === null) {
             return 0;
         }
+        // HR-20 (owner, 18 Nov 2026): a call-in on an on-call shift is not rostered time, so all of it may be claimed.
+        if (RosterRules::isOnCall($shift->session_type)) {
+            return self::worked($session, $shift) ?? 0;
+        }
         $early = max(0, intdiv($shift->starts_at->getTimestamp() - $session->clock_in_at->getTimestamp(), 60));
         $late = max(0, intdiv($session->clock_out_at->getTimestamp() - $shift->ends_at->getTimestamp(), 60));
 
         return min($early + $late, self::worked($session, $shift) ?? 0);
     }
 
-    /** HR-3b: a shift's rostered minutes, its length less its break. */
+    /** HR-3b: a shift's rostered minutes, its length less its break. An on-call shift has none (HR-20). */
     public static function rostered(RosterShift $shift): int
     {
+        if (RosterRules::isOnCall($shift->session_type)) {
+            return 0;
+        }
+
         return max(0, (int) $shift->starts_at->diffInMinutes($shift->ends_at) - $shift->break_minutes);
     }
 
-    /** Minutes worked in a closed session: the shift's break comes off only when the session covers the whole shift. */
+    /**
+     * Minutes worked in a closed session, less the share of the matched shift's break that the session covered. The roster
+     * keeps only the break's length, not when it is taken, so the share is the break times the part of the shift the
+     * session overlaps: a whole shift gives the whole break, as before, and a session outside the shift gives none.
+     * Arriving later or leaving earlier therefore never adds worked time (HR month dry run, S1: before, a late or early
+     * session kept its whole break as worked time).
+     */
     public static function worked(ClockSession $session, ?RosterShift $shift): ?int
     {
         if ($session->clock_out_at === null) {
             return null;
         }
-        $minutes = (int) $session->clock_in_at->diffInMinutes($session->clock_out_at);
-        if ($shift !== null && $session->clock_in_at->lessThanOrEqualTo($shift->starts_at) && $session->clock_out_at->greaterThanOrEqualTo($shift->ends_at)) {
-            $minutes -= $shift->break_minutes;
-        }
+        $minutes = intdiv($session->clock_out_at->getTimestamp() - $session->clock_in_at->getTimestamp(), 60);
 
-        return max(0, $minutes);
+        return max(0, $minutes - ($shift === null ? 0 : self::breakShare($session, $shift)));
+    }
+
+    /** S1: the matched shift's break minutes in proportion to the part of the shift the session overlaps, rounded. */
+    public static function breakShare(ClockSession $session, RosterShift $shift): int
+    {
+        $length = $shift->ends_at->getTimestamp() - $shift->starts_at->getTimestamp();
+        // HR-20: a call-in on an on-call shift keeps all of its clocked time; the shift's break is not taken off.
+        if ($session->clock_out_at === null || $length <= 0 || $shift->break_minutes <= 0 || RosterRules::isOnCall($shift->session_type)) {
+            return 0;
+        }
+        $overlap = min($session->clock_out_at->getTimestamp(), $shift->ends_at->getTimestamp())
+            - max($session->clock_in_at->getTimestamp(), $shift->starts_at->getTimestamp());
+
+        return $overlap <= 0 ? 0 : (int) round($shift->break_minutes * $overlap / $length);
     }
 
     /**
@@ -161,7 +189,10 @@ final class AttendanceDays
                 $from = max($shift->starts_at->getTimestamp(), $session->clock_in_at->getTimestamp());
                 $to = min($shift->ends_at->getTimestamp(), $end->getTimestamp());
                 if ($to > $from) {
-                    $candidates[] = [$to - $from, $shift->id, $session->id];
+                    // HR-20 (Suresh, m1): a clinic shift wins over on call, so one long session that starts on the clinic
+                    // shift and runs into on call pairs with the clinic shift; an on-call overlap scores below any clinic one.
+                    $onCall = RosterRules::isOnCall($shift->session_type);
+                    $candidates[] = [$onCall ? ($to - $from) / 1_000_000 : $to - $from + 1, $shift->id, $session->id];
                 } elseif ($session->clock_out_at === null && $session->clock_in_at->lessThanOrEqualTo($shift->starts_at)
                     && $shift->starts_at->getTimestamp() - $session->clock_in_at->getTimestamp() <= self::EARLY_ARRIVAL_MINUTES * 60) {
                     // Clocked in before the shift starts and still on: the shift it is waiting for (lowest score, so a real overlap wins).
@@ -195,17 +226,19 @@ final class AttendanceDays
         $userId = $shift !== null ? $shift->staff_user_id : ($session !== null ? $session->user_id : 0);
         $settings = $this->settings->forDate($organisationId, $date);
         $flags = [];
+        // HR-20 (owner, 18 Nov 2026): on call gets no Late, Left early or No clock-in flag; a call-in is clocked as usual.
+        $onCall = $shift !== null && RosterRules::isOnCall($shift->session_type);
         if ($settings !== null) {
             $grace = $settings->graceMinutes;
             $window = $settings->forgottenWindowMinutes;
             if ($shift !== null && $session !== null) {
                 $late = (int) floor(($session->clock_in_at->getTimestamp() - $shift->starts_at->getTimestamp()) / 60);
-                if ($late > $grace) {
+                if ($late > $grace && ! $onCall) {
                     $flags[] = ['code' => 'late', 'label' => "Late {$late} min", 'minutes' => $late];
                 }
                 if ($session->clock_out_at !== null) {
                     $early = (int) floor(($shift->ends_at->getTimestamp() - $session->clock_out_at->getTimestamp()) / 60);
-                    if ($early > $grace) {
+                    if ($early > $grace && ! $onCall) {
                         $flags[] = ['code' => 'left_early', 'label' => "Left early {$early} min", 'minutes' => $early];
                     }
                 }
@@ -216,7 +249,7 @@ final class AttendanceDays
             if ($shift !== null && $session === null && isset($leave[$userId.'|'.$date])) {
                 // A shift kept on an approved leave day (HR-2a never changes shifts) is not a missed clock-in (Suresh).
                 $flags[] = ['code' => 'on_leave', 'label' => 'On approved leave'];
-            } elseif ($shift !== null && $session === null && $now->greaterThan($shift->ends_at->addMinutes($grace))) {
+            } elseif ($shift !== null && $session === null && ! $onCall && $now->greaterThan($shift->ends_at->addMinutes($grace))) {
                 $flags[] = ['code' => 'no_clock_in', 'label' => 'No clock-in'];
             }
             if ($session !== null && $session->clock_out_at === null) {

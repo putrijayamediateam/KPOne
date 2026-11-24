@@ -116,7 +116,8 @@ class BillingWorkTest extends BillingTestCase
             ->where('workspace.navigation.panelWork', false)
             ->where('workspace.navigation.financeWork', true));
         $this->get(route('clinic.panel-responsibility'))->assertForbidden();
-        $this->get(route('panel-claims.index'))->assertForbidden();
+        // PCA-1 (owner decision 2026-11-13): Finance Officers handle Panel claims too.
+        $this->get(route('panel-claims.index'))->assertOk();
         $this->get(route('billing.work'))->assertOk();
 
         $this->selectBranch($technical);

@@ -38,11 +38,16 @@ class ClinicManagementTest extends VisitTestCase
             '/queue' => ['queue.view.own', 'queue.view.branch'],
             '/registration-review' => ['public_intakes.review.branch'],
             '/payment-reconciliations' => ['payments.reconcile.branch'],
-            '/cash-closings' => ['payments.reconcile.branch'],
+            // BIL-32 (owner approved 2026-11-22): the Branch Manager opens it read only.
+            '/cash-closings' => ['payments.reconcile.branch', 'payments.cash_closing.view.branch'],
+            '/sales-targets' => ['sales_targets.manage.organisation'], // BIL-30, owner approved 2026-11-23
+            '/insights/overview' => ['insights.overview.view.organisation'], // BIL-31, owner approved 2026-11-24
+            '/approvals' => ['payments.cash_closing.approve.branch', 'inventory.supplier_invoices.approve.branch', 'inventory.purchase_orders.create.organisation', 'panel.prices.approve.organisation', 'patients.merge.approve.organisation', 'hr.leave.approve.organisation', 'hr.attendance.review.organisation', 'hr.overtime.approve.organisation', 'hr.claims.approve.organisation'], // APPR-1a and APPR-1d, owner approved 2026-11-22
             '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/registration-settings' => ['catalogue.settings.manage.organisation'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
+            '/triage-guideline' => ['triage.guideline.manage.organisation'], // TRI-1b, owner approved 2026-11-20
             '/checkout-settings' => ['panels.manage.organisation'],
             '/payment-methods' => ['payment_methods.manage.organisation'],
             '/billing-approval-limits' => ['billing.approval_limits.manage.organisation'],
@@ -54,6 +59,8 @@ class ClinicManagementTest extends VisitTestCase
             '/inventory-services-settings/suppliers' => ['catalogue.settings.manage.organisation'],
             '/inventory' => ['inventory.view.branch'],
             '/dispensary/returns-to-check' => ['inventory.variances.approve.branch'],
+            '/dispensary/doctor-checks' => ['dispensary.doctor_check.override.branch'],
+            '/dispensary-settings' => ['dispensary.settings.manage.branch'],
             '/patients' => ['patients.search.organisation'],
             '/financial-work' => ['finance.work.view.branch'],
             '/pay-later-collections' => ['outstanding.view.branch'],
@@ -69,6 +76,7 @@ class ClinicManagementTest extends VisitTestCase
             '/panel-claims/follow-up' => ['panel.claims.manage.branch'],
             '/panel-remittances' => ['panel.remittances.record.branch'],
             '/panel-payment-corrections' => ['panel.claim_payments.reverse.branch'],
+            '/panel-price-changes' => ['panel.prices.propose.organisation', 'panel.prices.approve.organisation'],
             '/panel-responsibility' => ['panel.work.view.branch'],
             '/panel-invoices' => ['panel.invoices.export.branch'],
             '/hr/dashboard' => ['hr.roster.manage.organisation', 'hr.attendance.review.organisation', 'hr.leave.manage.organisation'],
@@ -83,6 +91,8 @@ class ClinicManagementTest extends VisitTestCase
             '/hr/appraisals' => ['hr.appraisal.view.own', 'hr.appraisal.manage.organisation'],
             '/hr/incidents' => ['hr.incidents.report.own', 'hr.incidents.manage.organisation'],
             '/hr/open-shifts' => ['hr.open_shifts.request.own', 'hr.open_shifts.manage.organisation'],
+            '/hr/locum-pay' => ['hr.locum_pay.view.own', 'hr.locum_pay.manage.organisation', 'hr.locum_pay.finance.organisation'],
+            '/hr/labour-cost' => ['hr.labour_cost.view.organisation'],
             '/hr/discipline' => ['hr.discipline.manage.organisation'],
             '/hr/claims' => ['hr.claims.submit.own', 'hr.claims.approve.organisation', 'hr.claims.pay.organisation', 'hr.claims.manage.organisation'],
             '/hr/payroll' => ['hr.payroll.prepare.organisation', 'hr.payroll.export.organisation'],

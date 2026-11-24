@@ -8,6 +8,7 @@ import { myr } from '@/types/billing';
 type FollowUpClaim = {
     publicId: string;
     claimNo: string;
+    supplementaryTo?: string | null;
     patientName: string;
     invoiceNumber: string;
     panelName: string;
@@ -80,10 +81,11 @@ const go = (panel: string, page = 1) =>
         </div>
         <p class="text-sm text-muted-foreground">
             An action is a submission, query, decision, amount change, note,
-            payment or photo. Paid and rejected claims are not listed. A claim
-            marked “Prepared (not yet submitted)” still needs submitting on the
-            Panel's portal. Change a Panel's follow-up days in Checkout
-            settings.
+            payment or photo. Paid and rejected claims are not listed. Change a
+            Panel's follow-up days in Checkout settings.
+        </p>
+        <p class="text-sm text-muted-foreground">
+            Claims not yet submitted are on the Overdue tab.
         </p>
 
         <p
@@ -108,7 +110,11 @@ const go = (panel: string, page = 1) =>
                         :href="claim.showUrl"
                         class="font-medium underline-offset-2 hover:underline"
                     >
-                        Claim {{ claim.claimNo }}
+                        Claim {{ claim.claimNo
+                        }}<template v-if="claim.supplementaryTo">
+                            · Supplementary to
+                            {{ claim.supplementaryTo }}</template
+                        >
                     </Link>
                     <span class="font-mono text-xs text-muted-foreground">
                         · {{ claim.invoiceNumber }}</span

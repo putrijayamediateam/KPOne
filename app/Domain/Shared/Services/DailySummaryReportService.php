@@ -26,16 +26,30 @@ class DailySummaryReportService extends BranchReportService
         return 'Daily summary';
     }
 
-    public function basis(): string
+    public function basisLines(): array
     {
-        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund\'s method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money on a receipt of a completed visit (BIL-10); it is already inside those two columns, so it is never added to them. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt\'s invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
+        return [
+            ['label' => 'Receipts', 'text' => 'Cash, Non-cash and Total count money on the day the receipt was taken, not the day the invoice was finalised. Each shows received, reversed and net; a reversed receipt is taken off its own receipt day.'],
+            ['label' => 'Panel and Due', 'text' => 'Panel is the Panel\'s approved share and Due is approved pay-later still owed. Both count on the day the invoice was finalised.'],
+            ['label' => 'Panel claim adjustments', 'text' => 'Confirmed changes to a Panel share, with + or − for up or down. Each counts on the day it was confirmed, so a past day never changes.'],
+            ['label' => null, 'text' => 'Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received, and neither are Panel claim adjustments or refunds.'],
+            ['label' => 'Refunds', 'text' => 'Refunds that are waiting or approved (not rejected) count on the day they were paid out, under the refund\'s own payment method. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money for a completed visit; it is already inside those two columns, so do not add it again.'],
+            ['label' => null, 'text' => 'Cash closing = Cash net + Cash reversed, refund recorded − Cash refunds paid.'],
+            ['label' => 'Filters and settings', 'text' => 'Payment-method filters apply to receipt columns only, and to refunds by the refund\'s method (refunds paid) or the receipt\'s method (refund recorded). Visit type filters apply to every column; a receipt not linked to an invoice cannot match a visit filter. Each payment method\'s current Cash or Non-cash setting (Not classified counts as Non-cash) is used for every period: if the setting changes, older days change too.'],
+            ['label' => 'Notes', 'text' => 'Amounts in MYR, two decimals; days with nothing show zeros. Figures are today\'s records, not a saved copy from the past.'],
+        ];
+    }
+
+    public function basisSummary(): string
+    {
+        return 'Receipts count on the day taken; Panel and Due on the day the invoice was finalised; adjustments on the day they were confirmed.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array
     {
         $days = [];
         for ($date = CarbonImmutable::parse($filters['from']); $date->toDateString() <= $filters['to']; $date = $date->addDay()) {
-            $days[$date->toDateString()] = array_fill(0, 15, 0);
+            $days[$date->toDateString()] = array_fill(0, 16, 0);
         }
         $methods = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->get()->keyBy('code');
         foreach (app(ClinicInsightsReportService::class)->branchReceiptRows($actor, $branch, $filters['from'], $filters['to'], $filters['visit_types']) as $row) {
@@ -56,7 +70,7 @@ class DailySummaryReportService extends BranchReportService
             $query->whereIn('visit_id', DB::table('visits')->where('organisation_id', $actor->organisation_id)->whereIn('visit_type', $filters['visit_types'])->select('id'));
         }
         $query->chunkById(500, function ($invoices) use (&$days, $branch): void {
-            $states = app(FinancialLedger::class)->states($invoices);
+            $states = app(FinancialLedger::class)->states($invoices, withPanelAdjustments: false); // PCA-2: day story, original Panel share.
             foreach ($invoices as $invoice) {
                 $date = $invoice->finalized_at?->setTimezone($branch->timezone)->toDateString();
                 $state = $states[$invoice->id];
@@ -65,8 +79,20 @@ class DailySummaryReportService extends BranchReportService
             }
         });
         $this->refunds($actor, $branch, $filters, $methods->keyBy('id'), $days);
-        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)', 'Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)', 'Refunded after completion (payout date, MYR)'];
-        $sums = array_fill(0, 15, 0);
+        // PCA-3: confirmed Panel claim adjustments on their confirmation day (the Panel column keeps the original share).
+        $adjustments = InvoiceSalesProjection::confirmedPanelAdjustments($actor->organisation_id)->where('branch_id', $branch->id)
+            ->where('confirmed_at', '>=', CarbonImmutable::parse($filters['from'], $branch->timezone)->startOfDay()->utc())
+            ->where('confirmed_at', '<', CarbonImmutable::parse($filters['to'], $branch->timezone)->addDay()->startOfDay()->utc());
+        if ($filters['visit_types'] !== []) {
+            $adjustments->whereIn('invoice_id', DB::table('invoices')->where('organisation_id', $actor->organisation_id)
+                ->whereIn('visit_id', DB::table('visits')->where('organisation_id', $actor->organisation_id)->whereIn('visit_type', $filters['visit_types'])->select('id'))->select('id'));
+        }
+        foreach ($adjustments->get(['confirmed_at', 'amount_sen']) as $adjustment) {
+            $date = CarbonImmutable::parse((string) $adjustment->confirmed_at, 'UTC')->setTimezone($branch->timezone)->toDateString();
+            $days[$date][15] = ($days[$date][15] ?? 0) + (int) $adjustment->amount_sen;
+        }
+        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)', 'Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)', 'Refunded after completion (payout date, MYR)', 'Panel claim adjustments (confirmation date, MYR)'];
+        $sums = array_fill(0, 16, 0);
         $rows = [];
         foreach ($days as $date => $values) {
             foreach ($values as $i => $value) {

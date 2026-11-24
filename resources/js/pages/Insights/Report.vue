@@ -25,6 +25,7 @@ defineOptions({
 });
 
 const props = defineProps<{
+    canOverview?: boolean;
     summaryDownloadUrl: string | null;
     dailyDownloadUrl: string | null;
     filters: InsightsRangeFilters;
@@ -82,8 +83,12 @@ const doctorOptions = computed(() => [
     })),
 ]);
 
+// BIL-31: the Overview tab shows only to holders of the overview permission (Director, Finance Officer).
 const sections = [
     { id: 'today', title: 'Today', href: '/insights/today' },
+    ...(props.canOverview
+        ? [{ id: 'overview', title: 'Overview', href: '/insights/overview' }]
+        : []),
     { id: 'sales', title: 'Sales', href: '/insights/sales' },
     { id: 'in-clinic', title: 'In-clinic', href: '/insights/in-clinic' },
     { id: 'payments', title: 'Payments', href: '/insights/payments' },
@@ -218,6 +223,12 @@ const cardRows = computed(() => {
             {
                 label: 'Recorded wastage',
                 value: `${value.summary.wastageUnits} units`,
+                note: 'Stocktake losses, damage adjustments and approved write-offs for expiry or other reasons. Reversed write-offs and reversed count losses are left out. Counts all stock units together.',
+            },
+            {
+                label: 'Treatment-room waste',
+                value: `${value.summary.treatmentWasteUnits} units`,
+                note: 'Stock wasted in treatment rooms (opened, spilled or broken, contaminated or other). Reversed entries are left out. Not included in Recorded wastage. Counts all stock units together.',
             },
             {
                 label: 'Inventory value',
@@ -545,7 +556,7 @@ const occupancyMax = computed(() =>
                 <p class="text-muted-foreground">
                     {{
                         section === 'sales'
-                            ? 'Invoice finalisation date, current adjusted payable; matches the daily trend. Empty dates are zero.'
+                            ? 'Invoice finalisation date, current adjusted payable; refund credits and Panel claim adjustments on the day they were approved or confirmed. Matches the daily trend. Empty dates are zero.'
                             : 'Receipt date, not invoice date. Original receipts less reversed receipts = currently posted receipts. Later reversals restate the original receipt date; not refund-date cash flow. Panel claim remittances excluded.'
                     }}
                 </p>

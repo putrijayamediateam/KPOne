@@ -27,6 +27,7 @@ final class SalesSummaryExportService
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 403);
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
+            BranchOnlyExportScope::enforce($actor, $branch, $scope);
             $grants = $actor->getAllPermissions()->pluck('name');
             abort_unless($grants->contains(self::PERMISSION) && $grants->contains('insights.view.organisation'), 403);
             $data = $this->reports->report($actor, 'sales', $scope, $from, $to, $doctor);
@@ -42,7 +43,7 @@ final class SalesSummaryExportService
                     $previous ? $data['previousFrom'] : $data['from'], $previous ? $data['previousTo'] : $data['to'],
                     $period, $metric, $unit === 'MYR' ? ReportCsv::money($value) : (string) $value, $unit];
             };
-            foreach (['grossSen' => 'Gross item sales', 'discountsSen' => 'Invoice discounts', 'surchargesSen' => 'Invoice surcharges', 'refundCreditsSen' => 'Refund credits', 'netSen' => 'Net invoice sales'] as $key => $label) {
+            foreach (['grossSen' => 'Gross item sales', 'discountsSen' => 'Invoice discounts', 'surchargesSen' => 'Invoice surcharges', 'refundCreditsSen' => 'Refund credits', 'panelAdjustmentsSen' => 'Panel claim adjustments', 'netSen' => 'Net invoice sales'] as $key => $label) {
                 $add('current', $label, $summary['reconciliation'][$key], 'MYR');
             }
             foreach (['newSen' => 'New net sales', 'returningSen' => 'Returning net sales', 'perPatientSen' => 'Net sales per patient'] as $key => $label) {

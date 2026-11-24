@@ -1,73 +1,42 @@
 <script setup lang="ts">
-// HR-7c Exports tab (HR-PLAN 17.3 and 17.7): the Director only in v1. One card per locked run with the bank file, the
-// accountant summary and the statutory summary for the portals. Each download is recorded first and never stored.
-import { ref } from 'vue';
+// HR-7c Exports tab (HR-PLAN 17.3 and 17.7). One card per locked run with the bank file, the accountant summary and the
+// statutory summary for the portals. Each download is recorded first and never stored. PDPA 14 (owner, 2026-11-11):
+// the Director and the HR Manager download, and every file is an AES-256 zip under a password typed here, which is sent
+// once with the request and never kept in KPOne or in this page after the download.
+// The dialog opens from code, so focus goes back by hand to the button that opened it (Daniel). The clicked button
+// itself, as Safari does not focus a button on a mouse click (Suresh).
+// Never closed while the file is being made: the request would carry on without its dialog.
+// A stalled connection must not hold the dialog for minutes with Cancel off (Suresh).
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
+import { useExportsTab } from '@/composables/hr/useExportsTab';
+import type { ExportsTabProps } from '@/composables/hr/useExportsTab';
 import { myr } from '@/types/billing';
-import type { ExportRun } from './types';
 
-defineProps<{ runs: ExportRun[] }>();
-
-const busy = ref<string | null>(null);
-const failure = ref('');
-const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
-    if (busy.value) {
-        return;
-    }
-
-    busy.value = `${run.id}:${kind}`;
-    failure.value = '';
-
-    try {
-        const response = await fetch(
-            `/hr/payroll/runs/${run.id}/export/${kind}`,
-            {
-                method: 'POST',
-                credentials: 'same-origin',
-                cache: 'no-store',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN':
-                        document.querySelector<HTMLMetaElement>(
-                            'meta[name="csrf-token"]',
-                        )?.content ?? '',
-                },
-            },
-        );
-
-        if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-
-            throw new Error(
-                payload?.errors
-                    ? Object.values(payload.errors).flat().join(' ')
-                    : response.status === 429
-                      ? 'Too many downloads. Try again in a minute.'
-                      : 'Unable to prepare the file. Try again.',
-            );
-        }
-
-        const disposition = response.headers.get('Content-Disposition') ?? '';
-        const name =
-            /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${kind}.csv`;
-        const url = URL.createObjectURL(await response.blob());
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = name;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
-        failure.value =
-            error instanceof Error
-                ? error.message
-                : 'Unable to prepare the file.';
-    } finally {
-        busy.value = null;
-    }
-};
+defineProps<ExportsTabProps>();
+const {
+    MIN_PASSWORD,
+    busy,
+    failure,
+    asking,
+    secret,
+    ask,
+    dismiss,
+    returnFocus,
+    download,
+} = useExportsTab();
 </script>
 
 <template>
@@ -81,6 +50,11 @@ const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
             <p class="text-sm text-muted-foreground">
                 Open the bank file in a spreadsheet as text, so account numbers
                 keep their leading zeros.
+            </p>
+            <p class="text-sm text-muted-foreground">
+                Each file comes as a password-protected zip. Keep it in the
+                clinic's locked folder, delete other copies once sent, and send
+                the password by a different way from the file.
             </p>
         </div>
 
@@ -135,7 +109,7 @@ const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
                     class="max-lg:min-h-11"
                     :disabled="!!busy || run.missingBank.length === run.people"
                     data-test="export-bank"
-                    @click="download(run, 'bank')"
+                    @click="ask(run, 'bank', $event.currentTarget)"
                     >{{
                         busy === `${run.id}:bank`
                             ? 'Preparing…'
@@ -147,7 +121,7 @@ const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
                     class="max-lg:min-h-11"
                     :disabled="!!busy"
                     data-test="export-accountant"
-                    @click="download(run, 'accountant')"
+                    @click="ask(run, 'accountant', $event.currentTarget)"
                     >{{
                         busy === `${run.id}:accountant`
                             ? 'Preparing…'
@@ -222,5 +196,124 @@ const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
                 </div>
             </details>
         </article>
+
+        <Dialog
+            :open="asking !== null"
+            @update:open="(open: boolean) => !open && dismiss()"
+        >
+            <DialogContent
+                class="sm:max-w-md"
+                data-test="export-password"
+                :show-close-button="!busy"
+                @close-auto-focus="returnFocus"
+            >
+                <DialogHeader>
+                    <DialogTitle>Protect the file with a password</DialogTitle>
+                    <DialogDescription>
+                        {{
+                            asking?.kind === 'bank'
+                                ? 'Bank file'
+                                : 'Accountant summary'
+                        }}
+                        for {{ asking?.run.group }} · {{ asking?.run.month }}.
+                        KPOne never keeps this password, so note it somewhere
+                        safe: without it the file cannot be opened.
+                    </DialogDescription>
+                </DialogHeader>
+                <form
+                    class="flex flex-col gap-3"
+                    autocomplete="off"
+                    @submit.prevent="download"
+                >
+                    <div class="flex flex-col gap-1">
+                        <Label for="export-file-password"
+                            >Password (at least
+                            {{ MIN_PASSWORD }} characters)</Label
+                        >
+                        <Input
+                            id="export-file-password"
+                            v-model="secret.password"
+                            :type="secret.show ? 'text' : 'password'"
+                            autocomplete="new-password"
+                            class="max-lg:min-h-11"
+                            :aria-invalid="
+                                secret.passwordError ? 'true' : undefined
+                            "
+                            aria-describedby="export-file-password-error"
+                            data-test="export-password-input"
+                        />
+                        <InputError
+                            id="export-file-password-error"
+                            :message="secret.passwordError"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <Label for="export-file-password-again"
+                            >Type the password again</Label
+                        >
+                        <Input
+                            id="export-file-password-again"
+                            v-model="secret.confirm"
+                            :type="secret.show ? 'text' : 'password'"
+                            autocomplete="new-password"
+                            class="max-lg:min-h-11"
+                            :aria-invalid="
+                                secret.confirmError ? 'true' : undefined
+                            "
+                            aria-describedby="export-file-password-again-error"
+                            data-test="export-password-again"
+                        />
+                        <InputError
+                            id="export-file-password-again-error"
+                            :message="secret.confirmError"
+                        />
+                    </div>
+                    <label class="flex min-h-11 items-center gap-2 text-sm">
+                        <input
+                            v-model="secret.show"
+                            type="checkbox"
+                            class="size-4"
+                        />
+                        Show password
+                    </label>
+                    <InputError
+                        id="export-file-error"
+                        :message="secret.error"
+                    />
+                    <div
+                        class="flex flex-col gap-1 text-xs text-muted-foreground"
+                    >
+                        <p>
+                            Open it with 7-Zip or WinZip on Windows, or The
+                            Unarchiver on a Mac. The built-in zip opener cannot
+                            open protected files.
+                        </p>
+                        <p>
+                            Many bank portals take only the CSV. Unzip it before
+                            uploading.
+                        </p>
+                    </div>
+                    <DialogFooter class="gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :disabled="!!busy"
+                            @click="dismiss"
+                            >Cancel</Button
+                        >
+                        <Button
+                            type="submit"
+                            class="max-lg:min-h-11"
+                            :disabled="!!busy"
+                            data-test="export-password-download"
+                            >{{
+                                busy ? 'Preparing…' : 'Download protected file'
+                            }}</Button
+                        >
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     </section>
 </template>

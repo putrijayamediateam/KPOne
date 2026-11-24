@@ -15,6 +15,7 @@ use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\ClockPhotoFixture;
 
 /**
  * HR-9 HR dashboard: read-only aggregates. The clock is frozen in Kuala Lumpur on Monday 8 Mar 2027, so every date is
@@ -458,7 +459,7 @@ class DashboardTest extends VisitTestCase
     {
         $this->selectBranch($actor);
 
-        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, $kind)])->assertSessionHasNoErrors();
     }
 
     private function settings(User $actor): void

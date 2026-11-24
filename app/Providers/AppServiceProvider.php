@@ -3,7 +3,12 @@
 namespace App\Providers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Agents\Ask\AskSwitch;
+use App\Domain\Agents\Chat\ChatModel;
+use App\Domain\Agents\Chat\Providers\HttpChatModel;
+use App\Domain\Agents\Connector\ConnectorTools;
 use App\Domain\Agents\Health\SystemHealthTool;
+use App\Domain\Agents\Proposals\ProposalPreparers;
 use App\Domain\Agents\Tools\AgentToolRegistry;
 use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
@@ -14,6 +19,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
 use App\Domain\Identity\Policies\StaffPolicy;
+use App\Domain\Organisation\Inventory\Services\InventoryProposalPreparer;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Policies\BranchPolicy;
@@ -41,6 +47,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\Compilers\BladeCompiler;
+use Laravel\Passport\Passport;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -54,9 +62,46 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(AccessChangeActorContext::class);
+        // CHAT-1: the one adapter to the AI provider (tests bind a fake).
+        $this->app->bind(ChatModel::class, HttpChatModel::class);
         $this->app->scoped(BranchAccessService::class);
         // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
         $this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);
+        // STK-41: approving a transfer or restock suggestion may prepare an Inventory record (behind agents.prepare_enabled).
+        $this->app->tag([InventoryProposalPreparer::class], ProposalPreparers::TAG);
+        // CN-1: the connector's data sources join the registry by tag (AgentToolRegistry stays unchanged).
+        $this->app->tag(ConnectorTools::classes(), AgentToolRegistry::TAG);
+        // CN-1: Passport's own routes are off; routes/ai.php registers the few OAuth routes behind the kill switch and
+        // the connector permission. This must run before any provider boots.
+        Passport::ignoreRoutes();
+    }
+
+    /**
+     * OPT-1: `php artisan optimize` failed at its views step with "Unable to locate a class or view for component
+     * [inertia::app]". `route:cache` boots a fresh application, which becomes `Container::getInstance()`, then points
+     * the facades back at the original one; `view:cache` then compiles with the fresh application's Blade compiler,
+     * while inertia-laravel registers its `inertia` component namespace through the Blade facade, on the original
+     * compiler. Registering the namespace on each compiler instance itself works in every order; the rendered page is
+     * unchanged. Remove this once inertia-laravel registers it on the compiler it is given (or Laravel's route:cache
+     * restores the container instance).
+     */
+    private function registerInertiaBladeComponents(): void
+    {
+        $this->callAfterResolving('blade.compiler', function (BladeCompiler $blade): void {
+            $blade->componentNamespace('Inertia\\View\\Components', 'inertia');
+        });
+    }
+
+    /** CN-1: the consent screen and token lifetimes (design note section 4): 1 hour access, 30 days refresh. */
+    private function configureConnectorOAuth(): void
+    {
+        Passport::authorizationView(fn (array $parameters) => response()->view('connector.authorize', $parameters));
+        // CHAT-2: the extra token scope for save_answer exists only while "Ask through Claude" is switched on at boot.
+        if (config('agents.ask_claude_enabled') && config('agents.connector_enabled')) {
+            Passport::tokensCan(['mcp:use' => 'Use MCP server', AskSwitch::SCOPE => 'Save one answer to a question asked in KPOne']);
+        }
+        Passport::tokensExpireIn(now()->addHour());
+        Passport::refreshTokensExpireIn(now()->addDays(30));
     }
 
     /**
@@ -64,6 +109,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerInertiaBladeComponents();
+        $this->configureConnectorOAuth();
         RateLimiter::for('patient-report-views', fn (Request $request) => Limit::perMinute(60)->by('patient-reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         RateLimiter::for('patient-whatsapp', fn (Request $request) => Limit::perMinute(20)->by('patient-whatsapp:'.$request->user()?->id));
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));

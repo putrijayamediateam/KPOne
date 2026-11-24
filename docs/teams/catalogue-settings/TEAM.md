@@ -145,6 +145,21 @@ Server checks stay the authority; hiding a control is a usability aid only.
    "Procedure(s)" and "Investigation(s)" confirmed by Billing (Farah) for BIL-9; Daniel OK (he finds the "(s)" names
    a little awkward, kept to match the clinic's invoice categories); Ravi OK.
 
+21. **Version 2 pages (owner, 2026-11-12/13).** The restyle of Classic is closed: Classic stays exactly as it was.
+   Every department builds Version 2 pages behind the per-user "Try the new layout" switch, registered in
+   `config/v2-pages.php`, each with the same props, routes, permissions and lock versions, a Classic-compare test and
+   shots in the real V2 shell on a `validation/*` branch. B.E.R.N.I.S.S relays the owner on this: it asks Daniel for the
+   look and then ships for the owner ("approved by B.E.R.N.I.S.S for the owner"). Merged or in a PR as of 2026-11-13:
+   Payment Methods (#660), Pricing (#668), Business details (#690, batch 15), Medicine Catalogue (#692), Suppliers
+   (#697), Clinical Service (#701), Medicine details (#707), Registration settings and Consultation settings (#713) and
+   Price list check and Price history (#715). Daniel's department look: Business details is two tabs (Company, Branches)
+   with a Document readiness disclosure bar; each Branches save names what it covers; Remove logo asks first.
+22. **Changed paths in V2 (Daniel, 2026-11-13).** Archive or Deactivate asks first on every V2 settings page (Classic
+   toggled with no question); the wording comes from what the backend really does (for example a supplier archive:
+   no new purchase orders or requests, drafts cannot be submitted, submitted orders unchanged). The discard question
+   puts "Keep editing" on top and focused on a phone, and focus returns to the field that had it. A refused price save
+   keeps what was typed and keeps the old expected versions (consultation tariff).
+
 ## 7. Open items and known limits
 
 - Design debt from Daniel's `docs/design/DEBT.md`: DD-04 (Pricing labels) and DD-13 (Medicine Catalogue), owner
@@ -191,6 +206,17 @@ Server checks stay the authority; hiding a control is a usability aid only.
   unused data); once a listed name is picked, an older value's option disappears until the dialog is cancelled; BIL-9
   must put any category outside the four names (older free text) on the Service row; the four names live in both
   `ClinicalServiceCategories::NAMES` and the trigger's SQL (a test inserts every listed name to catch drift).
+
+- **V2 follow-ups (2026-11-13):** the shared selects still look Classic in places and are logged as DD-83 (the Order
+  unit field and the Panel prices editor on the Clinical Service form; the registration type and branch selects on
+  Business details); swap Business details to V2StickyBar `always` and the V2Picker. Done since: the page-level discard
+  prompt is deleted and the pages use `V2LeaveGuard.ask()` (#727), and Price history gets the branch time zone as a
+  server prop (batch 21).
+
+- **V2 limit (2026-11-13, PR #727):** `DiscardPrompt.vue` is gone; Medicine, Clinical Service and the Business details tabs
+  use `V2LeaveGuard.ask()`. Browser Back drops unsaved edits: Inertia's popstate remounts the page, so a dirty form is
+  lost with no question. Daniel accepted this as a documented limit; he logs a DD entry and Kavitha builds a stash or
+  prompt inside `V2LeaveGuard`.
 
 ## 8. Rules (every task)
 

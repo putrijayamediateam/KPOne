@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
         data-testid="outstanding-bills"
     >
         <h2 class="font-medium">Outstanding bill</h2>
-        <p class="mt-1 text-[11px] text-muted-foreground">
+        <p class="mt-1 text-xs text-muted-foreground">
             Other invoices in this branch
         </p>
         <div
@@ -160,7 +160,7 @@ onBeforeUnmount(() => {
             </div>
             <dl class="mt-2 grid grid-cols-2 divide-x">
                 <div class="pr-3">
-                    <dt class="text-[11px] text-muted-foreground">
+                    <dt class="text-xs text-muted-foreground">
                         Number of invoices
                     </dt>
                     <dd class="mt-1 text-base font-semibold tabular-nums">
@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
                     </dd>
                 </div>
                 <div class="pl-3">
-                    <dt class="text-[11px] text-muted-foreground">
+                    <dt class="text-xs text-muted-foreground">
                         Total outstanding
                     </dt>
                     <dd class="mt-1 font-semibold tabular-nums">
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
             v-if="collectionsUrl"
             :href="collectionsUrl"
             class="mt-3 block border-t pt-3 text-xs font-medium text-primary hover:underline"
-            >View all pay-later to collect at this branch</Link
+            >View all bills to collect at this branch</Link
         >
     </section>
     <Dialog v-model:open="open">

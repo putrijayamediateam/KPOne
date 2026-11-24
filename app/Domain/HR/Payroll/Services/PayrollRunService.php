@@ -28,7 +28,10 @@ final class PayrollRunService
 
     public const RETURN_REASONS = ['wrong_amount' => 'Wrong amount', 'wrong_person' => 'Wrong person', 'missing_record' => 'A record is missing', 'other' => 'Other'];
 
-    public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator, private PayslipService $payslips) {}
+    public const CHANGED_SINCE_SENT = 'Something in this run changed after it was sent. Send it back to draft and prepare it again.';
+
+    public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator, private PayslipService $payslips,
+        private LateAfterLock $late) {}
 
     /** @param array<string, mixed> $input */
     public function saveLineTypes(User $actor, array $input): void
@@ -237,6 +240,73 @@ final class PayrollRunService
     }
 
     /**
+     * G2a (owner, 16 Nov 2026): HR adds one overtime request that was approved after the regular run was locked to a
+     * draft adjustment of that run. Nothing is added without this press; the line is worked out at run time.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function addLate(User $actor, string $runId, string $sourceId, array $input): void
+    {
+        $kind = $input['kind'] ?? 'overtime';
+        if (! is_string($kind) || ! in_array($kind, LateAfterLock::KINDS, true)) {
+            throw ValidationException::withMessages(['payroll' => 'Reload the page.']);
+        }
+        $this->onDraft($actor, $runId, $input, 'payroll_run_late_add', [$kind, $sourceId], function (User $actor, \stdClass $run) use ($kind, $sourceId): void {
+            if ($run->kind !== 'adjustment') {
+                throw ValidationException::withMessages(['payroll' => $kind === 'overtime' ? 'Overtime approved after the lock goes on an adjustment run.' : 'A change made after the lock goes on an adjustment run.']);
+            }
+            $regular = DB::table('hr_payroll_runs')->where('id', $run->adjusts_run_id)->lockForUpdate()->first();
+            // Suresh m1: lock the source row too (after the runs; decide, cancel and reverse lock it and only read runs).
+            match ($kind) {
+                'overtime' => DB::table('hr_overtime_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $sourceId)->lockForUpdate()->first(['id']),
+                'leave_cancelled', 'leave_approved' => DB::table('hr_leave_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $sourceId)->lockForUpdate()->first(['id']),
+                default => null,
+            };
+            $item = $regular instanceof \stdClass
+                ? collect($this->late->forRegularRun($actor->organisation_id, $regular))->first(fn (array $i): bool => $i['kind'] === $kind && $i['id'] === $sourceId)
+                : null;
+            if (! is_array($item)) {
+                throw ValidationException::withMessages(['payroll' => ($kind === 'overtime' ? 'This overtime' : 'This').' is not waiting to be added. Reload the page.']);
+            }
+            if ($item['inRunId'] !== null) {
+                throw ValidationException::withMessages(['payroll' => $kind === 'overtime' ? 'This overtime is already on an adjustment run.' : 'This is already on an adjustment run.']);
+            }
+            $person = Worker::query()->find($item['workerId']);
+            if ($person instanceof Worker && PayrollSetupService::isManager($person)) {
+                throw ValidationException::withMessages(['payroll' => 'Pay kept outside KPOne in this version.']);
+            }
+            $id = DB::table('hr_payroll_late_items')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id,
+                'run_id' => $run->id, 'worker_id' => $item['workerId'], 'kind' => $kind,
+                'overtime_request_id' => $kind === 'overtime' ? $item['sourceId'] : null,
+                'leave_request_id' => in_array($kind, ['leave_cancelled', 'leave_approved'], true) ? $item['sourceId'] : null,
+                'added_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
+            $this->store($actor, $run, $this->mtd($run));
+            $metadata = ['run_id' => (int) $run->id, 'late_item_id' => $id, 'kind' => $kind];
+            if ($kind === 'overtime') {
+                $metadata['overtime_request_id'] = $item['sourceId'];
+            } elseif ($kind !== 'hours') {
+                $metadata['leave_request_id'] = $item['sourceId'];
+            } else {
+                $metadata['worker_id'] = $item['workerId'];
+            }
+            $this->support->audit->record('hr.payroll.run_late_added', null, $metadata, $actor, null, $actor->organisation_id);
+        });
+    }
+
+    /** @param array<string, mixed> $input */
+    public function removeLate(User $actor, string $runId, string $itemId, array $input): void
+    {
+        $this->onDraft($actor, $runId, $input, 'payroll_run_late_remove', [$itemId], function (User $actor, \stdClass $run) use ($itemId): void {
+            $item = Str::isUuid($itemId) ? DB::table('hr_payroll_late_items')->where('run_id', $run->id)->where('public_id', $itemId)->first(['id']) : null;
+            abort_if(! $item instanceof \stdClass, 404);
+            DB::table('hr_payroll_late_items')->where('id', $item->id)->delete();
+            $this->store($actor, $run, $this->mtd($run));
+            $this->support->audit->record('hr.payroll.run_late_removed', null, ['run_id' => (int) $run->id, 'late_item_id' => (int) $item->id],
+                $actor, null, $actor->organisation_id);
+        });
+    }
+
+    /**
      * Sends a draft for approval and freezes it. Refused while anyone has an error, and when anything it was prepared
      * from has changed since (prepare it again).
      *
@@ -298,6 +368,11 @@ final class PayrollRunService
             $claimRefusal = $decision === 'return' ? null : $this->claimRefusal($actor, $run);
             if ($claimRefusal !== null) {
                 throw ValidationException::withMessages(['payroll' => $claimRefusal]);
+            }
+            // G1 (owner, 16 Nov 2026): approving or locking checks again that nothing the run was prepared from has changed
+            // since it was sent (for example overtime reversed or approved meanwhile), so a stale run is never approved or paid.
+            if ($decision !== 'return' && $this->calculator->calculate($actor->organisation_id, $run, $this->mtd($run))['fingerprint'] !== $run->fingerprint) {
+                throw ValidationException::withMessages(['payroll' => self::CHANGED_SINCE_SENT]);
             }
             $now = now()->utc();
             $claims = 0;
@@ -480,7 +555,8 @@ final class PayrollRunService
             $personId = DB::table('hr_payroll_run_people')->insertGetId(['organisation_id' => $actor->organisation_id, 'run_id' => $run->id, 'worker_id' => $workerId,
                 'profile_id' => $person['profileId'], 'mtd_encrypted' => array_key_exists($workerId, $mtd) ? Crypt::encryptString((string) $mtd[$workerId]) : null,
                 'totals_encrypted' => Crypt::encryptString(json_encode($person['totals'], JSON_THROW_ON_ERROR)),
-                'errors' => json_encode($person['errors'], JSON_THROW_ON_ERROR), 'warnings' => json_encode($person['warnings'], JSON_THROW_ON_ERROR)]);
+                'errors' => json_encode($person['errors'], JSON_THROW_ON_ERROR), 'warnings' => json_encode($person['warnings'], JSON_THROW_ON_ERROR),
+                'worked_minutes' => $calc['worked'][(int) $workerId] ?? null]);
             foreach ($person['lines'] as $i => $line) {
                 DB::table('hr_payroll_lines')->insert(['organisation_id' => $actor->organisation_id, 'run_id' => $run->id, 'run_person_id' => $personId, 'position' => $i + 1,
                     'kind' => $line['kind'], 'section' => $line['section'], 'item_type_id' => $line['itemTypeId'], 'item_type_version' => $line['itemTypeVersion'],
