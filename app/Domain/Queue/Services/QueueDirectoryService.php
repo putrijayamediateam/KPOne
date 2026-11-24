@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
+use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
@@ -365,6 +366,10 @@ class QueueDirectoryService
             'callHold' => $entry->getRelation('callReadiness'),
             // TRI-1c: { zone, triaged } or null when this viewer may not see the zone; never a reading, never on the TV feed.
             'triage' => $entry->relationLoaded('triageZone') ? $entry->getRelation('triageZone') : null,
+            // TRI-1e: a link for the patient's own doctor only (the route checks the exact rule again).
+            'triageViewUrl' => $visit->visit_type === 'consultation' && $visit->assigned_doctor_user_id === $actor->id
+                && $actor->hasRole('resident_doctor') && $actor->can(TriagePermissions::VIEW_OWN)
+                ? route('visits.triage.view', $visit) : null,
             // Q-2: only Serving consultations carry this; never on the TV feed.
             'treatmentProgress' => $entry->relationLoaded('treatmentProgress') ? $entry->getRelation('treatmentProgress') : null,
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
