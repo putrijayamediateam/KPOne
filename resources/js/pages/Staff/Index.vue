@@ -45,7 +45,12 @@ type LocumSignIn = {
     requestedOn: string;
     requestedBy: string;
     lockVersion: number;
-    // The account with the email HR asked for, holding the Locum role only; null until it is created.
+    // HR-22b: Locum, or Locum doctor (the account also holds Resident Doctor).
+    role: 'locum' | 'locum_doctor';
+    roleLabel: string;
+    // Whether this viewer may give the roles asked for (today only the Director).
+    canCreate: boolean;
+    // The account with the email HR asked for, holding exactly the roles asked for; null until it is created.
     account: { id: string; name: string } | null;
 };
 const page = usePage();
@@ -58,6 +63,13 @@ const linkError = computed(() => {
     return errors.user_id ?? errors.request ?? errors.records ?? null;
 });
 const linking = ref<string | null>(null);
+// HR-22b: what to create when no matching account exists yet.
+const noAccountText = (request: LocumSignIn) =>
+    !request.canCreate
+        ? 'No account with this email yet. Ask the Director to create it.'
+        : request.role === 'locum_doctor'
+          ? 'No account with this email yet. Create it with Create staff, using this email and both the Locum and Resident Doctor roles.'
+          : 'No account with this email yet. Create it with Create staff, using this email and the Locum role only.';
 const linkLocum = (request: LocumSignIn) => {
     linking.value = request.id;
     router.post(
@@ -236,7 +248,7 @@ const clearFilters = () => {
                     Create each account the usual way with Create staff, with
                     the Locum role only, then link it here. A locum sees only
                     their own approved shifts and the open shifts at their
-                    branches.
+                    branches. A locum doctor also gets the Resident Doctor role.
                 </CardDescription>
                 <p
                     class="text-sm text-muted-foreground"
@@ -267,8 +279,11 @@ const clearFilters = () => {
                             <span class="break-all text-muted-foreground">{{
                                 request.email
                             }}</span>
-                            <span class="text-muted-foreground"
-                                >Locum · asked on {{ request.requestedOn }} by
+                            <span
+                                class="text-muted-foreground"
+                                data-test="staff-locum-role"
+                                >{{ request.roleLabel }} · asked on
+                                {{ request.requestedOn }} by
                                 {{ request.requestedBy }}</span
                             >
                         </div>
@@ -291,9 +306,7 @@ const clearFilters = () => {
                             class="text-muted-foreground lg:max-w-xs"
                             data-test="staff-locum-none"
                         >
-                            No account with this email yet. Create it with
-                            Create staff, using this email and the Locum role
-                            only.
+                            {{ noAccountText(request) }}
                         </p>
                     </li>
                 </ul>
