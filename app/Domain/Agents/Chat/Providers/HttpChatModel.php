@@ -59,8 +59,12 @@ final class HttpChatModel implements ChatModel
                 $content[] = ['type' => 'tool_use', 'id' => $block['id'], 'name' => $block['name'], 'input' => (object) $input];
             }
         }
-        $usage = is_array($body['usage'] ?? null) ? $body['usage'] : [];
+        $usage = is_array($body['usage'] ?? null) ? $body['usage'] : null;
+        if ($usage === null || ! isset($usage['input_tokens'], $usage['output_tokens'])) {
+            // Without the reported token use the cost cannot be counted against the cap.
+            throw new ChatProviderFailed('The AI provider answer could not be read.');
+        }
 
-        return new ChatReply($text, $content, $calls, max(0, (int) ($usage['input_tokens'] ?? 0)), max(0, (int) ($usage['output_tokens'] ?? 0)));
+        return new ChatReply($text, $content, $calls, max(0, (int) $usage['input_tokens']), max(0, (int) $usage['output_tokens']));
     }
 }

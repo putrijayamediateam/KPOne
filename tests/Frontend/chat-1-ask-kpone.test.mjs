@@ -101,3 +101,25 @@ test("example chips fill the box without sending, and history and other people's
     assert.match(source, /Ask a new question/);
     assert.match(source, /Working on it\.\.\./);
 });
+
+test('each send carries one request key that a retry reuses, and a purged thread title reads as removed', () => {
+    const lib = read('resources/js/lib/ask-kpone.ts');
+    const drawer = read('resources/js/components/agents/AskKponeDrawer.vue');
+
+    assert.match(lib, /key,\s*\}\)/);
+    assert.match(drawer, /newRequestKey\(\)/);
+    assert.match(drawer, /!retry \|\| lastKey\.value === ''/);
+    assert.match(drawer, /Removed after 90 days\./);
+});
+
+test('an answer scrolls to its question, branch codes read as names and the report link looks like a link', () => {
+    const drawer = read('resources/js/components/agents/AskKponeDrawer.vue');
+    const message = read('resources/js/components/agents/AskKponeMessage.vue');
+    const lib = read('resources/js/lib/ask-kpone.ts');
+
+    assert.match(drawer, /scrollToMessage\(pending\.id\)/);
+    assert.match(message, /branchLabel\(g\.group\)/);
+    assert.match(lib, /export const branchLabel/);
+    assert.match(message, /underline underline-offset-4/);
+    assert.match(drawer, /title="Not answered"/);
+});

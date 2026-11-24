@@ -5,14 +5,20 @@ namespace Tests\Feature\Agents;
 use App\Domain\Agents\AgentPermissions;
 use App\Domain\Agents\Chat\AiChatMessage;
 use App\Domain\Agents\Chat\AiChatThread;
+use App\Domain\Agents\Chat\AiChatUsage;
 use App\Domain\Agents\Chat\ChatAgent;
 use App\Domain\Agents\Chat\ChatFigures;
 use App\Domain\Agents\Chat\ChatModel;
 use App\Domain\Agents\Chat\ChatProviderFailed;
+use App\Domain\Agents\Chat\ChatRefused;
+use App\Domain\Agents\Chat\ChatReply;
+use App\Domain\Agents\Chat\ChatSpend;
 use App\Domain\Agents\Models\AiAgentRun;
+use App\Domain\Agents\Models\AiAgentRunStep;
 use App\Domain\Audit\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\Feature\Visit\VisitTestCase;
@@ -141,7 +147,7 @@ class ChatTest extends VisitTestCase
     {
         $director = $this->actor('director');
         $thread = AiChatThread::query()->create(['organisation_id' => $director->organisation_id, 'user_id' => $director->id, 'surface' => 'director_overview', 'title' => 'Old', 'is_archived' => false, 'created_at' => now(), 'last_used_at' => now()]);
-        AiChatMessage::query()->create(['thread_id' => $thread->id, 'organisation_id' => $director->organisation_id, 'user_id' => $director->id, 'role' => 'assistant', 'body' => 'x', 'cost_sen' => 5000, 'created_at' => now()]);
+        AiChatUsage::query()->create(['organisation_id' => $director->organisation_id, 'user_id' => $director->id, 'state' => 'settled', 'cost_sen' => 4950, 'created_at' => now(), 'settled_at' => now()]);
 
         $this->ask($director, 'One more?')->assertStatus(429)->assertJsonPath('code', 'limit_reached');
         $this->actingAs($director)->getJson('/agents/chat')->assertJsonPath('limitReached', true);
@@ -157,8 +163,10 @@ class ChatTest extends VisitTestCase
 
         $this->ask($director, 'Cost check')->assertOk();
 
-        // (1 + 5) USD x 5 = RM 30 = 3000 sen
+        // (1 + 5) USD x 5 = RM 30 = 3000 sen, on the answer and in the spend record
         $this->assertSame(3000, (int) AiChatMessage::query()->where('role', 'assistant')->value('cost_sen'));
+        $this->assertSame(3000, ChatSpend::spentSen($director->organisation_id));
+        $this->assertSame('settled', AiChatUsage::query()->firstOrFail()->state);
     }
 
     public function test_the_daily_and_minute_limits_refuse_without_calling_the_model(): void
@@ -187,6 +195,7 @@ class ChatTest extends VisitTestCase
         $this->assertSame(0, AiChatMessage::query()->count());
         $this->assertSame(0, AiChatThread::query()->count());
         $this->assertSame(1, AiAgentRun::query()->whereHas('agent', fn ($query) => $query->where('code', ChatAgent::CODE))->where('status', 'failed')->count());
+        $this->assertSame(0, AiChatUsage::query()->firstOrFail()->cost_sen);
         $this->assertSame('provider_error', AuditLog::query()->where('event', 'ai_chat.message')->latest('id')->firstOrFail()->metadata['reason']);
     }
 
@@ -328,5 +337,108 @@ class ChatTest extends VisitTestCase
         $this->assertSame('CHERAS', $figures[0]['group']);
         $this->assertSame('2026-11-24T01:00:00Z', $figures[0]['asOf']);
         $this->assertNull(ChatFigures::report('list_branches'));
+    }
+
+    public function test_tokens_spent_on_an_answer_that_then_failed_still_count_against_the_cap(): void
+    {
+        config(['ai_chat.max_tool_calls' => 1, 'ai_chat.usd_to_myr' => 1.0, 'ai_chat.price_in_per_million_usd' => 10.0, 'ai_chat.price_out_per_million_usd' => 10.0]);
+        $director = $this->actor('director');
+        // Two tool rounds of 1,000,000 tokens each, then the loop ends without an answer: 20 USD x 1 = RM 20 = 2000 sen.
+        $this->bindModel([FakeChatModel::tool('list_branches', [], 'toolu_a', 1_000_000, 0), FakeChatModel::tool('list_branches', [], 'toolu_b', 1_000_000, 0)]);
+
+        $this->ask($director, 'Burn tokens')->assertStatus(503);
+
+        $this->assertSame(0, AiChatMessage::query()->count());
+        $usage = AiChatUsage::query()->firstOrFail();
+        $this->assertSame(['settled', 2000, 'failed'], [$usage->state, $usage->cost_sen, $usage->outcome]);
+        $this->assertSame(2000, ChatSpend::spentSen($director->organisation_id));
+    }
+
+    public function test_two_messages_cannot_both_pass_the_cap_because_each_reserves_before_the_provider_is_called(): void
+    {
+        config(['ai_chat.monthly_cap_sen' => 150, 'ai_chat.reserve_sen' => 100]);
+        $director = $this->actor('director');
+
+        $first = ChatSpend::reserve($director->organisation_id, $director->id);
+
+        $this->assertSame('reserved', $first->state);
+        $this->expectException(ChatRefused::class);
+        ChatSpend::reserve($director->organisation_id, $director->id);
+    }
+
+    public function test_a_retry_with_the_same_key_returns_the_stored_answer_without_asking_the_provider_again(): void
+    {
+        $director = $this->actor('director');
+        $this->bindModel([FakeChatModel::text('The one answer.'), FakeChatModel::text('Should not be asked.')]);
+        $key = '11111111-2222-3333-4444-555555555555';
+
+        $first = $this->actingAs($director)->postJson('/agents/chat/messages', ['text' => 'Once', 'key' => $key])->assertOk();
+        $second = $this->actingAs($director)->postJson('/agents/chat/messages', ['text' => 'Once', 'key' => $key])->assertOk();
+
+        $this->assertSame($first->json('message.id'), $second->json('message.id'));
+        $this->assertSame('The one answer.', $second->json('message.text'));
+        $this->assertCount(1, $this->model->calls);
+        $this->assertSame(2, AiChatMessage::query()->count());
+        $this->assertSame(1, AiChatUsage::query()->count());
+    }
+
+    public function test_the_same_key_while_the_first_is_still_running_is_refused_as_busy(): void
+    {
+        $director = $this->actor('director');
+        $key = 'abcdefgh-1234';
+        $lock = Cache::lock('ai-chat-key:'.$director->id.':'.$key, 60);
+        $this->assertTrue($lock->get());
+
+        $this->actingAs($director)->postJson('/agents/chat/messages', ['text' => 'Again', 'key' => $key])->assertStatus(409)->assertJsonPath('code', 'busy');
+        $this->actingAs($director)->postJson('/agents/chat/messages', ['text' => 'Again', 'key' => 'bad key!'])->assertStatus(422);
+
+        $lock->release();
+        $this->assertCount(0, $this->model->calls);
+    }
+
+    public function test_a_reply_with_many_tool_calls_runs_only_the_allowed_number(): void
+    {
+        config(['ai_chat.max_total_tool_calls' => 2]);
+        $director = $this->actor('director');
+        $many = new ChatReply('', [], array_map(fn (int $i): array => ['id' => 'toolu_'.$i, 'name' => 'list_branches', 'input' => []], range(1, 5)), 10, 10);
+        $this->bindModel([$many, FakeChatModel::text('Done.')]);
+
+        $this->ask($director, 'Many')->assertOk();
+
+        $results = $this->model->calls[1]['turns'][2]['content'];
+        $this->assertCount(5, $results);
+        $this->assertSame([false, false, true, true, true], array_column($results, 'is_error'));
+        $this->assertStringContainsString('Too many questions', $results[2]['content']);
+        $this->assertSame(2, AiAgentRunStep::query()->where('summary', 'like', 'Asked list_branches.')->count());
+    }
+
+    public function test_a_stray_less_than_sign_in_an_answer_is_kept_while_real_tags_are_removed(): void
+    {
+        $this->bindModel([FakeChatModel::text('Sales RM 5 < RM 10 yesterday <b>(bold)</b>.')]);
+
+        $this->assertSame('Sales RM 5 < RM 10 yesterday (bold).', $this->ask($this->actor('director'), 'Hi')->assertOk()->json('message.text'));
+    }
+
+    public function test_the_retention_purge_also_removes_the_thread_title_and_the_database_allows_only_that_change(): void
+    {
+        $director = $this->actor('director');
+        $this->bindModel([FakeChatModel::text('Hi.')]);
+        $thread = $this->ask($director, 'A question that names nothing')->json('thread.id');
+
+        foreach (["UPDATE ai_chat_threads SET title = 'changed' WHERE id = ".$thread, 'TRUNCATE ai_chat_threads CASCADE', 'TRUNCATE ai_chat_usage', 'TRUNCATE ai_chat_messages'] as $sql) {
+            try {
+                DB::transaction(fn () => DB::statement($sql));
+                $this->fail('PostgreSQL allowed: '.$sql);
+            } catch (QueryException $exception) {
+                $this->assertStringContainsString('chat', $exception->getMessage());
+            }
+        }
+        DB::table('ai_chat_threads')->where('id', $thread)->update(['last_used_at' => now()->subDays(91)]);
+
+        $this->artisan('ai-chat:purge')->assertSuccessful();
+
+        $this->assertNull(DB::table('ai_chat_threads')->where('id', $thread)->value('title'));
+        $this->actingAs($director)->getJson('/agents/chat')->assertJsonPath('threads.0.title', null);
+        $this->actingAs($director)->getJson('/agents/chat/threads/'.$thread)->assertJsonPath('thread.title', null);
     }
 }

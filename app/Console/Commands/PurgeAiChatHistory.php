@@ -28,10 +28,13 @@ class PurgeAiChatHistory extends Command
                 }
             });
         });
+        // The first question kept as a thread's title is removed with the text (the database allows only this one change).
+        $titles = DB::table('ai_chat_threads')->whereNotNull('title')->where('last_used_at', '<', $cutoff)->update(['title' => null]);
+        $purged += $titles;
         if ($purged > 0) {
             $audit->record('ai_chat.history_purged', null, ['messages' => $purged, 'days' => (int) config('ai_chat.history_days', 90)], null, null, User::query()->orderBy('id')->value('organisation_id'));
         }
-        $this->components->info('Emptied '.$purged.' chat messages.');
+        $this->components->info('Emptied '.$purged.' chat messages and titles.');
 
         return self::SUCCESS;
     }

@@ -36,11 +36,13 @@ class ChatProviderTest extends TestCase
         $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'not configured');
 
         config(['ai_chat.api_key' => 'test-key-123', 'ai_chat.endpoint' => 'https://provider.test/v1/messages']);
-        Http::fake(['provider.test/*' => Http::sequence()->push(['error' => ['message' => 'secret prompt echo test-key-123']], 500)->push(['nothing' => true])]);
+        Http::fake(['provider.test/*' => Http::sequence()->push(['error' => ['message' => 'secret prompt echo test-key-123']], 500)->push(['nothing' => true])->push(['content' => [['type' => 'text', 'text' => 'Hi']]])]);
         $message = $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'status 500');
         $this->assertStringNotContainsString('test-key-123', $message);
         $this->assertStringNotContainsString('secret prompt', $message);
 
+        $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'could not be read');
+        // A reply with no reported token use cannot be counted against the cap.
         $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'could not be read');
     }
 

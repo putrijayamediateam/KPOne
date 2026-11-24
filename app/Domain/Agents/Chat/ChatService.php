@@ -8,9 +8,11 @@ use App\Domain\Agents\Services\PersonalText;
 use App\Domain\Audit\AuditRecorder;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -39,12 +41,13 @@ TXT;
     ) {}
 
     /**
-     * @return array{thread: array{id: int, title: string}, message: array<string, mixed>}
+     * @param  string|null  $key  a client key for this send (the same key on a retry returns the stored answer instead of asking again)
+     * @return array{thread: array{id: int, title: string|null}, message: array<string, mixed>}
      *
      * @throws ChatRefused
      * @throws AuthorizationException
      */
-    public function ask(User $user, ?int $threadId, string $text): array
+    public function ask(User $user, ?int $threadId, string $text, ?string $key = null): array
     {
         if (! ChatSwitch::enabled()) {
             throw new ChatRefused('off', 'The chatbox is switched off.', 404);
@@ -61,25 +64,69 @@ TXT;
             $this->audit($user, 'refused', ['reason' => 'personal_data']);
             throw new ChatRefused('personal_data', "Please don't type identity numbers, phone numbers or emails.");
         }
+        if ($key !== null && ! preg_match('/^[A-Za-z0-9-]{8,64}$/', $key)) {
+            throw new ChatRefused('invalid_input', 'The request key is not valid.');
+        }
         $thread = $threadId === null ? null : AiChatThread::query()->where('organisation_id', $user->organisation_id)
             ->where('user_id', $user->id)->where('is_archived', false)->whereKey($threadId)->first();
         if ($threadId !== null && ! $thread) {
             throw new ChatRefused('thread_not_found', 'That conversation was not found.', 404);
         }
-        if (ChatSpend::reached($user->organisation_id)) {
-            $this->audit($user, 'refused', ['reason' => 'limit_reached']);
-            throw new ChatRefused('limit_reached', 'The monthly AI limit is reached. It resets on '.ChatSpend::resetsOn().'.', 429);
+        $lock = null;
+        if ($key !== null) {
+            $stored = $this->stored($user, $key);
+            if ($stored !== null) {
+                return $stored;
+            }
+            // The same key already being answered (a double click or a retry while the first is still running).
+            $lock = Cache::lock('ai-chat-key:'.$user->id.':'.$key, 180);
+            if (! $lock->get()) {
+                throw new ChatRefused('busy', 'This question is already being answered.', 409);
+            }
         }
+
+        try {
+            return $this->answer($user, $thread, $text, $key);
+        } finally {
+            $lock?->release();
+        }
+    }
+
+    /** @return array{thread: array{id: int, title: string|null}, message: array<string, mixed>}|null */
+    private function stored(User $user, string $key): ?array
+    {
+        $question = AiChatMessage::query()->where('user_id', $user->id)->where('request_key', $key)->first();
+        if (! $question) {
+            return null;
+        }
+        $answer = AiChatMessage::query()->where('thread_id', $question->thread_id)->where('role', 'assistant')->where('id', '>', $question->id)->orderBy('id')->first();
+        $thread = AiChatThread::query()->findOrFail($question->thread_id);
+
+        return $answer ? ['thread' => ['id' => $thread->id, 'title' => $thread->title], 'message' => self::present($answer)] : null;
+    }
+
+    /** @return array{thread: array{id: int, title: string|null}, message: array<string, mixed>} */
+    private function answer(User $user, ?AiChatThread $thread, string $text, ?string $key): array
+    {
         $this->hit('ai-chat-minute:'.$user->id, 60, (int) config('ai_chat.messages_per_minute', 10), 'rate_limited', 'Too many questions. Try again in a minute.', $user);
         $this->hit('ai-chat-day:'.$user->id, 86400, (int) config('ai_chat.messages_per_day', 30), 'rate_limited_day', 'The daily limit of questions is reached. Try again tomorrow.', $user);
 
         try {
+            $usage = ChatSpend::reserve($user->organisation_id, $user->id);
+        } catch (ChatRefused $refused) {
+            $this->audit($user, 'refused', ['reason' => $refused->reason]);
+            throw $refused;
+        }
+        try {
             $run = $this->recorder->start(ChatAgent::ensure($user->organisation_id), 'chat_message', null, $user, AgentPermissions::CHAT_USE);
         } catch (AuthorizationException|ValidationException) {
+            ChatSpend::settle($usage, 0, 0, 'agent_unavailable');
             $this->audit($user, 'refused', ['reason' => 'agent_unavailable']);
             throw new ChatRefused('agent_unavailable', 'The chatbox is not available right now.', 503);
         }
 
+        @set_time_limit((int) config('ai_chat.deadline_seconds', 90) + 30);
+        $started = microtime(true);
         $turns = $this->context($thread);
         $turns[] = ['role' => 'user', 'content' => $text];
         $figures = [];
@@ -88,9 +135,13 @@ TXT;
         $tokensOut = 0;
         $answer = '';
         $report = null;
+        $calls = 0;
 
         try {
             for ($round = 0; $round <= (int) config('ai_chat.max_tool_calls', 6); $round++) {
+                if (microtime(true) - $started > (int) config('ai_chat.deadline_seconds', 90)) {
+                    throw new ChatProviderFailed('The message took too long.');
+                }
                 $reply = $this->model->complete(self::SYSTEM, $turns, $this->tools->definitions());
                 $tokensIn += $reply->tokensIn;
                 $tokensOut += $reply->tokensOut;
@@ -101,7 +152,9 @@ TXT;
                 $turns[] = ['role' => 'assistant', 'content' => $reply->content];
                 $results = [];
                 foreach ($reply->toolCalls as $call) {
-                    $outcome = $this->tools->execute($user, $call['name'], $call['input']);
+                    $calls++;
+                    $over = $calls > (int) config('ai_chat.max_total_tool_calls', 8);
+                    $outcome = $over ? ['result' => null, 'error' => 'Too many questions in one message.'] : $this->tools->execute($user, $call['name'], $call['input']);
                     $used[] = $call['name'];
                     $this->recorder->step($run, 'note', 'Asked '.$call['name'].($outcome['error'] === null ? '.' : ' (refused).'));
                     if ($outcome['result'] !== null) {
@@ -122,32 +175,45 @@ TXT;
             }
         } catch (Throwable $exception) {
             report($exception);
+            // Tokens already spent still count against the cap.
+            ChatSpend::settle($usage, $tokensIn, $tokensOut, 'failed');
             $this->recorder->fail($run, 'chat.provider_error');
             $this->audit($user, 'error', ['reason' => 'provider_error', 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut]);
             throw new ChatRefused('error', "Couldn't answer. Nothing was changed. Try again.", 503);
         }
 
-        $answer = mb_substr(strip_tags(trim($answer)), 0, (int) config('ai_chat.max_answer_chars', 4000));
-        $cost = ChatSpend::costSen($tokensIn, $tokensOut);
-        $saved = DB::transaction(function () use ($user, $thread, $text, $answer, $figures, $used, $tokensIn, $tokensOut, $cost, $report): array {
-            $now = now();
-            $thread ??= AiChatThread::query()->create([
-                'organisation_id' => $user->organisation_id, 'user_id' => $user->id, 'surface' => AiChatThread::SURFACE_DIRECTOR_OVERVIEW,
-                'title' => mb_substr($text, 0, 80), 'is_archived' => false, 'created_at' => $now, 'last_used_at' => $now,
-            ]);
-            AiChatMessage::query()->create(['thread_id' => $thread->id, 'organisation_id' => $user->organisation_id, 'user_id' => $user->id, 'role' => 'user', 'body' => $text, 'created_at' => $now]);
-            $assistant = AiChatMessage::query()->create([
-                'thread_id' => $thread->id, 'organisation_id' => $user->organisation_id, 'user_id' => $user->id, 'role' => 'assistant', 'body' => $answer,
-                'figures' => $figures === [] && $report === null ? null : ['figures' => $figures, 'report' => $report],
-                'tools' => array_values(array_unique($used)), 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'cost_sen' => $cost, 'created_at' => $now,
-            ]);
-            $thread->forceFill(['last_used_at' => $now])->save();
+        $cost = ChatSpend::settle($usage, $tokensIn, $tokensOut, 'ok');
+        // Tags are removed (the page shows text only); a lone "<" in a figure comparison stays.
+        $answer = mb_substr(trim((string) preg_replace('/<\/?[a-zA-Z!][^>]*>/', '', $answer)), 0, (int) config('ai_chat.max_answer_chars', 4000));
+        $tools = array_values(array_unique($used));
 
-            return ['thread' => $thread, 'assistant' => $assistant];
-        });
+        try {
+            $saved = DB::transaction(function () use ($user, $thread, $text, $answer, $figures, $tools, $tokensIn, $tokensOut, $cost, $report, $key): array {
+                $now = now();
+                $thread ??= AiChatThread::query()->create([
+                    'organisation_id' => $user->organisation_id, 'user_id' => $user->id, 'surface' => AiChatThread::SURFACE_DIRECTOR_OVERVIEW,
+                    'title' => mb_substr($text, 0, 80), 'is_archived' => false, 'created_at' => $now, 'last_used_at' => $now,
+                ]);
+                AiChatMessage::query()->create(['thread_id' => $thread->id, 'organisation_id' => $user->organisation_id, 'user_id' => $user->id, 'role' => 'user', 'body' => $text, 'request_key' => $key, 'created_at' => $now]);
+                $assistant = AiChatMessage::query()->create([
+                    'thread_id' => $thread->id, 'organisation_id' => $user->organisation_id, 'user_id' => $user->id, 'role' => 'assistant', 'body' => $answer,
+                    'figures' => $figures === [] && $report === null ? null : ['figures' => $figures, 'report' => $report],
+                    'tools' => $tools, 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'cost_sen' => $cost, 'created_at' => $now,
+                ]);
+                $thread->forceFill(['last_used_at' => $now])->save();
+                // The audit row is part of the same transaction: if it cannot be written, nothing is saved or returned.
+                if ($this->audit($user, 'ok', ['tools' => $tools, 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'cost_sen' => $cost]) === null) {
+                    throw new RuntimeException('The audit row could not be written.');
+                }
+
+                return ['thread' => $thread, 'assistant' => $assistant];
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->recorder->fail($run, 'chat.save_failed');
+            throw new ChatRefused('error', "Couldn't answer. Nothing was changed. Try again.", 503);
+        }
         $this->recorder->complete($run);
-        // The audit row comes first in the result: if it cannot be written, nothing is returned.
-        abort_if($this->audit($user, 'ok', ['tools' => array_values(array_unique($used)), 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'cost_sen' => $cost]) === null, 503, 'Unable to record this message. Try again later.');
 
         return [
             'thread' => ['id' => $saved['thread']->id, 'title' => $saved['thread']->title],

@@ -34,10 +34,10 @@ class AgentChatController extends Controller
 
     public function ask(Request $request, ChatService $chat): JsonResponse
     {
-        $data = $request->validate(['text' => ['required', 'string', 'max:5000'], 'thread_id' => ['sometimes', 'nullable', 'integer']]);
+        $data = $request->validate(['text' => ['required', 'string', 'max:5000'], 'thread_id' => ['sometimes', 'nullable', 'integer'], 'key' => ['sometimes', 'nullable', 'string', 'max:64']]);
 
         try {
-            return response()->json($chat->ask($request->user(), $data['thread_id'] ?? null, $data['text']));
+            return response()->json($chat->ask($request->user(), $data['thread_id'] ?? null, $data['text'], $data['key'] ?? null));
         } catch (ChatRefused $refused) {
             return response()->json(['code' => $refused->reason, 'message' => $refused->getMessage(), 'resetsOn' => ChatSpend::resetsOn()], $refused->status);
         }
@@ -72,6 +72,7 @@ class AgentChatController extends Controller
             'id' => $thread->id,
             'person' => $showNames ? (string) ($names[$thread->user_id] ?? 'Staff member') : 'Staff member',
             'date' => $thread->last_used_at->toIso8601String(),
+            'archived' => $thread->is_archived,
         ])->values()->all()]);
     }
 

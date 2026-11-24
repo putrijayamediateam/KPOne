@@ -11,7 +11,9 @@ return [
     'api_version' => '2023-06-01',
     'model' => env('AI_CHAT_MODEL', 'claude-haiku-5-5'),
     'max_output_tokens' => 1024,
-    'timeout_seconds' => 40,
+    'timeout_seconds' => 25,
+    // One message may run several provider rounds; the whole message stops after this many seconds.
+    'deadline_seconds' => 90,
 
     // The owner's monthly cap (2026-11-24): RM 50, in sen. Spend is estimated from the provider's reported token use.
     'monthly_cap_sen' => (int) env('AI_CHAT_MONTHLY_CAP_SEN', 5000),
@@ -24,6 +26,9 @@ return [
     'messages_per_day' => 30,
     'max_prompt_chars' => 1000,
     'max_tool_calls' => 6,
+    'max_total_tool_calls' => 8,
+    // Amount reserved against the monthly cap before each provider call, in sen (settled to the real cost afterwards).
+    'reserve_sen' => 100,
     'max_answer_chars' => 4000,
     'history_days' => 90,
     'history_context_messages' => 8,

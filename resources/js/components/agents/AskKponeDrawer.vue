@@ -26,6 +26,7 @@ import {
     getOtherThread,
     getOthers,
     getThread,
+    newRequestKey,
     sendMessage,
 } from '@/lib/ask-kpone';
 import type {
@@ -56,6 +57,7 @@ const loading = ref(false);
 const loadError = ref('');
 const error = ref<AskError | null>(null);
 const lastSent = ref('');
+const lastKey = ref('');
 const threads = ref<AskThreadSummary[]>([]);
 const others = ref<AskOtherThread[]>([]);
 const switchedOff = ref(false);
@@ -98,6 +100,31 @@ onMounted(async () => {
 const scrollDown = async () => {
     await nextTick();
     scroller.value?.scrollTo({ top: scroller.value.scrollHeight });
+};
+
+// After an answer, show it from the question down (not from its tail), so the lead sentence stays in view.
+const scrollToMessage = async (id: string | number) => {
+    await nextTick();
+    const box = scroller.value;
+    const target = box?.querySelector<HTMLElement>(`[data-ask-id="${id}"]`);
+
+    if (!box) {
+        return;
+    }
+
+    if (!target) {
+        box.scrollTo({ top: box.scrollHeight });
+
+        return;
+    }
+
+    box.scrollTo({
+        top:
+            target.getBoundingClientRect().top -
+            box.getBoundingClientRect().top +
+            box.scrollTop -
+            8,
+    });
 };
 
 const focusInput = async () => {
@@ -161,6 +188,11 @@ const send = async (retry = false) => {
     sending.value = true;
     error.value = null;
     lastSent.value = body;
+
+    if (!retry || lastKey.value === '') {
+        lastKey.value = newRequestKey();
+    }
+
     const pending: AskMessage = {
         id: `local-${++localId}`,
         role: 'user',
@@ -177,11 +209,14 @@ const send = async (retry = false) => {
 
     void scrollDown();
 
+    let answered = false;
+
     try {
-        const answer = await sendMessage(body, threadId.value);
+        const answer = await sendMessage(body, threadId.value, lastKey.value);
         threadId.value = answer.thread.id;
         messages.value.push(answer.message);
         void refreshThreads();
+        answered = true;
     } catch (caught) {
         const failure = classifyError(caught);
         error.value = failure;
@@ -199,7 +234,7 @@ const send = async (retry = false) => {
         }
     } finally {
         sending.value = false;
-        void scrollDown();
+        void (answered ? scrollToMessage(pending.id) : scrollDown());
     }
 };
 
@@ -369,7 +404,7 @@ const archive = async (id: number) => {
                                 @click="openThread(t.id)"
                             >
                                 <span class="block truncate text-sm">{{
-                                    t.title
+                                    t.title ?? 'Removed after 90 days.'
                                 }}</span>
                                 <span
                                     class="block text-xs text-muted-foreground"
@@ -381,7 +416,7 @@ const archive = async (id: number) => {
                                 variant="ghost"
                                 size="sm"
                                 class="min-h-11 lg:min-h-8"
-                                :aria-label="`Archive: ${t.title}`"
+                                :aria-label="`Archive: ${t.title ?? 'removed question'}`"
                                 @click="archive(t.id)"
                                 >Archive</Button
                             >
@@ -513,6 +548,7 @@ const archive = async (id: number) => {
 
                         <ErrorState
                             v-if="showError && error?.kind === 'retry'"
+                            title="Not answered"
                             :message="error.message"
                         >
                             <template #action>

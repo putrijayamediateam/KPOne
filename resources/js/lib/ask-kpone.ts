@@ -19,7 +19,11 @@ export type AskMessage = {
     createdAt?: string | null;
 };
 
-export type AskThreadSummary = { id: number; title: string; date: string };
+export type AskThreadSummary = {
+    id: number;
+    title: string | null;
+    date: string;
+};
 export type AskOtherThread = { id: number; person: string; date: string };
 
 export type AskChatState = {
@@ -32,12 +36,12 @@ export type AskChatState = {
 };
 
 export type AskThread = {
-    thread: { id: number; title: string; date?: string };
+    thread: { id: number; title: string | null; date?: string };
     messages: AskMessage[];
 };
 
 export type AskAnswer = {
-    thread: { id: number; title: string };
+    thread: { id: number; title: string | null };
     message: AskMessage;
 };
 
@@ -94,13 +98,21 @@ export const getOtherThread = (id: number): Promise<AskThread> =>
 export const archiveThread = (id: number): Promise<{ ok: boolean }> =>
     postJson<{ ok: boolean }>(`/agents/chat/threads/${id}/archive`);
 
+// One key for one send: a retry of the same question reuses it, so the server returns the stored answer instead of asking again.
+export const newRequestKey = (): string =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `k-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+
 export const sendMessage = (
     text: string,
     threadId: number | null,
+    key: string,
 ): Promise<AskAnswer> =>
     postJson<AskAnswer>('/agents/chat/messages', {
         text,
         thread_id: threadId,
+        key,
     });
 
 type ErrorPayload = { code?: string; message?: string; resetsOn?: string };
@@ -171,3 +183,12 @@ export const groupFigures = (
 
 export const isLongAnswer = (text: string): boolean =>
     text.split('\n').length > SHOW_MORE_LINES || text.length > SHOW_MORE_CHARS;
+
+// A branch code such as SUNGAI_BESI reads as "Sungai Besi" in the Figures block.
+export const branchLabel = (code: string): string =>
+    code
+        .toLowerCase()
+        .split('_')
+        .filter((part) => part !== '')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');

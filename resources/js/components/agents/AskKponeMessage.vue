@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import {
     AI_LINE,
+    branchLabel,
     groupFigures,
     isLongAnswer,
     REMOVED_MESSAGE,
@@ -23,6 +24,7 @@ const groups = computed(() => groupFigures(props.message.figures));
         v-if="message.role === 'user'"
         class="flex justify-end"
         data-ask-message="user"
+        :data-ask-id="message.id"
     >
         <p
             v-if="!message.purged"
@@ -38,6 +40,7 @@ const groups = computed(() => groupFigures(props.message.figures));
         v-else
         class="min-w-0 space-y-3 rounded-lg border border-border bg-card px-3 py-3 text-sm text-card-foreground"
         data-ask-message="assistant"
+        :data-ask-id="message.id"
     >
         <p v-if="message.purged" class="text-xs text-muted-foreground">
             {{ REMOVED_MESSAGE }}
@@ -78,7 +81,7 @@ const groups = computed(() => groupFigures(props.message.figures));
                         v-if="g.group"
                         class="text-xs font-medium text-foreground"
                     >
-                        {{ g.group }}
+                        {{ branchLabel(g.group) }}
                     </p>
                     <ul class="divide-y divide-border">
                         <li
@@ -105,8 +108,9 @@ const groups = computed(() => groupFigures(props.message.figures));
             <a
                 v-if="message.report"
                 :href="message.report.url"
-                class="inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-8"
-                >{{ message.report.label }}</a
+                class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-strong underline underline-offset-4 hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-8"
+                >{{ message.report.label
+                }}<span aria-hidden="true">&rarr;</span></a
             >
 
             <p
