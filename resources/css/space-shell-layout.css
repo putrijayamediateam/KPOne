@@ -1101,3 +1101,13 @@
 .space-shell .routine-check:disabled {
     opacity: 0.6;
 }
+
+/* HR-22d: today's roster station on the compact Today card. */
+.space-shell .me-station {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--foreground);
+}
+.space-shell .me-station-label {
+    font-weight: 600;
+}
