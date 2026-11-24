@@ -34,7 +34,7 @@ final class RosterRules
     public const ON_CALL = 'on_call';
 
     /** HR-22c (owner, 24 Nov 2026): the stations a CA, CA Supervisor or Medical Assistant may work at on a shift. */
-    public const STATIONS = ['registration' => 'Registration', 'ma' => 'MA', 'dispensary' => 'Dispensary', 'treatment' => 'Treatment'];
+    public const STATIONS = ['registration' => 'Registration', 'ma' => 'Medical Assistant (MA) desk', 'dispensary' => 'Dispensary', 'treatment' => 'Treatment'];
 
     /** Who takes a station; doctors get a room only. */
     public const STATION_ROLES = ['ca', 'ca_supervisor', 'medical_assistant'];

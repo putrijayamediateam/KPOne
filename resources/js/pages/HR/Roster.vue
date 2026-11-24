@@ -322,11 +322,11 @@ const isMonth = computed(
                                 class="text-xs text-muted-foreground"
                                 >{{ shift.roomName }}</span
                             >
-                            <Badge
+                            <span
                                 v-if="shift.stationLabel"
-                                variant="secondary"
+                                class="text-xs text-muted-foreground"
                                 data-test="my-shift-station"
-                                >{{ shift.stationLabel }}</Badge
+                                >{{ shift.stationLabel }}</span
                             >
                         </li>
                     </ul>
@@ -900,7 +900,7 @@ const isMonth = computed(
                 </li>
             </ul>
             <label
-                class="flex min-h-11 max-w-2xl cursor-pointer items-start gap-3 rounded-md border p-3 text-sm"
+                class="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border p-3 text-sm"
                 data-test="plan-stations"
             >
                 <input
@@ -909,7 +909,10 @@ const isMonth = computed(
                     class="mt-0.5 size-4 shrink-0 accent-primary"
                 />
                 <span class="flex flex-col">
-                    <span class="font-medium">Plan stations</span>
+                    <span class="font-medium"
+                        >Plan stations at
+                        {{ roster.minimums.branch.name }}</span
+                    >
                     <span class="text-muted-foreground"
                         >Show a warning in the planner when a CA, CA Supervisor
                         or Medical Assistant shift has no station. A warning

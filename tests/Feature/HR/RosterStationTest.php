@@ -48,7 +48,7 @@ class RosterStationTest extends VisitTestCase
         $this->assertSame(['dispensary', 'ma', null], RosterShift::query()->orderBy('id')->pluck('station')->all());
 
         $this->get(route('hr.roster.index', ['tab' => 'planner', 'week' => $this->week->toDateString()]))->assertInertia(fn (Assert $page) => $page
-            ->where('roster.planner.stations', [['value' => 'registration', 'label' => 'Registration'], ['value' => 'ma', 'label' => 'MA'],
+            ->where('roster.planner.stations', [['value' => 'registration', 'label' => 'Registration'], ['value' => 'ma', 'label' => 'Medical Assistant (MA) desk'],
                 ['value' => 'dispensary', 'label' => 'Dispensary'], ['value' => 'treatment', 'label' => 'Treatment']])
             ->where('roster.planner.planStations', false));
         $this->submit($version);
