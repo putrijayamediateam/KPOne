@@ -28,7 +28,7 @@ final class AutoAssignSettingService
         }
         $row = BranchAutoAssignSetting::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->first();
 
-        return ['canManage' => true, 'enabled' => $row?->enabled ?? false, 'lockVersion' => $row?->lock_version ?? 0, 'branchName' => $branch->name];
+        return ['canManage' => true, 'enabled' => $row instanceof BranchAutoAssignSetting && $row->enabled, 'lockVersion' => $row instanceof BranchAutoAssignSetting ? $row->lock_version : 0, 'branchName' => $branch->name];
     }
 
     /** @param array<string, mixed> $input expected_branch_id, enabled, lock_version */
@@ -41,7 +41,7 @@ final class AutoAssignSettingService
             $branch = $this->authority->branch($actor, $data['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, AutoAssignPermissions::MANAGE_BRANCH);
             $row = BranchAutoAssignSetting::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->lockForUpdate()->first();
-            if (($row?->lock_version ?? 0) !== (int) $data['lock_version']) {
+            if (($row instanceof BranchAutoAssignSetting ? $row->lock_version : 0) !== (int) $data['lock_version']) {
                 throw ValidationException::withMessages(['lock_version' => 'This setting changed after the page was opened. Reload and review it before saving.']);
             }
             $enabled = (bool) $data['enabled'];

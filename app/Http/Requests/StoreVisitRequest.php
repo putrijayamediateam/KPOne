@@ -98,6 +98,7 @@ class StoreVisitRequest extends FormRequest
             'quick_patient.identifiers.required_with' => 'Choose IC number or Passport.',
             'quick_patient.identifiers.0.value.required' => $this->input('quick_patient.identifiers.0.identifier_type') === 'passport' ? 'Passport number is incomplete.' : 'IC number must have 12 digits.',
             'assigned_doctor_user_id.required_if' => 'Please select a doctor for this consultation.',
+            'assigned_doctor_user_id.required' => 'Please select a doctor for this consultation.',
             'visit_reason_public_ids.required_if' => 'Select at least one Visit Reason.',
             'visit_reason_public_ids.max' => 'A Visit can have up to 5 reasons.',
             'panel_id.required_if' => 'Please select a Panel for this Visit.',
