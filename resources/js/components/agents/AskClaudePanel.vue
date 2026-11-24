@@ -51,7 +51,26 @@ const canSend = computed(
 
 const scrollDown = async () => {
     await nextTick();
-    scroller.value?.scrollTo({ top: scroller.value.scrollHeight });
+    const box = scroller.value;
+
+    if (!box) {
+        return;
+    }
+
+    // While Claude is still working, show the newest question at the top of the area so it is never cut off and the waiting
+    // card below it stays whole; otherwise show the latest content at the bottom.
+    const questions = box.querySelectorAll('[data-ask-message="user"]');
+    const last = questions[questions.length - 1];
+
+    if (hasPending(requests.value) && last) {
+        const gap =
+            last.getBoundingClientRect().top - box.getBoundingClientRect().top;
+        box.scrollTo({ top: Math.max(0, box.scrollTop + gap - 12) });
+
+        return;
+    }
+
+    box.scrollTo({ top: box.scrollHeight });
 };
 
 const focusInput = async () => {
