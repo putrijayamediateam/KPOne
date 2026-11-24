@@ -1505,6 +1505,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('registration/create', [RegistrationController::class, 'create'])
             ->middleware('permission:visits.create.branch')
             ->name('registration.create');
+        Route::get('registration/recommended-doctor', [RegistrationController::class, 'recommendedDoctor'])
+            ->middleware(['permission:visits.create.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('registration.recommended-doctor');
         Route::post('registration', [RegistrationController::class, 'store'])
             ->middleware(['permission:visits.create.branch', 'throttle:30,1'])
             ->name('registration.store');

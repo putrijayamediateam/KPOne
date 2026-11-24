@@ -341,6 +341,34 @@ class AutoAssignDoctorTest extends QueueTestCase
         $this->assertSame(0, Visit::query()->count());
     }
 
+    public function test_the_recommended_doctor_endpoint_gives_a_name_only_and_nothing_when_auto_is_off(): void
+    {
+        $a = $this->doctor();
+        $this->publish([$a]);
+
+        $this->selectBranch($this->ca);
+        $this->getJson(route('registration.recommended-doctor'))->assertOk()->assertExactJson(['doctor' => null]);
+
+        $this->enable();
+        $response = $this->getJson(route('registration.recommended-doctor'))->assertOk();
+        $this->assertSame(['id' => $a->id, 'name' => $a->name], $response->json('doctor'));
+        $this->assertSame(['doctor'], array_keys($response->json()));
+        $this->assertSame(['id', 'name'], array_keys($response->json('doctor')));
+
+        $this->selectBranch($this->actor('finance_officer'));
+        $this->getJson(route('registration.recommended-doctor'))->assertForbidden();
+    }
+
+    public function test_the_page_says_when_the_switch_is_on_but_the_roster_is_not_published(): void
+    {
+        $this->doctor();
+        $this->enable();
+        $this->selectBranch($this->ca);
+        $options = $this->get(route('registration.create'))->assertOk()->viewData('page')['props']['options'];
+        $this->assertFalse($options['autoAssign']['available']);
+        $this->assertTrue($options['autoAssign']['enabled']);
+    }
+
     public function test_the_ordering_rules(): void
     {
         $service = app(DoctorAssignmentService::class);

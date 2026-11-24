@@ -298,13 +298,34 @@ class VisitDirectoryService
             'idempotencyKey' => (string) Str::uuid(),
             // AUTO-1: with automatic assignment available, only doctors on today's roster are offered, each with free or
             // busy and how many wait; sales and targets are never sent.
-            'autoAssign' => $auto ? ['available' => true, 'overrideReasons' => DoctorAssignmentService::OVERRIDE_REASONS] : ['available' => false, 'overrideReasons' => []],
+            'autoAssign' => $auto ? ['available' => true, 'enabled' => true, 'overrideReasons' => DoctorAssignmentService::OVERRIDE_REASONS]
+                : ['available' => false, 'enabled' => $rosterOnly && $this->assignment->isEnabled($branch), 'overrideReasons' => []],
             'doctors' => $auto
                 ? collect($this->assignment->recommend($actor, $branch, CarbonImmutable::now(), null)['list'])->values()
                 : $this->doctors->eligibleDoctors($branch, $date)->map->only(['id', 'name'])->values(),
             'panels' => Panel::query()->where('organisation_id', $actor->organisation_id)
                 ->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];
+    }
+
+    /**
+     * AUTO-1: who Auto would pick now (id and name only), or null when Auto is not available or has nobody.
+     *
+     * @return array{id: int, name: string}|null
+     */
+    public function recommendedDoctor(User $actor, mixed $patientNumber): ?array
+    {
+        $branch = $this->activeBranch($actor);
+        $now = CarbonImmutable::now();
+        if (! $this->assignment->isAvailable($branch, $now)) {
+            return null;
+        }
+        $patientId = is_string($patientNumber) && $patientNumber !== ''
+            ? Patient::query()->where('organisation_id', $actor->organisation_id)->where('patient_number', $patientNumber)->value('id') : null;
+        $pick = $this->assignment->recommend($actor, $branch, $now, $patientId === null ? null : (int) $patientId, withSales: true);
+        $doctor = collect($pick['list'])->firstWhere('id', $pick['doctorId']);
+
+        return $doctor === null ? null : ['id' => (int) $doctor['id'], 'name' => (string) $doctor['name']];
     }
 
     /** @return array<string, mixed> */

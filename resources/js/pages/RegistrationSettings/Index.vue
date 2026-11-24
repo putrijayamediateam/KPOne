@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +26,27 @@ const autoForm = useForm({
     expected_branch_id: props.branchId,
     enabled: props.autoAssign?.enabled ?? false,
     lock_version: props.autoAssign?.lockVersion ?? 0,
+});
+// An unsaved change to the switch is never lost silently: it shows a cue, and leaving the page asks first.
+const autoDirty = computed(
+    () => autoForm.enabled !== (props.autoAssign?.enabled ?? false),
+);
+const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (autoDirty.value) {
+        event.preventDefault();
+    }
+};
+window.addEventListener('beforeunload', warnBeforeUnload);
+const removeVisitGuard = router.on('before', () =>
+    autoDirty.value && !autoForm.processing
+        ? window.confirm(
+              'You have an unsaved change to automatic doctor assignment. Leave without saving?',
+          )
+        : undefined,
+);
+onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', warnBeforeUnload);
+    removeVisitGuard();
 });
 const saveAuto = () =>
     autoForm.post('/registration-settings/auto-assign', {
@@ -78,7 +99,7 @@ const submit = () => {
 
 <template>
     <Head title="Registration settings" />
-    <main class="flex flex-1 flex-col p-4 pb-28 md:px-8 md:pt-6">
+    <main class="flex flex-1 flex-col p-4 pb-8 md:px-8 md:pt-6">
         <nav
             aria-label="Breadcrumb"
             class="mb-4 flex flex-wrap gap-2 text-xs text-muted-foreground"
@@ -94,7 +115,7 @@ const submit = () => {
         </h1>
         <form
             id="registration-settings-form"
-            class="mt-5 max-w-3xl space-y-5"
+            class="mt-5 max-w-3xl space-y-5 rounded-lg border bg-card p-4 md:p-5"
             novalidate
             @submit.prevent="submit"
         >
@@ -232,11 +253,17 @@ const submit = () => {
             <p v-if="saved" role="status" class="text-sm">
                 Registration settings saved.
             </p>
+            <Button
+                type="submit"
+                class="min-h-11"
+                :disabled="form.processing"
+                >{{ form.processing ? 'Saving…' : 'Save' }}</Button
+            >
         </form>
         <section
             v-if="autoAssign?.canManage"
             aria-labelledby="auto-assign-heading"
-            class="mt-8 max-w-3xl space-y-3 border-t pt-5"
+            class="mt-6 max-w-3xl space-y-3 rounded-lg border bg-card p-4 md:p-5"
         >
             <h2 id="auto-assign-heading" class="text-sm font-medium">
                 Assign the doctor automatically
@@ -245,38 +272,33 @@ const submit = () => {
                 >
             </h2>
             <p class="text-xs text-muted-foreground">
-                When this is on and today's roster is published, a visit
-                registered without a doctor goes to the next doctor on the
-                roster who is free. The CA can still choose a doctor, with a
-                reason. Visits already assigned keep their doctor if you switch
-                this off. It is off by default.
+                When this is on, a visit registered without a doctor goes to the
+                next free doctor on today's roster. The CA can still choose a
+                doctor, with a reason. It is off by default.
             </p>
             <form class="space-y-3" novalidate @submit.prevent="saveAuto">
                 <label class="flex min-h-11 items-center gap-3 text-sm"
                     ><input
                         v-model="autoForm.enabled"
                         type="checkbox"
-                        class="size-5"
+                        class="size-4 accent-primary"
                     />Assign the doctor automatically at this branch</label
                 >
+                <p
+                    v-if="autoDirty"
+                    role="status"
+                    class="text-xs font-medium text-warning-strong"
+                >
+                    Unsaved change. Press Save to keep it.
+                </p>
                 <InputError :message="autoForm.errors.lock_version" />
                 <Button
                     type="submit"
                     :disabled="autoForm.processing"
                     class="min-h-11"
-                    >Save automatic assignment</Button
+                    >Save</Button
                 >
             </form>
         </section>
-        <div
-            class="fixed inset-x-0 bottom-0 z-20 flex justify-end border-t bg-card px-4 py-3 md:px-8"
-        >
-            <Button
-                type="submit"
-                form="registration-settings-form"
-                :disabled="form.processing"
-                >{{ form.processing ? 'Saving…' : 'Save' }}</Button
-            >
-        </div>
     </main>
 </template>

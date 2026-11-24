@@ -104,9 +104,9 @@ final class DoctorAssignmentService
      *
      * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int, room: bool}>}
      */
-    public function recommend(User $actor, Branch $branch, CarbonImmutable $now, ?int $patientId): array
+    public function recommend(User $actor, Branch $branch, CarbonImmutable $now, ?int $patientId, bool $withSales = false): array
     {
-        return $this->order($actor->organisation_id, $branch, $now, $this->candidateIds($branch, $now), $patientId, withSales: false);
+        return $this->order($actor->organisation_id, $branch, $now, $this->candidateIds($branch, $now), $patientId, withSales: $withSales);
     }
 
     /**

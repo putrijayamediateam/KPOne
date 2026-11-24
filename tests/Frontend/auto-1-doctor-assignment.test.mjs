@@ -48,6 +48,30 @@ test('AUTO-1: choosing a doctor by hand asks for a fixed reason, sent as doctor_
     assert.match(page, /errorFor\('doctor_override_reason'\)/);
 });
 
+test('AUTO-1: the reason is asked only for a doctor other than the one Auto would pick, in the Doctor column', () => {
+    const page = squash(read('resources/js/pages/Registration/Create.vue'));
+    assert.match(page, /\/registration\/recommended-doctor\?patient_number=/);
+    assert.match(
+        page,
+        /form\.assigned_doctor_user_id !== recommended\.value\?\.id/,
+    );
+    assert.match(page, /Auto would pick \{\{ recommended\.name \}\}\./);
+    assert.match(page, /Pick a reason to continue\./);
+    // The reason sits inside the same wrapper as the Doctor select, not as a separate grid cell.
+    assert.ok(
+        page.indexOf('for="assigned-doctor"') <
+            page.indexOf('id="doctor-override-reason"') &&
+            page.indexOf('id="doctor-override-reason"') <
+                page.indexOf('4. Visit Reason'),
+    );
+    assert.match(page, /This doctor has no room today/);
+    assert.match(
+        page,
+        /Automatic assignment is on, but today's roster is not published/,
+    );
+    assert.match(page, /If every doctor is busy it picks one of them/);
+});
+
 test('AUTO-1: only the Director section on Registration settings switches it, per branch, with a lock version', () => {
     const page = squash(
         read('resources/js/pages/RegistrationSettings/Index.vue'),
@@ -56,6 +80,12 @@ test('AUTO-1: only the Director section on Registration settings switches it, pe
     assert.match(page, /'\/registration-settings\/auto-assign'/);
     assert.match(page, /lock_version: props\.autoAssign\?\.lockVersion \?\? 0/);
     assert.match(page, /It is off by default\./);
+    // Each form is its own card with its own Save; an unsaved change shows a cue and leaving asks first.
+    assert.doesNotMatch(page, /fixed inset-x-0 bottom-0/);
+    assert.match(page, /Unsaved change\. Press Save to keep it\./);
+    assert.match(page, /router\.on\('before'/);
+    assert.match(page, /beforeunload/);
+    assert.match(page, /size-4 accent-primary/);
 });
 
 test('AUTO-1: the visit option type carries free and waiting only', () => {
@@ -66,6 +96,6 @@ test('AUTO-1: the visit option type carries free and waiting only', () => {
     );
     assert.match(
         types,
-        /autoAssign\?: \{ available: boolean; overrideReasons: string\[\] \}/,
+        /autoAssign\?: \{ available: boolean; enabled\?: boolean; overrideReasons: string\[\]; \}/,
     );
 });
