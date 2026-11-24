@@ -133,3 +133,17 @@ test('the limit message is a card in the thread area, Send stays off while a ref
     assert.equal((message.match(/As of \{\{/g) ?? []).length, 1);
     assert.match(message, /g\.items\[0\]\?\.asOf/);
 });
+
+test('the Director overview mounts the drawer only in its reserved header-actions slot', () => {
+    const page = read('resources/js/pages/Insights/Overview.vue');
+
+    assert.match(
+        page,
+        /import AskKponeDrawer from '@\/components\/agents\/AskKponeDrawer\.vue'/,
+    );
+    assert.match(
+        page,
+        /data-testid="overview-header-actions"[\s\S]{0,40}>\s*<AskKponeDrawer \/>/,
+    );
+    assert.equal((page.match(/<AskKponeDrawer/g) ?? []).length, 1);
+});

@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
+import AskKponeDrawer from '@/components/agents/AskKponeDrawer.vue';
 import { myr, myrNoBreak } from '@/types/billing';
 
 defineOptions({
@@ -261,7 +262,9 @@ const firstRow = computed(() => props.overview.branches[0]);
             <div
                 class="flex shrink-0 items-center gap-2 empty:hidden"
                 data-testid="overview-header-actions"
-            />
+            >
+                <AskKponeDrawer />
+            </div>
         </header>
 
         <nav
