@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AgentAssistantController;
+use App\Http\Controllers\AgentChatController;
 use App\Http\Controllers\AgentDailySummaryController;
 use App\Http\Controllers\AgentInboxController;
 use App\Http\Controllers\AgentOfficeController;
@@ -146,6 +147,7 @@ use App\Http\Controllers\WebsitePeopleController;
 use App\Http\Controllers\WebsiteReleaseController;
 use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\ChatEnabled;
 use App\Http\Middleware\PrivateWebsiteRelease;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -1351,6 +1353,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:ai_connector.use.organisation', 'sensitive.no-store'])->prefix('agents/connected-apps')->group(function () {
             Route::get('/', [ConnectedAppsController::class, 'index'])->name('agents.connected-apps');
             Route::delete('{client}', [ConnectedAppsController::class, 'destroy'])->whereUuid('client')->middleware('throttle:10,1')->name('agents.connected-apps.disconnect');
+        });
+
+        // CHAT-1: the AI chatbox (Director only). Behind its own kill switch: off means 404.
+        Route::middleware([ChatEnabled::class, 'permission:ai_chat.use.organisation', 'sensitive.no-store'])->prefix('agents/chat')->group(function () {
+            Route::get('/', [AgentChatController::class, 'state'])->middleware('throttle:60,1')->name('agents.chat.state');
+            Route::post('messages', [AgentChatController::class, 'ask'])->middleware('throttle:10,1')->name('agents.chat.ask');
+            Route::get('threads/{thread}', [AgentChatController::class, 'thread'])->whereNumber('thread')->middleware('throttle:60,1')->name('agents.chat.thread');
+            Route::post('threads/{thread}/archive', [AgentChatController::class, 'archive'])->whereNumber('thread')->middleware('throttle:30,1')->name('agents.chat.archive');
+            Route::middleware(['permission:ai_chat.history.view.organisation'])->group(function () {
+                Route::get('others', [AgentChatController::class, 'others'])->middleware('throttle:30,1')->name('agents.chat.others');
+                Route::get('others/{thread}', [AgentChatController::class, 'otherThread'])->whereNumber('thread')->middleware('throttle:30,1')->name('agents.chat.others.thread');
+            });
         });
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {

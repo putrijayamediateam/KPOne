@@ -3,6 +3,7 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeAiChatHistory;
 use App\Console\Commands\PurgeAttendanceRecords;
 use App\Console\Commands\PurgeClockPhotoLeftovers;
 use App\Console\Commands\PurgeCompliancePhotos;
@@ -127,6 +128,12 @@ Schedule::command(PurgeCompliancePhotos::class)
 
 // DAY-1b: personal routine ticks, long-hidden items and the lists of long-deactivated accounts.
 Schedule::command(PurgeMyRoutine::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// CHAT-1: chatbox message text and figures are emptied after the retention period (owner, 2026-11-24: 90 days). The rows stay.
+Schedule::command(PurgeAiChatHistory::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
