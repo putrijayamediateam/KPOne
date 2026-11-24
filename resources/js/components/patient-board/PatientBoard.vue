@@ -448,6 +448,18 @@ const triageTextClass = (zone: TriageZone | null) =>
                                             >View Patient</Link
                                         >
                                     </DropdownMenuItem>
+                                    <!-- TRI-1e: the patient's own doctor reads the triage record (view only). -->
+                                    <DropdownMenuItem
+                                        v-if="row.triageViewUrl"
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link
+                                            :href="row.triageViewUrl"
+                                            data-testid="view-triage-menu"
+                                            >View triage</Link
+                                        >
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                         v-if="row.can.update"
                                         as-child
