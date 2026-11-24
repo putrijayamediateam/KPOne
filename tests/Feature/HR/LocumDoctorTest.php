@@ -121,6 +121,20 @@ class LocumDoctorTest extends VisitTestCase
         $this->get(route('workspace'))->assertRedirect(route('hr.roster.index'));
     }
 
+    public function test_a_locum_doctor_with_no_staff_file_opens_their_own_hr_pages(): void
+    {
+        // Resident Doctor brings the staff self-service HR pages (Suresh, m1); a locum doctor has no staff file of their own,
+        // so each own page must open, not fail.
+        $doctor = $this->actor('resident_doctor');
+        $doctor->assignRole(PermissionCatalogue::LOCUM_ROLE);
+        $this->assertNull(Worker::query()->where('user_id', $doctor->id)->first());
+        $this->selectBranch($doctor);
+        foreach (['hr.roster.index', 'hr.records.index', 'hr.leave.index', 'hr.attendance.index', 'hr.claims.index', 'hr.credentials.index',
+            'hr.sops.index', 'hr.memos.index', 'hr.incidents.index'] as $route) {
+            $this->get(route($route))->assertOk();
+        }
+    }
+
     public function test_postgresql_keeps_what_was_asked_and_the_exact_roles(): void
     {
         $worker = $this->locumFile();
