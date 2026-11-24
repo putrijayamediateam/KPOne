@@ -125,7 +125,7 @@ Out of scope (still 403 for the doctor): Returns to check, Dispensary settings, 
 
 ## 5. Existing assertions that change (need the owner's approval)
 
-- `tests/Feature/Clinical/DrugLabelTest.php:54` lists `resident_doctor` among the roles that get 403 on the label
+- **Approved by the owner (24 Nov).** `tests/Feature/Clinical/DrugLabelTest.php:54` lists `resident_doctor` among the roles that get 403 on the label
   preview (`GET dispensary.labels`). With DSP-26 the doctor gets 200 there for a completed case, so `resident_doctor`
   comes off that list. Every other role stays 403, and a new test pins the doctor's view-only preview (no print
   button, no token, POST still 403).
@@ -136,7 +136,10 @@ Out of scope (still 403 for the doctor): Returns to check, Dispensary settings, 
 
 ## 6. Questions for the owner
 
-a. Should each doctor open be recorded in the audit log? Recommended: no, as for CA opens at their own branch.
-b. Should the doctor also see the "Returns to check" list? Recommended: no, not asked for.
+Owner's answers, 24 Nov 2026, relayed by B.E.R.N.I.S.S ("approve the test change, 2 no, 3 no"): the
+`DrugLabelTest.php:54` change is approved; (a) no; (b) no. Question (c) came in the revised note and is still open.
+
+a. Should each doctor open be recorded in the audit log? **Owner: no.** No audit row per doctor open.
+b. Should the doctor also see the "Returns to check" list? **Owner: no.**
 c. Label preview while the CA is still preparing (pending or dispensing)? Recommended: no, only completed and awaiting
-   the doctor's check, because until then the label isn't final.
+   the doctor's check, because until then the label isn't final. **Still open.**
