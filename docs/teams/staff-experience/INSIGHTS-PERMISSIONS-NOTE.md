@@ -17,8 +17,8 @@ owner's ship-it, then the PR.
   or a Panel Officer can open sales, payments, in-clinic, inventory and patient aggregates for all branches.
 - The overview (BIL-31) already has its **own** permission, `insights.overview.view.organisation`, granted only to Director and
   Finance Officer by `2026_11_24_100000_grant_director_finance_overview_permission`. But it also requires `insights.view.organisation`
-  as a second condition in four places: the route `insights.overview` (`routes/web.php` ~802), `DirectorOverviewService::page`
-  (line 41), the Clinic management row "Director and Finance overview", and the Today page's `canOverview` prop reads only the overview permission.
+  as a second condition in three places: the route `insights.overview` (`routes/web.php` ~802), `DirectorOverviewService::page`
+  (line 41) and the Clinic management row "Director and Finance overview". (The Today page's `canOverview` prop reads only the overview permission.)
 - The sales and payments **downloads** require `insights.view.organisation` as well as their own export permission, in the route
   middleware (`insights.daily-sales`, `daily-receipts`, `sales-summary`) and in `DailyReportExportService` (line 37) and
   `SalesSummaryExportService` (line 32). The report code itself (`ClinicInsightsReportService::report`) never checks
