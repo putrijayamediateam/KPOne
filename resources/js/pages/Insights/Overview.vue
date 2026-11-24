@@ -467,7 +467,62 @@ const firstRow = computed(() => props.overview.branches[0]);
                 <p v-else class="mt-1 text-xs text-muted-foreground">
                     No full day yet this month. Today is shown on its own.
                 </p>
-                <div class="mt-3 overflow-x-auto">
+                <ul
+                    class="mt-3 divide-y sm:hidden"
+                    data-testid="overview-month-cards"
+                >
+                    <li
+                        v-for="row in overview.branches"
+                        :key="row.branchId"
+                        class="py-3 text-sm"
+                    >
+                        <p class="font-medium">{{ row.branch }}</p>
+                        <dl class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+                            <dt class="text-muted-foreground">Today so far</dt>
+                            <dd class="text-right tabular-nums">
+                                {{ myrNoBreak(row.sales.todaySoFarSen) }}
+                            </dd>
+                            <dt class="text-muted-foreground">
+                                Month to yesterday
+                            </dt>
+                            <dd class="text-right tabular-nums">
+                                {{
+                                    row.sales.monthToYesterdaySen === null
+                                        ? '—'
+                                        : myrNoBreak(
+                                              row.sales.monthToYesterdaySen,
+                                          )
+                                }}
+                            </dd>
+                            <dt class="text-muted-foreground">
+                                Same days last month
+                            </dt>
+                            <dd class="text-right tabular-nums">
+                                {{
+                                    row.sales.lastMonthSameDaysSen === null
+                                        ? '—'
+                                        : myrNoBreak(
+                                              row.sales.lastMonthSameDaysSen,
+                                          )
+                                }}
+                            </dd>
+                            <dt class="text-muted-foreground">Difference</dt>
+                            <dd class="text-right tabular-nums">
+                                {{
+                                    row.sales.monthToYesterdaySen === null ||
+                                    row.sales.lastMonthSameDaysSen === null
+                                        ? '—'
+                                        : signed(
+                                              row.sales.monthToYesterdaySen -
+                                                  row.sales
+                                                      .lastMonthSameDaysSen,
+                                          )
+                                }}
+                            </dd>
+                        </dl>
+                    </li>
+                </ul>
+                <div class="mt-3 overflow-x-auto max-sm:hidden">
                     <table class="w-full min-w-[30rem] text-sm">
                         <thead>
                             <tr class="text-left text-xs text-muted-foreground">
