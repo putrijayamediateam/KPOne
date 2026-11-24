@@ -84,8 +84,31 @@ final class RosterOnDuty
      */
     public function onDutyOn(Branch $branch, CarbonInterface $day): array
     {
+        return $this->day($branch, $day, userId: null);
+    }
+
+    /**
+     * HR-22d (HR-PLAN 29.5): one person's shift for their own home: the shift covering `$at`, otherwise their next shift later
+     * that branch-local day, or null. Uses the day rule for leave (a shift leave covers in full is left out), so a person on a
+     * half day still sees the shift they work.
+     */
+    public function forUser(int $userId, Branch $branch, CarbonInterface $at): ?OnDutyShift
+    {
+        $moment = CarbonImmutable::instance($at)->utc();
+        foreach ($this->day($branch, $at, $userId) as $shift) {
+            if ($shift->endsAt->greaterThan($moment)) {
+                return $shift;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<OnDutyShift> */
+    private function day(Branch $branch, CarbonInterface $day, ?int $userId): array
+    {
         $local = $this->localDay($branch, $day);
-        $shifts = $this->shifts($branch, $local->utc(), $local->addDay()->utc(), onCall: false, userId: null);
+        $shifts = $this->shifts($branch, $local->utc(), $local->addDay()->utc(), onCall: false, userId: $userId);
         if ($shifts->isEmpty()) {
             return [];
         }
