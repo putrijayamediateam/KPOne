@@ -57,3 +57,13 @@ test('TRI-1e: "View triage" links come only from the server URL', () => {
         /triageViewUrl: row\.triageViewUrl \?\? null,/,
     );
 });
+
+test('TRI-1e (Daniel): readings show what was measured, and the link is underlined', () => {
+    assert.match(view, /value\.replace\(\/\\\.\?0\+\$\/, ''\)/);
+    assert.match(view, /trimReading\(save\.readings\[f\.key\]/);
+    assert.match(
+        consultation,
+        /text-brand-strong underline underline-offset-4 lg:min-h-0" data-testid="consultation-view-triage"/,
+    );
+    assert.match(consultation, /min-h-11/);
+});

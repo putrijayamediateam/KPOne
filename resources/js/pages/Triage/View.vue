@@ -49,6 +49,11 @@ const fields = [
     { key: 'weight_kg', label: 'Weight', unit: 'kg' },
     { key: 'height_cm', label: 'Height', unit: 'cm' },
 ];
+// Daniel (TRI-1e review): show what was measured, not padded decimals ("96.00" reads "96", "37.20" reads "37.2").
+// No shared vitals formatter exists yet (design debt DD-117, Queue & TV); this page keeps its own until it does.
+const trimReading = (value: string) =>
+    value.includes('.') ? value.replace(/\.?0+$/, '') : value;
+const unitAfter = (unit: string) => (unit === '%' ? unit : ` ${unit}`);
 const zoneLabel = (zone: TriageZone) =>
     ({ red: 'Red zone', yellow: 'Yellow zone', green: 'Green zone' })[zone];
 const zoneTone = (zone: TriageZone) =>
@@ -123,7 +128,8 @@ const zoneTone = (zone: TriageZone) =>
                     <dt class="text-xs text-muted-foreground">{{ f.label }}</dt>
                     <dd class="tabular-nums">
                         <template v-if="save.readings[f.key]"
-                            >{{ save.readings[f.key] }} {{ f.unit }}</template
+                            >{{ trimReading(save.readings[f.key] as string)
+                            }}{{ unitAfter(f.unit) }}</template
                         >
                         <span v-else class="text-muted-foreground">—</span>
                     </dd>
