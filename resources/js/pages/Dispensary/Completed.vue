@@ -78,7 +78,7 @@ defineProps<{
         <!-- DSP-26 (Daniel): one muted view-only line; the back link is the header's outline button. -->
         <ReadOnlyBanner
             v-if="dispensary.viewOnly"
-            class="mb-4"
+            class="my-4"
             message="View only. You cannot change this case."
         />
         <SupervisorCheckNote
@@ -103,6 +103,7 @@ defineProps<{
         <MedicineReturnsSection
             v-if="returns && returns.lines.length"
             :returns="returns"
+            :view-only="dispensary.viewOnly"
         />
     </main>
 </template>

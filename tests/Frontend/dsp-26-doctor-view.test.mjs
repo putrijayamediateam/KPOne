@@ -21,11 +21,23 @@ test('DSP-26: the banner takes its own line and keeps the Director default', () 
     assert.match(banner, /\{\{ message \}\}/);
 });
 
+test('DSP-26: the returns section hides the CA instructions for a viewer', () => {
+    const returns = read(
+        'resources/js/pages/Dispensary/Partials/MedicineReturnsSection.vue',
+    );
+    assert.match(
+        returns,
+        /<p v-if="!viewOnly" class="-mt-2 text-sm text-muted-foreground"> Record medicine/,
+    );
+    assert.match(returns, /<p v-if="!viewOnly" role="note"/);
+    assert.match(completed, /:view-only="dispensary\.viewOnly"/);
+});
+
 test('DSP-26: the case and Completed pages say "View only" and never "Every view is recorded"', () => {
     for (const page of [show, completed]) {
         assert.match(
             page,
-            /<ReadOnlyBanner v-if="dispensary\.viewOnly" class="mb-4" message="View only\. You cannot change this case\."/,
+            /<ReadOnlyBanner v-if="dispensary\.viewOnly" class="m[by]-4" message="View only\. You cannot change this case\."/,
         );
         assert.ok(!page.includes('Every view is recorded'));
         assert.match(page, /\{\{ dispensary\.backLink\.label \}\}/);
