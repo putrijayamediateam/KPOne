@@ -112,7 +112,7 @@ class DispensaryDoctorViewTest extends ClinicalTestCase
         $f = $this->prepared();
         $doctor = $f['doctor'];
 
-        $this->viewAs($doctor)->get(route('dispensary.labels', $f['case']))->assertNotFound();
+        $this->viewAs($doctor)->get(route('dispensary.labels', $f['case']))->assertForbidden();
 
         $this->sendCase($f);
         $this->viewAs($doctor)->get(route('dispensary.labels', $f['case']))->assertOk()

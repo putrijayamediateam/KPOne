@@ -67,8 +67,9 @@ All of it is at the doctor's **active branch** only. A case at another branch gi
 - **Statuses the doctor may preview:**
   - completed;
   - awaiting the doctor's check.
-  A case still being prepared (pending or dispensing) is **not** previewable by the doctor (404, as today): the CA is
-  still changing the lines, and the label isn't final.
+  A case still being prepared (pending or dispensing) is **not** previewable by the doctor (403, as before DSP-26, so
+  `TreatmentPlanTest`'s label privacy check stays unchanged): the CA is still changing the lines, and the label isn't
+  final.
 - On the case page, a **"View labels"** link is driven by a new server flag, `canPreviewLabels` (Hakim's
   nice-to-have 6). `canPrintLabels` stays false for the doctor. The label page shows no Print button when the page
   says the viewer cannot print.
@@ -146,7 +147,7 @@ Shots for Daniel's look, at 1440 and 390 in light and dark:
 - **Completed page:** 200, the returns rows present, `canRecord` and `canCheck` false. The Returns to check list
   stays 403.
 - **Label preview:**
-  - 200 for completed and awaiting check, 404 for pending and dispensing;
+  - 200 for completed and awaiting check, 403 for pending and dispensing;
   - no print token, `canPrintLabels` false and `canPreviewLabels` true;
   - no row locks taken (a CA save during a doctor preview does not wait);
   - no print-log row.
