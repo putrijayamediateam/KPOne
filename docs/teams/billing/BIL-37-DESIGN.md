@@ -110,3 +110,16 @@ A props test asserts the exact key list of the page (`assertSame` on keys), not 
   way to keep that assertion as it is: the Invoices page stays empty and only links to the new review page. Owner to
   choose; I recommend the link-only way, so the existing assertion stays as it is.
 - The full run will list the exact ones. Each goes to the owner first and stays failing until approved.
+
+## 7. The owner's answers (24 Nov 2026, relayed by the coordinator)
+
+- Pages = **A**: the open bill and the completed invoice.
+- Patients = the doctor's **own patients only**, as for the triage view (TRI-1e): before the consultation starts, the
+  visit's assigned doctor (`visits.assigned_doctor_user_id`); once it has started, the encounter's attending doctor
+  (`clinical_encounters.attending_clinician_user_id`). Any other visit gives 404, as one at another branch does.
+- Audit = **yes**, ids only.
+- Payment detail = **B, edited by the owner**: "Satu baris setiap bayaran: tarikh, cara bayar, amaun (dgn nama staf)".
+  One row per payment with date, method, amount and who recorded it. Staff names follow the BIL-2 staff-visibility rule
+  (`StaffAccessService::visibleUsers`). The doctor holds `staff.view.branch`, so names of staff assigned to their active
+  branch show and any other reads "Staff member". The rule fits a doctor without change. Receipt numbers stay hidden.
+- Permission name = **`billing.view_readonly.branch`**, Resident Doctor only, scoped to their own patients.
