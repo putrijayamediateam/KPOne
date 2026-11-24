@@ -45,24 +45,55 @@ class PanelSummaryReportService extends BranchReportService
         return 'Invoices count on the day they were finalised; claim figures and ages are as they stand today.';
     }
 
-    protected function project(User $actor, Branch $branch, array $filters): array
+    /**
+     * BIL-31 (design note 2.2): Panel money a branch is still owed, over every finalised Panel invoice up to now, from
+     * the same per-allocation adding-up as this report (groups()), so the overview and the report cannot disagree.
+     * Over-90 parts use the report's own age groups.
+     *
+     * @return array{awaitingDecisionSen: int, awaitingDecisionOver90Sen: int, acceptedOutstandingSen: int, acceptedOutstandingOver90Sen: int, unclaimedSen: int, unclaimedOver90Sen: int}
+     */
+    public function totals(int $organisationId, Branch $branch, ?CarbonImmutable $fromUtc = null, ?CarbonImmutable $toUtc = null): array
+    {
+        $sums = array_fill(0, 24, 0);
+        foreach ($this->groups($organisationId, $branch, $fromUtc, $toUtc ?? CarbonImmutable::now('UTC')) as $group) {
+            for ($i = 0; $i < 24; $i++) {
+                $sums[$i] += (int) ($group['values'][$i] ?? 0);
+            }
+        }
+
+        return [
+            'awaitingDecisionSen' => $sums[19], 'awaitingDecisionOver90Sen' => $sums[23],
+            'acceptedOutstandingSen' => $sums[9], 'acceptedOutstandingOver90Sen' => $sums[13],
+            'unclaimedSen' => $sums[5], 'unclaimedOver90Sen' => $sums[17],
+        ];
+    }
+
+    /**
+     * Per-Panel values for approved Panel shares of invoices finalised in [from, to) at one branch (from null means
+     * since the first). Value indexes follow the report columns after "Panel".
+     *
+     * @return array<int, array{name: string, values: array<int, int>}>
+     */
+    private function groups(int $organisationId, Branch $branch, ?CarbonImmutable $fromUtc, CarbonImmutable $toUtc): array
     {
         $groups = [];
-        $query = app(PanelClaimEligibility::class)->approvedAllocations($actor->organisation_id, $branch->id)
-            ->where('i.finalized_at', '>=', CarbonImmutable::parse($filters['from'], $branch->timezone)->startOfDay()->utc())
-            ->where('i.finalized_at', '<', CarbonImmutable::parse($filters['to'], $branch->timezone)->addDay()->startOfDay()->utc())
+        $query = app(PanelClaimEligibility::class)->approvedAllocations($organisationId, $branch->id);
+        if ($fromUtc !== null) {
+            $query->where('i.finalized_at', '>=', $fromUtc);
+        }
+        $query->where('i.finalized_at', '<', $toUtc)
             ->orderByRaw('pn.name COLLATE "C"')->orderBy('c.id')->select(['c.id', 'c.panel_id', DB::raw('kpone_panel_effective(i.id) as amount_sen'), 'pn.name', 'i.finalized_at']); // PCA-2: approved and unclaimed use the current Panel share.
         $today = CarbonImmutable::now($branch->timezone)->startOfDay();
-        $query->chunk(500, function ($allocations) use ($actor, $branch, $today, &$groups): void {
-            $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+        $query->chunk(500, function ($allocations) use ($organisationId, $branch, $today, &$groups): void {
+            $claims = PanelClaim::query()->where('organisation_id', $organisationId)->where('branch_id', $branch->id)
                 ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'claim_kind']);
             // PCA-2: one original claim per Panel share decides claimed or unclaimed; supplementary claims add their money.
             $supplementary = $claims->where('claim_kind', 'supplementary')->where('status', '!=', 'cancelled')->groupBy('coverage_allocation_id');
             $allClaimIds = $claims->pluck('id');
             $claims = $claims->where('claim_kind', 'original')->keyBy('coverage_allocation_id');
-            $submittedDates = DB::table('panel_claim_events')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            $submittedDates = DB::table('panel_claim_events')->where('organisation_id', $organisationId)->where('branch_id', $branch->id)
                 ->whereIn('panel_claim_id', $allClaimIds)->where('event_type', 'submitted')->selectRaw('panel_claim_id, MIN(occurred_at) AS first_submitted')->groupBy('panel_claim_id')->pluck('first_submitted', 'panel_claim_id');
-            $payments = DB::table('panel_claim_payments')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            $payments = DB::table('panel_claim_payments')->where('organisation_id', $organisationId)->where('branch_id', $branch->id)
                 ->whereIn('panel_claim_id', $allClaimIds)->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->selectRaw('panel_claim_id, SUM(amount_sen) AS paid')->groupBy('panel_claim_id')->pluck('paid', 'panel_claim_id');
             foreach ($allocations as $allocation) {
                 $id = (int) $allocation->panel_id;
@@ -99,6 +130,15 @@ class PanelSummaryReportService extends BranchReportService
                 $groups[$id] = $group;
             }
         });
+
+        return $groups;
+    }
+
+    protected function project(User $actor, Branch $branch, array $filters): array
+    {
+        $groups = $this->groups($actor->organisation_id, $branch,
+            CarbonImmutable::parse($filters['from'], $branch->timezone)->startOfDay()->utc(),
+            CarbonImmutable::parse($filters['to'], $branch->timezone)->addDay()->startOfDay()->utc());
         $columns = ['Panel', 'Approved invoices', 'Approved responsibility (MYR)', 'Claimed invoices', 'Claimed current (MYR)', 'Unclaimed invoices', 'Unclaimed responsibility (MYR)', 'Accepted (MYR)', 'Fully rejected current (MYR)', 'Remitted (MYR)', 'Accepted outstanding (MYR)', 'Claim outstanding 0-30 days (MYR)', 'Claim outstanding 31-60 days (MYR)', 'Claim outstanding 61-90 days (MYR)', 'Claim outstanding over 90 days (MYR)', 'Unclaimed 0-30 days (MYR)', 'Unclaimed 31-60 days (MYR)', 'Unclaimed 61-90 days (MYR)', 'Unclaimed over 90 days (MYR)', 'Awaiting decision claims', 'Awaiting decision (MYR)', 'Awaiting decision 0-30 days (MYR)', 'Awaiting decision 31-60 days (MYR)', 'Awaiting decision 61-90 days (MYR)', 'Awaiting decision over 90 days (MYR)'];
         $sums = array_fill(0, 24, 0);
         $rows = [];

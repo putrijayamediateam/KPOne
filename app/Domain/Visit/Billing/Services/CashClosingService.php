@@ -330,6 +330,33 @@ final class CashClosingService
     }
 
     /** BIL-15: the branch's current cash closing start date (its latest revision), or null when none is set. */
+    /**
+     * BIL-31 (design note 2.4): one branch-day's close status, read only, by the month view's own rule: approved,
+     * waiting, returned, not_counted, before_start (never due) or open (the day has not ended). For the overview, which
+     * lists every branch; page() and month() stay on the viewer's active branch.
+     */
+    public function status(Branch $branch, CarbonImmutable $date): string
+    {
+        $day = $date->setTimezone($branch->timezone)->startOfDay();
+        $closings = CashClosing::query()->with('decision')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->whereDate('business_date', $day->toDateString())->orderByDesc('revision')->get();
+        if ($closings->contains(fn (CashClosing $c): bool => $c->decision?->decision === 'approved')) {
+            return 'approved';
+        }
+        if (! $this->dayEnded($branch, $day)) {
+            return 'open';
+        }
+        $latest = $closings->first();
+        if ($latest !== null) {
+            return $latest->decision === null ? 'waiting' : 'returned';
+        }
+        $setStart = $this->startDate($branch);
+        $firstCount = $setStart === null ? CashClosing::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->min('business_date') : null;
+        $startsOn = $setStart ?? ($firstCount === null ? null : CarbonImmutable::parse((string) $firstCount, $branch->timezone)->startOfDay());
+
+        return $startsOn === null || $day->lessThan($startsOn) ? 'before_start' : 'not_counted';
+    }
+
     public function startDate(Branch $branch): ?CarbonImmutable
     {
         $row = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderByDesc('revision')->first();
