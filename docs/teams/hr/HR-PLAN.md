@@ -3420,3 +3420,121 @@ Decisions 111 and 112. Suresh's review, Daniel's look and a green PostgreSQL 18 
 | Branch | Staff at their primary branch on the month's last day; locum pay at the branch of each paid shift. |
 | Hiding | Every amount covers no one or at least 3 people, per column (staff figures and locum figure); the clinic total less the shown figures never isolates 1 or 2 people; locum corrections never shown as an amount. |
 | Limits | Locum statement lines carry the branch name, not its id (follow-up); comparing months could narrow a figure. |
+
+## 29. Roster on duty, stations, month planner, locum availability and locum doctors (design notes, 2026-11-24)
+
+The owner's answers relayed by B.E.R.N.I.S.S on 24 Nov 2026, after the HR survey for auto-assign doctor (AUTO-1, Nurul's note).
+Owner quotes: "nanti hr yg akan assign setiap staff mereka mengikut jadual per bulan atau per week ... duduk di stage mana register
+ke ma ke dispense ke"; "kena la buka terus my home masing2 dulu cuma info2 di situ akan ada juga tentang task stesen mereka";
+"Locum dapat semua akses resident termasuk MC, rujukan dan sasaran cuma kita akan tahu la if tu dr resident ke bukan".
+Each slice below is its own PR: this note, then Daniel's look for any screen, then the owner's ship-it. Nothing is built by this
+note. Migrations continue in the HR range from `2026_11_10_008000`.
+
+### 29.1 Order
+
+| # | Slice | Why this place |
+|---|---|---|
+| 1 | HR-22a RosterOnDuty lookup | Smallest; no screen; unblocks AUTO-1. |
+| 2 | HR-22b locum doctor marker | The role decision is made; AUTO-1's "residents first" needs the marker. Small code. |
+| 3 | HR-22c station on a shift | One column, planner and My roster; the lookup returns it once it exists. |
+| 4 | HR-22d station on the home | Kavitha's MeHome/My day part, reading 22a and 22c. |
+| 5 | HR-22e month planner | Planner screen work; no rule change. |
+| 6 | HR-22f locum availability | New permission, new table and screens; the largest. |
+
+### 29.2 HR-22a RosterOnDuty (read-only lookup)
+
+- `App\Domain\HR\Roster\Services\RosterOnDuty`, beside `RosterRoomLookup`, with the same rules: only the currently approved
+  version of a week; shifts at the branch covering `$at`; approved leave over the shift removed; on-call shifts removed.
+- `onDuty(Branch $branch, CarbonInterface $at): list<array{userId: int, shiftStartsAt, shiftEndsAt, roomId: ?int, station: ?string}>`
+  (station is null until HR-22c). Ids only: no names, roles, leave types or reasons. The calling domain reads roles itself.
+- `isOnDuty(int $userId, Branch $branch, CarbonInterface $at): bool` for a single check.
+- No lock, no write, no audit, no permission check: the caller already holds its own branch-scoped permission and gets ids
+  only, as with `RosterRoomLookup`. Queue and Registration never read `hr_` tables directly.
+- `HrDashboardService::today()` moves onto it, so the dashboard and AUTO-1 cannot disagree (its output must not change: the
+  existing dashboard assertions stay as they are).
+- Tests: approved vs draft and replaced versions, overnight shift, leave covering the shift and half-day leave, on call,
+  another branch, two shifts that touch (the later start wins at the boundary), and a parity test against the dashboard.
+
+### 29.3 HR-22b locum doctor: `resident_doctor` plus `locum`
+
+The owner's role decision under AGENTS.md: a locum doctor's account holds both `resident_doctor` and `locum`. They get every
+resident permission (consultation, MC, referral, attendance letter, targets). No HR code grants a role.
+
+- **How HR asks.** On the locum's file, HR's sign-in request (HR-15a) gains one choice: "Locum doctor (also needs the
+  Resident Doctor role)". It is stored on `hr_locum_sign_ins` as `role_requested` (`locum` or `locum_doctor`) and shown on the
+  Staff page request card. HR still creates no user and changes no role.
+- **Who grants.** The person who passes `StaffProvisioningService`'s check creates the account (or edits an existing locum
+  account) with both roles, the usual way. `canAssignRoles` already decides who may assign `resident_doctor`; today that is the
+  Director only. There is no self-registration, and an unknown identity never becomes a user. Linking (HR-15a) checks that the
+  account holds `resident_doctor` when `locum_doctor` was asked for, and refuses otherwise.
+- **The marker.** One helper, `App\Domain\Access\StaffKind::isLocum(User): bool`, true when the account holds the `locum` role.
+  AUTO-1 calls it for "residents first", and screens do not read the role directly. The locum doctor shows a small outline
+  "Locum" badge next to the doctor's name on the doctor pickers, the queue board doctor filter and the HR staff file (wording
+  to Daniel). Patient-facing pages, prints and the TV never show it.
+- **Landing.** `WorkspaceLandingService` sends a locum to My roster today. With both roles, the resident rule must win, so the
+  doctor lands where residents land. The locum-only check becomes "holds `locum` and not `resident_doctor`".
+- **Credentials.** A locum doctor needs verified clinician credentials (DOC-02a) before issuing an MC, referral or attendance
+  letter, exactly as a resident. Nothing changes there.
+- **Pay.** A locum doctor is still paid through locum pay (HR-15g), never through payroll runs. The payroll profile list
+  already excludes locum files by `hr_workers.kind`, and a test pins that both roles do not change this.
+- **Branch.** The account keeps exactly one current primary branch (`staff_branch_assignments`), as every active staff member.
+- **Not in this slice:** any new consultation rule for locums. They use the resident rules unchanged.
+- Migration: `008000` adds `role_requested` (default `locum`) with a CHECK. No permission change.
+
+### 29.4 HR-22c station on a shift
+
+- `hr_roster_shifts.station` nullable varchar(16), CHECK in (`registration`, `ma`, `dispensary`, `treatment`), labels
+  Registration, MA, Dispensary, Treatment.
+- Only on shifts of CA, CA Supervisor and Medical Assistant accounts. The service refuses a station on any other person
+  (doctors get a room only), and the planner hides the field for them. On-call shifts carry no station.
+- Optional. A shift with no station is still valid, and the planner shows a quiet "No station" warning only when the branch
+  has switched "Plan stations" on in roster settings (off by default, so existing weeks raise nothing).
+- Set in the planner's shift form, copied with "Copy last approved week", part of the version (a sent week does not change),
+  shown on My roster and in the planner grid. It is in `RosterOnDuty`'s output.
+- Two people on the same station is allowed (busy days), and no warning is raised.
+- Migration `008100`. No new permission (`hr.roster.manage.organisation`).
+
+### 29.5 HR-22d station on the home (Kavitha leads; HR supplies the data)
+
+- Everyone still opens on their own home. The station does not move anyone to a tab. My day, or MeHome, shows a card such as
+  "Today: Dispensary, 8:00 AM to 4:00 PM, Room 3", with the links that station uses (for example Dispensary: the dispensary
+  list), each still behind its own permission.
+- HR provides `RosterOnDuty::forUser(int $userId, Branch $branch, CarbonInterface $at)` (today's shift, station and room ids).
+  Kavitha owns the card and its links.
+- "Its tasks" means links and counts the person can already see. No new permission, and no task list stored by HR.
+
+### 29.6 HR-22e month planner
+
+- The planner gains Week | Month. Month view is a read-mostly grid of the month's weeks for one branch, each week with its
+  status (draft, waiting, approved). It shows people and shift times compactly, with the station shown as a short tag.
+- "Copy this week to the rest of the month" creates or updates one draft per later week of that month, through the HR-1
+  roster service with all its checks (assignment, overlap, leave, 16 hours). Weeks already sent or approved are skipped and
+  listed. Each week is still sent and approved on its own, as today, and the approver rule is unchanged.
+- Editing a shift still happens in the week view (the month view links to it).
+- No migration, no new permission.
+
+### 29.7 HR-22f locum availability
+
+- A locum with a linked sign-in proposes the times they are free: date, start, end, branch (one of their assigned
+  branches that day), and an optional short note (encrypted, 200 characters). There are at most 30 open proposals per locum.
+- HR (Director, HR Manager: `hr.roster.manage.organisation`) sees an "Availability" list on the roster page and, for each
+  proposal:
+  - **Use**: becomes a draft roster shift in that branch's week, through the same path as the open-shift confirm (HR-15b),
+    with all roster checks. HR may shorten it inside the offered times and may set room and station.
+  - **Decline**: with a fixed reason (not needed, outside opening hours, other).
+  The locum sees the shift on My roster only after the week is approved, as with open shifts.
+- The locum may withdraw a proposal that is still waiting. A used or declined proposal never changes again (append-only
+  events, PostgreSQL trigger). The decider is never the locum.
+- A proposal in the past expires and shows "Expired". Nothing is sent to anyone (HR-14 messages are not used here).
+- **New permission (owner approved in principle):** `hr.locum_availability.propose.own`, for the `locum` role only. Deciding
+  reuses `hr.roster.manage.organisation`.
+- Every write: fresh permission check under lock, `DB::transaction`, row locks, `lock_version`, idempotency key, audit
+  with ids and codes only. A two-process race test covers two managers using the same proposal.
+- Migrations `008200` (tables) and `008300` (grant). This does not grant anything to `ca`, so the `medical_assistant` rule
+  does not apply.
+
+### 29.8 Open points for the owner
+
+- 22b: the badge wording "Locum" next to a doctor's name on staff screens, or no badge?
+- 22c: switch "Plan stations" on per branch (default off), or warn everywhere from the start?
+- 22f: the 30 open proposals cap, and whether HR may use part of an offered day (default yes).
