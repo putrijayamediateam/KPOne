@@ -145,7 +145,11 @@ const autoNotice = computed(() => {
 const doctorOptions = computed(() => [
     {
         value: '',
-        label: autoAssign.value ? 'Auto (recommended)' : 'No doctor',
+        label: autoAssign.value
+            ? autoCannotChoose.value
+                ? 'Auto (no doctor available now)'
+                : 'Auto (recommended)'
+            : 'No doctor',
     },
     ...props.options.doctors.map((doctor) => ({
         value: doctor.id,
@@ -962,7 +966,6 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 id="assigned-doctor"
                                 v-model="form.assigned_doctor_user_id"
                                 label="Doctor"
-                                trigger-class="max-lg:data-[size=default]:h-11"
                                 :invalid="!!form.errors.assigned_doctor_user_id"
                                 :options="doctorOptions" /><InputError
                                 :message="errorFor('assigned_doctor_user_id')"
@@ -1007,7 +1010,6 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 id="doctor-override-reason"
                                 v-model="form.doctor_override_reason"
                                 label="Why not Auto?"
-                                trigger-class="max-lg:data-[size=default]:h-11"
                                 :invalid="!!form.errors.doctor_override_reason"
                                 :options="overrideReasonOptions"
                             />

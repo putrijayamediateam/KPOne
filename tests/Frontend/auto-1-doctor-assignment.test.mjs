@@ -14,7 +14,7 @@ test('AUTO-1: Register Visit offers Auto only when the server says it is availab
     );
     assert.match(
         page,
-        /autoAssign\.value \? 'Auto \(recommended\)' : 'No doctor'/,
+        /'Auto \(no doctor available now\)' : 'Auto \(recommended\)' : 'No doctor'/,
     );
     // Free or busy and how many wait; nothing about sales.
     assert.match(
