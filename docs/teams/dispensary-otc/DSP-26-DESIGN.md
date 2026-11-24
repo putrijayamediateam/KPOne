@@ -76,6 +76,49 @@ All of it is at the doctor's **active branch** only. A case at another branch gi
 Out of scope (still 403 for the doctor): Returns to check, Dispensary settings, the CA Supervisor's
 "Doctor's checks" list, the scan lookup (needs `inventory.view.branch`) and every search endpoint.
 
+## 2.5 Screen design (Daniel's note-level review: OK with changes; the full look comes on the build shots)
+
+1. **View-only banner.**
+   - The case page and the Completed page start with the shared read-only banner (the one the Director's views
+     and the audit pages use): one muted line under the page header, with an eye icon and neutral tokens.
+   - Wording: "View only. You cannot change this case."
+   - It never says "Every view is recorded." That line is the Director's only (DSP-25), and isn't true for a doctor.
+2. **No gaps or dead controls.**
+   - Every action is removed, not disabled: no greyed Save, no empty action bar, and no panel left with only a
+     heading.
+   - A block with nothing for a viewer is removed. On the case page the right-hand column keeps its summary and
+     loses the actions card, so the layout closes up.
+   - Checked at 1440 (three columns) and 390 (one column).
+3. **Read-only values as plain text.**
+   - Fields show as plain text, as on the CA's existing "waiting" view, never as disabled-looking inputs.
+   - Hidden for the viewer: Add medicine, the scan box, the services panel's add controls and the OTC allergy form.
+4. **Label preview.**
+   - No Print button and no printer checklist.
+   - One muted line under the header: "View only. Printing is done by the CA."
+   - The case page shows "View labels" only when the label can be previewed (completed, or awaiting the doctor's
+     check). For a pending or dispensing case there is no link and no message.
+5. **Registration board.**
+   - The doctor sees the Dispensary tab.
+   - "Open Dispensary" is an outline row action. At 390 it must not collide with the row's existing "Call In"
+     and "Mark not ready" buttons (shots will show it).
+6. **Back link** (Daniel asked what it does for a doctor):
+   - The doctor's check panel on the consultation page gains a "View in Dispensary" text link while the case
+     waits for the check. It opens the case page with `from=consultation`.
+   - On the case page, the back link then reads "Back to consultation" and returns to that visit's consultation.
+     It does so only when `from=consultation` is given and the viewer is the visit's attending clinician
+     (checked on the server). Otherwise it falls back to the default.
+   - In every other case, the back link goes to the Registration board's Dispensary tab, as for a CA.
+   - The `from` value is checked against a fixed list (`consultation`, `registration`), so the link can't be
+     pointed elsewhere.
+
+Shots for Daniel's look, at 1440 and 390 in light and dark:
+- the case page, awaiting the doctor's check;
+- the case page, completed;
+- the Completed page with the returns list;
+- the label preview;
+- the Registration row;
+- the doctor's check panel with the new link.
+
 ## 3. What stays hidden
 
 - Every write keeps its existing permission in the route middleware and in its service check, so the doctor gets
@@ -117,7 +160,12 @@ Out of scope (still 403 for the doctor): Returns to check, Dispensary settings, 
   - a case at another branch gives 404;
   - the DSP-23 tests stay green (the doctor's Verify and Send back from the consultation page);
   - `authorizedBranch()` callers still refuse the doctor (for example `recordLabelPrint()` called directly).
+- **Back link:** "Back to consultation" only for the attending clinician with `from=consultation`, otherwise the
+  Registration Dispensary tab; an unknown `from` value falls back.
 - **Frontend:**
+  - the read-only banner wording, without "Every view is recorded.";
+  - the label line "View only. Printing is done by the CA.";
+  - the check panel's "View in Dispensary" link;
   - the case and label pages hide every action for a viewer;
   - "View labels" follows `canPreviewLabels`;
   - the Print button follows `canPrintLabels`;
