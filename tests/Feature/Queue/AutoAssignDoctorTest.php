@@ -318,6 +318,29 @@ class AutoAssignDoctorTest extends QueueTestCase
         $this->assertSame($audits, DB::table('audit_logs')->count());
     }
 
+    public function test_when_auto_cannot_choose_anyone_it_says_why(): void
+    {
+        $a = $this->doctor();
+        DB::table('branch_rooms')->insert(['organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id, 'kind' => 'consultation',
+            'name' => 'Synthetic Room B', 'sort_order' => 1, 'is_active' => true, 'lock_version' => 1, 'updated_by_user_id' => $this->hr->id,
+            'created_at' => now(), 'updated_at' => now()]);
+        $this->publish([$a]); // rostered, but the branch has rooms and this shift has none
+        $this->enable();
+
+        $this->registerAs($this->payload(null))->assertSessionHasErrors(['assigned_doctor_user_id' => "No doctor on today's roster has a room, so Auto cannot choose one. Choose a doctor yourself."]);
+        $this->assertSame(0, Visit::query()->count());
+    }
+
+    public function test_when_nobody_is_on_the_published_roster_auto_says_so(): void
+    {
+        $this->doctor();
+        $this->publish([$this->actor('ca')]); // a published week with staff on it, but no doctor
+        $this->enable();
+
+        $this->registerAs($this->payload(null))->assertSessionHasErrors(['assigned_doctor_user_id' => "No doctor is on today's roster at this branch, so Auto cannot choose one."]);
+        $this->assertSame(0, Visit::query()->count());
+    }
+
     public function test_the_ordering_rules(): void
     {
         $service = app(DoctorAssignmentService::class);

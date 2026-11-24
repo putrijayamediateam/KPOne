@@ -59,6 +59,12 @@ const genderOptions = [
 // AUTO-1: when the Director switched automatic assignment on and today's roster is published, a blank doctor means
 // "Auto". Only doctors on today's roster are listed, each marked free or busy; sales and targets are never shown.
 const autoAssign = computed(() => props.options.autoAssign?.available === true);
+// Auto has nobody to choose when no doctor on today's roster has a room (or the roster has no doctors).
+const autoCannotChoose = computed(
+    () =>
+        autoAssign.value &&
+        !props.options.doctors.some((doctor) => doctor.room !== false),
+);
 const overrideReasonOptions = [
     { value: '', label: 'Choose a reason' },
     { value: 'patient_requested', label: 'Patient asked for this doctor' },
@@ -895,8 +901,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 form.assigned_doctor_user_id === ''
                             "
                             class="text-xs text-muted-foreground"
-                            >Auto picks the next doctor on today's roster who is
-                            free.</span
+                            >{{
+                                autoCannotChoose
+                                    ? "Auto cannot choose a doctor right now (no doctor on today's roster has a room). Choose one yourself."
+                                    : "Auto picks the next doctor on today's roster who is free."
+                            }}</span
                         ></label
                     >
                     <label

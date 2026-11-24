@@ -98,6 +98,12 @@ class RegisterAndQueueService
         $pick = $this->assignment->pick($actor, $branch, $now, $patientId === null ? null : (int) $patientId);
 
         if ($chosen === null) {
+            if ($pick['doctorId'] === null) {
+                // Auto has nobody to choose: say why, and let the CA pick a doctor by hand.
+                throw ValidationException::withMessages(['assigned_doctor_user_id' => $pick['list'] === []
+                    ? "No doctor is on today's roster at this branch, so Auto cannot choose one."
+                    : 'No doctor on today\'s roster has a room, so Auto cannot choose one. Choose a doctor yourself.']);
+            }
             if ($pick['doctorId'] !== null) {
                 $attributes['assigned_doctor_user_id'] = $pick['doctorId'];
                 $attributes['doctor_source'] = 'auto';
@@ -118,7 +124,7 @@ class RegisterAndQueueService
         }
         $reason = $attributes['doctor_override_reason'] ?? null;
         if (! in_array($reason, DoctorAssignmentService::OVERRIDE_REASONS, true)) {
-            throw ValidationException::withMessages(['doctor_override_reason' => 'Choose why you are not using the recommended doctor.']);
+            throw ValidationException::withMessages(['doctor_override_reason' => 'Pick a reason to continue.']);
         }
         $attributes['doctor_source'] = 'override';
         $attributes['doctor_reason_code'] = 'ca_override_'.$reason;
