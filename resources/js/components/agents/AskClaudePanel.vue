@@ -240,11 +240,24 @@ const cancel = async (request: AskClaudeRequest) => {
                     class="min-w-0 space-y-3 rounded-lg border border-border bg-card px-3 py-3 text-sm text-card-foreground"
                     data-ask-claude-pending
                 >
-                    <p
-                        class="flex items-center gap-2 font-medium"
-                        role="status"
-                    >
-                        <Spinner /> Waiting for Claude
+                    <div class="flex items-center justify-between gap-2">
+                        <p
+                            class="flex items-center gap-2 font-medium"
+                            role="status"
+                        >
+                            <Spinner /> Waiting for Claude
+                        </p>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            class="min-h-11 lg:min-h-8"
+                            @click="cancel(request)"
+                            >Cancel</Button
+                        >
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Waits up to {{ state.expiryMinutes }} minutes.
                     </p>
                     <ol
                         class="list-decimal space-y-1 pl-5 text-muted-foreground"
@@ -297,22 +310,6 @@ const cancel = async (request: AskClaudeRequest) => {
                             :model-value="request.prompt"
                             @focus="selectAll"
                         />
-                    </div>
-                    <div
-                        class="flex items-center justify-between gap-2 text-xs text-muted-foreground"
-                    >
-                        <span
-                            >Waits up to
-                            {{ state.expiryMinutes }} minutes.</span
-                        >
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            class="min-h-11 lg:min-h-8"
-                            @click="cancel(request)"
-                            >Cancel</Button
-                        >
                     </div>
                 </div>
 

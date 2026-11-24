@@ -121,6 +121,7 @@ class AskThroughClaudeTest extends VisitTestCase
         $this->assertStringContainsString('Request id: '.$made['id'], $made['prompt']);
         $this->assertStringContainsString('<<<QUESTION'."\n".'How many patients are waiting now? & more <ok>'."\n".'QUESTION>>>', $made['prompt']);
         $this->assertStringContainsString('save_answer', $made['prompt']);
+        $this->assertStringContainsString('Call list_branches and name each branch by its label', $made['prompt']);
         $this->assertStringStartsWith('claude://claude.ai/new?q=', $made['desktopLink']);
         $this->assertSame($made['prompt'], rawurldecode(substr($made['desktopLink'], strlen('claude://claude.ai/new?q='))));
         $this->assertSame('https://claude.ai/new', $made['webLink']);
