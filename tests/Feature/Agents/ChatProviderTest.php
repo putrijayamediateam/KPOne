@@ -4,13 +4,20 @@ namespace Tests\Feature\Agents;
 
 use App\Domain\Agents\Chat\ChatProviderFailed;
 use App\Domain\Agents\Chat\Providers\HttpChatModel;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-/** CHAT-1: the one provider adapter, tested without the network. */
+/**
+ * CHAT-1: the one provider adapter, tested without the network. It uses no database itself, but it takes RefreshDatabase like the other Feature tests:
+ * a Feature test without a database trait is not moved to its parallel worker's own database, and the base TestCase then rebuilds the schema of the
+ * shared base database, which collides with other workers (found on PR #1087, backend shard 2).
+ */
 class ChatProviderTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_it_sends_the_key_only_in_a_header_and_reads_text_tool_calls_and_usage(): void
     {
         config(['ai_chat.api_key' => 'test-key-123', 'ai_chat.endpoint' => 'https://provider.test/v1/messages']);
