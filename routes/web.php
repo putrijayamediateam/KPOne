@@ -1157,7 +1157,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dispensary/{dispensaryCase}/review', [DispensaryReviewController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.view_readonly.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.review');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch,dispensary.view_readonly.branch')->name('dispensary.show');
 
         Route::get('visits/{visit}/invoice/activity', [InvoiceActivityController::class, 'completed'])
             ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])->name('visits.invoice.activity');
@@ -1204,10 +1204,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('issued/{document}/reprint', 'reprintIssued')->whereUuid('document')->middleware(['permission:billing.print.branch', 'throttle:30,1'])->name('billing.issued.reprint');
             Route::get('issued/prints/{print}', 'showIssued')->whereUuid('print')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.issued.show');
         });
+        // DSP-26: the Resident Doctor previews labels view only; the print routes below stay print-permission only.
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch,dispensary.view_readonly.branch', 'throttle:30,1'])->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch,dispensary.view_readonly.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/labels/print', [DispensaryController::class, 'printLabels'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels.print');
         Route::post('dispensary/{dispensaryCase}/items/{itemPublicId}/label/print', [DispensaryController::class, 'printLabels'])

@@ -21,7 +21,11 @@ import ReturnCheckPanel from './ReturnCheckPanel.vue';
 // Recording moves no stock; a CA Supervisor who did not record it checks it next (v1). The server repeats every check.
 type ReturnRow = DispensaryReturnRow;
 type ReturnLine = DispensaryReturnLine;
-const props = defineProps<{ returns: DispensaryReturnsPanel }>();
+// DSP-26: the Resident Doctor's view-only page hides the CA's instructions (record a return, refunds).
+const props = defineProps<{
+    returns: DispensaryReturnsPanel;
+    viewOnly?: boolean;
+}>();
 
 const reasonLabels = returnReasonLabels;
 const conditionLabels = returnConditionLabels;
@@ -251,11 +255,12 @@ const onChecked = async (row: ReturnRow, message: string) => {
                 {{ countsLine }}
             </p>
         </div>
-        <p class="-mt-2 text-sm text-muted-foreground">
+        <p v-if="!viewOnly" class="-mt-2 text-sm text-muted-foreground">
             Record medicine the patient brings back. Nothing goes back into
             stock until someone else checks the return.
         </p>
         <p
+            v-if="!viewOnly"
             role="note"
             class="rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning-strong"
             data-testid="returns-no-refund"

@@ -192,6 +192,7 @@ final class PermissionCatalogue
             'dispensary.doctor_check.override.branch',
             'dispensary.settings.manage.branch',
             'dispensary.view_readonly.organisation',
+            'dispensary.view_readonly.branch',
             'consultations.view_readonly.organisation',
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
@@ -653,6 +654,11 @@ final class PermissionCatalogue
         // any branch, every open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never
         // implies a Dispensary write permission.
         $roles['director'][] = 'dispensary.view_readonly.organisation';
+
+        // DSP-26 (owner decision 24 Nov 2026, "pilih (a) lihat sahaja"): the Resident Doctor sees the Dispensary pages
+        // at their active branch, view only. An explicit owner role decision for clinical access (AGENTS.md); it never
+        // implies a Dispensary write permission, and it is not a CA grant (no medical_assistant mirror).
+        $roles['resident_doctor'][] = 'dispensary.view_readonly.branch';
 
         // Item 4 (owner decision P4 of 20-21 Nov 2026): the Director's read-only view of a consultation at any branch, every
         // open recorded. An explicit owner role decision for clinical access (AGENTS.md); it never implies a write permission.

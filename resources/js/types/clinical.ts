@@ -180,6 +180,8 @@ export type DoctorDispensaryCheck = {
     }>;
     reasons: string[];
     verifyUrl: string;
+    // DSP-26: the Dispensary case page, view only (null when the doctor cannot view it).
+    viewUrl?: string | null;
     sendBackUrl: string;
 };
 
