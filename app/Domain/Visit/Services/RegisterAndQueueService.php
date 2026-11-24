@@ -104,11 +104,9 @@ class RegisterAndQueueService
                     ? "No doctor is on today's roster at this branch, so Auto cannot choose one."
                     : 'No doctor on today\'s roster has a room, so Auto cannot choose one. Choose a doctor yourself.']);
             }
-            if ($pick['doctorId'] !== null) {
-                $attributes['assigned_doctor_user_id'] = $pick['doctorId'];
-                $attributes['doctor_source'] = 'auto';
-                $attributes['doctor_reason_code'] = $pick['reason'];
-            }
+            $attributes['assigned_doctor_user_id'] = $pick['doctorId'];
+            $attributes['doctor_source'] = 'auto';
+            $attributes['doctor_reason_code'] = $pick['reason'];
 
             return $attributes;
         }
