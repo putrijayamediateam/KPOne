@@ -32,7 +32,7 @@ final class OverviewWaitingCounts
             $branches[$id] = array_fill_keys(self::BRANCH_KINDS, 0);
         }
         $add = function (string $kind, Builder $query, string $column = 'branch_id') use (&$branches, $branchIds): void {
-            foreach ($query->whereIn($column, $branchIds)->selectRaw("{$column} AS branch, COUNT(*) AS waiting")->groupBy($column)->pluck('waiting', 'branch') as $branchId => $count) {
+            foreach ($query->whereIn($column, $branchIds)->select($column.' as branch')->selectRaw('COUNT(*) AS waiting')->groupBy($column)->pluck('waiting', 'branch') as $branchId => $count) {
                 $branches[(int) $branchId][$kind] += (int) $count;
             }
         };

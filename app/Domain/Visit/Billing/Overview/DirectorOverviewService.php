@@ -48,7 +48,7 @@ final class DirectorOverviewService
             throw new AuthorizationException('You may not perform this operation.');
         }
         $branches = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('code')->get();
-        $waiting = $this->waiting->counts($actor->organisation_id, $branches->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $waiting = $this->waiting->counts($actor->organisation_id, array_values($branches->pluck('id')->map(fn ($id): int => (int) $id)->all()));
 
         $rows = $branches->map(function (Branch $branch) use ($actor, $waiting): array {
             $now = CarbonImmutable::now($branch->timezone);
