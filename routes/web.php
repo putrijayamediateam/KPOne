@@ -8,6 +8,7 @@ use App\Http\Controllers\AgentInboxController;
 use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AgentRegistryController;
 use App\Http\Controllers\ApprovalsController;
+use App\Http\Controllers\AskThroughClaudeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -147,6 +148,7 @@ use App\Http\Controllers\WebsitePeopleController;
 use App\Http\Controllers\WebsiteReleaseController;
 use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\AskClaudeEnabled;
 use App\Http\Middleware\ChatEnabled;
 use App\Http\Middleware\PrivateWebsiteRelease;
 use Illuminate\Support\Facades\Auth;
@@ -1370,6 +1372,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('others', [AgentChatController::class, 'others'])->middleware('throttle:30,1')->name('agents.chat.others');
                 Route::get('others/{thread}', [AgentChatController::class, 'otherThread'])->whereNumber('thread')->middleware('throttle:30,1')->name('agents.chat.others.thread');
             });
+        });
+
+        // CHAT-2: Ask through Claude (Director only). Behind its own kill switch: off means 404.
+        Route::middleware([AskClaudeEnabled::class, 'permission:ai_chat.use.organisation', 'sensitive.no-store'])->prefix('agents/ask')->group(function () {
+            Route::get('/', [AskThroughClaudeController::class, 'index'])->middleware('throttle:60,1')->name('agents.ask.index');
+            Route::post('/', [AskThroughClaudeController::class, 'store'])->middleware('throttle:10,1')->name('agents.ask.store');
+            Route::get('{code}', [AskThroughClaudeController::class, 'show'])->where('code', '[A-Za-z0-9]{10,12}')->middleware('throttle:60,1')->name('agents.ask.show');
+            Route::post('{code}/cancel', [AskThroughClaudeController::class, 'cancel'])->where('code', '[A-Za-z0-9]{10,12}')->middleware('throttle:30,1')->name('agents.ask.cancel');
         });
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
