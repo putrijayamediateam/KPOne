@@ -164,7 +164,9 @@ export const groupFigures = (
         }
     }
 
-    return groups.sort((a, b) => Number(a.group !== null) - Number(b.group !== null));
+    return groups.sort(
+        (a, b) => Number(a.group !== null) - Number(b.group !== null),
+    );
 };
 
 export const isLongAnswer = (text: string): boolean =>

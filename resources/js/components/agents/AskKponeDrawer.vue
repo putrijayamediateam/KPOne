@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {
-    ArrowLeft,
-    Ellipsis,
-    History,
-    MessageCircle,
-    Send,
-} from '@lucide/vue';
+import { ArrowLeft, Ellipsis, History, MessageCircle, Send } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import AskKponeMessage from '@/components/agents/AskKponeMessage.vue';
 import { Button } from '@/components/ui/button';
@@ -69,7 +63,9 @@ let localId = 0;
 
 const maxChars = computed(() => state.value?.maxChars ?? 1000);
 const limited = computed(
-    () => state.value?.limitReached === true || error.value?.kind === 'limit_reached',
+    () =>
+        state.value?.limitReached === true ||
+        error.value?.kind === 'limit_reached',
 );
 const resetsOn = computed(() => state.value?.resetsOn ?? '');
 const limitText = computed(() =>
@@ -546,17 +542,11 @@ const archive = async (id: number) => {
                         class="space-y-2 border-t border-border px-4 py-3"
                         @submit.prevent="send()"
                     >
-                        <label
-                            for="ask-kpone-input"
-                            class="text-sm font-medium"
+                        <label for="ask-kpone-input" class="text-sm font-medium"
                             >Ask a question about your branches</label
                         >
                         <p
-                            v-if="
-                                showError &&
-                                error &&
-                                error.kind !== 'retry'
-                            "
+                            v-if="showError && error && error.kind !== 'retry'"
                             id="ask-kpone-error"
                             class="text-sm text-destructive"
                             role="alert"
