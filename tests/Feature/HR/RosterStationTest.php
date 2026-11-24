@@ -134,6 +134,19 @@ class RosterStationTest extends VisitTestCase
         $this->assertTrue((bool) DB::table('hr_minimum_staffing')->where('branch_id', $this->branch->id)->value('plan_stations'));
     }
 
+    public function test_approval_refuses_a_station_on_a_person_who_no_longer_takes_one(): void
+    {
+        $ca = $this->actor('ca');
+        $version = $this->startDraft();
+        $this->addShift($version, $ca, 0, '08:00', '14:00', 'registration')->assertSessionHasNoErrors();
+        $this->submit($version);
+        $ca->syncRoles(['resident_doctor']); // now a doctor
+        $this->selectBranch($this->director);
+        $this->post(route('hr.roster.approve', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['roster' => "{$ca->name} no longer takes a station. Remove the station from their shift, then approve."]);
+        $this->assertSame('submitted', $version->refresh()->status);
+    }
+
     public function test_postgresql_refuses_a_station_for_a_doctor_on_call_or_an_unknown_value(): void
     {
         $doctor = $this->actor('resident_doctor');

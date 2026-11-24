@@ -56,10 +56,12 @@ final class RosterRules
     }
 
     /** HR-22c: refuse a station for anyone who is not a CA, CA Supervisor or Medical Assistant (PostgreSQL agrees). */
-    public function assertStationAllowed(User $person, ?string $station): void
+    public function assertStationAllowed(User $person, ?string $station, string $field = 'station'): void
     {
         if ($station !== null && ! self::takesStation($person)) {
-            throw ValidationException::withMessages(['station' => 'Only a CA, CA Supervisor or Medical Assistant takes a station. Doctors get a room.']);
+            throw ValidationException::withMessages([$field => $field === 'station'
+                ? 'Only a CA, CA Supervisor or Medical Assistant takes a station. Doctors get a room.'
+                : "{$person->name} no longer takes a station. Remove the station from their shift, then approve."]);
         }
     }
 

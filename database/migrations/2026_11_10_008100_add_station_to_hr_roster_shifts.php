@@ -40,6 +40,10 @@ SQL);
 
     public function down(): void
     {
+        // Evidence convention (Suresh, m2): refuse once stations or the switch are in use.
+        if (DB::table('hr_roster_shifts')->whereNotNull('station')->exists() || DB::table('hr_minimum_staffing')->where('plan_stations', true)->exists()) {
+            throw new RuntimeException('Roster stations are in use; this migration is not rolled back.');
+        }
         DB::unprepared('DROP TRIGGER IF EXISTS hr_roster_shifts_station ON hr_roster_shifts; DROP FUNCTION IF EXISTS guard_hr_roster_shift_station();');
         DB::statement('ALTER TABLE hr_roster_shifts DROP CONSTRAINT IF EXISTS hr_roster_shifts_station');
         Schema::table('hr_roster_shifts', fn (Blueprint $t) => $t->dropColumn('station'));

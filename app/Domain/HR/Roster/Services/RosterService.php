@@ -240,6 +240,8 @@ final class RosterService
             }
             foreach ($shifts as $shift) {
                 $this->rules->assertShiftAllowed($version, $branch, $subjects[$shift->staff_user_id], $shift->starts_at, $shift->ends_at, $shift->id, 'roster');
+                // HR-22c (Suresh, m1): a station is re-checked at approval, because RosterOnDuty hands it to Queue and AUTO-1.
+                $this->rules->assertStationAllowed($subjects[$shift->staff_user_id], $shift->station, 'roster');
             }
             $previous = RosterVersion::query()->where('roster_week_id', $week->id)->where('status', 'approved')->lockForUpdate()->first();
             if ($previous !== null) {
