@@ -109,7 +109,7 @@ final class RosterService
             $this->serializeKey($actor, $key);
             // A retry is answered from the stored result before anything that may have changed since (status, rooms).
             $hash = $this->hash([$actor->id, 'add', $versionId, ...array_map(fn (string $f): string => is_scalar($input[$f] ?? null) ? (string) $input[$f] : '',
-                ['staff_user_id', 'date', 'start_time', 'end_time', 'break_minutes', 'session_type', 'branch_room_id'])]);
+                ['staff_user_id', 'date', 'start_time', 'end_time', 'break_minutes', 'session_type', 'branch_room_id', 'station'])]);
             if (($replay = $this->replay($actor, $key, 'add_shift', $hash)) !== null) {
                 return $replay;
             }
@@ -117,6 +117,7 @@ final class RosterService
             $shift = $this->rules->parse($branch, $this->weekStartOf($week, $branch), $input);
             $this->assertVersionLock($version, $input);
             $subject = $this->lockSubject($branch, $shift['staff_user_id']);
+            $this->rules->assertStationAllowed($subject, $shift['station']);
             $this->rules->assertShiftAllowed($version, $branch, $subject, $shift['starts_at'], $shift['ends_at']);
             $this->rules->assertNotOnApprovedLeave($branch, $subject, $shift['starts_at'], $shift['ends_at']);
 
@@ -143,14 +144,15 @@ final class RosterService
             $row = $this->lockShift($version, $shiftId);
             $shift = $this->rules->parse($branch, $this->weekStartOf($week, $branch), $input);
             $subject = $this->lockSubject($branch, $shift['staff_user_id']);
+            $this->rules->assertStationAllowed($subject, $shift['station']);
             $this->rules->assertShiftAllowed($version, $branch, $subject, $shift['starts_at'], $shift['ends_at'], $row->id);
             if ($subject->id !== $row->staff_user_id || ! $shift['starts_at']->equalTo($row->starts_at) || ! $shift['ends_at']->equalTo($row->ends_at)) {
                 $this->rules->assertNotOnApprovedLeave($branch, $subject, $shift['starts_at'], $shift['ends_at']);
             }
             $before = ['staff_user_id' => $row->staff_user_id, 'starts_at' => $row->starts_at->toIso8601String(), 'ends_at' => $row->ends_at->toIso8601String(),
-                'break_minutes' => $row->break_minutes, 'session_type' => $row->session_type, 'branch_room_id' => $row->branch_room_id];
+                'break_minutes' => $row->break_minutes, 'session_type' => $row->session_type, 'branch_room_id' => $row->branch_room_id, 'station' => $row->station];
             $after = ['staff_user_id' => $shift['staff_user_id'], 'starts_at' => $shift['starts_at']->toIso8601String(), 'ends_at' => $shift['ends_at']->toIso8601String(),
-                'break_minutes' => $shift['break_minutes'], 'session_type' => $shift['session_type'], 'branch_room_id' => $shift['branch_room_id']];
+                'break_minutes' => $shift['break_minutes'], 'session_type' => $shift['session_type'], 'branch_room_id' => $shift['branch_room_id'], 'station' => $shift['station']];
             $changed = array_keys(array_diff_assoc(array_map('strval', $after), array_map('strval', $before)));
             if ($changed === []) {
                 return $row;
@@ -347,6 +349,8 @@ final class RosterService
                     $this->rules->assertNotOnApprovedLeave($branch, $subject, $startsAt, $endsAt);
                 }
                 $room = $shift->branch_room_id !== null && DB::table('branch_rooms')->where('id', $shift->branch_room_id)->where('is_active', true)->exists() ? $shift->branch_room_id : null;
+                // HR-22c: the station is kept while the person still takes one; otherwise the copy has none.
+                $station = $shift->station !== null && RosterRules::takesStation($subject) ? $shift->station : null;
             } catch (ValidationException $e) {
                 $reason = collect($e->errors())->flatten()->first();
                 $skipped[] = ($subject === null ? 'A staff member' : $subject->name)." on {$day}: ".(is_string($reason) && $reason !== 'not available' ? $reason : 'no longer available.');
@@ -357,7 +361,7 @@ final class RosterService
             $row->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id,
                 'roster_version_id' => $target->id, 'staff_user_id' => $shift->staff_user_id, 'starts_at' => $startsAt, 'ends_at' => $endsAt,
                 'timezone' => $branch->timezone, 'break_minutes' => $shift->break_minutes, 'session_type' => $shift->session_type,
-                'branch_room_id' => $room, 'created_by_user_id' => $actor->id])->save();
+                'branch_room_id' => $room, 'station' => $station, 'created_by_user_id' => $actor->id])->save();
         }
 
         return $skipped;

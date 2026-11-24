@@ -95,6 +95,8 @@ const {
     staffOptions,
     roomOptions,
     sessionOptions,
+    stationOptions,
+    takesStation,
     shiftsOn,
     dayShifts,
     isShort,
@@ -319,6 +321,12 @@ const isMonth = computed(
                                 v-if="shift.roomName"
                                 class="text-xs text-muted-foreground"
                                 >{{ shift.roomName }}</span
+                            >
+                            <Badge
+                                v-if="shift.stationLabel"
+                                variant="secondary"
+                                data-test="my-shift-station"
+                                >{{ shift.stationLabel }}</Badge
                             >
                         </li>
                     </ul>
@@ -619,6 +627,13 @@ const isMonth = computed(
                                                     {{
                                                         shift.roomName
                                                     }}</template
+                                                ><template
+                                                    v-if="shift.stationLabel"
+                                                >
+                                                    ·
+                                                    {{
+                                                        shift.stationLabel
+                                                    }}</template
                                                 >
                                             </span>
                                         </component>
@@ -723,6 +738,13 @@ const isMonth = computed(
                                         }}<template v-if="item.shift.roomName">
                                             ·
                                             {{ item.shift.roomName }}</template
+                                        ><template
+                                            v-if="item.shift.stationLabel"
+                                        >
+                                            ·
+                                            {{
+                                                item.shift.stationLabel
+                                            }}</template
                                         >
                                     </p>
                                 </div>
@@ -877,6 +899,25 @@ const isMonth = computed(
                     </div>
                 </li>
             </ul>
+            <label
+                class="flex min-h-11 max-w-2xl cursor-pointer items-start gap-3 rounded-md border p-3 text-sm"
+                data-test="plan-stations"
+            >
+                <input
+                    v-model="minimumForm.plan_stations"
+                    type="checkbox"
+                    class="mt-0.5 size-4 shrink-0 accent-primary"
+                />
+                <span class="flex flex-col">
+                    <span class="font-medium">Plan stations</span>
+                    <span class="text-muted-foreground"
+                        >Show a warning in the planner when a CA, CA Supervisor
+                        or Medical Assistant shift has no station. A warning
+                        only: weeks can still be sent and approved.</span
+                    >
+                </span>
+            </label>
+            <InputError :message="errors.plan_stations" />
             <div>
                 <Button
                     :disabled="minimumForm.processing"
@@ -1053,6 +1094,25 @@ const isMonth = computed(
                         <InputError
                             :message="shiftForm.errors.branch_room_id"
                         />
+                    </div>
+                    <div v-if="takesStation" class="grid gap-2">
+                        <Label for="shift-station">Station</Label>
+                        <OperationalSelect
+                            id="shift-station"
+                            v-model="shiftForm.station"
+                            :options="stationOptions"
+                            label="Station"
+                            describedby="shift-station-help"
+                            :invalid="!!shiftForm.errors.station"
+                        />
+                        <p
+                            id="shift-station-help"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Where this CA, CA Supervisor or Medical Assistant
+                            works on this shift.
+                        </p>
+                        <InputError :message="shiftForm.errors.station" />
                     </div>
                     <ErrorState v-if="errors.roster" :message="errors.roster" />
                     <div class="flex flex-wrap justify-end gap-2">

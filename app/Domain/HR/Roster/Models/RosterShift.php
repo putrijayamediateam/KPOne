@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $break_minutes
  * @property string $session_type
  * @property int|null $branch_room_id
+ * @property string|null $station
  * @property int $created_by_user_id
  * @property int $lock_version
  * @property-read RosterVersion $version
