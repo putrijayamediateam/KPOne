@@ -96,3 +96,12 @@ Q-G New permission `registration.auto_assign.manage.branch` for the Director: [*
 
 Dependencies: HR (roster: on duty, room, locum accounts); Queue (Amirul: busy, held, waiting counts); Billing (Farah:
 net sales per doctor, branch scope, existing `SalesTargetService::progress`).
+
+## 7. Update 2026-11-24 (owner answers relayed by B.E.R.N.I.S.S.)
+
+- Locums hold `resident_doctor` as well as `locum`. "Residents first" therefore means doctors without the `locum` role
+  come before doctors with it; locums enter the eligible list once HR provisions them (HR slice e).
+- On duty comes from the shared `RosterOnDuty` lookup (HR slice b): approved shifts only, minus leave and on-call, with
+  the doctor's room. AUTO-1 depends on it; the room check in section 3 reads the room from this lookup.
+- Stations (Registration, MA, Dispensary, Treatment) on CA and MA shifts are background only and do not change who gets
+  patients.
