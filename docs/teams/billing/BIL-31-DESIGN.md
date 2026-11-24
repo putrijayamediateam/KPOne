@@ -184,3 +184,15 @@ organisation-wide count. Each kind below has a **viewer-independent waiting rule
 7. **Audit:** A (recommended), no audit of views, as Insights; B, audit each view, as the Panel summary.
 8. **Landing tab:** A (recommended), Insights still opens on Today and Overview is a tab; B, Overview opens first for
    these two roles.
+
+## 7. Owner answers (24 Nov 2026, in the Billing session)
+
+"1A 2A 3A 4A 5A 6A 7A 8A":
+1. A new `insights.overview.view.organisation` for Director and Finance Officer.
+2. Panel money owed and waiting counts for every active branch, at totals level.
+3. Everything waiting is counted, including the viewer's own items.
+4. Yesterday's daily close line per branch is shown.
+5. Month so far against the same days last month is shown.
+6. The seven money and claim kinds in 2.3.
+7. Views are not audited.
+8. Insights still opens on Today; Overview is a tab.
