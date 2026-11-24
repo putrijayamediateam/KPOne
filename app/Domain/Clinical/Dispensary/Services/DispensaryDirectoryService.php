@@ -39,7 +39,7 @@ class DispensaryDirectoryService
     public function board(User $actor, array $criteria): array
     {
         $branch = $this->branches->activeBranch($actor);
-        abort_unless($branch && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant']), 404);
+        abort_unless($branch && $this->canView($actor), 404);
         $query = $this->boardQuery($actor, $branch, $criteria)
             ->with(['visit.patient:id,organisation_id,patient_number,full_name,mobile_phone', 'visit.assignedDoctor:id,name', 'visit.reasonAssignments.reason:id,public_id,name', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->withCount('items')]);
         $paginator = $query->latest('received_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
@@ -57,7 +57,7 @@ class DispensaryDirectoryService
     /** @param array<string, mixed> $criteria */
     public function boardCount(User $actor, Branch $branch, array $criteria): ?int
     {
-        if (! $actor->can('dispensary.view.branch') || ! $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant'])) {
+        if (! $this->canView($actor)) {
             return null;
         }
 
@@ -86,7 +86,7 @@ class DispensaryDirectoryService
     /** @return array<string,mixed> */
     public function detail(User $actor, DispensaryCase $case): array
     {
-        $branch = $this->authorizedBranch($actor, $case);
+        $branch = $this->viewableBranch($actor, $case);
         if ($case->status === DispensaryCase::STATUS_COMPLETED) {
             $case->load('visit.patient:id,patient_number,full_name');
 
@@ -169,6 +169,25 @@ class DispensaryDirectoryService
     public function recordLabelPrint(User $actor, DispensaryCase $case, ?string $itemPublicId, string $token, int $branchId): array
     {
         return app(DrugLabelService::class)->recordPrint($actor, $case, $itemPublicId, $token, $branchId);
+    }
+
+    /**
+     * DSP-26: who may read the Dispensary pages. The CA's check (view permission and a dispensary role) or the
+     * Resident Doctor's view-only permission. Used only by read paths (board, detail); every write path and the
+     * print log keep authorizedBranch(), so a viewer can never reach one through this gate (Hakim).
+     */
+    public static function canView(User $actor): bool
+    {
+        return ($actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant']))
+            || $actor->can(DrugLabelService::VIEW_PERMISSION);
+    }
+
+    private function viewableBranch(User $actor, DispensaryCase $case): Branch
+    {
+        $branch = $this->branches->activeBranch($actor);
+        abort_unless($branch && self::canView($actor) && $case->organisation_id === $actor->organisation_id && $case->branch_id === $branch->id, 404);
+
+        return $branch;
     }
 
     private function authorizedBranch(User $actor, DispensaryCase $case): Branch

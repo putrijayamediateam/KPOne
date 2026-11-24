@@ -99,6 +99,7 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('reports.stock_movement.view.branch'), 'Stock movement summary', 'Review branch quantities and reconciled movements without valuation.', 'reports.stock-movement.index'],
             [$branch && $actor->can('reports.panel_summary.view.branch'), 'Panel summary', 'Review aggregate responsibility, claims and ageing for this branch.', 'reports.panel-summary.index'],
             [$branch && $actor->can('reports.daily_summary.view.branch'), 'Daily summary', 'Review receipt-date cash and non-cash with separately dated invoice responsibility.', 'reports.daily-summary.index'],
+            [$branch && $actor->can('insights.overview.view.organisation') && $actor->can('insights.view.organisation'), 'Director and Finance overview', 'Targets, Panel money owed, items waiting for a decision and the month so far, for every branch.', 'insights.overview'],
             [$branch && $actor->can('sales_targets.manage.organisation'), 'Sales targets', 'Set each month\'s sales target for every branch and doctor, and see how far each has reached.', 'sales-targets.index'],
             [$branch && $actor->can('reports.patient_billing.view.branch'), 'Billing Detail', 'Reconcile patient invoices and current settlement for this branch.', 'patient-billing-report.index'],
             [$actor->can('insights.view.organisation'), 'Insights', 'Review existing aggregate clinic reports.', 'insights.today'],

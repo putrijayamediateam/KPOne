@@ -439,7 +439,7 @@ class VisitDirectoryService
         $otcCase = $visit->visit_type === 'otc' ? $cases->firstWhere('case_type', DispensaryCase::TYPE_OTC) : null;
         $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
         $consultationCase = $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
-            && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor', 'medical_assistant'])
+            && DispensaryDirectoryService::canView($actor)
             ? $cases->first(fn (DispensaryCase $case): bool => $case->case_type === DispensaryCase::TYPE_CONSULTATION
                 && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING, DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK], true))
             : null;
@@ -474,7 +474,7 @@ class VisitDirectoryService
             'visitLockVersion' => $visit->lock_version,
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,
             'dispensaryStatus' => $openCase?->status,
-            'dispensaryUrl' => $openCase && $actor->can('dispensary.view.branch') ? route('dispensary.show', $openCase->public_id) : null,
+            'dispensaryUrl' => $openCase && DispensaryDirectoryService::canView($actor) ? route('dispensary.show', $openCase->public_id) : null,
             // TRI-1b: the triage form, for CA and CA Supervisor while the consultation is Waiting.
             'triageUrl' => $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
                 && $visit->queueEntry?->status === QueueEntry::STATUS_WAITING && $actor->can(TriagePermissions::RECORD_BRANCH)
@@ -497,7 +497,7 @@ class VisitDirectoryService
                 'openConsultation' => $canOpenEncounter,
                 'openBilling' => $canBilling,
                 'dispense' => $visit->visit_type === 'otc' && $visit->status === Visit::STATUS_REGISTERED && $otcCase === null && $actor->can('dispensary.otc.create.branch'),
-                'openDispensary' => $openCase !== null && $actor->can('dispensary.view.branch'),
+                'openDispensary' => $openCase !== null && DispensaryDirectoryService::canView($actor),
             ],
         ];
     }

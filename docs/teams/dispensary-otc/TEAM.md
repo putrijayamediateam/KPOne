@@ -62,6 +62,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | `dispensary.otc.create.branch` | CA, CA Supervisor | Open an OTC case from Registration |
 | `dispensary.labels.print.branch` | CA, CA Supervisor | Print drug labels; each print is logged per line (DSP-6) |
 | `allergies.record_otc.branch` | CA, CA Supervisor | Add (never edit or remove) an allergy for the patient of an OTC case they handle (DSP-5, decision 18) |
+| `dispensary.view_readonly.branch` | Resident Doctor | Open the Dispensary list, a case, the Completed page and a finished or waiting case's label preview at their active branch, view only: no action, no print, no Returns to check (DSP-26) |
 | `dispensary.acknowledge_partial.own` | Resident Doctor | Acknowledge legacy partial lines |
 | `treatment_plans.send_to_dispensary.own` | Resident Doctor | Send the plan to Dispensary |
 
@@ -107,6 +108,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-14 | Allergy match ignores strengths, dose forms and extra words: a "core" of each side drops tokens that start with a digit, units, dose forms and salt words (and, on the allergy side, wrapper, reaction, symptom and filler words); an allergy part's core inside a medicine name (whole words below 5 characters) or the medicine name's core inside the allergy text's core (whole words) also matches. Only adds matches; still warns, never blocks. Backend only | #428 (merged) |
 | DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
 | DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
+| DSP-26 | The Resident Doctor sees the Dispensary pages at their active branch, view only: the Registration board's Dispensary tab and "Open Dispensary" row action, a case in any status, the Completed page with its returns read only, and the label preview of a completed or waiting case (no print token, no row locks, no print row). A muted "View only. You cannot change this case." banner; every action removed, not disabled; "View in Dispensary" on the doctor's check panel with "Back to consultation" for the attending doctor. A separate read gate (`DispensaryDirectoryService::canView`), so every write path and the print log keep their checks. New permission `dispensary.view_readonly.branch` (Resident Doctor), migration `2026_11_06_200900` | (PR to come) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -272,6 +274,15 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     one-off (his next migration starts at `003400`), because it must run after STK-52's `2026_11_07_003200`. The same
     kind of exception as DSP-7 and DSP-15. No foreign key to `inventory_pack_conversions` (append-only; the insert
     trigger checks existence, organisation and a checked outcome), so STK-52's own migration can still roll back.
+40. DSP-26 the doctor sees Dispensary, view only (2026-11-24): owner "pilih (a) lihat sahaja", relayed by B.E.R.N.I.S.S.
+    New permission `dispensary.view_readonly.branch` for the Resident Doctor only. The `DrugLabelTest.php:54` change
+    (the doctor comes off the label-preview 403 list) is approved, and so are `FlowFixesTest.php:91` and
+    `TreatmentPlanTest.php:336` ("lulus 2 test DSP-26"). No audit row per doctor open; no Returns to check
+    list for the doctor; no label preview while the CA is still preparing (only completed or awaiting the doctor's
+    check). The DSP-23 Doctor's check is unchanged. "Ship it for DSP-26 for aisyah". Hakim: OK with changes (folded
+    in); Daniel: OK with changes at note level, shots to follow.
+41. Medical Assistant mirroring (B.E.R.N.I.S.S, 2026-11-23): any migration that grants a permission to `ca` also grants
+    it to `medical_assistant` (section 8).
 
 ## 7. Open items and known limits
 
@@ -340,6 +351,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - Never weaken a safety check, the allergy display, stock eligibility or the label budgets without an
   explicit owner decision recorded in section 6.
 - Do not change any existing test assertion without the owner's approval.
+- **Medical Assistant mirroring (decision 41):** any migration that grants a permission to `ca` must also grant it to
+  `medical_assistant`, and `PermissionCatalogue` must list both.
 - **Design (owner decision 2026-11-05):** for any piece that changes a screen, (1) before building, run Iman
   as a subagent to sketch the layout (components, phone behaviour at 390 px, empty, loading and error states,
   wording) from the existing patterns and `docs/design/GUIDE.md` once it exists; (2) before hand-off, Iman checks
