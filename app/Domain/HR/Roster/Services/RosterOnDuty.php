@@ -165,7 +165,7 @@ final class RosterOnDuty
             $query->where('staff_user_id', $userId);
         }
 
-        return $query->orderBy('starts_at')->orderBy('id')->get(['id', 'staff_user_id', 'starts_at', 'ends_at', 'timezone', 'branch_room_id']);
+        return $query->orderBy('starts_at')->orderBy('id')->get(['id', 'staff_user_id', 'starts_at', 'ends_at', 'timezone', 'branch_room_id', 'station']);
     }
 
     /**
@@ -189,7 +189,7 @@ final class RosterOnDuty
             $room = $s->branch_room_id !== null && $rooms->has((int) $s->branch_room_id) ? (int) $s->branch_room_id : null;
 
             return new OnDutyShift((int) $s->staff_user_id, $held, StaffKind::rolesIncludeLocum($held), StaffKind::rolesIncludeDoctor($held),
-                $s->starts_at->utc(), $s->ends_at->utc(), (string) $s->timezone, $room, null);
+                $s->starts_at->utc(), $s->ends_at->utc(), (string) $s->timezone, $room, $s->station);
         })->all());
     }
 

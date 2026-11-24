@@ -19,7 +19,7 @@ use Inertia\Response;
 /** HR-1 roster planner. Thin: every rule lives in app/Domain/HR/Roster. */
 class RosterController extends Controller
 {
-    private const SHIFT_FIELDS = ['expected_version_lock', 'staff_user_id', 'date', 'start_time', 'end_time', 'break_minutes', 'session_type', 'branch_room_id', 'idempotency_key'];
+    private const SHIFT_FIELDS = ['expected_version_lock', 'staff_user_id', 'date', 'start_time', 'end_time', 'break_minutes', 'session_type', 'branch_room_id', 'station', 'idempotency_key'];
 
     public function index(Request $request, RosterPageService $pages): Response
     {
@@ -84,7 +84,7 @@ class RosterController extends Controller
     {
         $back = $this->back($request, 'minimums');
         try {
-            $service->save($request->user(), $request->only(['branch_id', 'minimums', 'expected_lock_version']));
+            $service->save($request->user(), $request->only(['branch_id', 'minimums', 'plan_stations', 'expected_lock_version']));
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         }
