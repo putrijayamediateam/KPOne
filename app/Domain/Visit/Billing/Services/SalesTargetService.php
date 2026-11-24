@@ -86,7 +86,7 @@ final class SalesTargetService
      * "My sales target": the signed-in doctor's own line at their active branch this month, or null when no target is
      * set. The doctor comes only from the signed-in user, never from the request (K7).
      *
-     * @return (array{month: string, branch: string}&Progress)|null
+     * @return array{month: string, branch: string, targetSen: int|null, achievedSen: int, balanceSen: int|null, overSen: int|null, neededPerDaySen: int|null, daysLeft: int|null, percent: int|null, reached: bool}|null
      */
     public function own(User $actor): ?array
     {
@@ -121,7 +121,8 @@ final class SalesTargetService
         $amount = $this->amount($input['amount'] ?? null);
         $reason = $this->reason($input['reason'] ?? null);
         $branchId = filter_var($input['branch_id'] ?? null, FILTER_VALIDATE_INT);
-        $doctorId = ($input['doctor_user_id'] ?? null) === null || ($input['doctor_user_id'] ?? null) === '' ? null : filter_var($input['doctor_user_id'], FILTER_VALIDATE_INT);
+        $doctorRaw = $input['doctor_user_id'] ?? null;
+        $doctorId = $doctorRaw === null || $doctorRaw === '' ? null : filter_var($doctorRaw, FILTER_VALIDATE_INT);
         $version = filter_var($input['lock_version'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
         $month = $input['month'] ?? null;
         if ($branchId === false || $doctorId === false || $version === false || ! is_string($month) || preg_match('/\A\d{4}-\d{2}\z/', $month) !== 1) {
@@ -169,7 +170,7 @@ final class SalesTargetService
                 ->whereDate('month', $first->toDateString())->where(fn ($q) => $doctorId === null ? $q->whereNull('doctor_user_id') : $q->where('doctor_user_id', $doctorId))
                 ->lockForUpdate()->first();
             // Kumar 1: a new target starts at version 1, so 0 always means "there is no target yet".
-            if (($target?->lock_version ?? 0) !== $version) {
+            if (($target->lock_version ?? 0) !== $version) {
                 throw ValidationException::withMessages(['amount' => 'This target changed while you were editing. Reload and try again.']);
             }
             // Kumar 5: a doctor must work here this month to be given a target; an existing target can still be changed
@@ -218,10 +219,10 @@ final class SalesTargetService
     {
         [$from, $until] = [$first->toDateString(), $first->endOfMonth()->toDateString()];
 
-        return User::query()->where('organisation_id', $branch->organisation_id)->where('is_active', true)->role('resident_doctor')
+        return array_values(User::query()->where('organisation_id', $branch->organisation_id)->where('is_active', true)->role('resident_doctor')
             ->whereHas('staffProfile.branchAssignments', fn ($q) => $q->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $until)
                 ->where(fn ($p) => $p->whereNull('valid_until')->orWhereDate('valid_until', '>=', $from)))
-            ->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
+            ->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all());
     }
 
     /** Locks the doctor's user, profile and assignment rows, and says whether they may be given a target (K4). */
