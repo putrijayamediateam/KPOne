@@ -109,3 +109,13 @@ Issuing (`IssuedBillingDocumentService`) refuses anyone who cannot see every par
 3. With C, record each time Finance opens an issued copy? **A (recommended):** yes, one `billing.document_viewed` audit
    row (ids only) when the opener holds the new permission but not patient view, matching the Panel identity rule.
    **B:** no, as for every other opener today.
+
+## 7. The owner's answers (24 Nov 2026, relayed by the coordinator)
+
+- Q1 = **C**: the narrow `billing.print.patient_identity.branch`, for `finance_officer` only.
+- Q2 = **A**: receipts as well as invoices.
+- Q3 = **A**: a `billing.document_viewed` audit row, ids only, when Finance opens a copy (a holder of the new permission
+  without `patients.view.organisation`).
+- All four listed assertion changes are approved ("Lulus 4 perubahan"): the `IssuedBillingDocumentTest` roles provider,
+  `DocumentLetterheadTest:46-50`, `InvoiceBillToTest:213-215` and `IssuedBillingDocumentTest:99-101`.
+- The new permissions are approved.
