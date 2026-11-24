@@ -3434,26 +3434,57 @@ note. Migrations continue in the HR range from `2026_11_10_008000`.
 
 | # | Slice | Why this place |
 |---|---|---|
-| 1 | HR-22a RosterOnDuty lookup | Smallest; no screen; unblocks AUTO-1. |
+| 1 | HR-22a RosterOnDuty lookup | First (B.E.R.N.I.S.S, 24 Nov): AUTO-1 starts once it merges; no screen. |
 | 2 | HR-22b locum doctor marker | The role decision is made; AUTO-1's "residents first" needs the marker. Small code. |
 | 3 | HR-22c station on a shift | One column, planner and My roster; the lookup returns it once it exists. |
 | 4 | HR-22d station on the home | Kavitha's MeHome/My day part, reading 22a and 22c. |
 | 5 | HR-22e month planner | Planner screen work; no rule change. |
 | 6 | HR-22f locum availability | New permission, new table and screens; the largest. |
 
-### 29.2 HR-22a RosterOnDuty (read-only lookup)
+### 29.2 HR-22a RosterOnDuty (read-only lookup; first, for AUTO-1)
 
-- `App\Domain\HR\Roster\Services\RosterOnDuty`, beside `RosterRoomLookup`, with the same rules: only the currently approved
-  version of a week; shifts at the branch covering `$at`; approved leave over the shift removed; on-call shifts removed.
-- `onDuty(Branch $branch, CarbonInterface $at): list<array{userId: int, shiftStartsAt, shiftEndsAt, roomId: ?int, station: ?string}>`
-  (station is null until HR-22c). Ids only: no names, roles, leave types or reasons. The calling domain reads roles itself.
-- `isOnDuty(int $userId, Branch $branch, CarbonInterface $at): bool` for a single check.
-- No lock, no write, no audit, no permission check: the caller already holds its own branch-scoped permission and gets ids
-  only, as with `RosterRoomLookup`. Queue and Registration never read `hr_` tables directly.
-- `HrDashboardService::today()` moves onto it, so the dashboard and AUTO-1 cannot disagree (its output must not change: the
-  existing dashboard assertions stay as they are).
-- Tests: approved vs draft and replaced versions, overnight shift, leave covering the shift and half-day leave, on call,
-  another branch, two shifts that touch (the later start wins at the boundary), and a parity test against the dashboard.
+Owner (via B.E.R.N.I.S.S, 24 Nov 2026): only doctors on today's approved roster get patients, whether they are auto-assigned
+(AUTO-1) or in the CA's doctor list. So Queue and Registration need three answers from HR without reading `hr_` tables.
+
+`App\Domain\HR\Roster\Services\RosterOnDuty`, beside `RosterRoomLookup`, with the same base rules: only the currently approved
+version of a branch week counts (drafts, weeks waiting for approval and replaced versions never do).
+
+| Method | Answer |
+|---|---|
+| `isPublished(Branch $branch, CarbonInterface $day): bool` | True when the branch-local week holding that day has an approved version. A published week with no shift for someone is still published. |
+| `onDutyNow(Branch $branch, CarbonInterface $at): list<OnDutyShift>` | Shifts at the branch covering `$at`. |
+| `onDutyOn(Branch $branch, CarbonInterface $day): list<OnDutyShift>` | Shifts at the branch that overlap the branch-local day (an overnight shift from yesterday counts until it ends). |
+| `isOnDuty(int $userId, Branch $branch, CarbonInterface $at): bool` | A single check, for the server-side refusal in AUTO-1 and Call In. |
+
+`OnDutyShift` is a small read-only value: `userId`, `roles` (the account's catalogue role names), `isLocum`
+(`StaffKind::isLocum`, holds `locum`), `isDoctor` (holds `resident_doctor`), `startsAt`, `endsAt` (UTC), `roomId` (any active
+room of the branch, else null), and `station` (null until HR-22c). No names, leave types, reasons, notes or pay.
+
+Removed from every answer:
+- Shifts covered by approved leave. Leave over the whole span of the shift is checked, as in RosterRoomLookup. A half day
+  removes only the shifts it overlaps.
+- On-call shifts (HR-20: on call never counts as on duty).
+- Inactive accounts.
+
+Rules and limits:
+- Read only: no lock, no write, no audit and no permission check of its own. The calling domain already holds its own
+  branch-scoped permission, and this returns only what a Registration or Queue user can already see about staff (who works
+  at the branch and their role). Ids and role names, never HR content.
+- "Not published" and "published but nobody on duty" are different answers. AUTO-1 decides what each means on screen (Nurul's
+  note). HR does not decide whether a branch without a published roster may still take patients.
+- `HrDashboardService::today()` moves onto `onDutyNow()`, so the dashboard and AUTO-1 cannot disagree. Its output must not change,
+  and its existing assertions stay as they are.
+- `StaffKind::isLocum()` lands in this slice (it is needed for `isLocum`); HR-22b then only adds the request, the badge and the
+  landing fix.
+- Batched: one query for shifts, one for leave, one for roles. There is no per-person query.
+- Tests:
+  - approved vs draft, waiting and replaced versions; published week with no shift;
+  - overnight shift on either side of midnight;
+  - full-day and half-day leave; on call; inactive account; another branch;
+  - two shifts that touch (the shift that starts at the boundary counts);
+  - locum and resident flags; the room of another branch ignored;
+  - a parity test with the dashboard.
+- No migration, no permission, no screen.
 
 ### 29.3 HR-22b locum doctor: `resident_doctor` plus `locum`
 
@@ -3467,7 +3498,7 @@ resident permission (consultation, MC, referral, attendance letter, targets). No
   account) with both roles, the usual way. `canAssignRoles` already decides who may assign `resident_doctor`; today that is the
   Director only. There is no self-registration, and an unknown identity never becomes a user. Linking (HR-15a) checks that the
   account holds `resident_doctor` when `locum_doctor` was asked for, and refuses otherwise.
-- **The marker.** One helper, `App\Domain\Access\StaffKind::isLocum(User): bool`, true when the account holds the `locum` role.
+- **The marker.** One helper, `App\Domain\Access\StaffKind::isLocum(User): bool` (added in HR-22a), true when the account holds the `locum` role.
   AUTO-1 calls it for "residents first", and screens do not read the role directly. The locum doctor shows a small outline
   "Locum" badge next to the doctor's name on the doctor pickers, the queue board doctor filter and the HR staff file (wording
   to Daniel). Patient-facing pages, prints and the TV never show it.
