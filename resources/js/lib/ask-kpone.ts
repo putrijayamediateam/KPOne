@@ -186,9 +186,11 @@ export const isLongAnswer = (text: string): boolean =>
 
 // A branch code such as SUNGAI_BESI reads as "Sungai Besi" in the Figures block.
 export const branchLabel = (code: string): string =>
-    code
-        .toLowerCase()
-        .split('_')
-        .filter((part) => part !== '')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
+    !/^[A-Z0-9_]+$/.test(code)
+        ? code
+        : code
+              .toLowerCase()
+              .split('_')
+              .filter((part) => part !== '')
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join(' ');

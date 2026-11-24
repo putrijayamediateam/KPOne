@@ -75,11 +75,17 @@ const limitText = computed(() =>
         ? error.value.message
         : `The monthly AI limit is reached. It resets on ${resetsOn.value}.`,
 );
+// While a refusal for this very text is showing (for example identity numbers), Send stays off until the text is changed.
 const canSend = computed(
     () =>
         !sending.value &&
         text.value.trim() !== '' &&
-        text.value.length <= maxChars.value,
+        text.value.length <= maxChars.value &&
+        !(
+            showError.value &&
+            error.value?.kind !== 'retry' &&
+            text.value.trim() === lastSent.value
+        ),
 );
 const showError = computed(
     () => error.value !== null && error.value.kind !== 'limit_reached',
@@ -497,6 +503,14 @@ const archive = async (id: number) => {
                         class="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3"
                         aria-live="polite"
                     >
+                        <div
+                            v-if="limited && !readOnly"
+                            class="rounded-lg border border-border bg-muted px-3 py-3 text-sm text-foreground"
+                            role="status"
+                            data-ask-limit
+                        >
+                            {{ limitText }}
+                        </div>
                         <p
                             v-if="switchedOff"
                             class="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"
@@ -563,14 +577,6 @@ const archive = async (id: number) => {
                                 >
                             </template>
                         </ErrorState>
-                    </div>
-
-                    <div
-                        v-if="limited && !readOnly"
-                        class="border-t border-border bg-muted px-4 py-3 text-sm text-muted-foreground"
-                        role="status"
-                    >
-                        {{ limitText }}
                     </div>
 
                     <form

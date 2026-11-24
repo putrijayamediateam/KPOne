@@ -43,7 +43,7 @@ final class ChatFigures
             if (! is_array($entry)) {
                 continue;
             }
-            $group = is_string($entry['branch'] ?? null) ? $entry['branch'] : null;
+            $group = is_string($entry['branchName'] ?? null) ? $entry['branchName'] : (is_string($entry['branch'] ?? null) ? $entry['branch'] : null);
             self::collect($figures, $tool, $group, $asOf, $entry, '');
         }
 
@@ -57,7 +57,7 @@ final class ChatFigures
     private static function collect(array &$figures, string $tool, ?string $group, ?string $asOf, array $values, string $prefix): void
     {
         foreach ($values as $key => $value) {
-            if (count($figures) >= self::MAX || in_array($key, ['branch', 'date', 'from', 'to', 'previousFrom', 'previousTo', 'limits', 'asOf', 'definitions', 'scope'], true)) {
+            if (count($figures) >= self::MAX || in_array($key, ['branch', 'branchName', 'date', 'from', 'to', 'previousFrom', 'previousTo', 'limits', 'asOf', 'definitions', 'scope'], true)) {
                 continue;
             }
             if (is_int($value) || is_float($value)) {

@@ -57,7 +57,7 @@ test('answers show a Figures block, the report link and the AI chip line', () =>
 
     assert.match(source, /Figures/);
     assert.match(source, /groupFigures/);
-    assert.match(source, /formatDateTime\(f\.asOf\)/);
+    assert.match(source, /formatDateTime\(g\.items\[0\]\.asOf\)/);
     assert.match(source, /message\.report\.url/);
     assert.match(source, /<Badge variant="outline">AI<\/Badge>/);
     assert.match(lib(), /AI answer\. Check the figures on the report page\./);
@@ -122,4 +122,14 @@ test('an answer scrolls to its question, branch codes read as names and the repo
     assert.match(lib, /export const branchLabel/);
     assert.match(message, /underline underline-offset-4/);
     assert.match(drawer, /title="Not answered"/);
+});
+
+test('the limit message is a card in the thread area, Send stays off while a refusal for the same text shows, and each branch shows one As of line', () => {
+    const drawer = read('resources/js/components/agents/AskKponeDrawer.vue');
+    const message = read('resources/js/components/agents/AskKponeMessage.vue');
+
+    assert.match(drawer, /data-ask-limit/);
+    assert.match(drawer, /text\.value\.trim\(\) === lastSent\.value/);
+    assert.equal((message.match(/As of \{\{/g) ?? []).length, 1);
+    assert.match(message, /g\.items\[0\]\?\.asOf/);
 });

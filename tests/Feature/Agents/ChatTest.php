@@ -87,7 +87,9 @@ class ChatTest extends VisitTestCase
         $this->assertContains('Registered', $labels);
         $this->assertCount(2, $this->model->calls);
         $this->assertSame('tool_result', $this->model->calls[1]['turns'][2]['content'][0]['type']);
-        $this->assertSame('CHERAS', $response->json('message.figures.0.group'));
+        $this->assertSame('Cheras', $response->json('message.figures.0.group'));
+        $this->assertSame('Cheras', json_decode($this->model->calls[1]['turns'][2]['content'][0]['content'], true)['branches'][0]['branchName']);
+        $this->assertStringContainsString('branchName', $this->model->calls[0]['system']);
         // The model was shown the fixed tools and the system rules, and no personal data.
         $this->assertContains('clinic_day_summary', array_column($this->model->calls[0]['tools'], 'name'));
         $this->assertStringContainsString('Never guess', $this->model->calls[0]['system']);
@@ -324,7 +326,7 @@ class ChatTest extends VisitTestCase
     public function test_figures_show_exact_ringgit_and_counts_from_the_tool_result(): void
     {
         $figures = ChatFigures::from('money_day_summary', ['asOf' => '2026-11-24T01:00:00Z', 'branches' => [[
-            'branch' => 'CHERAS', 'date' => '2026-11-24', 'netSalesSen' => 123450, 'discountsSen' => 5, 'registered' => 1234, 'averageWaitMinutes' => 12,
+            'branch' => 'CHERAS', 'branchName' => 'Cheras', 'date' => '2026-11-24', 'netSalesSen' => 123450, 'discountsSen' => 5, 'registered' => 1234, 'averageWaitMinutes' => 12,
             'totals' => ['approvedSen' => 100], 'limits' => ['x' => 1], 'receiptsByMethod' => [['method' => 'Cash']],
         ]]]);
 
@@ -334,7 +336,7 @@ class ChatTest extends VisitTestCase
         $this->assertSame('1,234', $by['Registered']);
         $this->assertSame('12 min', $by['Average wait minutes']);
         $this->assertSame('RM 1.00', $by['Totals · Approved']);
-        $this->assertSame('CHERAS', $figures[0]['group']);
+        $this->assertSame('Cheras', $figures[0]['group']);
         $this->assertSame('2026-11-24T01:00:00Z', $figures[0]['asOf']);
         $this->assertNull(ChatFigures::report('list_branches'));
     }

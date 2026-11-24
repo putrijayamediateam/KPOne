@@ -83,6 +83,12 @@ const groups = computed(() => groupFigures(props.message.figures));
                     >
                         {{ branchLabel(g.group) }}
                     </p>
+                    <p
+                        v-if="g.items[0]?.asOf"
+                        class="text-xs text-muted-foreground"
+                    >
+                        As of {{ formatDateTime(g.items[0].asOf) }}
+                    </p>
                     <ul class="divide-y divide-border">
                         <li
                             v-for="(f, i) in g.items"
@@ -95,11 +101,6 @@ const groups = computed(() => groupFigures(props.message.figures));
                             <span class="font-semibold tabular-nums">{{
                                 f.text
                             }}</span>
-                            <span
-                                v-if="f.asOf"
-                                class="basis-full text-xs text-muted-foreground"
-                                >As of {{ formatDateTime(f.asOf) }}</span
-                            >
                         </li>
                     </ul>
                 </div>

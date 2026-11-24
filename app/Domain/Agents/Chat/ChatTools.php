@@ -6,6 +6,7 @@ use App\Domain\Agents\Connector\ConnectorQuery;
 use App\Domain\Agents\Connector\ConnectorRefused;
 use App\Domain\Agents\Connector\ConnectorToolRunner;
 use App\Domain\Agents\Connector\ConnectorTools;
+use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 
 /**
@@ -74,9 +75,38 @@ final class ChatTools
                 return ['result' => null, 'error' => 'That question is not available.'];
             }
 
-            return ['result' => $this->runner->runQuery($user, $query, $input), 'error' => null];
+            return ['result' => $this->withBranchNames($user, $this->runner->runQuery($user, $query, $input)), 'error' => null];
         } catch (ConnectorRefused $refused) {
             return ['result' => null, 'error' => $refused->getMessage()];
         }
+    }
+
+    /**
+     * Adds each branch's display name next to its code, so the model's sentence and the Figures block use the same names the screens use.
+     *
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function withBranchNames(User $user, array $result): array
+    {
+        if (! is_array($result['branches'] ?? null)) {
+            return $result;
+        }
+        $codes = [];
+        foreach ($result['branches'] as $entry) {
+            if (is_array($entry) && is_string($entry['branch'] ?? null)) {
+                $codes[] = $entry['branch'];
+            }
+        }
+        $names = Branch::query()->where('organisation_id', $user->organisation_id)->whereIn('code', array_unique($codes))->pluck('name', 'code');
+        $result['branches'] = array_map(function (mixed $entry) use ($names): mixed {
+            if (is_array($entry) && is_string($entry['branch'] ?? null) && isset($names[$entry['branch']])) {
+                $entry['branchName'] = (string) $names[$entry['branch']];
+            }
+
+            return $entry;
+        }, $result['branches']);
+
+        return $result;
     }
 }
