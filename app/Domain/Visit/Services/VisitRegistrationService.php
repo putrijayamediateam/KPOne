@@ -157,6 +157,8 @@ class VisitRegistrationService
                     'coverage_type' => $visit->coverage_type,
                     'repeat_attendance_confirmed' => $repeatExists,
                     'record_version' => 1,
+                    // AUTO-1: only when automatic assignment was available; never any sales or target value.
+                    ...($validated['doctor_source'] ?? null ? ['doctor_source' => $validated['doctor_source'], 'doctor_reason_code' => $validated['doctor_reason_code'] ?? null] : []),
                 ], $lockedActor, $branch, $lockedActor->organisation_id);
                 if ($visit->priority === 'urgent') {
                     $this->audit->record('visit.priority.marked_urgent', $visit, ['record_version' => 1], $lockedActor, $branch);
@@ -215,6 +217,8 @@ class VisitRegistrationService
             ],
             'visit_type' => ['required', Rule::in(['consultation', 'otc'])],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
+            'doctor_source' => ['nullable', Rule::in(['auto', 'manual', 'override'])],
+            'doctor_reason_code' => ['nullable', 'string', 'max:40'],
             'visit_reason' => ['prohibited'],
             'visit_reason_public_ids' => ['nullable', 'array', 'max:5', 'required_if:visit_type,consultation'],
             'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],

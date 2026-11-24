@@ -13,8 +13,28 @@ const props = defineProps<{
         requireAddress: boolean;
         lockVersion: number;
     };
+    // AUTO-1: shown only to the Director (registration.auto_assign.manage.branch).
+    autoAssign?: {
+        canManage: boolean;
+        enabled: boolean;
+        lockVersion: number;
+        branchName: string | null;
+    } | null;
 }>();
 const saved = ref(false);
+const autoForm = useForm({
+    expected_branch_id: props.branchId,
+    enabled: props.autoAssign?.enabled ?? false,
+    lock_version: props.autoAssign?.lockVersion ?? 0,
+});
+const saveAuto = () =>
+    autoForm.post('/registration-settings/auto-assign', {
+        preserveScroll: true,
+        onSuccess: () => {
+            autoForm.lock_version = props.autoAssign?.lockVersion ?? 0;
+            autoForm.enabled = props.autoAssign?.enabled ?? false;
+        },
+    });
 const form = useForm({
     expected_branch_id: props.branchId,
     lock_version: props.requirements.lockVersion,
@@ -213,6 +233,41 @@ const submit = () => {
                 Registration settings saved.
             </p>
         </form>
+        <section
+            v-if="autoAssign?.canManage"
+            aria-labelledby="auto-assign-heading"
+            class="mt-8 max-w-3xl space-y-3 border-t pt-5"
+        >
+            <h2 id="auto-assign-heading" class="text-sm font-medium">
+                Assign the doctor automatically
+                <span class="font-normal text-muted-foreground"
+                    >({{ autoAssign.branchName }})</span
+                >
+            </h2>
+            <p class="text-xs text-muted-foreground">
+                When this is on and today's roster is published, a visit
+                registered without a doctor goes to the next doctor on the
+                roster who is free. The CA can still choose a doctor, with a
+                reason. Visits already assigned keep their doctor if you switch
+                this off. It is off by default.
+            </p>
+            <form class="space-y-3" novalidate @submit.prevent="saveAuto">
+                <label class="flex min-h-11 items-center gap-3 text-sm"
+                    ><input
+                        v-model="autoForm.enabled"
+                        type="checkbox"
+                        class="size-5"
+                    />Assign the doctor automatically at this branch</label
+                >
+                <InputError :message="autoForm.errors.lock_version" />
+                <Button
+                    type="submit"
+                    :disabled="autoForm.processing"
+                    class="min-h-11"
+                    >Save</Button
+                >
+            </form>
+        </section>
         <div
             class="fixed inset-x-0 bottom-0 z-20 flex justify-end border-t bg-card px-4 py-3 md:px-8"
         >

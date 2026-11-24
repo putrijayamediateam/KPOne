@@ -56,11 +56,29 @@ const genderOptions = [
     { value: 'male', label: 'Male' },
     { value: 'indeterminate', label: 'Indeterminate' },
 ];
+// AUTO-1: when the Director switched automatic assignment on and today's roster is published, a blank doctor means
+// "Auto". Only doctors on today's roster are listed, each marked free or busy; sales and targets are never shown.
+const autoAssign = computed(() => props.options.autoAssign?.available === true);
+const overrideReasonOptions = [
+    { value: '', label: 'Choose a reason' },
+    { value: 'patient_requested', label: 'Patient asked for this doctor' },
+    { value: 'continuity', label: 'Patient was seen by this doctor before' },
+    {
+        value: 'recommended_unavailable',
+        label: 'Recommended doctor is not available',
+    },
+    { value: 'other', label: 'Other' },
+];
 const doctorOptions = computed(() => [
-    { value: '', label: 'No doctor' },
+    {
+        value: '',
+        label: autoAssign.value ? 'Auto (recommended)' : 'No doctor',
+    },
     ...props.options.doctors.map((doctor) => ({
         value: doctor.id,
-        label: doctor.name,
+        label: autoAssign.value
+            ? `${doctor.name} · ${doctor.free ? 'Free' : `Busy, ${doctor.waiting ?? 0} waiting`}`
+            : doctor.name,
     })),
 ]);
 const panelOptions = computed(() => [
@@ -113,6 +131,7 @@ type RegistrationForm = {
     quick_patient: QuickPatientInput | null;
     visit_type: 'consultation' | 'otc';
     assigned_doctor_user_id: number | '';
+    doctor_override_reason: string;
     visit_reason_public_ids: string[];
     coverage_type: 'self_pay' | 'panel';
     panel_id: number | '';
@@ -129,7 +148,11 @@ const form = useForm<RegistrationForm>({
     quick_patient: null,
     visit_type: 'consultation' as 'consultation' | 'otc',
     assigned_doctor_user_id:
-        props.options.doctors.length === 1 ? props.options.doctors[0].id : '',
+        props.options.autoAssign?.available !== true &&
+        props.options.doctors.length === 1
+            ? props.options.doctors[0].id
+            : '',
+    doctor_override_reason: '',
     visit_reason_public_ids: [],
     coverage_type: 'self_pay' as 'self_pay' | 'panel',
     panel_id: '',
@@ -856,8 +879,41 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             v-model="form.assigned_doctor_user_id"
                             label="Doctor"
                             :invalid="!!form.errors.assigned_doctor_user_id"
-                            :options="doctorOptions" /><InputError
+                            :options="doctorOptions"
+                        /><InputError
                             :message="errorFor('assigned_doctor_user_id')"
+                        /><span
+                            v-if="
+                                autoAssign &&
+                                form.visit_type === 'consultation' &&
+                                form.assigned_doctor_user_id === ''
+                            "
+                            class="text-xs text-muted-foreground"
+                            >Auto picks the next doctor on today's roster who is
+                            free.</span
+                        ></label
+                    >
+                    <label
+                        v-if="
+                            autoAssign &&
+                            form.visit_type === 'consultation' &&
+                            form.assigned_doctor_user_id !== ''
+                        "
+                        class="grid gap-1"
+                        for="doctor-override-reason"
+                        ><span class="text-sm font-medium"
+                            >Why not Auto?
+                            <span class="font-normal text-muted-foreground"
+                                >(needed if this is not the recommended
+                                doctor)</span
+                            ></span
+                        ><OperationalSelect
+                            id="doctor-override-reason"
+                            v-model="form.doctor_override_reason"
+                            label="Why not Auto?"
+                            :invalid="!!form.errors.doctor_override_reason"
+                            :options="overrideReasonOptions" /><InputError
+                            :message="errorFor('doctor_override_reason')"
                     /></label>
                     <div class="grid gap-1 md:col-span-2">
                         <span class="text-sm font-medium"

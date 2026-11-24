@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Patient\Services\PatientGuardianService;
+use App\Domain\Visit\Assignment\DoctorAssignmentService;
 use App\Domain\Visit\Models\Visit;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -47,7 +50,9 @@ class StoreVisitRequest extends FormRequest
             'quick_patient.identifiers.*.value' => ['required', 'string', 'max:100'],
             'quick_patient.duplicate_override' => ['nullable', 'boolean'],
             'visit_type' => ['required', 'in:consultation,otc'],
-            'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
+            // AUTO-1: with automatic assignment available at the branch a blank doctor means "Auto".
+            'assigned_doctor_user_id' => ['nullable', 'integer', Rule::requiredIf(fn (): bool => $this->input('visit_type') === 'consultation' && ! $this->autoAssignAvailable())],
+            'doctor_override_reason' => ['nullable', 'string', Rule::in(DoctorAssignmentService::OVERRIDE_REASONS)],
             'visit_reason' => ['prohibited'],
             'visit_reason_public_ids' => ['nullable', 'array', 'max:5', 'required_if:visit_type,consultation'],
             'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],
@@ -99,5 +104,14 @@ class StoreVisitRequest extends FormRequest
             'coverage_panel_note.max' => 'The Panel note must be 500 characters or fewer.',
             'coverage_member_reference.max' => 'The Panel member reference must be 100 characters or fewer.',
         ];
+    }
+
+    /** AUTO-1: automatic doctor assignment is switched on for the active branch and its roster is published today. */
+    private function autoAssignAvailable(): bool
+    {
+        $user = $this->user();
+        $branch = $user ? app(BranchAccessService::class)->activeBranch($user) : null;
+
+        return $branch !== null && app(DoctorAssignmentService::class)->isAvailable($branch, CarbonImmutable::now());
     }
 }
