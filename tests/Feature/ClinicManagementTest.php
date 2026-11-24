@@ -41,6 +41,7 @@ class ClinicManagementTest extends VisitTestCase
             // BIL-32 (owner approved 2026-11-22): the Branch Manager opens it read only.
             '/cash-closings' => ['payments.reconcile.branch', 'payments.cash_closing.view.branch'],
             '/sales-targets' => ['sales_targets.manage.organisation'], // BIL-30, owner approved 2026-11-23
+            '/insights/overview' => ['insights.overview.view.organisation'], // BIL-31, owner approved 2026-11-24
             '/approvals' => ['payments.cash_closing.approve.branch', 'inventory.supplier_invoices.approve.branch', 'inventory.purchase_orders.create.organisation', 'panel.prices.approve.organisation', 'patients.merge.approve.organisation', 'hr.leave.approve.organisation', 'hr.attendance.review.organisation', 'hr.overtime.approve.organisation', 'hr.claims.approve.organisation'], // APPR-1a and APPR-1d, owner approved 2026-11-22
             '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
