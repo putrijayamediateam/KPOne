@@ -188,10 +188,14 @@ const submit = () => {
             </h2>
             <button
                 type="button"
-                class="inline-flex aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:hover:bg-transparent min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                :aria-disabled="view.month >= view.lastMonth ? 'true' : undefined"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:hover:bg-transparent"
+                :aria-disabled="
+                    view.month >= view.lastMonth ? 'true' : undefined
+                "
                 data-testid="targets-next"
-                @click="view.month < view.lastMonth && goTo(shift(view.month, 1))"
+                @click="
+                    view.month < view.lastMonth && goTo(shift(view.month, 1))
+                "
             >
                 <span>Next<span class="max-sm:sr-only"> month</span></span>
                 <ChevronRight class="size-4" aria-hidden="true" />
@@ -357,7 +361,10 @@ const submit = () => {
                         </dl>
                         <div class="flex lg:justify-end">
                             <Button
-                                v-if="branch.open && (doctor.canSet || doctor.targetSen !== null)"
+                                v-if="
+                                    branch.open &&
+                                    (doctor.canSet || doctor.targetSen !== null)
+                                "
                                 type="button"
                                 variant="outline"
                                 class="h-11 lg:h-9"
