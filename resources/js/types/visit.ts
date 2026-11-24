@@ -12,6 +12,7 @@ export type VisitOptions = {
         name: string;
         free?: boolean;
         waiting?: number;
+        room?: boolean;
     }>;
     autoAssign?: { available: boolean; overrideReasons: string[] };
     panels: Array<{ id: number; name: string }>;

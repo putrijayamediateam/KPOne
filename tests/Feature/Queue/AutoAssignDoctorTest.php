@@ -47,7 +47,7 @@ class AutoAssignDoctorTest extends QueueTestCase
     }
 
     /** Publish this Monday for the given doctors and freeze the clock at 10:00 that day. */
-    private function publish(array $doctors): void
+    private function publish(array $doctors, array $rooms = []): void
     {
         $this->selectBranch($this->hr);
         $this->post(route('hr.roster.drafts.store'), ['branch_id' => $this->branch->id, 'week' => $this->week->toDateString(), 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
@@ -55,7 +55,7 @@ class AutoAssignDoctorTest extends QueueTestCase
         foreach ($doctors as $doctor) {
             $this->post(route('hr.roster.shifts.store', $version->public_id), [
                 'staff_user_id' => $doctor->id, 'date' => $this->week->toDateString(), 'start_time' => '08:00', 'end_time' => '17:00',
-                'break_minutes' => 0, 'session_type' => 'morning', 'branch_room_id' => null, 'branch_id' => $this->branch->id,
+                'break_minutes' => 0, 'session_type' => 'morning', 'branch_room_id' => $rooms[$doctor->id] ?? null, 'branch_id' => $this->branch->id,
                 'expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid(),
             ])->assertSessionHasNoErrors();
         }
@@ -238,7 +238,7 @@ class AutoAssignDoctorTest extends QueueTestCase
         $response = $this->get(route('registration.create'))->assertOk();
         $options = $response->viewData('page')['props']['options'];
         $this->assertTrue($options['autoAssign']['available']);
-        $this->assertSame([['id' => $rostered->id, 'name' => $rostered->name, 'free' => true, 'waiting' => 0]], $options['doctors']);
+        $this->assertSame([['id' => $rostered->id, 'name' => $rostered->name, 'free' => true, 'waiting' => 0, 'room' => true]], $options['doctors']);
         $json = json_encode($response->viewData('page')['props']);
         $this->assertStringNotContainsString('1000000', $json);
         $this->assertStringNotContainsString('amount_sen', $json);
@@ -259,6 +259,28 @@ class AutoAssignDoctorTest extends QueueTestCase
         $this->assertTrue((bool) DB::table('branch_auto_assign_settings')->value('enabled'));
         $this->post(route('registration-settings.auto-assign'), ['expected_branch_id' => $this->branch->id, 'enabled' => false, 'lock_version' => 1])->assertSessionHasNoErrors();
         $this->assertFalse((bool) DB::table('branch_auto_assign_settings')->value('enabled'));
+    }
+
+    public function test_a_doctor_with_no_room_today_is_never_picked_once_the_branch_has_rooms(): void
+    {
+        $withRoom = $this->doctor();
+        $noRoom = $this->doctor();
+        $room = (int) DB::table('branch_rooms')->insertGetId(['organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id, 'kind' => 'consultation',
+            'name' => 'Synthetic Room A', 'sort_order' => 1, 'is_active' => true, 'lock_version' => 1, 'updated_by_user_id' => $this->hr->id,
+            'created_at' => now(), 'updated_at' => now()]);
+        // The lower id would win a plain tie, so a pick of $withRoom proves the room rule, not the id order.
+        [$first, $second] = $noRoom->id < $withRoom->id ? [$noRoom, $withRoom] : [$withRoom, $noRoom];
+        $this->publish([$first, $second], [$withRoom->id => $room]);
+        $this->enable();
+
+        $this->registerAs($this->payload(null))->assertSessionHasNoErrors();
+        $this->assertSame($withRoom->id, Visit::query()->sole()->assigned_doctor_user_id);
+
+        $list = app(DoctorAssignmentService::class)->recommend($this->ca, $this->branch, CarbonImmutable::now(), null)['list'];
+        $byId = collect($list)->keyBy('id');
+        $this->assertFalse($byId[$noRoom->id]['room']);
+        $this->assertFalse($byId[$noRoom->id]['free']);
+        $this->assertSame($noRoom->id, $list[count($list) - 1]['id'], 'listed last');
     }
 
     public function test_the_ordering_rules(): void

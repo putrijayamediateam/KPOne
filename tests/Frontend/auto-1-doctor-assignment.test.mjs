@@ -26,6 +26,7 @@ test('AUTO-1: Register Visit offers Auto only when the server says it is availab
         page.indexOf('const panelOptions'),
     );
     assert.doesNotMatch(block, /sales|target|percent|progress/i);
+    assert.match(page, /doctor\.room === false \? 'No room today'/);
     // A single doctor is only preselected when Auto is not available.
     assert.match(page, /props\.options\.autoAssign\?\.available !== true/);
 });
@@ -61,7 +62,7 @@ test('AUTO-1: the visit option type carries free and waiting only', () => {
     const types = squash(read('resources/js/types/visit.ts'));
     assert.match(
         types,
-        /doctors: Array<\{ id: number; name: string; free\?: boolean; waiting\?: number; \}>/,
+        /doctors: Array<\{ id: number; name: string; free\?: boolean; waiting\?: number; room\?: boolean; \}>/,
     );
     assert.match(
         types,

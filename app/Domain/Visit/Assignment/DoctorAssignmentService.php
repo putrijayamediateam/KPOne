@@ -6,6 +6,7 @@ use App\Domain\Access\StaffKind;
 use App\Domain\Clinical\Services\ConsultationLocks;
 use App\Domain\HR\Roster\Services\RosterOnDuty;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Shared\Services\InvoiceSalesProjection;
 use App\Domain\Visit\Assignment\Models\BranchAutoAssignSetting;
@@ -24,6 +25,8 @@ use Carbon\CarbonImmutable;
  * - Candidates: doctors on today's approved roster at this branch (RosterOnDuty::onDutyOn, never on call) who are also
  *   eligible today. Auto is available only when the Director switched it on for the branch AND a roster is published for
  *   the day; otherwise the CA picks by hand.
+ * - Room: once a branch has consultation rooms, Call In needs one, so a doctor with no room today (the roster room for
+ *   the shift they are on, or one they chose) is never picked and shows as "no room".
  * - Free: not Serving a patient who is not held (ConsultationLocks::doctorBusy) AND nobody Waiting for them.
  * - Order: follow-up doctor (seen in the last 30 days) if free; then free non-locums, then free locums; then, when every
  *   doctor is busy, the lowest net sales this month (non-locums first), skipping a doctor with 3 or more waiting.
@@ -43,7 +46,7 @@ final class DoctorAssignmentService
     /** Fixed reasons a CA gives when choosing a doctor other than the recommended one (audited as ca_override_*). */
     public const OVERRIDE_REASONS = ['patient_requested', 'continuity', 'recommended_unavailable', 'other'];
 
-    public function __construct(private readonly RosterOnDuty $roster, private readonly VisitDoctorEligibilityService $eligibility) {}
+    public function __construct(private readonly RosterOnDuty $roster, private readonly VisitDoctorEligibilityService $eligibility, private readonly DoctorRoomService $rooms) {}
 
     public function isEnabled(Branch $branch): bool
     {
@@ -84,7 +87,7 @@ final class DoctorAssignmentService
     /**
      * Lock the candidates (ascending id, with the actor), then order them. Call inside the caller's transaction.
      *
-     * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int}>}
+     * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int, room: bool}>}
      */
     public function pick(User $actor, Branch $branch, CarbonImmutable $now, ?int $patientId): array
     {
@@ -99,7 +102,7 @@ final class DoctorAssignmentService
     /**
      * Read-only recommendation for the CA's screen (no lock). The same ordering as `pick`.
      *
-     * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int}>}
+     * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int, room: bool}>}
      */
     public function recommend(User $actor, Branch $branch, CarbonImmutable $now, ?int $patientId): array
     {
@@ -108,7 +111,7 @@ final class DoctorAssignmentService
 
     /**
      * @param  list<int>  $ids
-     * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int}>}
+     * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int, room: bool}>}
      */
     private function order(int $organisationId, Branch $branch, CarbonImmutable $now, array $ids, ?int $patientId): array
     {
@@ -129,6 +132,8 @@ final class DoctorAssignmentService
         $targets = SalesTarget::query()->where('organisation_id', $organisationId)->where('branch_id', $branch->id)->whereDate('month', $first->toDateString())
             ->whereIn('doctor_user_id', $ids)->whereNull('cleared_at')->pluck('amount_sen', 'doctor_user_id');
 
+        $needsRoom = $this->rooms->branchHasConsultationRooms($branch);
+        $operationalDate = $this->rooms->operationalDate($branch);
         $rows = [];
         foreach ($ids as $id) {
             $user = $users->get($id);
@@ -141,6 +146,7 @@ final class DoctorAssignmentService
             $wait = (int) ($waiting[$id] ?? 0);
             $rows[$id] = [
                 'id' => $id, 'name' => (string) $user->name, 'locum' => StaffKind::isLocum($user), 'waiting' => $wait,
+                'room' => ! $needsRoom || $this->rooms->resolve($id, $branch, $operationalDate)['room'] !== null,
                 'free' => $wait === 0 && ! ConsultationLocks::doctorBusy($user),
                 'sales' => $sales, 'percent' => $target > 0 ? $sales * 100 / $target : null,
                 'perPatient' => $count > 0 ? intdiv($sales, $count) : 0,
@@ -148,20 +154,22 @@ final class DoctorAssignmentService
         }
 
         $previous = $this->previousDoctor($branch, $patientId, $now);
-        $freeResidents = $this->freeOrder(array_filter($rows, fn (array $r): bool => $r['free'] && ! $r['locum']));
-        $freeLocums = $this->freeOrder(array_filter($rows, fn (array $r): bool => $r['free'] && $r['locum']));
-        $busy = array_values(array_filter($rows, fn (array $r): bool => ! $r['free']));
+        $freeResidents = $this->freeOrder(array_filter($rows, fn (array $r): bool => $r['free'] && $r['room'] && ! $r['locum']));
+        $freeLocums = $this->freeOrder(array_filter($rows, fn (array $r): bool => $r['free'] && $r['room'] && $r['locum']));
+        $busy = array_values(array_filter($rows, fn (array $r): bool => ! $r['free'] && $r['room']));
+        $noRoom = array_values(array_filter($rows, fn (array $r): bool => ! $r['room']));
+        usort($noRoom, fn (array $a, array $b): int => $a['id'] <=> $b['id']);
         usort($busy, fn (array $a, array $b): int => [$a['locum'], $a['sales'], $a['id']] <=> [$b['locum'], $b['sales'], $b['id']]);
 
-        $ordered = [...$freeResidents, ...$freeLocums, ...$busy];
+        $ordered = [...$freeResidents, ...$freeLocums, ...$busy, ...$noRoom];
         $doctorId = null;
         $reason = null;
-        $isFree = fn (int $id): bool => ($rows[$id]['free'] ?? false);
+        $isFree = fn (int $id): bool => isset($rows[$id]) && $rows[$id]['free'] && $rows[$id]['room'];
         if ($previous !== null && isset($rows[$previous]) && $isFree($previous)) {
             [$doctorId, $reason] = [$previous, 'follow_up_previous'];
         } elseif ($freeResidents !== [] || $freeLocums !== []) {
             [$doctorId, $reason] = [($freeResidents[0] ?? $freeLocums[0])['id'], 'next_in_turn'];
-        } else {
+        } elseif ($busy !== []) {
             $open = array_values(array_filter($busy, fn (array $r): bool => $r['waiting'] < self::BUSY_CAP));
             if ($open !== []) {
                 [$doctorId, $reason] = [$open[0]['id'], 'all_busy_lowest_sales'];
@@ -175,7 +183,7 @@ final class DoctorAssignmentService
         }
 
         return ['doctorId' => $doctorId, 'reason' => $reason, 'list' => array_map(
-            fn (array $r): array => ['id' => $r['id'], 'name' => $r['name'], 'free' => $r['free'], 'waiting' => $r['waiting']], $ordered)];
+            fn (array $r): array => ['id' => $r['id'], 'name' => $r['name'], 'free' => $r['free'] && $r['room'], 'waiting' => $r['waiting'], 'room' => $r['room']], $ordered)];
     }
 
     /**

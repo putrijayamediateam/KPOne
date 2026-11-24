@@ -77,7 +77,13 @@ const doctorOptions = computed(() => [
     ...props.options.doctors.map((doctor) => ({
         value: doctor.id,
         label: autoAssign.value
-            ? `${doctor.name} · ${doctor.free ? 'Free' : `Busy, ${doctor.waiting ?? 0} waiting`}`
+            ? `${doctor.name} · ${
+                  doctor.room === false
+                      ? 'No room today'
+                      : doctor.free
+                        ? 'Free'
+                        : `Busy, ${doctor.waiting ?? 0} waiting`
+              }`
             : doctor.name,
     })),
 ]);
