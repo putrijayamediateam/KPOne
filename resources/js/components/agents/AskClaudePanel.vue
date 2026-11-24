@@ -185,6 +185,9 @@ const copyAndOpen = async (request: AskClaudeRequest) => {
     copied.value = ok ? request.id : null;
     copyFailed.value = ok ? null : request.id;
 
+    // The by-hand box makes the card taller; keep the question at the top of the area and the card whole.
+    await scrollDown();
+
     if (!ok) {
         // Bring the by-hand box fully into view (on a phone the form below it takes much of the screen).
         await nextTick();
@@ -324,7 +327,7 @@ const cancel = async (request: AskClaudeRequest) => {
                         >
                         <Textarea
                             :id="`ask-prompt-${request.id}`"
-                            class="min-h-24 text-xs"
+                            class="min-h-14 text-xs"
                             readonly
                             :model-value="request.prompt"
                             @focus="selectAll"
