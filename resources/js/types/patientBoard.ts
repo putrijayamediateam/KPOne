@@ -27,6 +27,8 @@ export type PatientBoardRow = {
     treatmentProgress?: TreatmentProgress | null;
     /** TRI-1c: only for CA, CA Supervisor and the patient's own doctor; null or absent for anyone else. */
     triage?: TriageZoneSummary | null;
+    /** TRI-1e: the patient's own doctor's read-only triage view, when allowed. */
+    triageViewUrl?: string | null;
     // Minutes since the open step started, or since it was marked done.
     treatmentMinutes?: number | null;
     patientName: string;

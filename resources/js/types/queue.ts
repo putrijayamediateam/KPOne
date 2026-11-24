@@ -9,6 +9,7 @@ export type QueueRow = {
     callHold?: CallReadiness | null;
     /** TRI-1c: the triage zone, or null for a viewer who may not see it. */
     triage?: TriageZoneSummary | null;
+    triageViewUrl?: string | null;
     treatmentProgress?: TreatmentProgress | null;
     canWhatsapp: boolean;
     queueNumber: string;
