@@ -28,13 +28,18 @@ defineOptions({
 });
 
 const props = defineProps<{
+    canOverview?: boolean;
     branch: string;
     branches: { code: string; name: string }[];
     report: TodayInsightsReport;
 }>();
 
+// BIL-31: the Overview tab shows only to holders of the overview permission (Director, Finance Officer).
 const sections = [
     { id: 'today', title: 'Today', href: '/insights/today' },
+    ...(props.canOverview
+        ? [{ id: 'overview', title: 'Overview', href: '/insights/overview' }]
+        : []),
     { id: 'sales', title: 'Sales', href: '/insights/sales' },
     { id: 'in-clinic', title: 'In-clinic', href: '/insights/in-clinic' },
     { id: 'payments', title: 'Payments', href: '/insights/payments' },

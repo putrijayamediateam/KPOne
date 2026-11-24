@@ -793,6 +793,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('insights/sales-summary/download', [ClinicInsightsController::class, 'downloadSalesSummary'])
         ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.sales-summary.download');
+    // BIL-31: the Director and Finance overview, before the {section} route.
+    Route::get('insights/overview', [ClinicInsightsController::class, 'overview'])
+        ->middleware(['permission:insights.view.organisation', 'permission:insights.overview.view.organisation', 'sensitive.no-store'])
+        ->name('insights.overview');
     Route::get('insights/{section}', [ClinicInsightsController::class, 'report'])
         ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])

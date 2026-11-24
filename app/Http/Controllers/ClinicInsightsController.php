@@ -6,6 +6,7 @@ use App\Domain\Shared\Services\ClinicInsightsReportService;
 use App\Domain\Shared\Services\ClinicInsightsService;
 use App\Domain\Shared\Services\DailyReportExportService;
 use App\Domain\Shared\Services\SalesSummaryExportService;
+use App\Domain\Visit\Billing\Overview\DirectorOverviewService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -30,7 +31,17 @@ class ClinicInsightsController extends Controller
             'branch' => $branch,
             'branches' => $insights->todayBranches($actor),
             'report' => $insights->today($actor, $branch),
+            'canOverview' => $actor->can(DirectorOverviewService::PERMISSION),
         ]);
+    }
+
+    /** BIL-31: the Director and Finance overview (owner item 32, P8). Rules live in DirectorOverviewService. */
+    public function overview(Request $request, DirectorOverviewService $overview): Response
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+
+        return Inertia::render('Insights/Overview', ['canOverview' => true, 'overview' => $overview->page($actor)]);
     }
 
     public function report(Request $request, ClinicInsightsReportService $insights, string $section): Response
@@ -54,6 +65,7 @@ class ClinicInsightsController extends Controller
         }
 
         return Inertia::render('Insights/Report', [
+            'canOverview' => $actor->can(DirectorOverviewService::PERMISSION),
             'dailyDownloadUrl' => in_array($section, ['sales', 'payments'], true) && $actor->can($section === 'sales' ? SalesSummaryExportService::PERMISSION : DailyReportExportService::PAYMENTS_PERMISSION) ? route($section === 'sales' ? 'insights.daily-sales.download' : 'insights.daily-receipts.download', ['from' => $from, 'to' => $to, 'branch' => $filters['branch'] ?? 'all', 'doctor' => $filters['doctor'] ?? null]) : null,
             'summaryDownloadUrl' => $section === 'sales' && $actor->can(SalesSummaryExportService::PERMISSION) ? route('insights.sales-summary.download', ['from' => $from, 'to' => $to, 'branch' => $filters['branch'] ?? 'all', 'doctor' => $filters['doctor'] ?? null]) : null,
             'filters' => [
