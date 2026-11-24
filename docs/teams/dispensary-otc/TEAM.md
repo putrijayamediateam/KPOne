@@ -276,7 +276,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     trigger checks existence, organisation and a checked outcome), so STK-52's own migration can still roll back.
 40. DSP-26 the doctor sees Dispensary, view only (2026-11-24): owner "pilih (a) lihat sahaja", relayed by B.E.R.N.I.S.S.
     New permission `dispensary.view_readonly.branch` for the Resident Doctor only. The `DrugLabelTest.php:54` change
-    (the doctor comes off the label-preview 403 list) is approved. No audit row per doctor open; no Returns to check
+    (the doctor comes off the label-preview 403 list) is approved, and so are `FlowFixesTest.php:91` and
+    `TreatmentPlanTest.php:336` ("lulus 2 test DSP-26"). No audit row per doctor open; no Returns to check
     list for the doctor; no label preview while the CA is still preparing (only completed or awaiting the doctor's
     check). The DSP-23 Doctor's check is unchanged. "Ship it for DSP-26 for aisyah". Hakim: OK with changes (folded
     in); Daniel: OK with changes at note level, shots to follow.

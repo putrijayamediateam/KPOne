@@ -88,7 +88,8 @@ class FlowFixesTest extends ClinicalTestCase
         $plan = TreatmentPlan::factory()->create(['clinical_encounter_id' => $encounter->id]);
         $case = new DispensaryCase;
         $case->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'visit_id' => $visit->id, 'clinical_encounter_id' => $encounter->id, 'treatment_plan_id' => $plan->id, 'case_type' => 'consultation', 'status' => 'pending', 'lock_version' => 1, 'received_at' => now()->utc()])->save();
-        foreach ([$doctor, $this->actor('director')] as $actor) {
+        // DSP-26 (owner, 24 Nov: "lulus 2 test DSP-26"): the doctor now sees Open Dispensary, view only.
+        foreach ([$this->actor('director')] as $actor) {
             $this->selectBranch($actor, $visit->branch);
             $row = app(VisitDirectoryService::class)->search($actor, [])['data']->firstWhere('visitNumber', $visit->visit_number);
             $this->assertFalse($row['can']['openDispensary']);

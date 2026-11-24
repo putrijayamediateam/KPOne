@@ -181,7 +181,10 @@ Shots for Daniel's look, at 1440 and 390 in light and dark:
 - Scanned `DispensaryReviewTest`, `DispensaryDoctorCheckTest`, `PharmacySpaceTest`, `RoleOneRolesTest` and the
   OTC route tests. No other assertion pins "the doctor cannot open a Dispensary page". The write-route 403
   assertions (for example `TreatmentPlanTest` lines 1715 to 1716 and 1918 to 1919) stay as they are.
-- If the build finds any other such assertion, I'll stop and send it before changing it.
+- The build found two more, approved by the owner on 24 Nov ("lulus 2 test DSP-26"): `FlowFixesTest.php:91` (the doctor
+  comes off the loop; the Director stays) and `TreatmentPlanTest.php:336` (`resident_doctor` comes off the list; the
+  Director and Technical Admin stay 403). `TreatmentPlanTest.php:308` stays unchanged: the doctor is refused a label
+  preview with 403 while the CA prepares, as before.
 
 ## 6. Questions for the owner
 
