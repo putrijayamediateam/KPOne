@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { ChevronRight } from '@lucide/vue';
+import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
 import { myr, myrNoBreak } from '@/types/billing';
 
@@ -302,21 +302,27 @@ const firstRow = computed(() => props.overview.branches[0]);
                     >
                         <div class="min-w-0">
                             <p class="font-medium">{{ row.branch }}</p>
-                            <p
-                                v-if="row.target.targetSen !== null"
-                                class="text-sm tabular-nums"
-                            >
-                                {{ myrNoBreak(row.target.achievedSen) }} of
-                                {{ myrNoBreak(row.target.targetSen) }} ({{
-                                    row.target.percent ?? 0
-                                }}%)<span class="text-muted-foreground">{{
-                                    row.target.reached
-                                        ? ` · Target reached, ${myrNoBreak(row.target.overSen ?? 0)} over`
-                                        : row.target.neededPerDaySen !== null
-                                          ? ` · ${myrNoBreak(row.target.neededPerDaySen)} a day · ${row.target.daysLeft} ${row.target.daysLeft === 1 ? 'day' : 'days'} left`
-                                          : ''
-                                }}</span>
-                            </p>
+                            <template v-if="row.target.targetSen !== null">
+                                <p class="text-sm tabular-nums">
+                                    {{ myrNoBreak(row.target.achievedSen) }} of
+                                    {{ myrNoBreak(row.target.targetSen) }} ({{
+                                        row.target.percent ?? 0
+                                    }}%)
+                                </p>
+                                <p
+                                    v-if="
+                                        row.target.reached ||
+                                        row.target.neededPerDaySen !== null
+                                    "
+                                    class="text-sm whitespace-nowrap text-muted-foreground tabular-nums"
+                                >
+                                    {{
+                                        row.target.reached
+                                            ? `Target reached, ${myrNoBreak(row.target.overSen ?? 0)} over`
+                                            : `${myrNoBreak(row.target.neededPerDaySen ?? 0)} a day · ${row.target.daysLeft} ${row.target.daysLeft === 1 ? 'day' : 'days'} left`
+                                    }}
+                                </p>
+                            </template>
                             <p v-else class="text-sm text-muted-foreground">
                                 No target ·
                                 {{ myrNoBreak(row.target.achievedSen) }} so far
@@ -443,10 +449,14 @@ const firstRow = computed(() => props.overview.branches[0]);
                     most 31 days.
                 </p>
                 <dl
-                    class="mt-3 grid grid-cols-3 gap-2 text-sm"
+                    class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3"
                     data-testid="overview-panel-total"
                 >
-                    <div v-for="col in panelColumns" :key="col.key">
+                    <div
+                        v-for="col in panelColumns"
+                        :key="col.key"
+                        class="flex items-baseline justify-between gap-3 sm:block"
+                    >
                         <dt class="text-xs text-muted-foreground">
                             {{ col.label }}
                         </dt>
@@ -462,11 +472,18 @@ const firstRow = computed(() => props.overview.branches[0]);
                         </dd>
                     </div>
                 </dl>
-                <details class="group mt-3">
+                <details
+                    class="group mt-3"
+                    data-testid="overview-panel-branches"
+                >
                     <summary
-                        class="inline-flex min-h-11 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:min-h-0"
+                        class="view-link cursor-pointer list-none [&::-webkit-details-marker]:hidden"
                     >
-                        By branch
+                        By branch ({{ overview.branches.length }})
+                        <ChevronDown
+                            class="size-3.5 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
                     </summary>
                     <ul class="mt-2 divide-y">
                         <li
