@@ -19,7 +19,7 @@ test('the panel talks only to the ask endpoints and shows the button when either
     assert.match(drawer(), /<div v-if="state \|\| ask" data-ask-kpone>/);
     assert.match(
         drawer(),
-        /Promise\.allSettled\(\[getChat\(\), getAsk\(\)\]\)/,
+        /Promise\.allSettled\(\[[\s\S]*probe\(props\.paths\?\.chat \?\? true, getChat\)[\s\S]*probe\(props\.paths\?\.claude \?\? true, getAsk\)/,
     );
 });
 
@@ -100,4 +100,29 @@ test('targets are 44 px on phones, as in the rest of the drawer', () => {
     for (const source of [panel(), drawer()]) {
         assert.match(source, /min-h-11/);
     }
+});
+
+test('the overview page says which paths are on, so a switched-off path is never called', () => {
+    const page = read('resources/js/pages/Insights/Overview.vue');
+
+    assert.match(page, /askKpone\?: \{ chat: boolean; claude: boolean \}/);
+    assert.match(page, /<AskKponeDrawer :paths="props\.askKpone" \/>/);
+    assert.match(drawer(), /props\.paths\?\.chat \?\? true/);
+    assert.match(drawer(), /props\.paths\?\.claude \?\? true/);
+    assert.match(drawer(), /Promise\.reject\(new Error\('not offered'\)\)/);
+});
+
+test("the other people's history menu belongs to the history views only, never the Claude path", () => {
+    assert.match(
+        drawer(),
+        /v-else-if="view !== 'chat' && state\?\.canViewOthers"/,
+    );
+    assert.match(drawer(), /v-if="view === 'chat' && path === 'api' && state"/);
+});
+
+test('the by-hand copy box is brought into view and the question box is shorter on a phone', () => {
+    const source = panel();
+
+    assert.match(source, /scrollIntoView\(\{ block: 'nearest' \}\)/);
+    assert.match(source, /class="min-h-16 lg:min-h-20"/);
 });

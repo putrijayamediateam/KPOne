@@ -148,7 +148,7 @@ test('the Director overview mounts the drawer only in its reserved header-action
     );
     assert.match(
         page,
-        /data-testid="overview-header-actions"[\s\S]{0,40}>\s*<AskKponeDrawer \/>/,
+        /data-testid="overview-header-actions"[\s\S]{0,40}>\s*<AskKponeDrawer :paths="props\.askKpone" \/>/,
     );
     assert.equal((page.match(/<AskKponeDrawer/g) ?? []).length, 1);
 });

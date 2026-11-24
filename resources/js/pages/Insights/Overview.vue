@@ -53,6 +53,7 @@ type BranchRow = {
 
 const props = defineProps<{
     canOverview?: boolean;
+    askKpone?: { chat: boolean; claude: boolean };
     overview: {
         month: string;
         branches: BranchRow[];
@@ -263,7 +264,7 @@ const firstRow = computed(() => props.overview.branches[0]);
                 class="flex shrink-0 items-center gap-2 empty:hidden"
                 data-testid="overview-header-actions"
             >
-                <AskKponeDrawer />
+                <AskKponeDrawer :paths="props.askKpone" />
             </div>
         </header>
 

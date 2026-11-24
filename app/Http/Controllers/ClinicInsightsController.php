@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Agents\AgentPermissions;
+use App\Domain\Agents\Ask\AskSwitch;
+use App\Domain\Agents\Chat\ChatSwitch;
 use App\Domain\Shared\Services\ClinicInsightsReportService;
 use App\Domain\Shared\Services\ClinicInsightsService;
 use App\Domain\Shared\Services\DailyReportExportService;
@@ -41,7 +44,14 @@ class ClinicInsightsController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
 
-        return Inertia::render('Insights/Overview', ['canOverview' => true, 'overview' => $overview->page($actor)]);
+        // The Ask KPOne drawer only calls the paths that are switched on and allowed for this person, so a switched-off path costs no failed request.
+        $mayAsk = $actor->can(AgentPermissions::CHAT_USE);
+
+        return Inertia::render('Insights/Overview', [
+            'canOverview' => true,
+            'overview' => $overview->page($actor),
+            'askKpone' => ['chat' => $mayAsk && ChatSwitch::enabled(), 'claude' => $mayAsk && AskSwitch::enabled()],
+        ]);
     }
 
     public function report(Request $request, ClinicInsightsReportService $insights, string $section): Response

@@ -166,6 +166,14 @@ const copyAndOpen = async (request: AskClaudeRequest) => {
     copied.value = ok ? request.id : null;
     copyFailed.value = ok ? null : request.id;
 
+    if (!ok) {
+        // Bring the by-hand box fully into view (on a phone the form below it takes much of the screen).
+        await nextTick();
+        document
+            .getElementById(`ask-prompt-${request.id}`)
+            ?.scrollIntoView({ block: 'nearest' });
+    }
+
     if (ok && request.webLink) {
         window.open(request.webLink, '_blank', 'noopener');
     }
@@ -378,7 +386,7 @@ const cancel = async (request: AskClaudeRequest) => {
             <Textarea
                 id="ask-claude-input"
                 v-model="text"
-                class="min-h-20"
+                class="min-h-16 lg:min-h-20"
                 :aria-describedby="
                     error && error.kind !== 'retry'
                         ? 'ask-claude-error ask-claude-count'

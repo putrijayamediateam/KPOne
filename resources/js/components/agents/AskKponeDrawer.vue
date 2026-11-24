@@ -46,6 +46,8 @@ import { formatDateTime } from '@/lib/presentation';
 
 // CHAT-1 slice 1: the "Ask KPOne" button and right-hand drawer. Renders nothing unless GET /agents/chat (the API path) or
 // GET /agents/ask (CHAT-2b, "Ask through Claude") succeeds (404 switched off, 403 not permitted). With both on, the person picks a path.
+const props = defineProps<{ paths?: { chat: boolean; claude: boolean } }>();
+
 type View = 'chat' | 'history' | 'others';
 
 const state = ref<AskChatState | null>(null);
@@ -105,7 +107,13 @@ const hasInput = computed(
 );
 
 onMounted(async () => {
-    const [chat, claude] = await Promise.allSettled([getChat(), getAsk()]);
+    // The page says which paths are on and allowed, so a switched-off path is never called (no failed request). With no hint, both are tried.
+    const probe = <T,>(on: boolean, call: () => Promise<T>): Promise<T> =>
+        on ? call() : Promise.reject(new Error('not offered'));
+    const [chat, claude] = await Promise.allSettled([
+        probe(props.paths?.chat ?? true, getChat),
+        probe(props.paths?.claude ?? true, getAsk),
+    ]);
     state.value = chat.status === 'fulfilled' ? chat.value : null;
     ask.value = claude.status === 'fulfilled' ? claude.value : null;
     threads.value = state.value?.threads ?? [];
@@ -378,7 +386,9 @@ const archive = async (id: number) => {
                             <History aria-hidden="true" />
                             History
                         </Button>
-                        <DropdownMenu v-else-if="state?.canViewOthers">
+                        <DropdownMenu
+                            v-else-if="view !== 'chat' && state?.canViewOthers"
+                        >
                             <DropdownMenuTrigger as-child>
                                 <Button
                                     type="button"
