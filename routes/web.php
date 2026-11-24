@@ -136,6 +136,7 @@ use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\TriageController;
 use App\Http\Controllers\TriageGuidelineController;
+use App\Http\Controllers\TriageViewController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
@@ -239,6 +240,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/triage', [TriageController::class, 'show'])->name('visits.triage.show');
         Route::post('visits/{visit}/triage', [TriageController::class, 'store'])->middleware('throttle:30,1')->name('visits.triage.store');
     });
+    // TRI-1e: the patient's own doctor reads the visit's triage record (view only; every open audited first).
+    Route::get('visits/{visit}/triage/view', [TriageViewController::class, 'show'])
+        ->middleware(['sensitive.no-store', 'permission:visits.triage.view.own', 'throttle:60,1'])
+        ->name('visits.triage.view');
     Route::prefix('triage-guideline')->controller(TriageGuidelineController::class)
         ->middleware(['sensitive.no-store', 'permission:triage.guideline.manage.organisation'])->group(function (): void {
             Route::get('/', 'index')->name('triage-guideline.index');

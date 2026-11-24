@@ -9,6 +9,7 @@ use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageService;
+use App\Domain\Clinical\Triage\TriageViewProjection;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
@@ -89,6 +90,9 @@ class ClinicalEncounterDirectoryService
                 'triage' => app(TriageZoneProjection::class)->forVisits($actor, [
                     TriageZoneProjection::subject($encounter->visit, $encounter->visit->queueEntry, $encounter->attending_clinician_user_id),
                 ])[$encounter->visit->id] ?? null,
+                // TRI-1e: the patient's own doctor reads the whole triage record on its own audited page.
+                'triageViewUrl' => app(TriageViewProjection::class)->canView($actor, $encounter->visit)
+                    ? route('visits.triage.view', $encounter->visit) : null,
                 'isPanel' => $encounter->visit->coverage_type === 'panel',
                 'panelNote' => $encounter->visit->coverage_type === 'panel' ? $encounter->visit->coverage_panel_note : null,
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'
