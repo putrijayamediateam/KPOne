@@ -3461,8 +3461,9 @@ version of a branch week counts (drafts, weeks waiting for approval and replaced
 room of the branch, else null), and `station` (null until HR-22c). No names, leave types, reasons, notes or pay.
 
 Removed from every answer:
-- Shifts covered by approved leave. Leave over the whole span of the shift is checked, as in RosterRoomLookup. A half day
-  removes only the shifts it overlaps.
+- Approved leave. For a moment (`onDutyNow`, `isOnDuty`), a person whose approved leave covers that moment is left out,
+  exactly as the HR dashboard has always worked. For a day (`onDutyOn`), a shift is left out only when one approved leave
+  covers all of it, so a doctor on a morning half day still shows for the afternoon they work.
 - On-call shifts (HR-20: on call never counts as on duty).
 - Inactive accounts.
 
@@ -3564,8 +3565,10 @@ resident permission (consultation, MC, referral, attendance letter, targets). No
 - Migrations `008200` (tables) and `008300` (grant). This does not grant anything to `ca`, so the `medical_assistant` rule
   does not apply.
 
-### 29.8 Open points for the owner
+### 29.8 Owner answers (24 Nov 2026, relayed by B.E.R.N.I.S.S)
 
-- 22b: the badge wording "Locum" next to a doctor's name on staff screens, or no badge?
-- 22c: switch "Plan stations" on per branch (default off), or warn everywhere from the start?
-- 22f: the 30 open proposals cap, and whether HR may use part of an offered day (default yes).
+- 22b: yes, show the outline "Locum" badge beside a doctor's name, on staff screens only (never prints, the TV or patient
+  pages).
+- 22c: yes, a per-branch "Plan stations" switch in roster settings, off by default; the "No station" warning shows only when
+  it is on.
+- 22f: yes to both: at most 30 open proposals per locum, and HR may use part of an offered day (inside the offered times).
