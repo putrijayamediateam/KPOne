@@ -36,12 +36,11 @@ class ChatProviderTest extends TestCase
         $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'not configured');
 
         config(['ai_chat.api_key' => 'test-key-123', 'ai_chat.endpoint' => 'https://provider.test/v1/messages']);
-        Http::fake(['provider.test/*' => Http::response(['error' => ['message' => 'secret prompt echo test-key-123'], 'status' => 500], 500)]);
+        Http::fake(['provider.test/*' => Http::sequence()->push(['error' => ['message' => 'secret prompt echo test-key-123']], 500)->push(['nothing' => true])]);
         $message = $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'status 500');
         $this->assertStringNotContainsString('test-key-123', $message);
         $this->assertStringNotContainsString('secret prompt', $message);
 
-        Http::fake(['provider.test/*' => Http::response(['nothing' => true])]);
         $this->expectFailure(fn () => (new HttpChatModel)->complete('s', [], []), 'could not be read');
     }
 
