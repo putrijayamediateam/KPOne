@@ -1,96 +1,186 @@
 # BIL-31: Director and Finance overview
 
-Owner decisions: item 32 (20-21 Nov 2026), "a Director and Finance overview on top of Insights: targets, claims,
-items waiting for approval"; round 2 P8, "the Director and Finance overview (Director, Finance Officer)".
+Owner decisions:
+- item 32 (`docs/decisions/2026-11-20-finance-inventory-proposals.md`, lines 71-72): "a Director and Finance overview
+  on top of Insights: targets, claims, items waiting for approval";
+- P8 in the owner's round-2 answers of 21 Nov 2026 (relayed to the Billing session by B.E.R.N.I.S.S, recorded in
+  `TEAM.md`): "the Director and Finance overview (Director, Finance Officer)".
 
-Design note for review (Kumar), revision 1. Classic only. Synthetic data only; nothing here is production approval.
-It only reads: no money, claim, target or approval changes.
+Design note for review (Kumar), revision 2, after Kumar's first read ("approve with changes", twelve findings; F1 to
+F12 mark where). Classic only. Synthetic data only; nothing here is production approval. It only reads: no money,
+claim, target or approval changes.
 
 ## 1. What it does
 
-One page, **Overview**, for the Director and the Finance Officer, shown first in Insights. It answers four
-questions on one screen and links to the page where each is handled:
+One page, **Overview**, for the Director and the Finance Officer, as a tab in Insights. It answers on one screen:
 
-1. **How are sales doing?** Net sales today and month to date, per branch and in total, with the same days of last
-   month beside them.
-2. **Are we on target?** This month's sales target and progress per branch (BIL-30). Doctor targets stay on the
-   Sales targets page.
-3. **What is owed to us by Panels?** Panel claim money not yet received: awaiting decision, accepted but not paid,
-   and approved Panel shares not yet claimed, with the part older than 90 days shown on its own.
-4. **What is waiting for a decision?** Counts of items waiting for approval, by kind and branch.
+1. **Are we on target?** This month's net sales and target progress per branch (BIL-30).
+2. **What do Panels still owe us?** Panel claim money not yet received, with the part older than 90 days.
+3. **What is waiting for a decision?** Counts of money and claim items waiting, by kind and branch.
+4. **How is this month going against last month?** Month to date against the same days of last month. This goes
+   beyond the literal item 32, so it is question 5 for the owner (F12); it costs one extra query per branch.
 
-Every figure has a "View" link to the page that holds the detail: Insights Sales, Sales targets, Panel summary,
-Panel Claims, Daily cash closing, Patient Billing refunds, the Approvals inbox.
+Counts and amounts only: no patient name or number, invoice number, diagnosis or staff name in the page or its
+props.
 
-## 2. The numbers (all reused, so they match the pages they link to)
+## 2. The numbers
 
-- **Sales:** `InvoiceSalesProjection::netSales` (BIL-30, K1), per branch, for the branch-local day and for the 1st of
-  the month to today. "Last month" is the same day numbers of the previous month (1st to today's day number, capped
-  at that month's last day). The total row is the sum of the branches.
-- **Targets:** `SalesTargetService::progress` for each branch's target of the current month: target, achieved,
-  percent and needed per day. A branch without a target shows "No target" and a "Set target" link.
-- **Panel claims:** the Panel summary's own figures (`PanelSummaryReportService`), per branch, for invoices finalised
-  from the first finalised invoice to today: "Awaiting decision", "Accepted outstanding", "Unclaimed", and each one's
-  "over 90 days" part. To keep one calculation, the service gains a small public method that returns these totals
-  for a branch; the report and its CSV call it and do not change (their existing tests prove it).
-- **Waiting for approval:** the Approvals inbox's own sources (`ApprovalSources`) for the kinds that are money or
-  claims: daily cash closes waiting, Panel price changes, supplier invoices, purchase requests. They are counted for
-  every branch of the organisation, not only the viewer's. Two money approvals are not in the inbox yet: refunds
-  waiting for approval, and Panel or pay-later proposals waiting on a bill. The overview counts them directly from
-  their tables with the same "waiting" rule their pages use, until the Billing approvals list (task 32) adds them to
-  the inbox.
-- **Counts and amounts only.** No patient name, number, invoice number, diagnosis or staff name appears on the page
-  or in its props.
+### 2.1 Sales and targets (F6, F7)
 
-## 3. Who sees it (P8)
+- **One sum per branch:** `InvoiceSalesProjection::netSales` (BIL-30, K1) for the branch-local month so far, from
+  local midnight on the 1st to the current time. The same value feeds "month to date" and the target's "achieved",
+  so there is no second query (F7). The total row adds the branches, each on its own clock.
+- **Last month:** branch-local whole days from the 1st of last month to day `min(today's day number, days in last
+  month)`, inclusive, so the 31st is dropped on the last day of a 30-day month; the page says "1–30 Nov" so this is
+  visible. Because today is not over, the comparison column compares **month to date up to the end of yesterday**
+  with last month's 1st to yesterday's day number, and today's figure is shown on its own, labelled "today so far"
+  (F6). On the 1st there is no comparison ("No full day yet this month").
+- **Difference column:** month to date up to yesterday minus last month's same days, in RM, with no red or green.
+- **Targets:** the current month's branch target row (`sales_targets`, `doctor_user_id` null). A cleared target
+  (`amount_sen` null) or no row reads "No target". Progress comes from the public
+  `SalesTargetService::progress`. The overview reads targets itself, because `SalesTargetService::page` requires the
+  manage permission (F7). The "Set target" link shows only to holders of `sales_targets.manage.organisation`
+  (today the same two roles).
 
-- **Recommended:** a new permission `insights.overview.view.organisation`, for `director` and `finance_officer`
-  only, through one additive migration (grants only what is missing, skips a missing role, never revokes), mirrored
-  in `PermissionCatalogue`. It is not people-or-access authority. Nothing goes to `ca`, so the `medical_assistant`
-  rule does not apply.
-- **Alternative (question 1):** reuse `sales_targets.manage.organisation`, which today is held by exactly these two
-  roles, and add no permission. This is shorter, but it ties the overview to target setting.
-- The page is organisation-wide: it shows every active branch, as the Sales targets page does, because Director and
-  Finance Officer work across branches. It still checks the viewer's own active, assigned branch for the usual actor
-  rule, as BIL-30 does.
-- Other Insights users see no change. The "Overview" tab and the Clinic management link show only with the
-  permission. The route returns 403 without it.
+### 2.2 Panel claims owed (F1, F2)
+
+- **Figures:** awaiting decision, accepted outstanding and unclaimed, each with its over-90-day part. These are
+  values 19, 9, 5 and 23, 13, 17 of the Panel summary row.
+- **One calculation:** `PanelSummaryReportService` gains a public method, roughly
+  `totals(Branch $branch, ?CarbonImmutable $from, CarbonImmutable $asOf)`, that adds up per allocation and returns those six
+  numbers. `project()` calls it for its own window, so the report, its CSV and their tests do not change.
+- **Window:** all finalised Panel invoices up to today (money owed has no start date). The Panel summary page is
+  limited to 31 dates, so its figure cannot equal the overview's. Instead:
+  - one test checks a 31-day window against the report page;
+  - the overview's "View" link goes to Panel Claims follow-up ("open claims with no action"). The section says
+    "All Panel bills to date"; the Panel summary link carries the note "covers at most 31 days".
+- **Cost:** `project()` reads every approved allocation; over all history this is the known heavy path (BASELINE
+  section 6 item 9). The new method reads only allocations that still owe money (unclaimed, or claimed and not
+  fully remitted or rejected), filtered in SQL before the per-claim step. A test bounds its queries.
+- **Scope:** Panel summary is branch-scoped (`reports.panel_summary.view.branch`, active branch only). The
+  overview shows these totals for every active branch (question 2). This relaxes the branch-assignment rule **for
+  totals only**, which the owner is asked to confirm. Insights already shows Panel amounts across all branches to
+  every Insights user, so this adds no patient or claim detail.
+- **Audit:** the Panel summary audits each view because it releases a report with per-Panel lines. The overview
+  shows only branch totals, as Insights does, and Insights does not audit views. So the overview does not audit,
+  unless the owner chooses otherwise (question 7).
+
+### 2.3 Waiting for a decision (F3, F4, F5)
+
+The Approvals inbox sources are viewer-dependent: each `waitingFor()` leaves out the viewer's own items, and
+`visibleTo()` needs the decide permission and an assignment at the branch. So the overview cannot reuse them for an
+organisation-wide count. Each kind below has a **viewer-independent waiting rule** in one small read class,
+`OverviewWaitingCounts`. Each row is counted per branch, except where marked as one line for the organisation.
+
+| Kind | Waiting rule | Decide permission (Director, Finance Officer) | Link |
+|---|---|---|---|
+| Daily cash close | latest revision of a branch-day has no decision row | `payments.cash_closing.approve.branch` | Daily cash closing |
+| Refund | `payment_refunds` row with no `payment_refund_decisions` row, on a finalised invoice of the same organisation and branch | `payments.refunds.approve.branch` | Billing space, Financial work (no list page exists; no visit link) |
+| Panel or pay-later share | `coverage_allocations.status = 'proposed'`, `current_invoice_guard = invoice_id`, invoice finalised and not void, visit registered, `expected_invoice_version = invoices.lock_version` (stale or superseded proposals are not counted) | `coverage.approve.branch`, `outstanding.approve.branch` | Billing space, Financial work |
+| Panel claim adjustment | `panel_claim_adjustments.status = 'requested'` | `panel.claims.adjustments.confirm.branch` | Panel Claims |
+| Supplier invoice | the supplier invoice source's waiting predicate without the maker exclusion | `inventory.supplier_invoices.approve.branch` | Supplier invoices |
+| Purchase order | `ProcurementService` status `submitted` | `inventory.purchase_orders.approve.organisation` | Purchase orders (one line for the organisation) |
+| Panel price change | the price change source's waiting predicate without the maker exclusion | `panel.prices.approve.organisation` | Panel price changes (one line for the organisation; not branch-scoped) |
+
+- **Left out:** purchase requests (a CA Supervisor or Store Admin task to turn a request into a draft order, not a
+  money approval; the Director does not hold its permission). Staff claims and other HR approvals stay with HR
+  (question 6).
+- **Counts differ from the inbox:** the overview counts everything waiting, including items the viewer recorded
+  themselves; the inbox shows only what this person may decide. The page says so in one line.
+- **Inbox later:** refunds and proposals are not inbox sources yet. Adding them is the Billing team's separate
+  "approvals waiting list" slice (task 32 in the Billing task list, not owner item 32). That slice can reuse these
+  rules.
+
+### 2.4 Daily cash close (question 4, F8)
+
+- If the owner says yes: one line per branch for yesterday's close, from a new read method
+  `CashClosingService::status(Branch, date)`. Today's `page()` and `month()` use the active branch only. The method
+  returns the existing statuses: approved and locked, waiting, returned for recount, not counted, or before the start
+  date. "Open" (today) is not shown.
+- There is no "branch closed that day" concept apart from the start date, so a branch closed on a public holiday
+  shows "Not counted". The line is information, not an alarm, and has no colour.
+- Since BIL-32 the Branch Manager approves closes; the Finance Officer can approve when the Branch Manager is away.
+
+## 3. Who sees it (P8, F2)
+
+- **Permission:** a new `insights.overview.view.organisation` for `director` and `finance_officer` only, through one
+  additive migration (grants only what is missing, skips a missing role, never revokes), mirrored in
+  `PermissionCatalogue`. It is not people-or-access authority. Nothing goes to `ca`, so the `medical_assistant`
+  rule does not apply. (Question 1; Kumar agrees.)
+- **Actor rule:** as BIL-30. The viewer must be active, with an active and effectively assigned branch, and hold the
+  permission. Then the page lists every active branch of the organisation. Inactive branches are left out.
+- **What widens:**
+  - Sales across branches already reach every Insights user, so nothing new there.
+  - Panel claim totals and waiting counts lose their branch-assignment rule for the two roles, at totals level only
+    (question 2).
+- **Route:** its own `GET insights/overview` with `insights.view.organisation` and the new permission, registered
+  before `insights/{section}` (F9).
+- **Tabs:** the Insights tab lists in `Today.vue` and `Report.vue` are hard-coded. A shared prop `canOverview` adds
+  the tab, keeping `useScrollStrip(reportTabs` and the `aria-current` markup that `strip-fix.test.mjs` pins. Today
+  stays the landing tab unless the owner says otherwise (question 8). Clinic management lists "Director and Finance
+  overview" under Reports for the same permission.
 
 ## 4. Screen (Daniel's look)
 
-- **Insights, then Overview** (first tab, only for the two roles); also in Clinic management under Reports.
-- Four sections, each a card with a heading and a "View" link:
-  - **Sales:** a small table, one row per branch plus Total: Today, Month to date, Same days last month and the
-    difference in RM (no red or green).
-  - **Targets:** one row per branch: target, achieved and percent, a thin progress bar, needed per day.
-  - **Panel claims owed:** one row per branch: Awaiting decision, Accepted not paid, Not yet claimed, and "Over 90
-    days" muted under each.
-  - **Waiting for approval:** a short list "Daily cash close, Cheras: 1", "Refunds, Puchong: 2"; nothing shown for a
-    kind with none; "Nothing is waiting." when all are zero.
-- The page loads its figures fresh each time. At 390 px the tables become cards.
+- **Insights, then Overview.** Four cards, each with a heading and "View" links:
+  - **Targets this month:** per branch, target, achieved and percent, a thin bar and needed per day; "No target" with
+    a "Set target" link when allowed.
+  - **Panel money owed:** per branch, Awaiting decision, Accepted not paid and Not yet claimed, each with "over 90
+    days" muted under it; "All Panel bills to date".
+  - **Waiting for a decision:** a short list such as "Daily cash close · Cheras · 1" and "Refunds · Puchong · 2";
+    kinds with none are not shown; when nothing is waiting, "Nothing is waiting."
+  - **Month so far** (if question 5 is yes): per branch and total, "Today so far", "Month to yesterday", "Same days
+    last month (1–23 Oct)", and the difference.
+- No red or green anywhere. At 390 px the tables become cards.
 
-## 5. Tests
+## 5. Tests (F10)
 
-- **Numbers match their source pages:** on one synthetic fixture (a consultation sale, an OTC sale, a refund credit,
-  a confirmed Panel claim adjustment, a claim awaiting decision, an accepted unpaid claim, an unclaimed Panel share,
-  a waiting refund, a waiting Panel proposal and a waiting cash close), each overview figure equals the Insights,
-  Sales targets, Panel summary or Approvals inbox figure for the same branch and period.
-- **Same days last month:** the 31st in a month after a 30-day month; 29 February; the 1st of the month.
-- **Panel summary unchanged:** its existing tests stay green after the shared method is added.
-- **Access:** Director and Finance Officer get 200; every other role gets 403 and sees no tab or link; the payload
-  has no patient or staff field.
+- **Numbers:**
+  - Fixture: a consultation sale, an OTC sale, a refund credit, a confirmed Panel claim adjustment, a claim awaiting
+    decision, an accepted unpaid claim and an unclaimed Panel share.
+  - Branch sales and targets equal the Insights Sales figure and the Sales targets page for the same branch and
+    month.
+  - Panel totals equal `PanelSummaryReportService::totals`, and for a 31-day window equal the report page.
+  - Waiting counts follow each rule in 2.3:
+    - approved and rejected refunds are not counted;
+    - stale, superseded and completed-visit proposals are not counted;
+    - the viewer's own items are counted;
+    - Panel price changes and purchase orders are one organisation line.
+- **Days (frozen clock):** 00:30 and 23:30 Kuala Lumpur time, the 1st of the month, the 31st after a 30-day month,
+  and 29 February. Today is "so far"; the comparison stops at yesterday.
+- **Unchanged reports:** the Panel summary page, its CSV and their existing tests stay green after the shared
+  method.
+- **Query bound:** the Panel totals method stays within a fixed number of queries whatever the number of settled
+  allocations.
+- **Access:**
+  - Director and Finance Officer get 200.
+  - Every other role gets 403 and sees no tab or link.
+  - A viewer with no active, assigned branch is refused.
+  - An inactive branch is left out.
+  - The payload has no patient or staff field.
 - **Migration:** additive and idempotent, skips a missing role.
+- **Frontend:** the tab and the hub link show only with the prop; the strip markup is unchanged.
 - No contention test: the page writes nothing.
-- **Changed existing assertions**, expected and to be listed line by line for the owner before any edit:
-  `tests/Feature/ClinicManagementTest.php` (hub map gains the overview); possibly the Insights tab test if it pins
-  the exact tab list; the role permission pins if question 1 is answered with the new permission.
+- **Changed existing assertions** (listed line by line for the owner before any edit):
+  - `tests/Feature/ClinicManagementTest.php`: the hub map gains the overview path.
+  - Any test pinning the exact Director or Finance Officer permission lists, to be found when building.
 
-## 6. Questions for the owner
+## 6. Questions for the owner (F11)
 
-1. **Permission:** A (recommended), a new `insights.overview.view.organisation` for Director and Finance Officer;
-   or B, reuse the sales target permission.
-2. **Branches:** A (recommended), every active branch; or B, only the branches the viewer is assigned to.
-3. **Waiting for approval:** A (recommended), everything waiting in the organisation, by branch; or B, only what the
-   viewer can approve themselves (the Approvals inbox already shows this).
-4. **Cash close status:** include a line per branch for yesterday's close (Approved and locked, Waiting, Not
-   counted)? A, yes (recommended, it is the most common thing a Finance Officer checks each morning); B, no.
+1. **Permission:** A (recommended), a new overview permission for Director and Finance Officer; B, reuse the sales
+   target permission.
+2. **Branches:** sales already show every branch in Insights. Should Panel money owed and waiting counts also show
+   every active branch, at totals level, for these two roles, even branches they are not assigned to? A, yes
+   (recommended); B, only branches they are assigned to.
+3. **Waiting counts:** A (recommended), everything waiting, including items the viewer recorded themselves; B, only
+   what the viewer may decide (the same as the Approvals inbox).
+4. **Daily cash close line:** show yesterday's close per branch (approved and locked, waiting, returned for recount,
+   not counted, before the start date; a branch closed for a holiday shows "Not counted")? A, yes (recommended); B,
+   no.
+5. **Month so far:** add month to date against the same days last month (beyond item 32's wording)? A, yes
+   (recommended); B, no.
+6. **Kinds counted as waiting:** A (recommended), the seven in 2.3 (cash close, refund, Panel or pay-later share,
+   Panel claim adjustment, supplier invoice, purchase order, Panel price change); B, also staff claims from HR.
+7. **Audit:** A (recommended), no audit of views, as Insights; B, audit each view, as the Panel summary.
+8. **Landing tab:** A (recommended), Insights still opens on Today and Overview is a tab; B, Overview opens first for
+   these two roles.
