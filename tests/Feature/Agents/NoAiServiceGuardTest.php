@@ -7,7 +7,8 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
 /**
- * Contract section 7 (owner decision 2026-11-05): KPOne calls no AI service. This fails if application
+ * Contract section 7 (owner decision 2026-11-05, changed 2026-11-24 for the chatbox only): KPOne calls no AI service except through
+ * the one chatbox adapter in app/Domain/Agents/Chat/Providers (with config/ai_chat.php). This fails if application
  * code, configuration, routes, frontend code or the environment example names an AI provider endpoint
  * or setting, or if an AI SDK package is required or locked.
  */
@@ -43,6 +44,11 @@ class NoAiServiceGuardTest extends TestCase
             }
         }
         foreach ($files as $path) {
+            // CHAT-1 (owner decision 2026-11-24): the provider may be named only by its one adapter folder and its settings file.
+            $relative = str_replace($this->root().'/', '', $path);
+            if (str_starts_with($relative, 'app/Domain/Agents/Chat/Providers/') || $relative === 'config/ai_chat.php') {
+                continue;
+            }
             $text = (string) file_get_contents($path);
             foreach (self::FORBIDDEN_TEXT as $needle) {
                 if (stripos($text, $needle) !== false) {
@@ -74,6 +80,34 @@ class NoAiServiceGuardTest extends TestCase
         }
         $this->assertGreaterThan(100, count($names));
         $hits = array_values(array_filter(array_unique($names), fn (string $name): bool => $this->forbidden(strtolower($name))));
+        $this->assertSame([], $hits);
+    }
+
+    /** CHAT-1: only the chatbox's own controller, middleware, command, provider binding and routes may use the chat classes. */
+    public function test_no_clinical_patient_billing_or_inventory_code_uses_the_chat_classes(): void
+    {
+        $allowed = [
+            'app/Domain/Agents/Chat/', 'app/Http/Controllers/AgentChatController.php', 'app/Http/Middleware/ChatEnabled.php',
+            'app/Console/Commands/PurgeAiChatHistory.php', 'app/Providers/AppServiceProvider.php', 'routes/web.php', 'routes/console.php',
+        ];
+        $hits = [];
+        $count = 0;
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->root().'/app', RecursiveDirectoryIterator::SKIP_DOTS)) as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+            $count++;
+            $relative = str_replace($this->root().'/', '', $file->getPathname());
+            foreach ($allowed as $prefix) {
+                if (str_starts_with($relative, $prefix)) {
+                    continue 2;
+                }
+            }
+            if (str_contains((string) file_get_contents($file->getPathname()), 'Domain\\Agents\\Chat')) {
+                $hits[] = $relative;
+            }
+        }
+        $this->assertGreaterThan(500, $count);
         $this->assertSame([], $hits);
     }
 

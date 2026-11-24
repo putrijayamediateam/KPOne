@@ -21,6 +21,12 @@ final class AgentPermissions
     /** CN-1: the Director's own KPOne connector (docs/agents/MCP-CONNECTOR-DESIGN.md section 5). Read-only totals. */
     public const CONNECTOR_USE = 'ai_connector.use.organisation';
 
+    /** CHAT-1: the AI chatbox for the Director (docs/agents/AI-CHATBOX-DESIGN.md section 7). Read-only questions through the connector's tools. */
+    public const CHAT_USE = 'ai_chat.use.organisation';
+
+    /** CHAT-1: open other people's chatbox history (Director only in slice 1); each open is audited. */
+    public const CHAT_HISTORY = 'ai_chat.history.view.organisation';
+
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
@@ -31,6 +37,8 @@ final class AgentPermissions
             self::PROPOSALS_VIEW => ['director', 'ca_supervisor', 'finance_officer'],
             self::DAILY_SUMMARY_VIEW => ['director', 'ca_supervisor', 'finance_officer', 'administrator'],
             self::CONNECTOR_USE => ['director'],
+            self::CHAT_USE => ['director'],
+            self::CHAT_HISTORY => ['director'],
         ];
     }
 }

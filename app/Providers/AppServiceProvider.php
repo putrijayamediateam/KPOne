@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Agents\Chat\ChatModel;
+use App\Domain\Agents\Chat\Providers\HttpChatModel;
 use App\Domain\Agents\Connector\ConnectorTools;
 use App\Domain\Agents\Health\SystemHealthTool;
 use App\Domain\Agents\Proposals\ProposalPreparers;
@@ -59,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(AccessChangeActorContext::class);
+        // CHAT-1: the one adapter to the AI provider (tests bind a fake).
+        $this->app->bind(ChatModel::class, HttpChatModel::class);
         $this->app->scoped(BranchAccessService::class);
         // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
         $this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);

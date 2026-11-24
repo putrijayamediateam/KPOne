@@ -118,14 +118,18 @@ request has its own approval, dispatch and receiving steps.
   surplus. Restock is still proposed for any shortage left.
 - Slow-moving: positive quantity and no dispensing for 60 days or more.
 
-## 7. No AI service (owner decision 2026-11-05)
+## 7. No AI service, except the chatbox (owner decisions 2026-11-05 and 2026-11-24)
 
-- KPOne makes no call to any AI service. There is no API key setting and no AI dependency.
-- A guard test fails if any application code references `api.anthropic.com`, `ANTHROPIC_` settings or an
-  AI SDK package.
-- The KPOne connector (section 16) is a door that the owner's AI app calls; KPOne still calls nothing and holds no AI key or SDK.
-- Adding AI calls later needs a new owner decision (API key, spending limit and a data review) and a
-  contract change.
+- **The rule.** KPOne makes no call to any AI service **except through the one chatbox adapter** (section 17), which the owner authorised
+  on 2026-11-24 slice by slice. Nothing else in KPOne calls an AI service, holds an AI key or depends on an AI SDK package.
+- **The guard.** `NoAiServiceGuardTest` fails if any application code, configuration, route, frontend file or `.env.example` names an AI
+  provider endpoint or setting, or if an AI SDK package is required or locked, **except** `app/Domain/Agents/Chat/Providers/` and
+  `config/ai_chat.php`. A second check fails if any code outside the chatbox's own controller, middleware, command, binding and routes
+  uses the chat classes (so no clinical, patient, billing or inventory code can call the AI).
+- **The key.** The provider key is `AI_CHAT_API_KEY` in the server's environment secrets only, never in code, `.env.example` values, a commit or
+  chat. The chatbox is off (`AGENTS_CHAT_ENABLED=false`) until the owner turns it on, only on a server with fictional data until the PDPA review.
+- The KPOne connector (section 16) is a door that the owner's AI app calls; KPOne still calls nothing for it and holds no key for it.
+- Any further AI feature (consultation, files, voice, images) needs its own owner decision and a contract change.
 
 ## 8. Runtime agents in wave 1
 
@@ -397,3 +401,22 @@ the Director's AI app can use as a custom connector. **Claude calls KPOne; KPOne
 - **Operating:** [CONNECTOR-OWNER-GUIDE.md](CONNECTOR-OWNER-GUIDE.md) (what the owner does in the Claude app) and
   [CONNECTOR-TRIAL-CHECKLIST.md](CONNECTOR-TRIAL-CHECKLIST.md) (switching it on and off on the trial server).
 - **Data rule:** fictional data only until the PDPA review (design note section 8).
+
+## 17. The AI chatbox (CHAT-1, owner decision 2026-11-24)
+
+Design: [AI-CHATBOX-DESIGN.md](AI-CHATBOX-DESIGN.md). Slice 1: an "Ask KPOne" drawer on the Director overview page for the Director only.
+
+- **Switch:** `agents.chat_enabled` (`AGENTS_CHAT_ENABLED`), default OFF, read on every request. Off: the chatbox routes answer 404 and the drawer does not appear.
+- **Permissions:** `ai_chat.use.organisation` (Director only) and `ai_chat.history.view.organisation` (Director only in slice 1). Not people or access authority; none for Technical Admin.
+- **Routes** (JSON, behind the switch and the permission, `no-store`): `GET /agents/chat` (state, examples, own threads), `POST /agents/chat/messages`
+  (10 a minute), `GET /agents/chat/threads/{id}`, `POST /agents/chat/threads/{id}/archive`, and for the history permission `GET /agents/chat/others` and `GET /agents/chat/others/{id}`.
+- **One message:** switch, permission, the text (1 to 1,000 characters; a value that looks like an identity number, phone number or email is refused and nothing is saved),
+  the thread (own, not archived), an optional client `key` (the same key returns the stored answer instead of asking again; the same key while the first is running is refused as busy), the limits of 10 a minute and 30 a day per person,
+  and the monthly spend cap (the owner's RM 50): RM 1 is **reserved** under a database lock before the provider is called and **settled** to the real cost from the provider's reported tokens afterwards, also when the answer failed after tokens were spent (`ai_chat_usage`); a reply without a token count is treated as a failure. Then one run of
+  the registered agent `ai_chatbox` ("AI chatbox (AI agent)", created on first use, disabled by the Director on /agents to refuse every message). Inside it the model may ask the connector's
+  fixed read-only questions (tool names as in section 16 plus `list_branches`) through `ConnectorToolRunner`, with at most 6 tool rounds and 8 tool calls in all, and a 90-second overall deadline. The chatbox adds no data source and no write.
+  **Shared with the connector:** these reads use the connector agent and the connector's 500 a day limit, and appear as `ai_connector.tool_called` rows without a client id; they work whether or not `AGENTS_CONNECTOR_ENABLED` is on, and are refused if the Director disabled the "Claude connector" agent.
+- **The answer:** plain text (tags removed, 4,000 characters at most) plus a "Figures" list and a report link built by KPOne from the tool result (amounts exact: "Sen" values shown as RM with two decimals). The model's words never supply the figures.
+- **History:** `ai_chat_threads` and `ai_chat_messages`; title, text and figures encrypted; messages append-only (PostgreSQL refuses update except the retention purge, delete and truncate); threads are archived, never deleted. Retention 90 days: `php artisan ai-chat:purge` (daily) empties text and figures once, removes a thread's title, and keeps the rows and counts. The others' list includes archived threads (for oversight). A person sees their own history; the history permission opens others' (each open audited first).
+- **Audit:** `ai_chat.message` (outcome, tool names, token counts, cost in sen; never text), `ai_chat.history_opened` and `ai_chat.history_list_opened`, `ai_chat.history_purged`.
+- **Provider:** `ChatModel` interface; one HTTP adapter in `app/Domain/Agents/Chat/Providers/`; settings in `config/ai_chat.php`. Tests bind a fake and make no network call.
