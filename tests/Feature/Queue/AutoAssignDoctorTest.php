@@ -7,6 +7,7 @@ use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Assignment\DoctorAssignmentService;
+use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
@@ -281,6 +282,40 @@ class AutoAssignDoctorTest extends QueueTestCase
         $this->assertFalse($byId[$noRoom->id]['room']);
         $this->assertFalse($byId[$noRoom->id]['free']);
         $this->assertSame($noRoom->id, $list[count($list) - 1]['id'], 'listed last');
+    }
+
+    public function test_a_doctor_who_is_not_on_todays_roster_cannot_be_chosen_even_by_a_direct_request(): void
+    {
+        $rostered = $this->doctor();
+        $offRoster = $this->doctor();
+        $this->publish([$rostered]);
+        $this->enable();
+
+        $this->registerAs($this->payload($offRoster, ['doctor_override_reason' => 'other']))->assertSessionHasErrors('assigned_doctor_user_id');
+        $this->assertSame(0, Visit::query()->count());
+        $this->registerAs($this->payload($rostered))->assertSessionHasNoErrors();
+        $this->assertSame($rostered->id, Visit::query()->sole()->assigned_doctor_user_id);
+    }
+
+    public function test_a_retry_with_a_panel_note_is_a_replay_not_a_conflict_and_survives_the_switch_being_turned_off(): void
+    {
+        $a = $this->doctor();
+        $this->publish([$a]);
+        $this->enable();
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'name' => 'Synthetic Auto Panel']);
+        $payload = $this->payload(null, ['coverage_type' => 'panel', 'panel_id' => $panel->id, 'coverage_member_reference' => 'SYN-1',
+            'coverage_panel_note' => 'Synthetic note', 'panel_note_panel_id' => $panel->id]);
+
+        $this->registerAs($payload)->assertSessionHasNoErrors();
+        $first = Visit::query()->sole();
+        $audits = DB::table('audit_logs')->count();
+
+        $this->registerAs($payload)->assertSessionHasNoErrors();
+        DB::table('branch_auto_assign_settings')->update(['enabled' => false]);
+        $this->registerAs($payload)->assertSessionHasNoErrors();
+        $this->assertSame(1, Visit::query()->count());
+        $this->assertSame($first->assigned_doctor_user_id, Visit::query()->sole()->assigned_doctor_user_id);
+        $this->assertSame($audits, DB::table('audit_logs')->count());
     }
 
     public function test_the_ordering_rules(): void

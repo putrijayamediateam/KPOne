@@ -51,7 +51,7 @@ class StoreVisitRequest extends FormRequest
             'quick_patient.duplicate_override' => ['nullable', 'boolean'],
             'visit_type' => ['required', 'in:consultation,otc'],
             // AUTO-1: with automatic assignment available at the branch a blank doctor means "Auto".
-            'assigned_doctor_user_id' => ['nullable', 'integer', Rule::requiredIf(fn (): bool => $this->input('visit_type') === 'consultation' && ! $this->autoAssignAvailable())],
+            'assigned_doctor_user_id' => ['nullable', 'integer', Rule::requiredIf(fn (): bool => $this->input('visit_type') === 'consultation' && ! $this->autoAssignAvailable() && ! $this->isReplay())],
             'doctor_override_reason' => ['nullable', 'string', Rule::in(DoctorAssignmentService::OVERRIDE_REASONS)],
             'visit_reason' => ['prohibited'],
             'visit_reason_public_ids' => ['nullable', 'array', 'max:5', 'required_if:visit_type,consultation'],
@@ -114,5 +114,14 @@ class StoreVisitRequest extends FormRequest
         $branch = $user ? app(BranchAccessService::class)->activeBranch($user) : null;
 
         return $branch !== null && app(DoctorAssignmentService::class)->isAvailable($branch, CarbonImmutable::now());
+    }
+
+    /** AUTO-1: a retry of a registration that was already saved keeps its doctor, so a blank doctor is not an error. */
+    private function isReplay(): bool
+    {
+        $user = $this->user();
+
+        return $user !== null && is_string($this->input('idempotency_key')) && Visit::query()->where('organisation_id', $user->organisation_id)
+            ->where('idempotency_key', $this->input('idempotency_key'))->exists();
     }
 }

@@ -106,14 +106,14 @@ final class DoctorAssignmentService
      */
     public function recommend(User $actor, Branch $branch, CarbonImmutable $now, ?int $patientId): array
     {
-        return $this->order($actor->organisation_id, $branch, $now, $this->candidateIds($branch, $now), $patientId);
+        return $this->order($actor->organisation_id, $branch, $now, $this->candidateIds($branch, $now), $patientId, withSales: false);
     }
 
     /**
      * @param  list<int>  $ids
      * @return array{doctorId: int|null, reason: string|null, list: list<array{id: int, name: string, free: bool, waiting: int, room: bool}>}
      */
-    private function order(int $organisationId, Branch $branch, CarbonImmutable $now, array $ids, ?int $patientId): array
+    private function order(int $organisationId, Branch $branch, CarbonImmutable $now, array $ids, ?int $patientId, bool $withSales = true): array
     {
         if ($ids === []) {
             return ['doctorId' => null, 'reason' => null, 'list' => []];
@@ -140,7 +140,8 @@ final class DoctorAssignmentService
             if ($user === null) {
                 continue;
             }
-            $sales = InvoiceSalesProjection::netSales($organisationId, $period, $id)['netSen'];
+            // The CA's screen only needs free, waiting and room; sales are read only when the registration picks.
+            $sales = $withSales ? InvoiceSalesProjection::netSales($organisationId, $period, $id)['netSen'] : 0;
             $count = (int) ($patients[$id] ?? 0);
             $target = (int) ($targets[$id] ?? 0);
             $wait = (int) ($waiting[$id] ?? 0);
@@ -178,8 +179,9 @@ final class DoctorAssignmentService
                 [$doctorId, $reason] = [$busy[0]['id'], 'all_busy_capped'];
             }
         }
-        if ($doctorId !== null) {
-            usort($ordered, fn (array $a, array $b): int => ($b['id'] === $doctorId) <=> ($a['id'] === $doctorId));
+        if (! $withSales) {
+            // The CA's list is neutral: by name, so its order never reveals who the rules rank first.
+            usort($ordered, fn (array $a, array $b): int => ($b['room'] <=> $a['room']) ?: (strcasecmp($a['name'], $b['name']) ?: $a['id'] <=> $b['id']));
         }
 
         return ['doctorId' => $doctorId, 'reason' => $reason, 'list' => array_map(

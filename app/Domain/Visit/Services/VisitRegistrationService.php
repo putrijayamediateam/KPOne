@@ -146,7 +146,7 @@ class VisitRegistrationService
                 ])->save();
                 $this->reasons->assign($visit, $reasons);
                 if (array_key_exists('coverage_panel_note', $validated)) {
-                    $this->panelNotes->record($lockedActor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($lockedActor, 'create', $validated));
+                    $this->panelNotes->record($lockedActor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($lockedActor, 'create', Arr::except($validated, ['doctor_source', 'doctor_reason_code'])));
                 }
                 if ($visit->coverage_panel_note !== null) {
                     $this->audit->record('visit.panel_note.updated', $visit, ['record_version' => 1, 'has_note' => true], $lockedActor, $branch);
@@ -288,7 +288,7 @@ class VisitRegistrationService
     /** @param array<string, mixed> $validated */
     private function assertPanelNoteReplay(User $actor, Visit $visit, array $validated): void
     {
-        $replayed = $this->panelNotes->replay($actor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($actor, 'create', $validated));
+        $replayed = $this->panelNotes->replay($actor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($actor, 'create', Arr::except($validated, ['doctor_source', 'doctor_reason_code'])));
         if (! $replayed && array_key_exists('coverage_panel_note', $validated) && $this->panelNotes->value($validated) !== $visit->coverage_panel_note) {
             throw ValidationException::withMessages(['idempotency_key' => 'This Registration was already saved with different details. Start a new form.']);
         }

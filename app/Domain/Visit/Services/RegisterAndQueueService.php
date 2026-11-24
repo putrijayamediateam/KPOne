@@ -80,17 +80,17 @@ class RegisterAndQueueService
         if (($attributes['visit_type'] ?? null) !== 'consultation') {
             return $attributes;
         }
-        $branch = $this->branches->activeBranch($actor);
-        $now = CarbonImmutable::now();
-        if (! $branch || (int) ($attributes['expected_branch_id'] ?? 0) !== $branch->id || ! $this->assignment->isAvailable($branch, $now)) {
-            return $attributes;
-        }
-        // A replay keeps the doctor the first attempt chose: nothing is picked again and nothing is audited again.
+        // A replay keeps the doctor the first attempt chose, whether or not auto is still on: nothing is picked or audited again.
         $earlier = isset($attributes['idempotency_key']) ? Visit::query()->where('organisation_id', $actor->organisation_id)
             ->where('idempotency_key', $attributes['idempotency_key'])->first() : null;
         if ($earlier !== null) {
             $attributes['assigned_doctor_user_id'] ??= $earlier->assigned_doctor_user_id;
 
+            return $attributes;
+        }
+        $branch = $this->branches->activeBranch($actor);
+        $now = CarbonImmutable::now();
+        if (! $branch || (int) ($attributes['expected_branch_id'] ?? 0) !== $branch->id || ! $this->assignment->isAvailable($branch, $now)) {
             return $attributes;
         }
         $patientId = filled($attributes['patient_number'] ?? null)
@@ -105,6 +105,10 @@ class RegisterAndQueueService
             }
 
             return $attributes;
+        }
+        // Only doctors on today's roster may be chosen, by hand too: a request naming anyone else is refused here, not only hidden.
+        if (! in_array($chosen, array_column($pick['list'], 'id'), true)) {
+            throw ValidationException::withMessages(['assigned_doctor_user_id' => "Choose a doctor who is on today's roster."]);
         }
         if ($pick['doctorId'] === null || $chosen === $pick['doctorId']) {
             $attributes['doctor_source'] = 'manual';
