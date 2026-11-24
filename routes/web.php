@@ -115,6 +115,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
+use App\Http\Controllers\SalesTargetController;
 use App\Http\Controllers\SkuEditController;
 use App\Http\Controllers\SpaceAskController;
 use App\Http\Controllers\StaffBranchAssignmentController;
@@ -1389,6 +1390,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/', [CashClosingController::class, 'store'])->middleware(['permission:payments.reconcile.branch', 'throttle:20,1'])->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
                 ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1', 'approvals.forget'])->name('cash-closings.decide');
+        });
+
+        // BIL-30: monthly sales targets (Director and Finance Officer); a doctor sees their own on the consultation queue.
+        Route::middleware(['permission:sales_targets.manage.organisation', 'sensitive.no-store'])->prefix('sales-targets')->group(function () {
+            Route::get('/', [SalesTargetController::class, 'index'])->name('sales-targets.index');
+            Route::post('/', [SalesTargetController::class, 'store'])->middleware('throttle:30,1')->name('sales-targets.store');
         });
 
         Route::middleware(['permission:inventory.references.manage.organisation'])->prefix('inventory-references')->group(function () {

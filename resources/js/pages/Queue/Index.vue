@@ -11,6 +11,7 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import MySalesTarget from '@/components/billing/MySalesTarget.vue';
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
@@ -57,6 +58,8 @@ const props = defineProps<{
         currentRoomId: number | null;
         operationalDate: string;
     } | null;
+    mySalesTarget?:
+        InstanceType<typeof MySalesTarget>['$props']['target'] | null;
 }>();
 const roomSaving = ref(false);
 const roomError = ref('');
@@ -760,6 +763,8 @@ onBeforeUnmount(() => {
             >
             <InputError :message="roomError" />
         </div>
+        <!-- BIL-30 (Daniel): below the room picker, one calm line. -->
+        <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
         <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
         <div
             ref="tabStrip"

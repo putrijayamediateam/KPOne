@@ -155,35 +155,7 @@ class ClinicInsightsReportService
      */
     private function scopePeriod(Builder $query, array $periods, string $dateColumn, string $branchColumn): void
     {
-        if ($periods === []) {
-            $query->whereRaw('1 = 0');
-
-            return;
-        }
-        $query->where(function (Builder $ranges) use ($periods, $dateColumn, $branchColumn): void {
-            foreach ($periods as $branchId => $period) {
-                $ranges->orWhere(fn (Builder $range) => $range
-                    ->where($branchColumn, $branchId)
-                    ->where($dateColumn, '>=', $period['start'])
-                    ->where($dateColumn, '<', $period['end']));
-            }
-        });
-    }
-
-    /**
-     * BIL-10: approved refund credits by approval time, in the same branch periods and doctor filter as invoices.
-     *
-     * @param  InsightPeriods  $periods
-     */
-    private function creditQuery(User $actor, array $periods, ?int $doctorId): Builder
-    {
-        $query = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
-        $this->scopePeriod($query, $periods, 'decided_at', 'branch_id');
-        if ($doctorId !== null) {
-            $query->whereIn('consultation_checkout_id', DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id'));
-        }
-
-        return $query;
+        InvoiceSalesProjection::scopePeriods($query, $periods, $dateColumn, $branchColumn); // BIL-30: one shared scope.
     }
 
     /**
@@ -225,20 +197,7 @@ class ClinicInsightsReportService
      */
     private function invoiceQuery(User $actor, array $periods, ?int $doctorId = null): Builder
     {
-        $query = DB::table('invoices')
-            ->where('invoices.organisation_id', $actor->organisation_id)
-            ->where('invoices.status', 'finalized');
-        $this->scopePeriod($query, $periods, 'invoices.finalized_at', 'invoices.branch_id');
-
-        if ($doctorId !== null) {
-            $query->whereExists(fn (Builder $checkout) => $checkout
-                ->selectRaw('1')
-                ->from('consultation_checkouts')
-                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
-                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
-        }
-
-        return $query;
+        return InvoiceSalesProjection::invoices($actor->organisation_id, $periods, $doctorId); // BIL-30: shared cohort.
     }
 
     /**
@@ -250,17 +209,17 @@ class ClinicInsightsReportService
     {
         $current = $this->invoiceQuery($actor, $periods, $doctorId);
         $prior = $this->invoiceQuery($actor, $previous, $doctorId);
-        $credits = $this->creditQuery($actor, $periods, $doctorId);
-        $creditSen = (int) (clone $credits)->sum('amount_sen');
-        $adjustmentSen = (int) $this->panelAdjustmentQuery($actor, $periods, $doctorId)->sum('amount_sen');
-        $offsets = $this->offsetQuery($actor, $periods, $doctorId);
-        $invoiceTotal = (int) (clone $current)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         // BIL-10: refund credits come off net sales on the day the refund was approved. PCA-3: confirmed Panel claim
-        // adjustments count on the day they were confirmed, so past days never change.
-        $total = $invoiceTotal - $creditSen + $adjustmentSen;
+        // adjustments count on the day they were confirmed, so past days never change. BIL-30: one shared sum, so
+        // sales targets read the same figure.
+        $net = InvoiceSalesProjection::netSales($actor->organisation_id, $periods, $doctorId);
+        $creditSen = $net['refundCreditsSen'];
+        $adjustmentSen = $net['panelAdjustmentsSen'];
+        $offsets = $this->offsetQuery($actor, $periods, $doctorId);
+        $invoiceTotal = $net['invoiceSen'];
+        $total = $net['netSen'];
         $patientCount = (int) (clone $current)->distinct()->count('invoices.patient_id');
-        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - (int) $this->creditQuery($actor, $previous, $doctorId)->sum('amount_sen')
-            + (int) $this->panelAdjustmentQuery($actor, $previous, $doctorId)->sum('amount_sen');
+        $previousTotal = InvoiceSalesProjection::netSales($actor->organisation_id, $previous, $doctorId)['netSen'];
         $previousPatients = (int) (clone $prior)->distinct()->count('invoices.patient_id');
 
         $returning = DB::table('invoices')
