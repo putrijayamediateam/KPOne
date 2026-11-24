@@ -95,6 +95,19 @@ class ChatTest extends VisitTestCase
         $this->assertStringContainsString('Never guess', $this->model->calls[0]['system']);
     }
 
+    public function test_answering_never_leaves_a_php_time_limit_on_the_process(): void
+    {
+        // A console worker (tests, commands) has no time limit. set_time_limit() there starts a timer that later kills
+        // the whole worker, which crashed unrelated tests in parallel CI.
+        $this->assertSame('0', (string) ini_get('max_execution_time'));
+        $director = $this->actor('director');
+        $this->bindModel([FakeChatModel::text('Nothing to report.')]);
+
+        $this->ask($director, 'Anything to report?')->assertOk();
+
+        $this->assertSame('0', (string) ini_get('max_execution_time'));
+    }
+
     public function test_history_is_saved_encrypted_and_the_audit_row_holds_no_text(): void
     {
         $director = $this->actor('director');

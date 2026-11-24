@@ -126,7 +126,11 @@ TXT;
             throw new ChatRefused('agent_unavailable', 'The chatbox is not available right now.', 503);
         }
 
-        @set_time_limit((int) config('ai_chat.deadline_seconds', 90) + 30);
+        // Only a web request has a PHP time limit to lift. In the console (tests, commands) the limit is 0, and
+        // calling set_time_limit() there would start a timer that later kills the whole worker process.
+        if ((int) ini_get('max_execution_time') > 0) {
+            @set_time_limit((int) config('ai_chat.deadline_seconds', 90) + 30);
+        }
         $started = microtime(true);
         $turns = $this->context($thread);
         $turns[] = ['role' => 'user', 'content' => $text];
