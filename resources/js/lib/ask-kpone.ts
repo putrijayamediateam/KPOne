@@ -194,3 +194,95 @@ export const branchLabel = (code: string): string =>
               .filter((part) => part !== '')
               .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
               .join(' ');
+
+// CHAT-2b: "Ask through Claude". The server builds the prompt and both links; the answer comes back as text that KPOne did not check.
+export type AskClaudeStatus = 'pending' | 'answered' | 'expired' | 'cancelled';
+
+export type AskClaudeRequest = {
+    id: string;
+    status: AskClaudeStatus;
+    question: string | null;
+    answer: string | null;
+    createdAt: string;
+    expiresAt: string;
+    answeredAt: string | null;
+    label: string | null;
+    prompt?: string;
+    desktopLink?: string | null;
+    webLink?: string;
+};
+
+export type AskClaudeState = {
+    maxChars: number;
+    expiryMinutes: number;
+    requests: AskClaudeRequest[];
+};
+
+export const CLAUDE_LABEL =
+    'Answered by Claude. KPOne did not check this answer.';
+export const CLAUDE_EXPIRED_MESSAGE = 'No answer came back. You can ask again.';
+export const CLAUDE_PATH_KEY = 'kpone.ask.path';
+
+export const getAsk = (): Promise<AskClaudeState> =>
+    requestJson<AskClaudeState>('/agents/ask');
+
+export const createAsk = (
+    text: string,
+    key: string,
+): Promise<AskClaudeRequest> =>
+    postJson<AskClaudeRequest>('/agents/ask', { text, key });
+
+export const getAskRequest = (id: string): Promise<AskClaudeRequest> =>
+    requestJson<AskClaudeRequest>(`/agents/ask/${id}`);
+
+export const cancelAsk = (id: string): Promise<AskClaudeRequest> =>
+    postJson<AskClaudeRequest>(`/agents/ask/${id}/cancel`);
+
+// The copy fallback: copy inside the click, and say so when the browser refuses (then the prompt is shown to select by hand).
+export const copyPrompt = async (prompt: string): Promise<boolean> => {
+    try {
+        await navigator.clipboard.writeText(prompt);
+
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+// Pending first, then newest first inside each group is not wanted: a conversation reads oldest to newest.
+export const orderRequests = (
+    requests: AskClaudeRequest[],
+): AskClaudeRequest[] =>
+    [...requests].sort(
+        (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+
+export const hasPending = (requests: AskClaudeRequest[]): boolean =>
+    requests.some((request) => request.status === 'pending');
+
+// The remembered path is a per-person convenience only; it may be unavailable (private window, blocked storage).
+export const readPath = (): 'api' | 'claude' | null => {
+    try {
+        const value = window.localStorage.getItem(CLAUDE_PATH_KEY);
+
+        return value === 'api' || value === 'claude' ? value : null;
+    } catch {
+        return null;
+    }
+};
+
+export const writePath = (path: 'api' | 'claude'): void => {
+    try {
+        window.localStorage.setItem(CLAUDE_PATH_KEY, path);
+    } catch {
+        // Not remembered; the choice still works for this visit.
+    }
+};
+
+// Shown when only "Ask through Claude" is on (the chat path normally sends its own examples).
+export const DEFAULT_EXAMPLES = [
+    'How many patients were registered today, including the unfinished ones?',
+    'What were yesterday’s sales and receipts?',
+    'Which Panel claims are overdue?',
+];

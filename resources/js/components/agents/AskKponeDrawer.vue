@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft, Ellipsis, History, MessageCircle, Send } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import AskClaudePanel from '@/components/agents/AskClaudePanel.vue';
 import AskKponeMessage from '@/components/agents/AskKponeMessage.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,15 +23,20 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     archiveThread,
     classifyError,
+    DEFAULT_EXAMPLES,
+    getAsk,
     getChat,
     getOtherThread,
     getOthers,
     getThread,
     newRequestKey,
+    readPath,
     sendMessage,
+    writePath,
 } from '@/lib/ask-kpone';
 import type {
     AskChatState,
+    AskClaudeState,
     AskError,
     AskMessage,
     AskOtherThread,
@@ -38,11 +44,13 @@ import type {
 } from '@/lib/ask-kpone';
 import { formatDateTime } from '@/lib/presentation';
 
-// CHAT-1 slice 1: the "Ask KPOne" button and right-hand drawer. Renders nothing unless GET /agents/chat succeeds
-// (404 switched off, 403 not permitted). Not mounted on any page here.
+// CHAT-1 slice 1: the "Ask KPOne" button and right-hand drawer. Renders nothing unless GET /agents/chat (the API path) or
+// GET /agents/ask (CHAT-2b, "Ask through Claude") succeeds (404 switched off, 403 not permitted). With both on, the person picks a path.
 type View = 'chat' | 'history' | 'others';
 
 const state = ref<AskChatState | null>(null);
+const ask = ref<AskClaudeState | null>(null);
+const path = ref<'api' | 'claude'>('api');
 const open = ref(false);
 const view = ref<View>('chat');
 const scroller = ref<HTMLElement | null>(null);
@@ -64,6 +72,8 @@ const switchedOff = ref(false);
 let localId = 0;
 
 const maxChars = computed(() => state.value?.maxChars ?? 1000);
+const bothPaths = computed(() => state.value !== null && ask.value !== null);
+const examples = computed(() => state.value?.examples ?? DEFAULT_EXAMPLES);
 const limited = computed(
     () =>
         state.value?.limitReached === true ||
@@ -95,13 +105,24 @@ const hasInput = computed(
 );
 
 onMounted(async () => {
-    try {
-        state.value = await getChat();
-        threads.value = state.value.threads;
-    } catch {
-        state.value = null;
+    const [chat, claude] = await Promise.allSettled([getChat(), getAsk()]);
+    state.value = chat.status === 'fulfilled' ? chat.value : null;
+    ask.value = claude.status === 'fulfilled' ? claude.value : null;
+    threads.value = state.value?.threads ?? [];
+
+    if (state.value && ask.value) {
+        // Both are on: the remembered choice, else the subscription path (no cost to KPOne).
+        path.value = readPath() ?? 'claude';
+    } else {
+        path.value = ask.value ? 'claude' : 'api';
     }
 });
+
+const choosePath = (next: 'api' | 'claude') => {
+    path.value = next;
+    view.value = 'chat';
+    writePath(next);
+};
 
 const scrollDown = async () => {
     await nextTick();
@@ -310,7 +331,7 @@ const archive = async (id: number) => {
 </script>
 
 <template>
-    <div v-if="state" data-ask-kpone>
+    <div v-if="state || ask" data-ask-kpone>
         <Button
             id="ask-kpone-trigger"
             type="button"
@@ -347,7 +368,7 @@ const archive = async (id: number) => {
                         </Button>
                         <SheetTitle class="flex-1">Ask KPOne</SheetTitle>
                         <Button
-                            v-if="view === 'chat'"
+                            v-if="view === 'chat' && path === 'api' && state"
                             type="button"
                             variant="outline"
                             size="sm"
@@ -357,7 +378,7 @@ const archive = async (id: number) => {
                             <History aria-hidden="true" />
                             History
                         </Button>
-                        <DropdownMenu v-else-if="state.canViewOthers">
+                        <DropdownMenu v-else-if="state?.canViewOthers">
                             <DropdownMenuTrigger as-child>
                                 <Button
                                     type="button"
@@ -379,10 +400,48 @@ const archive = async (id: number) => {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                    <SheetDescription>
+                    <SheetDescription v-if="path === 'claude' && ask">
+                        Ask about your branches. Your own Claude answers using
+                        KPOne's reports.
+                    </SheetDescription>
+                    <SheetDescription v-else>
                         Ask about your branches. Answers come from KPOne's
                         reports.
                     </SheetDescription>
+                    <div
+                        v-if="bothPaths && view === 'chat'"
+                        class="mt-2 grid grid-cols-2 gap-1 rounded-lg border border-border p-1"
+                        role="group"
+                        aria-label="How to ask"
+                        data-ask-paths
+                    >
+                        <button
+                            type="button"
+                            class="min-h-11 rounded-md px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-8"
+                            :class="
+                                path === 'claude'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-foreground hover:bg-muted'
+                            "
+                            :aria-pressed="path === 'claude'"
+                            @click="choosePath('claude')"
+                        >
+                            Ask through Claude
+                        </button>
+                        <button
+                            type="button"
+                            class="min-h-11 rounded-md px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-8"
+                            :class="
+                                path === 'api'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-foreground hover:bg-muted'
+                            "
+                            :aria-pressed="path === 'api'"
+                            @click="choosePath('api')"
+                        >
+                            Ask here
+                        </button>
+                    </div>
                 </SheetHeader>
 
                 <!-- History -->
@@ -474,6 +533,13 @@ const archive = async (id: number) => {
                     </ul>
                 </div>
 
+                <!-- Ask through Claude (CHAT-2b) -->
+                <AskClaudePanel
+                    v-else-if="path === 'claude' && ask"
+                    :state="ask"
+                    :examples="examples"
+                />
+
                 <!-- Chat -->
                 <template v-else>
                     <div
@@ -535,7 +601,7 @@ const archive = async (id: number) => {
                             </p>
                             <div class="flex flex-wrap gap-2">
                                 <button
-                                    v-for="example in state.examples"
+                                    v-for="example in examples"
                                     :key="example"
                                     type="button"
                                     class="min-h-11 rounded-full border border-input bg-card px-3 py-1.5 text-left text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-8"
