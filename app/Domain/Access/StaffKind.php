@@ -13,6 +13,15 @@ final class StaffKind
 {
     public const DOCTOR_ROLE = 'resident_doctor';
 
+    /**
+     * The only role sets a locum account may hold (HR-15a; HR-22b, the owner's role decision under AGENTS.md, 24 Nov 2026),
+     * keyed by what HR asks for on the sign-in request.
+     */
+    public const LOCUM_ROLE_SETS = [
+        'locum' => [PermissionCatalogue::LOCUM_ROLE],
+        'locum_doctor' => [PermissionCatalogue::LOCUM_ROLE, self::DOCTOR_ROLE],
+    ];
+
     public static function isLocum(User $user): bool
     {
         return $user->hasRole(PermissionCatalogue::LOCUM_ROLE);

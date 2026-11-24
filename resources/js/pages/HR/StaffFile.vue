@@ -98,7 +98,9 @@ const {
                     status="locum"
                     :label="
                         file.signIn?.state === 'linked'
-                            ? 'Locum with a KPOne sign-in'
+                            ? file.signIn.role === 'locum_doctor'
+                                ? 'Locum doctor with a KPOne sign-in'
+                                : 'Locum with a KPOne sign-in'
                             : 'Locum, no KPOne sign-in'
                     "
                     tone="neutral"
@@ -180,15 +182,71 @@ const {
                 <h2 class="text-base font-semibold">KPOne sign-in</h2>
                 <template v-if="file.signIn.state === 'none'">
                     <p class="text-sm text-muted-foreground">
-                        A locum has no KPOne sign-in unless HR asks for one.
-                        With a sign-in they see only their own approved shifts:
-                        no patient, clinical or pay details.
+                        A locum has no KPOne sign-in unless HR asks for one. A
+                        locum sees only their own shifts, open shifts and their
+                        own pay statement. A locum doctor also works as a
+                        resident doctor in KPOne.
                     </p>
                     <form
                         v-if="file.canManage"
-                        class="flex flex-col gap-2"
+                        class="flex flex-col gap-3"
                         @submit.prevent="askSignIn"
                     >
+                        <fieldset
+                            class="flex flex-col gap-2"
+                            aria-describedby="locum-sign-in-role-error"
+                        >
+                            <legend class="mb-1 text-sm font-medium">
+                                Sign-in for
+                            </legend>
+                            <label
+                                class="flex min-h-11 cursor-pointer items-start gap-2 rounded-md border p-3 text-sm has-[:checked]:border-primary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+                            >
+                                <input
+                                    v-model="signIn.role"
+                                    type="radio"
+                                    name="locum-sign-in-role"
+                                    value="locum"
+                                    class="mt-0.5 size-4 accent-primary"
+                                    data-test="sign-in-role-locum"
+                                />
+                                <span class="flex flex-col">
+                                    <span class="font-medium">Locum</span>
+                                    <span class="text-muted-foreground"
+                                        >Own shifts, open shifts and own pay
+                                        statement only. No patient
+                                        details.</span
+                                    >
+                                </span>
+                            </label>
+                            <label
+                                class="flex min-h-11 cursor-pointer items-start gap-2 rounded-md border p-3 text-sm has-[:checked]:border-primary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+                            >
+                                <input
+                                    v-model="signIn.role"
+                                    type="radio"
+                                    name="locum-sign-in-role"
+                                    value="locum_doctor"
+                                    class="mt-0.5 size-4 accent-primary"
+                                    data-test="sign-in-role-locum-doctor"
+                                />
+                                <span class="flex flex-col">
+                                    <span class="font-medium"
+                                        >Locum doctor</span
+                                    >
+                                    <span class="text-muted-foreground"
+                                        >Also needs the Resident Doctor role:
+                                        consultations, MC, referral and
+                                        attendance letters. Only the Director
+                                        can give that role.</span
+                                    >
+                                </span>
+                            </label>
+                            <InputError
+                                id="locum-sign-in-role-error"
+                                :message="errors.role"
+                            />
+                        </fieldset>
                         <Label for="locum-sign-in-email"
                             >Email the locum will sign in with</Label
                         >
@@ -228,7 +286,8 @@ const {
                 <template v-else-if="file.signIn.state === 'open'">
                     <p class="text-sm">
                         {{ file.signIn.label }}. Asked on
-                        {{ file.signIn.at }} for {{ file.signIn.email }}.
+                        {{ file.signIn.at }} for {{ file.signIn.email }}, as
+                        {{ file.signIn.roleLabel ?? 'Locum' }}.
                     </p>
                     <div v-if="file.canManage">
                         <Button
@@ -241,8 +300,9 @@ const {
                     </div>
                 </template>
                 <p v-else class="text-sm">
-                    {{ file.signIn.label }} as {{ file.signIn.accountName }},
-                    linked on {{ file.signIn.at }}.
+                    {{ file.signIn.label }} as {{ file.signIn.accountName }} ({{
+                        file.signIn.roleLabel ?? 'Locum'
+                    }}), linked on {{ file.signIn.at }}.
                 </p>
             </div>
             <OperationalConfirmDialog

@@ -2,7 +2,7 @@
 
 namespace App\Domain\HR\Records\Services;
 
-use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Access\StaffKind;
 use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\HR\Records\Models\Worker;
@@ -23,12 +23,22 @@ use Illuminate\Validation\ValidationException;
  * (StaffProvisioningService's own check). That person creates the account the usual way with the `locum` role, then
  * links it to the file here, which closes the request. HR creates no account and changes no role or branch, and
  * nothing here touches users, roles or branch assignments. A link is set once and never removed.
+ *
+ * HR-22b (HR-PLAN 29.3; the owner's role decision under AGENTS.md, 24 Nov 2026): HR may ask for a locum doctor sign-in.
+ * That account holds both `locum` and `resident_doctor` (every resident permission: consultation, MC, referral,
+ * attendance letter), granted by whoever passes StaffProvisioningService's check (today only the Director may assign
+ * `resident_doctor`). The link refuses an account whose roles are not exactly the ones asked for.
  */
 final class LocumSignIns
 {
+    /** What HR may ask for, with the roles the linked account must hold exactly. */
+    public const ROLES = StaffKind::LOCUM_ROLE_SETS;
+
+    public const ROLE_LABELS = ['locum' => 'Locum', 'locum_doctor' => 'Locum doctor'];
+
     public function __construct(private RecordSupport $support) {}
 
-    /** @param array<string, mixed> $input email, idempotency_key */
+    /** @param array<string, mixed> $input email, role (locum or locum_doctor; default locum), idempotency_key */
     public function request(User $actor, string $workerId, array $input): void
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
@@ -36,10 +46,14 @@ final class LocumSignIns
         if (mb_strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw ValidationException::withMessages(['email' => 'Enter the email the locum will sign in with.']);
         }
+        $role = $input['role'] ?? 'locum';
+        if (! is_string($role) || ! isset(self::ROLES[$role])) {
+            throw ValidationException::withMessages(['role' => 'Choose Locum or Locum doctor.']);
+        }
         abort_if(! Str::isUuid($workerId), 404);
-        DB::transaction(function () use ($actor, $workerId, $email, $key): void {
+        DB::transaction(function () use ($actor, $workerId, $email, $role, $key): void {
             $actor = $this->support->lock($actor, RecordPermissions::MANAGE);
-            $hash = $this->support->hash([$actor->id, 'locum_sign_in', $workerId, hash('sha256', $email)]);
+            $hash = $this->support->hash([$actor->id, 'locum_sign_in', $workerId, hash('sha256', $email), $role]);
             if ($this->support->replay($actor, $key, 'locum_sign_in', $hash) !== null) {
                 return;
             }
@@ -54,10 +68,10 @@ final class LocumSignIns
             }
             $now = now()->utc();
             $id = DB::table('hr_locum_sign_ins')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id,
-                'worker_id' => $worker->id, 'email_encrypted' => Crypt::encryptString($email), 'status' => 'open', 'requested_by_user_id' => $actor->id,
+                'worker_id' => $worker->id, 'email_encrypted' => Crypt::encryptString($email), 'role_requested' => $role, 'status' => 'open', 'requested_by_user_id' => $actor->id,
                 'requested_at' => $now, 'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
             $this->support->remember($actor, $key, 'locum_sign_in', $hash, (string) $id);
-            $this->support->audit->record('hr.records.locum_sign_in_requested', $worker, ['request_id' => $id], $actor, null, $actor->organisation_id);
+            $this->support->audit->record('hr.records.locum_sign_in_requested', $worker, ['request_id' => $id, 'role_requested' => $role], $actor, null, $actor->organisation_id);
         }, 3);
     }
 
@@ -99,15 +113,17 @@ final class LocumSignIns
         $zone = JobApplicationService::zone((int) $actor->organisation_id);
         $rows = DB::table('hr_locum_sign_ins as s')->join('hr_workers as w', 'w.id', '=', 's.worker_id')->leftJoin('users as u', 'u.id', '=', 's.requested_by_user_id')
             ->where('s.organisation_id', $actor->organisation_id)->where('s.status', 'open')->orderBy('s.requested_at')->orderBy('s.id')->limit(50)
-            ->get(['s.public_id', 's.email_encrypted', 's.requested_at', 's.lock_version', 'w.display_name', 'u.name as requester']);
+            ->get(['s.public_id', 's.email_encrypted', 's.role_requested', 's.requested_at', 's.lock_version', 'w.display_name', 'u.name as requester']);
 
         return [
             'requests' => array_values($rows->map(function (\stdClass $r) use ($actor, $zone): array {
                 $email = self::reveal($r->email_encrypted);
                 // Only the account with the email HR asked for can be linked (Suresh, M2).
-                $account = $email === '' ? null : self::linkable((int) $actor->organisation_id)->whereRaw('lower(email) = ?', [$email])->first(['id', 'name']);
+                $role = (string) $r->role_requested;
+                $account = $email === '' ? null : self::linkable((int) $actor->organisation_id, $role)->whereRaw('lower(email) = ?', [$email])->first(['id', 'name']);
 
                 return ['id' => (string) $r->public_id, 'name' => (string) $r->display_name, 'email' => $email,
+                    'role' => $role, 'roleLabel' => self::ROLE_LABELS[$role] ?? 'Locum',
                     'requestedOn' => CarbonImmutable::parse((string) $r->requested_at)->setTimezone($zone)->format('j M Y'),
                     'requestedBy' => (string) ($r->requester ?? 'Staff member'), 'lockVersion' => (int) $r->lock_version,
                     'account' => $account === null ? null : ['id' => (string) $account->id, 'name' => (string) $account->name]];
@@ -118,23 +134,27 @@ final class LocumSignIns
     /**
      * The sign-in state of a locum file, for its staff file page.
      *
-     * @return array{state:string, label:string, requestId:?string, email:?string, accountName:?string, at:?string, lockVersion:?int}
+     * @return array{state:string, label:string, requestId:?string, email:?string, accountName:?string, at:?string, lockVersion:?int, role:?string, roleLabel:?string}
      */
     public static function stateFor(Worker $worker, string $zone): array
     {
         $row = DB::table('hr_locum_sign_ins')->where('worker_id', $worker->id)->whereIn('status', ['open', 'done'])->orderByDesc('id')->first();
         if ($row === null) {
-            return ['state' => 'none', 'label' => 'No KPOne sign-in', 'requestId' => null, 'email' => null, 'accountName' => null, 'at' => null, 'lockVersion' => null];
+            return ['state' => 'none', 'label' => 'No KPOne sign-in', 'requestId' => null, 'email' => null, 'accountName' => null, 'at' => null, 'lockVersion' => null,
+                'role' => null, 'roleLabel' => null];
         }
+        $role = (string) $row->role_requested;
+        $roleLabel = self::ROLE_LABELS[$role] ?? 'Locum';
         $at = CarbonImmutable::parse((string) ($row->closed_at ?? $row->requested_at))->setTimezone($zone)->format('j M Y');
         if ($row->status === 'open') {
             return ['state' => 'open', 'label' => 'Sign-in asked for, waiting for the account administrator', 'requestId' => (string) $row->public_id,
-                'email' => self::reveal($row->email_encrypted), 'accountName' => null, 'at' => $at, 'lockVersion' => (int) $row->lock_version];
+                'email' => self::reveal($row->email_encrypted), 'accountName' => null, 'at' => $at, 'lockVersion' => (int) $row->lock_version,
+                'role' => $role, 'roleLabel' => $roleLabel];
         }
         $account = User::query()->whereKey($row->linked_user_id)->first(['name', 'is_active']);
 
         return ['state' => 'linked', 'label' => $account?->is_active ? 'Signs in to KPOne' : 'Sign-in turned off', 'requestId' => null,
-            'email' => null, 'accountName' => $account?->name, 'at' => $at, 'lockVersion' => null];
+            'email' => null, 'accountName' => $account?->name, 'at' => $at, 'lockVersion' => null, 'role' => $role, 'roleLabel' => $roleLabel];
     }
 
     /** The locum file a locum account signs in for, if linked. */
@@ -146,15 +166,21 @@ final class LocumSignIns
     }
 
     /**
-     * Active accounts whose only role is Locum (Suresh, M1), with no staff file and no other locum linked.
+     * Active accounts holding exactly the roles asked for (Locum only, Suresh M1; or Locum and Resident Doctor, HR-22b), with
+     * no staff file and no other locum linked.
      *
      * @return Builder<User>
      */
-    private static function linkable(int $organisationId): Builder
+    private static function linkable(int $organisationId, string $role): Builder
     {
-        return User::query()->where('organisation_id', $organisationId)->where('is_active', true)
-            ->whereHas('roles', fn ($q) => $q->where('name', PermissionCatalogue::LOCUM_ROLE))
-            ->whereDoesntHave('roles', fn ($q) => $q->where('name', '<>', PermissionCatalogue::LOCUM_ROLE))
+        $roles = self::ROLES[$role] ?? self::ROLES['locum'];
+        $query = User::query()->where('organisation_id', $organisationId)->where('is_active', true)
+            ->whereDoesntHave('roles', fn ($q) => $q->whereNotIn('name', $roles));
+        foreach ($roles as $name) {
+            $query->whereHas('roles', fn ($q) => $q->where('name', $name));
+        }
+
+        return $query
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('hr_workers')->whereColumn('hr_workers.user_id', 'users.id'))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('hr_locum_sign_ins')->whereColumn('hr_locum_sign_ins.linked_user_id', 'users.id')
                 ->where('hr_locum_sign_ins.status', 'done'));
@@ -182,9 +208,12 @@ final class LocumSignIns
             $this->support->assertLock($request, $input);
             if ($to === 'done') {
                 $email = self::reveal($request->email_encrypted);
-                $account = self::linkable((int) $actor->organisation_id)->whereKey($userId)->first(['id', 'email']);
+                $role = (string) $request->role_requested;
+                $account = self::linkable((int) $actor->organisation_id, $role)->whereKey($userId)->first(['id', 'email']);
                 if ($account === null) {
-                    throw ValidationException::withMessages(['user_id' => 'Link an active account that holds the Locum role only, with no staff file and no other locum linked.']);
+                    throw ValidationException::withMessages(['user_id' => $role === 'locum_doctor'
+                        ? 'Link an active account that holds exactly the Locum and Resident Doctor roles, with no staff file and no other locum linked.'
+                        : 'Link an active account that holds the Locum role only, with no staff file and no other locum linked.']);
                 }
                 if ($email === '' || mb_strtolower((string) $account->email) !== $email) {
                     throw ValidationException::withMessages(['user_id' => "The account's email is not the one HR asked for ({$email}). Create the account with that email."]);
