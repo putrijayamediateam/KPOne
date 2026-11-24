@@ -13,8 +13,13 @@ One permission covers every invoice and receipt print:
 - `billing.print`, `billing.receipt` and `billing.letterhead-logo` (GET, the print pages);
 - `billing.issue` and `billing.receipt.issue` (POST, freeze an issued copy, BIL-5 and BIL-9);
 - `billing.issued.reprint` and `billing.issued.show` (POST and GET, copies);
-- the Print buttons and the "Issued copies" list on the Billing page (`BillingDirectoryService`), and the Print links on
-  the Invoices page (`VisitHistoryService`).
+- the Print buttons and the "Issued copies" list on the Billing page (`BillingDirectoryService`), the receipt Print
+  buttons on the Manage payments page (both from `BillingWorkspace.vue`), and the Print links on the Invoices page
+  (`VisitHistoryService`).
+
+The Invoices page also needs `visits.history.view.branch`. The Director holds it, but the Finance Officer does not
+(`CompletedInvoiceTest` pins Finance at 403 there), so **Finance prints from the Billing and Manage payments pages
+only**. This note does not open the Invoices page to Finance. (Kumar F2)
 
 The Panel rule (PCA-1, `PanelInvoicePrinting::blocked`) applies to every holder: a Panel patient never gets a printed
 invoice, but a receipt for cash they paid still prints. Finance and the Director get exactly the same rule.
@@ -43,7 +48,13 @@ Issuing (`IssuedBillingDocumentService`) refuses anyone who cannot see every par
     only. The three BIL-9 identity checks (issue, open a copy, reprint) accept it as well as `patients.view.organisation`.
     It shows the IC/passport and phone on the paper and nothing else: no patient directory or patient pages. It mirrors
     `panel.claims.patient_identity.view.branch`, which Finance already holds for Panel claims. The existing assertions
-    stay as they are, because a CA without patient view still has neither permission.
+    stay as they are, because a CA without patient view still has neither permission. The exact change is one helper,
+    `canSeePrintedIdentity()` = `patients.view.organisation` or `billing.print.patient_identity.branch`, used at the
+    issue check (`contents()`) and at `assertCanSeeIdentity()` (reprint and open). Nothing else reads it, so Finance
+    still gets 403 on `/patients`, and `patient.profileUrl` stays null for them on the Billing page. (Kumar F4)
+  - **Audit with C (Kumar F3).** Issue and reprint are already audited (`billing.document_printed`). Opening an issued
+    copy (`show()`) writes no audit row, for anyone. Panel claims audit every identity view. Question 3 asks whether
+    Finance's reopen of a copy should also be audited.
 - **Recipients of a reprint.** Each view of a BIL-9 copy already passes the same identity check, so nothing new opens.
 
 ## 3. Changes
@@ -57,16 +68,26 @@ Issuing (`IssuedBillingDocumentService`) refuses anyone who cannot see every par
 - Neither permission is people-or-access authority, so `AUTHORITY_OVER_PEOPLE_AND_ACCESS` and staff-authority rules are
   unchanged.
 - No new screen. The existing Print buttons and the Issued copies list appear for them on the Billing page (which they
-  open through `billing.summary.branch`) and on the Invoices page. Daniel gets before/after shots of those two pages.
+  open through `billing.summary.branch`) and on the Manage payments page; the Director also on the Invoices page.
+  Daniel gets before/after shots of the Billing and Manage payments pages for both roles, and the Invoices page for the
+  Director.
 
 ## 4. Existing assertions that change (owner approval needed one by one)
 
 - `tests/Feature/Billing/IssuedBillingDocumentTest.php`, about line 101: "The Billing page lists both versions for
   those who can print, and nothing for Finance." Finance would now see the Issued copies list (2 versions), so the
   assertion `billing.issuedCopies` null for Finance becomes "2 copies listed for Finance, as for the CA".
-- Any other test that pins the print holders or the Finance or Director Billing page. I found none so far: the
-  `administrator` checks in the report tests stay true, and `MedicalAssistantRoleTest` does not change. The full run
-  will confirm before I build; any further one comes back to the owner first and stays failing until approved.
+- `tests/Feature/Billing/IssuedBillingDocumentTest.php:29`: the `roles()` data provider expects `finance_officer` and
+  `director` to get 403 on `billing.issue`. Both become a redirect (302) after a successful issue.
+- `tests/Feature/Billing/DocumentLetterheadTest.php:46-50`: `director` and `finance_officer` get 403 on `billing.print`
+  and on the letterhead logo URL. Both become allowed.
+- `tests/Feature/Billing/InvoiceBillToTest.php:213-215`: Finance gets 403 on `billing.print`. It becomes the redirect to
+  the issued copies.
+- Unchanged: the `administrator` denials in the report tests; `MedicalAssistantRoleTest`; the Panel print tests (they
+  print as the CA); `CompletedInvoiceTest` and `VisitHistoryTest` for Finance (the Invoices page stays closed to them).
+  `tests/Frontend/fixtures/access-control-roles.json` is a static, already stale snapshot not compared with the catalogue,
+  so it needs no change. The full run will confirm; anything further goes to the owner first and stays failing until
+  approved.
 
 ## 5. Tests
 
@@ -85,3 +106,6 @@ Issuing (`IssuedBillingDocumentService`) refuses anyone who cannot see every par
 1. Finance and patient identity on the paper: **A**, **B** or **C (recommended)**?
 2. Receipts too? `billing.print.branch` covers receipts as well as invoices, so Finance and the Director would print
    both. **A (recommended):** yes, both. **B:** invoices only, which would need a separate receipt permission.
+3. With C, record each time Finance opens an issued copy? **A (recommended):** yes, one `billing.document_viewed` audit
+   row (ids only) when the opener holds the new permission but not patient view, matching the Panel identity rule.
+   **B:** no, as for every other opener today.
