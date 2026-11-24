@@ -105,6 +105,11 @@ test('DSP-26: the label preview shows no Print button or checklist for a viewer'
 });
 
 test('DSP-26: the doctor’s check panel links to the case in Dispensary', () => {
+    // Daniel (DD-118 pattern): the link is underlined and 44 px tall below 640 px.
+    assert.match(
+        panel,
+        /min-h-11 items-center text-xs font-medium text-brand-strong underline underline-offset-4 sm:min-h-0/,
+    );
     assert.match(
         panel,
         /<Link v-if="check\.viewUrl" :href="check\.viewUrl"[^>]*data-testid="dispensary-check-view" >View in Dispensary<\/Link >/,

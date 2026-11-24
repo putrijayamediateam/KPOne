@@ -64,7 +64,7 @@ const directions = (line: {
             <Link
                 v-if="check.viewUrl"
                 :href="check.viewUrl"
-                class="ml-auto inline-flex min-h-11 items-center text-xs font-medium text-brand-strong underline-offset-4 hover:underline sm:min-h-0"
+                class="ml-auto inline-flex min-h-11 items-center text-xs font-medium text-brand-strong underline underline-offset-4 sm:min-h-0"
                 data-testid="dispensary-check-view"
                 >View in Dispensary</Link
             >
