@@ -910,7 +910,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </p>
                 </div>
                 <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
-                    <fieldset class="grid gap-1 md:justify-self-start">
+                    <fieldset
+                        class="grid content-start gap-1 md:justify-self-start"
+                    >
                         <legend class="mb-1 text-sm font-medium">
                             2. Visit type
                         </legend>
@@ -960,7 +962,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 id="assigned-doctor"
                                 v-model="form.assigned_doctor_user_id"
                                 label="Doctor"
-                                trigger-class="max-lg:h-11"
+                                trigger-class="max-lg:data-[size=default]:h-11"
                                 :invalid="!!form.errors.assigned_doctor_user_id"
                                 :options="doctorOptions" /><InputError
                                 :message="errorFor('assigned_doctor_user_id')"
@@ -992,6 +994,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 >Why not Auto?</span
                             >
                             <p
+                                v-if="!form.errors.doctor_override_reason"
                                 id="doctor-override-help"
                                 class="text-xs text-muted-foreground"
                             >
@@ -1004,7 +1007,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 id="doctor-override-reason"
                                 v-model="form.doctor_override_reason"
                                 label="Why not Auto?"
-                                trigger-class="max-lg:h-11"
+                                trigger-class="max-lg:data-[size=default]:h-11"
                                 :invalid="!!form.errors.doctor_override_reason"
                                 :options="overrideReasonOptions"
                             />
