@@ -48,7 +48,7 @@ one small class behind an interface and can be changed.
 
 A chat panel on the Director's overview page (which page this is: section 10). Typed questions only. It answers with the
 same read-only questions the connector has (clinic day, money day, sales, Panel claims, stock, queue, visits by state,
-system health, branches), shown with the answer text, the "definitions" and the as-of time. A history list of earlier
+system health, branches), shown as the model's sentence plus a "Figures" block built from the tool result (label, exact amount, as-of time), the "definitions", and a link to the report page. A history list of earlier
 questions and answers. **No writing of any kind**, no patient-level data, no files, no voice, no images, no consultation.
 
 Not in slice 1: the consultation chatbox, medicine suggestions, note-to-fields, files, images, voice, image generation.
@@ -94,15 +94,36 @@ and the roles the owner names as management). Not held by Technical Admin or any
 `ai_chat.consultation.use.own` for the Resident Doctor. Additive migration with `firstOrCreate` and a missing role logged and
 skipped (the usual pattern); any later grant to `ca` also goes to `medical_assistant` (team rule).
 
-## 8. Screens and the clean look
+## 8. Screens and the clean look (Lead UI/UX Designer's note, 24 Nov)
 
-Classic layout, theme tokens, light and dark, built from the shared components (`PageHeader`, cards, `OperationalConfirmDialog`
-where needed). On 1440 px a panel beside or under the overview figures; on 390 px a full-width sheet opened from a button.
-Parts: message list (user right, answer left), input with a send button (44 px targets), a "history" list, a muted switched-off
-state, an "AI answer, not advice" label on every answer, an empty state with three example questions, and error and
-"monthly limit reached" states. Wording in English for staff. **The Lead UI/UX Designer looks at the screens** (a note to Daniel
-first, screenshots at 1440 and 390 in light and dark, including empty, loading, error, off and long-answer states) before the
-ship-it. Voice, file chips and image thumbnails are designed with their own slices, but the panel leaves room for them.
+Classic layout, theme tokens, light and dark, shared components. English wording for staff. The Lead UI/UX Designer reads the note
+as OK with these changes and will do a full look on the screenshots (a new kind of screen with an AI answer beside company money).
+
+- **Drawer, not inline.** A right-hand drawer opened from an **"Ask KPOne"** button (small chat icon) in the page header, at every width
+  (a full-width sheet at 390 px): one design, and slice 2 needs a drawer anyway. It closes with an X, Escape and a button and returns
+  focus to the "Ask KPOne" button. It is **not a blocking modal**: the figures stay visible while asking. Title "Ask KPOne"; first line
+  "Ask about your branches. Answers come from KPOne's reports." No "AI assistant", "Claude" or provider names on screen.
+- **History** is a "History" button in the drawer header that swaps the body to the list (back arrow returns). Each item: the first
+  question (one line), the date; it opens that conversation read-only with "Ask a new question" at the top.
+- **Bubbles:** user messages right in a neutral filled bubble, answers left on the plain card surface; no bright colours, no avatar; while
+  working, one small line naming the tool ("Reading the money day..."); no animation under reduced motion.
+- **Answers show the real figures.** The model's sentence is above a small **"Figures" block** (label, amount, as-of time) built from the
+  tool result by KPOne, so the numbers on screen come from KPOne and never from the model's wording; amounts are exact ("RM 1,234.50"),
+  never rounded by the model. Each answer links "Open the report" to the page that holds the figures. Under every answer a small muted line
+  with an outline "AI" chip (as on the Agents page): "AI answer. Check the figures on the report page."
+- **Input:** a labelled multi-line field ("Ask a question about your branches"), one filled send button at 44 px, Enter sends, Shift+Enter
+  new line, a visible character limit. A refused prompt says exactly why, "Please don't type identity numbers, phone numbers or emails.",
+  and keeps the text in the box.
+- **States:** empty (three example questions as outline chips that fill the box and do not send by themselves); loading; error ("Couldn't
+  answer. Nothing was changed. Try again." with a Try again button); **monthly limit reached** (a muted info block, not an error: "The monthly
+  AI limit is reached. It resets on 1 Dec.", box disabled and out of the tab order); **switched off** (a muted line, no input); a long answer
+  (a closed "Show more" after about 12 lines; never a sideways-scrolling table; any table is a card list at 390 px).
+- **"View other people's history"** is a separate item in the History header menu, shown only to the permitted roles, with the banner "You are
+  viewing someone else's questions. Every view is recorded." The list shows the person's name (staff-visibility rule) and the date, never the
+  text, until a conversation is opened.
+- **Future room:** a slot in the input row for a mic and an attachment button, not drawn now and no empty space reserved.
+- **Design flag from the Lead UI/UX Designer:** the owner should see the wording of what leaves the server before the build, and name the
+  "management" roles, because the "view others" list depends on it.
 
 ## 9. Items that need the owner's written approval (kept out of the build until then)
 
