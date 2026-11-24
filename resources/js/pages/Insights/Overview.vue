@@ -240,19 +240,28 @@ const firstRow = computed(() => props.overview.branches[0]);
     <main
         class="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6"
     >
-        <header>
-            <p
-                class="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase"
-            >
-                Insights · {{ monthTitle }}
-            </p>
-            <h1 class="mt-1 text-2xl font-semibold tracking-tight">
-                Director and Finance overview
-            </h1>
-            <p class="mt-1 text-sm text-muted-foreground">
-                Every branch, as it stands now. Each figure links to the page
-                that holds the detail.
-            </p>
+        <header
+            class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+        >
+            <div class="min-w-0">
+                <p
+                    class="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase"
+                >
+                    Insights · {{ monthTitle }}
+                </p>
+                <h1 class="mt-1 text-2xl font-semibold tracking-tight">
+                    Director and Finance overview
+                </h1>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Every branch, as it stands now. Each figure links to the
+                    page that holds the detail.
+                </p>
+            </div>
+            <!-- Reserved for one header action (the Agent platform's "Ask KPOne", Director only, coordinator 24 Nov 2026). -->
+            <div
+                class="flex shrink-0 items-center gap-2 empty:hidden"
+                data-testid="overview-header-actions"
+            />
         </header>
 
         <nav
