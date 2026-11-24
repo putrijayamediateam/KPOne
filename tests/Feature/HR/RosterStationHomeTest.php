@@ -106,6 +106,25 @@ class RosterStationHomeTest extends VisitTestCase
         $this->get(route('my-day'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('today.station', null)); // the shift is over
     }
 
+    public function test_during_the_leave_half_of_a_half_day_the_station_is_today_but_not_now(): void
+    {
+        $ca = $this->actor('ca');
+        $version = $this->startDraft();
+        $this->addShift($version, $ca, 0, '09:00', '17:00', 'registration');
+        $this->submit($version);
+        $this->approve($version);
+        $this->planStations();
+        $day = $this->week->toDateString();
+        $this->leave($ca, $day, 'am', '00:00', "{$day} 13:00:00");
+
+        $this->travelTo($this->at('0 10:00'));
+        $this->selectBranch($ca);
+        $this->get(route('my-day'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('today.station.station', 'registration')->where('today.station.now', false));
+        $this->travelTo($this->at('0 14:00'));
+        $this->get(route('my-day'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('today.station.now', true));
+    }
+
     // ---- fixture ----
 
     private function at(string $when): CarbonImmutable

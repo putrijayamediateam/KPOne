@@ -270,7 +270,8 @@ final class MeSpace
             'room' => $room === null ? null : (string) $room,
             'startLabel' => $shift->startsAt->setTimezone($shift->timezone)->format('g:i A'),
             'endLabel' => $shift->endsAt->setTimezone($shift->timezone)->format('g:i A'),
-            'now' => $shift->startsAt->lessThanOrEqualTo($at),
+            // During the leave half of a half day the shift is still today's, but not now (the moment rule, as onDutyNow).
+            'now' => $shift->startsAt->lessThanOrEqualTo($at) && $this->onDuty->isOnDuty((int) $actor->id, $branch, $at),
         ];
     }
 
