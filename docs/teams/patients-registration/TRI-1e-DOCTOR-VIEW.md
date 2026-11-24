@@ -109,3 +109,56 @@ permission `visits.triage.view.own` as named and the `TriageServiceTest` permiss
 
 Owner answers section 4, then Farhana reviews this note, then the build. Then Daniel's look at the screenshots
 (1440 and 390, light and dark), then the owner's ship-it, then the PR.
+
+## 7. Farhana's review (24 Nov 2026) and the build rules it fixes
+
+Verdict: OK with changes, nothing blocking. The build follows these rules, and they replace any looser wording above.
+
+1. **Own doctor, one formula.**
+   - If the visit has a `ClinicalEncounter`, the own doctor is its `attending_clinician_user_id`.
+   - Otherwise it is `visit.assigned_doctor_user_id`. It is never both.
+   - The actor must also hold the `resident_doctor` role and `visits.triage.view.own` (the same pair style as
+     `TriageZoneProjection`), with an effective assignment at the active branch.
+
+   By state:
+
+   | State | Own doctor |
+   |---|---|
+   | Registered or Waiting | the assigned doctor |
+   | Serving, held or completed | the attending clinician |
+   | Cancelled with no encounter | the assigned doctor (read only, as for any other open visit) |
+   | Reassigned before Call In | the doctor who was moved off loses access |
+
+   A test changes the assigned doctor after the consultation starts, by direct write, and checks that the old
+   assigned doctor (no longer attending) gets 403.
+2. **Branch scope.** One route, `GET visits/{visit}/triage/view`, through the `{visit}` binding, so the visit must be
+   at the active branch.
+   - A doctor's own past visit at another branch needs a branch switch, which needs an assignment there. The owner's
+     "completed visits" means completed visits at the active branch.
+   - Links:
+     - "View triage" beside the zone chip on the consultation page;
+     - a "View triage" item in the row menu of the doctor's own Queue board, on the Waiting, Serving and Completed
+       tabs.
+   - The "another branch" test is a branch rule (404), separate from the ownership tests (403).
+3. **Audit.**
+   - `ReadOnlyReviewAudit` is called straight from the controller, never inside a transaction. A test fails if
+     `DB::transactionLevel() > 0` at that point.
+   - The audit subject is the visit, with ids `visit` and `patient` (both already allowlisted); the event is
+     `triage.viewed`.
+   - The route carries `sensitive.no-store` and `throttle:60,1`, as `encounters.review` does.
+4. **Content.**
+   - A save with no guideline version reads "No guideline in force".
+   - A sign code missing from its version reads "Sign no longer listed (code)".
+   - Reasons show as their labels from `TriageService::LOWER_REASONS` and `HIGHER_REASONS`, never raw codes. A
+     raised zone may have no reason.
+   - The recorder's name always shows, as it already does on the vitals label.
+   - `age_band`, `idempotency_key`, `payload_hash` and ids beyond the visit number are never sent. A test pins the
+     payload keys.
+5. **Permission and migration.**
+   - Migration `2026_11_20_500700_grant_triage_view_permission` (the number is free on main).
+   - `PermissionCatalogue` picks the permission up from `TriagePermissions::grants()`, so it needs no separate entry.
+   - No Clinic management row, so `ClinicManagementTest` is unchanged.
+   - Tests:
+     - the migration is idempotent and never revokes;
+     - the Medical Assistant (once MA-1a lands) and every other role get 403;
+     - `POST visits/{visit}/triage` still refuses the doctor.
