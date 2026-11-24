@@ -3,6 +3,7 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeAiAskRequests;
 use App\Console\Commands\PurgeAiChatHistory;
 use App\Console\Commands\PurgeAttendanceRecords;
 use App\Console\Commands\PurgeClockPhotoLeftovers;
@@ -134,6 +135,12 @@ Schedule::command(PurgeMyRoutine::class)
 
 // CHAT-1: chatbox message text and figures are emptied after the retention period (owner, 2026-11-24: 90 days). The rows stay.
 Schedule::command(PurgeAiChatHistory::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// CHAT-2: pending Ask through Claude requests past their time expire, and question and answer text is emptied after 90 days. The rows stay.
+Schedule::command(PurgeAiAskRequests::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();

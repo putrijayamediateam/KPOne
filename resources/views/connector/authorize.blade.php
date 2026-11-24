@@ -49,7 +49,11 @@
                     <li>Patient or staff names, contact details or identity numbers.</li>
                     <li>Clinical notes, diagnoses or anything typed by staff about a person.</li>
                 </ul>
-                <p>It cannot change anything in KPOne. KPOne never sends anything to the app by itself: the app asks, and each question is recorded.</p>
+                @if (collect($scopes ?? [])->contains(fn ($scope) => ($scope->id ?? $scope) === 'mcp:answer'))
+                    <p>It can change one thing in KPOne: save a short text answer to a question you asked in KPOne's Ask panel (only your own, only once). It cannot change anything else. KPOne never sends anything to the app by itself: the app asks, and each question is recorded.</p>
+                @else
+                    <p>It cannot change anything in KPOne. KPOne never sends anything to the app by itself: the app asks, and each question is recorded.</p>
+                @endif
                 <p>How long: each sign-in lasts about 1 hour and the app renews it by itself while you use it. After 30 days without use it stops. To stop it, use <a href="{{ route('agents.connected-apps') }}" target="_blank" rel="noopener">Connected apps</a> in KPOne, or disconnect KPOne in the app.</p>
                 <div class="actions">
                     <form method="POST" action="{{ route('passport.authorizations.deny') }}">

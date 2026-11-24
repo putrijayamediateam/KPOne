@@ -147,7 +147,7 @@ OAuth events are audited too: authorised, refreshed, revoked.
 | Timeout | Each tool runs in a read-only transaction with a 10-second statement timeout. |
 | Size cap | A result is capped at 64 KB and 25 rows per list; a cut result says so in `limits`. |
 | Aggregate guard | `AggregatePayloadGuard` on every result, as for the agents. A result that fails the guard is not sent and is audited as a refusal. |
-| No writes | The connector exposes no tool that changes data, and the code path has no write permission to call. |
+| No writes | The connector exposes no tool that changes data, and the code path has no write permission to call. **One exception, owner-approved 2026-11-24 (CHAT-2, [CHAT-2-ASK-THROUGH-CLAUDE-DESIGN.md](CHAT-2-ASK-THROUGH-CLAUDE-DESIGN.md)):** `save_answer`, off by default behind `AGENTS_ASK_CLAUDE_ENABLED`, saves the answer text of one pending "Ask through Claude" request of the signed-in Director, once, and needs the `mcp:answer` token scope. It writes nothing else. |
 | No AI service | The code names no AI provider, holds no AI key and adds no AI SDK. |
 
 ## 8. PDPA note and data rule

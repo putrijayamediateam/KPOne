@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Agents\Ask\AskSwitch;
 use App\Domain\Agents\Chat\ChatModel;
 use App\Domain\Agents\Chat\Providers\HttpChatModel;
 use App\Domain\Agents\Connector\ConnectorTools;
@@ -95,6 +96,10 @@ class AppServiceProvider extends ServiceProvider
     private function configureConnectorOAuth(): void
     {
         Passport::authorizationView(fn (array $parameters) => response()->view('connector.authorize', $parameters));
+        // CHAT-2: the extra token scope for save_answer exists only while "Ask through Claude" is switched on at boot.
+        if (config('agents.ask_claude_enabled') && config('agents.connector_enabled')) {
+            Passport::tokensCan(['mcp:use' => 'Use MCP server', AskSwitch::SCOPE => 'Save one answer to a question asked in KPOne']);
+        }
         Passport::tokensExpireIn(now()->addHour());
         Passport::refreshTokensExpireIn(now()->addDays(30));
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Agents\Connector\Mcp\ConnectorServer;
+use App\Http\Controllers\ConnectorDiscoveryController;
 use App\Http\Middleware\ConnectorAccess;
 use App\Http\Middleware\ConnectorEnabled;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,12 @@ Route::middleware([ConnectorEnabled::class])->group(function (): void {
     // in config/mcp.php). Throttled, no cookies.
     Route::middleware(['throttle:30,1', 'sensitive.no-store'])->group(function (): void {
         Mcp::oauthRoutes();
+        // CHAT-2: our discovery documents are registered after the package's, so they replace the package's at the same addresses (a later route with
+        // the same address wins) and can advertise the extra scope while "Ask through Claude" is on; with it off they say what the package's say.
+        Route::get('/.well-known/oauth-authorization-server', [ConnectorDiscoveryController::class, 'authorizationServer']);
+        Route::get('/.well-known/oauth-authorization-server/{path}', [ConnectorDiscoveryController::class, 'authorizationServer'])->where('path', '.*');
+        Route::get('/.well-known/oauth-protected-resource', [ConnectorDiscoveryController::class, 'protectedResource']);
+        Route::get('/.well-known/oauth-protected-resource/{path}', [ConnectorDiscoveryController::class, 'protectedResource'])->where('path', '.*');
         Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])->name('passport.token');
     });
 
