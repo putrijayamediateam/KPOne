@@ -14,7 +14,7 @@ test('HR chooses Locum or Locum doctor when asking for a sign-in', () => {
     assert.match(file, /<legend[^>]*>\s*Sign-in for\s*<\/legend>/);
     assert.match(file, /type="radio"[\s\S]{0,200}value="locum"/);
     assert.match(file, /type="radio"[\s\S]{0,200}value="locum_doctor"/);
-    assert.match(file, /Only the Director\s+can give that role\./);
+    assert.match(file, /Only the Director\s+gives that role\./);
     assert.match(file, /role: signIn\.role,/);
     assert.match(file, /:message="errors\.role"/);
     assert.match(file, /'Locum doctor with a KPOne sign-in'/);

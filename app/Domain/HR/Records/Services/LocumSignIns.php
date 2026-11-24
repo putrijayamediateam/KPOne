@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Records\Services;
 
+use App\Domain\Access\StaffAuthorityService;
 use App\Domain\Access\StaffKind;
 use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Applications\Services\StaffAccountRequests;
@@ -124,6 +125,8 @@ final class LocumSignIns
 
                 return ['id' => (string) $r->public_id, 'name' => (string) $r->display_name, 'email' => $email,
                     'role' => $role, 'roleLabel' => self::ROLE_LABELS[$role] ?? 'Locum',
+                    // Whether this viewer may give the roles asked for (today only the Director; Daniel, HR-22b).
+                    'canCreate' => app(StaffAuthorityService::class)->canAssignRoles($actor, self::ROLES[$role] ?? self::ROLES['locum']),
                     'requestedOn' => CarbonImmutable::parse((string) $r->requested_at)->setTimezone($zone)->format('j M Y'),
                     'requestedBy' => (string) ($r->requester ?? 'Staff member'), 'lockVersion' => (int) $r->lock_version,
                     'account' => $account === null ? null : ['id' => (string) $account->id, 'name' => (string) $account->name]];

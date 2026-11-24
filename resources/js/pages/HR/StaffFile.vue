@@ -193,7 +193,7 @@ const {
                         @submit.prevent="askSignIn"
                     >
                         <fieldset
-                            class="flex flex-col gap-2"
+                            class="flex max-w-2xl flex-col gap-2"
                             aria-describedby="locum-sign-in-role-error"
                         >
                             <legend class="mb-1 text-sm font-medium">
@@ -207,7 +207,7 @@ const {
                                     type="radio"
                                     name="locum-sign-in-role"
                                     value="locum"
-                                    class="mt-0.5 size-4 accent-primary"
+                                    class="mt-0.5 size-4 shrink-0 appearance-none rounded-full border-2 border-muted-foreground bg-background checked:border-primary checked:bg-primary checked:shadow-[inset_0_0_0_3px_var(--background)] focus-visible:outline-none"
                                     data-test="sign-in-role-locum"
                                 />
                                 <span class="flex flex-col">
@@ -227,7 +227,7 @@ const {
                                     type="radio"
                                     name="locum-sign-in-role"
                                     value="locum_doctor"
-                                    class="mt-0.5 size-4 accent-primary"
+                                    class="mt-0.5 size-4 shrink-0 appearance-none rounded-full border-2 border-muted-foreground bg-background checked:border-primary checked:bg-primary checked:shadow-[inset_0_0_0_3px_var(--background)] focus-visible:outline-none"
                                     data-test="sign-in-role-locum-doctor"
                                 />
                                 <span class="flex flex-col">
@@ -235,10 +235,10 @@ const {
                                         >Locum doctor</span
                                     >
                                     <span class="text-muted-foreground"
-                                        >Also needs the Resident Doctor role:
+                                        >Also works as a resident doctor:
                                         consultations, MC, referral and
                                         attendance letters. Only the Director
-                                        can give that role.</span
+                                        gives that role.</span
                                     >
                                 </span>
                             </label>
@@ -250,20 +250,20 @@ const {
                         <Label for="locum-sign-in-email"
                             >Email the locum will sign in with</Label
                         >
-                        <div class="flex flex-wrap gap-2">
+                        <div class="flex max-w-2xl flex-col gap-2 sm:flex-row">
                             <Input
                                 id="locum-sign-in-email"
                                 v-model="signIn.email"
                                 type="email"
                                 autocomplete="off"
-                                class="max-w-sm min-w-0 flex-1 max-lg:min-h-11"
+                                class="min-w-0 flex-1 max-lg:min-h-11"
                                 :aria-invalid="!!errors.email"
                                 aria-describedby="locum-sign-in-help"
                             />
                             <Button
                                 type="submit"
                                 variant="outline"
-                                class="max-lg:min-h-11"
+                                class="w-full max-lg:min-h-11 sm:w-auto"
                                 :disabled="signIn.processing"
                                 data-test="ask-sign-in"
                                 >{{

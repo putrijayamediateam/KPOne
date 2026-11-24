@@ -51,7 +51,12 @@ class LocumDoctorTest extends VisitTestCase
         $locumOnly->forceFill(['email' => 'doctor@example.test'])->save();
         $this->selectBranch($this->director);
         $this->get(route('staff.index'))->assertInertia(fn (Assert $page) => $page->where('locumSignIns.requests.0.role', 'locum_doctor')
-            ->where('locumSignIns.requests.0.roleLabel', 'Locum doctor')->where('locumSignIns.requests.0.account', null));
+            ->where('locumSignIns.requests.0.roleLabel', 'Locum doctor')->where('locumSignIns.requests.0.account', null)
+            ->where('locumSignIns.requests.0.canCreate', true));
+        // A Technical Admin sees the request but may not give the roles, so the page asks them to ask the Director (Daniel).
+        $this->selectBranch($this->actor('technical_admin'));
+        $this->get(route('staff.index'))->assertInertia(fn (Assert $page) => $page->where('locumSignIns.requests.0.canCreate', false));
+        $this->selectBranch($this->director);
         $this->link($request->public_id, $locumOnly->id)->assertSessionHasErrors('user_id');
 
         // The Director gives the same account the Resident Doctor role the usual way; now it links.

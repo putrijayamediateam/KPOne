@@ -48,6 +48,8 @@ type LocumSignIn = {
     // HR-22b: Locum, or Locum doctor (the account also holds Resident Doctor).
     role: 'locum' | 'locum_doctor';
     roleLabel: string;
+    // Whether this viewer may give the roles asked for (today only the Director).
+    canCreate: boolean;
     // The account with the email HR asked for, holding exactly the roles asked for; null until it is created.
     account: { id: string; name: string } | null;
 };
@@ -63,9 +65,11 @@ const linkError = computed(() => {
 const linking = ref<string | null>(null);
 // HR-22b: what to create when no matching account exists yet.
 const noAccountText = (request: LocumSignIn) =>
-    request.role === 'locum_doctor'
-        ? 'No account with this email yet. Create it with Create staff, using this email and both the Locum and Resident Doctor roles.'
-        : 'No account with this email yet. Create it with Create staff, using this email and the Locum role only.';
+    !request.canCreate
+        ? 'No account with this email yet. Ask the Director to create it.'
+        : request.role === 'locum_doctor'
+          ? 'No account with this email yet. Create it with Create staff, using this email and both the Locum and Resident Doctor roles.'
+          : 'No account with this email yet. Create it with Create staff, using this email and the Locum role only.';
 const linkLocum = (request: LocumSignIn) => {
     linking.value = request.id;
     router.post(
