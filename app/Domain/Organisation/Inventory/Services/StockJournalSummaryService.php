@@ -15,9 +15,10 @@ use Illuminate\Validation\ValidationException;
 /**
  * STK-29: the monthly journal summary, a CSV of plain journal lines for one branch or every branch and one calendar
  * month, from the same STK-27 weighted average cost figures as the STK-28 report. Download only: nothing is posted to
- * any accounting system. Director only (`inventory.valuation.view.organisation`). The lines and accounts are KPOne
- * defaults set at the owner's instruction (B.E.R.N.I.S.S acting as the clinic's accountant, 2026-11-15), not
- * professional accounting advice.
+ * any accounting system. Director only (`inventory.valuation.view.organisation`). The lines and accounts were set at
+ * the owner's instruction (2026-11-15), and the cost policy behind them, opening stock at its entered cost included,
+ * was approved verbally by the clinic's accountant on 25 Nov 2026 (owner-confirmed, REL-STK). Still a management
+ * summary, not a statutory financial statement.
  *
  * Every movement that changes the value of stock in scope is on a line, so opening stock value + debits to Inventory −
  * credits to Inventory = closing stock value exactly (the check line). For All branches the stock value includes stock
@@ -36,7 +37,7 @@ final class StockJournalSummaryService
     /** Line key => [description, account debited when stock comes in or goes out against it]. */
     private const LINES = [
         'purchases' => ['Purchases received at cost', self::PAYABLE],
-        'opening' => ['Opening balances recorded this month', 'Opening stock (to be confirmed by accountant)'],
+        'opening' => ['Opening balances recorded this month', 'Opening stock'],
         'transfers_in' => ['Transfers in', 'Inter-branch transfers'],
         'patient_returns' => ['Patient returns back into stock (at average cost)', self::COGS],
         'count_gains' => ['Count gains and adjustments in', self::LOSSES],
@@ -207,7 +208,7 @@ final class StockJournalSummaryService
         }
 
         $metadata = [
-            ["Management report — cost policy to be confirmed by the clinic's accountant. ".WeightedAverageCostService::DISCLAIMER],
+            [StockValuationReportService::BANNER],
             ['No real accounting system receives this file.'],
             ['Scope', $s['scopeLabel']], ['Month', $s['month'].($s['toDate'] ? ' (month to date, up to '.$s['upTo'].')' : ' (full month)')], ['Generated', CarbonImmutable::now($s['zone'])->format('j M Y, g:i A').' ('.$s['zone'].')'],
         ];

@@ -18,10 +18,10 @@ test('STK-28: the Classic Stock value page keeps its report route, journal downl
         (classic.match(/\/inventory\/stock-value\/journal/g) ?? []).length,
         1,
     );
-    // The banner shows above the summary and on every tab.
+    // The banner shows once, above the summary (REL-STK, Daniel).
     const classicTemplate = classic.slice(classic.indexOf('<template>'));
     assert.ok(
-        (classicTemplate.match(/\{\{ report\.banner \}\}/g) ?? []).length >= 3,
+        (classicTemplate.match(/\{\{ report\.banner \}\}/g) ?? []).length === 1,
     );
     assert.ok(
         classicTemplate.indexOf('valuation-banner') <
