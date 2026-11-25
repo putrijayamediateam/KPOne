@@ -1,11 +1,11 @@
 # KPOne connector: trial-server checklist
 
 For the person who manages the trial server environment. Do these in order. Nothing here touches a server with real patient
-data: **the connector stays off there until the owner says so in writing after the PDPA review.**
+data: **the connector stays off there until the owner gives a separate written OK at switch-on, naming the server and the date.** (The PDPA and lawyer review itself is approved, owner-confirmed, verbal, 25 Nov 2026.)
 
 ## Before switching on
 
-1. The server holds **fictional data only** (the owner has confirmed this for this server).
+1. Either the server holds **fictional data only**, or the owner has given the **separate written OK** for this server (naming the server and the date).
 2. `php artisan migrate` has run (adds the permission and the OAuth tables).
 3. The OAuth signing keys exist: `php artisan passport:keys`, or `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY` set in the
    environment (never in a file that is committed). The key files must not be readable by other users (mode 0600).

@@ -17,7 +17,7 @@ generation with patient-image rules. **This note covers slice 1 only.**
 
 1. The rule "KPOne calls no AI service" (2026-11-05) is **reversed** for the chatbox ("batalkan"). The wording and the
    guard-test change are owner-approval items in section 9.
-2. Data: the Director's chatbox may use everything the Director may already see; **synthetic data only until the PDPA review**.
+2. Data: the Director's chatbox may use everything the Director may already see; **the PDPA review is approved (owner-confirmed, verbal, 25 Nov 2026); the owner turns the chatbox on and decides where**.
    (The consultation sends clinical text without patient name or IC: slice 2.)
 3. History is encrypted. The Director and "management" see everyone's history; everyone else sees only their own. **Which roles
    count as management is still to be answered** (section 10).
@@ -155,7 +155,7 @@ Answered by the owner: **"A, RM 50, Director only, 90 days, BIL-31 page."**
 | Retention | **90 days** for message text, then the text is removed and the row kept. |
 | Which page | The **BIL-31 Director and Finance overview page** (Billing team, Farah; **not merged yet**). The chatbox is for the **Director only**: the Finance Officer who sees that page does **not** get the chatbox (the "Ask KPOne" button is shown only to a holder of `ai_chat.use.organisation`). |
 | Scope of questions | The existing fixed connector questions only; wider sources later as reviewed tools. |
-| Data | Synthetic data only until the PDPA review. |
+| Data | PDPA review approved (owner-confirmed, verbal, 25 Nov 2026); the owner decides when and where to turn it on. |
 
 **Still open:** (a) the owner's written approval of section 9 (the `AGENTS.md` wording, the BASELINE and contract updates, the
 `NoAiServiceGuardTest` change); (b) the daily limit above; (c) the date BIL-31 merges. The build waits for (a) and the owner's ship-it.
