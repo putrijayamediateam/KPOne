@@ -178,6 +178,15 @@ const hslToRgb = (hue, saturation, lightness) => {
 };
 
 const parseColor = (value) => {
+    const translucent = /^rgba\(\s*(\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(
+        value,
+    );
+
+    if (translucent) {
+        // Clean Look washes are translucent black: callers blend them over the card (see solidOver).
+        return translucent.slice(1, 4).map((v) => Number(v) / 255);
+    }
+
     if (value.startsWith('#')) {
         return [1, 3, 5].map(
             (position) =>
@@ -234,7 +243,7 @@ test('buttons expose the approved hierarchy and interactive states', () => {
 });
 
 test('input and select controls remain visibly editable and accessible', () => {
-    assert.match(input, /bg-card/);
+    assert.match(input, /bg-field-fill/);
     assert.match(input, /read-only:bg-muted/);
     assert.match(input, /disabled:cursor-not-allowed/);
     assert.match(select, /cursor-pointer/);
@@ -248,7 +257,7 @@ test('operational action links use Button-as-Link semantics', () => {
 });
 
 test('tabs and pagination provide active, focus and disabled states', () => {
-    assert.match(tabs, /after:bg-brand/);
+    assert.match(tabs, /bg-primary\/10/);
     assert.match(tabs, /focus-visible:ring-2/);
     assert.match(tabs, /disabled:cursor-not-allowed/);
     assert.match(pagination, /aria-current="page"/);
@@ -427,9 +436,9 @@ test('mounted status badges use tone classes whose text contrast exceeds 4.5 to 
     };
     const expectedClasses = {
         neutral: ['text-foreground', 'bg-muted'],
-        accent: ['text-brand-strong', 'bg-brand/10'],
-        success: ['text-success', 'bg-success/10'],
-        warning: ['text-warning-strong', 'bg-warning/10'],
+        accent: ['text-info', 'bg-info-wash'],
+        success: ['text-success', 'bg-success-wash'],
+        warning: ['text-warning', 'bg-warning-wash'],
         danger: ['text-destructive', 'bg-destructive/10'],
     };
 
@@ -451,9 +460,9 @@ test('mounted status badges use tone classes whose text contrast exceeds 4.5 to 
 
     const toneTokens = {
         neutral: ['foreground', 'muted', 1],
-        accent: ['brand-strong', 'brand', 0.1],
-        success: ['success', 'success', 0.1],
-        warning: ['warning-strong', 'warning', 0.1],
+        accent: ['info', 'info-wash', 1],
+        success: ['success', 'success-wash', 1],
+        warning: ['warning', 'warning-wash', 1],
         danger: ['destructive', 'destructive', 0.1],
     };
 
@@ -467,10 +476,14 @@ test('mounted status badges use tone classes whose text contrast exceeds 4.5 to 
         ] of Object.entries(toneTokens)) {
             const foreground = parseColor(tokens[foregroundName]);
             const backgroundColor = parseColor(tokens[backgroundName]);
-            const background =
-                alpha === 1
-                    ? backgroundColor
-                    : blend(backgroundColor, surface, alpha);
+            const translucent = /^rgba\(.*,\s*([\d.]+)\)$/.exec(
+                tokens[backgroundName],
+            );
+            const background = translucent
+                ? blend(backgroundColor, surface, Number(translucent[1]))
+                : alpha === 1
+                  ? backgroundColor
+                  : blend(backgroundColor, surface, alpha);
             const ratio = contrast(foreground, background);
 
             assert.ok(
