@@ -44,8 +44,10 @@ five new ones marked **new**. Values replace the current ones.
 | `--muted-foreground` | `#6e6e73` | `#a1a1a6` | 5.07:1 on white, 4.66:1 on `#f5f5f7`; dark 7.15:1 on `#141416`. **Never `#86868b`** (3.62:1) |
 | `--muted` | `rgba(0,0,0,0.06)` | `#2c2c30` | Segmented-control track, hover wash, quiet chips |
 | `--accent`, `--accent-foreground` | `rgba(0,0,0,0.06)` / `#1d1d1f` | `#232327` / `#f5f5f7` | The shadcn "accent" is a hover wash, not the blue |
-| `--primary`, `--primary-foreground` | `#0852da` / `#ffffff` | `#4d94ff` / `#0b0b0d` | The blue. 6.5:1 white on it; dark label 6.55:1 |
-| `--ring`, `--link` **new** | `#0a56d1` | `#6ba6ff` | Focus ring and text links. 6.0:1 on `#f5f5f7`; dark 7.47:1 on `#141416` |
+| `--primary`, `--primary-foreground` | `#006ae0` / `#ffffff` | `#4d94ff` / `#0b0b0d` | The blue for **fills and text** (owner: accent blue, KPOne pink on the logo only). 5.07:1 white on it; dark label 6.55:1 |
+| `--accent-blue` **new** | `#007aff` | `#4d94ff` | The owner's exact blue, for **non-text** use only: rail icon, selected wash and indicator, focus ring, switch knob accents, chart highlight. 4.02:1 on white, enough for graphics (3:1), not for 13 to 14 px text |
+| `--ring` | `#007aff` | `#6ba6ff` | Focus ring (graphic, 3:1). Dark 7.47:1 on `#141416` |
+| `--link` **new** | `#006ae0` | `#6ba6ff` | Text links. 5.07:1 on white, 4.6:1 on `#f5f5f7`; dark 7.47:1 |
 | `--border` | `rgba(0,0,0,0.08)` | `#2a2a2e` | **Decoration only** (card edges, row dividers) |
 | `--input` | `#8a8a93` | `#6b6b73` | **Edge of a control** (fields, outline buttons, selected states). 3.42:1 on white; 3.48:1 on dark card |
 | `--field-fill` | `#ffffff` | `#1b1b1e` | Field background |
@@ -169,7 +171,7 @@ none exists the chip is simply not shown (that is a backend gap for the owning t
 content. No top bar. The branch name appears in the panel and as a quiet subline, not as a second header.
 
 **The TV and the public pages** (QR form, status, careers, sign-in) keep their own layouts (`PublicCheckInLayout`,
-`AuthLayout`, the TV screen) and take only the new tokens and fonts. The TV is not restyled to the sidebar look.
+`AuthLayout`, the TV screen) and take only the new tokens and fonts. The TV is not restyled to the sidebar look and **stays in English** (owner, 25 Nov).
 
 ## 7. Homes ("Today" and "My day")
 
@@ -199,7 +201,7 @@ the TV in print keep a white page (PRINT-1) whatever the theme.
 
 | Canvas shows | Problem | We use |
 |---|---|---|
-| Blue `#007AFF` fill with white text | 4.02:1, fails 4.5:1 for 13/14 px text | `#0852da` (6.5:1). The accent stays a one-token choice |
+| Blue `#007AFF` fill with white text | 4.02:1, fails 4.5:1 for 13/14 px text | `#006ae0` for fills and link text (5.07:1, the same blue to the eye); `#007aff` itself for icons, selection, focus ring |
 | Grey `#86868b` text | 3.62:1 on white | `--muted-foreground` `#6e6e73` |
 | Text 10.5 to 11.5 px | Under our 12 px floor | 12 px minimum, 12.5 for metadata |
 | Pale hairline (4 to 8% black) as the edge of fields and buttons | Edge under 3:1 | `--input` `#8a8a93` on controls; hairline stays for cards |
@@ -266,8 +268,9 @@ B.E.R.N.I.S.S, and Daniel adds it here.
 
 ## 12. Open points for the owner (decide before Stage 1 ends; none blocks Stage 0)
 
-1. **Main action colour.** The canvas default is blue (`#0852da` here). The 18 Nov pilot note chose black for the one
-   main button. This spec follows the canvas. It is a one-token switch (`--primary`).
+1. ~~Main action colour~~ **Decided (owner, 25 Nov): accent blue `#007aff`; KPOne pink on the logo only.** Spec applies it as
+   `#007aff` for graphics and `#006ae0` for text and button fills, because `#007aff` under white text measures 4.02:1.
+   One token (`--primary`) if the owner ever wants another colour.
 2. **Pill buttons everywhere.** The canvas uses full pills for all buttons; the 18 Nov note kept rows at 10 to 14 px.
    This spec follows the canvas (pills) for buttons and tabs, 10 px for fields.
 3. **Fonts.** Geist and Inter self-hosted; confirm Kavitha may add the files.
