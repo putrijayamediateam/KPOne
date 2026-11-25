@@ -17,10 +17,12 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Readiness\CallHoldProjection;
+use App\Domain\Visit\Assignment\DoctorAssignmentService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -38,6 +40,7 @@ class VisitDirectoryService
         private DispensaryDirectoryService $dispensary,
         private VisitReasonService $reasons,
         private VisitHistoryService $history,
+        private DoctorAssignmentService $assignment,
     ) {}
 
     /**
@@ -284,19 +287,45 @@ class VisitDirectoryService
     }
 
     /** @return array<string, mixed> */
-    public function formOptions(User $actor): array
+    public function formOptions(User $actor, bool $rosterOnly = true): array
     {
         $branch = $this->activeBranch($actor);
         $date = now()->setTimezone($branch->timezone)->toDateString();
+        $auto = $rosterOnly && $this->assignment->isAvailable($branch, CarbonImmutable::now());
 
         return [
             'branch' => $branch->only(['id', 'code', 'name', 'timezone']),
             'idempotencyKey' => (string) Str::uuid(),
-            'doctors' => $this->doctors->eligibleDoctors($branch, $date)
-                ->map->only(['id', 'name'])->values(),
+            // AUTO-1: with automatic assignment available, only doctors on today's roster are offered, each with free or
+            // busy and how many wait; sales and targets are never sent.
+            'autoAssign' => $auto ? ['available' => true, 'enabled' => true, 'overrideReasons' => DoctorAssignmentService::OVERRIDE_REASONS]
+                : ['available' => false, 'enabled' => $rosterOnly && $this->assignment->isEnabled($branch), 'overrideReasons' => []],
+            'doctors' => $auto
+                ? collect($this->assignment->recommend($actor, $branch, CarbonImmutable::now(), null)['list'])->values()
+                : $this->doctors->eligibleDoctors($branch, $date)->map->only(['id', 'name'])->values(),
             'panels' => Panel::query()->where('organisation_id', $actor->organisation_id)
                 ->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];
+    }
+
+    /**
+     * AUTO-1: who Auto would pick now (id and name only), or null when Auto is not available or has nobody.
+     *
+     * @return array{id: int, name: string}|null
+     */
+    public function recommendedDoctor(User $actor, mixed $patientNumber): ?array
+    {
+        $branch = $this->activeBranch($actor);
+        $now = CarbonImmutable::now();
+        if (! $this->assignment->isAvailable($branch, $now)) {
+            return null;
+        }
+        $patientId = is_string($patientNumber) && $patientNumber !== ''
+            ? Patient::query()->where('organisation_id', $actor->organisation_id)->where('patient_number', $patientNumber)->value('id') : null;
+        $pick = $this->assignment->recommend($actor, $branch, $now, $patientId === null ? null : (int) $patientId, withSales: true);
+        $doctor = collect($pick['list'])->firstWhere('id', $pick['doctorId']);
+
+        return $doctor === null ? null : ['id' => (int) $doctor['id'], 'name' => (string) $doctor['name']];
     }
 
     /** @return array<string, mixed> */
@@ -353,7 +382,8 @@ class VisitDirectoryService
     public function editOptions(User $actor, Visit $visit): array
     {
         Gate::forUser($actor)->authorize('update', $visit);
-        $options = $this->formOptions($actor);
+        // Edit visit keeps every eligible doctor, so a visit never loses its current doctor from the picker (AUTO-1).
+        $options = $this->formOptions($actor, false);
         unset($options['idempotencyKey']);
 
         return $options;
