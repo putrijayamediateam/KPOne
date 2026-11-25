@@ -30,8 +30,9 @@ final class InventoryOperationsDirectoryService
             ->select('id');
         $purchaseOrders = DB::table('inventory_purchase_orders as po')->join('inventory_suppliers as supplier', 'supplier.id', '=', 'po.supplier_id')->join('inventory_locations as location', 'location.id', '=', 'po.destination_location_id')
             ->leftJoin('inventory_purchase_requests as from_request', 'from_request.purchase_order_id', '=', 'po.id')
+            ->leftJoin('inventory_rfqs as from_rfq', 'from_rfq.purchase_order_id', '=', 'po.id')
             ->where('po.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('location.branch_id', $branch->id)->when($mayUseWarehouse, fn (Builder $locations) => $locations->orWhereNull('location.branch_id')))->orderByDesc('po.created_at')->limit(50)
-            ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt', 'po.created_by_user_id', 'po.submitted_by_user_id', 'from_request.request_number as fromRequest', 'po.close_kind as closeKind', 'po.short_close_reason as shortCloseReason', 'po.short_close_note as shortCloseNote', 'po.closed_by_user_id', 'po.closed_at']);
+            ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt', 'po.created_by_user_id', 'po.submitted_by_user_id', 'from_request.request_number as fromRequest', 'from_rfq.rfq_number as fromRfq', 'po.close_kind as closeKind', 'po.short_close_reason as shortCloseReason', 'po.short_close_note as shortCloseNote', 'po.closed_by_user_id', 'po.closed_at']);
         $closerIds = $purchaseOrders->where('closeKind', 'short')->pluck('closed_by_user_id')->filter()->map(fn (mixed $id): int => (int) $id)->unique()->values()->all();
         $closers = $closerIds === [] ? collect() : $this->staff->visibleUsers($actor)->whereIn('id', $closerIds)->pluck('name', 'id');
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
@@ -71,6 +72,8 @@ final class InventoryOperationsDirectoryService
                 'stocktake' => false,
                 'adjust' => false,
                 'manageReorder' => $actor->can(InventoryControlService::REORDER_PERMISSION),
+                // STK-48: estimated cost is cost, so the order form shows its cost fields only with cost view.
+                'viewCost' => $actor->can(SupplierTermsService::COST_PERMISSION),
             ],
             'suppliers' => app(InventoryPickerService::class)->choices($actor, $branch, 'suppliers', 'operations'),
             'locations' => app(InventoryPickerService::class)->choices($actor, $branch, 'locations', 'operations'),

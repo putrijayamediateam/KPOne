@@ -76,6 +76,18 @@ final class ProcurementService
             [$supplier, $destination] = $this->lockSupplierAndLocation($lockedActor, (string) ($attributes['supplier_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertLocationAuthority($lockedActor, $branch, $destination);
             $skus = $this->lockSkus($lockedActor, array_column($lines, 'sku_public_id'));
+            if (! $lockedActor->can(SupplierTermsService::COST_PERMISSION)) {
+                // STK-48: someone without cost view has no cost fields, so each line keeps its estimate (matched by
+                // SKU, one line per SKU) unless the request carries one. A line they add has none.
+                $kept = DB::table('inventory_purchase_order_lines')->where('purchase_order_id', $locked->id)->pluck('estimated_unit_cost_sen', 'inventory_sku_id');
+                foreach ($lines as &$line) {
+                    $estimate = $kept->get($skus[$line['sku_public_id']]->id);
+                    if ($line['unit_cost_sen'] === null && $estimate !== null) {
+                        $line['unit_cost_sen'] = (int) $estimate;
+                    }
+                }
+                unset($line);
+            }
             $locked->forceFill(['supplier_id' => $supplier->id, 'destination_location_id' => $destination->id, 'lock_version' => $locked->lock_version + 1])->save();
             DB::table('inventory_purchase_order_lines')->where('purchase_order_id', $locked->id)->delete();
             $this->replaceDraftLines($locked, $lines, $skus);
