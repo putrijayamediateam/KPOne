@@ -1,10 +1,14 @@
-# REL-DSP: the drug label size is confirmed (release note, for the owner's approval)
+# REL-DSP: the drug label size is confirmed (release note)
 
 **Owner decision, 25 Nov 2026,** in the coordinator session, relayed by B.E.R.N.I.S.S. In the owner's words, the
 real printer and sticker test at 100 × 62 mm and the pharmacist review "dah dpt approval". The approval was verbal.
 
+**Approved by the owner, 25 Nov 2026** ("Lulus semua", relayed by B.E.R.N.I.S.S): the note as written; the
+pharmacist review means **accept the label as it is**; and it also covers the CA Supervisor guide's line on the drug
+group and controlled medicine lists (`penyelia-ca.md:136`), which is removed too.
+
 This note turns the DSP-10 label size from provisional into confirmed, and records the pharmacist review as:
-**owner-confirmed, verbal, 25 Nov 2026.** No names are recorded. Nothing is built until the owner approves this note.
+**owner-confirmed, verbal, 25 Nov 2026.** No names are recorded.
 
 ## 1. What changes
 
