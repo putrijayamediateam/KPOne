@@ -1,6 +1,9 @@
 # Drug label pilot checks (DSP-9, updated for the DSP-10 landscape label)
 
-Two checks stand between the KPOne drug label and the pilot. They are done by people, not code:
+**Status (REL-DSP):** both checks are done: owner-confirmed, verbal, 25 Nov 2026. The label is accepted as it is at
+100 × 62 mm. The pages below are kept as the record of what was checked.
+
+Two checks stood between the KPOne drug label and the pilot. They are done by people, not code:
 
 1. **[Printer test](printer-test.md)** — print the worst-case labels on the real printer and sticker stock at the
    pilot branch and record what you see. A CA Supervisor prints; the owner or an Administrator sets Business

@@ -46,6 +46,15 @@ const props = defineProps<{
     greeting: { text: string; date: string } | null;
     ring: Ring | null;
     week: Week | null;
+    station?: {
+        station: string;
+        stationLabel: string;
+        room: string | null;
+        startLabel: string;
+        endLabel: string;
+        now: boolean;
+    } | null;
+    stationHref?: string | null;
     tiles: {
         leave: Tile;
         claims: Tile;
@@ -190,6 +199,24 @@ const tileList = computed(() =>
                         status.line
                     }}</span>
                 </div>
+                <p v-if="station" class="me-station" data-test="me-station">
+                    <span class="me-station-label"
+                        >{{
+                            station.now ? 'Station now' : 'Station today'
+                        }}:</span
+                    >
+                    <Link
+                        v-if="stationHref"
+                        :href="stationHref"
+                        class="underline"
+                        >{{ station.stationLabel }}</Link
+                    >
+                    <template v-else>{{ station.stationLabel }}</template
+                    >, {{ station.startLabel }} to {{ station.endLabel
+                    }}<template v-if="station.room"
+                        >, {{ station.room.replace(/ /g, '\u00a0') }}</template
+                    >
+                </p>
                 <p v-if="ring.state === 'in'" class="me-status-line">
                     Worked {{ workedText }}
                 </p>

@@ -12,6 +12,7 @@ use App\Http\Controllers\AskThroughClaudeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\AutoAssignSettingController;
 use App\Http\Controllers\BillingApprovalLimitController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
@@ -126,6 +127,7 @@ use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\StockHealthController;
 use App\Http\Controllers\StockValuationController;
+use App\Http\Controllers\SuggestionReviewController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
@@ -261,6 +263,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
             Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
             Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/copy-to-month', 'copyToMonth')->whereUuid('version')->name('hr.roster.copy-month');
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
@@ -833,6 +836,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-invoices', [PanelInvoicesController::class, 'index'])->name('panel-invoices.index');
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
+    });
+    Route::post('registration-settings/auto-assign', [AutoAssignSettingController::class, 'update'])->middleware(['permission:registration.auto_assign.manage.branch', 'sensitive.no-store', 'throttle:20,1'])->name('registration-settings.auto-assign');
+    // SUG-1a: the doctor's review of the recommendation lists.
+    Route::middleware(['permission:clinical_suggestions.approve.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('consultation-settings/review', [SuggestionReviewController::class, 'index'])->name('suggestion-review.index');
+        Route::patch('consultation-settings/review/diagnoses/{preset}', [SuggestionReviewController::class, 'decide'])->whereNumber('preset')->middleware('throttle:30,1')->name('suggestion-review.decide');
     });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('registration-settings', [RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
@@ -1503,6 +1512,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('registration/create', [RegistrationController::class, 'create'])
             ->middleware('permission:visits.create.branch')
             ->name('registration.create');
+        Route::get('registration/recommended-doctor', [RegistrationController::class, 'recommendedDoctor'])
+            ->middleware(['permission:visits.create.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('registration.recommended-doctor');
         Route::post('registration', [RegistrationController::class, 'store'])
             ->middleware(['permission:visits.create.branch', 'throttle:30,1'])
             ->name('registration.store');

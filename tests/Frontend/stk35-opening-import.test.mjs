@@ -8,7 +8,11 @@ const page = read('resources/js/pages/Inventory/OpeningImport.vue');
 
 test('STK-35: the page says what it is and is not', () => {
     assert.match(page, /Synthetic data only\. Not a Yezza data migration\./);
-    assert.match(page, /Cost\s+policy to be confirmed by the accountant\./);
+    // REL-STK (owner-approved assertion change, 25 Nov 2026): the accountant approved the cost policy.
+    assert.match(
+        page,
+        /uses the weighted average cost policy approved by the\s+clinic's accountant\./,
+    );
     assert.match(
         page,
         /needs sign-off on Pilot readiness by someone other than you\./,

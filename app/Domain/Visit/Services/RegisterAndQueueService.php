@@ -4,15 +4,19 @@ namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Assignment\DoctorAssignmentService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Register a Visit and put it on the waiting list in ONE transaction (owner decision, 2026-11-18: "always send, later
@@ -35,6 +39,7 @@ class RegisterAndQueueService
         private QueueEntryService $queue,
         private OtcQueueService $otcQueue,
         private BranchAccessService $branches,
+        private DoctorAssignmentService $assignment,
     ) {}
 
     /**
@@ -52,11 +57,77 @@ class RegisterAndQueueService
         // the Visit and the queue entry inside the steps below.
         return DB::transaction(function () use ($actor, $attributes): array {
             $doctorId = isset($attributes['assigned_doctor_user_id']) ? (int) $attributes['assigned_doctor_user_id'] : null;
+            $attributes = $this->assignDoctor($actor, $attributes, $doctorId);
+            $doctorId = isset($attributes['assigned_doctor_user_id']) ? (int) $attributes['assigned_doctor_user_id'] : null;
             ConsultationLocks::users($actor->organisation_id, [$actor->id, $doctorId]);
             $visit = $this->registration->register($actor, $attributes);
 
             return ['visit' => $visit, 'queueLabel' => $this->send($actor, $visit)];
         }, 3);
+    }
+
+    /**
+     * AUTO-1: with automatic assignment available at the branch (switch on and today's roster published), a blank doctor
+     * is filled by the recommendation, and a doctor chosen by hand who is not the recommended one needs a fixed reason.
+     * Runs before the registration step and takes the candidate doctors' locks first (ascending id), so the picture it
+     * reads cannot change under it. A replay of an earlier registration is left alone. Nothing about sales leaves here.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function assignDoctor(User $actor, array $attributes, ?int $chosen): array
+    {
+        if (($attributes['visit_type'] ?? null) !== 'consultation') {
+            return $attributes;
+        }
+        // A replay keeps the doctor the first attempt chose, whether or not auto is still on: nothing is picked or audited again.
+        $earlier = isset($attributes['idempotency_key']) ? Visit::query()->where('organisation_id', $actor->organisation_id)
+            ->where('idempotency_key', $attributes['idempotency_key'])->first() : null;
+        if ($earlier !== null) {
+            $attributes['assigned_doctor_user_id'] ??= $earlier->assigned_doctor_user_id;
+
+            return $attributes;
+        }
+        $branch = $this->branches->activeBranch($actor);
+        $now = CarbonImmutable::now();
+        if (! $branch || (int) ($attributes['expected_branch_id'] ?? 0) !== $branch->id || ! $this->assignment->isAvailable($branch, $now)) {
+            return $attributes;
+        }
+        $patientId = filled($attributes['patient_number'] ?? null)
+            ? Patient::query()->where('organisation_id', $actor->organisation_id)->where('patient_number', $attributes['patient_number'])->value('id') : null;
+        $pick = $this->assignment->pick($actor, $branch, $now, $patientId === null ? null : (int) $patientId);
+
+        if ($chosen === null) {
+            if ($pick['doctorId'] === null) {
+                // Auto has nobody to choose: say why, and let the CA pick a doctor by hand.
+                throw ValidationException::withMessages(['assigned_doctor_user_id' => $pick['list'] === []
+                    ? "No doctor is on today's roster at this branch, so Auto cannot choose one."
+                    : 'No doctor on today\'s roster has a room, so Auto cannot choose one. Choose a doctor yourself.']);
+            }
+            $attributes['assigned_doctor_user_id'] = $pick['doctorId'];
+            $attributes['doctor_source'] = 'auto';
+            $attributes['doctor_reason_code'] = $pick['reason'];
+
+            return $attributes;
+        }
+        // Only doctors on today's roster may be chosen, by hand too: a request naming anyone else is refused here, not only hidden.
+        if (! in_array($chosen, array_column($pick['list'], 'id'), true)) {
+            throw ValidationException::withMessages(['assigned_doctor_user_id' => "Choose a doctor who is on today's roster."]);
+        }
+        if ($pick['doctorId'] === null || $chosen === $pick['doctorId']) {
+            $attributes['doctor_source'] = 'manual';
+            $attributes['doctor_reason_code'] = $chosen === $pick['doctorId'] ? $pick['reason'] : 'no_recommendation';
+
+            return $attributes;
+        }
+        $reason = $attributes['doctor_override_reason'] ?? null;
+        if (! in_array($reason, DoctorAssignmentService::OVERRIDE_REASONS, true)) {
+            throw ValidationException::withMessages(['doctor_override_reason' => 'Pick a reason to continue.']);
+        }
+        $attributes['doctor_source'] = 'override';
+        $attributes['doctor_reason_code'] = 'ca_override_'.$reason;
+
+        return $attributes;
     }
 
     private function send(User $actor, Visit $visit): ?string

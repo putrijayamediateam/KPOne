@@ -108,7 +108,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-14 | Allergy match ignores strengths, dose forms and extra words: a "core" of each side drops tokens that start with a digit, units, dose forms and salt words (and, on the allergy side, wrapper, reaction, symptom and filler words); an allergy part's core inside a medicine name (whole words below 5 characters) or the medicine name's core inside the allergy text's core (whole words) also matches. Only adds matches; still warns, never blocks. Backend only | #428 (merged) |
 | DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
 | DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
-| DSP-26 | The Resident Doctor sees the Dispensary pages at their active branch, view only: the Registration board's Dispensary tab and "Open Dispensary" row action, a case in any status, the Completed page with its returns read only, and the label preview of a completed or waiting case (no print token, no row locks, no print row). A muted "View only. You cannot change this case." banner; every action removed, not disabled; "View in Dispensary" on the doctor's check panel with "Back to consultation" for the attending doctor. A separate read gate (`DispensaryDirectoryService::canView`), so every write path and the print log keep their checks. New permission `dispensary.view_readonly.branch` (Resident Doctor), migration `2026_11_06_200900` | (PR to come) |
+| DSP-26 | The Resident Doctor sees the Dispensary pages at their active branch, view only: the Registration board's Dispensary tab and "Open Dispensary" row action, a case in any status, the Completed page with its returns read only, and the label preview of a completed or waiting case (no print token, no row locks, no print row). A muted "View only. You cannot change this case." banner; every action removed, not disabled; "View in Dispensary" on the doctor's check panel with "Back to consultation" for the attending doctor. A separate read gate (`DispensaryDirectoryService::canView`), so every write path and the print log keep their checks. New permission `dispensary.view_readonly.branch` (Resident Doctor), migration `2026_11_06_200900` | #1086 (merged `477a252`) |
+| REL-DSP | The drug label size 100 × 62 mm is confirmed and the pharmacist review recorded as "owner-confirmed, verbal, 25 Nov 2026" (no names). "(provisional). Confirm printer and sticker stock." comes off the label preview line; the pilot pack, the Malay CA and CA Supervisor guides and the layout comment drop "provisional" and the pharmacist checks. No behaviour change. Note: [REL-DSP.md](REL-DSP.md) | (PR to come) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -283,6 +284,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     in); Daniel: OK with changes at note level, shots to follow.
 41. Medical Assistant mirroring (B.E.R.N.I.S.S, 2026-11-23): any migration that grants a permission to `ca` also grants
     it to `medical_assistant` (section 8).
+42. REL-DSP drug label confirmed (2026-11-25): owner "dah dpt approval" for the real printer and sticker test at
+    100 × 62 mm and the pharmacist review (verbal), then "Lulus semua" on the REL-DSP note: the note is approved, the
+    review means the label is accepted as it is, and it also covers the drug group and controlled medicine lists line
+    in the CA Supervisor guide. Recorded as "owner-confirmed, verbal, 25 Nov 2026", with no names.
 
 ## 7. Open items and known limits
 
@@ -290,15 +295,15 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   past dispenses follow the current flag. Since DSP-10 its line prints below the border and uses none of the 13 rows. Medicines have
   no `lock_version`; the change uses an expected-value guard on the one boolean instead (a quick A→B→A
   sequence is not detected; every change is audited).
-- **Real printer and sticker test** for drug labels at the pilot branch (owner to do by hand; checklist in
-  [printer-test.md](../../pilot/drug-label/printer-test.md)).
-- **Pharmacist review**: the DSP-10 limits (directions 3 rows, instruction 144, precaution 72, indication 72),
+- **Real printer and sticker test** for drug labels at the pilot branch: **done** (REL-DSP: owner-confirmed, verbal,
+  25 Nov 2026; checklist in [printer-test.md](../../pilot/drug-label/printer-test.md)).
+- **Pharmacist review** (**done**, REL-DSP: owner-confirmed, verbal, 25 Nov 2026, label accepted as it is): the DSP-10 limits (directions 3 rows, instruction 144, precaution 72, indication 72),
   "QTY: n" with no unit, the indication at medicine level, "EXP: -" for more than one batch, no route or batch
   number, and the marker wording "Ubat Terkawal/Controlled Medicine" (DSP-3, DSP-10). Which
   medicines are controlled is set by catalogue editors; KPOne does not decide it. Questions and sample labels
   for the pharmacist: [pharmacist-review.md](../../pilot/drug-label/pharmacist-review.md) (DSP-9).
-- **Labels (DSP-10):** 100 × 62 mm is provisional until the real sticker test; a different size changes every
-  limit. The expiry prints only for a line with exactly one allocated batch with a real expiry; otherwise "EXP: -".
+- **Labels (DSP-10):** 100 × 62 mm, confirmed by the owner on 25 Nov 2026 (REL-DSP); a different size would change
+  every limit. The expiry prints only for a line with exactly one allocated batch with a real expiry; otherwise "EXP: -".
   No batch number, barcode or label snapshot; prints are logged per line (DSP-6). The 13-row limit is tighter than
   the old 35, so a long clinic header plus long directions is blocked sooner. The phone prints in reading form ("Tel: 03-2123 4567",
   decision 28); a number the formatter does not recognise prints as stored.
