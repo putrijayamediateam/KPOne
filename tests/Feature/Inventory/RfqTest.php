@@ -330,6 +330,42 @@ final class RfqTest extends VisitTestCase
         $this->assertNull($order->lines()->sole()->estimated_unit_cost_sen);
     }
 
+    public function test_a_cost_view_holder_saving_the_converted_draft_keeps_the_quoted_estimates_unless_they_change_them(): void
+    {
+        $f = $this->setUpRound();
+        $round = $this->service()->start($f['finance'], $this->startInput($f));
+        $this->quote($f['finance'], $round, 0, [[false, '12.00', '30'], [false, '5.00', '1']]);
+        $this->choose($f['finance'], $round, 0);
+        $orderId = $this->service()->convert($f['finance'], $round, ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])['order'];
+        $storeAdmin = $this->staff('store_admin');
+
+        // The cost-view holder's page data carries each draft line's estimate; the edit form sends it back.
+        $row = collect($this->actingAs($storeAdmin)->get(route('inventory.index'))->assertOk()->viewData('page')['props']['operations']['purchaseOrders'])->firstWhere('publicId', $orderId);
+        $sent = collect($row['lines'])->mapWithKeys(fn (array $l) => [$l['skuPublicId'] => $l['estimatedUnitCostSen']])->all();
+        $this->assertSame([$f['sku']->public_id => 40, $f['second']->public_id => 500], $sent);
+        $this->assertNotNull($row['fromRfq']);
+
+        // Saving with only a quantity changed keeps both quoted estimates.
+        $lines = collect($row['lines'])->map(fn (array $l) => ['sku_public_id' => $l['skuPublicId'], 'quantity' => $l['skuPublicId'] === $f['sku']->public_id ? '250' : $l['orderedQuantity'], 'unit_cost_sen' => $l['estimatedUnitCostSen']])->values()->all();
+        $this->actingAs($storeAdmin)->patch(route('inventory.purchase-orders.update', ['purchaseOrder' => $orderId]), ['expected_branch_id' => $this->branch->id, 'lock_version' => $row['lockVersion'],
+            'supplier_public_id' => $f['suppliers'][0]->public_id, 'destination_location_public_id' => $f['location']->public_id, 'lines' => $lines])->assertSessionHasNoErrors();
+        $order = PurchaseOrder::query()->where('public_id', $orderId)->sole();
+        $estimates = fn () => $order->lines()->get()->mapWithKeys(fn ($l) => [(int) $l->inventory_sku_id => $l->estimated_unit_cost_sen === null ? null : (int) $l->estimated_unit_cost_sen])->all();
+        $this->assertSame([$f['sku']->id => 40, $f['second']->id => 500], $estimates());
+        $this->assertSame('250.000', (string) $order->lines()->where('inventory_sku_id', $f['sku']->id)->value('ordered_quantity'));
+
+        // Changing one estimate changes only that line.
+        $lines[1]['unit_cost_sen'] = 450;
+        $this->actingAs($storeAdmin)->patch(route('inventory.purchase-orders.update', ['purchaseOrder' => $orderId]), ['expected_branch_id' => $this->branch->id, 'lock_version' => $order->refresh()->lock_version,
+            'supplier_public_id' => $f['suppliers'][0]->public_id, 'destination_location_public_id' => $f['location']->public_id, 'lines' => $lines])->assertSessionHasNoErrors();
+        $this->assertSame([$f['sku']->id => 40, $f['second']->id => 450], $estimates());
+
+        // A CA Supervisor's page data still has no estimate.
+        $supervisorRows = $this->actingAs($this->staff('ca_supervisor'))->get(route('inventory.index'))->assertOk()->viewData('page')['props']['operations']['purchaseOrders'];
+        $this->assertStringNotContainsString('estimatedUnitCostSen', (string) json_encode($supervisorRows));
+        $this->assertNotEmpty(collect($supervisorRows)->firstWhere('publicId', $orderId)['lines']);
+    }
+
     public function test_conversion_is_refused_when_the_supplier_has_been_archived(): void
     {
         $f = $this->setUpRound();

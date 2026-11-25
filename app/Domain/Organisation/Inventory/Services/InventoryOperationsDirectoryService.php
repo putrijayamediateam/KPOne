@@ -35,7 +35,7 @@ final class InventoryOperationsDirectoryService
             ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt', 'po.created_by_user_id', 'po.submitted_by_user_id', 'from_request.request_number as fromRequest', 'from_rfq.rfq_number as fromRfq', 'po.close_kind as closeKind', 'po.short_close_reason as shortCloseReason', 'po.short_close_note as shortCloseNote', 'po.closed_by_user_id', 'po.closed_at']);
         $closerIds = $purchaseOrders->where('closeKind', 'short')->pluck('closed_by_user_id')->filter()->map(fn (mixed $id): int => (int) $id)->unique()->values()->all();
         $closers = $closerIds === [] ? collect() : $this->staff->visibleUsers($actor)->whereIn('id', $closerIds)->pluck('name', 'id');
-        $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
+        $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()), $actor->can(SupplierTermsService::COST_PERMISSION));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
             ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt',
@@ -110,11 +110,17 @@ final class InventoryOperationsDirectoryService
      * @param  list<int>  $purchaseOrderIds
      * @return array<int, list<array<string, mixed>>>
      */
-    private function purchaseOrderLines(int $organisationId, array $purchaseOrderIds): array
+    private function purchaseOrderLines(int $organisationId, array $purchaseOrderIds, bool $withCost = false): array
     {
+        // STK-48: the estimate leaves the server only for a cost-view holder, so their draft edit form can keep it.
+        $columns = ['line.purchase_order_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'sku.stock_unit as stockUnit', 'line.ordered_quantity as orderedQuantity', 'line.received_quantity as receivedQuantity', 'line.not_delivered_quantity as notDeliveredQuantity', 'item.generic_name as item'];
+        if ($withCost) {
+            $columns[] = 'line.estimated_unit_cost_sen as estimatedUnitCostSen';
+        }
+
         return $this->groupLines(DB::table('inventory_purchase_order_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->join('inventory_items as item', 'item.id', '=', 'sku.inventory_item_id')
             ->where('line.organisation_id', $organisationId)->whereIn('line.purchase_order_id', $purchaseOrderIds)->orderBy('line.purchase_order_id')->orderBy('line.id')
-            ->get(['line.purchase_order_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'sku.stock_unit as stockUnit', 'line.ordered_quantity as orderedQuantity', 'line.received_quantity as receivedQuantity', 'line.not_delivered_quantity as notDeliveredQuantity', 'item.generic_name as item']));
+            ->get($columns));
     }
 
     /**

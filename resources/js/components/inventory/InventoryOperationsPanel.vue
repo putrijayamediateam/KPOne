@@ -174,9 +174,15 @@ const purchaseOrderEdits = reactive<
             supplier: string;
             destination: string;
             quantities: Record<string, string>;
+            costs: Record<string, string>;
         }
     >
 >({});
+// STK-48: a saved estimate in RM for the draft edit form (cost-view holders only receive one).
+const senToRm = (sen: number | null | undefined): string =>
+    sen === null || sen === undefined
+        ? ''
+        : `${Math.trunc(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
 const stockRequest = reactive({
     source: '',
     destination: '',
@@ -431,6 +437,12 @@ watchEffect(() => {
                     line.orderedQuantity ?? '',
                 ]),
             ),
+            costs: Object.fromEntries(
+                row.lines.map((line) => [
+                    line.publicId,
+                    senToRm(line.estimatedUnitCostSen),
+                ]),
+            ),
         };
 
         for (const line of row.lines) {
@@ -583,6 +595,10 @@ const updatePurchaseOrder = (row: DocumentRow) => {
         lines: row.lines.map((line) => ({
             sku_public_id: line.skuPublicId,
             quantity: edit.quantities[line.publicId],
+            // STK-48: a cost-view holder sends the estimate back, so saving a draft never clears it by accident.
+            ...(props.operations.permissions.viewCost
+                ? { unit_cost_sen: rmToSen(edit.costs[line.publicId] ?? '') }
+                : {}),
         })),
     });
 };
@@ -1119,6 +1135,30 @@ const saveReorder = () =>
                                 required
                             />
                         </label>
+                        <template v-if="operations.permissions.viewCost">
+                            <label
+                                v-for="line in row.lines"
+                                :key="`edit-cost-${line.publicId}`"
+                                class="grid gap-1 text-xs"
+                            >
+                                <span
+                                    >{{ line.sku }} estimated cost per stock
+                                    unit (RM)</span
+                                >
+                                <Input
+                                    v-model="
+                                        purchaseOrderEdits[row.publicId].costs[
+                                            line.publicId
+                                        ]
+                                    "
+                                    :aria-label="`${line.sku} estimated cost per stock unit RM`"
+                                    type="number"
+                                    inputmode="decimal"
+                                    min="0"
+                                    step="0.01"
+                                />
+                            </label>
+                        </template>
                         <Button
                             type="submit"
                             size="sm"

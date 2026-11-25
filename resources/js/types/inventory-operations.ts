@@ -30,6 +30,8 @@ export type InventoryDocumentLine = {
     varianceQuantity?: string | null;
     expectedQuantity?: string;
     batch?: string | null;
+    /** STK-48: a draft order line's estimate, whole sen per stock unit; only sent to cost-view holders. */
+    estimatedUnitCostSen?: number | null;
 };
 
 export type InventoryTransferDifference = {

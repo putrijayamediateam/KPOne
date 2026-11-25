@@ -127,3 +127,18 @@ test('STK-48: the order form shows estimated cost only with cost view and links 
     assert.match(panel, /href="\/inventory\/rfqs"/);
     assert.match(panel, /From quote \{\{ row\.fromRfq \}\}/);
 });
+
+test('STK-48: the draft edit form shows and sends back the estimate for cost-view holders only', () => {
+    assert.match(
+        panel,
+        /costs: Object\.fromEntries\([\s\S]{0,120}senToRm\(line\.estimatedUnitCostSen\)/,
+    );
+    assert.match(
+        panel,
+        /\.\.\.\(props\.operations\.permissions\.viewCost\s+\? \{ unit_cost_sen: rmToSen\(edit\.costs\[line\.publicId\] \?\? ''\) \}\s+: \{\}\)/,
+    );
+    assert.match(
+        panel,
+        /<template v-if="operations\.permissions\.viewCost">\s+<label\s+v-for="line in row\.lines"\s+:key="`edit-cost-/,
+    );
+});
