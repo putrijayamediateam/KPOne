@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/page-header';
 
 type Ring = InstanceType<typeof MeHome>['$props']['ring'];
 type Week = InstanceType<typeof MeHome>['$props']['week'];
+type Station = InstanceType<typeof MeHome>['$props']['station'];
 type Tiles = InstanceType<typeof MeHome>['$props']['tiles'];
 
 defineProps<{
@@ -16,6 +17,8 @@ defineProps<{
     today: {
         ring: Ring;
         week: Week;
+        station?: Station;
+        stationHref?: string | null;
         tiles: Tiles;
         time: { serverNow: string; timezone: string } | null;
         credentials: {
@@ -55,6 +58,8 @@ defineProps<{
                 part="top"
                 :ring="today.ring"
                 :week="today.week"
+                :station="today.station"
+                :station-href="today.stationHref"
                 :tiles="today.tiles"
                 :server-now="today.time?.serverNow ?? null"
                 :timezone="today.time?.timezone ?? null"
@@ -102,6 +107,8 @@ defineProps<{
                 part="rest"
                 :ring="today.ring"
                 :week="today.week"
+                :station="today.station"
+                :station-href="today.stationHref"
                 :tiles="today.tiles"
                 :server-now="today.time?.serverNow ?? null"
                 :timezone="today.time?.timezone ?? null"

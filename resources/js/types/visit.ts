@@ -6,7 +6,19 @@ export type VisitCoverage = 'self_pay' | 'panel';
 export type VisitOptions = {
     branch: { id: number; code: string; name: string; timezone: string };
     idempotencyKey?: string;
-    doctors: Array<{ id: number; name: string }>;
+    // AUTO-1: with automatic assignment on, each doctor also carries free and waiting (never sales or targets).
+    doctors: Array<{
+        id: number;
+        name: string;
+        free?: boolean;
+        waiting?: number;
+        room?: boolean;
+    }>;
+    autoAssign?: {
+        available: boolean;
+        enabled?: boolean;
+        overrideReasons: string[];
+    };
     panels: Array<{ id: number; name: string }>;
 };
 
