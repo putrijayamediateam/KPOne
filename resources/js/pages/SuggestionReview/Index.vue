@@ -13,27 +13,45 @@ type Draft = {
     ownEntry: boolean;
     enteredLabel: string;
 };
-const props = defineProps<{ branchId: number; drafts: Draft[] }>();
+type PhraseDraft = {
+    id: number;
+    kindLabel: string;
+    labelEn: string;
+    labelMs: string;
+    lockVersion: number;
+    ownEntry: boolean;
+    enteredLabel: string;
+};
+const props = defineProps<{
+    branchId: number;
+    drafts: Draft[];
+    phraseDrafts: PhraseDraft[];
+}>();
 const page = usePage();
-const busy = ref<number | null>(null);
+const busy = ref<string | null>(null);
 const keys = new Map<string, string>();
+const waiting = computed(() => props.drafts.length + props.phraseDrafts.length);
 const error = computed(
     () =>
         page.props.errors?.preset ||
+        page.props.errors?.phrase ||
         page.props.errors?.expected_branch_id ||
         page.props.errors?.idempotency_key,
 );
-const approve = (draft: Draft) => {
+const approve = (
+    draft: { id: number; lockVersion: number; ownEntry: boolean },
+    path: string,
+) => {
     if (busy.value !== null || draft.ownEntry) {
         return;
     }
 
-    busy.value = draft.id;
-    const token = `${draft.id}:${draft.lockVersion}`;
+    busy.value = `${path}:${draft.id}`;
+    const token = `${path}:${draft.id}:${draft.lockVersion}`;
     const key = keys.get(token) ?? crypto.randomUUID();
     keys.set(token, key);
     router.patch(
-        `/consultation-settings/review/diagnoses/${draft.id}`,
+        `/consultation-settings/review/${path}/${draft.id}`,
         {
             expected_branch_id: props.branchId,
             lock_version: draft.lockVersion,
@@ -56,59 +74,114 @@ const approve = (draft: Draft) => {
         <PageHeader title="Review suggestions">
             <template #title-extra>
                 <span class="text-sm text-muted-foreground"
-                    >{{ drafts.length }} waiting</span
+                    >{{ waiting }} waiting</span
                 >
             </template>
             <template #description>
-                Diagnoses waiting for your approval. Only approved diagnoses are
-                offered to doctors while they type. You cannot approve a
-                diagnosis that you entered or changed.
+                Diagnoses and phrases waiting for your approval. Only approved
+                items are offered to doctors while they type. You cannot approve
+                an item that you entered or changed.
             </template>
         </PageHeader>
         <p v-if="error" role="alert" class="text-sm text-destructive">
             {{ error }}
         </p>
         <EmptyState
-            v-if="drafts.length === 0"
+            v-if="waiting === 0"
             title="Nothing is waiting for review."
         />
-        <ul v-else class="space-y-2">
-            <li
-                v-for="draft in drafts"
-                :key="draft.id"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
-            >
-                <div class="min-w-0">
-                    <p class="text-sm font-medium break-words">
-                        {{ draft.name }}
-                    </p>
-                    <p
-                        v-if="draft.icd10Code"
-                        class="text-[13px] text-muted-foreground"
-                    >
-                        ICD-10 {{ draft.icd10Code }}
-                    </p>
-                    <p class="text-[13px] text-muted-foreground">
-                        {{ draft.enteredLabel }}
-                    </p>
-                    <p
-                        v-if="draft.ownEntry"
-                        class="text-[13px] text-muted-foreground"
-                    >
-                        You entered this, so someone else approves it.
-                    </p>
-                </div>
-                <Button
-                    v-if="!draft.ownEntry"
-                    variant="outline"
-                    size="sm"
-                    class="max-sm:min-h-11"
-                    :aria-label="`Approve ${draft.name}`"
-                    :disabled="busy !== null"
-                    @click="approve(draft)"
-                    >Approve</Button
+        <section v-if="drafts.length > 0" aria-labelledby="review-diagnoses">
+            <h2 id="review-diagnoses" class="mb-2 text-base font-semibold">
+                Diagnoses
+                <span class="text-sm font-normal text-muted-foreground"
+                    >{{ drafts.length }} waiting</span
                 >
-            </li>
-        </ul>
+            </h2>
+            <ul class="space-y-2">
+                <li
+                    v-for="draft in drafts"
+                    :key="draft.id"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
+                >
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium break-words">
+                            {{ draft.name }}
+                        </p>
+                        <p
+                            v-if="draft.icd10Code"
+                            class="text-[13px] text-muted-foreground"
+                        >
+                            ICD-10 {{ draft.icd10Code }}
+                        </p>
+                        <p class="text-[13px] text-muted-foreground">
+                            {{ draft.enteredLabel }}
+                        </p>
+                        <p
+                            v-if="draft.ownEntry"
+                            class="text-[13px] text-muted-foreground"
+                        >
+                            You entered this, so someone else approves it.
+                        </p>
+                    </div>
+                    <Button
+                        v-if="!draft.ownEntry"
+                        variant="outline"
+                        size="sm"
+                        class="max-sm:min-h-11"
+                        :aria-label="`Approve ${draft.name}`"
+                        :disabled="busy !== null"
+                        @click="approve(draft, 'diagnoses')"
+                        >Approve</Button
+                    >
+                </li>
+            </ul>
+        </section>
+        <section
+            v-if="phraseDrafts.length > 0"
+            aria-labelledby="review-phrases"
+        >
+            <h2 id="review-phrases" class="mb-2 text-base font-semibold">
+                Phrases
+                <span class="text-sm font-normal text-muted-foreground"
+                    >{{ phraseDrafts.length }} waiting</span
+                >
+            </h2>
+            <ul class="space-y-2">
+                <li
+                    v-for="phrase in phraseDrafts"
+                    :key="phrase.id"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
+                >
+                    <div class="min-w-0">
+                        <p class="text-[13px] text-muted-foreground">
+                            {{ phrase.kindLabel }}
+                        </p>
+                        <p class="text-sm font-medium break-words">
+                            {{ phrase.labelEn }}
+                        </p>
+                        <p class="text-sm break-words">{{ phrase.labelMs }}</p>
+                        <p class="text-[13px] text-muted-foreground">
+                            {{ phrase.enteredLabel }}
+                        </p>
+                        <p
+                            v-if="phrase.ownEntry"
+                            class="text-[13px] text-muted-foreground"
+                        >
+                            You entered this, so someone else approves it.
+                        </p>
+                    </div>
+                    <Button
+                        v-if="!phrase.ownEntry"
+                        variant="outline"
+                        size="sm"
+                        class="max-sm:min-h-11"
+                        :aria-label="`Approve ${phrase.labelEn}`"
+                        :disabled="busy !== null"
+                        @click="approve(phrase, 'phrases')"
+                        >Approve</Button
+                    >
+                </li>
+            </ul>
+        </section>
     </div>
 </template>
