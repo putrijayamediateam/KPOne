@@ -18,7 +18,9 @@ class SuggestionReviewController extends Controller
     {
         $actor = $this->actor($request);
 
-        return Inertia::render('SuggestionReview/Index', [...$service->reviewIndex($actor), 'phraseDrafts' => $phrases->reviewDrafts($actor)]);
+        $phraseDrafts = $phrases->reviewDrafts($actor);
+
+        return Inertia::render('SuggestionReview/Index', [...$service->reviewIndex($actor), 'phraseDrafts' => $phraseDrafts['rows'], 'phraseDraftTotal' => $phraseDrafts['total']]);
     }
 
     public function decidePhrase(Request $request, int $phrase, PrescribingPhraseSettingsService $service): RedirectResponse

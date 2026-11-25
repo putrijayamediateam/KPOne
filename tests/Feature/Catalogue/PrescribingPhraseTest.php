@@ -67,7 +67,7 @@ class PrescribingPhraseTest extends ClinicalTestCase
         $phrase = $this->draft();
         $doctor = $this->actor('resident_doctor');
         $this->selectBranch($doctor);
-        $this->get(route('suggestion-review.index'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('phraseDrafts', 1)->where('phraseDrafts.0.ownEntry', false)
+        $this->get(route('suggestion-review.index'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('phraseDrafts', 1)->where('phraseDraftTotal', 1)->where('draftTotal', 0)->where('phraseDrafts.0.ownEntry', false)
             ->where('phraseDrafts.0.enteredLabel', fn (string $label): bool => preg_match('/^Entered by .+, \d{1,2} [A-Z][a-z]{2} \d{4}$/', $label) === 1));
         $key = (string) Str::uuid();
         $data = $this->payload(['decision' => 'approve', 'lock_version' => 1, 'idempotency_key' => $key]);
@@ -122,6 +122,19 @@ class PrescribingPhraseTest extends ClinicalTestCase
         $phrase->delete();
     }
 
+    public function test_wording_is_normalised_and_a_long_lowercase_expansion_is_a_clean_message_not_an_error(): void
+    {
+        $this->selectBranch($this->actor('administrator'));
+        $composed = "caf\u{00E9}";
+        $decomposed = "cafe\u{0301}";
+        $this->post(route('prescribing-phrases.store'), $this->payload(['kind' => 'instruction', 'label_en' => $composed, 'label_ms' => 'kopi']))->assertRedirect();
+        $this->post(route('prescribing-phrases.store'), $this->payload(['kind' => 'instruction', 'label_en' => $decomposed, 'label_ms' => 'kopi 2']))->assertSessionHasErrors('label_en');
+        $this->assertDatabaseCount('prescribing_phrases', 1);
+        $expanding = str_repeat("\u{0130}", 60); // lower-cases to two code points each
+        $this->post(route('prescribing-phrases.store'), $this->payload(['kind' => 'precaution', 'label_en' => $expanding, 'label_ms' => 'x']))->assertRedirect();
+        $this->assertDatabaseCount('prescribing_phrases', 2);
+    }
+
     public function test_other_roles_cannot_decide_and_filters_and_search_work(): void
     {
         $phrase = $this->draft();
@@ -149,6 +162,19 @@ class PrescribingPhraseTest extends ClinicalTestCase
             try {
                 DB::transaction(fn () => DB::table('prescribing_phrases')->where('id', $phrase->id)->update($bad));
                 $this->fail('The database accepted an invalid change.');
+            } catch (QueryException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        $editor = $this->actor('director');
+        DB::table('prescribing_phrases')->where('id', $phrase->id)->update(['edited_by_user_id' => $editor->id]);
+        foreach ([
+            ['status' => 'approved', 'approved_at' => now(), 'approved_by_user_id' => $editor->id],
+            ['status' => 'approved', 'approved_at' => now(), 'approved_by_user_id' => null],
+        ] as $bad) {
+            try {
+                DB::transaction(fn () => DB::table('prescribing_phrases')->where('id', $phrase->id)->update($bad));
+                $this->fail('The database accepted an invalid review.');
             } catch (QueryException) {
                 $this->addToAssertionCount(1);
             }

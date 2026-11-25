@@ -65,7 +65,7 @@ final class PrescribingPhraseSettingsService
     /**
      * Draft phrases waiting for a doctor's review (active only, at most 100).
      *
-     * @return array<int, array<string, mixed>>
+     * @return array{rows: array<int, array<string, mixed>>, total: int}
      */
     public function reviewDrafts(User $actor): array
     {
@@ -73,12 +73,13 @@ final class PrescribingPhraseSettingsService
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch !== null, 404);
             $actor = $this->authority->lock($actor, $branch, SuggestionPermissions::APPROVE);
-            $drafts = PrescribingPhrase::query()->where('organisation_id', $actor->organisation_id)
-                ->where('status', 'draft')->where('is_active', true)->orderBy('kind')->orderBy('label_en')->orderBy('id')->limit(100)->get();
+            $waiting = PrescribingPhrase::query()->where('organisation_id', $actor->organisation_id)->where('status', 'draft')->where('is_active', true);
+            $total = (clone $waiting)->count();
+            $drafts = $waiting->orderBy('kind')->orderBy('label_en')->orderBy('id')->limit(100)->get();
             $people = $drafts->map(fn (PrescribingPhrase $phrase): int => (int) ($phrase->edited_by_user_id ?? $phrase->created_by_user_id))->unique()->all();
             $names = $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
 
-            return $drafts->map(function (PrescribingPhrase $phrase) use ($actor, $names, $branch): array {
+            $rows = $drafts->map(function (PrescribingPhrase $phrase) use ($actor, $names, $branch): array {
                 $changed = $phrase->edited_by_user_id !== null;
                 $by = (int) ($phrase->edited_by_user_id ?? $phrase->created_by_user_id);
                 $at = $changed ? ($phrase->edited_at ?? $phrase->updated_at) : $phrase->created_at;
@@ -91,6 +92,8 @@ final class PrescribingPhraseSettingsService
                     'enteredLabel' => ($changed ? 'Changed by ' : 'Entered by ').($names[$by] ?? 'Staff member').', '.$day,
                 ];
             })->values()->all();
+
+            return ['rows' => $rows, 'total' => $total];
         });
     }
 
@@ -200,6 +203,9 @@ final class PrescribingPhraseSettingsService
 
     private function text(string $value, string $field, string $language): string
     {
+        if (class_exists(\Normalizer::class)) {
+            $value = \Normalizer::normalize($value, \Normalizer::FORM_C) ?: $value;
+        }
         $text = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
         if ($text === '') {
             throw ValidationException::withMessages([$field => "Enter the {$language} wording."]);

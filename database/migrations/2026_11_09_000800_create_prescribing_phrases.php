@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('kind', 20);
             $table->string('label_en', 60);
             $table->string('label_ms', 60);
-            $table->string('normalized_en', 60);
+            $table->string('normalized_en', 120); // lower-casing can lengthen a string
             $table->boolean('is_active')->default(true);
             $table->string('source', 20)->default('clinic');
             $table->string('status', 20)->default('draft');
@@ -47,6 +47,7 @@ return new class extends Migration
         DB::statement("ALTER TABLE prescribing_phrases ADD CONSTRAINT prescribing_phrases_source_check CHECK (source IN ('clinic', 'licensed_feed'))");
         DB::statement("ALTER TABLE prescribing_phrases ADD CONSTRAINT prescribing_phrases_text_check CHECK (btrim(label_en) <> '' AND btrim(label_ms) <> '')");
         DB::statement("ALTER TABLE prescribing_phrases ADD CONSTRAINT prescribing_phrases_draft_check CHECK (status = 'approved' OR (approved_at IS NULL AND approved_by_user_id IS NULL))");
+        DB::statement("ALTER TABLE prescribing_phrases ADD CONSTRAINT prescribing_phrases_approved_check CHECK (status = 'draft' OR (approved_at IS NOT NULL AND approved_by_user_id IS NOT NULL))");
         DB::statement("ALTER TABLE prescribing_phrases ADD CONSTRAINT prescribing_phrases_reviewer_check CHECK (approved_by_user_id IS NULL OR (status = 'approved' AND approved_by_user_id <> created_by_user_id AND approved_by_user_id IS DISTINCT FROM edited_by_user_id))");
 
         Schema::create('prescribing_phrase_commands', function (Blueprint $table): void {

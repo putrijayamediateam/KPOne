@@ -26,11 +26,13 @@ const props = defineProps<{
     branchId: number;
     drafts: Draft[];
     phraseDrafts: PhraseDraft[];
+    draftTotal: number;
+    phraseDraftTotal: number;
 }>();
 const page = usePage();
 const busy = ref<string | null>(null);
 const keys = new Map<string, string>();
-const waiting = computed(() => props.drafts.length + props.phraseDrafts.length);
+const waiting = computed(() => props.draftTotal + props.phraseDraftTotal);
 const error = computed(
     () =>
         page.props.errors?.preset ||
@@ -94,7 +96,7 @@ const approve = (
             <h2 id="review-diagnoses" class="mb-2 text-base font-semibold">
                 Diagnoses
                 <span class="text-sm font-normal text-muted-foreground"
-                    >{{ drafts.length }} waiting</span
+                    >{{ draftTotal }} waiting</span
                 >
             </h2>
             <ul class="space-y-2">
@@ -143,7 +145,7 @@ const approve = (
             <h2 id="review-phrases" class="mb-2 text-base font-semibold">
                 Phrases
                 <span class="text-sm font-normal text-muted-foreground"
-                    >{{ phraseDrafts.length }} waiting</span
+                    >{{ phraseDraftTotal }} waiting</span
                 >
             </h2>
             <ul class="space-y-2">
