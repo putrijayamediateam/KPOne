@@ -98,3 +98,13 @@ Proposal: a test helper `voidApproved()` that requests and then approves. Each c
 3. **Does a pending void block taking payment?**
    - **A (recommended):** no; a payment makes the request stale.
    - **B:** yes; payments are refused until it is decided.
+
+## 7. The owner's answers (25 Nov 2026, tick box in the coordinator session)
+
+- Q1 = **A**: the Finance Officer and the CA Supervisor may ask for a void. So `invoices.void.branch` is also granted to
+  `ca_supervisor` (additive), as the "ask" permission. `ca` is unchanged, so the `medical_assistant` rule does not apply.
+- Q2 = **A**: the branch's Branch Manager approves; the Director is the fallback when the branch has none.
+- Q3 = **A**: a pending void does not block payment; a payment makes the request stale.
+- Q4: new `invoices.void.approve.branch` approved for `branch_manager` and `director`.
+- Kumar's review comes first (the owner chose to wait), and the exact changed-assertion list goes to the owner before
+  the build.
