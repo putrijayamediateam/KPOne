@@ -108,3 +108,11 @@ request; `down()` restores the STK-45 trigger body.
 - Receipt: "Sent 6 of 10 (not enough stock)" with the chip "Short by 4", a quiet "Ask for the rest" link and "The rest
   is not kept open on this request."
 - Shots at 1440 and 390 of the dispatch form with one changed and one not-sent line, and the confirm dialog.
+
+## Settled while building (Mei Ling, revision 2 OK)
+
+- The receipt chip reads **"4 not sent"**, not "Short by 4": "short" stays STK-6's word for sent but not arrived
+  (to confirm with Daniel).
+- A proposer or reporter sees "You proposed or reported this case, so someone else decides."; a counter or recounter
+  sees "You counted this case, so someone else decides."
+- An empty dispatch (every line Not sent) is refused in `StockRequestService` as well as on screen, and tested.
