@@ -27,11 +27,24 @@ test('the red-zone banner polls its own endpoint, shows only number and minutes,
 });
 
 test('the banner sits on the Queue board and the consultation page, the latter only for who may take or record', () => {
-    assert.match(
-        queue,
-        /<RedZoneAlertBanner :branch-id="live\.branch\.id" \/>/,
-    );
+    assert.match(queue, /<RedZoneAlertBanner/);
+    assert.match(queue, /:branch-id="live\.branch\.id"/);
     assert.match(clinical, /<RedZoneAlertBanner/);
     assert.match(clinical, /queue\.call\.own/);
     assert.match(clinical, /visits\.triage\.record\.branch/);
+});
+
+test('a failed take shows its reason, a take from a consultation stays there, and the board gates the poll (Q-16b review)', () => {
+    assert.match(banner, /onError:[\s\S]{0,120}toast\.error/);
+    assert.match(banner, /from: 'consultation', from_visit: props\.fromVisit/);
+    assert.match(banner, /role="status"/);
+    assert.match(
+        banner,
+        /aria-label="`I'll take \$\{alert\.queueNumber\}`"|:aria-label="`I'll take/,
+    );
+    assert.match(clinical, /:from-visit="clinical\.visit\.visitNumber"/);
+    assert.match(
+        queue,
+        /RedZoneAlertBanner[\s\S]{0,260}queue\.call\.own[\s\S]{0,160}visits\.triage\.record\.branch/,
+    );
 });

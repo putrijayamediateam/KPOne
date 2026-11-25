@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { Siren } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { requestJson } from '@/lib/json-client';
 
@@ -17,7 +18,7 @@ type Alert = {
     canTake: boolean;
 };
 
-const props = defineProps<{ branchId: number }>();
+const props = defineProps<{ branchId: number; fromVisit?: string }>();
 const alerts = ref<Alert[]>([]);
 const minimised = ref(false);
 const taking = ref<string | null>(null);
@@ -51,10 +52,20 @@ const take = (alert: Alert) => {
     taking.value = alert.visitNumber;
     router.post(
         `/visits/${alert.visitNumber}/queue/take-red-zone`,
-        { expected_branch_id: props.branchId },
+        {
+            expected_branch_id: props.branchId,
+            ...(props.fromVisit
+                ? { from: 'consultation', from_visit: props.fromVisit }
+                : {}),
+        },
         {
             preserveScroll: true,
             preserveState: true,
+            onError: (errors) => {
+                toast.error(
+                    Object.values(errors)[0] ?? 'Could not take this patient.',
+                );
+            },
             onFinish: () => {
                 taking.value = null;
                 void read();
@@ -77,6 +88,8 @@ onBeforeUnmount(() => {
     <section
         v-if="alerts.length > 0"
         data-testid="red-zone-alerts"
+        role="status"
+        aria-live="polite"
         aria-label="Red zone alerts"
         class="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[13px] text-foreground"
     >
@@ -124,6 +137,7 @@ onBeforeUnmount(() => {
                     class="ml-auto min-h-11"
                     :disabled="taking !== null"
                     data-testid="red-zone-take"
+                    :aria-label="`I'll take ${alert.queueNumber}`"
                     @click="take(alert)"
                 >
                     I'll take it

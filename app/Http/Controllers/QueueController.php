@@ -165,15 +165,16 @@ class QueueController extends Controller
     /** Q-16b: "I'll take it". Assigns the red-zone patient to the taking doctor; never calls the patient. */
     public function takeRedZone(Request $request, Visit $visit, RedZoneAlertService $alerts): RedirectResponse
     {
-        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1'], 'from' => ['sometimes', 'string', 'max:20'], 'from_visit' => ['sometimes', 'string', 'max:40']]);
         try {
             $alerts->take($request->user(), $visit, (int) $validated['expected_branch_id']);
         } catch (ValidationException $exception) {
-            throw $exception->redirectTo(route('queue.index'));
+            // A doctor who took it from an open consultation stays on that consultation (never lose unsaved work).
+            throw $exception->redirectTo($this->callNextRefusalTarget($request));
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('You took this patient. Call them in when ready.')]);
 
-        return to_route('queue.index');
+        return redirect()->to($this->callNextRefusalTarget($request));
     }
 
     /** Q-4b: the doctor's own Call next block, for the held consultation page. Read only. */

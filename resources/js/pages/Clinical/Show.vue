@@ -716,6 +716,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 )
             "
             :branch-id="clinical.branch.id"
+            :from-visit="clinical.visit.visitNumber"
         />
         <header
             class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"

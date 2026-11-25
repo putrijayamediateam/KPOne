@@ -173,6 +173,21 @@ class RedZoneAlertTest extends TriageTestCase
         $claim->forceFill(['claimed_by_user_id' => $this->doctor()->id])->save();
     }
 
+    public function test_a_take_from_an_open_consultation_returns_to_that_consultation(): void
+    {
+        [, , $red] = $this->red();
+        $taker = $this->doctor();
+        $own = $this->consultationVisit($this->actor('ca'), $taker);
+        $this->selectBranch($taker);
+
+        $this->actingAs($taker)->post(route('queue.take-red-zone', $red->visit_number), [
+            'expected_branch_id' => $this->branch->id,
+            'from' => 'consultation',
+            'from_visit' => $own->visit_number,
+        ])->assertRedirect(route('encounters.show', $own->visit_number));
+        $this->assertSame($taker->id, $red->refresh()->assigned_doctor_user_id);
+    }
+
     public function test_postgres_refuses_to_change_or_delete_a_claim(): void
     {
         if (DB::getDriverName() !== 'pgsql') {

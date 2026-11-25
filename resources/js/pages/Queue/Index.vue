@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Search } from '@lucide/vue';
 import {
     computed,
@@ -135,6 +135,7 @@ const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
 // Q-2: the attending doctor (own queue) is told when a treatment step is done.
 const treatmentAlerts = useTreatmentDoneAlerts(true);
+const page = usePage();
 const activeTab = ref<QueueTab>('all');
 // Q-5: the Completed tab lists the latest 25 entries; its count is every completed entry at the branch.
 const completedLine = computed(() =>
@@ -728,7 +729,15 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Consultation queue</h1>
-        <RedZoneAlertBanner :branch-id="live.branch.id" />
+        <RedZoneAlertBanner
+            v-if="
+                page.props.auth.permissions.includes('queue.call.own') ||
+                page.props.auth.permissions.includes(
+                    'visits.triage.record.branch',
+                )
+            "
+            :branch-id="live.branch.id"
+        />
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
