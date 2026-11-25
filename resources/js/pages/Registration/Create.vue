@@ -8,7 +8,14 @@ import {
     Search,
     UserPlus,
 } from '@lucide/vue';
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import InputError from '@/components/InputError.vue';
 import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
@@ -56,11 +63,105 @@ const genderOptions = [
     { value: 'male', label: 'Male' },
     { value: 'indeterminate', label: 'Indeterminate' },
 ];
+// AUTO-1: when the Director switched automatic assignment on and today's roster is published, a blank doctor means
+// "Auto". Only doctors on today's roster are listed, each marked free or busy; sales and targets are never shown.
+const autoAssign = computed(() => props.options.autoAssign?.available === true);
+// Auto has nobody to choose when no doctor on today's roster has a room (or the roster has no doctors).
+const autoCannotChoose = computed(
+    () =>
+        autoAssign.value &&
+        !props.options.doctors.some((doctor) => doctor.room !== false),
+);
+const overrideReasonOptions = [
+    { value: '', label: 'Choose a reason' },
+    { value: 'patient_requested', label: 'Patient asked for this doctor' },
+    { value: 'continuity', label: 'Patient was seen by this doctor before' },
+    {
+        value: 'recommended_unavailable',
+        label: 'Recommended doctor is not available',
+    },
+    { value: 'other', label: 'Other' },
+];
+// AUTO-1: the doctor Auto would pick now (name only). The "Why not Auto?" reason is asked only when the doctor chosen by
+// hand is a different one.
+const recommended = ref<{ id: number; name: string } | null>(null);
+const loadRecommended = async () => {
+    if (!autoAssign.value) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/registration/recommended-doctor?patient_number=${encodeURIComponent(form.patient_number)}`,
+            {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            },
+        );
+        recommended.value = response.ok
+            ? ((await response.json()).doctor ?? null)
+            : null;
+    } catch {
+        recommended.value = null;
+    }
+};
+const showReason = computed(
+    () =>
+        autoAssign.value &&
+        form.visit_type === 'consultation' &&
+        ((form.assigned_doctor_user_id !== '' &&
+            form.assigned_doctor_user_id !== recommended.value?.id) ||
+            !!form.errors.doctor_override_reason),
+);
+const selectedDoctorHasNoRoom = computed(
+    () =>
+        autoAssign.value &&
+        props.options.doctors.some(
+            (doctor) =>
+                doctor.id === form.assigned_doctor_user_id &&
+                doctor.room === false,
+        ),
+);
+// What Auto does, said plainly; and why it is off when the Director switched it on but today's roster is not published.
+const autoNotice = computed(() => {
+    if (
+        !autoAssign.value &&
+        props.options.autoAssign?.enabled &&
+        form.assigned_doctor_user_id === ''
+    ) {
+        return "Automatic assignment is on, but today's roster is not published, so choose a doctor yourself.";
+    }
+
+    if (!autoAssign.value || form.assigned_doctor_user_id !== '') {
+        return '';
+    }
+
+    if (autoCannotChoose.value) {
+        return "Auto cannot choose a doctor right now (no doctor on today's roster has a room). Choose one yourself.";
+    }
+
+    return "Auto picks the next free doctor on today's roster. If every doctor is busy it picks one of them, and the visit waits its turn.";
+});
 const doctorOptions = computed(() => [
-    { value: '', label: 'No doctor' },
+    {
+        value: '',
+        label: autoAssign.value
+            ? autoCannotChoose.value
+                ? 'Auto (no doctor available now)'
+                : 'Auto (recommended)'
+            : 'No doctor',
+    },
     ...props.options.doctors.map((doctor) => ({
         value: doctor.id,
-        label: doctor.name,
+        label: autoAssign.value
+            ? `${doctor.name} · ${
+                  doctor.room === false
+                      ? 'No room today'
+                      : doctor.free
+                        ? 'Free'
+                        : `Busy, ${doctor.waiting ?? 0} waiting`
+              }`
+            : doctor.name,
     })),
 ]);
 const panelOptions = computed(() => [
@@ -113,6 +214,7 @@ type RegistrationForm = {
     quick_patient: QuickPatientInput | null;
     visit_type: 'consultation' | 'otc';
     assigned_doctor_user_id: number | '';
+    doctor_override_reason: string;
     visit_reason_public_ids: string[];
     coverage_type: 'self_pay' | 'panel';
     panel_id: number | '';
@@ -129,7 +231,11 @@ const form = useForm<RegistrationForm>({
     quick_patient: null,
     visit_type: 'consultation' as 'consultation' | 'otc',
     assigned_doctor_user_id:
-        props.options.doctors.length === 1 ? props.options.doctors[0].id : '',
+        props.options.autoAssign?.available !== true &&
+        props.options.doctors.length === 1
+            ? props.options.doctors[0].id
+            : '',
+    doctor_override_reason: '',
     visit_reason_public_ids: [],
     coverage_type: 'self_pay' as 'self_pay' | 'panel',
     panel_id: '',
@@ -139,6 +245,8 @@ const form = useForm<RegistrationForm>({
     priority: 'normal' as 'normal' | 'urgent',
     confirm_repeat: false,
 });
+watch(() => form.patient_number, loadRecommended);
+onMounted(loadRecommended);
 const quick = ref({
     adult_confirmed: false,
     adult_confirmation_key: crypto.randomUUID(),
@@ -806,7 +914,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </p>
                 </div>
                 <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
-                    <fieldset class="grid gap-1 md:justify-self-start">
+                    <fieldset
+                        class="grid content-start gap-1 md:justify-self-start"
+                    >
                         <legend class="mb-1 text-sm font-medium">
                             2. Visit type
                         </legend>
@@ -843,22 +953,71 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             </button>
                         </div>
                     </fieldset>
-                    <label class="grid gap-1" for="assigned-doctor"
-                        ><span class="text-sm font-medium"
-                            >3. Doctor
+                    <div class="grid content-start gap-3">
+                        <label class="grid gap-1" for="assigned-doctor"
+                            ><span class="text-sm font-medium"
+                                >3. Doctor
+                                <span
+                                    v-if="form.visit_type === 'otc'"
+                                    class="font-normal text-muted-foreground"
+                                    >(optional)</span
+                                ></span
+                            ><OperationalSelect
+                                id="assigned-doctor"
+                                v-model="form.assigned_doctor_user_id"
+                                label="Doctor"
+                                :invalid="!!form.errors.assigned_doctor_user_id"
+                                :options="doctorOptions" /><InputError
+                                :message="errorFor('assigned_doctor_user_id')"
+                        /></label>
+                        <p
+                            v-if="
+                                autoNotice && form.visit_type === 'consultation'
+                            "
+                            class="text-xs text-muted-foreground"
+                        >
+                            {{ autoNotice }}
+                        </p>
+                        <p
+                            v-if="selectedDoctorHasNoRoom"
+                            class="text-xs text-muted-foreground"
+                        >
+                            This doctor has no room today, so they cannot call
+                            the patient until they choose one.
+                        </p>
+                        <div
+                            v-if="showReason"
+                            class="grid gap-1"
+                            role="group"
+                            aria-labelledby="doctor-override-label"
+                        >
                             <span
-                                v-if="form.visit_type === 'otc'"
-                                class="font-normal text-muted-foreground"
-                                >(optional)</span
-                            ></span
-                        ><OperationalSelect
-                            id="assigned-doctor"
-                            v-model="form.assigned_doctor_user_id"
-                            label="Doctor"
-                            :invalid="!!form.errors.assigned_doctor_user_id"
-                            :options="doctorOptions" /><InputError
-                            :message="errorFor('assigned_doctor_user_id')"
-                    /></label>
+                                id="doctor-override-label"
+                                class="text-sm font-medium"
+                                >Why not Auto?</span
+                            >
+                            <p
+                                v-if="!form.errors.doctor_override_reason"
+                                id="doctor-override-help"
+                                class="text-xs text-muted-foreground"
+                            >
+                                <template v-if="recommended"
+                                    >Auto would pick {{ recommended.name }}.
+                                </template>
+                                Pick a reason to continue.
+                            </p>
+                            <OperationalSelect
+                                id="doctor-override-reason"
+                                v-model="form.doctor_override_reason"
+                                label="Why not Auto?"
+                                :invalid="!!form.errors.doctor_override_reason"
+                                :options="overrideReasonOptions"
+                            />
+                            <InputError
+                                :message="errorFor('doctor_override_reason')"
+                            />
+                        </div>
+                    </div>
                     <div class="grid gap-1 md:col-span-2">
                         <span class="text-sm font-medium"
                             >4. Visit Reason
