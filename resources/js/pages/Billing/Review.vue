@@ -3,7 +3,7 @@
  * BIL-37: the Resident Doctor's read-only bill of their own patient's visit. View only: no money action, no print.
  * The server records every open before it builds this page.
  */
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import ReadOnlyBanner from '@/components/ReadOnlyBanner.vue';
 import { PageHeader } from '@/components/ui/page-header';
@@ -50,23 +50,28 @@ defineProps<{
 
 const quantity = (value: string | number): string =>
     String(Number(value)).replace(/\.0+$/, '');
+// Kumar: "Paid" only when the patient's own payments settle it; a Panel or pay-later share is named as such.
 const statusLabel = (totals: Totals): string =>
     totals.dueNowSen > 0
         ? 'Due'
-        : totals.panelSen > 0 && totals.paidSen === 0
-          ? 'Covered by Panel'
-          : 'Paid';
+        : totals.payLaterSen > 0
+          ? 'Settled (part on pay later)'
+          : totals.panelSen > 0
+            ? totals.paidSen > 0
+                ? 'Settled (part by Panel)'
+                : 'Covered by Panel'
+            : 'Paid';
 </script>
 
 <template>
     <Head title="Bill (read only)" />
     <main class="mx-auto grid w-full max-w-4xl gap-4 px-4 py-6">
         <ReadOnlyBanner>
-            <a
+            <Link
                 :href="backUrl"
                 class="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                 data-testid="review-back"
-                ><ArrowLeft class="size-4" aria-hidden="true" />Back</a
+                ><ArrowLeft class="size-4" aria-hidden="true" />Back</Link
             >
         </ReadOnlyBanner>
 

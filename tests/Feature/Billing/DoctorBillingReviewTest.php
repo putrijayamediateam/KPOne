@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\PaymentService;
@@ -93,6 +94,43 @@ class DoctorBillingReviewTest extends BillingTestCase
         $this->assertSame(['ids' => ['visit' => $visit->id, 'patient' => $visit->patient_id]], AuditLog::query()->where('event', 'billing.reviewed')->sole()->metadata);
         $this->selectBranch($other = $this->doctor(), $visit->branch);
         $this->get(route('billing.review', $visit))->assertNotFound();
+    }
+
+    public function test_once_the_consultation_started_the_attending_doctor_decides_not_the_assigned_one(): void
+    {
+        [$doctor, , $visit] = $this->finalizedFixture();
+        $reassigned = $this->doctor();
+        DB::table('visits')->where('id', $visit->id)->update(['assigned_doctor_user_id' => $reassigned->id]);
+        $this->selectBranch($reassigned, $visit->branch);
+        $this->get(route('billing.review', $visit))->assertNotFound();
+        $this->selectBranch($doctor, $visit->branch);
+        $this->get(route('billing.review', $visit))->assertOk();
+        $this->assertSame(1, AuditLog::query()->where('event', 'billing.reviewed')->count());
+    }
+
+    public function test_a_visit_at_another_branch_is_404_even_for_its_doctor(): void
+    {
+        $ca = $this->actor('ca');
+        $visit = $this->consultationVisit($ca, $this->doctor());
+        $otherBranch = Branch::query()->where('organisation_id', $visit->organisation_id)->where('id', '<>', $visit->branch_id)->firstOrFail();
+        $elsewhere = $this->actor('resident_doctor', $otherBranch);
+        DB::table('visits')->where('id', $visit->id)->update(['assigned_doctor_user_id' => $elsewhere->id]);
+        $this->selectBranch($elsewhere, $otherBranch);
+        $this->get(route('billing.review', $visit))->assertNotFound();
+        $this->assertSame(0, AuditLog::query()->where('event', 'billing.reviewed')->count());
+    }
+
+    public function test_a_recorder_the_doctor_may_not_see_reads_staff_member_and_head_records_nothing(): void
+    {
+        [$doctor, $ca, $visit, $invoice] = $this->finalizedFixture();
+        (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash', 'classification' => 'cash'])->save();
+        app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
+        Role::findByName('resident_doctor', 'web')->revokePermissionTo('staff.view.branch');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->selectBranch($doctor->fresh(), $visit->branch);
+        $this->call('HEAD', route('billing.review', $visit))->assertNoContent();
+        $this->assertSame(0, AuditLog::query()->where('event', 'billing.reviewed')->count());
+        $this->get(route('billing.review', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page->where('review.invoice.payments.0.recordedBy', 'Staff member'));
     }
 
     public function test_a_draft_is_never_shown(): void

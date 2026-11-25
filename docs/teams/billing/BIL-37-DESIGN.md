@@ -116,7 +116,9 @@ A props test asserts the exact key list of the page (`assertSame` on keys), not 
 - Pages = **A**: the open bill and the completed invoice.
 - Patients = the doctor's **own patients only**, as for the triage view (TRI-1e): before the consultation starts, the
   visit's assigned doctor (`visits.assigned_doctor_user_id`); once it has started, the encounter's attending doctor
-  (`clinical_encounters.attending_clinician_user_id`). Any other visit gives 404, as one at another branch does.
+  (`clinical_encounters.attending_clinician_user_id`, the newest encounter when there is more than one). So if a
+  consultation is reopened or replaced under another doctor, the earlier doctor loses access to the bill, by this rule.
+  Any other visit gives 404, as one at another branch does.
 - Audit = **yes**, ids only.
 - Payment detail = **B, edited by the owner**: "Satu baris setiap bayaran: tarikh, cara bayar, amaun (dgn nama staf)".
   One row per payment with date, method, amount and who recorded it. Staff names follow the BIL-2 staff-visibility rule
