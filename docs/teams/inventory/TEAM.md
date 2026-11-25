@@ -347,7 +347,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     exclusion, and `down()` restores the STK-5 body). Owner-approved existing assertion changes: one line each in
     `RoleOneRolesTest::tables()` (branch_manager, store_admin) and `MedicalAssistantRoleTest::EXPECTED`.
 52. STK-50 and STK-51 (owner by tick box, 25 Nov 2026, relayed by B.E.R.N.I.S.S, with every existing assertion change
-    listed): only the Director approves, cancels once approved, and closes the rest of a purchase order (the Finance
+    listed): only the Director approves, cancels once approved, closes a fully received order and closes the rest of a
+    purchase order (a Finance Officer can still cancel a draft or submitted order, as before) (the Finance
     Officer loses `inventory.purchase_orders.approve.organisation`); only a Finance Officer accepts or rejects a supplier
     invoice mismatch (the Director loses `inventory.supplier_invoices.approve.branch`). One revoke migration
     (`2026_11_07_003800`, its down() gives both back); decisions already recorded keep their decider. The Director
