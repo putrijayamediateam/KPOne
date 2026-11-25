@@ -48,6 +48,7 @@ class ClinicManagementTest extends VisitTestCase
             '/registration-settings' => ['catalogue.settings.manage.organisation'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
             '/triage-guideline' => ['triage.guideline.manage.organisation'], // TRI-1b, owner approved 2026-11-20
+            '/consultation-settings/review' => ['clinical_suggestions.approve.organisation'], // SUG-1a, owner approved the permission 2026-11-25
             '/checkout-settings' => ['panels.manage.organisation'],
             '/payment-methods' => ['payment_methods.manage.organisation'],
             '/billing-approval-limits' => ['billing.approval_limits.manage.organisation'],

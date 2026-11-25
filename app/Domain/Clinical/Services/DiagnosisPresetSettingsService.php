@@ -3,11 +3,14 @@
 namespace App\Domain\Clinical\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Models\DiagnosisPreset;
+use App\Domain\Clinical\Suggestions\SuggestionPermissions;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +19,7 @@ final class DiagnosisPresetSettingsService
 {
     public const PERMISSION = 'catalogue.settings.manage.organisation';
 
-    public function __construct(private TransactionalActorAuthority $authority, private BranchAccessService $branches, private AuditRecorder $audit) {}
+    public function __construct(private TransactionalActorAuthority $authority, private BranchAccessService $branches, private AuditRecorder $audit, private StaffAccessService $staff) {}
 
     /** @return array<string, mixed> */
     public function index(User $actor, string $status, string $search, int $page): array
@@ -33,14 +36,16 @@ final class DiagnosisPresetSettingsService
             }
             if ($search !== '') {
                 $needle = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)).'%';
-                $query->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$needle]);
+                $query->where(fn ($q) => $q->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$needle])
+                    ->orWhereRaw("LOWER(COALESCE(icd10_code, '')) LIKE ? ESCAPE '!'", [$needle]));
             }
             $paginator = $query->orderBy('name')->orderBy('id')->paginate(25, ['*'], 'page', $page);
 
             return ['branchId' => $branch->id, 'status' => $status, 'q' => $search,
                 'canCheckoutSettings' => $actor->can('panels.manage.organisation'),
                 'presets' => $paginator->getCollection()->map(fn (DiagnosisPreset $preset): array => [
-                    'id' => $preset->id, 'name' => $preset->name, 'active' => $preset->is_active, 'lockVersion' => $preset->lock_version,
+                    'id' => $preset->id, 'name' => $preset->name, 'icd10Code' => $preset->icd10_code, 'status' => $preset->status,
+                    'active' => $preset->is_active, 'lockVersion' => $preset->lock_version,
                 ])->all(), 'pagination' => ['currentPage' => $paginator->currentPage(), 'lastPage' => $paginator->lastPage(), 'total' => $paginator->total()]];
         });
     }
@@ -51,17 +56,23 @@ final class DiagnosisPresetSettingsService
         $data = Validator::make($attributes, [
             ...$this->retryRules(), 'names' => ['required', 'array', 'min:1', 'max:20'],
             'names.*' => ['required', 'string', 'max:500'],
+            'codes' => ['sometimes', 'array', 'max:20'],
+            'codes.*' => ['nullable', 'string', 'max:20'],
         ])->validate();
         $names = [];
         foreach (array_values($data['names']) as $index => $name) {
             $names[] = $this->name($name, 'names.'.$index);
         }
+        $codes = [];
+        foreach (array_keys($names) as $index) {
+            $codes[] = $this->code(array_values($data['codes'] ?? [])[$index] ?? null, 'codes.'.$index);
+        }
         $normalized = array_map(mb_strtolower(...), $names);
         if (count(array_unique($normalized)) !== count($normalized)) {
             throw ValidationException::withMessages(['names' => 'Duplicate names in this batch are not allowed.']);
         }
-        $hash = $this->hash('create', $data, $names);
-        DB::transaction(function () use ($actor, $data, $names, $normalized, $hash): void {
+        $hash = $this->hash('create', $data, [$actor->id, $names, $codes]);
+        DB::transaction(function () use ($actor, $data, $names, $codes, $normalized, $hash): void {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id']);
             if ($this->replay($actor, $data['idempotency_key'], $hash)) {
                 return;
@@ -72,7 +83,8 @@ final class DiagnosisPresetSettingsService
             foreach ($names as $index => $name) {
                 $preset = new DiagnosisPreset;
                 $preset->forceFill(['organisation_id' => $actor->organisation_id, 'name' => $name,
-                    'normalized_name' => $normalized[$index], 'is_active' => true,
+                    'normalized_name' => $normalized[$index], 'icd10_code' => $codes[$index], 'is_active' => true,
+                    'source' => 'clinic', 'status' => 'draft', 'approved_at' => null,
                     'lock_version' => 1, 'created_by_user_id' => $actor->id])->save();
                 $this->audit->record('diagnosis_preset.created', $preset, ['lock_version' => 1], $actor);
             }
@@ -85,11 +97,13 @@ final class DiagnosisPresetSettingsService
     {
         $data = Validator::make($attributes, [
             ...$this->retryRules(), 'lock_version' => ['required', 'integer', 'min:1'],
-            ...($rename ? ['name' => ['required', 'string', 'max:500']] : ['active' => ['required', 'boolean']]),
+            ...($rename ? ['name' => ['required', 'string', 'max:500'], 'icd10_code' => ['sometimes', 'nullable', 'string', 'max:20']] : ['active' => ['required', 'boolean']]),
         ])->validate();
         $value = $rename ? $this->name($data['name'], 'name') : filter_var($data['active'], FILTER_VALIDATE_BOOLEAN);
-        $hash = $this->hash($rename ? 'rename' : 'status', $data, [$id, (int) $data['lock_version'], $value]);
-        DB::transaction(function () use ($actor, $id, $data, $value, $rename, $hash): void {
+        $codeGiven = $rename && array_key_exists('icd10_code', $data);
+        $code = $codeGiven ? $this->code($data['icd10_code'], 'icd10_code') : null;
+        $hash = $this->hash($rename ? 'rename' : 'status', $data, [$actor->id, $id, (int) $data['lock_version'], $value, $codeGiven, $code]);
+        DB::transaction(function () use ($actor, $id, $data, $value, $rename, $hash, $codeGiven, $code): void {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id']);
             $preset = DiagnosisPreset::query()->whereKey($id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
             if ($this->replay($actor, $data['idempotency_key'], $hash)) {
@@ -101,6 +115,13 @@ final class DiagnosisPresetSettingsService
             if ($rename) {
                 $this->unique($actor, mb_strtolower((string) $value), 'name', $id);
                 $preset->forceFill(['name' => $value, 'normalized_name' => mb_strtolower((string) $value)]);
+                if ($codeGiven) {
+                    $preset->forceFill(['icd10_code' => $code]);
+                }
+                if ($preset->isDirty(['name', 'icd10_code'])) {
+                    // A changed wording or code needs the doctor's review again.
+                    $preset->forceFill(['status' => 'draft', 'approved_by_user_id' => null, 'approved_at' => null, 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc()]);
+                }
             } else {
                 $preset->forceFill(['is_active' => $value]);
             }
@@ -111,6 +132,93 @@ final class DiagnosisPresetSettingsService
             }
             $this->remember($actor, $branchId, $data['idempotency_key'], $hash);
         }, 3);
+    }
+
+    /**
+     * SUG-1a: the doctor's review. Waiting drafts for a reviewer (active presets only, newest last).
+     *
+     * @return array<string, mixed>
+     */
+    public function reviewIndex(User $actor): array
+    {
+        return DB::transaction(function () use ($actor): array {
+            $branch = $this->branches->activeBranch($actor);
+            abort_unless($branch !== null, 404);
+            $actor = $this->authority->lock($actor, $branch, SuggestionPermissions::APPROVE);
+            $drafts = DiagnosisPreset::query()->where('organisation_id', $actor->organisation_id)
+                ->where('status', 'draft')->where('is_active', true)->orderBy('name')->orderBy('id')->limit(100)->get();
+
+            // Who and when: names follow the staff-directory visibility rule (others read "Staff member").
+            $people = $drafts->map(fn (DiagnosisPreset $preset): int => (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id))->unique()->all();
+            $names = $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
+
+            return ['branchId' => $branch->id, 'drafts' => $drafts->map(function (DiagnosisPreset $preset) use ($actor, $names, $branch): array {
+                $changed = $preset->edited_by_user_id !== null;
+                $by = (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id);
+                $at = $changed ? ($preset->edited_at ?? $preset->updated_at) : $preset->created_at;
+                $day = $at === null ? '' : CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('j M Y');
+
+                return [
+                    'id' => $preset->id, 'name' => $preset->name, 'icd10Code' => $preset->icd10_code, 'lockVersion' => $preset->lock_version,
+                    'ownEntry' => in_array($actor->id, [$preset->created_by_user_id, $preset->edited_by_user_id], true),
+                    'enteredLabel' => ($changed ? 'Changed by ' : 'Entered by ').($names[$by] ?? 'Staff member').', '.$day,
+                ];
+            })->all()];
+        });
+    }
+
+    /** @param array<string, mixed> $attributes */
+    public function review(User $actor, int $id, array $attributes): void
+    {
+        $data = Validator::make($attributes, [
+            ...$this->retryRules(), 'lock_version' => ['required', 'integer', 'min:1'],
+            'decision' => ['required', 'string', 'in:approve,return'],
+        ])->validate();
+        $hash = $this->hash('review', $data, [$actor->id, $id, (int) $data['lock_version'], $data['decision']]);
+        DB::transaction(function () use ($actor, $id, $data, $hash): void {
+            [$actor, $branchId] = $this->context($actor, $data['expected_branch_id'], SuggestionPermissions::APPROVE);
+            $preset = DiagnosisPreset::query()->whereKey($id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
+            if ($this->replay($actor, $data['idempotency_key'], $hash)) {
+                return;
+            }
+            if ($preset->lock_version !== (int) $data['lock_version']) {
+                throw ValidationException::withMessages(['preset' => 'This item has changed. Reload before continuing.']);
+            }
+            if ($data['decision'] === 'approve') {
+                if ($preset->status !== 'draft') {
+                    throw ValidationException::withMessages(['preset' => 'This item is already approved.']);
+                }
+                if (! $preset->is_active) {
+                    throw ValidationException::withMessages(['preset' => 'Restore this item in Consultation settings before it can be approved.']);
+                }
+                if (in_array($actor->id, [$preset->created_by_user_id, $preset->edited_by_user_id], true)) {
+                    throw ValidationException::withMessages(['preset' => 'Someone other than the person who entered or changed this item must review it.']);
+                }
+                $preset->forceFill(['status' => 'approved', 'approved_by_user_id' => $actor->id, 'approved_at' => now()->utc()]);
+            } else {
+                if ($preset->status !== 'approved') {
+                    throw ValidationException::withMessages(['preset' => 'This item is already a draft.']);
+                }
+                $preset->forceFill(['status' => 'draft', 'approved_by_user_id' => null, 'approved_at' => null]);
+            }
+            $preset->forceFill(['lock_version' => $preset->lock_version + 1])->save();
+            $this->audit->record($data['decision'] === 'approve' ? 'diagnosis_preset.approved' : 'diagnosis_preset.returned_to_draft', $preset, ['lock_version' => $preset->lock_version], $actor);
+            $this->remember($actor, $branchId, $data['idempotency_key'], $hash);
+        }, 3);
+    }
+
+    /** An optional ICD-10 code in the usual form (for example R50.9); stored upper case. */
+    private function code(mixed $value, string $field): ?string
+    {
+        $code = strtoupper(trim((string) $value));
+        if ($code === '') {
+            return null;
+        }
+        if (preg_match('/^[A-Z][0-9]{2}(\.[0-9A-Z]{1,4})?$/', $code) !== 1) {
+            throw ValidationException::withMessages([$field => 'Enter an ICD-10 code such as R50.9, or leave it blank.']);
+        }
+
+        return $code;
     }
 
     private function name(string $name, string $field): string
@@ -138,11 +246,11 @@ final class DiagnosisPresetSettingsService
     }
 
     /** @return array{User, int} */
-    private function context(User $actor, mixed $expected): array
+    private function context(User $actor, mixed $expected, string $permission = self::PERMISSION): array
     {
         $branch = $this->authority->branch($actor, $expected);
         Organisation::query()->whereKey($actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
-        $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
+        $actor = $this->authority->lock($actor, $branch, $permission);
 
         return [$actor, $branch->id];
     }

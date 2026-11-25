@@ -17,7 +17,7 @@ class EncounterDiagnosisPresetPickerTest extends ClinicalTestCase
     {
         $preset = new DiagnosisPreset;
         $preset->forceFill(['organisation_id' => $creator->organisation_id, 'name' => $name, 'normalized_name' => mb_strtolower($name),
-            'is_active' => $active, 'lock_version' => 1, 'created_by_user_id' => $creator->id])->save();
+            'is_active' => $active, 'status' => 'approved', 'lock_version' => 1, 'created_by_user_id' => $creator->id])->save();
 
         return $preset;
     }
@@ -43,6 +43,20 @@ class EncounterDiagnosisPresetPickerTest extends ClinicalTestCase
         $this->assertSame($auditCount, DB::table('audit_logs')->count());
         $this->assertFalse($doctor->can('catalogue.settings.manage.organisation'));
         $this->get(route('diagnosis-presets.index'))->assertForbidden();
+    }
+
+    public function test_only_approved_presets_are_offered_to_the_doctor(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $approved = $this->preset($doctor, 'Synthetic approved reference');
+        $draft = $this->preset($doctor, 'Synthetic draft reference');
+        $draft->forceFill(['status' => 'draft', 'approved_at' => null])->save();
+        $url = route('encounters.diagnosis-presets', ['visit' => $visit, 'expected_branch_id' => $visit->branch_id]);
+        $this->getJson($url)->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $approved->id);
+        $this->getJson($url.'&q=draft')->assertExactJson(['data' => []]);
+        $draft->forceFill(['status' => 'approved', 'approved_at' => now()->utc()])->save();
+        $this->getJson($url.'&q=draft')->assertJsonCount(1, 'data');
     }
 
     public function test_existing_encounter_permissions_ownership_and_branch_context_are_required(): void

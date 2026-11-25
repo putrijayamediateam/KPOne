@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, TriangleAlert } from '@lucide/vue';
+import { ArrowLeft, Info } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -345,11 +345,11 @@ watch(
             </p>
             <p
                 v-if="atRisk.banner"
-                class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+                class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
                 data-testid="at-risk-banner"
             >
-                <TriangleAlert
-                    class="mt-0.5 size-4 shrink-0"
+                <Info
+                    class="mt-0.5 size-4 shrink-0 text-muted-foreground"
                     aria-hidden="true"
                 />
                 <span>{{ atRisk.banner }}</span>
