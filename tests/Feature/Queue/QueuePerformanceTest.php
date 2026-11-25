@@ -66,7 +66,8 @@ class QueuePerformanceTest extends QueueTestCase
             // silently return.
             // 21: one read of the person's Version 2 preference, needed on every full page render now that the switch
             // is offered to every staff account (it was 20 when only the Director was offered it).
-            $this->assertLessThanOrEqual(21, $getCount);
+            // 22: AUTO-1c: one read of whether today's roster is published (owner approved 21 to 22, 25 Nov 2026).
+            $this->assertLessThanOrEqual(22, $getCount);
             $this->assertLessThanOrEqual(19, $pollCount);
             $this->assertLessThan(26, $getCount);
             $this->assertLessThan(25, $pollCount);
