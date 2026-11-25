@@ -69,6 +69,8 @@ export type InventoryDocument = {
     closedOn?: string;
     // STK-18: the purchase request a draft order came from.
     fromRequest?: string | null;
+    // STK-48: the RFQ a draft order was made from.
+    fromRfq?: string | null;
     // STK-31: which end of a stock request this branch is (the server still decides).
     atRequesting?: boolean;
     atSource?: boolean;

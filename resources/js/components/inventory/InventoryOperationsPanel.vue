@@ -17,6 +17,7 @@ import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
 import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
 import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
 import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
@@ -921,6 +922,19 @@ const saveReorder = () =>
         <div class="grid gap-4 xl:grid-cols-2">
             <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Purchase Orders & Receiving</h3>
+                <p
+                    v-if="operations.permissions.createPurchaseOrders"
+                    class="text-sm text-muted-foreground"
+                    data-testid="po-rfq-link"
+                >
+                    Want prices from several suppliers first?
+                    <ActionLink
+                        href="/inventory/rfqs"
+                        variant="link"
+                        class="h-auto p-0"
+                        >Ask for quotes (RFQs)</ActionLink
+                    >
+                </p>
                 <form
                     v-if="operations.permissions.createPurchaseOrders"
                     class="grid gap-2 sm:grid-cols-2"
@@ -943,6 +957,7 @@ const saveReorder = () =>
                         :expected-branch-id="operations.expectedBranchId"
                     />
                     <p
+                        v-if="operations.permissions.viewCost"
                         id="po-estimate-help"
                         class="text-xs text-muted-foreground sm:col-span-2"
                     >
@@ -973,6 +988,7 @@ const saveReorder = () =>
                             required
                         />
                         <Input
+                            v-if="operations.permissions.viewCost"
                             v-model="line.estimatedUnitCostRm"
                             :aria-label="`Estimated cost per stock unit RM ${index + 1}`"
                             aria-describedby="po-estimate-help"
@@ -1023,6 +1039,13 @@ const saveReorder = () =>
                         data-testid="po-from-request"
                     >
                         From purchase request {{ row.fromRequest }}
+                    </p>
+                    <p
+                        v-if="row.fromRfq"
+                        class="text-sm text-muted-foreground"
+                        data-testid="po-from-rfq"
+                    >
+                        From quote {{ row.fromRfq }}
                     </p>
                     <p
                         v-for="line in row.lines"
