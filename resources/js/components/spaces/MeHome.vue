@@ -201,7 +201,9 @@ const tileList = computed(() =>
                 </div>
                 <p v-if="station" class="me-station" data-test="me-station">
                     <span class="me-station-label"
-                        >{{ station.now ? 'On now' : 'Today' }}:</span
+                        >{{
+                            station.now ? 'Station now' : 'Station today'
+                        }}:</span
                     >
                     <Link
                         v-if="stationHref"
@@ -212,7 +214,7 @@ const tileList = computed(() =>
                     <template v-else>{{ station.stationLabel }}</template
                     >, {{ station.startLabel }} to {{ station.endLabel
                     }}<template v-if="station.room"
-                        >, {{ station.room }}</template
+                        >, {{ station.room.replace(/ /g, '\u00a0') }}</template
                     >
                 </p>
                 <p v-if="ring.state === 'in'" class="me-status-line">

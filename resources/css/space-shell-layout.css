@@ -1113,9 +1113,13 @@
     font-weight: 600;
 }
 @media (max-width: 1023.98px) {
+    /* A 44px tap area without moving the line: the link itself stays 14px text. */
     .space-shell .me-station a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
+        position: relative;
+    }
+    .space-shell .me-station a::after {
+        content: '';
+        position: absolute;
+        inset: -14px -6px;
     }
 }
