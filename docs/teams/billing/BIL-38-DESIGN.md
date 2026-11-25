@@ -34,7 +34,7 @@ only. Classic only. No money rule changes: the publication path itself is unchan
 - `SupervisorPricingTest::test_the_grant_does_not_touch_staff_administration` and
   `BillingBoundaryTest:74` (`isAdministrativeAuthority` false) stay as they are and keep proving it.
 
-## 3. Existing assertions that change (owner approval needed one by one)
+## 3. Existing assertions that change (owner approval needed one by one; 1 to 3 approved 25 Nov 2026)
 
 1. `tests/Feature/Billing/SupervisorPricingTest.php:50`, `test_exactly_these_roles_hold_the_two_pricing_permissions`:
    the publish holder list `['administrator', 'ca_supervisor', 'finance_officer']` becomes
@@ -45,6 +45,28 @@ only. Classic only. No money rule changes: the publication path itself is unchan
 3. `tests/Feature/Billing/PricingControllerTest.php:66-79`: the Director's publish POST is expected 403 with no price
    entry. It becomes a successful publish (redirect, one `price_entries` row). The comment about "deliberately distinct
    permissions per the P0 phase design" is replaced by the BIL-38 decision.
+
+4. **Found by Kumar's code review, needs the owner's approval:**
+   `tests/Feature/Clinical/UnifiedCatalogueSetupTest.php:253-272`
+   (`test_price_publication_failure_rolls_back_the_entire_medicine_setup`). It uses the Director as "a user without
+   price publication authority" and expects the medicine setup with a price to be refused and fully rolled back. No
+   catalogue role lacks the permission any more: the Director, CA Supervisor and Administrator all hold it. Proposed
+   setup change: the test first revokes `prices.publish.organisation` from the Director's role for that test only.
+   The rollback assertions stay exactly as they are.
+5. **Found by Kumar's code review, needs the owner's approval:**
+   `tests/Feature/Clinical/ClinicalServiceCatalogueControllerTest.php:228-251`
+   (`test_consultation_tariff_publication_remains_separate_from_reference_management`). The Director posts a
+   consultation tariff and expects 403 with nothing saved. The same proposed setup change applies: revoke the permission
+   from the Director's role in that test, keeping the 403 and nothing-saved assertions. The new `DirectorPricePublishTest`
+   adds the positive case.
+
+Until the owner approves 4 and 5, both tests stay failing.
+
+What "publish prices" covers for the Director (Kumar, should-fix 3):
+- Self-pay prices on `/pricing`, in the Medicine setup flow and the Clinical Service setup flow
+  (`UnifiedCatalogueSetupService`), and the consultation tariff.
+- **Panel prices are still refused for every publisher**: they go through the Panel propose and approve path. The
+  Director already approves Panel prices, so they still cannot both propose and publish a Panel price alone.
 
 Not affected:
 - `AdministratorRoleTest:26` (the Administrator still holds it);
