@@ -51,9 +51,10 @@ The converted draft order carries quoted prices as estimates, so the order side 
 - The purchase order screens (Operations panel and order detail) and the print show estimated cost only to
   `inventory.cost.view.organisation` holders. The print already does (`PurchaseOrderPrintService`); the panel and the
   edit form are checked and fixed in this slice.
-- `ProcurementService::updateDraft` replaces every line. An actor without cost view edits a draft with no cost fields,
-  so each line **keeps its existing estimate** when the request carries none (matched by SKU); a line they add has no
-  estimate. Tested.
+- `ProcurementService::updateDraft` replaces every line. **Only when the actor lacks cost view** (their form has no
+  cost fields), each line keeps its existing estimate, matched by SKU; a line they add has no estimate. A cost-view
+  holder's request stays final, as today, so they can still clear an estimate. A SKU may appear on only one line of an
+  order, so the match is unambiguous (the request is refused otherwise). Tested.
 
 ## 4. Conversion: locks and retries
 
