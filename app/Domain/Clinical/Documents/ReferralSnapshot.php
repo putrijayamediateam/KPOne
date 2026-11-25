@@ -20,7 +20,7 @@ final class ReferralSnapshot
      */
     public function create(Branch $branch, array $source, array $input, string $number, string $at): array
     {
-        $template = DB::table('referral_template_revisions')->where('language', $input['language'])->where('revision', 1)->sole();
+        $template = DB::table('referral_template_revisions')->where('language', $input['language'])->orderByDesc('revision')->firstOrFail(); // REL-PR: the newest revision
         $w = json_decode($template->wording, true, flags: JSON_THROW_ON_ERROR);
         $sections = [[$w['recipient'], implode("\n", array_filter([$input['institution'], $input['department'] ?? '', $input['clinician'] ?? '']))], [$w['urgency'], $w[$input['urgency']]], [$w['reason'], $input['reason']]];
         foreach (['history', 'findings', 'management'] as $key) {
@@ -48,7 +48,7 @@ final class ReferralSnapshot
             }
         }
         $sections[] = ['Consent / Persetujuan', $w['consent']];
-        $snapshot = ['schemaVersion' => 1, 'rendererVersion' => self::RENDERER_VERSION, 'templateRendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => 1, 'templateWording' => $w, 'productionApproved' => false, 'language' => $input['language'], 'title' => $w['title'],
+        $snapshot = ['schemaVersion' => 1, 'rendererVersion' => self::RENDERER_VERSION, 'templateRendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => (int) $template->revision, 'templateWording' => $w, 'productionApproved' => (bool) $template->production_approved, 'language' => $input['language'], 'title' => $w['title'],
             'number' => $number, 'issuedAtUtc' => $at, 'issueDate' => CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y'), 'timezone' => $branch->timezone, 'patient' => $source['patient'], 'visit' => $source['visit'], 'examDate' => $source['examDate'], 'doctor' => $source['doctor'], 'letterhead' => $source['letterhead'],
             'recipient' => array_intersect_key($input, array_flip(['institution', 'department', 'clinician'])), 'consent' => true, 'selected' => $selected, 'sourceToken' => $source['token'], 'evidence' => 'pre-signature', 'pages' => app(ReferralPagination::class)->pages($sections)];
         $snapshot['html'] = view('referrals.content', ['snapshot' => $snapshot])->render();

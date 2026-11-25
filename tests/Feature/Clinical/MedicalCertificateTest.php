@@ -85,8 +85,9 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertStringNotContainsString('Synthetic MC Doctor', $raw->encrypted_snapshot);
         $snapshot = json_decode(Crypt::decryptString($raw->encrypted_snapshot), true);
         $this->assertSame('pre-signature', $snapshot['evidence']);
-        $this->assertSame(2, $snapshot['templateRevision']);
-        $this->assertFalse($snapshot['productionApproved']);
+        // REL-PR (owner, 25 Nov 2026): new certificates use the approved revision 3 and no longer carry the DRAFT banner.
+        $this->assertSame(3, $snapshot['templateRevision']);
+        $this->assertTrue($snapshot['productionApproved']);
         $this->assertNull($snapshot['reason']);
         $this->assertStringNotContainsString('Synthetic diagnosis', $snapshot['html']);
         $this->assertStringContainsString('Synthetic MC Doctor (MMC No: ', $snapshot['html']);
@@ -127,7 +128,7 @@ class MedicalCertificateTest extends BillingTestCase
             $response->assertStatus($allowed ? 200 : 403);
             $this->assertSame($role === 'resident_doctor', $actor->can('medical_certificates.issue.own'));
             if ($allowed) {
-                $response->assertSee('DRAFT WORDING')->assertSee('COPY')->assertSee('Pre-signature');
+                $response->assertDontSee('DRAFT WORDING')->assertSee('COPY')->assertSee('Pre-signature');
                 $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
             }
         }
@@ -480,8 +481,8 @@ class MedicalCertificateTest extends BillingTestCase
         }
     }
 
-    /** MC slice 1 (owner decision 2026-11-06): new certificates use the DRAFT layout of the clinic's paper certificate. */
-    public function test_a_new_certificate_uses_the_draft_paper_layout_revision_2(): void
+    /** MC slice 1 (owner decision 2026-11-06) laid out the paper certificate; REL-PR (25 Nov 2026) released it as the approved revision 3. */
+    public function test_a_new_certificate_uses_the_approved_paper_layout_revision_3(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();
         $this->startEncounter($doctor, $visit, $queue);
@@ -491,11 +492,12 @@ class MedicalCertificateTest extends BillingTestCase
         $id = $this->act($doctor, $visit, $this->command(['end_date' => $today->addDays(2)->toDateString()]));
 
         $snapshot = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true);
-        $this->assertSame(2, $snapshot['templateRevision']);
+        $this->assertSame(3, $snapshot['templateRevision']);
         $this->assertSame('mc-a4-v2', $snapshot['rendererVersion']);
-        $this->assertFalse($snapshot['productionApproved']);
+        $this->assertTrue($snapshot['productionApproved']);
         $html = $snapshot['html'];
-        foreach (['DRAFT WORDING', '<h1>MEDICAL CERTIFICATE</h1>', '<strong>MC No:</strong> MC/KP/CHR/', '<strong>Date:</strong> '.$today->format('d/m/Y'),
+        $this->assertStringNotContainsString('DRAFT WORDING', $html);
+        foreach (['<h1>MEDICAL CERTIFICATE</h1>', '<strong>MC No:</strong> MC/KP/CHR/', '<strong>Date:</strong> '.$today->format('d/m/Y'),
             'will be unfit on duty <strong class="mc-u">3</strong> day(s) (from <strong class="mc-u">'.$today->format('d/m/Y').'</strong> until <strong class="mc-u">'.$today->addDays(2)->format('d/m/Y').'</strong>)',
             "He/She is to be re-examined on ________________\nHe/She is able to resume duties from ________________\nDiagnosis: __________________________________________________",
             '(NOT VALID IN THE COURT OF LAW)', 'Synthetic MC Doctor (MMC No: '.(100000 + $doctor->id).')'] as $expected) {
@@ -537,7 +539,7 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertSame('01/01/2027', $snapshot['fields']['issue_date']);
         $this->assertSame('1 Jan 2027, 12:10 AM', $snapshot['issuedAtLocal']);
         $this->assertSame('Kuala Lumpur', $snapshot['issuedAtZone']);
-        $this->assertStringContainsString('Issued at / Dikeluarkan pada: 1 Jan 2027, 12:10 AM (Kuala Lumpur)&nbsp;· EN revision 2&nbsp;· mc-a4-v2', $html);
+        $this->assertStringContainsString('Issued at / Dikeluarkan pada: 1 Jan 2027, 12:10 AM (Kuala Lumpur)&nbsp;· EN revision 3&nbsp;· mc-a4-v2', $html);
         $this->assertStringNotContainsString('Issued at (UTC)', $html);
         // The stored evidence stays in UTC.
         $this->assertSame('2026-12-31 16:10:00.000000+00:00', $snapshot['issuedAtUtc']);
@@ -565,7 +567,7 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertStringNotContainsString('Email:', $html);
     }
 
-    public function test_the_bahasa_melayu_revision_2_has_its_own_labels_and_notice(): void
+    public function test_the_bahasa_melayu_revision_3_has_its_own_labels_and_no_draft_notice(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();
         $this->startEncounter($doctor, $visit, $queue);
@@ -574,21 +576,27 @@ class MedicalCertificateTest extends BillingTestCase
 
         $html = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true)['html'];
         foreach (['<h1>SIJIL CUTI SAKIT</h1>', '<strong>No. MC:</strong>', '<strong>Tarikh:</strong>', 'tidak sihat untuk bertugas selama <strong class="mc-u">1</strong> hari',
-            "Beliau perlu diperiksa semula pada ________________\nBeliau boleh kembali bertugas mulai ________________", '(TIDAK SAH DI MAHKAMAH)', 'DRAF — menunggu kelulusan doktor'] as $expected) {
+            "Beliau perlu diperiksa semula pada ________________\nBeliau boleh kembali bertugas mulai ________________", '(TIDAK SAH DI MAHKAMAH)'] as $expected) {
             $this->assertStringContainsString($expected, $html);
         }
+        $this->assertStringNotContainsString('DRAF — menunggu kelulusan doktor', $html);
     }
 
     public function test_revision_1_stays_unchanged_and_the_database_still_refuses_approved_or_mismatched_rows(): void
     {
         $this->assertStringContainsString('was examined on {{examination_date}}', (string) DB::table('mc_template_revisions')->where(['language' => 'en', 'revision' => 1])->value('wording'));
-        $this->assertSame(['mc-a4-v1', 'mc-a4-v2'], DB::table('mc_template_revisions')->where('language', 'en')->orderBy('revision')->pluck('renderer_version')->all());
-        foreach ([['revision' => 3, 'renderer_version' => 'mc-a4-v2', 'production_approved' => false], ['revision' => 3, 'renderer_version' => 'mc-a4-v1', 'production_approved' => false],
-            ['revision' => 3, 'renderer_version' => 'mc-a4-v2', 'production_approved' => true]] as $row) {
+        $this->assertSame(['mc-a4-v1', 'mc-a4-v2', 'mc-a4-v2'], DB::table('mc_template_revisions')->where('language', 'en')->orderBy('revision')->pluck('renderer_version')->all());
+        // REL-PR: revision 3 is the approved one and carries its approval record; the rest stay unapproved.
+        $this->assertSame([false, false, true], DB::table('mc_template_revisions')->where('language', 'en')->orderBy('revision')->pluck('production_approved')->map(fn ($v): bool => (bool) $v)->all());
+        $this->assertSame("the clinic's doctor (owner-confirmed, verbal, 25 Nov 2026)", DB::table('mc_template_revisions')->where(['language' => 'en', 'revision' => 3])->value('approved_by_label'));
+        $this->assertSame(DB::table('mc_template_revisions')->where(['language' => 'en', 'revision' => 2])->value('wording'), DB::table('mc_template_revisions')->where(['language' => 'en', 'revision' => 3])->value('wording'), 'identical wording');
+        foreach ([['revision' => 4, 'renderer_version' => 'mc-a4-v2', 'production_approved' => false], ['revision' => 3, 'renderer_version' => 'mc-a4-v1', 'production_approved' => false],
+            ['revision' => 3, 'renderer_version' => 'mc-a4-v2', 'production_approved' => true], ['revision' => 4, 'renderer_version' => 'mc-a4-v2', 'production_approved' => true, 'approved_by_label' => 'x', 'approved_on' => '2026-11-25'],
+            ['revision' => 4, 'renderer_version' => 'mc-a4-v2', 'production_approved' => false, 'approved_by_label' => 'x', 'approved_on' => '2026-11-25']] as $row) {
             DB::beginTransaction();
             try {
                 DB::table('mc_template_revisions')->insert(['language' => 'en', 'title' => 'Synthetic', 'wording' => 'Synthetic wording', 'merge_fields' => '[]', 'created_at' => now(), ...$row]);
-                $this->fail('A template row outside revisions 1 and 2, or an approved row, must be refused.');
+                $this->fail('A template row outside revisions 1 to 3, or an approved row without its approval record, or an unapproved row with one, must be refused.');
             } catch (QueryException) {
                 $this->assertTrue(true);
             } finally {

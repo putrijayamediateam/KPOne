@@ -23,7 +23,9 @@ html,body{margin:0;background:#eee;color:#18181b;font:11pt/1.35 Arial,sans-serif
         {{ \App\Domain\Clinical\Documents\LetterheadContactLine::format($snapshot['letterhead']['details']) }}</div>
     </header>
     <h1>{{ $snapshot['title'] }}</h1>
-    <div class="ref-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
+    @unless (!empty($snapshot['productionApproved']))
+        <div class="ref-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
+    @endunless
     <div class="ref-identity"><strong>{{ $snapshot['patient']['name'] }}</strong> · {{ $snapshot['patient']['number'] }}
 <br>
         {{ $snapshot['number'] }} · Visit / Lawatan: {{ $snapshot['visit'] }}<br>

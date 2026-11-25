@@ -57,7 +57,7 @@ final class MedicalCertificateSnapshot
             $wording = str_replace('{{'.$key.'}}', $value, $wording);
         }
         $snapshot = ['schemaVersion' => 1, 'rendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => (int) $template->revision,
-            'productionApproved' => false, 'language' => $input['language'], 'title' => $template->title, 'wording' => $wording, 'templateWording' => $template->wording,
+            'productionApproved' => (bool) $template->production_approved, 'language' => $input['language'], 'title' => $template->title, 'wording' => $wording, 'templateWording' => $template->wording,
             'letterhead' => $letterhead, 'fields' => $fields, 'reason' => $input['reason'] ?? null, 'reasonConsent' => (bool) ($input['reason_consent'] ?? false),
             'issuedAtUtc' => $issuedAt, 'issuedAtLocal' => $issuedLocal->format('j M Y, g:i A'), 'issuedAtZone' => self::zoneName($branch->timezone),
             'credentialVersion' => $credential->lock_version, 'evidence' => 'pre-signature',

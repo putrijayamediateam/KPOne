@@ -27,7 +27,9 @@
             @if($snapshot['letterhead']['details']['email']){{ $snapshot['letterhead']['details']['email'] }}@endif
         </div>
     </header>
-    <div class="mc-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
+    @unless (!empty($snapshot['productionApproved']))
+        <div class="mc-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
+    @endunless
     <h1>{{ $snapshot['title'] }}</h1>
     <div class="mc-reference">MC No: {{ $snapshot['fields']['mc_number'] }}<br>Date / Tarikh: {{ $snapshot['fields']['issue_date'] }}</div>
     <p>{{ $snapshot['wording'] }}</p>

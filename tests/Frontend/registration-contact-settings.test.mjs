@@ -54,11 +54,12 @@ test('public collection is session-bound, old forms omit new fields and both con
     assert.match(page,/v-if="collectContactDetails"/);
     assert.match(page,/form.privacy_notice_version = exchanged.privacyNoticeVersion/);
     assert.match(page,/collectContactDetails.value = exchanged.collectContactDetails/);
-    assert.equal((page.match(/Notis privasi — draf UAT/g)||[]).length,2);
+    assert.equal((page.match(/Notis privasi — draf UAT/g)||[]).length,0);
+    assert.equal((page.match(/<p class="font-semibold">Notis privasi<\/p>/g)||[]).length,2);
     assert.match(page,/E-mel dan alamat/);
     assert.match(page.replace(/\s+/g, ' '),/rekod pesakit tidak dipadam selepas 30 hari/);
     assert.match(read('resources/js/pages/RegistrationReview/Show.vue'), /v-if="intake.collectContactDetails"/);
-    assert.match(read('config/public-intake.php'), /uat-draft-set04b-email-address-v2/);
+    assert.match(read('config/public-intake.php'), /approved-2026-11-25-v1/);
 });
 
 

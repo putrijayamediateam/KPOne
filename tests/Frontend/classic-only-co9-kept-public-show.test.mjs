@@ -28,7 +28,7 @@ test('Classic QR check-in form keeps every Malay string of its template', () => 
         'Persetujuan & hantar',
         'Hantar Maklumat',
         'Menghantar…',
-        'Notis privasi — draf UAT',
+        'Notis privasi',
         'Sesi pendaftaran akan tamat tidak lama lagi.',
         'Masa sesi mungkin telah tamat.',
         'Beli ubat sahaja',

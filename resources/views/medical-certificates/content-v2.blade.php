@@ -50,7 +50,9 @@
             @if($tel !== '')Tel: {{ $tel }}@endif
         </div>
     </header>
-    <div class="mc-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
+    @unless (!empty($snapshot['productionApproved']))
+        <div class="mc-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
+    @endunless
     <h1>{{ $snapshot['title'] }}</h1>
     <div class="mc-reference"><strong>{{ $bm ? 'No. MC:' : 'MC No:' }}</strong> {{ $snapshot['fields']['mc_number'] }}<br><strong>{{ $bm ? 'Tarikh:' : 'Date:' }}</strong> {{ $snapshot['fields']['issue_date'] }}</div>
     {{-- Each piece is escaped with e(); only the fixed <strong> and class wrappers are markup. --}}

@@ -411,12 +411,13 @@ class AttendanceTest extends BillingTestCase
             $this->assertSame(1, substr_count($snapshot['html'], 'class="ref-sign"'));
             $this->assertStringContainsString('Page / Halaman 1 / 1', $snapshot['html']);
             $this->assertGreaterThan(strrpos($snapshot['html'], 'class="ref-lines"'), strpos($snapshot['html'], 'class="ref-sign"'));
-            $this->assertStringContainsString('DRAFT WORDING', $snapshot['html']);
+            // REL-PR (owner, 25 Nov 2026): the approved wording carries no DRAFT banner.
+            $this->assertStringNotContainsString('DRAFT WORDING', $snapshot['html']);
             $this->assertStringContainsString($language === 'en' ? 'does not certify illness, fitness or leave' : 'bukan sijil sakit', preg_replace('/\s+/u', ' ', strip_tags($snapshot['html'])));
             $this->assertStringNotContainsString('<script>', $snapshot['html']);
             $this->assertStringContainsString('&lt;script&gt;', $snapshot['html']);
             $this->assertStringNotContainsString($snapshot['issuedAtUtc'], $snapshot['html']);
-            $this->assertFalse($snapshot['productionApproved']);
+            $this->assertTrue($snapshot['productionApproved']);
             $this->assertSame('pre-signature', $snapshot['evidence']);
             $this->assertTrue($snapshot['consent']);
         }

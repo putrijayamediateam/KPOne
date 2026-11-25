@@ -248,7 +248,8 @@ class ReferralTest extends BillingTestCase
             $input = $this->command($doctor, $visit, ['language' => $language, 'include_allergies' => true, 'history' => str_repeat('Synthetic history & <script>not executable</script> 雪. ', 60), 'diagnoses' => [$encounter->diagnoses()->sole()->id], 'medicines' => [$order->id]]);
             $preview = $service->preview($doctor, $visit, $input)['snapshot'];
             $this->assertGreaterThan(1, count($preview['pages']));
-            $this->assertStringContainsString('DRAFT WORDING', $preview['html']);
+            // REL-PR (owner, 25 Nov 2026): the approved wording carries no DRAFT banner.
+            $this->assertStringNotContainsString('DRAFT WORDING', $preview['html']);
             $this->assertStringNotContainsString('<script>', $preview['html']);
             $this->assertStringContainsString('&lt;script&gt;', $preview['html']);
             $this->assertStringContainsString($language === 'en' ? 'Allergy status unknown' : 'Status alahan tidak diketahui', $preview['html']);
@@ -279,7 +280,7 @@ class ReferralTest extends BillingTestCase
                 $this->assertStringNotContainsString($internalCaveat, $snapshot['html']);
             }
             $this->assertSame('referral-a4-v2', $snapshot['rendererVersion']);
-            $this->assertFalse($snapshot['productionApproved']);
+            $this->assertTrue($snapshot['productionApproved']);
             $this->assertCount(1, $snapshot['pages']);
         }
     }
@@ -383,7 +384,7 @@ class ReferralTest extends BillingTestCase
         $credential = ClinicianProfessionalProfile::query()->sole();
         $credential->forceFill(['professional_name' => 'Changed synthetic doctor', 'lock_version' => $credential->lock_version + 1])->save();
         $this->assertSame($original, $service->copy($doctor, $visit, $id));
-        $this->get(route('referrals.show', [$visit, $id]))->assertOk()->assertSee('COPY — CURRENT')->assertSee('DRAFT WORDING')->assertSee('Wet signature')->assertDontSee('Changed synthetic');
+        $this->get(route('referrals.show', [$visit, $id]))->assertOk()->assertSee('COPY — CURRENT')->assertDontSee('DRAFT WORDING')->assertSee('Wet signature')->assertDontSee('Changed synthetic');
         foreach (['referral_documents', 'referral_actions', 'referral_template_revisions'] as $table) {
             foreach (["UPDATE {$table} SET id=id", "DELETE FROM {$table}", "TRUNCATE {$table} CASCADE"] as $sql) {
                 try {
@@ -404,7 +405,7 @@ class ReferralTest extends BillingTestCase
         }
         $raw = DB::table('referral_documents')->find($id);
         $this->assertStringNotContainsString('Synthetic', $raw->encrypted_snapshot);
-        $this->assertFalse($original['snapshot']['productionApproved']);
+        $this->assertTrue($original['snapshot']['productionApproved']);
         $this->assertArrayNotHasKey('identification', $original['snapshot']['patient']);
         $this->assertSame('pre-signature', $original['snapshot']['evidence']);
     }

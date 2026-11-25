@@ -462,7 +462,7 @@ onBeforeUnmount(() => {
                         id="privacy"
                         class="rounded-2xl bg-zinc-50 p-4 text-xs leading-5 text-zinc-600 dark:bg-zinc-800"
                     >
-                        <p class="font-semibold">Notis privasi — draf UAT</p>
+                        <p class="font-semibold">Notis privasi</p>
                         <p class="mt-1">
                             Versi {{ privacyVersion }} belum merupakan teks
                             undang-undang muktamad. Maklumat digunakan untuk
@@ -1149,7 +1149,7 @@ onBeforeUnmount(() => {
                     <div
                         class="rounded-2xl border bg-zinc-50 p-4 text-sm leading-6 dark:bg-zinc-800"
                     >
-                        <p class="font-semibold">Notis privasi — draf UAT</p>
+                        <p class="font-semibold">Notis privasi</p>
                         <p>
                             Versi {{ privacyVersion }}. Teks ini masih
                             memerlukan kelulusan privasi/undang-undang.
