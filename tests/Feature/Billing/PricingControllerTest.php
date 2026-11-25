@@ -63,9 +63,8 @@ class PricingControllerTest extends ClinicalTestCase
         ]);
         $book = app(PricingReferenceAdministrationService::class)->createPriceBook($finance, null, ['name' => 'Synthetic publish book']);
 
-        // Director holds pricing.references.manage.organisation (can reach the reference
-        // screen) but not prices.publish.organisation (cannot publish a price) - these are
-        // deliberately distinct permissions per the P0 phase design.
+        // BIL-38 (owner decision and approval 2026-11-25): the Director now publishes prices as well as managing the
+        // references; the P0 separation no longer applies to the Director.
         $director = $this->actor('director');
         $this->selectBranch($director);
         $this->actingAs($director);
@@ -75,8 +74,8 @@ class PricingControllerTest extends ClinicalTestCase
             'amount_sen' => 100,
             'expected_version' => 0,
             'expected_branch_id' => $this->branch->id,
-        ])->assertForbidden();
-        $this->assertDatabaseMissing('price_entries', ['charge_definition_id' => $charge->id]);
+        ])->assertRedirect(route('pricing.index'));
+        $this->assertDatabaseHas('price_entries', ['charge_definition_id' => $charge->id, 'unit_price_sen' => 100, 'version' => 1]);
     }
 
     public function test_happy_path_creates_a_charge_a_price_book_and_publishes_a_price(): void
