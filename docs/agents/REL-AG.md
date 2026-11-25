@@ -1,14 +1,14 @@
 # REL-AG: release note for the agent platform's data rule
 
-Status: **proposal for the owner. Documentation only. No code, configuration or switch is changed by this note, and nothing is
-built before the owner approves it.**
+Status: **the owner answered the three open questions on 25 Nov 2026 (section 5). Documentation only. No code, configuration or
+switch is changed by this note.** The section 3 wording changes are a separate follow-up docs PR.
 
 ## 1. The owner's decision
 
 On 25 November 2026 the owner reviewed the PDPA and lawyer review of Ask KPOne and said "dh approve".
 
 Recorded as: **owner-confirmed, verbal, 25 Nov 2026.** The approval was given verbally in the coordinator's session and relayed
-to the agent platform team. There is no written copy yet. This note is not legal advice and does not replace the review itself.
+to the agent platform team. The owner keeps the written copy (section 5). This note is not legal advice and does not replace the review itself.
 
 ## 2. What it covers
 
@@ -44,21 +44,23 @@ What does not change under any reading of the approval:
 
 The owner's approval covers the PDPA and lawyer review. It was given verbally. For the connector the rule stays as written in
 MCP-CONNECTOR-DESIGN section 8: **the connector is off by default and is not switched on against real patient data until the
-owner gives a written OK**, unless the owner says otherwise. A written OK means a sentence from the owner on record (for example
+owner gives a separate written OK at switch-on** (owner answer 2, section 5). A written OK means a sentence from the owner on record (for example
 in the coordinator's log), naming the server and the date.
 
 Switching it on stays the existing, reversible step: `AGENTS_CONNECTOR_ENABLED=true` on that server, one connector app, scope
 `mcp:use` (and `mcp:answer` for Ask through Claude). Switching it off revokes nothing already shown but stops all new calls.
 
-## 5. Open points for the owner
+## 5. The owner's answers (25 Nov 2026)
 
-1. Is the verbal approval enough for Ask KPOne Option A and the chatbox, with a written copy filed later? (Proposed: yes for those two.)
-2. Does the owner want the connector's written OK to be a separate sentence at switch-on time (proposed), or is the verbal
-   approval of 25 Nov enough for it as well?
-3. After approval, who files the written copy of the PDPA and lawyer review, and where? (The production gate in `docs/BASELINE.md`
-   already lists the privacy review; the coordinator records it there. Teams do not edit `docs/BASELINE.md`.)
+Given in the coordinator's session and relayed here. Recorded in the owner's words, with the meaning:
 
-## 6. If the owner approves
+1. "Ya cukup": the verbal approval is enough for Ask KPOne Option A and the chatbox, with the written copy filed later.
+2. "Ya, ayat berasingan": the connector needs a **separate written OK** from the owner at switch-on on a server with real patient
+   data. The OK names the server and the date. The verbal approval of 25 Nov does not replace it.
+3. "Saya simpan, B.E.R.N.I.S.S rekod": the owner keeps the written copy of the PDPA and lawyer review (the clinic's Google Drive).
+   The coordinator records its date and reference in `docs/BASELINE.md`. Teams do not edit `docs/BASELINE.md`.
+
+## 6. Next step
 
 A follow-up documentation PR makes the wording changes in section 3 and nothing else. No migration, permission, route or switch
-changes. The coordinator records the approval and the date in `docs/BASELINE.md`.
+changes. The coordinator records the approval, the date and the written copy's reference in `docs/BASELINE.md`.
