@@ -22,7 +22,7 @@ class PrescribingPhraseTest extends ClinicalTestCase
     private function draft(string $en = '1 tablet three times daily after food', string $ms = '1 biji 3 kali sehari selepas makan', string $kind = 'frequency'): PrescribingPhrase
     {
         $this->selectBranch($this->actor('administrator'));
-        $this->post(route('prescribing-phrases.store'), $this->payload(['kind' => $kind, 'label_en' => $en, 'label_ms' => $ms]))->assertRedirect();
+        $this->post(route('prescribing-phrases.store'), $this->payload(['kind' => $kind, 'label_en' => $en, 'label_ms' => $ms]))->assertRedirect()->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Phrase added.']);
 
         return PrescribingPhrase::query()->where('label_en', $en)->firstOrFail();
     }

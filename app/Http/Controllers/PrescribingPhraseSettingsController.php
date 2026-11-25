@@ -30,7 +30,9 @@ class PrescribingPhraseSettingsController extends Controller
             throw $e->redirectTo(route('prescribing-phrases.index', $filters));
         }
 
-        return to_route('prescribing-phrases.index', $filters)->with('success', 'Phrase added.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Phrase added.']);
+
+        return to_route('prescribing-phrases.index', $filters);
     }
 
     public function edit(Request $request, int $phrase, PrescribingPhraseSettingsService $service): RedirectResponse
