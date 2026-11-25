@@ -59,14 +59,14 @@ test('DD-51: dark field fills use their own token, so darkening the border leave
     assert.deepEqual(offenders, []);
 });
 
-test('DD-51: the dark focus ring is the lighter brand pink and stands out from the resting border', () => {
+test('DD-51: the dark focus ring is the lighter Clean Look blue and stands out from the resting border', () => {
     const dark = css.slice(css.indexOf('.dark'));
-    const ring = dark.match(/--ring:\s*hsl\(330 81% 72%\);/);
+    const ring = dark.match(/--ring:\s*#6ba6ff;/);
     assert.ok(
         ring,
-        'dark --ring should be hsl(330 81% 72%), the colour of --brand-strong',
+        'dark --ring should be #6ba6ff, the colour of --link (Clean Look)',
     );
-    assert.match(dark, /--brand-strong:\s*hsl\(330 81% 72%\);/);
+    assert.match(dark, /--link:\s*#6ba6ff;/);
 });
 
 test('DD-51: plain inputs that only set `border` also get the field border colour', () => {
