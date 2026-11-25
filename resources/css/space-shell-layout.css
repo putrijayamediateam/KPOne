@@ -1109,5 +1109,6 @@
     color: var(--foreground);
 }
 .space-shell .me-station-label {
+    margin-right: 0.25rem;
     font-weight: 600;
 }
