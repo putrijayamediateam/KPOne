@@ -211,6 +211,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                     <span
                                         class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
                                         tabindex="0"
+                                        :title="row.doctorName ?? 'Unassigned'"
                                     >
                                         <UserRound
                                             class="size-3 shrink-0 text-muted-foreground"
