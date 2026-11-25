@@ -30,6 +30,12 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import { useApprovalCount } from '@/composables/useApprovalCount';
@@ -44,6 +50,7 @@ const page = usePage();
 const user = computed(() => page.props.auth.user!);
 const workspace = computed(() => page.props.workspace);
 const areas = computed(() => workspace.value?.shellMenu ?? []);
+const branch = computed(() => page.props.branchContext?.active ?? null);
 const { count: approvalCount, label: approvalLabel } = useApprovalCount();
 
 const ICONS: Record<string, unknown> = {
@@ -121,6 +128,13 @@ const clearTimers = () => {
     clearTimeout(closeTimer);
 };
 const cancelClose = () => clearTimeout(closeTimer);
+// Escape closes an unpinned panel and gives focus back to the rail button; that focus must not open the panel again.
+let ignoreFocusOpen = false;
+const onRailFocus = (key: string) => {
+    if (!ignoreFocusOpen) {
+        scheduleOpen(key);
+    }
+};
 const scheduleOpen = (key: string) => {
     clearTimeout(closeTimer);
     clearTimeout(openTimer);
@@ -145,7 +159,14 @@ const choose = (key: string) => {
 const onKeydown = (event: KeyboardEvent) => {
     if (event.key === 'Escape' && open.value && !pinned.value) {
         open.value = false;
+        clearTimers();
+        const key = shownKey.value;
         shownKey.value = currentKey.value;
+        ignoreFocusOpen = true;
+        document.querySelector<HTMLElement>(`[data-area="${key}"]`)?.focus();
+        setTimeout(() => {
+            ignoreFocusOpen = false;
+        }, 0);
     }
 };
 onMounted(() => window.addEventListener('keydown', onKeydown));
@@ -180,91 +201,129 @@ const closeDrawer = () => {
 
 <template>
     <!-- Desktop rail -->
-    <nav
-        class="fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col items-center gap-1 border-r bg-sidebar py-3 lg:flex"
-        aria-label="Areas"
-        data-test="shell-rail"
-        @mouseenter="cancelClose"
-        @mouseleave="scheduleClose"
-    >
-        <Link
-            href="/dashboard"
-            class="mb-2 flex size-11 items-center justify-center rounded-[10px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            aria-label="Open KPOne Main Menu"
+    <TooltipProvider :delay-duration="150">
+        <nav
+            class="fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col items-center gap-1 border-r bg-sidebar py-3 lg:flex"
+            aria-label="Areas"
+            data-test="shell-rail"
+            @mouseenter="cancelClose"
+            @mouseleave="scheduleClose"
         >
-            <img
-                src="/kp-mark.png"
-                alt="Klinik Putrijaya"
-                class="size-9 object-contain"
-            />
-        </Link>
-        <template v-for="area in areas" :key="area.key">
-            <div
-                v-if="
-                    area.key === 'consultation' ||
-                    area.key === 'billing' ||
-                    area.key === 'inventory'
-                "
-                class="my-1 h-px w-8 bg-border"
-                aria-hidden="true"
-            />
-            <div v-if="area.key === 'settings'" class="flex-1" />
             <Link
-                :href="area.href"
-                class="relative flex size-11 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                :class="currentKey === area.key ? 'bg-accent text-primary' : ''"
-                :aria-label="area.title"
-                :aria-current="currentKey === area.key ? 'page' : undefined"
-                :data-area="area.key"
-                @mouseenter="scheduleOpen(area.key)"
-                @focus="scheduleOpen(area.key)"
-                @click.prevent="choose(area.key)"
-                @keydown.enter.prevent="router.visit(area.href)"
+                href="/dashboard"
+                class="mb-2 flex size-11 items-center justify-center rounded-[10px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                aria-label="Open KPOne Main Menu"
             >
-                <component
-                    :is="ICONS[area.icon] ?? Settings"
-                    class="size-[21px]"
-                    :stroke-width="1.7"
-                    aria-hidden="true"
-                />
-                <span
-                    v-if="area.key === 'today' && approvalCount > 0"
-                    class="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive ring-2 ring-sidebar"
-                    aria-hidden="true"
+                <img
+                    src="/kp-mark.png"
+                    alt="Klinik Putrijaya"
+                    class="size-9 object-contain"
                 />
             </Link>
-        </template>
-        <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="relative mt-2 size-11 rounded-full"
-                    :aria-label="
-                        approvalCount > 0
-                            ? `Open user menu, ${approvalLabel}`
-                            : 'Open user menu'
+            <template v-for="area in areas" :key="area.key">
+                <div
+                    v-if="
+                        area.key === 'consultation' ||
+                        area.key === 'billing' ||
+                        area.key === 'inventory'
                     "
-                >
-                    <Avatar class="size-9">
-                        <AvatarFallback class="bg-muted text-xs font-semibold">
-                            {{ getInitials(user.name) }}
-                        </AvatarFallback>
-                    </Avatar>
+                    class="my-1 h-px w-8 bg-border"
+                    aria-hidden="true"
+                />
+                <div v-if="area.key === 'settings'" class="flex-1" />
+                <Tooltip>
+                    <TooltipTrigger as-child>
+                        <Link
+                            :href="area.href"
+                            class="relative flex size-11 items-center justify-center rounded-[10px] transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            :class="
+                                currentKey === area.key
+                                    ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            "
+                            :aria-label="area.title"
+                            :aria-current="
+                                currentKey === area.key ? 'page' : undefined
+                            "
+                            :data-area="area.key"
+                            @mouseenter="scheduleOpen(area.key)"
+                            @focus="onRailFocus(area.key)"
+                            @click.prevent="choose(area.key)"
+                            @keydown.enter.prevent="router.visit(area.href)"
+                        >
+                            <component
+                                :is="ICONS[area.icon] ?? Settings"
+                                class="size-[21px]"
+                                :stroke-width="1.7"
+                                aria-hidden="true"
+                            />
+                            <span
+                                v-if="area.key === 'today' && approvalCount > 0"
+                                class="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive ring-2 ring-sidebar"
+                                aria-hidden="true"
+                            />
+                        </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" class="text-[12.5px]">
+                        {{ area.title }}
+                    </TooltipContent>
+                </Tooltip>
+            </template>
+            <Tooltip v-if="branch">
+                <TooltipTrigger as-child>
                     <span
-                        v-if="approvalCount > 0"
-                        data-test="approvals-pill"
-                        class="absolute -top-0.5 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs leading-none font-semibold text-destructive-foreground ring-2 ring-sidebar"
-                        aria-hidden="true"
-                        >{{ approvalCount > 99 ? '99+' : approvalCount }}</span
+                        class="mt-1 inline-flex h-7 min-w-11 items-center justify-center rounded-lg bg-info-wash px-1.5 text-[12.5px] font-semibold tracking-wide text-info"
+                        role="img"
+                        :aria-label="`Active branch: ${branch.name}`"
+                        data-test="rail-branch"
+                        tabindex="0"
+                        >{{ branch.code.slice(0, 3).toUpperCase() }}</span
                     >
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="right" class="w-60 p-1.5">
-                <UserMenuContent :user="user" />
-            </DropdownMenuContent>
-        </DropdownMenu>
-    </nav>
+                </TooltipTrigger>
+                <TooltipContent side="right" class="text-[12.5px]">
+                    {{ branch.name }}
+                </TooltipContent>
+            </Tooltip>
+            <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="relative mt-2 size-11 rounded-full"
+                        :aria-label="
+                            approvalCount > 0
+                                ? `Open user menu, ${approvalLabel}`
+                                : 'Open user menu'
+                        "
+                    >
+                        <Avatar class="size-9">
+                            <AvatarFallback
+                                class="bg-muted text-xs font-semibold"
+                            >
+                                {{ getInitials(user.name) }}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span
+                            v-if="approvalCount > 0"
+                            data-test="approvals-pill"
+                            class="absolute -top-0.5 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs leading-none font-semibold text-destructive-foreground ring-2 ring-sidebar"
+                            aria-hidden="true"
+                            >{{
+                                approvalCount > 99 ? '99+' : approvalCount
+                            }}</span
+                        >
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    align="start"
+                    side="right"
+                    class="w-60 p-1.5"
+                >
+                    <UserMenuContent :user="user" />
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </nav>
+    </TooltipProvider>
 
     <!-- Desktop panel -->
     <aside

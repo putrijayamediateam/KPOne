@@ -1,9 +1,18 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
 defineProps<{
     title: string;
     description?: string;
     eyebrow?: string;
 }>();
+
+// Clean Look: with no top bar, the active branch always shows under the page title (a wrong-branch action is a safety risk).
+const page = usePage();
+const branchName = computed(
+    () => page.props.branchContext?.active?.name ?? null,
+);
 </script>
 
 <template>
@@ -39,6 +48,13 @@ defineProps<{
                 class="text-[13px] text-muted-foreground"
             >
                 <slot name="description">{{ description }}</slot>
+            </p>
+            <p
+                v-if="branchName"
+                class="text-[12.5px] text-muted-foreground"
+                data-test="page-branch"
+            >
+                {{ branchName }}
             </p>
         </div>
         <div v-if="$slots.actions" class="kp-control-group">
