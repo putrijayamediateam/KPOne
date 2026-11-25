@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Access\StaffKind;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Organisation;
 use Database\Factories\UserFactory;
@@ -14,8 +15,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
+use Spatie\Permission\Contracts\Permission;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -41,13 +44,53 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable {
+        HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
+        HasRoles::getAllPermissions as protected spatieGetAllPermissions;
+    }
 
     /**
      * Roles and permissions live in the `web` guard. The connector's `api` (bearer token) guard becomes the default guard
      * on the MCP route, and Spatie would then look for `api` roles; pinning the name keeps every check on `web`.
      */
     protected string $guard_name = 'web';
+
+    /**
+     * HR-22b2: a locum (a locum doctor included) never holds the leave-request or staff-claim permissions, whatever other
+     * role brings them. Every `can()`, route permission check and HR lock passes through here.
+     *
+     * @param  string|int|Permission|\BackedEnum  $permission
+     */
+    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    {
+        if ($this->withheldAsLocum($permission)) {
+            return false;
+        }
+
+        return $this->spatieHasPermissionTo($permission, $guardName);
+    }
+
+    /** @return Collection<int, Permission> */
+    public function getAllPermissions(): Collection
+    {
+        $all = $this->spatieGetAllPermissions();
+
+        return StaffKind::isLocum($this)
+            ? $all->reject(fn ($p): bool => in_array($p->name, StaffKind::WITHHELD_FROM_LOCUMS, true))->values()
+            : $all;
+    }
+
+    private function withheldAsLocum(mixed $permission): bool
+    {
+        $name = match (true) {
+            is_string($permission) => $permission,
+            $permission instanceof Permission => $permission->name,
+            $permission instanceof \BackedEnum => (string) $permission->value,
+            default => null,
+        };
+
+        return $name !== null && in_array($name, StaffKind::WITHHELD_FROM_LOCUMS, true) && StaffKind::isLocum($this);
+    }
 
     /**
      * Get the attributes that should be cast.
