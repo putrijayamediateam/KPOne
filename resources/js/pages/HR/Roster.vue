@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import CompliancePanel from '@/components/hr/compliance/CompliancePanel.vue';
 import ComplianceRules from '@/components/hr/compliance/ComplianceRules.vue';
 import MonthCalendar from '@/components/hr/roster/MonthCalendar.vue';
+import PlannerMonth from '@/components/hr/roster/PlannerMonth.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import type {
     Minimums,
     Option,
     Planner,
+    PlannerMonth as PlannerMonthData,
     RosterMonth,
     Shift,
 } from '@/composables/hr/useRosterPage';
@@ -60,6 +62,9 @@ const props = defineProps<{
         // HR-15f: the month calendar on My roster.
         view?: 'week' | 'month';
         month?: RosterMonth | null;
+        // HR-22e: the planner's month view.
+        plannerView?: 'week' | 'month';
+        plannerMonth?: PlannerMonthData | null;
     };
 }>();
 
@@ -77,6 +82,12 @@ const {
     showMonth,
     showWeek,
     changeBranch,
+    showPlannerMonth,
+    showPlannerWeek,
+    monthCopy,
+    copying,
+    copyError,
+    copyToMonth,
     versionLine,
     dialog,
     dialogText,
@@ -110,6 +121,19 @@ const {
 // HR-15f: the month calendar is My roster only.
 const isMonth = computed(
     () => props.roster.tab === 'my' && props.roster.view === 'month',
+);
+// HR-22e: a plain word beside each copy result, so "not changed" never reads as an error (Daniel).
+const outcomeWord = {
+    created: 'Draft created',
+    updated: 'Added to draft',
+    skipped: 'Skipped',
+} as const;
+// HR-22e: the planner's month view.
+const isPlannerMonth = computed(
+    () =>
+        props.roster.tab === 'planner' &&
+        props.roster.plannerView === 'month' &&
+        !!props.roster.plannerMonth,
 );
 </script>
 
@@ -168,6 +192,42 @@ const isMonth = computed(
             >
         </div>
 
+        <!-- HR-22e: Week or Month on the planner, the same segmented control. -->
+        <div
+            v-if="roster.tab === 'planner' && planner"
+            class="inline-flex w-fit rounded-md border p-0.5"
+            role="group"
+            aria-label="Show the planner by"
+            data-test="planner-view-switch"
+        >
+            <Button
+                variant="ghost"
+                size="sm"
+                class="min-h-11 sm:min-h-8"
+                :class="
+                    isPlannerMonth
+                        ? ''
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                "
+                :aria-pressed="!isPlannerMonth"
+                @click="showPlannerWeek()"
+                >Week</Button
+            >
+            <Button
+                variant="ghost"
+                size="sm"
+                class="min-h-11 sm:min-h-8"
+                :class="
+                    isPlannerMonth
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                        : ''
+                "
+                :aria-pressed="isPlannerMonth"
+                @click="showPlannerMonth()"
+                >Month</Button
+            >
+        </div>
+
         <div
             v-if="isMonth && roster.month"
             class="flex flex-wrap items-center gap-2"
@@ -193,6 +253,34 @@ const isMonth = computed(
             >
             <span class="text-sm font-medium" data-test="month-label">{{
                 roster.month.label
+            }}</span>
+        </div>
+
+        <div
+            v-else-if="isPlannerMonth && roster.plannerMonth"
+            class="flex flex-wrap items-center gap-2"
+            data-test="planner-month-switcher"
+        >
+            <Button
+                variant="outline"
+                size="sm"
+                @click="showPlannerMonth(roster.plannerMonth.previous)"
+                >Previous month</Button
+            >
+            <Button
+                variant="outline"
+                size="sm"
+                @click="showPlannerMonth(roster.plannerMonth.current)"
+                >This month</Button
+            >
+            <Button
+                variant="outline"
+                size="sm"
+                @click="showPlannerMonth(roster.plannerMonth.next)"
+                >Next month</Button
+            >
+            <span class="text-sm font-medium" data-test="planner-month-label">{{
+                roster.plannerMonth.label
             }}</span>
         </div>
 
@@ -336,7 +424,7 @@ const isMonth = computed(
 
         <!-- Planner -->
         <section
-            v-if="roster.tab === 'planner' && planner"
+            v-if="roster.tab === 'planner' && planner && !isPlannerMonth"
             aria-labelledby="planner-title"
             class="flex flex-col gap-3"
         >
@@ -761,6 +849,90 @@ const isMonth = computed(
                         </ul>
                     </li>
                 </ul>
+            </template>
+        </section>
+
+        <!-- HR-22e: the planner's month view -->
+        <section
+            v-else-if="roster.tab === 'planner' && planner && isPlannerMonth"
+            aria-labelledby="planner-month-title"
+            class="flex min-w-0 flex-col gap-3"
+        >
+            <h2 id="planner-month-title" class="sr-only">Planner by month</h2>
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="grid w-full gap-2 sm:w-56">
+                    <Label for="planner-branch">Branch</Label>
+                    <OperationalSelect
+                        id="planner-branch"
+                        :model-value="planner.branch.id"
+                        :options="
+                            planner.branches.map((b) => ({
+                                value: b.id,
+                                label: b.name,
+                            }))
+                        "
+                        label="Branch"
+                        @update:model-value="changeBranch"
+                    />
+                </div>
+            </div>
+
+            <ErrorState v-if="errors.roster" :message="errors.roster" />
+
+            <div
+                v-if="skipped.length > 0"
+                role="status"
+                class="rounded-xl border border-l-4 border-l-warning bg-card p-4 text-sm"
+            >
+                <p class="font-medium">Some shifts were not copied</p>
+                <ul class="mt-1 list-disc pl-5">
+                    <li v-for="note in skipped" :key="note">{{ note }}</li>
+                </ul>
+            </div>
+
+            <template v-if="isPlannerMonth && roster.plannerMonth">
+                <div
+                    v-if="monthCopy.length > 0"
+                    role="status"
+                    class="rounded-xl border bg-card p-4 text-sm"
+                    data-test="month-copy-result"
+                >
+                    <p class="font-medium">Copied to the rest of the month</p>
+                    <ul class="mt-1 flex flex-col gap-1">
+                        <li
+                            v-for="item in monthCopy"
+                            :key="item.week"
+                            class="grid grid-cols-[8.5rem_minmax(0,1fr)] items-baseline gap-x-2"
+                        >
+                            <span
+                                class="inline-flex items-center gap-1.5 font-medium"
+                                :data-outcome="item.outcome"
+                                ><span
+                                    class="inline-block size-2 rounded-full"
+                                    :class="
+                                        item.outcome === 'skipped'
+                                            ? 'bg-muted-foreground'
+                                            : 'bg-success'
+                                    "
+                                    aria-hidden="true"
+                                ></span
+                                >{{ outcomeWord[item.outcome] }}</span
+                            >
+                            <span>{{ item.week }}: {{ item.note }}</span>
+                        </li>
+                    </ul>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                    Shifts for {{ planner.branch.name }}, in branch time. To
+                    change a shift, open its week.
+                </p>
+                <PlannerMonth
+                    :month="roster.plannerMonth"
+                    :copying="copying"
+                    :copy-error="copyError"
+                    @open="(week) => showPlannerWeek(week)"
+                    @copy="copyToMonth"
+                />
             </template>
         </section>
 

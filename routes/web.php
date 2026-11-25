@@ -263,6 +263,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
             Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
             Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/copy-to-month', 'copyToMonth')->whereUuid('version')->name('hr.roster.copy-month');
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });

@@ -36,6 +36,9 @@ final class RosterRules
     /** HR-22c (owner, 24 Nov 2026): the stations a CA, CA Supervisor or Medical Assistant may work at on a shift. */
     public const STATIONS = ['registration' => 'Registration', 'ma' => 'Medical Assistant (MA) desk', 'dispensary' => 'Dispensary', 'treatment' => 'Treatment'];
 
+    /** HR-22e: the short tag for a station in the month planner's compact cells. */
+    public const STATION_SHORT = ['registration' => 'Reg', 'ma' => 'MA', 'dispensary' => 'Disp', 'treatment' => 'Treat'];
+
     /** Who takes a station; doctors get a room only. */
     public const STATION_ROLES = ['ca', 'ca_supervisor', 'medical_assistant'];
 
