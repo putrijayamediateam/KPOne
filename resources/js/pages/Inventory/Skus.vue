@@ -297,7 +297,7 @@ const errorFor = (field: string) =>
                                 · Barcode {{ sku.barcode }}</span
                             ><span
                                 v-if="sku.barcodeShared"
-                                class="mt-1 block w-fit rounded border border-amber-600 px-1.5 py-0.5 text-xs text-amber-800 sm:mt-0 sm:ml-1 sm:inline dark:border-amber-400 dark:text-amber-200"
+                                class="mt-1 block w-fit rounded border border-warning px-1.5 py-0.5 text-xs text-warning sm:mt-0 sm:ml-1 sm:inline"
                                 >Barcode also on another SKU. Fix it on
                                 <Link
                                     href="/inventory/readiness"

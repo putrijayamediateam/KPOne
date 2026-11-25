@@ -344,7 +344,7 @@ const caseKindLabel = (kind: string) =>
                 }}</ActionLink
             >
         </nav>
-        <p class="rounded border border-amber-500 p-3 text-sm">
+        <p class="rounded-xl bg-warning-wash p-3 text-sm text-warning">
             Stock controls: {{ stock.legacyLimit }}
         </p>
         <p class="text-sm text-muted-foreground">

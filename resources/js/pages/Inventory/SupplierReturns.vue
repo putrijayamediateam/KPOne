@@ -1146,7 +1146,7 @@ watch(
                         </template>
                         <p
                             v-if="operation === 'dispatched'"
-                            class="text-sm text-amber-700 dark:text-amber-300"
+                            class="text-sm text-warning"
                         >
                             This takes the quantity out of this branch's stock
                             now. It can't be undone.
