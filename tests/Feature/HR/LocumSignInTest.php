@@ -32,7 +32,7 @@ class LocumSignInTest extends VisitTestCase
 
     public function test_the_locum_role_is_pinned_narrow_and_lands_on_its_own_shifts(): void
     {
-        $expected = ['branch_context.switch.branch', 'hr.locum_availability.propose.own', 'hr.locum_pay.view.own', 'hr.open_shifts.request.own', 'hr.roster.view.own', 'profile.view.own']; // HR-15b adds the open-shift ask; HR-15g the own pay statement; HR-22f free times (owner approval pending)
+        $expected = ['branch_context.switch.branch', 'hr.locum_availability.propose.own', 'hr.locum_pay.view.own', 'hr.open_shifts.request.own', 'hr.roster.view.own', 'profile.view.own']; // HR-15b adds the open-shift ask; HR-15g the own pay statement; HR-22f free times (owner-approved, 25 Nov 2026)
         $catalogue = PermissionCatalogue::roles()[PermissionCatalogue::LOCUM_ROLE];
         sort($catalogue);
         $this->assertSame($expected, $catalogue);
