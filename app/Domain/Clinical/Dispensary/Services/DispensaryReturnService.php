@@ -147,7 +147,7 @@ final class DispensaryReturnService
      *
      * @return array<string, mixed>
      */
-    public function waitingList(User $actor, int $page, string $view = 'waiting', string $controlled = 'all'): array
+    public function waitingList(User $actor, int $page, string $view = 'waiting', string $controlled = 'all', bool $withCounts = true): array
     {
         $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
         abort_unless($actor && $actor->is_active && $actor->can('dispensary.view.branch') && $this->mayCheck($actor), 403);
@@ -202,7 +202,11 @@ final class DispensaryReturnService
             'view' => $view,
             'controlled' => $controlled,
             'monthLabel' => $monthStart->format('F Y'),
-            'counts' => ['waiting' => $base(false)->count(), 'checked' => $base(true)->count()],
+            // The active tab's count is the paginator's total; only the other tab is counted again.
+            'counts' => $withCounts ? [
+                'waiting' => $view === 'waiting' ? $paginator->total() : $base(false)->count(),
+                'checked' => $view === 'checked' ? $paginator->total() : $base(true)->count(),
+            ] : null,
             'rows' => $rows->map(fn (\stdClass $r): array => [
                 'publicId' => (string) $r->public_id,
                 'recordedAt' => CarbonImmutable::parse($r->recorded_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
@@ -221,12 +225,19 @@ final class DispensaryReturnService
                 'outcome' => isset($r->outcome) ? (string) $r->outcome : null,
                 'refuseReason' => isset($r->refuse_reason) ? (string) $r->refuse_reason : null,
                 'checkedBy' => isset($r->checked_by_user_id) ? ($names[$r->checked_by_user_id] ?? 'Staff member') : null,
+                'checkedByMe' => isset($r->checked_by_user_id) && (int) $r->checked_by_user_id === $actor->id,
                 'checkedAt' => isset($r->checked_at) ? CarbonImmutable::parse($r->checked_at)->setTimezone($branch->timezone)->format('j M Y, g:i A') : null,
             ])->values()->all(),
             'page' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
             'total' => $paginator->total(),
         ];
+    }
+
+    /** DSP-28 (Hakim): the waiting total only, for the Pharmacy space and Ask, without the tab counts. */
+    public function waitingTotal(User $actor): int
+    {
+        return (int) $this->waitingList($actor, 1, withCounts: false)['total'];
     }
 
     /** DSP-7b: the v1 checker rule, shared with the Clinic management link. */

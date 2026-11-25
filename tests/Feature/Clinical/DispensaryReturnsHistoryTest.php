@@ -58,12 +58,14 @@ class DispensaryReturnsHistoryTest extends VisitTestCase
             ->where('returns.rows.0.outcome', 'refuse')
             ->where('returns.rows.0.refuseReason', 'other')
             ->where('returns.rows.0.checkedBy', $w['supervisor']->name)
+            ->where('returns.rows.0.checkedByMe', true)
             ->where('returns.rows.0.checkedAt', fn ($at) => is_string($at) && $at !== '')
             ->missing('returns.rows.0.note'));
         $this->assertStringNotContainsString('Synthetic refuse note', (string) $response->getContent());
         $this->assertStringNotContainsString('Synthetic private note', (string) $response->getContent());
 
         $this->get(route('dispensary.returns-to-check'))->assertInertia(fn (Assert $page) => $page->where('returns.view', 'waiting')->where('returns.total', 0));
+        $this->assertSame(0, app(DispensaryReturnService::class)->waitingTotal($w['supervisor']));
     }
 
     public function test_checked_this_month_starts_at_branch_local_month_start(): void

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, nextTick, onMounted } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
@@ -38,6 +37,7 @@ type Row = {
     outcome?: 'dispose' | 'quarantine' | 'refuse' | null;
     refuseReason?: string | null;
     checkedBy?: string | null;
+    checkedByMe?: boolean;
     checkedAt?: string | null;
 };
 
@@ -99,6 +99,19 @@ const filters = [
     { value: 'yes', label: 'Controlled only' },
     { value: 'no', label: 'Not controlled' },
 ] as const;
+// Daniel: the outcome as a dot-plus-word chip; Quarantined is the info tone, the rest neutral.
+const outcomeClass = (row: Row) =>
+    row.outcome === 'quarantine'
+        ? 'border-brand/30 bg-brand/10 text-brand-strong'
+        : 'border-border text-foreground';
+onMounted(() =>
+    // DD-30: a tab chosen from the address is scrolled into view, with its count, on a phone.
+    nextTick(() =>
+        document
+            .querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+            ?.scrollIntoView?.({ block: 'nearest', inline: 'end' }),
+    ),
+);
 const outcome = (row: Row) =>
     row.outcome === 'dispose'
         ? 'Disposed'
@@ -128,24 +141,31 @@ const help = computed(() =>
             @update:model-value="(value: string) => go({ view: value })"
         />
         <div
-            class="flex flex-wrap gap-2"
+            class="inline-flex w-fit max-w-full flex-wrap gap-1 rounded-full bg-muted p-1"
             role="group"
             aria-label="Which medicines"
         >
-            <Button
+            <button
                 v-for="option in filters"
                 :key="option.value"
                 type="button"
-                size="sm"
-                :variant="controlled === option.value ? 'default' : 'outline'"
-                class="max-lg:min-h-11"
+                class="rounded-full px-3 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:min-h-11 lg:h-8"
+                :class="
+                    controlled === option.value
+                        ? 'bg-background font-medium text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                "
                 :aria-pressed="controlled === option.value"
                 data-testid="returns-controlled-filter"
                 @click="go({ controlled: option.value })"
-                >{{ option.label }}</Button
             >
+                {{ option.label }}
+            </button>
         </div>
-        <p class="text-xs text-muted-foreground">
+        <p v-if="checked" class="text-xs text-muted-foreground">
+            Returns checked this month. Opening a case shows what was decided.
+        </p>
+        <p v-else class="text-xs text-muted-foreground">
             Open the case to dispose, quarantine or refuse a return. This list
             does not check anything. You cannot check a return you recorded.
         </p>
@@ -223,14 +243,23 @@ const help = computed(() =>
                                 <div class="flex flex-col items-end gap-1">
                                     <template v-if="checked">
                                         <span
-                                            class="font-medium"
+                                            class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
+                                            :class="outcomeClass(row)"
                                             data-testid="return-outcome"
+                                            ><span
+                                                class="size-1.5 rounded-full bg-current"
+                                                aria-hidden="true"
+                                            ></span
                                             >{{ outcome(row) }}</span
                                         >
                                         <span
                                             class="text-xs text-muted-foreground"
                                             >{{ row.checkedAt }} · by
-                                            {{ row.checkedBy }}</span
+                                            {{
+                                                row.checkedByMe
+                                                    ? 'you'
+                                                    : row.checkedBy
+                                            }}</span
                                         >
                                     </template>
                                     <template v-else>
@@ -277,8 +306,13 @@ const help = computed(() =>
                         </h2>
                         <span
                             v-if="checked"
-                            class="font-medium"
+                            class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
+                            :class="outcomeClass(row)"
                             data-testid="return-outcome-card"
+                            ><span
+                                class="size-1.5 rounded-full bg-current"
+                                aria-hidden="true"
+                            ></span
                             >{{ outcome(row) }}</span
                         >
                         <template v-else>
@@ -286,7 +320,8 @@ const help = computed(() =>
                         </template>
                     </div>
                     <p v-if="checked" class="text-xs text-muted-foreground">
-                        Checked {{ row.checkedAt }} · by {{ row.checkedBy }}
+                        Checked {{ row.checkedAt }} · by
+                        {{ row.checkedByMe ? 'you' : row.checkedBy }}
                     </p>
                     <p class="tabular-nums">
                         Qty returned {{ row.quantity }} {{ row.unit }} ·
