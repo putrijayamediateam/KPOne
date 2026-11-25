@@ -577,7 +577,7 @@ const isPlannerMonth = computed(
                         <li
                             v-for="item in monthCopy"
                             :key="item.week"
-                            class="flex flex-wrap items-baseline gap-x-2"
+                            class="grid grid-cols-[8.5rem_minmax(0,1fr)] items-baseline gap-x-2"
                         >
                             <span
                                 class="inline-flex items-center gap-1.5 font-medium"
