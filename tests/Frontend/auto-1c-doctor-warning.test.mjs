@@ -17,7 +17,7 @@ test('AUTO-1c: the board shows a neutral warning chip and a Reassign link to Edi
     assert.match(board, /text-warning-strong/);
     assert.match(
         board,
-        /<AlertTriangle class="size-3 shrink-0" aria-hidden="true" \/>/,
+        /<AlertTriangle\s+v-else\s+class="size-3 shrink-0"\s+aria-hidden="true"\s*\/>/,
     );
     // Reassign goes to the existing Edit visit, and is 44 px tall below 1024 px.
     assert.match(board, /:href="editHref\(row\.visitNumber\)"/);

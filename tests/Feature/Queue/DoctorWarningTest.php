@@ -98,7 +98,7 @@ class DoctorWarningTest extends QueueTestCase
         $visit = $this->waiting($off);
 
         $warning = $this->registrationWarnings()[$visit->visit_number];
-        $this->assertSame(['code' => 'off_roster', 'label' => "Doctor is not on today's roster"], $warning);
+        $this->assertSame(['code' => 'off_roster', 'label' => "Not on today's roster"], $warning);
         // Neutral: no doctor's name, no figures.
         $this->assertStringNotContainsString($rostered->name, json_encode($warning));
         $this->assertSame(['code', 'label'], array_keys($warning));

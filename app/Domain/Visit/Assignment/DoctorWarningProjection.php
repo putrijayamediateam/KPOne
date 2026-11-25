@@ -29,10 +29,10 @@ use Carbon\CarbonImmutable;
 final class DoctorWarningProjection
 {
     public const LABELS = [
-        'off_roster' => "Doctor is not on today's roster",
-        'on_leave' => 'Doctor is on leave now',
-        'no_room' => 'Doctor has no room today',
-        'another_free' => 'Another doctor is free',
+        'off_roster' => "Not on today's roster",
+        'on_leave' => 'On leave now',
+        'no_room' => 'No room today',
+        'another_free' => 'Another doctor free',
     ];
 
     /** @var array<string, bool> whether today's roster is published, read once per branch and minute (a board polls and calls this per tab) */

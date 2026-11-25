@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     Clock3,
     Ellipsis,
+    Info,
     LoaderCircle,
     UserRound,
 } from '@lucide/vue';
@@ -236,9 +237,23 @@ const triageTextClass = (zone: TriageZone | null) =>
                             data-testid="doctor-warning"
                         >
                             <span
-                                class="inline-flex items-center gap-1 rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-xs font-medium text-warning-strong"
+                                class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium"
+                                :class="
+                                    row.doctorWarning.code === 'another_free'
+                                        ? 'border-border bg-transparent text-muted-foreground'
+                                        : 'border-warning/40 bg-warning/10 text-warning-strong'
+                                "
                             >
+                                <Info
+                                    v-if="
+                                        row.doctorWarning.code ===
+                                        'another_free'
+                                    "
+                                    class="size-3 shrink-0"
+                                    aria-hidden="true"
+                                />
                                 <AlertTriangle
+                                    v-else
                                     class="size-3 shrink-0"
                                     aria-hidden="true"
                                 />{{ row.doctorWarning.label }}
