@@ -1112,3 +1112,10 @@
     margin-right: 0.25rem;
     font-weight: 600;
 }
+@media (max-width: 1023.98px) {
+    .space-shell .me-station a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+}
