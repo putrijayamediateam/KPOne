@@ -119,6 +119,7 @@ use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\ReorderSuggestionController;
+use App\Http\Controllers\RfqController;
 use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\SalesTargetController;
 use App\Http\Controllers\SkuEditController;
@@ -1047,6 +1048,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/purchase-requests', [PurchaseRequestController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.purchase-requests');
         Route::post('inventory/purchase-requests', [PurchaseRequestController::class, 'store'])->middleware(['permission:inventory.purchase_requests.create.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.store');
         Route::post('inventory/purchase-requests/{purchaseRequest}/{action}', [PurchaseRequestController::class, 'act'])->whereUuid('purchaseRequest')->whereIn('action', ['convert', 'reject', 'withdraw'])->middleware(['sensitive.no-store', 'throttle:30,1', 'approvals.forget'])->name('inventory.purchase-requests.act');
+        // STK-48: requests for quotation before a purchase order; every action uses the purchase order create permission.
+        Route::get('inventory/rfqs', [RfqController::class, 'index'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'sensitive.no-store'])->name('inventory.rfqs');
+        Route::post('inventory/rfqs', [RfqController::class, 'store'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.rfqs.store');
+        Route::get('inventory/rfqs/rounds/{round}', [RfqController::class, 'round'])->whereUuid('round')->middleware(['permission:inventory.purchase_orders.create.organisation', 'sensitive.no-store'])->name('inventory.rfqs.round');
+        Route::post('inventory/rfqs/rounds/{round}/{action}', [RfqController::class, 'roundAct'])->whereUuid('round')->whereIn('action', ['convert', 'cancel'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.rfqs.round.act');
+        Route::get('inventory/rfqs/{rfq}/print', [RfqController::class, 'print'])->whereUuid('rfq')->middleware(['permission:inventory.purchase_orders.create.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.rfqs.print');
+        Route::post('inventory/rfqs/{rfq}/{action}', [RfqController::class, 'act'])->whereUuid('rfq')->whereIn('action', ['sent', 'quote', 'choose', 'cancel'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.rfqs.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
         Route::get('inventory/stock-health', [StockHealthController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-health');
         Route::get('inventory/branch-replenishment', [BranchReplenishmentController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.branch-replenishment');
