@@ -14,6 +14,7 @@ use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Queue\Services\QueueWaitingCountService;
+use App\Domain\Queue\Services\RedZoneAlertService;
 use App\Domain\Visit\Billing\Services\SalesTargetService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\CallQueueEntryRequest;
@@ -149,6 +150,28 @@ class QueueController extends Controller
             throw $exception->redirectTo($target);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient called in.')]);
+
+        return to_route('queue.index');
+    }
+
+    /** Q-16b: the red-zone alerts for resident doctors and triage recorders. Read only, no patient data. */
+    public function redZoneAlerts(Request $request, RedZoneAlertService $alerts): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+
+        return response()->json(['alerts' => $alerts->alerts($request->user(), (int) $validated['expected_branch_id'])]);
+    }
+
+    /** Q-16b: "I'll take it". Assigns the red-zone patient to the taking doctor; never calls the patient. */
+    public function takeRedZone(Request $request, Visit $visit, RedZoneAlertService $alerts): RedirectResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+        try {
+            $alerts->take($request->user(), $visit, (int) $validated['expected_branch_id']);
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('queue.index'));
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('You took this patient. Call them in when ready.')]);
 
         return to_route('queue.index');
     }
