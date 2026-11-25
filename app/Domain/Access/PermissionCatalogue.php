@@ -211,6 +211,7 @@ final class PermissionCatalogue
             'inventory.valuation.view.organisation',
             'inventory.pack_conversions.verify.organisation',
             'inventory.medicine_sales.view.organisation',
+            'inventory.differences.report.branch',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -649,6 +650,12 @@ final class PermissionCatalogue
         // medicine sales page. It is separate from cost view, so the Store Admin and Account Assistant don't get it.
         foreach (['director', 'finance_officer'] as $holder) {
             $roles[$holder][] = 'inventory.medicine_sales.view.organisation';
+        }
+
+        // STK-45 (owner, P10, 25 Nov 2026: "Lulus nota + kebenaran"): report a difference on a stock line, which opens or
+        // joins a governed count; it never moves stock. The Medical Assistant gets it through the CA rule below.
+        foreach (['ca', 'ca_supervisor', 'store_admin', 'branch_manager'] as $holder) {
+            $roles[$holder][] = 'inventory.differences.report.branch';
         }
 
         // DSP-23 (owner answers 21 Nov 2026: P3, 12 = A, 13 = B): the attending doctor checks the prepared medicine; a

@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, TriangleAlert } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import DifferenceRowMenu from '@/components/inventory/DifferenceRowMenu.vue';
+import ReportDifferenceSheet from '@/components/inventory/ReportDifferenceSheet.vue';
+import type {
+    DifferenceState,
+    DifferenceTarget,
+} from '@/components/inventory/ReportDifferenceSheet.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { DateField } from '@/components/ui/date-field';
 import {
@@ -13,6 +19,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status';
 import { formatDate } from '@/lib/presentation';
 import { trimQuantity } from '@/lib/supplier-terms';
 type Review = {
@@ -38,6 +45,8 @@ type Row = {
     lock_version: number;
     latest: Review | null;
     history: Review[];
+    // STK-45: on Expiring and Expired rows only, for P10 holders.
+    difference?: DifferenceState;
 };
 type Kind = 'low_stock' | 'expiring' | 'expired';
 // STK-42: the read-only "At risk in 6 months" section. Value keys arrive only for people who may see cost.
@@ -55,6 +64,7 @@ type AtRiskRow = {
     value?: string | null;
     estimate?: boolean;
     part?: boolean;
+    difference?: DifferenceState;
 };
 type AtRisk = {
     days: number;
@@ -78,7 +88,32 @@ const props = defineProps<{
         lists: Record<Kind, List>;
     };
     atRisk: AtRisk;
+    differences?: { canReport: boolean; expectedBranchId?: number };
 }>();
+// STK-45: Report a difference on batch rows (never Low stock rows).
+const reportTarget = ref<DifferenceTarget | null>(null);
+let reportTrigger: HTMLElement | null = null;
+function openReport(row: Row | AtRiskRow, trigger: HTMLElement | null): void {
+    if (!row.difference) {
+        return;
+    }
+
+    reportTrigger = trigger;
+    reportTarget.value = {
+        medicine: `${row.sku_code} · ${row.item}`,
+        batch: row.batch ?? '',
+        expiry: row.expiry ? formatDate(row.expiry) : '',
+        location: row.location,
+        quantity: row.quantity,
+        unit: row.stock_unit,
+        difference: row.difference,
+    };
+}
+async function closeReport(): Promise<void> {
+    reportTarget.value = null;
+    await nextTick();
+    reportTrigger?.focus();
+}
 const headings: Record<Kind, string> = {
     low_stock: 'Low stock',
     expiring: 'Expiring soon',
@@ -260,15 +295,34 @@ watch(
                             >
                         </p>
                     </div>
-                    <button
-                        v-if="review.canManage"
-                        type="button"
-                        class="min-h-11 rounded border px-3"
-                        @click="show(k, row)"
-                    >
-                        Acknowledge
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <button
+                            v-if="review.canManage"
+                            type="button"
+                            class="min-h-11 rounded border px-3"
+                            @click="show(k, row)"
+                        >
+                            Acknowledge
+                        </button>
+                        <DifferenceRowMenu
+                            v-if="
+                                differences?.canReport &&
+                                k !== 'low_stock' &&
+                                row.difference
+                            "
+                            :difference="row.difference"
+                            :label="`${row.sku_code} ${row.item}`"
+                            @report="(trigger) => openReport(row, trigger)"
+                        />
+                    </div>
                 </div>
+                <StatusBadge
+                    v-if="row.difference?.openCount"
+                    status="count_open"
+                    label="Count open"
+                    tone="neutral"
+                    dot
+                />
                 <p>
                     {{ k === 'low_stock' ? 'Eligible quantity' : 'On hand' }}:
                     {{ row.quantity }} {{ row.stock_unit
@@ -442,11 +496,24 @@ watch(
                             >No cost recorded</span
                         >
                     </p>
+                    <DifferenceRowMenu
+                        v-if="differences?.canReport && row.difference"
+                        :difference="row.difference"
+                        :label="`${row.sku_code} ${row.item}`"
+                        @report="(trigger) => openReport(row, trigger)"
+                    />
                 </div>
                 <p>
                     On hand: {{ trimQuantity(row.quantity) }}
                     {{ row.stock_unit }}
                 </p>
+                <StatusBadge
+                    v-if="row.difference?.openCount"
+                    status="count_open"
+                    label="Count open"
+                    tone="neutral"
+                    dot
+                />
             </article>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <button
@@ -466,6 +533,13 @@ watch(
                 </button>
             </div>
         </section>
+        <ReportDifferenceSheet
+            v-if="differences?.canReport && differences.expectedBranchId"
+            :target="reportTarget"
+            :expected-branch-id="differences.expectedBranchId"
+            return-to="stock-review"
+            @closed="closeReport"
+        />
         <Dialog v-model:open="dialog"
             ><DialogContent
                 :show-close-button="false"

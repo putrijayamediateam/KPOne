@@ -11,6 +11,7 @@ use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -23,6 +24,9 @@ final class GovernedStockService
     public const APPROVE = 'inventory.variances.approve.branch';
 
     public const REASONS = ['expired', 'damaged', 'contaminated', 'other_approved'];
+
+    /** STK-45: a count case is open while its latest state is one of these. */
+    public const OPEN_STATES = ['awaiting_count', 'awaiting_recount', 'awaiting_approval'];
 
     public const LEGACY_LIMIT = 'Legacy stocktake and manual adjustment are closed. Use the governed Stock count or Write-off workflow; independent approval is required.';
 
@@ -117,6 +121,7 @@ final class GovernedStockService
                     $this->refuse('state', 'This case is not awaiting that count action.');
                 }
                 abort_if($action === 'recounted' && $previous->actor_user_id === $actor->id, 403, 'A different person must recount this stock.');
+                abort_if($this->reported($caseId, $actor->id), 403, 'You reported a difference on this stock, so another person has to count it.');
                 StockUnitQuantity::base('1', $sku->stock_unit, $data['unit']);
                 $quantity = StockUnitQuantity::format(StockUnitQuantity::scaled($data['quantity'], true));
                 $state = $quantity === $case->expected_quantity ? 'closed_zero' : ($action === 'counted' ? 'awaiting_recount' : 'awaiting_approval');
@@ -130,6 +135,7 @@ final class GovernedStockService
             $involved = DB::table('inventory_governed_actions')->whereIn('case_id', array_filter([$caseId, $case->reverses_case_id]))->whereIn('action', ['counted', 'recounted'])->pluck('actor_user_id')->all();
             $proposers = DB::table('inventory_governed_cases')->whereIn('id', array_filter([$caseId, $case->reverses_case_id]))->pluck('proposer_user_id')->all();
             abort_if(in_array($actor->id, [...$involved, ...$proposers], true), 403, 'The approver must differ from the counter, recounter and proposer.');
+            abort_if($this->reported($caseId, $actor->id), 403, 'You reported a difference on this stock, so another person has to approve it.');
             if ($case->kind === 'count') {
                 $delta = StockUnitQuantity::scaled($previous->quantity, true) - StockUnitQuantity::scaled($case->expected_quantity, true);
                 $quantity = StockUnitQuantity::format(abs($delta));
@@ -149,6 +155,56 @@ final class GovernedStockService
         }, 3);
     }
 
+    /**
+     * STK-45: the newest live count case per balance at a branch. Live means open (latest state in OPEN_STATES) with a
+     * snapshot that still matches the balance and the SKU's stock unit: the same checks act() makes before counting.
+     *
+     * @param  list<int>  $balanceIds
+     * @return array<int,int> balance id => case id
+     */
+    public function newestLiveCountIds(int $organisationId, int $branchId, array $balanceIds): array
+    {
+        $latest = DB::table('inventory_governed_actions')->select('case_id')->selectRaw('MAX(lock_version) as version')->groupBy('case_id');
+
+        return DB::table('inventory_governed_cases as c')->joinSub($latest, 'latest', 'latest.case_id', '=', 'c.id')
+            ->join('inventory_governed_actions as a', fn ($j) => $j->on('a.case_id', '=', 'c.id')->on('a.lock_version', '=', 'latest.version'))
+            ->join('inventory_stock_balances as b', 'b.id', '=', 'c.balance_id')->join('inventory_skus as s', 's.id', '=', 'b.inventory_sku_id')
+            ->where('c.organisation_id', $organisationId)->where('c.branch_id', $branchId)->whereIn('c.balance_id', $balanceIds)->where('c.kind', 'count')
+            ->whereIn('a.state', self::OPEN_STATES)->whereColumn('b.lock_version', 'c.expected_balance_version')->whereColumn('b.quantity', 'c.expected_quantity')->whereColumn('s.stock_unit', 'c.base_unit')
+            ->groupBy('c.balance_id')->selectRaw('c.balance_id, MAX(c.id) as case_id')->pluck('case_id', 'balance_id')
+            ->mapWithKeys(fn ($case, $balance): array => [(int) $balance => (int) $case])->all();
+    }
+
+    public function newestLiveCountId(int $organisationId, int $branchId, int $balanceId): ?int
+    {
+        return $this->newestLiveCountIds($organisationId, $branchId, [$balanceId])[$balanceId] ?? null;
+    }
+
+    /**
+     * STK-45: lock the balance's SKU, batch and balance in the STK-5 order, for a report. The caller has already locked
+     * any case it will join.
+     *
+     * @return array{InventorySku,InventoryBatch,InventoryLocation,stdClass}
+     */
+    public function lockReportSource(User $actor, Branch $branch, int $balanceId): array
+    {
+        return $this->lockSource($actor, $branch, $balanceId);
+    }
+
+    /**
+     * STK-45: open a count case for a difference report, inside the caller's transaction after it locked the source.
+     * The report (P10) is the permission; everything else is as in propose(). The reporter is the case's proposer, which
+     * STK-5's case trigger requires of the creation action.
+     */
+    public function openCountForReport(User $actor, Branch $branch, InventorySku $sku, InventoryBatch $batch, InventoryLocation $location, stdClass $balance, string $retryKey, string $hash): int
+    {
+        abort_unless(DB::transactionLevel() > 0 && $actor->can(DifferenceReportService::PERMISSION), 403);
+        $id = DB::table('inventory_governed_cases')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'inventory_location_id' => $location->id, 'balance_id' => $balance->id, 'kind' => 'count', 'base_unit' => $sku->stock_unit, 'reason' => 'count_variance', 'expected_quantity' => $balance->quantity, 'expected_balance_version' => $balance->lock_version, 'quantity' => null, 'disposal_reference' => null, 'proposer_user_id' => $actor->id, 'reverses_case_id' => null, 'created_at' => now()->utc()]);
+        $this->append($actor, $branch, $id, 'created', 'awaiting_count', 1, $retryKey, $hash, null, null);
+
+        return $id;
+    }
+
     /** @return array{InventorySku,InventoryBatch,InventoryLocation,stdClass} */
     private function lockSource(User $actor, Branch $branch, int $balanceId): array
     {
@@ -160,6 +216,11 @@ final class GovernedStockService
         $location = InventoryLocation::query()->whereKey($candidate->inventory_location_id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('is_active', true)->firstOrFail();
 
         return [$sku, $batch, $location, $balance];
+    }
+
+    private function reported(int $caseId, int $userId): bool
+    {
+        return DB::table('inventory_difference_reports')->where('case_id', $caseId)->where('reporter_user_id', $userId)->exists();
     }
 
     /** @param array<mixed> $payload */
@@ -214,10 +275,21 @@ final class GovernedStockService
         $originalIds = $p->pluck('reverses_case_id')->filter()->all();
         $involved = DB::table('inventory_governed_actions')->whereIn('case_id', $originalIds)->whereIn('action', ['created', 'counted', 'recounted'])->get(['case_id', 'actor_user_id'])->groupBy('case_id');
         $reversed = DB::table('inventory_governed_cases')->whereIn('reverses_case_id', $p->pluck('id'))->pluck('reverses_case_id')->all();
+        // STK-45: difference reports on these cases. Reporters never count, recount or approve; the rough count and note
+        // reach only someone who may approve, and only once the counts are done (the count stays blind).
+        $reports = DB::table('inventory_difference_reports')->whereIn('case_id', $p->pluck('id'))->orderBy('id')->get(['case_id', 'reporter_user_id', 'observed', 'rough_quantity', 'note_encrypted'])->groupBy('case_id');
+        $reporterName = app(InventoryStaffNames::class)->resolver($actor, $reports->flatten()->pluck('reporter_user_id')->unique()->values()->all());
         $rows = [];
         foreach ($p->items() as $row) {
             $history = $histories->get($row->id, collect());
-            $excluded = [$row->proposer_user_id, ...$history->whereIn('action', ['counted', 'recounted'])->pluck('actor_user_id')->all(), ...$involved->get($row->reverses_case_id, collect())->pluck('actor_user_id')->all()];
+            $caseReports = $reports->get($row->id, collect());
+            $reporters = $caseReports->pluck('reporter_user_id')->map(fn ($id): int => (int) $id)->all();
+            $excluded = [$row->proposer_user_id, ...$history->whereIn('action', ['counted', 'recounted'])->pluck('actor_user_id')->all(), ...$involved->get($row->reverses_case_id, collect())->pluck('actor_user_id')->all(), ...$reporters];
+            $showReportDetail = $row->state === 'awaiting_approval' && $actor->can(self::APPROVE);
+            $reportRows = $caseReports->map(fn (object $report): array => [
+                'reporter' => $reporterName($report->reporter_user_id) ?? 'Staff member', 'observed' => $report->observed,
+                ...($showReportDetail ? ['roughQuantity' => $report->rough_quantity, 'note' => $report->note_encrypted === null ? null : Crypt::decryptString($report->note_encrypted)] : []),
+            ])->values()->all();
             $values = (array) $row;
             $historyRows = $history->all();
             // STK-23 blind counts: while a count or recount waits, no quantity for that case leaves the server for
@@ -231,7 +303,7 @@ final class GovernedStockService
                     return $copy;
                 }, $historyRows);
             }
-            $rows[] = [...$values, 'blind' => $row->kind === 'count' && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true), 'history' => $historyRows, 'canCount' => $actor->can(InventoryControlService::STOCKTAKE_PERMISSION) && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true) && ($row->state !== 'awaiting_recount' || $history->firstWhere('action', 'counted')?->actor_user_id !== $actor->id), 'canApprove' => $actor->can(self::APPROVE) && $row->state === 'awaiting_approval' && ! in_array($actor->id, $excluded, true), 'canReverse' => $actor->can(InventoryControlService::ADJUST_PERMISSION) && $row->state === 'posted' && $row->kind !== 'reversal' && ! in_array($row->id, $reversed, true)];
+            $rows[] = [...$values, 'blind' => $row->kind === 'count' && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true), 'history' => $historyRows, 'reports' => $reportRows, 'canCount' => $actor->can(InventoryControlService::STOCKTAKE_PERMISSION) && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true) && ($row->state !== 'awaiting_recount' || $history->firstWhere('action', 'counted')?->actor_user_id !== $actor->id) && ! in_array($actor->id, $reporters, true), 'canApprove' => $actor->can(self::APPROVE) && $row->state === 'awaiting_approval' && ! in_array($actor->id, $excluded, true), 'canReverse' => $actor->can(InventoryControlService::ADJUST_PERMISSION) && $row->state === 'posted' && $row->kind !== 'reversal' && ! in_array($row->id, $reversed, true)];
         }
         $targets = DB::table('inventory_stock_balances as r')->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
             ->where('r.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true);
