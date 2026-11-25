@@ -133,8 +133,6 @@ Cadangan ejen (contohnya tambah stok atau amaran luput) diputuskan di “Clinic 
 
 5. Untuk nama jenama atau ejaan lain yang biasa, buka menu “…” dan pilih “Other names”. Masukkan satu nama setiap baris (maksimum 10). Amaran alahan di farmasi turut menyemak nama ini. Nama lain tidak dicetak pada label dan tidak mengubah nama ubat.
 
-Senarai kumpulan ubat dan ubat terkawal perlu disemak oleh ahli farmasi sebelum digunakan: [PERLU DISAHKAN].
-
 ## Harga
 
 Pada “Pricing”, isi “Price book *” dan “Amount (RM) *”, kemudian pilih “Publish price”. Amaun kosong ditolak. Taip 0.00 jika perkhidmatan itu percuma.

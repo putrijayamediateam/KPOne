@@ -141,8 +141,8 @@ const printLabels = async () => {
             </p>
             <p v-if="canPrint">
                 Label size {{ labels.pageSize.width }} ×
-                {{ labels.pageSize.height }} mm (provisional). Confirm printer
-                and sticker stock. Print at 100%, browser headers/footers off.
+                {{ labels.pageSize.height }} mm. Print at 100%, browser
+                headers/footers off.
             </p>
             <p v-if="canPrint">
                 Saved fulfilment data only. Unsaved workspace edits are not
