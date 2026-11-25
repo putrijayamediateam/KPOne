@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
 
 /**
  * STK-33 (approved by B.E.R.N.I.S.S for the owner, 2026-11-12): read-only stock health for the active branch, one row
- * per SKU and location, in quantities only (no cost: valuation waits for the accountant's cost policy). It writes
+ * per SKU and location, in quantities only (no cost: values are on the Director's Stock value page). It writes
  * nothing. All arithmetic is in exact thousandths of the SKU's base stock unit (STK-1).
  *
  * - Used: dispensed plus unreversed treatment-room usage out of the location in the period (the STK-16 use figure).

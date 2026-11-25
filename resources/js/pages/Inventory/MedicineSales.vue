@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, TriangleAlert } from '@lucide/vue';
+import { ArrowLeft, Info } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,8 @@ import { OperationalTable } from '@/components/ui/table';
 /**
  * STK-44: the medicine sales page (Director and Finance Officer). The top 25 medicines for one month, with the cost of
  * what was dispensed and the profit, and every medicine with a line sold below cost. Every figure comes from the server
- * (MedicineSalesReportService); this page only formats them. Figures are KPOne defaults, not accounting advice, so the
- * accountant banner sits above them.
+ * (MedicineSalesReportService); this page only formats them. Figures use the weighted average cost policy the clinic's
+ * accountant approved verbally on 25 Nov 2026 (REL-STK); the management-report banner sits above them.
  */
 type Units = { unit: string; quantity: string }[];
 type Row = {
@@ -236,10 +236,13 @@ const countCards = computed(() => [
         </p>
 
         <p
-            class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+            class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
             data-testid="sales-banner"
         >
-            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <Info
+                class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+            />
             <span>{{ report.banner }}</span>
         </p>
 
