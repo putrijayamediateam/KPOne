@@ -33,6 +33,8 @@ class ShellMenuTest extends VisitTestCase
         $this->assertSame('/my-day', $areas[0]['href']);
         $byArea = $this->hrefsByArea($ca);
         $this->assertContains('/registration', $byArea['front_desk']);
+        $this->assertContains('/registration?tab=dispensary', $byArea['dispensary']);
+        $this->assertContains('/registration?tab=billing', $byArea['billing']);
         $this->assertArrayNotHasKey('hr_admin', $byArea);
         $this->assertNotContains('/hr/payroll', array_merge(...array_values($byArea)));
     }

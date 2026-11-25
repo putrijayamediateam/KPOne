@@ -48,6 +48,15 @@ final class ShellMenu
             }
         }
 
+        // The Dispensary and Awaiting billing boards are tabs of the Registration board, so no Clinic management row names them:
+        // they get their own rail entries, behind the permission of the tab itself.
+        if ($actor->can('visits.view.branch') && $actor->can('dispensary.view.branch')) {
+            $bySection['dispensary']['Dispensary'][] = ['title' => 'Dispensary board', 'href' => route('registration.index', ['tab' => 'dispensary'], absolute: false)];
+        }
+        if ($actor->can('visits.view.branch') && $actor->can('billing.view.branch')) {
+            $bySection['billing']['Billing'][] = ['title' => 'Awaiting billing', 'href' => route('registration.index', ['tab' => 'billing'], absolute: false)];
+        }
+
         foreach (self::AREAS as $key => [$title, $icon]) {
             if (! isset($bySection[$key])) {
                 continue;
