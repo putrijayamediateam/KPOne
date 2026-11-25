@@ -45,8 +45,7 @@ not any stored figure.
 (the "How this is counted" style, an information icon, "Management report" kept at the start), because the policy is
 settled and amber is kept for real warnings such as "6 medicines have stock with no cost recorded". Done on Stock
 value, Medicine sales and Stock review "At risk". Daniel also asked to show it only once on Stock value (at the top,
-not again inside the tabs); that needs the existing assertion change 3 below, so the tab copies stay, in the neutral
-style, until the owner approves it.
+not again inside the tabs); the owner approved existing assertion change 3 below, so the two tab copies are removed.
 
 ## Opening stock
 
@@ -77,7 +76,7 @@ true. Replacement, approved by the owner (decision (b)) and made in this PR:
    - **Before:** `/Cost\s+policy to be confirmed by the accountant\./`
    - **After:** `/uses the weighted average cost policy approved by the\s+clinic's accountant\./`
 
-3. **Waiting for the owner's approval (Daniel's second change):**
+3. **Approved by the owner ("Lulus ujian + ship it", 25 Nov 2026; Daniel's second change):**
    `tests/Frontend/classic-only-co6-kept-direct.test.mjs:21-25` (the Classic-only team's test).
    - **Before:** comment "The banner shows above the summary and on every tab." and
      `(classicTemplate.match(/\{\{ report\.banner \}\}/g) ?? []).length >= 3`

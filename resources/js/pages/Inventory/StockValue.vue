@@ -18,7 +18,7 @@ import { formatDate } from '@/lib/presentation';
  * download. The only Stock value page since Classic only (CO-6 removed the V2 copy; owner decision 2026-11-19,
  * replacing the 2026-11-15 "new layout only" page). Figures come from the server; this page
  * only formats them. Every figure uses the weighted average cost policy the clinic's accountant approved verbally on
- * 25 Nov 2026 (REL-STK); it is still a management report, so the banner stays on every tab.
+ * 25 Nov 2026 (REL-STK); it is still a management report, so the banner shows once, above the summary.
  */
 type StockRow = {
     sku: string;
@@ -576,16 +576,6 @@ const lossHelp: Record<string, string> = {
                 :aria-label="tabLabel"
                 class="flex min-w-0 flex-col gap-3"
             >
-                <p
-                    v-if="tab !== 'counted'"
-                    class="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs font-medium text-foreground"
-                >
-                    <Info
-                        class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
-                        aria-hidden="true"
-                    />
-                    <span>{{ report.banner }}</span>
-                </p>
                 <details
                     v-if="tab !== 'counted'"
                     class="group rounded-lg border bg-muted/40"
@@ -1041,15 +1031,6 @@ const lossHelp: Record<string, string> = {
 
                 <!-- How this is counted -->
                 <template v-else>
-                    <p
-                        class="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs font-medium text-foreground"
-                    >
-                        <Info
-                            class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                        />
-                        <span>{{ report.banner }}</span>
-                    </p>
                     <ul
                         class="list-disc space-y-2 pl-5 text-sm"
                         data-testid="valuation-rules"
