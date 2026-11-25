@@ -103,6 +103,7 @@ const approve = (draft: Draft) => {
                     variant="outline"
                     size="sm"
                     class="max-sm:min-h-11"
+                    :aria-label="`Approve ${draft.name}`"
                     :disabled="busy !== null"
                     @click="approve(draft)"
                     >Approve</Button

@@ -10,6 +10,7 @@ use App\Domain\Clinical\Models\DiagnosisPreset;
 use App\Domain\Clinical\Suggestions\SuggestionPermissions;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -64,13 +65,13 @@ final class DiagnosisPresetSettingsService
         }
         $codes = [];
         foreach (array_keys($names) as $index) {
-            $codes[] = $this->code($data['codes'][$index] ?? null, 'codes.'.$index);
+            $codes[] = $this->code(array_values($data['codes'] ?? [])[$index] ?? null, 'codes.'.$index);
         }
         $normalized = array_map(mb_strtolower(...), $names);
         if (count(array_unique($normalized)) !== count($normalized)) {
             throw ValidationException::withMessages(['names' => 'Duplicate names in this batch are not allowed.']);
         }
-        $hash = $this->hash('create', $data, [$names, $codes]);
+        $hash = $this->hash('create', $data, [$actor->id, $names, $codes]);
         DB::transaction(function () use ($actor, $data, $names, $codes, $normalized, $hash): void {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id']);
             if ($this->replay($actor, $data['idempotency_key'], $hash)) {
@@ -101,7 +102,7 @@ final class DiagnosisPresetSettingsService
         $value = $rename ? $this->name($data['name'], 'name') : filter_var($data['active'], FILTER_VALIDATE_BOOLEAN);
         $codeGiven = $rename && array_key_exists('icd10_code', $data);
         $code = $codeGiven ? $this->code($data['icd10_code'], 'icd10_code') : null;
-        $hash = $this->hash($rename ? 'rename' : 'status', $data, [$id, (int) $data['lock_version'], $value, $codeGiven, $code]);
+        $hash = $this->hash($rename ? 'rename' : 'status', $data, [$actor->id, $id, (int) $data['lock_version'], $value, $codeGiven, $code]);
         DB::transaction(function () use ($actor, $id, $data, $value, $rename, $hash, $codeGiven, $code): void {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id']);
             $preset = DiagnosisPreset::query()->whereKey($id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
@@ -119,7 +120,7 @@ final class DiagnosisPresetSettingsService
                 }
                 if ($preset->isDirty(['name', 'icd10_code'])) {
                     // A changed wording or code needs the doctor's review again.
-                    $preset->forceFill(['status' => 'draft', 'approved_by_user_id' => null, 'approved_at' => null, 'edited_by_user_id' => $actor->id]);
+                    $preset->forceFill(['status' => 'draft', 'approved_by_user_id' => null, 'approved_at' => null, 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc()]);
                 }
             } else {
                 $preset->forceFill(['is_active' => $value]);
@@ -154,12 +155,13 @@ final class DiagnosisPresetSettingsService
             return ['branchId' => $branch->id, 'drafts' => $drafts->map(function (DiagnosisPreset $preset) use ($actor, $names, $branch): array {
                 $changed = $preset->edited_by_user_id !== null;
                 $by = (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id);
-                $at = $changed ? $preset->updated_at : $preset->created_at;
+                $at = $changed ? ($preset->edited_at ?? $preset->updated_at) : $preset->created_at;
+                $day = $at === null ? '' : CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('j M Y');
 
                 return [
                     'id' => $preset->id, 'name' => $preset->name, 'icd10Code' => $preset->icd10_code, 'lockVersion' => $preset->lock_version,
                     'ownEntry' => in_array($actor->id, [$preset->created_by_user_id, $preset->edited_by_user_id], true),
-                    'enteredLabel' => ($changed ? 'Changed by ' : 'Entered by ').($names[$by] ?? 'Staff member').', '.$at?->setTimezone($branch->timezone)->format('j M Y'),
+                    'enteredLabel' => ($changed ? 'Changed by ' : 'Entered by ').($names[$by] ?? 'Staff member').', '.$day,
                 ];
             })->all()];
         });
@@ -172,7 +174,7 @@ final class DiagnosisPresetSettingsService
             ...$this->retryRules(), 'lock_version' => ['required', 'integer', 'min:1'],
             'decision' => ['required', 'string', 'in:approve,return'],
         ])->validate();
-        $hash = $this->hash('review', $data, [$id, (int) $data['lock_version'], $data['decision']]);
+        $hash = $this->hash('review', $data, [$actor->id, $id, (int) $data['lock_version'], $data['decision']]);
         DB::transaction(function () use ($actor, $id, $data, $hash): void {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id'], SuggestionPermissions::APPROVE);
             $preset = DiagnosisPreset::query()->whereKey($id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
@@ -185,6 +187,9 @@ final class DiagnosisPresetSettingsService
             if ($data['decision'] === 'approve') {
                 if ($preset->status !== 'draft') {
                     throw ValidationException::withMessages(['preset' => 'This item is already approved.']);
+                }
+                if (! $preset->is_active) {
+                    throw ValidationException::withMessages(['preset' => 'Restore this item in Consultation settings before it can be approved.']);
                 }
                 if (in_array($actor->id, [$preset->created_by_user_id, $preset->edited_by_user_id], true)) {
                     throw ValidationException::withMessages(['preset' => 'Someone other than the person who entered or changed this item must review it.']);

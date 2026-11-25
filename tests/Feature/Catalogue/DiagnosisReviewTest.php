@@ -134,14 +134,48 @@ class DiagnosisReviewTest extends ClinicalTestCase
         $this->assertSame('draft', $preset->refresh()->status);
     }
 
-    public function test_existing_presets_stay_live_as_approved_and_the_database_refuses_a_self_review(): void
+    public function test_a_row_written_without_a_status_is_a_draft_and_the_database_refuses_a_self_review(): void
     {
         $doctor = $this->actor('resident_doctor');
-        $legacy = new DiagnosisPreset;
-        $legacy->forceFill(['organisation_id' => $doctor->organisation_id, 'name' => 'Synthetic legacy', 'normalized_name' => 'synthetic legacy',
-            'is_active' => true, 'lock_version' => 1, 'created_by_user_id' => $doctor->id])->save();
-        $this->assertSame('approved', $legacy->refresh()->status);
-        $this->expectException(QueryException::class);
-        DB::table('diagnosis_presets')->where('id', $legacy->id)->update(['approved_by_user_id' => $doctor->id]);
+        $other = $this->actor('director');
+        $id = DB::table('diagnosis_presets')->insertGetId(['organisation_id' => $doctor->organisation_id, 'name' => 'Synthetic raw', 'normalized_name' => 'synthetic raw',
+            'is_active' => true, 'lock_version' => 1, 'created_by_user_id' => $doctor->id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->assertSame('draft', DB::table('diagnosis_presets')->where('id', $id)->value('status'));
+        foreach ([
+            ['status' => 'approved', 'approved_at' => now(), 'approved_by_user_id' => $doctor->id],
+            ['status' => 'approved', 'approved_at' => now(), 'approved_by_user_id' => $other->id, 'edited_by_user_id' => $other->id],
+            ['status' => 'draft', 'approved_at' => now()],
+        ] as $bad) {
+            try {
+                DB::transaction(fn () => DB::table('diagnosis_presets')->where('id', $id)->update($bad));
+                $this->fail('The database accepted an invalid review.');
+            } catch (QueryException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        DB::table('diagnosis_presets')->where('id', $id)->update(['status' => 'approved', 'approved_at' => now(), 'approved_by_user_id' => $other->id]);
+        $this->assertSame('approved', DB::table('diagnosis_presets')->where('id', $id)->value('status'));
+    }
+
+    public function test_an_archived_draft_cannot_be_approved_and_a_replayed_key_is_tied_to_its_actor(): void
+    {
+        $preset = $this->draft();
+        $this->patch(route('diagnosis-presets.active', $preset->id), $this->payload(['active' => false, 'lock_version' => 1]))->assertRedirect();
+        $preset->refresh();
+        $this->selectBranch($this->actor('resident_doctor'));
+        $key = (string) Str::uuid();
+        $data = $this->payload(['decision' => 'approve', 'lock_version' => $preset->lock_version, 'idempotency_key' => $key]);
+        $this->patch(route('suggestion-review.decide', $preset->id), $data)->assertSessionHasErrors('preset');
+        $this->assertSame('draft', $preset->refresh()->status);
+        $this->selectBranch($this->actor('administrator'));
+        $this->patch(route('diagnosis-presets.active', $preset->id), $this->payload(['active' => true, 'lock_version' => $preset->lock_version]))->assertRedirect();
+        $preset->refresh();
+        $this->selectBranch($this->actor('resident_doctor'));
+        $good = $this->payload(['decision' => 'approve', 'lock_version' => $preset->lock_version, 'idempotency_key' => $key]);
+        $this->patch(route('suggestion-review.decide', $preset->id), $good)->assertRedirect();
+        $this->assertSame('approved', $preset->refresh()->status);
+        // The same key and payload from the entering person is a different request, not a replay.
+        $this->selectBranch($this->actor('administrator'));
+        $this->patch(route('suggestion-review.decide', $preset->id), $good)->assertForbidden();
     }
 }

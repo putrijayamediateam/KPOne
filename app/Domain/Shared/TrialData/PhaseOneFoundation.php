@@ -270,7 +270,8 @@ final class PhaseOneFoundation
             ]);
             // SUG-1a: a new preset is a draft until a doctor reviews it, so the demo does it the real way.
             $doctor = $this->context->as(TrialDataContext::key(TrialDataContext::MAIN_BRANCH, 'doctor1'), $main);
-            foreach (DiagnosisPreset::query()->where('organisation_id', $organisation->id)->where('status', 'draft')->get() as $preset) {
+            foreach (DiagnosisPreset::query()->where('organisation_id', $organisation->id)->where('status', 'draft')
+                ->whereIn('normalized_name', array_map(mb_strtolower(...), $missing))->get() as $preset) {
                 app(DiagnosisPresetSettingsService::class)->review($doctor, $preset->id, [
                     'expected_branch_id' => $main->id,
                     'idempotency_key' => (string) Str::uuid(),
