@@ -23,7 +23,7 @@ class RosterController extends Controller
 
     public function index(Request $request, RosterPageService $pages): Response
     {
-        return Inertia::render('HR/Roster', ['roster' => $pages->page($request->user(), $request->only(['tab', 'branch', 'week', 'view', 'myView', 'month'])),
+        return Inertia::render('HR/Roster', ['roster' => $pages->page($request->user(), $request->only(['tab', 'branch', 'week', 'view', 'myView', 'month', 'plannerView'])),
             // HR-5a: your own expiring or expired credentials, in words; inside KPOne only.
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
@@ -58,6 +58,31 @@ class RosterController extends Controller
     public function removeShift(Request $request, RosterService $roster, string $version, string $shift): RedirectResponse
     {
         return $this->run($request, 'Shift removed.', fn () => $roster->removeShift($request->user(), $version, $shift, $request->only(['expected_version_lock'])));
+    }
+
+    /** HR-22e: copy this week to the rest of the month, back on the month view. */
+    public function copyToMonth(Request $request, RosterService $roster, string $version): RedirectResponse
+    {
+        $back = $this->back($request, 'planner');
+        $month = $request->input('month');
+        if (is_string($month) && preg_match('/\A\d{4}-\d{2}\z/', $month) === 1) {
+            $branch = filter_var($request->input('branch_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $back = route('hr.roster.index', ['tab' => 'planner', 'plannerView' => 'month', 'month' => $month] + ($branch === false ? [] : ['branch' => $branch]));
+        }
+        try {
+            $result = $roster->copyToMonth($request->user(), $version, $request->only(['month', 'idempotency_key']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        }
+        if ($result['weeks'] !== []) {
+            Inertia::flash('rosterMonthCopy', $result['weeks']);
+        }
+        if ($result['skipped'] !== []) {
+            Inertia::flash('rosterSkipped', $result['skipped']);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Copied to the rest of the month. Send each week for approval on its own.']);
+
+        return redirect($back);
     }
 
     public function submit(Request $request, RosterService $roster, string $version): RedirectResponse

@@ -71,8 +71,89 @@ final class RosterPageService
             'view' => $canOwn && ($query['myView'] ?? null) === 'month' ? 'month' : 'week',
             'month' => $canOwn && ($query['myView'] ?? null) === 'month' ? $this->myMonth($actor, $branch, $query['month'] ?? null) : null,
             'planner' => $planner ? $this->planner($actor, $branches, $branch, $weekStart, $query['view'] ?? null, $canManage, $canApprove) : null,
+            // HR-22e: the planner's month view, only when asked for; its own key, so it never meets "view" or "myView".
+            'plannerView' => $planner && ($query['plannerView'] ?? null) === 'month' ? 'month' : 'week',
+            'plannerMonth' => $planner && ($query['plannerView'] ?? null) === 'month' ? $this->plannerMonth($actor, $branch, $query['month'] ?? null, $canManage) : null,
             'minimums' => $canManage ? $this->minimumsPage($actor, $branches, $branch) : null,
         ];
+    }
+
+    /**
+     * HR-22e (HR-PLAN 29.6): one branch's month, Monday-first weeks that touch the month. Each week shows its shown version
+     * (the open draft or week waiting for approval, else the approved one) with its status, and its shifts per person and
+     * day in short form. Read only: editing a shift stays in the week view. Synthetic data only.
+     *
+     * @return array<string, mixed>
+     */
+    private function plannerMonth(User $actor, Branch $branch, mixed $month, bool $canManage): array
+    {
+        $zone = $branch->timezone;
+        $first = is_string($month) && preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month) === 1 ? CarbonImmutable::createFromFormat('!Y-m', $month, $zone) : null;
+        $first = $first instanceof CarbonImmutable ? $first->startOfMonth() : CarbonImmutable::now($zone)->startOfMonth();
+        if ($first->year < 2000 || $first->year > 2100) {
+            $first = CarbonImmutable::now($zone)->startOfMonth();
+        }
+        $last = $first->endOfMonth()->startOfDay();
+        $starts = [];
+        for ($w = $first->startOfWeek(CarbonImmutable::MONDAY); $w->lte($last); $w = $w->addWeek()) {
+            $starts[] = $w;
+        }
+        $weeks = RosterWeek::query()->where('branch_id', $branch->id)
+            ->whereIn('week_start', array_map(fn (CarbonImmutable $w): string => $w->toDateString(), $starts))->get()
+            ->keyBy(fn (RosterWeek $w): string => CarbonImmutable::parse($w->week_start)->toDateString());
+        $versions = RosterVersion::query()->whereIn('roster_week_id', $weeks->pluck('id'))->whereIn('status', ['draft', 'submitted', 'approved'])->get()->groupBy('roster_week_id');
+        $shown = $weeks->map(function (RosterWeek $w) use ($versions): ?RosterVersion {
+            $list = $versions->get($w->id, collect());
+
+            return $list->first(fn (RosterVersion $v): bool => $v->isOpen()) ?? $list->first(fn (RosterVersion $v): bool => $v->status === 'approved');
+        })->filter();
+        $shifts = RosterShift::query()->whereIn('roster_version_id', $shown->pluck('id'))->orderBy('starts_at')->orderBy('id')->get()->groupBy('roster_version_id');
+        $people = User::query()->with('roles')->where('organisation_id', $actor->organisation_id)
+            ->whereIn('id', $shifts->flatten()->pluck('staff_user_id')->unique())->get()->keyBy('id');
+        $statusLabels = ['draft' => 'Draft', 'submitted' => 'Waiting for approval', 'approved' => 'Approved'];
+
+        $out = [];
+        foreach ($starts as $start) {
+            $key = $start->toDateString();
+            $version = $shown->get($key);
+            $items = $version === null ? collect() : $shifts->get($version->id, collect());
+            $rows = $items->groupBy('staff_user_id')->map(function (Collection $list, int|string $userId) use ($people, $start, $zone): array {
+                $user = $people->get((int) $userId);
+                $days = array_fill(0, 7, []);
+                foreach ($list as $s) {
+                    $local = $s->starts_at->setTimezone($zone);
+                    $index = (int) $start->diffInDays($local->startOfDay(), false);
+                    if ($index < 0 || $index > 6) {
+                        continue;
+                    }
+                    $days[$index][] = ['time' => self::compactTime($local).'–'.self::compactTime($s->ends_at->setTimezone($zone)),
+                        'station' => $s->station === null ? null : (RosterRules::STATION_SHORT[$s->station] ?? null),
+                        'stationLabel' => $s->station === null ? null : (RosterRules::STATIONS[$s->station] ?? null), 'onCall' => RosterRules::isOnCall($s->session_type)];
+                }
+
+                return ['staffUserId' => (int) $userId, 'name' => $user->name ?? 'Staff member', 'role' => $this->roleLabel($user), 'days' => $days];
+            })->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->all();
+            $hasLater = $start->addWeek()->lte($last);
+            $out[] = [
+                'start' => $key, 'label' => 'Week of '.$this->rules->shortDayLabel($start),
+                'days' => collect(range(0, 6))->map(fn (int $d): array => ['date' => $start->addDays($d)->toDateString(), 'label' => $start->addDays($d)->format('D j'),
+                    'inMonth' => $start->addDays($d)->month === $first->month])->all(),
+                'status' => $version?->status, 'statusLabel' => $version === null ? 'No roster yet' : $statusLabels[$version->status],
+                // A change in progress over an approved week: say so, so nobody thinks the approved week is gone.
+                'approvedToo' => $version !== null && $version->status !== 'approved' && $versions->get($version->roster_week_id, collect())->contains(fn (RosterVersion $v): bool => $v->status === 'approved'),
+                'versionId' => $version?->public_id, 'shiftCount' => $items->count(), 'rows' => $rows,
+                'canCopy' => $canManage && $version !== null && $items->isNotEmpty() && $hasLater,
+            ];
+        }
+
+        return ['key' => $first->format('Y-m'), 'label' => $first->format('F Y'), 'previous' => $first->subMonth()->format('Y-m'),
+            'next' => $first->addMonth()->format('Y-m'), 'current' => CarbonImmutable::now($zone)->format('Y-m'), 'weeks' => $out];
+    }
+
+    /** "8 AM", "2:30 PM": the planner month's short time. */
+    private static function compactTime(CarbonImmutable $time): string
+    {
+        return $time->minute === 0 ? $time->format('g A') : $time->format('g:i A');
     }
 
     /** @return array<string, string> */
