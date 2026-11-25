@@ -54,6 +54,18 @@ class RegistrationController extends Controller
         ]);
     }
 
+    /**
+     * AUTO-1: the doctor Auto would pick right now (name only, never why), so the CA's reason field appears only when the
+     * doctor chosen by hand is a different one. Read only; the registration itself decides again under lock.
+     */
+    public function recommendedDoctor(Request $request, VisitDirectoryService $directory): JsonResponse
+    {
+        $this->authorize('create', Visit::class);
+        $request->validate(['patient_number' => ['nullable', 'string', 'max:20']]);
+
+        return response()->json(['doctor' => $directory->recommendedDoctor($request->user(), $request->query('patient_number'))]);
+    }
+
     /** Register the Visit and put it on the waiting list in one step, then back to the Registration board. */
     public function store(StoreVisitRequest $request, RegisterAndQueueService $registration): RedirectResponse
     {

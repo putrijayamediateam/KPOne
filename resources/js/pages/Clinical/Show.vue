@@ -1028,6 +1028,14 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                             : 'Triaged'
                                     }}</span
                                 >
+                                <!-- TRI-1e: the own doctor reads the whole triage record (view only, audited). -->
+                                <Link
+                                    v-if="clinical.visit.triageViewUrl"
+                                    :href="clinical.visit.triageViewUrl"
+                                    class="inline-flex min-h-11 items-center px-1 text-xs font-medium text-brand-strong underline underline-offset-4 lg:min-h-0"
+                                    data-testid="consultation-view-triage"
+                                    >View triage</Link
+                                >
                             </div>
                             <div
                                 class="flex shrink-0 flex-col items-end gap-2 text-right text-xs text-muted-foreground"

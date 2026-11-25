@@ -33,6 +33,12 @@ final class RosterRules
      */
     public const ON_CALL = 'on_call';
 
+    /** HR-22c (owner, 24 Nov 2026): the stations a CA, CA Supervisor or Medical Assistant may work at on a shift. */
+    public const STATIONS = ['registration' => 'Registration', 'ma' => 'Medical Assistant (MA) desk', 'dispensary' => 'Dispensary', 'treatment' => 'Treatment'];
+
+    /** Who takes a station; doctors get a room only. */
+    public const STATION_ROLES = ['ca', 'ca_supervisor', 'medical_assistant'];
+
     /**
      * Clinic sessions, for minimum staffing: every session except on call.
      *
@@ -41,6 +47,22 @@ final class RosterRules
     public static function clinicSessions(): array
     {
         return array_diff_key(self::SESSIONS, [self::ON_CALL => true]);
+    }
+
+    /** Whether this person takes a station on their shifts (HR-22c). */
+    public static function takesStation(User $person): bool
+    {
+        return $person->hasAnyRole(self::STATION_ROLES);
+    }
+
+    /** HR-22c: refuse a station for anyone who is not a CA, CA Supervisor or Medical Assistant (PostgreSQL agrees). */
+    public function assertStationAllowed(User $person, ?string $station, string $field = 'station'): void
+    {
+        if ($station !== null && ! self::takesStation($person)) {
+            throw ValidationException::withMessages([$field => $field === 'station'
+                ? 'Only a CA, CA Supervisor or Medical Assistant takes a station. Doctors get a room.'
+                : "{$person->name} no longer takes a station. Remove the station from their shift, then approve."]);
+        }
     }
 
     public static function isOnCall(?string $sessionType): bool
@@ -100,7 +122,7 @@ final class RosterRules
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{starts_at: CarbonImmutable, ends_at: CarbonImmutable, break_minutes: int, session_type: string, branch_room_id: int|null, staff_user_id: int}
+     * @return array{starts_at: CarbonImmutable, ends_at: CarbonImmutable, break_minutes: int, session_type: string, branch_room_id: int|null, station: string|null, staff_user_id: int}
      */
     public function parse(Branch $branch, CarbonImmutable $weekStart, array $input): array
     {
@@ -140,6 +162,13 @@ final class RosterRules
         if ($room === false) {
             $errors['branch_room_id'] = 'Choose a room at this branch.';
         }
+        $station = $input['station'] ?? null;
+        $station = $station === '' ? null : $station;
+        if ($station !== null && (! is_string($station) || ! array_key_exists($station, self::STATIONS))) {
+            $errors['station'] = 'Choose Registration, MA, Dispensary or Treatment.';
+        } elseif ($station !== null && $session === self::ON_CALL) {
+            $errors['station'] = 'An on-call shift has no station.';
+        }
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
@@ -163,7 +192,7 @@ final class RosterRules
         }
 
         return ['starts_at' => $startsAt->utc(), 'ends_at' => $endsAt->utc(), 'break_minutes' => (int) $break, 'session_type' => (string) $session,
-            'branch_room_id' => $room === null ? null : (int) $room, 'staff_user_id' => (int) $staff];
+            'branch_room_id' => $room === null ? null : (int) $room, 'station' => is_string($station) ? $station : null, 'staff_user_id' => (int) $staff];
     }
 
     /** @return array{int, int}|null */

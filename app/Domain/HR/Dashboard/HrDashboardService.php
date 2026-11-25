@@ -15,9 +15,10 @@ use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
 use App\Domain\HR\Roster\Models\RosterShift;
-use App\Domain\HR\Roster\Models\RosterVersion;
+use App\Domain\HR\Roster\OnDutyShift;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\HR\Roster\Services\MinimumStaffingService;
+use App\Domain\HR\Roster\Services\RosterOnDuty;
 use App\Domain\HR\Roster\Services\RosterPageService;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Organisation\Models\Branch;
@@ -49,6 +50,7 @@ final class HrDashboardService
         private LeaveCalendar $leave,
         private AuditRecorder $audit,
         private StaffCostService $cost,
+        private RosterOnDuty $onDuty,
     ) {}
 
     /**
@@ -139,32 +141,27 @@ final class HrDashboardService
         $localToday = $now->setTimezone($branch->timezone)->startOfDay();
         $out = ['date' => $localToday->format('D j M'), 'rostered' => null, 'clockedIn' => null, 'onLeave' => null, 'staffing' => null];
         if ($can['roster']) {
-            $approved = RosterVersion::query()->select('id')->where('organisation_id', $actor->organisation_id)->where('status', 'approved');
-            $shifts = RosterShift::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->whereIn('roster_version_id', $approved)->where('starts_at', '<=', $now)->where('ends_at', '>', $now)->orderBy('starts_at')->get();
-            // Someone whose approved leave covers now is on leave, not rostered (the other half of a half day still is).
-            $away = $this->onLeaveNow($actor->organisation_id, $branch, $now, array_values($shifts->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
-            $present = $shifts->filter(fn (RosterShift $s): bool => isset($names[$s->staff_user_id]) && ! isset($away[$s->staff_user_id]))->values();
-            // HR-20 (owner, 18 Nov 2026): on-call people show on their own line and never count as the doctor on duty.
-            $onShift = $present->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))->values();
-            $onCall = $present->filter(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))->values();
-            $roles = $this->roles(array_values($present->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
-            $doctors = $onShift->filter(fn (RosterShift $s): bool => in_array('resident_doctor', $roles[$s->staff_user_id] ?? [], true))->pluck('staff_user_id')->unique()->count();
+            // HR-22a: the same answer Queue and AUTO-1 get (approved weeks, active accounts, leave covering now removed). The
+            // names map still decides who is listed by name; on-call people show on their own line and never count as the
+            // doctor on duty (HR-20).
+            $onShift = collect($this->onDuty->onDutyNow($branch, $now))->filter(fn (OnDutyShift $s): bool => isset($names[$s->userId]))->values();
+            $onCall = collect($this->onDuty->onCallNowForHrDashboard($branch, $now))->filter(fn (OnDutyShift $s): bool => isset($names[$s->userId]))->values();
+            $doctors = $onShift->filter(fn (OnDutyShift $s): bool => $s->isDoctor)->pluck('userId')->unique()->count();
             $out['rostered'] = [
-                'count' => $onShift->pluck('staff_user_id')->unique()->count(),
+                'count' => $onShift->pluck('userId')->unique()->count(),
                 'doctors' => $doctors,
-                'people' => $onShift->unique('staff_user_id')->take(self::MAX_NAMES)->map(fn (RosterShift $s): array => [
-                    'name' => $names[$s->staff_user_id],
-                    'role' => $this->roleLabel($roles[$s->staff_user_id] ?? []),
-                    'until' => $s->ends_at->setTimezone($s->timezone)->format('g:i A'),
+                'people' => $onShift->unique('userId')->take(self::MAX_NAMES)->map(fn (OnDutyShift $s): array => [
+                    'name' => $names[$s->userId],
+                    'role' => $this->roleLabel($s->roles),
+                    'until' => $s->endsAt->setTimezone($s->timezone)->format('g:i A'),
                 ])->values()->all(),
                 // Only when someone is on now: a closed or quiet branch is not "without a doctor".
                 'noDoctor' => $onShift->isNotEmpty() && $doctors === 0,
-                'onCallCount' => $onCall->pluck('staff_user_id')->unique()->count(),
-                'onCall' => $onCall->unique('staff_user_id')->take(self::MAX_NAMES)->map(fn (RosterShift $s): array => [
-                    'name' => $names[$s->staff_user_id],
-                    'role' => $this->roleLabel($roles[$s->staff_user_id] ?? []),
-                    'until' => $s->ends_at->setTimezone($s->timezone)->format('g:i A'),
+                'onCallCount' => $onCall->pluck('userId')->unique()->count(),
+                'onCall' => $onCall->unique('userId')->take(self::MAX_NAMES)->map(fn (OnDutyShift $s): array => [
+                    'name' => $names[$s->userId],
+                    'role' => $this->roleLabel($s->roles),
+                    'until' => $s->endsAt->setTimezone($s->timezone)->format('g:i A'),
                 ])->values()->all(),
             ];
             $out['staffing'] = $this->staffing($actor, $branch, $localToday);
@@ -197,28 +194,6 @@ final class HrDashboardService
         }
 
         return $out;
-    }
-
-    /**
-     * Of these people, who has approved leave covering now (leave slots are branch-local wall-clock times).
-     *
-     * @param  list<int>  $userIds
-     * @return array<int, true>
-     */
-    private function onLeaveNow(int $organisationId, Branch $branch, CarbonImmutable $now, array $userIds): array
-    {
-        if ($userIds === []) {
-            return [];
-        }
-        $localNow = $now->setTimezone($branch->timezone)->format('Y-m-d H:i:s');
-
-        $away = [];
-        foreach (LeaveRequest::query()->where('organisation_id', $organisationId)->whereIn('user_id', $userIds)->where('status', 'approved')
-            ->where('slot_start', '<=', $localNow)->where('slot_end', '>', $localNow)->pluck('user_id') as $id) {
-            $away[(int) $id] = true;
-        }
-
-        return $away;
     }
 
     /**
@@ -349,15 +324,6 @@ final class HrDashboardService
         }
 
         return $days;
-    }
-
-    /**
-     * @param  list<int>  $userIds
-     * @return array<int, list<string>>
-     */
-    private function roles(array $userIds): array
-    {
-        return User::query()->with('roles')->whereIn('id', array_unique($userIds))->get()->mapWithKeys(fn (User $u): array => [$u->id => array_values($u->roles->pluck('name')->map(fn ($n): string => (string) $n)->all())])->all();
     }
 
     /** @param list<string> $roles */

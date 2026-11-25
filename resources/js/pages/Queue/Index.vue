@@ -258,6 +258,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         canWhatsapp: row.canWhatsapp,
         callHold: row.callHold,
         triage: row.triage,
+        triageViewUrl: row.triageViewUrl ?? null,
         treatmentProgress: row.treatmentProgress ?? null,
         treatmentMinutes: treatmentMinutes(
             row.treatmentProgress,
