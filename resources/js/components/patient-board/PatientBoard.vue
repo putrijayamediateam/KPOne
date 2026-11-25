@@ -228,6 +228,28 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
+                        <!-- AUTO-1c: a neutral warning and the way to reassign (Edit visit keeps the patient's place). The server
+                             sends it only to a viewer who may edit the visit, and never names another doctor. -->
+                        <div
+                            v-if="row.doctorWarning"
+                            class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5"
+                            data-testid="doctor-warning"
+                        >
+                            <span
+                                class="inline-flex items-center gap-1 rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-xs font-medium text-warning-strong"
+                            >
+                                <AlertTriangle
+                                    class="size-3 shrink-0"
+                                    aria-hidden="true"
+                                />{{ row.doctorWarning.label }}
+                            </span>
+                            <Link
+                                :href="editHref(row.visitNumber)"
+                                class="inline-flex items-center text-xs font-medium underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none max-lg:min-h-11"
+                                :aria-label="`Reassign visit ${row.visitNumber}: ${row.doctorWarning.label}`"
+                                >Reassign</Link
+                            >
+                        </div>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Payment">
                         <TooltipProvider :delay-duration="350">

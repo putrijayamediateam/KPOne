@@ -14,6 +14,7 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
+use App\Domain\Visit\Assignment\DoctorWarningProjection;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -236,6 +237,13 @@ class QueueDirectoryService
         array $removedHints = [],
         array $checkWaiting = [],
     ): Collection {
+        // AUTO-1c: one batched read of the warning for every waiting consultation row on this tab.
+        $waiting = $entries->filter(fn (QueueEntry $entry): bool => $entry->status === QueueEntry::STATUS_WAITING && $entry->visit->visit_type === 'consultation');
+        $warnings = $waiting->isEmpty() ? [] : app(DoctorWarningProjection::class)->forDoctors($actor, $branch, $waiting->map(fn (QueueEntry $e): ?int => $e->visit->assigned_doctor_user_id)->values()->all());
+        foreach ($waiting as $entry) {
+            $entry->visit->setRelation('doctorWarning', $warnings[$entry->visit->assigned_doctor_user_id] ?? null);
+        }
+
         return $entries
             ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints, $removedHints, $checkWaiting): array {
                 return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints[$entry->visit_id] ?? false, $checkWaiting[$entry->visit_id] ?? false);
@@ -383,6 +391,8 @@ class QueueDirectoryService
             'visitNumber' => $visit->visit_number,
             'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
+            // AUTO-1c: only for a viewer who may edit the visit (the reassign path).
+            'doctorWarning' => $actions['update'] && $visit->relationLoaded('doctorWarning') ? $visit->getRelation('doctorWarning') : null,
             'doctorEligible' => $doctorEligible,
             'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null,
             'coverageLabel' => $visit->coverage_type === 'panel'

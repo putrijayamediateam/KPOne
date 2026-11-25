@@ -39,6 +39,11 @@ export type PatientBoardRow = {
     arrivedTime: string;
     visitNotes: string | null;
     doctorName: string | null;
+    /** AUTO-1c: a neutral warning for a waiting consultation whose doctor is off roster, on leave, without a room, or busy while another doctor is free. Only for a viewer who may edit the visit. */
+    doctorWarning?: {
+        code: 'off_roster' | 'on_leave' | 'no_room' | 'another_free';
+        label: string;
+    } | null;
     coverageLabel: string;
     panelNote?: string | null;
     durationLabel: string;
