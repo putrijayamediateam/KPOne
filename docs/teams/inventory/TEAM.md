@@ -346,6 +346,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     recounts or approves that case (service and PostgreSQL: STK-5's `guard_governed_stock_action` gains the reporter
     exclusion, and `down()` restores the STK-5 body). Owner-approved existing assertion changes: one line each in
     `RoleOneRolesTest::tables()` (branch_manager, store_admin) and `MedicalAssistantRoleTest::EXPECTED`.
+52. STK-50 and STK-51 (owner by tick box, 25 Nov 2026, relayed by B.E.R.N.I.S.S, with every existing assertion change
+    listed): only the Director approves, cancels once approved, and closes the rest of a purchase order (the Finance
+    Officer loses `inventory.purchase_orders.approve.organisation`); only a Finance Officer accepts or rejects a supplier
+    invoice mismatch (the Director loses `inventory.supplier_invoices.approve.branch`). One revoke migration
+    (`2026_11_07_003800`, its down() gives both back); decisions already recorded keep their decider. The Director
+    holds no permission to raise or submit an order, so an order always reaches a Director who did neither. The demo
+    walk seeder and the trial data now approve orders as the Director.
 
 ## 7. Open items and known limits
 

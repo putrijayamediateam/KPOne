@@ -85,15 +85,15 @@ class KPOneInventoryWalkSeeder extends KPOneDemoSetupSeeder
         $finance = $this->actAs('demo.finance_officer@kpone.test');
         $suppliers = array_map(fn (string $name): InventorySupplier => $this->ensureSupplier($finance, $branch, $name), self::SUPPLIERS);
 
-        // CA Supervisor raises and submits the order; the Finance Officer approves it (STK-19: never the raiser).
+        // CA Supervisor raises and submits the order; the Director approves it (STK-50: only the Director, never the raiser).
         $supervisor = $this->actAs('demo.ca_supervisor@kpone.test');
         $order = $this->ensureOrder($supervisor, $branch, $organisation, $suppliers[0], $store);
         if ($order->status === PurchaseOrder::STATUS_DRAFT) {
             $order = app(ProcurementService::class)->submit($supervisor, $order, ['expected_branch_id' => $branch->id, 'lock_version' => $order->lock_version]);
         }
         if ($order->status === PurchaseOrder::STATUS_SUBMITTED) {
-            $finance = $this->actAs('demo.finance_officer@kpone.test');
-            app(ProcurementService::class)->approve($finance, $order, ['expected_branch_id' => $branch->id, 'lock_version' => $order->lock_version]);
+            $director = $this->actAs('demo.director@kpone.test');
+            app(ProcurementService::class)->approve($director, $order, ['expected_branch_id' => $branch->id, 'lock_version' => $order->lock_version]);
         }
         $this->actAs();
     }

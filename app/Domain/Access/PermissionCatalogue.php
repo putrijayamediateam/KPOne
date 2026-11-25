@@ -614,18 +614,16 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.cost.view.organisation';
         }
 
-        // STK-19 (owner decision 2026-11-11, "agree all"): a Finance Officer approves purchase orders as well as the
-        // Director, never one they raised or submitted (ProcurementService and PostgreSQL).
-        $roles['finance_officer'][] = 'inventory.purchase_orders.approve.organisation';
+        // STK-50 (owner, 22 and 25 Nov 2026) replaces STK-19's Finance Officer grant: only the Director approves purchase
+        // orders, never one they raised or submitted (ProcurementService and PostgreSQL).
 
         // STK-22 (owner decisions 2026-11-11, "agree all"): a CA Supervisor or Finance Officer records a supplier
         // invoice; a Finance Officer or Director, never the recorder, accepts or rejects a mismatch.
         foreach (['ca_supervisor', 'finance_officer'] as $holder) {
             $roles[$holder][] = 'inventory.supplier_invoices.record.branch';
         }
-        foreach (['finance_officer', 'director'] as $holder) {
-            $roles[$holder][] = 'inventory.supplier_invoices.approve.branch';
-        }
+        // STK-51 (owner decision 47(a), 22 and 25 Nov 2026): only a Finance Officer accepts or rejects a mismatch.
+        $roles['finance_officer'][] = 'inventory.supplier_invoices.approve.branch';
 
         // STK-18 (owner decision 2026-11-12, "agree purchase requests"): a CA or CA Supervisor asks for stock with a
         // purchase request; converting it into a draft order uses the existing purchase order permission.
