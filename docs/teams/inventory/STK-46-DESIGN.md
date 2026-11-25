@@ -124,3 +124,19 @@ on a reversed receipt, a pre-STK-10B receipt per the owner's answer, the audit r
 Account Assistant and a Panel Officer, the valuation figures before and after, a journal summary downloaded before and
 after acceptance with the "changed" note, the PostgreSQL rules, and two-process races of two checkers and of an entry
 against a receiving correction on the same receipt. The grant migration names both roles for each permission.
+
+## Daniel's conditions (25 Nov, OK with changes on revisions 1 and 2; build to these)
+
+- Its own page under Inventory, in the Inventory menu only for the permission holders, with the standard page header
+  (title and one subline saying what it is for), and the calm "Management report" banner once.
+- Rows: item, batch, entry date and a dot-plus-word state chip ("No cost recorded", "Estimate RM 4.20 each"); one
+  outline "Enter cost" per row. Empty state "Nothing needs a cost."
+- Enter cost sheet: "Total paid (RM)" money field (tabular, "RM" beside it) echoing the per-unit result under it
+  ("= RM 0.2000 per tablet"); reasons as radios, none selected ("Pick a reason to continue."); optional reference;
+  note with 0 / 200 and the no-patient-details hint; one filled "Send for checking".
+- Waiting: neutral chip "Entered by hand · waiting for a check" with who and when (staff-visibility rule). The person
+  who typed it sees "You entered this, so someone else checks it." instead of the check controls.
+- Accept is outline and opens a dialog with a warning-wash alert and icon: "This changes earlier months: the average
+  is worked out again from the start." (if the owner chooses the from-the-start rule), showing only item, batch,
+  quantity, the typed total and the per-unit result. Reject opens a dialog with a required reason.
+- Basis chip "Entered by hand" in the same neutral chip family as Receipt, Opening and Estimate.
