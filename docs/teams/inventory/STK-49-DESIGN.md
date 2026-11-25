@@ -1,4 +1,6 @@
-# STK-49: supplier payment terms, bill due dates and "Paid in Bukku" (design note, revision 1)
+# STK-49: supplier payment terms, bill due dates and "Paid in Bukku" (design note, revision 2)
+
+Revision 2 applies Mei Ling's review.
 
 Owner decision 23 (20-21 Nov 2026): supplier payment terms and due dates are shown in KPOne; Finance ticks
 "paid in Bukku". No payment is made from KPOne. Build before Monday: owner by tick box, 25 Nov 2026, relayed by
@@ -10,7 +12,9 @@ Each supplier gets one optional field, **Payment terms (days)**: a whole number 
 delivery"), blank means "not set". It is edited on the Suppliers settings page with the existing
 `inventory.suppliers.manage.organisation` (no new permission), versioned with the supplier's existing `lock_version`
 and audited as a changed field name only. The Suppliers settings page belongs to Catalogue & settings (Adlina); the
-field and its label are agreed with her before build.
+field and its label are agreed with her before build. `supplier-settings.test.mjs` pins the form's label list, so adding
+the field changes an existing assertion, which goes to the owner first. The name stays clearly apart from STK-13's
+per-SKU supplier terms: "Payment terms (days)" here against "Price and lead time" there.
 
 ## 2. Due date on each supplier bill
 
@@ -25,7 +29,10 @@ or earlier, not before the invoice date) and an optional Bukku reference (up to 
 pays nothing and sends nothing to Bukku; the tick is a record that Finance paid it there.
 
 - Permission: the existing `inventory.supplier_invoices.approve.branch`, which after STK-51 only the Finance Officer
-  holds. No new permission.
+  holds. No new permission. STK-49 therefore merges **after** STK-51, and a test pins the holder list. If that
+  permission is ever widened, Paid in Bukku widens with it, so a later grant must be a deliberate choice.
+- **A paid bill cannot be rejected or reversed** while it is ticked paid: "Undo paid" comes first (service and
+  PostgreSQL). Today a matched or accepted bill has no reversal, so this guards any future one.
 - A wrong tick is undone with **Undo paid** and a fixed reason ("ticked by mistake", "payment bounced", "other" with a
   note); both rows are kept. The bill is "Paid" while its newest payment record is not undone.
 - No second person is needed: nothing in stock or money in KPOne changes. (If the owner wants a second person, it is a
@@ -60,4 +67,5 @@ idempotency key, and an audit row with ids, codes and dates only (never the refe
 Terms saved and audited; due date frozen at recording and unchanged when terms change later; no terms means no due
 date; Paid in Bukku by a Finance Officer only, on matched or accepted bills only, with date rules; undo once with both
 rows kept; the overdue, due and paid labels at branch-local midnight; the filters; the PostgreSQL rules; a two-process
-race of two Finance Officers ticking the same bill.
+race of two Finance Officers ticking the same bill and of a tick against an undo; a bill at the organisation store (no
+branch) gets the right due date; bills recorded before STK-49 show "Terms not set"; a paid bill cannot be rejected.
