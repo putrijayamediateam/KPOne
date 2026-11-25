@@ -48,3 +48,10 @@ test('a failed take shows its reason, a take from a consultation stays there, an
         /RedZoneAlertBanner[\s\S]{0,260}queue\.call\.own[\s\S]{0,160}visits\.triage\.record\.branch/,
     );
 });
+
+test('a minimised red alert stays as one line until all are taken and reopens for a new red case (Daniel)', () => {
+    assert.match(banner, /const known = new Set<string>\(\)/);
+    assert.match(banner, /minimised\.value = false/);
+    assert.match(banner, /minimised\.value && open\.value\.length === 0/);
+    assert.match(banner, /Red zone waiting: \{\{ open\.length \}\} not taken/);
+});

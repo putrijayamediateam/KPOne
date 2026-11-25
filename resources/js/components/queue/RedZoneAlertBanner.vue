@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { Siren } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { requestJson } from '@/lib/json-client';
@@ -26,6 +26,23 @@ let timer: ReturnType<typeof setInterval> | undefined;
 let controller: AbortController | undefined;
 
 const open = computed(() => alerts.value.filter((a) => a.takenBy === null));
+// A minimised alert stays as one compact line until every red case is taken, and opens itself again for a new red case.
+const known = new Set<string>();
+watch(alerts, (list) => {
+    const fresh = list.filter(
+        (a) => a.takenBy === null && !known.has(a.visitNumber),
+    );
+    list.forEach((a) => known.add(a.visitNumber));
+
+    if (fresh.length > 0) {
+        minimised.value = false;
+    }
+});
+const visible = computed(
+    () =>
+        alerts.value.length > 0 &&
+        !(minimised.value && open.value.length === 0),
+);
 const read = async () => {
     if (document.visibilityState === 'hidden') {
         return;
@@ -86,7 +103,7 @@ onBeforeUnmount(() => {
 
 <template>
     <section
-        v-if="alerts.length > 0"
+        v-if="visible"
         data-testid="red-zone-alerts"
         role="status"
         aria-live="polite"
