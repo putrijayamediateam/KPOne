@@ -17,8 +17,8 @@ a PO." Build before Monday: owner by tick box, 25 Nov 2026, relayed by B.E.R.N.I
 3. **Record the quote.** When the supplier answers, the same group of staff type the quote on that RFQ: a price per
    line (pack price, and "stock units in one pack (<unit>)", or "can't supply"), lead time in days and a valid-until
    date, plus an optional supplier quote reference. A quote can be corrected until it is chosen; each save is a new,
-   append-only version, the version in force is frozen when the RFQ is chosen, and the purchase order records which
-   version it came from.
+   append-only version, the version in force is frozen when the RFQ is chosen, and the RFQ records that frozen quote
+   version (`current_quote_id`) and links to the purchase order made from it (`purchase_order_id`).
 4. **Compare and choose.** The round shows the RFQs side by side: per line the price per stock unit, the total, the
    lead time and which supplier is cheapest, plus each RFQ's total. Ranking uses the exact pack price divided by the
    pack size (never a rounded figure); ties go to the shorter lead time, then the lower RFQ number. Someone picks
