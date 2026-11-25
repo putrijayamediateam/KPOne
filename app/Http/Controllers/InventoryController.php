@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Services\CentralStoreService;
 use App\Domain\Organisation\Inventory\Services\DifferenceReportService;
 use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
@@ -66,6 +67,11 @@ class InventoryController extends Controller
             'referenceData' => $this->referenceData($actor, $activeBranch),
             // STK-45: Report a difference and "My reports", for P10 holders only.
             'differences' => $actor->can(DifferenceReportService::PERMISSION) ? ['canReport' => true, 'expectedBranchId' => $activeBranch->id, 'myReports' => app(DifferenceReportService::class)->myReports($actor)] : ['canReport' => false],
+            // STK-60: the store's request day for the off-day warning on the stock request form, and the reminder. Null for
+            // anyone who cannot start a stock request, or when there is no store.
+            'storeDay' => app(CentralStoreService::class)->requestFormContext($actor, $activeBranch),
+            // STK-47: the Central store link, for holders of the warehouse permission only.
+            'canViewCentralStore' => $actor->can(CentralStoreService::PAGE_PERMISSION),
         ]);
     }
 

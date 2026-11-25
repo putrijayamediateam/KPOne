@@ -190,13 +190,14 @@ final class ReorderSuggestionService
     }
 
     /** Dispensed plus unreversed treatment-room usage out of each location over the look-back window, and (STK-43) what
-     * was dispensed in each of the "sold" windows, from the same dispense query and the same clock reading.
+     * was dispensed in each of the "sold" windows, from the same dispense query and the same clock reading. Public so the
+     * STK-47 central store page uses this same 30-day rate for its cover weeks.
      *
      * @param  list<int>  $locationIds
      * @param  list<int>  $skuIds
      * @return array{0: array<string,int>, 1: array<string, array<int,int>>} used, and sold by window (days => thousandths)
      */
-    private function used(int $organisationId, string $timezone, array $locationIds, array $skuIds): array
+    public function used(int $organisationId, string $timezone, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [[], []];

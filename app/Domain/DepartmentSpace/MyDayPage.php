@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Approvals\ApprovalInbox;
 use App\Domain\MyDay\MyRoutineService;
+use App\Domain\Organisation\Inventory\Services\CentralStoreService;
 use App\Models\User;
 
 /**
@@ -22,6 +23,7 @@ final class MyDayPage
         private ClinicManagementNavigation $management,
         private ApprovalInbox $inbox,
         private MyRoutineService $routine,
+        private CentralStoreService $store,
     ) {}
 
     /** @return array<string, mixed> */
@@ -52,6 +54,8 @@ final class MyDayPage
             ],
             'waiting' => $this->waiting($actor),
             'routine' => $this->routine->page($actor),
+            // STK-60: the store request day reminder, inside KPOne only (null unless it applies to this person today).
+            'storeReminder' => $this->store->reminderFor($actor),
             'shortcuts' => $shortcuts,
         ];
     }

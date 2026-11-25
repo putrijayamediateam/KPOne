@@ -24,6 +24,7 @@ use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\CatalogueOptionController;
 use App\Http\Controllers\CatalogueSetupReferenceController;
+use App\Http\Controllers\CentralStoreController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
@@ -1049,6 +1050,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/purchase-requests/{purchaseRequest}/{action}', [PurchaseRequestController::class, 'act'])->whereUuid('purchaseRequest')->whereIn('action', ['convert', 'reject', 'withdraw'])->middleware(['sensitive.no-store', 'throttle:30,1', 'approvals.forget'])->name('inventory.purchase-requests.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
         Route::get('inventory/stock-health', [StockHealthController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-health');
+        // STK-47 and STK-60: the central store HQ view (read only) and its weekly request day (the one write).
+        Route::get('inventory/central-store', [CentralStoreController::class, 'index'])->middleware(['permission:inventory.warehouse.organisation', 'sensitive.no-store'])->name('inventory.central-store');
+        Route::put('inventory/central-store/request-day', [CentralStoreController::class, 'updateRequestDay'])->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:20,1'])->name('inventory.central-store.request-day');
         Route::get('inventory/branch-replenishment', [BranchReplenishmentController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.branch-replenishment');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
