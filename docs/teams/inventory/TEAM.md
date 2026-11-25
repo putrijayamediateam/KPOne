@@ -426,6 +426,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - Every stock movement goes through the ledger writer allowlist; never write balances or movements directly.
 - Exact thousandth arithmetic through `StockUnitQuantity`; refuse negative stock and overflow.
 - Independent-person rules are never weakened without an owner decision recorded in section 6.
+- Any permission granted to `ca` is also granted to `medical_assistant` (MA-1a); a new grant names both.
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including every inventory contention
   test with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen change.
