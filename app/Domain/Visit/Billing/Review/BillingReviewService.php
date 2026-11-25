@@ -119,9 +119,13 @@ final class BillingReviewService
             'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn (InvoiceLine $line): array => [
                 'name' => $line->display_name, 'quantity' => $line->quantity, 'unitPriceSen' => $line->unit_price_sen, 'totalSen' => $line->line_total_sen,
             ])->values()->all(),
+            // Daniel: every figure that moves the total is shown, so the total adds up by eye. The same parts as
+            // FinancialLedger::calculate(): items + discount or surcharge + Panel claim adjustment - refund credit.
             'totals' => [
-                'subtotalSen' => (int) $invoice->subtotal_sen,
+                'subtotalSen' => (int) $invoice->total_sen,
                 'adjustmentSen' => InvoiceAdjustmentService::summary($invoice)['adjustmentSen'],
+                'panelAdjustmentSen' => (int) (FinancialLedger::panelAdjustments([$invoice->id])[$invoice->id] ?? 0),
+                'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'),
                 'totalSen' => $state['total'],
                 'paidSen' => $state['self_pay'],
                 'panelSen' => $state['panel'],

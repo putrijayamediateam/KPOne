@@ -45,9 +45,13 @@ class DoctorBillingReviewTest extends BillingTestCase
         $this->assertSame(['visit', 'patient', 'invoice'], array_keys($review));
         $this->assertSame(['number', 'status', 'finalizedAt', 'lines', 'totals', 'payments'], array_keys($review['invoice']));
         $this->assertSame(['name', 'quantity', 'unitPriceSen', 'totalSen'], array_keys($review['invoice']['lines'][0]));
-        $this->assertSame(['subtotalSen', 'adjustmentSen', 'totalSen', 'paidSen', 'panelSen', 'payLaterSen', 'dueNowSen'], array_keys($review['invoice']['totals']));
+        $this->assertSame(['subtotalSen', 'adjustmentSen', 'panelAdjustmentSen', 'refundCreditSen', 'totalSen', 'paidSen', 'panelSen', 'payLaterSen', 'dueNowSen'], array_keys($review['invoice']['totals']));
         $this->assertSame(['receivedAt', 'method', 'amountSen', 'status', 'recordedBy'], array_keys($review['invoice']['payments'][0]));
         $this->assertSame(['name', 'patientNumber'], array_keys($review['patient']));
+        // Daniel: the total adds up from the rows on screen.
+        $totals = $review['invoice']['totals'];
+        $this->assertSame($totals['totalSen'], $totals['subtotalSen'] + $totals['adjustmentSen'] + $totals['panelAdjustmentSen'] - $totals['refundCreditSen']);
+        $this->assertSame(array_sum(array_column($review['invoice']['lines'], 'totalSen')), $totals['subtotalSen']);
 
         $log = AuditLog::query()->where('event', 'billing.reviewed')->sole();
         $this->assertSame($doctor->id, $log->actor_user_id);

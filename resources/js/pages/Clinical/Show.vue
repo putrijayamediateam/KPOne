@@ -737,14 +737,6 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     {{ clinical.hold.activeMinutes }} min · Held
                     {{ clinical.hold.heldMinutes }} min</span
                 >
-                <Link
-                    v-if="billViewUrl"
-                    :href="billViewUrl"
-                    class="inline-flex items-center gap-1 text-xs font-medium text-success hover:underline"
-                    data-testid="consultation-view-bill"
-                >
-                    View bill
-                </Link>
                 <span
                     v-if="treatmentProgress?.state"
                     class="inline-flex max-w-full"
@@ -823,6 +815,20 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             class="size-3.5"
                             aria-hidden="true"
                         /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <!-- BIL-37 (Daniel): the doctor's read-only bill, same tab, so no external-link icon. -->
+                <Button
+                    v-if="billViewUrl"
+                    variant="outline"
+                    size="sm"
+                    class="max-sm:h-11"
+                    as-child
+                >
+                    <Link
+                        :href="billViewUrl"
+                        data-testid="consultation-view-bill"
+                        >View bill</Link
                     ></Button
                 >
                 <WaitingPatientsButton

@@ -228,7 +228,9 @@ const totals = computed(() => {
                 class="min-w-0 overflow-hidden rounded-xl border bg-card"
                 data-testid="invoice-lines"
             >
+                <!-- BIL-37 (Daniel): without billing access the tabs only ever counted 0, so they are hidden. -->
                 <OperationalTabs
+                    v-if="invoice.canSeeFinancial || invoice.canSeeLines"
                     v-model="tab"
                     :tabs="tabs"
                     label="Invoice items"
@@ -242,7 +244,9 @@ const totals = computed(() => {
                         {{
                             invoice.canSeeFinancial
                                 ? 'Totals only for your access.'
-                                : 'Billing details are not shown for your role.'
+                                : invoice.links.billView
+                                  ? 'The bill is on the read-only Bill page.'
+                                  : 'Billing details are not shown for your role.'
                         }}
                     </div>
                     <ul v-else class="divide-y">
@@ -460,7 +464,9 @@ const totals = computed(() => {
                     {{
                         invoice.canSeeFinancial
                             ? 'No invoice was issued for this visit.'
-                            : 'Billing details are not shown for your role.'
+                            : invoice.links.billView
+                              ? 'The bill is on the read-only Bill page.'
+                              : 'Billing details are not shown for your role.'
                     }}
                 </p>
                 <Button

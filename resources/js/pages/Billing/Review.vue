@@ -25,6 +25,8 @@ type Payment = {
 type Totals = {
     subtotalSen: number;
     adjustmentSen: number;
+    panelAdjustmentSen: number;
+    refundCreditSen: number;
     totalSen: number;
     paidSen: number;
     panelSen: number;
@@ -48,6 +50,11 @@ defineProps<{
     backUrl: string;
 }>();
 
+// Daniel: the Items line shows whenever anything changes the total, so the total adds up by eye.
+const adjusted = (totals: Totals): boolean =>
+    totals.adjustmentSen !== 0 ||
+    totals.panelAdjustmentSen !== 0 ||
+    totals.refundCreditSen !== 0;
 const quantity = (value: string | number): string =>
     String(Number(value)).replace(/\.0+$/, '');
 // Kumar: "Paid" only when the patient's own payments settle it; a Panel or pay-later share is named as such.
@@ -144,10 +151,10 @@ const statusLabel = (totals: Totals): string =>
             >
                 <h2 id="review-totals" class="mb-1 font-semibold">Totals</h2>
                 <div
-                    v-if="review.invoice.totals.adjustmentSen !== 0"
+                    v-if="adjusted(review.invoice.totals)"
                     class="flex justify-between gap-4"
                 >
-                    <span class="text-muted-foreground">Subtotal</span>
+                    <span class="text-muted-foreground">Items</span>
                     <span class="tabular-nums">{{
                         myr(review.invoice.totals.subtotalSen)
                     }}</span>
@@ -163,6 +170,26 @@ const statusLabel = (totals: Totals): string =>
                     }}</span>
                     <span class="tabular-nums">{{
                         myr(review.invoice.totals.adjustmentSen)
+                    }}</span>
+                </div>
+                <div
+                    v-if="review.invoice.totals.panelAdjustmentSen !== 0"
+                    class="flex justify-between gap-4"
+                >
+                    <span class="text-muted-foreground"
+                        >Panel claim adjustment</span
+                    >
+                    <span class="tabular-nums">{{
+                        myr(review.invoice.totals.panelAdjustmentSen)
+                    }}</span>
+                </div>
+                <div
+                    v-if="review.invoice.totals.refundCreditSen !== 0"
+                    class="flex justify-between gap-4"
+                >
+                    <span class="text-muted-foreground">Refunded</span>
+                    <span class="tabular-nums">{{
+                        myr(-review.invoice.totals.refundCreditSen)
                     }}</span>
                 </div>
                 <div class="flex justify-between gap-4 font-medium">
@@ -223,15 +250,24 @@ const statusLabel = (totals: Totals): string =>
                             <span class="text-muted-foreground"
                                 >· {{ payment.recordedBy }}</span
                             >
+                            <!-- Daniel: a reversed receipt reads apart from live ones, so nobody adds it up. -->
                             <span
                                 v-if="payment.status === 'reversed'"
-                                class="text-muted-foreground"
-                            >
-                                · Reversed</span
+                                class="ml-2 inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
+                                data-testid="review-payment-reversed"
+                                ><span
+                                    class="size-1.5 rounded-full bg-muted-foreground"
+                                    aria-hidden="true"
+                                />Reversed</span
                             >
                         </span>
                         <span
-                            class="font-medium whitespace-nowrap tabular-nums sm:text-right"
+                            class="whitespace-nowrap tabular-nums sm:text-right"
+                            :class="
+                                payment.status === 'reversed'
+                                    ? 'text-muted-foreground line-through'
+                                    : 'font-medium'
+                            "
                             >{{ myr(payment.amountSen) }}</span
                         >
                     </li>
