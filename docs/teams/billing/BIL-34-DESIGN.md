@@ -83,3 +83,15 @@ Puchong test, after the Billing restyle and BIL-33. Synthetic data only.
 3. **Does the RM 300 review also apply to refunds after completion (BIL-10)?**
    - **A (recommended):** yes, every refund.
    - **B:** only refunds of a reversed receipt.
+
+## 7. The owner's answers (25 Nov 2026, tick box in the coordinator session)
+
+- Q1 = **A**: the Finance Officer and the Director keep approving as a fallback; nothing is revoked.
+- Q2 = **B**: the review threshold is a **per-branch setting on Approval Limits** (default RM 300.00; an amount exactly at
+  the threshold needs no review). Versioned and audited like the other Approval Limits settings. A missing setting
+  counts as RM 300.00.
+- Q3 = **A**: every refund, including refunds after completion (BIL-10).
+- Q4: approved. `payments.refunds.approve.branch` goes to `branch_manager`; new `payments.refunds.review.branch` goes to
+  `finance_officer`.
+- Kumar's review comes first (the owner chose to wait), and the exact changed-assertion list goes to the owner before
+  the build.
