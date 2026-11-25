@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * STK-27: weighted average cost per SKU per branch, worked out by replaying the stock ledger in time order. Read only: it
  * writes nothing, and no stock-writing code changes. These rules were set at the owner's instruction (2026-11-15) and
- * the clinic's accountant approved it verbally on 25 Nov 2026 (owner-confirmed, REL-STK). It is still a management figure, not a statutory financial
- * statement:
+ * the clinic's accountant approved them verbally on 25 Nov 2026 (owner-confirmed, REL-STK). It is still a management
+ * figure, not a statutory financial statement:
  *
  * - An accepted purchase receipt moves the average: (value before + receipt cost) / (quantity before + received). The
  *   receipt cost is the lot's actual total (STK-10B `cost_total_sen`), else unit cost x quantity. An order estimate is

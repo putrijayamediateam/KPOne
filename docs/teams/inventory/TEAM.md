@@ -233,7 +233,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 32. **Inventory programme (owner, 2026-11-11):** "ill agree to add those but no need to wait for accountant, just do
     it until done." and "so a until g will be build right? u have my approval". The team builds STK-12 to STK-36
     slice by slice (section 9). Valuation figures are labelled "Management report — cost policy to be confirmed by
-    the clinic's accountant"; the pharmacist review does not block building; each slice still needs its new
+    the clinic's accountant" (*until REL-STK, decision 49, 25 Nov 2026*); the pharmacist review does not block building; each slice still needs its new
     permissions approved, Daniel's look for new screens, and green CI.
 33. Programme choices (owner, "agree all", 2026-11-11, and later answers): only a Director or Finance Officer sees
     inventory cost (STK-13); a Finance Officer also approves purchase orders, never one they raised or submitted
