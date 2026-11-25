@@ -3573,10 +3573,10 @@ resident permission (consultation, MC, referral, attendance letter, targets). No
   it is on.
 - 22f: yes to both: at most 30 open proposals per locum, and HR may use part of an offered day (inside the offered times).
 
-## 30. REL-HR: the accountant and PDPA lines before real use (design note, for the owner's approval)
+## 30. REL-HR: the accountant and PDPA lines before real use (design note, owner-approved 25 Nov 2026)
 
-The owner confirmed verbally on 25 Nov 2026 that this wording may change. This note records it as "owner-confirmed, verbal,
-25 Nov 2026". **Real data loads only when the owner says go-live.** Nothing here loads data, changes a permission, a
+The owner confirmed this wording change on 25 Nov 2026: "owner-confirmed, 25 Nov 2026 (tick box in the coordinator
+session)" (see 30.4). **Real data loads only when the owner says go-live.** Nothing here loads data, changes a permission, a
 migration, a figure or a rule; it changes words on screen and in two download files only.
 
 ### 30.1 Every line today
@@ -3597,7 +3597,7 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 | 12 | Clock photo notice (`ClockPhotoNotice.vue`) | "… kept for 7 years with your attendance record, then deleted (to confirm in the PDPA review)." | every staff member |
 | 13 | Letters page | "KPOne ships no letter wording. Have the clinic's adviser approve each template before real use." | Director, HR Manager |
 
-### 30.2 What each becomes (proposal)
+### 30.2 What each becomes (approved)
 
 - **1, 5, 10, 11:** the "synthetic data" and "draft until the PDPA review" sentences are removed. Line 5's file keeps
   "No identity numbers, bank details or documents." Line 10 keeps "The consent text below is what staff see."
@@ -3621,8 +3621,9 @@ migration, a figure or a rule; it changes words on screen and in two download fi
   `PayrollRunsTest` (3 lines) and `OutsideExportTest` (1 line).
 - The payslips and exports already made keep the words they were made with (they are frozen snapshots or past downloads).
 
-### 30.4 Questions for the owner
+### 30.4 Owner answers (owner-confirmed, 25 Nov 2026 (tick box in the coordinator session))
 
-1. Is the wording in 30.2 right, line by line?
-2. Should step 2 wait for go-live (recommended), or happen now while the data is still synthetic?
-3. The location consent text (line 11): keep the current text as the final text, or change it first?
+1. The wording in 30.2, line by line: agreed as proposed.
+2. Step 2 (the code PR) waits for go-live.
+3. The location consent text (line 11) is final as it is.
+4. This note goes in as a docs-only PR now; nothing on screen changes until step 2.
