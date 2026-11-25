@@ -69,3 +69,20 @@ date; Paid in Bukku by a Finance Officer only, on matched or accepted bills only
 rows kept; the overdue, due and paid labels at branch-local midnight; the filters; the PostgreSQL rules; a two-process
 race of two Finance Officers ticking the same bill and of a tick against an undo; a bill at the organisation store (no
 branch) gets the right due date; bills recorded before STK-49 show "Terms not set"; a paid bill cannot be rejected.
+
+## Daniel's conditions (25 Nov, OK with changes; build to these)
+
+- Due column: dot plus word. "Overdue by N days" destructive; "Due in N days" neutral, warning at 3 days or fewer;
+  "Paid on 3 Dec 2026" success; "Terms not set" muted. Money-free. Order: overdue, then due soonest, then paid.
+- Filters Unpaid, Overdue, Paid, All: a segmented control with counts from 1024 px, the shared select on a phone, with
+  the help "Overdue = unpaid and past the due date".
+- Paid in Bukku: an outline row button on matched or accepted bills, removed (not disabled) for anyone but the Finance
+  Officer. Sheet: date with the window under it ("Between 12 Nov and today") and the refusal beside the field;
+  reference with 0 / 60; the top sentence "This only records that you paid it in Bukku. KPOne does not pay or send
+  anything."; one filled "Record as paid", Cancel outline.
+- Undo paid: a quiet link opening a confirm with the reasons as radios, none selected ("Pick a reason to continue."),
+  the note counter for "other", and the history line kept visible ("Paid 3 Dec by <name>, undone 5 Dec: ticked by
+  mistake"), names under the staff-visibility rule. A paid row says "Paid, undo it first to reject".
+- Supplier form: "Payment terms (days)" with "days" beside it and the help "0 means cash on delivery. Leave blank if
+  not set. Bills already recorded keep their old terms." (Adlina agrees the label.)
+- At 390 px each bill is a card: supplier and invoice number, the Due line, then the action, 44 px.
