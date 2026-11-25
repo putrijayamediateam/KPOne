@@ -29,9 +29,7 @@ class SupplierSettingsController extends Controller
             throw $e->redirectTo(route('supplier-settings.index'));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Supplier added.']);
-
-        return to_route('supplier-settings.index');
+        return to_route('supplier-settings.index')->with('success', 'Supplier added.');
     }
 
     public function active(Request $request, InventorySupplier $supplier, SupplierSettingsService $service): RedirectResponse
