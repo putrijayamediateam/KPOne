@@ -40,6 +40,7 @@
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresDifferenceReportTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresStoreSettingTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresPackConversionTest.php</exclude>
@@ -110,6 +111,7 @@
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresDifferenceReportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStoreSettingTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
             <file>tests/Feature/Inventory/PostgresPackConversionTest.php</file>
@@ -219,6 +221,7 @@
             <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStoreSettingTest.php</file>
         </testsuite>
     </testsuites>
     <source>

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockRequest;
@@ -19,6 +20,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\GovernedStockFixture;
 
@@ -152,7 +154,7 @@ final class CentralStoreTest extends VisitTestCase
     public function test_zero_use_shows_no_cover_and_a_recalled_batch_is_not_usable(): void
     {
         $row = $this->page($this->staff('ca_supervisor'))['storeStock']['rows'][0];
-        // No dispensing or treatment use: the page says "No recent use" (null cover, neutral tone).
+        // No dispensing or treatment use: the page says "No dispensing data" (null cover, neutral tone).
         $this->assertNull($row['coverWeeks']);
         $this->assertSame(['0.000', 'neutral', '70.000'], [$row['used30'], $row['coverTone'], $row['usable']]);
 
@@ -368,5 +370,79 @@ final class CentralStoreTest extends VisitTestCase
             $this->assertArrayHasKey('idempotency_key', $exception->errors());
         }
         $this->assertSame(0, DB::table('inventory_store_settings')->count());
+    }
+
+    public function test_sent_this_week_turns_over_at_kuala_lumpur_midnight_between_sunday_and_monday(): void
+    {
+        // Sunday 22 Nov, 23:59 in Kuala Lumpur: a store request sent now belongs to the week of 16 Nov.
+        $this->travelTo(CarbonImmutable::parse('2026-11-22 23:59:00', $this->branch->timezone));
+        $ours = $this->staff('ca_supervisor');
+        $viewer = $this->staff('ca_supervisor');
+        $this->storeRequest($ours, $this->branch, $this->f['location']);
+        $card = collect($this->page($viewer)['thisWeek'])->firstWhere('branchId', $this->branch->id);
+        $this->assertSame([true, 'Week of 16 Nov', 'Sun 22 Nov'], [$card['sent'], $card['weekOf'], $card['sentOn']]);
+        $this->assertNull(app(CentralStoreService::class)->reminderFor($this->staff('ca')));
+
+        // Monday 23 Nov, 00:00 exactly: a new week, nothing sent yet.
+        $this->travelTo(CarbonImmutable::parse('2026-11-23 00:00:00', $this->branch->timezone));
+        $card = collect($this->page($viewer)['thisWeek'])->firstWhere('branchId', $this->branch->id);
+        $this->assertSame([false, 'Week of 23 Nov'], [$card['sent'], $card['weekOf']]);
+        // A request at Monday 00:00 counts for the new week.
+        $this->storeRequest($ours, $this->branch, $this->f['location']);
+        $card = collect($this->page($viewer)['thisWeek'])->firstWhere('branchId', $this->branch->id);
+        $this->assertSame([true, 'Mon 23 Nov'], [$card['sent'], $card['sentOn']]);
+    }
+
+    public function test_a_store_batch_held_at_the_viewers_branch_still_counts_as_usable_in_the_store(): void
+    {
+        $viewer = $this->staff('ca_supervisor');
+        app(InventoryBatchHoldService::class)->act($this->staff('ca_supervisor'), $this->f['batch']->public_id, 'place',
+            ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(), 'reason' => 'damaged']);
+        // The viewer's active branch is the branch that holds the batch; branch holds don't apply at the store (STK-37).
+        $this->assertSame($this->branch->id, app(BranchAccessService::class)->activeBranch($viewer)?->id);
+        $row = $this->page($viewer)['storeStock']['rows'][0];
+        $this->assertSame(['70.000', '0.000'], [$row['usable'], $row['notUsable']]);
+        $this->assertNotNull($row['nearestExpiry']);
+        // The same batch at the branch itself is not usable there.
+        $cell = collect($this->page($viewer)['branchStock']['rows'][0]['branches'])->firstWhere('branchId', $this->branch->id);
+        $this->assertSame('0.000', $cell['usable']);
+    }
+
+    public function test_a_failed_audit_saves_nothing(): void
+    {
+        $supervisor = $this->staff('ca_supervisor');
+        $this->mock(AuditRecorder::class, fn ($mock) => $mock->shouldReceive('record')->andReturn(null));
+        try {
+            app(CentralStoreService::class)->updateRequestDay($supervisor, ['request_weekday' => 2, 'lock_version' => 0, 'idempotency_key' => (string) Str::uuid()]);
+            $this->fail('The request day was saved without an audit row.');
+        } catch (HttpException $exception) {
+            $this->assertSame([503, 'The change could not be audited. Nothing was saved.'], [$exception->getStatusCode(), $exception->getMessage()]);
+        }
+        $this->assertSame(0, DB::table('inventory_store_settings')->count());
+        $this->assertSame(0, DB::table('inventory_store_setting_versions')->count());
+    }
+
+    public function test_requests_to_the_store_list_the_hundred_oldest_and_keep_inactive_branches_under_other_branches(): void
+    {
+        $requester = $this->staff('ca_supervisor');
+        $row = fn (int $i) => ['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'requesting_branch_id' => $this->branch->id,
+            'source_location_id' => $this->store->id, 'destination_location_id' => $this->f['location']->id, 'request_number' => sprintf('SR-SYN-%04d', $i),
+            'status' => 'requested', 'lock_version' => 1, 'requested_by_user_id' => $requester->id, 'requested_at' => now()->subMinutes(300 - $i), 'created_at' => now(), 'updated_at' => now()];
+        DB::table('inventory_stock_requests')->insert(array_map($row, range(1, 102)));
+
+        $store = $this->page($requester, ['tab' => 'requests']);
+        $rows = collect($store['requests'])->flatMap(fn (array $group) => $group['rows']);
+        $this->assertSame(100, $rows->count());
+        $this->assertSame(['SR-SYN-0001', 'SR-SYN-0100'], [$rows->first()['number'], $rows->last()['number']]);
+        $this->assertSame(2, $store['requestsMore']);
+
+        // A request from a branch that is no longer active stays visible under "Other branches".
+        $theirs = $this->location($this->other, 'Synthetic other dispensary', InventoryLocation::TYPE_DISPENSARY);
+        $old = $this->storeRequest($this->staff('ca_supervisor', $this->other), $this->other, $theirs);
+        DB::table('inventory_stock_requests')->where('request_number', 'like', 'SR-SYN-%')->update(['status' => 'rejected', 'decided_by_user_id' => $requester->id, 'decided_at' => now(), 'rejection_reason' => 'Synthetic']);
+        DB::table('branches')->where('id', $this->other->id)->update(['is_active' => false]);
+        $store = $this->page($requester, ['tab' => 'requests']);
+        $this->assertSame(0, $store['requestsMore']);
+        $this->assertSame([['branch' => 'Other branches', 'ids' => [$old->public_id]]], array_map(fn (array $group) => ['branch' => $group['branch'], 'ids' => array_column($group['rows'], 'publicId')], $store['requests']));
     }
 }

@@ -33,8 +33,8 @@ test('STK-47: "This week" comes first, then the three views as tabs', () => {
     assert.match(page, /tone: 'success' \| 'neutral' \| 'warning';/);
 });
 
-test('STK-47: cover reads in words with a dot, and zero use says "No recent use"', () => {
-    assert.match(page, /return 'No recent use';/);
+test('STK-47: cover reads in words with a dot, and zero use says "No dispensing data"', () => {
+    assert.match(page, /return 'No dispensing data';/);
     assert.match(page, /return 'Less than 1 week';/);
     assert.match(page, /status="cover"\s+:tone="row\.coverTone"/);
     assert.match(page, /tabular-nums/);
@@ -118,4 +118,16 @@ test('STK-47: the Central store link shows only to warehouse holders', () => {
         /v-if="canViewCentralStore"\s+href="\/inventory\/central-store"/,
     );
     assert.match(panel, /:id="`stock-request-\$\{row\.publicId\}`"/);
+});
+
+test('STK-47: the 100-request cap says how many more, and store holds are explained', () => {
+    assert.match(page, /v-if="store\.requestsMore > 0"/);
+    assert.match(
+        page,
+        /Showing the 100 oldest open requests, and\s+\{\{ store\.requestsMore \}\} more\./,
+    );
+    assert.match(
+        page,
+        /A batch held at a branch still counts as usable\s+here, because branch holds don't apply at the store\./,
+    );
 });

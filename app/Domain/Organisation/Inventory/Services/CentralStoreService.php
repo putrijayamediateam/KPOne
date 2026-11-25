@@ -10,6 +10,7 @@ use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -33,6 +34,9 @@ final class CentralStoreService
     public const DEFAULT_WEEKDAY = 4;
 
     public const PER_PAGE = 25;
+
+    /** Requests to the store list at most the 100 oldest open ones; the page says how many more there are. */
+    public const REQUEST_CAP = 100;
 
     public const DAY_NAMES = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
 
@@ -77,6 +81,7 @@ final class CentralStoreService
         $storeRows = $this->storeStock($organisationId, $dateBranch, $stores);
         $branchRows = $this->branchStock($organisationId, $branchList, array_keys($storeRows));
         $storeRows = $this->search(array_values($storeRows), $needle);
+        $open = $this->openRequests($organisationId, $branchList);
         $branchRows = $this->search($branchRows, $needle);
 
         return [
@@ -89,7 +94,9 @@ final class CentralStoreService
             'thisWeek' => $this->thisWeek($actor, $organisationId, $branchList, $weekday),
             'storeStock' => $this->paginate($storeRows, $tab === 'store' ? $page : 1),
             'branchStock' => [...$this->paginate($branchRows, $tab === 'branches' ? $page : 1), 'branches' => $branches->map(fn (Branch $branch): array => ['id' => $branch->id, 'name' => $branch->name])->values()->all()],
-            'requests' => $this->openRequests($organisationId, $branchList),
+            'requests' => $open['groups'],
+            // "and N more" when more than the 100 oldest open requests exist.
+            'requestsMore' => $open['more'],
         ];
     }
 
@@ -184,8 +191,19 @@ final class CentralStoreService
         ])->validate();
         $weekday = (int) $data['request_weekday'];
         $key = Str::lower((string) $data['idempotency_key']);
-        $hash = hash('sha256', json_encode(['request_day', $weekday], JSON_THROW_ON_ERROR));
+        $hash = hash_hmac('sha256', json_encode(['request_day', $weekday], JSON_THROW_ON_ERROR), (string) config('app.key'));
 
+        try {
+            return $this->saveRequestDay($actor, $data, $weekday, $key, $hash);
+        } catch (UniqueConstraintViolationException) {
+            // Two first saves at once: the unique organisation index lets one through; the other is refused.
+            throw ValidationException::withMessages(['lock_version' => 'Someone else changed the request day. Reload and try again.']);
+        }
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function saveRequestDay(User $actor, array $data, int $weekday, string $key, string $hash): InventoryStoreSetting
+    {
         return DB::transaction(function () use ($actor, $data, $weekday, $key, $hash): InventoryStoreSetting {
             $locked = $this->authority->lockForOrganisation($actor, self::SETTING_PERMISSION);
             $organisationId = (int) $locked->organisation_id;
@@ -197,13 +215,8 @@ final class CentralStoreService
 
                 return InventoryStoreSetting::query()->findOrFail((int) $earlier->setting_id);
             }
+            // A first save creates the row; two at once meet on the unique organisation index (see updateRequestDay).
             $setting = InventoryStoreSetting::query()->where('organisation_id', $organisationId)->lockForUpdate()->first();
-            if ($setting === null) {
-                // The first save: the organisation row is the anchor, so two first saves cannot both create a row (the
-                // unique organisation index is the backstop).
-                DB::table('organisations')->where('id', $organisationId)->lockForUpdate()->first();
-                $setting = InventoryStoreSetting::query()->where('organisation_id', $organisationId)->lockForUpdate()->first();
-            }
             $current = $setting->lock_version ?? 0;
             if ((int) $data['lock_version'] !== $current) {
                 throw ValidationException::withMessages(['lock_version' => 'Someone else changed the request day. Reload the page and try again.']);
@@ -221,7 +234,8 @@ final class CentralStoreService
                 'organisation_id' => $organisationId, 'setting_id' => $setting->id, 'version' => $setting->lock_version, 'request_weekday' => $weekday,
                 'changed_by_user_id' => $locked->id, 'idempotency_key' => $key, 'payload_hash' => $hash, 'created_at' => now()->utc(),
             ]);
-            $this->audit->record('inventory.store_settings.updated', $setting, ['changed_fields' => ['request_weekday'], 'version' => $setting->lock_version], $locked);
+            abort_if($this->audit->record('inventory.store_settings.updated', $setting, ['changed_fields' => ['request_weekday'], 'version' => $setting->lock_version], $locked) === null,
+                503, 'The change could not be audited. Nothing was saved.');
 
             return $setting;
         }, 3);
@@ -283,7 +297,7 @@ final class CentralStoreService
         $rate = $this->branchUse($organisationId, $dateBranch->timezone, array_keys($skus));
         foreach ($skus as $id => $sku) {
             $used = $rate[$id] ?? 0;
-            // Weeks = usable ÷ (30-day use ÷ 30 × 7). Null when nothing was used: "No recent use".
+            // Weeks = usable ÷ (30-day use ÷ 30 × 7). Null when nothing was used: "No dispensing data".
             $weeks = $used > 0 ? $sku['usable'] * ReorderSuggestionService::LOOK_BACK_DAYS / ($used * 7) : null;
             $skus[$id] = [
                 ...$sku,
@@ -389,42 +403,52 @@ final class CentralStoreService
     }
 
     /**
-     * Open requests to the store, grouped by requesting branch, oldest first: waiting for approval, approved, dispatched,
-     * and received with a difference nobody has resolved yet. Links only.
+     * Open requests to the store, oldest first, capped at the 100 oldest: waiting for approval, approved, dispatched, and
+     * received with a difference nobody has resolved yet. Grouped by requesting branch (active branches by name, then any
+     * inactive branch under "Other branches", so nothing is hidden). Links only.
      *
-     * @param  list<Branch>  $branches
-     * @return list<array{branch: string, rows: list<array<string, mixed>>}>
+     * @param  list<Branch>  $branches  the active branches, by name
+     * @return array{groups: list<array{branch: string, rows: list<array<string, mixed>>}>, more: int}
      */
     private function openRequests(int $organisationId, array $branches): array
     {
         $unresolved = fn ($query) => $query->selectRaw('1')->from('inventory_transfer_differences as d')
             ->leftJoin('inventory_transfer_difference_resolutions as res', 'res.difference_id', '=', 'd.id')
             ->whereColumn('d.stock_request_id', 'request.id')->whereNull('res.id');
-        $rows = DB::table('inventory_stock_requests as request')
+        $open = DB::table('inventory_stock_requests as request')
             ->join('inventory_locations as source', fn ($j) => $j->on('source.id', '=', 'request.source_location_id')->on('source.organisation_id', '=', 'request.organisation_id'))
-            ->join('inventory_locations as destination', fn ($j) => $j->on('destination.id', '=', 'request.destination_location_id')->on('destination.organisation_id', '=', 'request.organisation_id'))
             ->where('request.organisation_id', $organisationId)->whereNull('source.branch_id')
             ->where(fn ($query) => $query->whereIn('request.status', self::OPEN_STATUSES)
-                ->orWhere(fn ($received) => $received->where('request.status', StockRequest::STATUS_RECEIVED)->whereExists($unresolved)))
-            ->orderBy('request.requested_at')->orderBy('request.id')
+                ->orWhere(fn ($received) => $received->where('request.status', StockRequest::STATUS_RECEIVED)->whereExists($unresolved)));
+        $total = (clone $open)->count();
+        $rows = $open
+            ->join('inventory_locations as destination', fn ($j) => $j->on('destination.id', '=', 'request.destination_location_id')->on('destination.organisation_id', '=', 'request.organisation_id'))
+            ->orderBy('request.requested_at')->orderBy('request.id')->limit(self::REQUEST_CAP)
             ->selectRaw('request.public_id, request.request_number, request.status, request.requested_at, request.requesting_branch_id, source.name as source_name, destination.name as destination_name,
                 (SELECT COUNT(*) FROM inventory_stock_request_lines line WHERE line.stock_request_id = request.id) as line_count')
             ->get();
-        $byBranch = [];
-        $zones = [];
+        $zones = Branch::query()->where('organisation_id', $organisationId)->get(['id', 'timezone'])->keyBy('id');
+        $active = [];
         foreach ($branches as $branch) {
-            $zones[$branch->id] = $branch;
+            $active[$branch->id] = true;
         }
+        $byBranch = [];
+        $other = [];
         foreach ($rows as $row) {
-            $branch = $zones[(int) $row->requesting_branch_id] ?? null;
-            $zone = $branch->timezone ?? 'Asia/Kuala_Lumpur';
+            $branchId = (int) $row->requesting_branch_id;
+            $zone = (string) ($zones->get($branchId)->timezone ?? 'Asia/Kuala_Lumpur');
             $status = (string) $row->status === StockRequest::STATUS_RECEIVED ? 'received_with_differences' : (string) $row->status;
-            $byBranch[(int) $row->requesting_branch_id][] = [
+            $item = [
                 'publicId' => (string) $row->public_id, 'number' => (string) $row->request_number, 'status' => $status,
                 'requestedOn' => CarbonImmutable::parse((string) $row->requested_at)->setTimezone($zone)->format('D j M Y'),
                 'from' => (string) $row->source_name, 'to' => (string) $row->destination_name, 'lineCount' => (int) $row->line_count,
                 'href' => '/inventory#stock-request-'.$row->public_id,
             ];
+            if (isset($active[$branchId])) {
+                $byBranch[$branchId][] = $item;
+            } else {
+                $other[] = $item;
+            }
         }
         $groups = [];
         foreach ($branches as $branch) {
@@ -432,8 +456,11 @@ final class CentralStoreService
                 $groups[] = ['branch' => $branch->name, 'rows' => $byBranch[$branch->id]];
             }
         }
+        if ($other !== []) {
+            $groups[] = ['branch' => 'Other branches', 'rows' => $other];
+        }
 
-        return $groups;
+        return ['groups' => $groups, 'more' => max(0, $total - self::REQUEST_CAP)];
     }
 
     /**

@@ -88,6 +88,7 @@ const props = defineProps<{
             branches: Array<{ id: number; name: string }>;
         };
         requests: Array<{ branch: string; rows: RequestRow[] }>;
+        requestsMore: number;
     };
 }>();
 
@@ -130,7 +131,7 @@ const quantity = (value: string, unit: string) =>
 // Cover in words with its tone: less than 1 week destructive, 1 to 2 weeks warning, never colour alone.
 const coverWords = (row: StoreRow): string => {
     if (row.coverWeeks === null) {
-        return 'No recent use';
+        return 'No dispensing data';
     }
 
     if (row.coverTone === 'danger') {
@@ -319,8 +320,10 @@ const saveDay = () =>
             class="space-y-3"
         >
             <p class="text-sm text-muted-foreground">
-                Usable stock only. Held, recalled or expired stock is shown
-                apart. Cover is at the branches' combined use over the last
+                Usable stock only. Recalled, expired or quarantined stock is
+                shown apart. A batch held at a branch still counts as usable
+                here, because branch holds don't apply at the store. Cover is at
+                the branches' combined use over the last
                 {{ store.lookBackDays }} days.
             </p>
             <div class="hidden lg:block">
@@ -558,8 +561,9 @@ const saveDay = () =>
         >
             <p class="text-sm text-muted-foreground">
                 Approve, send and receive stay on the Inventory page. A request
-                shows there for its own branch, so switch to that branch to act
-                on it.
+                shows there for its own branch (its 50 newest requests), so
+                switch to that branch to act on it. Requests from a branch that
+                is no longer active are listed under Other branches.
             </p>
             <p
                 v-if="store.requests.length === 0"
@@ -608,6 +612,14 @@ const saveDay = () =>
                     </li>
                 </ul>
             </section>
+            <p
+                v-if="store.requestsMore > 0"
+                class="text-sm text-muted-foreground"
+                data-testid="central-store-requests-more"
+            >
+                Showing the 100 oldest open requests, and
+                {{ store.requestsMore }} more.
+            </p>
         </section>
 
         <Sheet v-model:open="sheetOpen">
