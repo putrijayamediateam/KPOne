@@ -22,7 +22,7 @@ withDefaults(
 <template>
     <div
         class="max-w-full overflow-x-auto border bg-card"
-        :class="variant === 'catalogue' ? 'rounded-lg shadow-sm' : 'rounded-xl'"
+        :class="variant === 'catalogue' ? 'rounded-lg shadow-card' : 'rounded-lg shadow-card'"
         role="region"
         :aria-label="label"
         tabindex="0"
@@ -37,17 +37,17 @@ withDefaults(
                 {{ label }}
             </caption>
             <thead
-                class="border-b text-xs font-medium text-muted-foreground"
+                class="border-b text-[13px] font-semibold text-muted-foreground"
                 :class="
                     variant === 'catalogue'
-                        ? 'bg-muted/40 uppercase tracking-wide [&_th]:px-3 [&_th]:py-2 [&_th]:whitespace-nowrap'
-                        : 'bg-muted/60 [&_th]:px-3 [&_th]:py-2.5'
+                        ? 'bg-card-quiet [&_th]:px-3 [&_th]:py-2 [&_th]:whitespace-nowrap'
+                        : 'bg-card-quiet [&_th]:px-3 [&_th]:py-2.5'
                 "
             >
                 <slot name="head" />
             </thead>
             <tbody
-                class="[&_tr]:min-h-10 [&_tr]:border-b [&_tr]:border-border/70 [&_tr:last-child]:border-0 [&_tr:not([data-empty-row])]:transition-colors [&_tr:not([data-empty-row])]:hover:bg-muted/40 [&_th]:px-3 [&_th]:py-2.5 [&_td]:px-3 [&_td]:py-2.5"
+                class="[&_tr]:min-h-[52px] [&_tr]:border-b [&_tr]:border-border/70 [&_tr:last-child]:border-0 [&_tr:not([data-empty-row])]:transition-colors [&_tr:not([data-empty-row])]:hover:bg-muted [&_th]:px-3 [&_th]:py-2.5 [&_td]:px-3 [&_td]:py-2.5"
                 :class="
                     variant === 'catalogue'
                         ? '[&_tr]:border-border/60 [&_tr:not([data-empty-row])]:hover:bg-muted/30 [&_td]:py-2'

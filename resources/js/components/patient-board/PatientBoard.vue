@@ -130,7 +130,7 @@ const triageTextClass = (zone: TriageZone | null) =>
             class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
         >
             <thead
-                class="border-y bg-muted/25 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                class="border-y bg-card-quiet text-[13px] font-semibold text-muted-foreground"
             >
                 <tr>
                     <th class="w-[15%] px-3 py-2">Patient</th>

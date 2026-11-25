@@ -11,7 +11,7 @@ defineProps<{
         <div class="min-w-0 space-y-1">
             <p
                 v-if="eyebrow"
-                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                class="text-[12.5px] font-medium text-muted-foreground"
             >
                 {{ eyebrow }}
             </p>
@@ -21,7 +21,7 @@ defineProps<{
                 class="flex flex-wrap items-center gap-2"
             >
                 <h1
-                    class="text-2xl font-semibold tracking-tight text-foreground"
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
                 >
                     {{ title }}
                 </h1>
@@ -29,14 +29,14 @@ defineProps<{
             </div>
             <h1
                 v-else
-                class="text-2xl font-semibold tracking-tight text-foreground"
+                class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
             >
                 {{ title }}
             </h1>
             <!-- UX-15: the description slot is for a line that needs markup; plain text uses the prop. -->
             <p
                 v-if="description || $slots.description"
-                class="text-sm text-muted-foreground"
+                class="text-[13px] text-muted-foreground"
             >
                 <slot name="description">{{ description }}</slot>
             </p>
