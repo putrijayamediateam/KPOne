@@ -89,3 +89,27 @@ can't-supply lines left off; cancel rules; the PostgreSQL rules; a two-process r
 round and of two conversions in one round (one order); a CA Supervisor never receives prices in the RFQ props or on the
 converted order; editing the converted draft without cost fields keeps the estimates; an expired quote; an archived
 supplier; the rounding of a pack price that does not divide evenly.
+
+## Daniel's conditions (25 Nov, OK with changes on revisions 1 and 2; build to these)
+
+- Rounds list: one row per round (items, delivery location, "2 of 3 quotes in", a state chip); RFQ states are chips,
+  only Chosen in success tone. One filled button per view: "Start a quote round" on the list, "Make purchase order"
+  on a round once one quote is chosen.
+- Comparison: suppliers as columns, items as rows, then lead time, valid-until and Total. Price per stock unit with
+  "RM 12.00 / pack of 30" muted under it. "Cheapest" word plus success dot (with the reason in words when a tie is
+  broken: "Cheapest, faster delivery"). "Can't supply" muted; "Waiting for a quote" neutral chip.
+- **Unequal totals:** a supplier that can't supply every line shows "Total for 3 of 4 lines", and no cheapest-total
+  marker is given across unequal sets.
+- An expired quote shows "Expired" in warning tone; Choose needs the required checkbox "Still valid, confirmed with the
+  supplier" (shown only when expired, "Tick to continue.").
+- A cost-hidden role sees "Prices are hidden for your role." in price cells and no Record quote or Choose controls.
+- Below 1024 px one card per item with supplier rows inside; actions at the bottom, 44 px.
+- Record quote: one block per line (pack price, "Stock units in one pack (<unit>)", live "= RM 0.4000 per tablet"),
+  a Can't supply switch with a word, lead time, valid-until (window shown), reference 0 / 60, one filled "Save quote",
+  and once at the top "This records the supplier's answer. KPOne does not send or receive anything."
+- Choose: outline per supplier; dialog shows the gap ("RM 120.00 more than the cheapest") and reasons as radios when
+  not the cheapest. Make purchase order: a confirm listing lines left off. Mark as sent outline; cancel with a reason
+  (red only there).
+- Print: A4 white in both themes, letterhead, RFQ number, supplier, location, items and quantities, "Please quote by
+  <date>", page numbers; no prices, notes or costs.
+- Shots at 1440 and 390 of the comparison with an unequal-lines example.
