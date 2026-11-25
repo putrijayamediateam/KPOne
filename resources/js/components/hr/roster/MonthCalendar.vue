@@ -150,6 +150,11 @@ const open = ref<MonthDay | null>(null);
                                 class="text-muted-foreground"
                                 >{{ shift.roomName }}</span
                             >
+                            <span
+                                v-if="shift.stationLabel"
+                                class="text-muted-foreground"
+                                >{{ shift.stationLabel }}</span
+                            >
                             <span class="text-muted-foreground">{{
                                 shift.hours
                             }}</span>
@@ -308,6 +313,11 @@ const open = ref<MonthDay | null>(null);
                             v-if="shift.roomName"
                             class="text-muted-foreground"
                             >{{ shift.roomName }}</span
+                        >
+                        <span
+                            v-if="shift.stationLabel"
+                            class="text-muted-foreground"
+                            >{{ shift.stationLabel }}</span
                         >
                         <span class="text-muted-foreground"
                             >{{ shift.hours
