@@ -129,14 +129,18 @@ class LocumDoctorTest extends VisitTestCase
     public function test_a_locum_doctor_with_no_staff_file_opens_their_own_hr_pages(): void
     {
         // Resident Doctor brings the staff self-service HR pages (Suresh, m1); a locum doctor has no staff file of their own,
-        // so each own page must open, not fail.
+        // so each own page must open, not fail. HR-22b2 (owner, 25 Nov 2026, m1 option b): leave and staff claims are not
+        // for locums, so those two are refused.
         $doctor = $this->actor('resident_doctor');
         $doctor->assignRole(PermissionCatalogue::LOCUM_ROLE);
         $this->assertNull(Worker::query()->where('user_id', $doctor->id)->first());
         $this->selectBranch($doctor);
-        foreach (['hr.roster.index', 'hr.records.index', 'hr.leave.index', 'hr.attendance.index', 'hr.claims.index', 'hr.credentials.index',
+        foreach (['hr.roster.index', 'hr.records.index', 'hr.attendance.index', 'hr.credentials.index',
             'hr.sops.index', 'hr.memos.index', 'hr.incidents.index'] as $route) {
             $this->get(route($route))->assertOk();
+        }
+        foreach (['hr.leave.index', 'hr.claims.index'] as $route) {
+            $this->get(route($route))->assertForbidden();
         }
     }
 
