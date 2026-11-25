@@ -12,8 +12,9 @@ final class WorkspaceLandingService
             return 'queue-display.screen';
         }
 
-        // HR-15a: a locum's sign-in shows their own shifts.
-        if ($actor->hasRole(PermissionCatalogue::LOCUM_ROLE) && $actor->can('hr.roster.view.own')) {
+        // HR-15a: a locum's sign-in shows their own shifts. HR-22b: a locum doctor (also `resident_doctor`) lands where
+        // residents land.
+        if (StaffKind::isLocum($actor) && ! StaffKind::isDoctor($actor) && $actor->can('hr.roster.view.own')) {
             return 'hr.roster.index';
         }
         if ($actor->hasRole('resident_doctor') && $actor->can('queue.view.own')) {

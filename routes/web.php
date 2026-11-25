@@ -12,6 +12,7 @@ use App\Http\Controllers\AskThroughClaudeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\AutoAssignSettingController;
 use App\Http\Controllers\BillingApprovalLimitController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
@@ -136,6 +137,7 @@ use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\TriageController;
 use App\Http\Controllers\TriageGuidelineController;
+use App\Http\Controllers\TriageViewController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
@@ -239,6 +241,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/triage', [TriageController::class, 'show'])->name('visits.triage.show');
         Route::post('visits/{visit}/triage', [TriageController::class, 'store'])->middleware('throttle:30,1')->name('visits.triage.store');
     });
+    // TRI-1e: the patient's own doctor reads the visit's triage record (view only; every open audited first).
+    Route::get('visits/{visit}/triage/view', [TriageViewController::class, 'show'])
+        ->middleware(['sensitive.no-store', 'permission:visits.triage.view.own', 'throttle:60,1'])
+        ->name('visits.triage.view');
     Route::prefix('triage-guideline')->controller(TriageGuidelineController::class)
         ->middleware(['sensitive.no-store', 'permission:triage.guideline.manage.organisation'])->group(function (): void {
             Route::get('/', 'index')->name('triage-guideline.index');
@@ -788,18 +794,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('insights.today');
     Route::get('insights/daily-sales/download', [ClinicInsightsController::class, 'downloadDailyReport'])
         ->defaults('dataset', 'daily_sales')
-        ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->middleware(['permission:reports.sales.export.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.daily-sales.download');
     Route::get('insights/daily-receipts/download', [ClinicInsightsController::class, 'downloadDailyReport'])
         ->defaults('dataset', 'daily_receipts')
-        ->middleware(['permission:reports.payments.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->middleware(['permission:reports.payments.export.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.daily-receipts.download');
     Route::get('insights/sales-summary/download', [ClinicInsightsController::class, 'downloadSalesSummary'])
-        ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->middleware(['permission:reports.sales.export.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
         ->name('insights.sales-summary.download');
     // BIL-31: the Director and Finance overview, before the {section} route.
     Route::get('insights/overview', [ClinicInsightsController::class, 'overview'])
-        ->middleware(['permission:insights.view.organisation', 'permission:insights.overview.view.organisation', 'sensitive.no-store'])
+        ->middleware(['permission:insights.overview.view.organisation', 'sensitive.no-store'])
         ->name('insights.overview');
     Route::get('insights/{section}', [ClinicInsightsController::class, 'report'])
         ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])
@@ -829,6 +835,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices', [PanelInvoicesController::class, 'index'])->name('panel-invoices.index');
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
+    Route::post('registration-settings/auto-assign', [AutoAssignSettingController::class, 'update'])->middleware(['permission:registration.auto_assign.manage.branch', 'sensitive.no-store', 'throttle:20,1'])->name('registration-settings.auto-assign');
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('registration-settings', [RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
         Route::post('registration-settings', [RegistrationSettingsController::class, 'store'])->middleware('throttle:20,1')->name('registration-settings.store');
@@ -1498,6 +1505,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('registration/create', [RegistrationController::class, 'create'])
             ->middleware('permission:visits.create.branch')
             ->name('registration.create');
+        Route::get('registration/recommended-doctor', [RegistrationController::class, 'recommendedDoctor'])
+            ->middleware(['permission:visits.create.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('registration.recommended-doctor');
         Route::post('registration', [RegistrationController::class, 'store'])
             ->middleware(['permission:visits.create.branch', 'throttle:30,1'])
             ->name('registration.store');

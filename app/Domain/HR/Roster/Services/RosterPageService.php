@@ -265,6 +265,8 @@ final class RosterPageService
             'compliance' => $shown === null ? null : $this->compliance->forWeek($branch, $weekStart, $shown, $shifts, $people),
             'staffOptions' => $isDraft ? $this->staffOptions($actor, $branch, $weekStart) : [],
             'rooms' => $rooms->where('is_active', true)->map(fn (BranchRoom $r): array => ['id' => $r->id, 'name' => $r->name])->values()->all(),
+            'stations' => collect(RosterRules::STATIONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
+            'planStations' => $this->minimums->plansStations($branch),
             'returnReasons' => collect(RosterService::RETURN_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'previousWeekApproved' => $previousApproved,
             'can' => [
@@ -317,7 +319,8 @@ final class RosterPageService
         return ['id' => $s->public_id, 'staffUserId' => $s->staff_user_id, 'branch' => $branch->name, 'date' => $start->toDateString(),
             'startTime' => $start->format('H:i'), 'endTime' => $end->format('H:i'), 'startLabel' => $this->rules->timeLabel($start), 'endLabel' => $this->rules->timeLabel($end),
             'nextDay' => $end->toDateString() !== $start->toDateString(), 'breakMinutes' => $s->break_minutes, 'sessionType' => $s->session_type,
-            'sessionLabel' => RosterRules::SESSIONS[$s->session_type] ?? 'Other', 'roomId' => $s->branch_room_id, 'roomName' => $s->branch_room_id === null ? null : ($rooms[$s->branch_room_id] ?? null)];
+            'sessionLabel' => RosterRules::SESSIONS[$s->session_type] ?? 'Other', 'roomId' => $s->branch_room_id, 'roomName' => $s->branch_room_id === null ? null : ($rooms[$s->branch_room_id] ?? null),
+            'station' => $s->station, 'stationLabel' => $s->station === null ? null : (RosterRules::STATIONS[$s->station] ?? null)];
     }
 
     /**
@@ -419,7 +422,9 @@ final class RosterPageService
             ->whereHas('staffProfile', fn ($q) => $q->whereIn('id', $profiles))
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'queue_display'))
             ->orderBy('name')->get()
-            ->map(fn (User $u): array => ['id' => $u->id, 'label' => trim($u->name.' · '.$this->roleLabel($u), ' ·')])->all());
+            ->map(fn (User $u): array => ['id' => $u->id, 'label' => trim($u->name.' · '.$this->roleLabel($u), ' ·'),
+                // HR-22c: only a CA, CA Supervisor or Medical Assistant takes a station.
+                'takesStation' => RosterRules::takesStation($u)])->all());
     }
 
     /**
@@ -497,6 +502,16 @@ final class RosterPageService
             }
         }
         $out = [...$out, ...array_keys($seen)];
+        // HR-22c: only when the branch plans stations, one quiet line per person whose CA, CA Supervisor or MA shifts lack one.
+        if ($this->minimums->plansStations($branch)) {
+            $missing = $shifts->filter(fn (RosterShift $s): bool => $s->station === null && ! RosterRules::isOnCall($s->session_type)
+                && ($person = $people->get($s->staff_user_id)) !== null && RosterRules::takesStation($person));
+            foreach ($missing->groupBy('staff_user_id') as $userId => $items) {
+                $name = $people->get((int) $userId)->name ?? 'A staff member';
+                $days = $items->map(fn (RosterShift $s): string => $this->rules->shortDayLabel($s->starts_at->setTimezone($branch->timezone)))->unique()->values()->all();
+                $out[] = "No station for {$name} on ".implode(', ', $days).'.';
+            }
+        }
         if ($version->isOpen()) {
             foreach ($shifts as $s) {
                 foreach ($this->rules->draftOverlaps($version, $s->staff_user_id, $s->starts_at, $s->ends_at) as $other) {
@@ -535,6 +550,7 @@ final class RosterPageService
             'branch' => ['id' => $branch->id, 'name' => $branch->name],
             'values' => $this->minimums->minimums($branch),
             'lockVersion' => $this->minimums->lockVersion($branch),
+            'planStations' => $this->minimums->plansStations($branch),
             'roles' => collect(RosterRules::STAFFING_ROLES)->map(fn (array $labels, string $value): array => ['value' => $value, 'label' => $labels[0], 'plural' => $labels[1]])->values()->all(),
         ];
     }

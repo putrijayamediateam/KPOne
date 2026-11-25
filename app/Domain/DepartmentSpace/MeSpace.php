@@ -8,8 +8,12 @@ use App\Domain\HR\Claims\Services\ClaimsPageService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Payroll\Services\PayslipService;
+use App\Domain\HR\Roster\Services\MinimumStaffingService;
+use App\Domain\HR\Roster\Services\RosterOnDuty;
 use App\Domain\HR\Roster\Services\RosterPageService;
+use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Queue\Models\BranchRoom;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -31,6 +35,8 @@ final class MeSpace
         private ClaimsPageService $claims,
         private CredentialsPageService $credentials,
         private PayslipService $payslips,
+        private RosterOnDuty $onDuty,
+        private MinimumStaffingService $minimums,
     ) {}
 
     /**
@@ -72,6 +78,8 @@ final class MeSpace
             'greeting' => $branch === null ? null : $this->greeting($actor, $branch, $ring['state'] ?? null),
             'time' => $branch === null ? null : ['serverNow' => now()->utc()->toIso8601String(), 'timezone' => $branch->timezone],
             'ring' => $ring,
+            'station' => $station = $this->station($actor),
+            'stationHref' => $station === null ? null : StationLink::for($actor, $station['station']),
             'week' => $week,
             'tiles' => $this->tiles($actor, $week),
             'credentials' => $this->credentialsDue($actor),
@@ -234,6 +242,37 @@ final class MeSpace
             'claims' => $claims === null ? null : ['title' => 'My claims', 'text' => $claims['text'], 'href' => route('hr.claims.index', absolute: false)],
             'roster' => $shift === null ? null : ['title' => 'My roster', 'text' => $shift['text'], 'href' => route('hr.roster.index', absolute: false)],
             'attendance' => $week === null ? null : ['title' => 'My attendance', 'text' => $week['summary'], 'href' => route('hr.attendance.index', absolute: false)],
+        ];
+    }
+
+    /**
+     * HR-22d (HR-PLAN 29.5): my roster station today at the active branch: the shift I am on now, otherwise my next one later
+     * today. Null when I cannot open My roster, the branch does not plan stations, or I have no station shift left today.
+     * My own data only; links for the station are added by the home, each behind its own permission.
+     *
+     * @return array{station: string, stationLabel: string, room: string|null, startLabel: string, endLabel: string, now: bool}|null
+     */
+    public function station(User $actor): ?array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        if ($branch === null || ! $actor->can('hr.roster.view.own') || ! $this->minimums->plansStations($branch)) {
+            return null;
+        }
+        $at = now()->utc();
+        $shift = $this->onDuty->forUser((int) $actor->id, $branch, $at);
+        if ($shift === null || $shift->station === null || ! isset(RosterRules::STATIONS[$shift->station])) {
+            return null;
+        }
+        $room = $shift->roomId === null ? null : BranchRoom::query()->whereKey($shift->roomId)->value('name');
+
+        return [
+            'station' => $shift->station,
+            'stationLabel' => RosterRules::STATIONS[$shift->station],
+            'room' => $room === null ? null : (string) $room,
+            'startLabel' => $shift->startsAt->setTimezone($shift->timezone)->format('g:i A'),
+            'endLabel' => $shift->endsAt->setTimezone($shift->timezone)->format('g:i A'),
+            // During the leave half of a half day the shift is still today's, but not now (the moment rule, as onDutyNow).
+            'now' => $shift->startsAt->lessThanOrEqualTo($at) && $this->onDuty->isOnDuty((int) $actor->id, $branch, $at),
         ];
     }
 

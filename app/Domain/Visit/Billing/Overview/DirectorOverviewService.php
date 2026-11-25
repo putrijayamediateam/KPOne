@@ -38,7 +38,8 @@ final class DirectorOverviewService
     /** @return array<string, mixed> */
     public function page(User $actor): array
     {
-        if (! $actor->is_active || ! $actor->can(self::PERMISSION) || ! $actor->can('insights.view.organisation')) {
+        // INS-1 (owner, 24 Nov 2026): the overview stands on its own permission, not on Insights page access.
+        if (! $actor->is_active || ! $actor->can(self::PERMISSION)) {
             throw new AuthorizationException('You may not perform this operation.');
         }
         $active = $this->branches->activeBranch($actor);

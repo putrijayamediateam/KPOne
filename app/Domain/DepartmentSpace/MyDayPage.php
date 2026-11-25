@@ -47,7 +47,7 @@ final class MyDayPage
         return [
             'header' => ['date' => $date, 'branchName' => $branch?->name],
             'today' => [
-                'ring' => $me['ring'], 'week' => $me['week'], 'tiles' => $me['tiles'], 'time' => $me['time'],
+                'ring' => $me['ring'], 'station' => $me['station'], 'stationHref' => $me['stationHref'], 'week' => $me['week'], 'tiles' => $me['tiles'], 'time' => $me['time'],
                 'credentials' => $me['credentials'], 'branchName' => $me['branchName'], 'asOf' => $me['asOf'],
             ],
             'waiting' => $this->waiting($actor),

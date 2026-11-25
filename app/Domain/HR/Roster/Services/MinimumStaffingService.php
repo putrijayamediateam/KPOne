@@ -29,6 +29,12 @@ final class MinimumStaffingService
         return $this->normalise($stored);
     }
 
+    /** HR-22c (owner, 24 Nov 2026): whether this branch plans stations; off by default. */
+    public function plansStations(Branch $branch): bool
+    {
+        return (bool) (MinimumStaffing::query()->where('branch_id', $branch->id)->value('plan_stations') ?? false);
+    }
+
     public function lockVersion(Branch $branch): int
     {
         return (int) (MinimumStaffing::query()->where('branch_id', $branch->id)->value('lock_version') ?? 0);
@@ -38,8 +44,13 @@ final class MinimumStaffingService
     public function save(User $actor, array $input): MinimumStaffing
     {
         $values = $this->parse($input['minimums'] ?? null);
+        // HR-22c: the "Plan stations" switch is saved with the minimums; a missing value keeps what is stored.
+        $planStations = array_key_exists('plan_stations', $input) ? filter_var($input['plan_stations'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) : null;
+        if (array_key_exists('plan_stations', $input) && $planStations === null) {
+            throw ValidationException::withMessages(['plan_stations' => 'Choose whether this branch plans stations.']);
+        }
 
-        return DB::transaction(function () use ($actor, $input, $values): MinimumStaffing {
+        return DB::transaction(function () use ($actor, $input, $values, $planStations): MinimumStaffing {
             $actor = $this->authority->lock($actor, RosterPermissions::MANAGE);
             $branch = $this->authority->branch($actor, $input['branch_id'] ?? null);
             DB::table('hr_minimum_staffing')->insertOrIgnore([['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id,
@@ -58,7 +69,11 @@ final class MinimumStaffingService
                     }
                 }
             }
-            $row->forceFill(['minimums' => $values, 'lock_version' => $row->lock_version + 1, 'updated_by_user_id' => $actor->id])->save();
+            if ($planStations !== null && $planStations !== (bool) $row->plan_stations) {
+                $changed[] = 'plan_stations';
+            }
+            $row->forceFill(['minimums' => $values, 'plan_stations' => $planStations ?? (bool) $row->plan_stations, 'lock_version' => $row->lock_version + 1,
+                'updated_by_user_id' => $actor->id])->save();
             $this->audit->record('hr.roster.minimum_staffing_updated', $row, ['branch_id' => $branch->id, 'changed_fields' => $changed], $actor, $branch);
 
             return $row;

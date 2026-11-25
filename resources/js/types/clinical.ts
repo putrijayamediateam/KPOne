@@ -208,6 +208,8 @@ export type ClinicalEncounterPage = {
         priority: 'normal' | 'urgent';
         /** TRI-1c: the triage zone for the patient's own doctor; null when not visible. */
         triage?: TriageZoneSummary | null;
+        /** TRI-1e: the own doctor's read-only triage view. */
+        triageViewUrl?: string | null;
         isPanel: boolean;
         panelNote: string | null;
         /** PNL-26c: the Panel total so far against the Panel's limit per visit; null when there is no limit. */

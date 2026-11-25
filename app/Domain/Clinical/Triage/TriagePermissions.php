@@ -15,6 +15,9 @@ final class TriagePermissions
 
     public const GUIDELINE_MANAGE_ORGANISATION = 'triage.guideline.manage.organisation';
 
+    /** TRI-1e (owner, 24 Nov 2026, "ya semua"): the patient's own doctor reads the visit's triage record, view only. */
+    public const VIEW_OWN = 'visits.triage.view.own';
+
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
@@ -22,6 +25,7 @@ final class TriagePermissions
             // MA-1a (owner decision 23 Nov 2026, MA-ROLE-DESIGN question 2): the Medical Assistant records triage too.
             self::RECORD_BRANCH => ['ca', 'ca_supervisor', PermissionCatalogue::MEDICAL_ASSISTANT_ROLE],
             self::GUIDELINE_MANAGE_ORGANISATION => ['director', 'hr_manager'],
+            self::VIEW_OWN => ['resident_doctor'],
         ];
     }
 }
