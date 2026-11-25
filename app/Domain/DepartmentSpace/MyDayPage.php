@@ -22,6 +22,7 @@ final class MyDayPage
         private ClinicManagementNavigation $management,
         private ApprovalInbox $inbox,
         private MyRoutineService $routine,
+        private RoleNextThings $nextThings,
     ) {}
 
     /** @return array<string, mixed> */
@@ -51,6 +52,7 @@ final class MyDayPage
                 'credentials' => $me['credentials'], 'branchName' => $me['branchName'], 'asOf' => $me['asOf'],
             ],
             'waiting' => $this->waiting($actor),
+            'next' => $this->nextThings->for($actor),
             'routine' => $this->routine->page($actor),
             'shortcuts' => $shortcuts,
         ];
