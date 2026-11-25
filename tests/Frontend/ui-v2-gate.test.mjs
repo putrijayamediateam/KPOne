@@ -6,40 +6,38 @@ const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const css = read('resources/css/app.css');
 
-// The Classic look, as it was before UI-RESTYLE 0.1 (#547). These values must never change for Classic users.
+// The Clean Look token anchors (docs/design/CLEAN-LOOK-SPEC.md section 2), which replaced Classic on 25 Nov 2026.
 const CLASSIC = {
     root: {
-        '--background': '#f8f9fa',
-        '--foreground': '#18181b',
-        '--primary': '#18181b',
+        '--background': '#f5f5f7',
+        '--foreground': '#1d1d1f',
+        '--primary': '#0852da',
         '--primary-foreground': '#ffffff',
-        '--muted': '#f4f4f5',
-        '--muted-foreground': '#71717a',
-        '--brand': '#db2777',
-        '--brand-strong': '#be185d',
-        '--success': '#047857',
-        '--warning': '#b45309',
-        '--destructive': '#b91c1c',
-        '--border': '#e4e4e7',
-        '--ring': '#db2777',
-        '--radius': '0.75rem',
+        '--muted-foreground': '#6e6e73',
+        '--brand': '#c2185b',
+        '--brand-strong': '#9f1239',
+        '--success': '#1d7a3a',
+        '--warning': '#8a5a00',
+        '--destructive': '#c7141f',
+        '--ring': '#0a56d1',
+        '--radius': '0.875rem',
         '--card': '#ffffff',
     },
     dark: {
-        '--background': 'hsl(0 0% 3.9%)',
-        '--foreground': 'hsl(0 0% 98%)',
-        '--primary': 'hsl(0 0% 98%)',
-        '--primary-foreground': 'hsl(0 0% 9%)',
-        '--muted': 'hsl(0 0% 16.08%)',
-        '--muted-foreground': 'hsl(0 0% 63.9%)',
-        '--brand': 'hsl(330 81% 60%)',
-        '--brand-strong': 'hsl(330 81% 72%)',
-        '--success': 'hsl(160 84% 39%)',
-        '--warning': 'hsl(38 92% 50%)',
-        '--destructive': 'hsl(0 84% 60%)',
-        '--border': 'hsl(0 0% 14.9%)',
-        '--ring': 'hsl(330 81% 72%)',
-        '--card': 'hsl(0 0% 3.9%)',
+        '--background': '#0b0b0d',
+        '--foreground': '#f5f5f7',
+        '--primary': '#4d94ff',
+        '--primary-foreground': '#0b0b0d',
+        '--muted': '#2c2c30',
+        '--muted-foreground': '#a1a1a6',
+        '--brand': '#ff6b9d',
+        '--brand-strong': '#ff9ec0',
+        '--success': '#30d158',
+        '--warning': '#ffb454',
+        '--destructive': '#ff6961',
+        '--border': '#2a2a2e',
+        '--ring': '#6ba6ff',
+        '--card': '#141416',
     },
 };
 
@@ -57,7 +55,7 @@ const block = (selector) => {
     );
 };
 
-test('Classic: :root and .dark keep the pre-restyle token values', () => {
+test('Clean Look: :root and .dark carry the Clean Look token values', () => {
     for (const [name, selector] of [
         ['root', ':root'],
         ['dark', '.dark'],
@@ -68,7 +66,7 @@ test('Classic: :root and .dark keep the pre-restyle token values', () => {
             assert.equal(
                 tokens[key],
                 value,
-                `${selector} ${key} changed for Classic`,
+                `${selector} ${key} changed from the Clean Look value`,
             );
         }
     }

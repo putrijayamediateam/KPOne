@@ -178,6 +178,15 @@ const hslToRgb = (hue, saturation, lightness) => {
 };
 
 const parseColor = (value) => {
+    const translucent = /^rgba\(\s*(\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(
+        value,
+    );
+
+    if (translucent) {
+        // Clean Look washes are translucent black: callers blend them over the card (see solidOver).
+        return translucent.slice(1, 4).map((v) => Number(v) / 255);
+    }
+
     if (value.startsWith('#')) {
         return [1, 3, 5].map(
             (position) =>
@@ -467,10 +476,14 @@ test('mounted status badges use tone classes whose text contrast exceeds 4.5 to 
         ] of Object.entries(toneTokens)) {
             const foreground = parseColor(tokens[foregroundName]);
             const backgroundColor = parseColor(tokens[backgroundName]);
-            const background =
-                alpha === 1
-                    ? backgroundColor
-                    : blend(backgroundColor, surface, alpha);
+            const translucent = /^rgba\(.*,\s*([\d.]+)\)$/.exec(
+                tokens[backgroundName],
+            );
+            const background = translucent
+                ? blend(backgroundColor, surface, Number(translucent[1]))
+                : alpha === 1
+                  ? backgroundColor
+                  : blend(backgroundColor, surface, alpha);
             const ratio = contrast(foreground, background);
 
             assert.ok(
