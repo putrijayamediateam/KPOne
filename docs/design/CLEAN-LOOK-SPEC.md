@@ -258,7 +258,7 @@ is a proposal or a role KPOne does not have; it is not built.
 | AgentOffice, AgentDailySummary, AllAgents, Approvals, QuickAnswers, Insights, Reports, DailySummaryOld, TransactionDetail | `/agents/*`, `/approvals`, `/insights/*`, `/reports/*` | Irfan (Reports pages with billing content: Farah reviews) |
 | DirectorHome, DirectorOverview, HomeFin, HomeAdm, HomeOffice | Today for those roles | Kavitha |
 | Staff, Admin, AccessControl, Branches, ProfileSettings, PasswordPages, SignIn, AuditLog, HqView | `/staff`, `/access-control`, `/branches`, `/settings/*`, auth pages, `/audit-logs` | Kavitha |
-| WebsiteBranches, WebsiteCareers, WebsiteDoctors, WebsiteFaqs, WebsiteLittleShield, WebsiteMedia, WebsitePromotions, WebsiteReleases, WebsiteServices | `/website/*` | Unassigned: B.E.R.N.I.S.S to assign (tokens only unless time) |
+| WebsiteBranches, WebsiteCareers, WebsiteDoctors, WebsiteFaqs, WebsiteLittleShield, WebsiteMedia, WebsitePromotions, WebsiteReleases, WebsiteServices | `/website/*` | Kavitha's team (Stage 2, tokens only unless time) |
 | PublicQrForm, PublicQrStatus | `/check-in`, `/check-in/status` | Nurul (tokens and fonts; patient screens stay Bahasa Melayu) |
 | HomeBM, HomeAA, HomeMA, HomeStore | none | **n/a** (roles not authorised yet) |
 | JourneyMap, BillingMap, InventoryFlow, StatusGuide | none | **n/a** (maps and guides) |
