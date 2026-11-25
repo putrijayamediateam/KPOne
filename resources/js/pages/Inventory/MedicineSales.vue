@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, TriangleAlert } from '@lucide/vue';
+import { ArrowLeft, Info } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -236,10 +236,13 @@ const countCards = computed(() => [
         </p>
 
         <p
-            class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+            class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
             data-testid="sales-banner"
         >
-            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <Info
+                class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+            />
             <span>{{ report.banner }}</span>
         </p>
 

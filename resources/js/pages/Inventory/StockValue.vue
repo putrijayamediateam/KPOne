@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, TriangleAlert } from '@lucide/vue';
+import { ArrowLeft, Info, TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -387,10 +387,13 @@ const lossHelp: Record<string, string> = {
         />
 
         <p
-            class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+            class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
             data-testid="valuation-banner"
         >
-            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <Info
+                class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+            />
             <span>{{ report.banner }}</span>
         </p>
 
@@ -575,10 +578,10 @@ const lossHelp: Record<string, string> = {
             >
                 <p
                     v-if="tab !== 'counted'"
-                    class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 px-3 py-2 text-xs font-medium text-warning-strong"
+                    class="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs font-medium text-foreground"
                 >
-                    <TriangleAlert
-                        class="mt-0.5 size-3.5 shrink-0"
+                    <Info
+                        class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
                         aria-hidden="true"
                     />
                     <span>{{ report.banner }}</span>
@@ -1039,10 +1042,10 @@ const lossHelp: Record<string, string> = {
                 <!-- How this is counted -->
                 <template v-else>
                     <p
-                        class="flex items-start gap-2 rounded-lg border border-warning bg-warning/10 px-3 py-2 text-xs font-medium text-warning-strong"
+                        class="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs font-medium text-foreground"
                     >
-                        <TriangleAlert
-                            class="mt-0.5 size-3.5 shrink-0"
+                        <Info
+                            class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
                             aria-hidden="true"
                         />
                         <span>{{ report.banner }}</span>

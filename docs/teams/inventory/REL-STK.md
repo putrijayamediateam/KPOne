@@ -41,8 +41,12 @@ not any stored figure.
 | Opening import page (`OpeningImport.vue`) | "…policy to be confirmed by the accountant." | "…uses the weighted average cost policy approved by the clinic's accountant." |
 | Code comments (`WeightedAverageCostService`, `StockJournalSummaryService`, `StockHealthService`, `StockValue.vue`, `MedicineSales.vue`) | "KPOne defaults… not professional accounting advice", "valuation waits for the accountant's cost policy" | Say the policy was approved verbally by the clinic's accountant on 25 Nov 2026 |
 
-The banner keeps its warning style for now, because it still says "management report", "verbal" and "not a
-statutory financial statement". Daniel may prefer a calmer neutral note; I'll ask him with the shots.
+**Design (Daniel, OK with changes, 25 Nov 2026):** the banner moves from the amber warning to the neutral info note
+(the "How this is counted" style, an information icon, "Management report" kept at the start), because the policy is
+settled and amber is kept for real warnings such as "6 medicines have stock with no cost recorded". Done on Stock
+value, Medicine sales and Stock review "At risk". Daniel also asked to show it only once on Stock value (at the top,
+not again inside the tabs); that needs the existing assertion change 3 below, so the tab copies stay, in the neutral
+style, until the owner approves it.
 
 ## Opening stock
 
@@ -72,6 +76,14 @@ true. Replacement, approved by the owner (decision (b)) and made in this PR:
 2. `tests/Frontend/stk35-opening-import.test.mjs:11`.
    - **Before:** `/Cost\s+policy to be confirmed by the accountant\./`
    - **After:** `/uses the weighted average cost policy approved by the\s+clinic's accountant\./`
+
+3. **Waiting for the owner's approval (Daniel's second change):**
+   `tests/Frontend/classic-only-co6-kept-direct.test.mjs:21-25` (the Classic-only team's test).
+   - **Before:** comment "The banner shows above the summary and on every tab." and
+     `(classicTemplate.match(/\{\{ report\.banner \}\}/g) ?? []).length >= 3`
+   - **After:** comment "The banner shows once, above the summary (REL-STK, Daniel)." and
+     `(classicTemplate.match(/\{\{ report\.banner \}\}/g) ?? []).length === 1`
+     (the following check, that the banner sits above the summary, stays).
 
 Every other test reads the banner through the `StockValuationReportService::BANNER` constant, so it follows the new
 wording without a change. A new test pins the exact new DISCLAIMER and BANNER text.
