@@ -224,7 +224,14 @@ const totals = computed(() => {
                 <OutstandingBills :groups="invoice.outstanding" />
             </aside>
 
+            <!-- BIL-37 (Daniel): for the doctor the items card would only repeat the Bill page line; the card next to
+                 the actions carries it once. -->
             <section
+                v-if="
+                    invoice.canSeeFinancial ||
+                    invoice.canSeeLines ||
+                    !invoice.links.billView
+                "
                 class="min-w-0 overflow-hidden rounded-xl border bg-card"
                 data-testid="invoice-lines"
             >
@@ -244,9 +251,7 @@ const totals = computed(() => {
                         {{
                             invoice.canSeeFinancial
                                 ? 'Totals only for your access.'
-                                : invoice.links.billView
-                                  ? 'The bill is on the read-only Bill page.'
-                                  : 'Billing details are not shown for your role.'
+                                : 'Billing details are not shown for your role.'
                         }}
                     </div>
                     <ul v-else class="divide-y">
