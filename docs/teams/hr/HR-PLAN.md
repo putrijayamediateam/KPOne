@@ -3611,9 +3611,8 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 - **7:** "Rates 1.5x, 2x and 3x: KPOne defaults chosen by the owner. Change them here if the clinic's rules differ."
 - **8, 9:** "An estimate until …" is removed. The rest of each sentence stays.
 - **13:** unchanged. Letter wording is the clinic's, and KPOne ships none.
-- **14:** added after the owner's answers, from Suresh's review (30.5). **Not yet approved.** Proposed, to match line 7:
-  "KPOne defaults chosen by the owner. Change them here if the clinic's rules differ." The owner confirms it before step 2;
-  until then line 14 stays as it is.
+- **14:** added from Suresh's review (30.5): "KPOne defaults chosen by the owner. Change them here if the clinic's rules
+  differ." (matches line 7; approved by the owner, 30.4 item 5).
 
 ### 30.3 How and when
 
@@ -3632,6 +3631,8 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 2. Step 2 (the code PR) waits for go-live.
 3. The location consent text (line 11) is final as it is.
 4. This note goes in as a docs-only PR now; nothing on screen changes until step 2.
+5. Line 14 (Leave settings defaults label), added after Suresh's review: approved as proposed (owner, in the HR session,
+   25 Nov 2026: "lulus wording baris 14 seperti dicadangkan").
 
 ### 30.5 Review (Suresh, 25 Nov 2026)
 
@@ -3639,8 +3640,8 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 
 1. Every "Today" quote in 30.1, lines 1 to 13, matches the code on `main` (`5ceddd43`), and `SyntheticNote` is on exactly
    the 19 pages listed.
-2. Missed on-screen line: the Leave settings defaults label (`LeaveDefaultsService::LABEL`). Added as line 14; its new
-   wording is a proposal for the owner, not part of the 30.4 answers.
+2. Missed on-screen line: the Leave settings defaults label (`LeaveDefaultsService::LABEL`). Added as line 14; the owner
+   approved its new wording (30.4 item 5).
 3. The 7-year photo retention is enforced in PostgreSQL: `guard_hr_attendance_retention_delete`
    (`2026_11_10_006000`) attached to `hr_clock_photos` (`2026_11_10_006800`).
 4. The 30.3 test list missed `hr-7c-payslips-exports` and, for line 14, the `hr-defaults` LABEL pin. Added.
