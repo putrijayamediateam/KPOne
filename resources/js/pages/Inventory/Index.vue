@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ChevronDown } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import DifferenceRowMenu from '@/components/inventory/DifferenceRowMenu.vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
+import MyDifferenceReports from '@/components/inventory/MyDifferenceReports.vue';
+import type { MyDifferenceReport } from '@/components/inventory/MyDifferenceReports.vue';
+import ReportDifferenceSheet from '@/components/inventory/ReportDifferenceSheet.vue';
+import type {
+    DifferenceState,
+    DifferenceTarget,
+} from '@/components/inventory/ReportDifferenceSheet.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -26,9 +34,14 @@ import type {
     InventoryReceiptMemoryContext,
 } from '@/types/inventory-operations';
 
-type InventoryRow = Record<string, string | boolean | null | undefined> & {
+type InventoryRow = Record<
+    string,
+    string | boolean | null | undefined | DifferenceState
+> & {
     held?: boolean;
     holdReason?: string | null;
+    // STK-45: present only for P10 holders, on balances that can be reported.
+    difference?: DifferenceState;
 };
 type InventoryDirectory = {
     tab: 'stock' | 'batches' | 'movements';
@@ -86,8 +99,58 @@ const props = defineProps<{
         canViewStockValue?: boolean;
         canViewMedicineSales?: boolean;
     };
+    // STK-45: Report a difference and "My reports", for P10 holders only.
+    differences?: {
+        canReport: boolean;
+        expectedBranchId?: number;
+        myReports?: { rows: MyDifferenceReport[]; total: number };
+    };
     errors?: Record<string, unknown>;
 }>();
+const canReport = computed(() => props.differences?.canReport === true);
+const reportTarget = ref<DifferenceTarget | null>(null);
+let reportTrigger: HTMLElement | null = null;
+const reportReturnQuery = computed(() => {
+    const query: Record<string, string | number> = {
+        tab: props.inventory.tab,
+        page: props.inventory.currentPage,
+    };
+    const filters = props.inventory.filters;
+
+    for (const [key, value] of [
+        ['search', filters.search],
+        ['location', filters.location],
+        ['status', filters.status],
+        ['batch', filters.batch],
+    ] as const) {
+        if (value) {
+            query[key] = value;
+        }
+    }
+
+    return query;
+});
+function openReport(row: InventoryRow, trigger: HTMLElement | null): void {
+    if (!row.difference) {
+        return;
+    }
+
+    reportTrigger = trigger;
+    reportTarget.value = {
+        medicine: String(row.medicineName ?? row.itemName),
+        batch: String(row.batchNumber),
+        expiry: String(row.expiryDate),
+        location: String(row.location),
+        quantity: String(row.quantity),
+        unit: String(row.stockUnit),
+        difference: row.difference,
+    };
+}
+async function closeReport(): Promise<void> {
+    reportTarget.value = null;
+    await nextTick();
+    reportTrigger?.focus();
+}
 const search = ref(props.inventory.filters.search);
 const location = ref(props.inventory.filters.location);
 const status = ref(props.inventory.filters.status);
@@ -676,6 +739,13 @@ const clearFilters = () => {
             Updating inventory…
         </p>
 
+        <MyDifferenceReports
+            v-if="
+                canReport && inventory.tab === 'stock' && differences?.myReports
+            "
+            :reports="differences.myReports"
+        />
+
         <EmptyState
             v-if="!loading && inventory.data.length === 0"
             title="No inventory records"
@@ -685,7 +755,7 @@ const clearFilters = () => {
         <OperationalTable
             v-else-if="inventory.tab === 'stock'"
             label="Stock Overview"
-            :columns="8"
+            :columns="canReport ? 9 : 8"
             min-width="1040px"
             :loading="loading"
             class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
@@ -700,6 +770,9 @@ const clearFilters = () => {
                     <th scope="col">Expiry</th>
                     <th scope="col" class="min-w-28 text-right">Quantity</th>
                     <th scope="col" class="min-w-32">Status</th>
+                    <th v-if="canReport" scope="col" class="relative w-14">
+                        <span class="sr-only">Actions</span>
+                    </th>
                 </tr></template
             >
             <template #body>
@@ -755,6 +828,22 @@ const clearFilters = () => {
                                       )
                                     : String(row.availabilityStatus)
                             "
+                        />
+                        <StatusBadge
+                            v-if="row.difference?.openCount"
+                            class="mt-1"
+                            status="count_open"
+                            label="Count open"
+                            tone="neutral"
+                            dot
+                        />
+                    </td>
+                    <td v-if="canReport" class="w-14 text-right">
+                        <DifferenceRowMenu
+                            v-if="row.difference"
+                            :difference="row.difference"
+                            :label="String(row.medicineName ?? row.itemName)"
+                            @report="(trigger) => openReport(row, trigger)"
                         />
                     </td>
                 </tr>
@@ -925,6 +1014,15 @@ const clearFilters = () => {
             Dates and times use {{ inventory.branchTimezone }}. Movement records
             are read-only.
         </p>
+
+        <ReportDifferenceSheet
+            v-if="canReport && differences?.expectedBranchId"
+            :target="reportTarget"
+            :expected-branch-id="differences.expectedBranchId"
+            return-to="inventory"
+            :return-query="reportReturnQuery"
+            @closed="closeReport"
+        />
 
         <InventoryReferenceDataPanel :reference-data="referenceData" />
 
