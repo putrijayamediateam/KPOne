@@ -6,6 +6,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\Clinical\Suggestions\SuggestionPermissions;
 use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
@@ -91,6 +92,7 @@ final class PermissionCatalogue
             ...array_keys(TreatmentStepPermissions::grants()),
             ...array_keys(TriagePermissions::grants()),
             ...array_keys(AutoAssignPermissions::grants()),
+            ...array_keys(SuggestionPermissions::grants()),
             ...array_keys(TreatmentRoomPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
@@ -522,6 +524,13 @@ final class PermissionCatalogue
         // TRI-1 (owner decisions 19 Nov 2026): triage readings for CA and CA Supervisor; the guideline for the
         // Director and the HR Manager only (the HR Manager never sees triage readings).
         foreach (TriagePermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        // SUG (owner, 25 Nov 2026): the doctor's review of the recommendation lists (Resident Doctor and Director).
+        foreach (SuggestionPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
