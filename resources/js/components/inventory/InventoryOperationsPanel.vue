@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useRemember } from '@inertiajs/vue3';
-import { Boxes } from '@lucide/vue';
+import { AlertTriangle, Boxes } from '@lucide/vue';
 import {
     computed,
     nextTick,
@@ -17,6 +17,7 @@ import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
 import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
 import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
 import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ import type {
     InventoryReceiptMemoryContext,
     InventoryReceiptRememberedState,
     InventoryReceiptRememberedVault,
+    StoreRequestDay,
 } from '@/types/inventory-operations';
 import {
     consumeInventoryReceiptIntent,
@@ -56,6 +58,10 @@ import {
 const props = defineProps<{
     operations: InventoryOperations;
     receiptMemoryContext: InventoryReceiptMemoryContext;
+    // STK-60: the store's request day, for the off-day warning (null without a store or the request permission).
+    storeDay?: StoreRequestDay | null;
+    // STK-47: the Central store link, for warehouse holders only (the server checks too).
+    canViewCentralStore?: boolean;
 }>();
 const deliveryReferences = reactive<Record<string, string>>({});
 const busy = ref(false);
@@ -183,6 +189,24 @@ const stockRequest = reactive({
     // STK-39: one key per request, so a double press or a retry returns the request already made.
     key: crypto.randomUUID(),
 });
+// STK-60: a request to the store on another day than its request day warns only; Submit still sends it.
+const storeOffDayWarning = computed(() =>
+    props.storeDay &&
+    !props.storeDay.isRequestDay &&
+    props.storeDay.storeLocationPublicIds.includes(stockRequest.source)
+        ? `The store's request day is ${props.storeDay.dayName}. You can still send this; the store may pack it with next ${props.storeDay.dayName}'s requests.`
+        : null,
+);
+
+// "Start a store request" (the reminder) opens here with the store chosen when there is exactly one.
+if (
+    typeof window !== 'undefined' &&
+    window.location.hash === '#store-request' &&
+    props.storeDay?.storeLocationPublicIds.length === 1
+) {
+    stockRequest.source = props.storeDay.storeLocationPublicIds[0];
+}
+
 const dispatchBatch = reactive<Record<string, string>>({});
 const reorder = reactive({
     location: '',
@@ -1290,11 +1314,32 @@ const saveReorder = () =>
 
             <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Stock Requests & Transfers</h3>
+                <ActionLink
+                    v-if="canViewCentralStore"
+                    href="/inventory/central-store"
+                    variant="outline"
+                    class="min-h-11 lg:min-h-9"
+                    data-testid="central-store-link"
+                    >Central store</ActionLink
+                >
                 <form
                     v-if="operations.permissions.createRequests"
-                    class="grid gap-2 sm:grid-cols-2"
+                    id="store-request"
+                    class="grid scroll-mt-4 gap-2 sm:grid-cols-2"
                     @submit.prevent="createStockRequest"
                 >
+                    <div
+                        v-if="storeOffDayWarning"
+                        role="status"
+                        class="flex gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-strong sm:col-span-2"
+                        data-testid="store-off-day-warning"
+                    >
+                        <AlertTriangle
+                            class="mt-0.5 size-4 shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span>{{ storeOffDayWarning }}</span>
+                    </div>
                     <InventorySearchSelect
                         v-model="stockRequest.source"
                         label="Source location"
@@ -1357,6 +1402,7 @@ const saveReorder = () =>
                     v-for="row in operations.stockRequests"
                     :key="row.publicId"
                     class="space-y-2 rounded-lg border p-3"
+                    :id="`stock-request-${row.publicId}`"
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-mono text-sm">{{ row.number }}</span

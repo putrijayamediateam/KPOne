@@ -103,6 +103,14 @@ export type InventoryReceiptLineIntent = {
     cost_total_sen?: number;
 };
 
+/** STK-60: the store's weekly request day, for the off-day warning and the reminder. It never blocks a request. */
+export type StoreRequestDay = {
+    dayName: string;
+    isRequestDay: boolean;
+    storeLocationPublicIds: string[];
+    reminder: { message: string; href: string } | null;
+};
+
 export type InventoryReceiptMemoryContext = {
     version: 2;
     organisationPublicId: string;

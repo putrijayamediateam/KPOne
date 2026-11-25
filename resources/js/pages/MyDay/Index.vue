@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronRight } from '@lucide/vue';
+import { ChevronRight, Info } from '@lucide/vue';
 import MyRoutine from '@/components/MyRoutine.vue';
 import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
@@ -32,6 +32,8 @@ defineProps<{
         areas: Array<{ area: string; count: number }>;
     } | null;
     routine: InstanceType<typeof MyRoutine>['$props']['routine'];
+    // STK-60: the store request day reminder (null unless it applies today); nothing is sent outside KPOne.
+    storeReminder?: { message: string; href: string } | null;
     shortcuts: Array<{ title: string; href: string }>;
 }>();
 </script>
@@ -68,6 +70,24 @@ defineProps<{
                 <h2 id="day-today">Today</h2>
                 <p class="space-muted">Nothing is planned for you today.</p>
             </section>
+
+            <div
+                v-if="storeReminder"
+                role="status"
+                class="flex flex-wrap items-center gap-3 rounded-lg border border-brand/25 bg-brand/10 px-4 py-3 text-sm"
+                data-test="my-day-store-reminder"
+            >
+                <Info
+                    class="size-4 shrink-0 text-brand-strong"
+                    aria-hidden="true"
+                />
+                <span class="min-w-0 flex-1">{{ storeReminder.message }}</span>
+                <Link
+                    :href="storeReminder.href"
+                    class="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:h-9"
+                    >Start a store request</Link
+                >
+            </div>
 
             <section
                 v-if="waiting"

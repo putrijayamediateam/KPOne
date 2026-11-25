@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { ChevronDown } from '@lucide/vue';
+import { ChevronDown, Info } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import DifferenceRowMenu from '@/components/inventory/DifferenceRowMenu.vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
@@ -32,6 +32,7 @@ import { inventoryFilterError } from '@/types/inventory-operations';
 import type {
     InventoryOperations,
     InventoryReceiptMemoryContext,
+    StoreRequestDay,
 } from '@/types/inventory-operations';
 
 type InventoryRow = Record<
@@ -105,6 +106,10 @@ const props = defineProps<{
         expectedBranchId?: number;
         myReports?: { rows: MyDifferenceReport[]; total: number };
     };
+    // STK-60: the store's request day and the reminder (null without a store or the request permission).
+    storeDay?: StoreRequestDay | null;
+    // STK-47: the Central store link, for warehouse holders only.
+    canViewCentralStore?: boolean;
     errors?: Record<string, unknown>;
 }>();
 const canReport = computed(() => props.differences?.canReport === true);
@@ -275,6 +280,26 @@ const clearFilters = () => {
             title="Inventory"
             :description="`Stock, batches and movement history for ${inventory.branch}.`"
         />
+
+        <!-- STK-60: the store request day reminder, inside KPOne only. It goes away once the branch has sent. -->
+        <div
+            v-if="storeDay?.reminder"
+            role="status"
+            class="flex flex-wrap items-center gap-3 rounded-lg border border-brand/25 bg-brand/10 px-4 py-3 text-sm"
+            data-testid="store-request-reminder"
+        >
+            <Info
+                class="size-4 shrink-0 text-brand-strong"
+                aria-hidden="true"
+            />
+            <span class="min-w-0 flex-1">{{ storeDay.reminder.message }}</span>
+            <ActionLink
+                :href="storeDay.reminder.href"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                >Start a store request</ActionLink
+            >
+        </div>
 
         <nav aria-label="Inventory tasks" class="kp-control-group">
             <!-- DD-75 (Daniel): from lg each group is an always-visible heading with its links; below lg the same
@@ -1029,6 +1054,8 @@ const clearFilters = () => {
         <InventoryOperationsPanel
             :operations="operations"
             :receipt-memory-context="receiptMemoryContext"
+            :store-day="storeDay ?? null"
+            :can-view-central-store="canViewCentralStore === true"
         />
     </main>
 </template>
