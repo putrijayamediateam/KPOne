@@ -339,6 +339,19 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     reworded in the same PR. Two owner-approved existing assertion changes (`StockJournalSummaryTest.php:133`,
     `stk35-opening-import.test.mjs:11`). No change to how cost is worked out, who sees it, or any stored figure.
     When the accountant's approval is written down, REL-STK.md can point to it.
+51. IMP-1 catalogue import (owner, 25 Nov 2026, relayed by B.E.R.N.I.S.S, for the Puchong live test): a one-off console
+    command, `inventory:import-catalogue {catalogue} --branch-prices= --actor= --branch= --dry-run`, run by the
+    coordinator. It creates medicines, SKUs (stock unit = dispensing unit, conversion 1), HQ Self-pay prices, branch
+    Self-pay prices and the controlled flag through the existing services (UnifiedCatalogueSetupService,
+    MedicineAdministrationService, PricingReferenceAdministrationService, PricePublicationService) as one named actor,
+    in one transaction: both files are checked first and refused with every problem listed, then everything is written
+    or nothing. `--dry-run` does every write and rolls it back. An existing code, SKU code or barcode is refused, so a
+    second run changes nothing. No new permission, screen or migration; one audit row
+    `inventory.catalogue_import.recorded` with counts only. The actor must hold all four of
+    `medicines.manage.organisation`, `prices.publish.organisation`, `pricing.references.manage.organisation` and
+    `inventory.references.manage.organisation` (on main: Administrator and CA Supervisor; the Director lacks
+    `prices.publish`). Panel prices are refused (`hq_panel_rm` must be blank): since owner decision 27 they change only
+    by proposal and approval. Opening stock and its unit cost stay with the STK-35 opening import and its STK-1 sign-off.
 
 ## 7. Open items and known limits
 
