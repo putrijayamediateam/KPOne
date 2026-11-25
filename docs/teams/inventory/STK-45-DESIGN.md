@@ -1,7 +1,7 @@
 # STK-45: Report a difference
 
-Revision 4 (Mei Ling: OK; Daniel: OK with changes, applied), for Daniel's look and the owner's approval. **Nothing is built
-until the owner approves this note.** Synthetic data only; not production-approved.
+Revision 4 (Mei Ling: OK; Daniel: OK with changes, applied). **Approved by the owner on 25 Nov 2026** ("Lulus nota +
+kebenaran") and built. Synthetic data only; not production-approved.
 
 **Owner decision:** "Stock quantities still never typed in directly; add **Report a difference** for staff, which
 opens a count case for approval" (`docs/decisions/2026-11-20-finance-inventory-proposals.md`, item 18). The order

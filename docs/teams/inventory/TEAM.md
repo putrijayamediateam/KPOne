@@ -329,6 +329,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     can't be compared across medicines (B.E.R.N.I.S.S for the owner, 23 Nov). A line charged RM 0.00 is a "free line",
     not sold below cost, and its cost still counts. The link sits on the Inventory home, not in Clinic management; the
     phone count becomes `reportsCount` (owner-approved change to `dd-12-inventory-headers.test.mjs`, 23 Nov).
+50. STK-45 Report a difference (owner, 25 Nov 2026, relayed by B.E.R.N.I.S.S: "Lulus nota + kebenaran", then
+    "Lulus + ship it"): note `docs/teams/inventory/STK-45-DESIGN.md` revision 4; P10 permission
+    `inventory.differences.report.branch` for CA, CA Supervisor, Store Admin, Branch Manager and Medical Assistant. A
+    report opens the governed STK-5 count or joins the newest live one and never moves stock; the reporter never counts,
+    recounts or approves that case (service and PostgreSQL: STK-5's `guard_governed_stock_action` gains the reporter
+    exclusion, and `down()` restores the STK-5 body). Owner-approved existing assertion changes: one line each in
+    `RoleOneRolesTest::tables()` (branch_manager, store_admin) and `MedicalAssistantRoleTest::EXPECTED`.
 
 ## 7. Open items and known limits
 
