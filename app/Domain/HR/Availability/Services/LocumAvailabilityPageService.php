@@ -86,7 +86,7 @@ final class LocumAvailabilityPageService
         $expired = $r->status === 'waiting' && $ends->lessThanOrEqualTo($now);
         $status = $expired ? 'expired' : (string) $r->status;
 
-        return ['id' => (string) $r->public_id, 'branchId' => (int) $r->branch_id, 'branch' => (string) ($branches->get($r->branch_id)?->name ?? 'Branch'),
+        return ['id' => (string) $r->public_id, 'branchId' => (int) $r->branch_id, 'branch' => (string) ($branches->get($r->branch_id)->name ?? 'Branch'),
             'locum' => $own ? null : (string) ($r->locum_name ?? 'Locum'),
             'when' => $starts->format('D j M Y, g:i A').' to '.($ends->isSameDay($starts) ? $ends->format('g:i A') : $ends->format('D j M, g:i A')),
             'startTime' => $starts->format('H:i'), 'endTime' => $ends->format('H:i'),

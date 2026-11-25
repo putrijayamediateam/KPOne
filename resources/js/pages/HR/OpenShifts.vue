@@ -2,6 +2,7 @@
 // HR-15b /hr/open-shifts: a linked locum sees open shifts at their branches and asks for one; the Director and HR
 // Manager post shifts and confirm one locum, which adds the shift to the branch's next draft roster week.
 import { Head } from '@inertiajs/vue3';
+import FreeTimes from '@/components/hr/open-shifts/FreeTimes.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -181,6 +182,14 @@ const {
                 </li>
             </ul>
         </template>
+
+        <!-- HR-22f: free times a locum offers, and HR's answers -->
+        <FreeTimes
+            v-else-if="openShifts.tab === 'free' && freeTimes"
+            :free-times="freeTimes"
+            :sessions="openShifts.sessions"
+            :today="openShifts.today"
+        />
 
         <!-- Managers: open, or filled and withdrawn -->
         <template v-else>
