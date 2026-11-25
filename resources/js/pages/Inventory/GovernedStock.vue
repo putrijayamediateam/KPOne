@@ -17,6 +17,7 @@ import { StatusBadge } from '@/components/ui/status';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
+import { trimQuantity } from '@/lib/supplier-terms';
 type Target = {
     id: number;
     /** Left out in count mode (STK-23 blind counts). */
@@ -63,6 +64,20 @@ type Case = {
     canCount: boolean;
     canApprove: boolean;
     canReverse: boolean;
+    /** STK-45: difference reports on this case. The rough count and note arrive only for the approver. */
+    reports?: DifferenceReportLine[];
+};
+type DifferenceReportLine = {
+    reporter: string;
+    observed: string;
+    roughQuantity?: string | null;
+    note?: string | null;
+};
+const observedLabels: Record<string, string> = {
+    fewer: 'Fewer than KPOne shows',
+    more: 'More than KPOne shows',
+    damaged_or_expired: 'Some are damaged or expired',
+    unsure: 'Not sure; please count it',
 };
 type CycleRow = {
     skuPublicId: string;
@@ -579,6 +594,32 @@ const caseKindLabel = (kind: string) =>
                     {{ row.location }} ·
                     {{ formatInventoryReason(row.reason) }}
                 </p>
+                <ul
+                    v-if="row.reports?.length"
+                    class="space-y-1 text-sm"
+                    data-testid="difference-reports"
+                >
+                    <li
+                        v-for="(report, index) in row.reports"
+                        :key="index"
+                        class="break-words"
+                    >
+                        Reported by {{ report.reporter }}:
+                        {{ observedLabels[report.observed] ?? report.observed
+                        }}<span
+                            v-if="report.roughQuantity"
+                            class="text-muted-foreground"
+                        >
+                            · rough count
+                            {{ trimQuantity(report.roughQuantity) }}
+                            {{ row.stock_unit }}</span
+                        ><span
+                            v-if="report.note"
+                            class="block text-muted-foreground"
+                            >Note: {{ report.note }}</span
+                        >
+                    </li>
+                </ul>
                 <p v-if="row.blind" data-testid="blind-count">
                     Blind count: the expected quantity shows to the approver
                     once the counts are in.

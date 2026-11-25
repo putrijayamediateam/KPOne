@@ -180,10 +180,16 @@ final class InventoryStockReviewService
         $tooMany = $withValue && array_sum($batchCounts) > (int) config('inventory.at_risk_value_sort_limit', self::AT_RISK_VALUE_SORT_LIMIT);
         $withValue = $withValue && ! $tooMany;
         $base = ['days' => self::AT_RISK_DAYS, 'sortedBy' => $withValue ? 'value' : 'expiry', 'tooManyToValue' => $tooMany];
+        // STK-45: Report a difference on each at-risk batch, for P10 holders.
+        $withDifference = function (array $rows) use ($actor, $branch): array {
+            $differences = app(DifferenceReportService::class)->forRows($actor, $branch, array_values(array_map(fn (array $row): int => (int) $row['item_id'], $rows)));
+
+            return array_map(fn (array $row): array => isset($differences[$row['item_id']]) ? [...$row, 'difference' => $differences[$row['item_id']]] : $row, $rows);
+        };
         if (! $withValue) {
             $p = $query->orderBy('expiry')->orderBy('sku_code')->orderBy('batch')->orderBy('item_id')->paginate(self::PER_PAGE, ['*'], 'at_risk_page', $page);
 
-            return [...$base, 'rows' => array_map($shape, $p->items()), 'total' => $p->total(), 'page' => $p->currentPage(), 'lastPage' => $p->lastPage()];
+            return [...$base, 'rows' => $withDifference(array_map($shape, $p->items())), 'total' => $p->total(), 'page' => $p->currentPage(), 'lastPage' => $p->lastPage()];
         }
         $rows = $query->get();
         $skuIds = array_values(array_unique(array_map(fn (\stdClass $row): int => (int) $row->sku_id, $rows->all())));
@@ -217,7 +223,7 @@ final class InventoryStockReviewService
         $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
         $page = min($page, $lastPage);
 
-        return [...$base, 'rows' => array_slice($valued, ($page - 1) * self::PER_PAGE, self::PER_PAGE), 'total' => $total, 'page' => $page, 'lastPage' => $lastPage,
+        return [...$base, 'rows' => $withDifference(array_slice($valued, ($page - 1) * self::PER_PAGE, self::PER_PAGE)), 'total' => $total, 'page' => $page, 'lastPage' => $lastPage,
             'banner' => StockValuationReportService::BANNER];
     }
 
