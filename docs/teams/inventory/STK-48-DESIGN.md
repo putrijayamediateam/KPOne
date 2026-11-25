@@ -53,8 +53,8 @@ The converted draft order carries quoted prices as estimates, so the order side 
   edit form are checked and fixed in this slice.
 - `ProcurementService::updateDraft` replaces every line. **Only when the actor lacks cost view** (their form has no
   cost fields), each line keeps its existing estimate, matched by SKU; a line they add has no estimate. A cost-view
-  holder's request stays final, as today, so they can still clear an estimate. A SKU may appear on only one line of an
-  order, so the match is unambiguous (the request is refused otherwise). Tested.
+  holder's request stays final, as today, so they can still clear an estimate. A SKU already appears on only one line of an
+  order (`validateLines` has `distinct` on main), so the match is unambiguous; no new rule. Tested.
 
 ## 4. Conversion: locks and retries
 
