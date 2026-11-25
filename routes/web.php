@@ -57,6 +57,7 @@ use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
 use App\Http\Controllers\HR\LabourCostController as HrLabourCostController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
+use App\Http\Controllers\HR\LocumAvailabilityController as HrLocumAvailabilityController;
 use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
@@ -263,6 +264,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
             Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
             Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/copy-to-month', 'copyToMonth')->whereUuid('version')->name('hr.roster.copy-month');
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
@@ -575,10 +577,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    // HR-22f locum free times (HR-PLAN 29.7): a linked locum proposes; a roster planner uses or declines.
+    Route::prefix('hr/free-times')->controller(HrLocumAvailabilityController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::middleware(['permission:hr.locum_availability.propose.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'propose')->name('hr.free-times.store');
+            Route::post('{availability_id}/withdraw', 'withdraw')->whereUuid('availability_id')->name('hr.free-times.withdraw');
+        });
+        Route::middleware(['permission:hr.roster.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('{availability_id}/use', 'use')->whereUuid('availability_id')->name('hr.free-times.use');
+            Route::post('{availability_id}/decline', 'decline')->whereUuid('availability_id')->name('hr.free-times.decline');
+        });
+    });
     // HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Everyone reports; the Director and HR Manager handle.
     // HR-15b open shifts (HR-PLAN 21.4): managers post and confirm; a linked locum asks.
     Route::prefix('hr/open-shifts')->controller(HrOpenShiftsController::class)->middleware('sensitive.no-store')->group(function (): void {
-        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation')->name('hr.open-shifts.index');
+        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation,hr.locum_availability.propose.own')->name('hr.open-shifts.index');
         Route::middleware(['permission:hr.open_shifts.request.own', 'throttle:30,1'])->group(function (): void {
             Route::post('{shift}/ask', 'ask')->whereUuid('shift')->name('hr.open-shifts.ask');
             Route::post('asks/{ask}/withdraw', 'withdrawAsk')->whereUuid('ask')->name('hr.open-shifts.ask-withdraw');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Availability\Services\LocumAvailabilityPageService;
 use App\Domain\HR\OpenShifts\Services\OpenShiftService;
 use App\Domain\HR\OpenShifts\Services\OpenShiftsPageService;
 use App\Http\Controllers\Controller;
@@ -18,7 +19,11 @@ class OpenShiftsController extends Controller
 {
     public function index(Request $request, OpenShiftsPageService $pages): Response
     {
-        return Inertia::render('HR/OpenShifts', ['openShifts' => $pages->page($request->user(), $request->only(['tab']))]);
+        $page = $pages->page($request->user(), $request->only(['tab']));
+
+        // HR-22f: the "Free times" tab's own props, only when that tab is shown.
+        return Inertia::render('HR/OpenShifts', ['openShifts' => $page,
+            'freeTimes' => $page['tab'] === 'free' ? app(LocumAvailabilityPageService::class)->page($request->user()) : null]);
     }
 
     public function store(Request $request, OpenShiftService $shifts): RedirectResponse

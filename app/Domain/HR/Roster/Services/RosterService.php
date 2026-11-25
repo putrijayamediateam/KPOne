@@ -98,6 +98,106 @@ final class RosterService
         }, 3);
     }
 
+    /**
+     * HR-22e (HR-PLAN 29.6): copy one week's shown roster to each later week of the month shown, through the same checks as
+     * "Copy last approved week" (assignment, overlap, leave, 16 hours). A later week with no roster gets a new draft; a week
+     * with a draft gets the copied shifts added (a shift that would overlap one already there is left out and listed); a
+     * week waiting for approval or already approved is skipped and listed. Each week is still sent and approved on its own.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{version: RosterVersion, weeks: list<array{week: string, outcome: string, note: string|null}>, skipped: list<string>}
+     */
+    public function copyToMonth(User $actor, string $versionId, array $input): array
+    {
+        $key = $this->key($input['idempotency_key'] ?? null);
+        $month = is_string($input['month'] ?? null) && preg_match('/\A(20\d\d|2100)-(0[1-9]|1[0-2])\z/', $input['month']) === 1 ? $input['month'] : null;
+        if ($month === null) {
+            throw ValidationException::withMessages(['roster' => 'Choose a month.']);
+        }
+
+        return DB::transaction(function () use ($actor, $versionId, $month, $key): array {
+            $people = $this->subjectsOf($actor, $versionId);
+            $this->lockPeople($actor, $people);
+            $actor = $this->authority->lock($actor, RosterPermissions::MANAGE);
+            $this->serializeKey($actor, $key);
+            $hash = $this->hash([$actor->id, 'copy_month', $versionId, $month]);
+            if (($replay = $this->replay($actor, $key, 'copy_month', $hash)) !== null) {
+                return ['version' => $replay, 'weeks' => [], 'skipped' => []];
+            }
+            [$branch, $sourceWeek, $source] = $this->lockVersion($actor, $versionId);
+            $this->authority->branch($actor, $branch->id);
+            if (! in_array($source->status, ['draft', 'submitted', 'approved'], true)) {
+                throw ValidationException::withMessages(['roster' => 'This roster was replaced or discarded. Reload the page.']);
+            }
+            if (! $source->shifts()->exists()) {
+                throw ValidationException::withMessages(['roster' => 'This week has no shifts to copy.']);
+            }
+            // People are locked before the week (Suresh, m1): someone added to the source after that read would be locked late.
+            $now = $this->subjectsOf($actor, $versionId);
+            sort($now);
+            sort($people);
+            if ($now !== $people) {
+                throw ValidationException::withMessages(['roster' => 'This roster changed. Reload the page.']);
+            }
+            $first = CarbonImmutable::createFromFormat('!Y-m', $month, $branch->timezone);
+            if (! $first instanceof CarbonImmutable) {
+                throw ValidationException::withMessages(['roster' => 'Choose a month.']);
+            }
+            $last = $first->endOfMonth()->startOfDay();
+            $sourceStart = $this->weekStartOf($sourceWeek, $branch);
+            if ($sourceStart->addDays(6)->lt($first) || $sourceStart->gt($last)) {
+                throw ValidationException::withMessages(['roster' => 'This week is not in the month shown. Reload the page.']);
+            }
+
+            $weeks = [];
+            $skipped = [];
+            for ($offset = 7, $target = $sourceStart->addWeek(); $target->lte($last); $offset += 7, $target = $target->addWeek()) {
+                $label = 'Week of '.$this->rules->shortDayLabel($target);
+                $week = $this->lockWeek($branch, $target, create: true);
+                $versions = RosterVersion::query()->where('roster_week_id', $week->id)->lockForUpdate()->orderBy('id')->get();
+                $draft = $versions->first(fn (RosterVersion $v): bool => $v->status === 'draft');
+                if ($versions->contains(fn (RosterVersion $v): bool => $v->status === 'submitted')) {
+                    $weeks[] = ['week' => $label, 'outcome' => 'skipped', 'note' => 'Waiting for approval, not changed.'];
+
+                    continue;
+                }
+                if ($draft === null && $versions->contains(fn (RosterVersion $v): bool => $v->status === 'approved')) {
+                    $weeks[] = ['week' => $label, 'outcome' => 'skipped', 'note' => 'Already approved, not changed. Use "Change this week" to change it.'];
+
+                    continue;
+                }
+                $created = $draft === null;
+                if ($created) {
+                    $draft = new RosterVersion;
+                    $draft->forceFill([
+                        'public_id' => (string) Str::uuid(), 'organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id,
+                        'roster_week_id' => $week->id, 'version_number' => (int) $versions->max('version_number') + 1, 'status' => 'draft',
+                        'based_on_version_id' => $source->id, 'created_by_user_id' => $actor->id,
+                    ])->save();
+                }
+                $before = $draft->shifts()->count();
+                $notes = $this->copyShifts($actor, $branch, $source, $draft, $offset);
+                $skipped = [...$skipped, ...$notes];
+                $copied = $draft->shifts()->count() - $before;
+                if (! $created) {
+                    $this->touch($draft);
+                }
+                $week->forceFill(['lock_version' => $week->lock_version + 1])->save();
+                $this->action($week, $draft, 'week_copied', $actor);
+                $this->audit->record('hr.roster.week_copied_to_month', $draft, ['roster_week_id' => $week->id, 'source_version_id' => $source->id,
+                    'new_draft' => $created, 'copied_shift_count' => $copied, 'skipped_shift_count' => count($notes)], $actor, $branch);
+                $weeks[] = ['week' => $label, 'outcome' => $created ? 'created' : 'updated',
+                    'note' => $copied.' '.($copied === 1 ? 'shift' : 'shifts').($created ? '.' : ' added.')];
+            }
+            if ($weeks === []) {
+                throw ValidationException::withMessages(['roster' => 'This is the last week of the month. There is no later week to copy to.']);
+            }
+            $this->remember($actor, $key, 'copy_month', $hash, $source);
+
+            return ['version' => $source, 'weeks' => $weeks, 'skipped' => $skipped];
+        }, 3);
+    }
+
     /** @param array<string, mixed> $input */
     public function addShift(User $actor, string $versionId, array $input): RosterVersion
     {
