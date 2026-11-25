@@ -502,7 +502,7 @@ const {
                     <tr>
                         <th
                             scope="col"
-                            class="sticky left-0 z-10 bg-muted px-3 py-2 font-medium"
+                            class="sticky left-0 z-10 bg-card-quiet px-3 py-2 font-medium"
                         >
                             Person
                         </th>
