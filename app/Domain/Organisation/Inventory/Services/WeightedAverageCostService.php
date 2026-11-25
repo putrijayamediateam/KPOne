@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * STK-27: weighted average cost per SKU per branch, worked out by replaying the stock ledger in time order. Read only: it
- * writes nothing, and no stock-writing code changes. The figures are KPOne defaults set at the owner's instruction
- * (B.E.R.N.I.S.S acting as the accountant, 2026-11-15), not professional accounting advice:
+ * writes nothing, and no stock-writing code changes. These rules were set at the owner's instruction (2026-11-15) and
+ * the clinic's accountant approved it verbally on 25 Nov 2026 (owner-confirmed, REL-STK). It is still a management figure, not a statutory financial
+ * statement:
  *
  * - An accepted purchase receipt moves the average: (value before + receipt cost) / (quantity before + received). The
  *   receipt cost is the lot's actual total (STK-10B `cost_total_sen`), else unit cost x quantity. An order estimate is
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class WeightedAverageCostService
 {
-    public const DISCLAIMER = "Set by KPOne defaults at the owner's instruction; not professional accounting advice.";
+    public const DISCLAIMER = "Weighted average cost, as approved verbally by the clinic's accountant on 25 Nov 2026; not a statutory financial statement.";
 
     /** Movements that bring stock in with a cost of their own (or none). */
     private const COSTED_IN = [StockMovement::TYPE_PURCHASE_RECEIPT, StockMovement::TYPE_OPENING];

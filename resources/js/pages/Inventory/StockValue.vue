@@ -17,8 +17,8 @@ import { formatDate } from '@/lib/presentation';
  * STK-28 in Classic: stock value, cost of goods sold, margin and losses (Director only), with the STK-29 journal summary
  * download. The only Stock value page since Classic only (CO-6 removed the V2 copy; owner decision 2026-11-19,
  * replacing the 2026-11-15 "new layout only" page). Figures come from the server; this page
- * only formats them. Every figure is a KPOne default, not professional accounting advice, so the banner stays on every
- * tab.
+ * only formats them. Every figure uses the weighted average cost policy the clinic's accountant approved verbally on
+ * 25 Nov 2026 (REL-STK); it is still a management report, so the banner stays on every tab.
  */
 type StockRow = {
     sku: string;

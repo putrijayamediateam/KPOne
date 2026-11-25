@@ -146,7 +146,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
    and a Finance Officer; a signed stock admission procedure; a pharmacist review stays open (2026-10-30).
 8. Production procurement, receiving, stocktake and adjustment workflows and stock migration remain not
    authorised beyond the merged STK slices (BASELINE section 4).
-9. Valuation (STK-10) needs an accountant-approved cost policy before any build (2026-11-03).
+9. Valuation (STK-10) needs an accountant-approved cost policy before any build (2026-11-03). *Overtaken: built on
+   draft defaults (item 32, STK-27 to STK-29); the accountant approved the policy verbally on 25 Nov 2026 (decision 49).*
 10. Transfer differences are resolved by the write-off approvers (CA Supervisor, Finance Officer, Director),
     never by the receiver (2026-11-05).
 11. Supplier returns: a CA Supervisor requests; a Finance Officer or Director approves, never the requester
@@ -329,6 +330,15 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     can't be compared across medicines (B.E.R.N.I.S.S for the owner, 23 Nov). A line charged RM 0.00 is a "free line",
     not sold below cost, and its cost still counts. The link sits on the Inventory home, not in Clinic management; the
     phone count becomes `reportsCount` (owner-approved change to `dd-12-inventory-headers.test.mjs`, 23 Nov).
+49. REL-STK cost policy approved (owner, 25 Nov 2026, relayed by B.E.R.N.I.S.S: "Lulus + stok pembukaan juga"): the
+    clinic's accountant approved the weighted average cost policy verbally, as built in STK-27 (rules in
+    `docs/teams/inventory/REL-STK.md`), and opening stock at its entered unit cost. The disclaimer becomes "Weighted
+    average cost, as approved verbally by the clinic's accountant on 25 Nov 2026; not a statutory financial
+    statement."; the banner drops "cost policy to be confirmed by the clinic's accountant"; the journal account
+    "Opening stock (to be confirmed by accountant)" becomes "Opening stock"; the `AGENTS.md` inventory clause is
+    reworded in the same PR. Two owner-approved existing assertion changes (`StockJournalSummaryTest.php:133`,
+    `stk35-opening-import.test.mjs:11`). No change to how cost is worked out, who sees it, or any stored figure.
+    When the accountant's approval is written down, REL-STK.md can point to it.
 
 ## 7. Open items and known limits
 
@@ -338,7 +348,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   before go-live: (a) a second Director account; or (b) let a Finance Officer lift a recall a Director started,
   which grants a new permission and needs the owner's approval. Found while checking Kavitha's guide (#906); the
   guide says it plainly.
-- **Planned, not built:** STK-10 valuation (accountant policy first). STK-10B (cost evidence) is merged; its
+- **STK-10 valuation:** built as STK-27 to STK-29; policy approved verbally by the accountant (decision 49). STK-10B (cost evidence) is merged; its
   limits: opening balances still take a whole-sen cost per stock unit with no cost source; the legacy goods
   receipt line keeps only `unit_cost_sen`; Ask KPOne does not show `cost_total_sen` or `cost_source` until the
   Agent platform's AG-7b. Label batch and expiry is the Dispensary
@@ -461,8 +471,8 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    batch and expiry printing belongs to the Dispensary team's DSP-2.
 5. **STK-11 Patient returns location (for DSP-7).** *Merged in PR #279.*
 6. **STK-10 Valuation.** *Analysis merged in PR #289; option B (STK-10B) merged in PR #309 (`a1a44d8`), on
-   the owner's "yes, do option B" (section 6 items 29 to 31).* Next step waits on the owner: the accountant's name
-   and package, then the accountant's written policy before any valuation or export. *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
+   the owner's "yes, do option B" (section 6 items 29 to 31).* Valuation was later built on draft defaults (item 7
+   below) and the accountant approved the policy verbally on 25 Nov 2026 (decision 49, REL-STK). *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
    KPOne records about cost today, the gaps, and the questions an accountant must answer. Nothing is built until
    the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
 7. **The 2026-11-11 programme (section 6 item 32), status on 2026-11-12:**
@@ -473,8 +483,8 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
      B.E.R.N.I.S.S set draft defaults as the accountant. STK-27 (weighted average cost, the read-only engine
      `WeightedAverageCostService`, gap defaults a to f) is built; STK-28 (stock value, COGS, margin and RM losses,
      with a "supplier credit difference" line and the new permission `inventory.valuation.view.organisation` for the
-     Director, to be approved) and STK-29 (monthly journal summary CSV) follow. Every figure says "Set by KPOne
-     defaults at the owner's instruction; not professional accounting advice."
+     Director, to be approved) and STK-29 (monthly journal summary CSV) follow. Every figure said "Set by KPOne
+     defaults at the owner's instruction; not professional accounting advice." until REL-STK (decision 49).
    - STK-28 merged (#829): the permission is the owner's decision (Director only, with margin). STK-29 (this PR): the
      monthly journal summary CSV on the Stock value page, one calendar month, plain journal lines with debit and
      credit columns, a check line that must be exactly 0.00 (an unbalanced journal is refused), and one audit row per

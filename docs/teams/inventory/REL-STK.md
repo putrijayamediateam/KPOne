@@ -3,8 +3,10 @@
 **Approval:** owner-confirmed, verbal, 25 Nov 2026. The owner told B.E.R.N.I.S.S that the clinic's accountant has
 approved the stock cost policy ("dah approve"). Nothing is written down from the accountant yet.
 
-Revision 1, for the owner's approval. **Nothing is built until the owner approves this note.** Synthetic data only;
-not production-approved.
+Revision 2. **Approved by the owner on 25 Nov 2026** (relayed by B.E.R.N.I.S.S: "Lulus + stok pembukaan juga"),
+including both assertion changes, with two decisions: (a) the accountant also confirmed opening stock at its entered
+cost, so the journal label becomes "Opening stock"; (b) the `AGENTS.md` line changes in this PR, using the wording
+below. Synthetic data only; not production-approved.
 
 ## What changes and what doesn't
 
@@ -42,12 +44,13 @@ not any stored figure.
 The banner keeps its warning style for now, because it still says "management report", "verbal" and "not a
 statutory financial statement". Daniel may prefer a calmer neutral note; I'll ask him with the shots.
 
+## Opening stock
+
+The owner confirmed the accountant also approved opening stock at its entered unit cost (decision (a)). The journal
+summary's account label "Opening stock (to be confirmed by accountant)" becomes "Opening stock".
+
 ## What this approval does not cover (left as it is)
 
-- **Opening stock value.** The journal summary's account label "Opening stock (to be confirmed by accountant)" stays.
-  The STK-10 analysis asked the accountant separately how opening stock should be valued, and this approval doesn't
-  say. **Question for the owner:** did the accountant also confirm opening stock at its entered cost? If yes, the
-  label becomes "Opening stock".
 - **HR payroll, leave and claims retention and SST.** Those "the accountant confirms…" notes are a different
   approval and are not touched.
 - **A written copy.** When the accountant's approval is written down, this note's approval line can point to it.
@@ -55,11 +58,11 @@ statutory financial statement". Daniel may prefer a calmer neutral note; I'll as
 ## AGENTS.md
 
 `AGENTS.md` says "valuation is labelled pending the accountant's cost policy". After this release that is no longer
-true. Proposed replacement, for the owner (I don't edit `AGENTS.md` without the owner's say-so):
+true. Replacement, approved by the owner (decision (b)) and made in this PR:
 "valuation is labelled with the weighted average cost policy the clinic's accountant approved verbally on 25 Nov 2026".
 `docs/BASELINE.md` is the coordinator's to record.
 
-## Existing assertions this changes (for the owner's approval)
+## Existing assertions this changes (approved by the owner)
 
 1. `tests/Feature/Inventory/StockJournalSummaryTest.php:133`, in
    `test_the_csv_is_safe_carries_the_disclaimer_and_writes_only_one_audit_row`.

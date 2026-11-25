@@ -11,8 +11,8 @@ import { OperationalTable } from '@/components/ui/table';
 /**
  * STK-44: the medicine sales page (Director and Finance Officer). The top 25 medicines for one month, with the cost of
  * what was dispensed and the profit, and every medicine with a line sold below cost. Every figure comes from the server
- * (MedicineSalesReportService); this page only formats them. Figures are KPOne defaults, not accounting advice, so the
- * accountant banner sits above them.
+ * (MedicineSalesReportService); this page only formats them. Figures use the weighted average cost policy the clinic's
+ * accountant approved verbally on 25 Nov 2026 (REL-STK); the management-report banner sits above them.
  */
 type Units = { unit: string; quantity: string }[];
 type Row = {

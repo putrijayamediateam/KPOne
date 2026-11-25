@@ -14,8 +14,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * STK-28: stock value, cost of goods sold, margin and losses, read from the STK-27 weighted average cost engine and,
  * read only, from finalised invoice lines. Director only (`inventory.valuation.view.organisation`). Nothing is written
- * except one audit row each time the report is opened. Every figure is a KPOne default set at the owner's instruction,
- * not professional accounting advice (WeightedAverageCostService::DISCLAIMER).
+ * except one audit row each time the report is opened. Every figure uses the weighted average cost policy that
+ * the clinic's accountant approved it verbally on 25 Nov 2026 (owner-confirmed, REL-STK) (WeightedAverageCostService::DISCLAIMER).
  *
  * - Stock value: each SKU's position at the end of the period (or now, if earlier), in the chosen branch or every
  *   branch plus the organisation store. Stock with no cost is counted apart and named, never valued at zero.
@@ -33,7 +33,7 @@ final class StockValuationReportService
 
     public const MAX_DAYS = 92;
 
-    public const BANNER = "Management report — cost policy to be confirmed by the clinic's accountant. ".WeightedAverageCostService::DISCLAIMER;
+    public const BANNER = 'Management report — '.WeightedAverageCostService::DISCLAIMER;
 
     private const LOSS_TYPES = [
         'expiry' => [StockMovement::TYPE_EXPIRY_WRITEOFF],
