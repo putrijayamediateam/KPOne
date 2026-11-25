@@ -1,6 +1,6 @@
 # STK-45: Report a difference
 
-Revision 3 (Mei Ling: OK, with her last three wording points applied), for Daniel's look and the owner's approval. **Nothing is built
+Revision 4 (Mei Ling: OK; Daniel: OK with changes, applied), for Daniel's look and the owner's approval. **Nothing is built
 until the owner approves this note.** Synthetic data only; not production-approved.
 
 **Owner decision:** "Stock quantities still never typed in directly; add **Report a difference** for staff, which
@@ -25,34 +25,51 @@ approves. **The report itself never changes stock.** No quantity is typed into s
 - Stock review **Expiring** and **Expired** rows, and the **At risk in 6 months** list.
 
 It is **not** on Stock review **Low stock** rows: those are reorder-level rows for a medicine, not one batch, so there
-is nothing to count. It shows only to holders of P10, and only for stock at the active branch.
+is nothing to count. It shows only to holders of P10, and only for stock at the active branch. At 390 px the row
+menu items are 44 px.
 
-**The sheet** (a side sheet on desktop, full screen below 640 px):
+When a live count is already open on that row, the menu item reads **Add to the open count** instead (same sheet),
+so there is never a chip and a menu item that seem to do the same thing.
+
+**The sheet** (a side sheet on desktop; below 640 px full screen with the actions pinned at the bottom, padded for
+the safe area; the close X is a 44 px target, not the shared 16 px one, design debt DD-119):
 
 - Header: the medicine, batch and expiry, location, and "KPOne shows 200 tablets".
-- **What did you see?** (required, one choice):
+- **What did you see?** (required): a radio group stacked one per row, each row a 44 px target with the whole label
+  clickable, **nothing chosen at first** (the reasons-start-empty rule):
   - "Fewer than KPOne shows"
   - "More than KPOne shows"
   - "Some are damaged or expired"
   - "Not sure; please count it"
-- **About how many?** (optional, a number in the stock unit, labelled "Your rough count, if you have one. The counter
-  won't see it."). This is a note for the approver, not a stock figure.
-- **Note** (optional, 200 characters, plain text; hint: "Don't write patient names or details.").
-- Buttons: **Send for counting** and **Cancel**.
+- **About how many?** (optional, a number, with the stock unit shown beside the box, for example "tablets"). The hint
+  stays visible under the field, not in a tooltip: "Your rough count, if you have one. The counter won't see it."
+  This is a note for the approver, not a stock figure.
+- **Note** (optional, 200 characters, plain text), with the hint visible under it, "Don't write patient names or
+  details.", and a counter "0 / 200".
+- Buttons: **Send for counting** (the only filled button) and **Cancel** (outline). Send stays unavailable, with the
+  line "Pick what you saw to continue.", until a choice is made.
 
-After sending, a toast: "Sent. A stock count was opened for this batch." or, when the report joined a count already
-open, "Sent. Added to the stock count already open for this batch." The row shows a small neutral chip "Count open".
+**When the second-person rule blocks you** (you already counted or recounted the open case on that batch), the menu
+item is not hidden. The sheet opens to a plain refusal, "You counted this batch, so another person has to report it.",
+with only **Close**. A refusal is better than a missing button.
+
+After sending, the sheet closes, focus returns to the row's menu button, and a one-line toast says "Sent. A stock count
+was opened for this batch." or, when the report joined a count already open, "Sent. Added to the stock count already
+open for this batch." The row then shows a neutral status chip, a dot plus the words **"Count open"**; the chip is the
+record.
 
 **Where the reports show.** On the governed Stock count page, a case with reports shows "Reported by <name>: Fewer
 than KPOne shows" under the item. The **reporters' rough counts and notes are hidden from the counter and recounter**
 (the count stays blind) and shown only to the approver, beside the counted figures.
 
-**My reports.** On the Inventory page, under "My reports": the last 25 of my reports at this branch (item, what I saw,
-when, and the case state in words):
+**My reports.** On the Inventory page, a closed disclosure near the stock list with a chevron and the count in its
+label, "My reports (3)", so people find the outcome where they reported from. With nothing in it, it still shows, with
+"You have not reported anything at this branch." It lists the last 25 of my reports at this branch (item, what I saw,
+when, and the case state as a neutral dot plus words):
 
 - "Waiting for count", "Being recounted", "Waiting for approval", "No difference found", "Approved";
-- **"Stock changed before the count. Report again if it still looks wrong."** when the case's snapshot no longer
-  matches the stock (see Rules), because STK-5 can no longer count that case.
+- **"Needs a new report"**, with the line "Stock changed before the count. Report again if it still looks wrong.",
+  when the case's snapshot no longer matches the stock (see Rules), because STK-5 can no longer count that case.
 
 Read only.
 
@@ -195,8 +212,10 @@ owner's approval:
 - Rough count and note never reach the counter's page data, the audit row, or the agent data sources.
 - Two-process races (Contention suite): two people reporting the same balance at once give one case and two reports;
   a report against a count on the same case (the lock order above) finishes without a deadlock.
-- Frontend: the menu item shows only with P10 and not on Low stock rows; the sheet's choices, labels and 44 px
-  targets below 1024 px; "My reports" shows the stale-case wording.
+- Frontend: the menu item shows only with P10 and not on Low stock rows, and reads "Add to the open count" when a live
+  count is open; the radio group starts empty and Send stays unavailable until a choice; the blocked reporter sees the
+  refusal sheet with only Close; hints are visible; 44 px targets (rows, close X, menu items) below 1024 px; focus
+  returns to the menu button after sending; "My reports (N)" shows its empty line and the "Needs a new report" state.
 
 ## Size
 
