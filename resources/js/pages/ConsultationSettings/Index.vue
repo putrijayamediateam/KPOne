@@ -563,8 +563,7 @@ const presetEmptyDescription = computed(() =>
                             maxlength="500"
                             placeholder="Enter diagnosis name"
                             class="h-11 rounded-md border bg-background px-3" /><InputError
-                            :message="nameError(index)" /><span
-                            class="mt-1 text-xs font-medium"
+                            :message="nameError(index)" /><span class="mt-1"
                             >ICD-10 code (optional)</span
                         ><input
                             v-model="addForm.codes[index]"
