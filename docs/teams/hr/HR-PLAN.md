@@ -3596,6 +3596,7 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 | 11 | Location consent at clock-in (`ClockLocationConsent.vue`) | "Draft wording until the clinic's PDPA review. Synthetic data only." | every staff member |
 | 12 | Clock photo notice (`ClockPhotoNotice.vue`) | "… kept for 7 years with your attendance record, then deleted (to confirm in the PDPA review)." | every staff member |
 | 13 | Letters page | "KPOne ships no letter wording. Have the clinic's adviser approve each template before real use." | Director, HR Manager |
+| 14 | Leave settings (`LeaveDefaultsService::LABEL`, shown in `Leave.vue` as `defaults-label`) | "Set by KPOne defaults at the owner's instruction; not professional advice. Check against current law before real use." | Director, HR Manager |
 
 ### 30.2 What each becomes (approved)
 
@@ -3610,6 +3611,9 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 - **7:** "Rates 1.5x, 2x and 3x: KPOne defaults chosen by the owner. Change them here if the clinic's rules differ."
 - **8, 9:** "An estimate until …" is removed. The rest of each sentence stays.
 - **13:** unchanged. Letter wording is the clinic's, and KPOne ships none.
+- **14:** added after the owner's answers, from Suresh's review (30.5). **Not yet approved.** Proposed, to match line 7:
+  "KPOne defaults chosen by the owner. Change them here if the clinic's rules differ." The owner confirms it before step 2;
+  until then line 14 stays as it is.
 
 ### 30.3 How and when
 
@@ -3618,7 +3622,8 @@ migration, a figure or a rule; it changes words on screen and in two download fi
   There is no switch or setting: the words change in code, once.
 - Existing assertions that pin today's wording change in step 2 and are listed for the owner's approval then: the HR-4a,
   HR-7a, HR-7b, HR-7d, HR-9, HR-16a, HR-18, HR-defaults, one-clock and HR-photo frontend tests, and
-  `PayrollRunsTest` (3 lines) and `OutsideExportTest` (1 line).
+  `PayrollRunsTest` (3 lines) and `OutsideExportTest` (1 line), plus `hr-7c-payslips-exports` (the payslip sentence) and, for
+  line 14, the `hr-defaults` pin on `LeaveDefaultsService::LABEL` (added from Suresh's review, 30.5).
 - The payslips and exports already made keep the words they were made with (they are frozen snapshots or past downloads).
 
 ### 30.4 Owner answers (owner-confirmed, 25 Nov 2026 (tick box in the coordinator session))
@@ -3627,3 +3632,16 @@ migration, a figure or a rule; it changes words on screen and in two download fi
 2. Step 2 (the code PR) waits for go-live.
 3. The location consent text (line 11) is final as it is.
 4. This note goes in as a docs-only PR now; nothing on screen changes until step 2.
+
+### 30.5 Review (Suresh, 25 Nov 2026)
+
+**OK with changes**, all minor, applied in this PR:
+
+1. Every "Today" quote in 30.1, lines 1 to 13, matches the code on `main` (`5ceddd43`), and `SyntheticNote` is on exactly
+   the 19 pages listed.
+2. Missed on-screen line: the Leave settings defaults label (`LeaveDefaultsService::LABEL`). Added as line 14; its new
+   wording is a proposal for the owner, not part of the 30.4 answers.
+3. The 7-year photo retention is enforced in PostgreSQL: `guard_hr_attendance_retention_delete`
+   (`2026_11_10_006000`) attached to `hr_clock_photos` (`2026_11_10_006800`).
+4. The 30.3 test list missed `hr-7c-payslips-exports` and, for line 14, the `hr-defaults` LABEL pin. Added.
+5. Nothing in this note loads data or changes a permission, a migration, a figure or a rule.
