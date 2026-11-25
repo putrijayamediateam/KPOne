@@ -129,6 +129,30 @@ class LocumAvailabilityTest extends VisitTestCase
             ->where('freeTimes.mine.0.status', 'expired')->where('freeTimes.mine.0.statusLabel', 'Expired')->where('freeTimes.waitingCount', 0));
     }
 
+    public function test_an_ended_free_time_cannot_be_withdrawn_or_declined_and_postgresql_repeats_the_limits(): void
+    {
+        $locum = $this->linkedLocum('F');
+        $this->propose($locum)->assertSessionHasNoErrors();
+        $row = DB::table('hr_locum_availability')->sole();
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-17 15:00', $this->branch->timezone)); // after the offered time ends
+        $this->selectBranch($locum);
+        $this->post(route('hr.free-times.withdraw', $row->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['availability' => 'This free time has ended.']);
+        $this->selectBranch($this->hr);
+        $this->decline($row)->assertSessionHasErrors(['availability' => 'This free time has ended.']);
+        $this->assertSame('waiting', DB::table('hr_locum_availability')->where('id', $row->id)->value('status'));
+
+        // Suresh m1 and m2: more than 90 days ahead, and a withdrawn row with a decider, are refused by PostgreSQL too.
+        $insert = (array) $row;
+        unset($insert['id']);
+        $now = CarbonImmutable::now('UTC');
+        $this->refused('23514', fn () => DB::table('hr_locum_availability')->insert([...$insert, 'public_id' => (string) Str::uuid(), 'proposed_at' => $now,
+            'starts_at' => $now->addDays(91), 'ends_at' => $now->addDays(91)->addHours(4)]));
+        $this->refused('23514', fn () => DB::table('hr_locum_availability')->where('id', $row->id)->update(['status' => 'withdrawn',
+            'decided_by_user_id' => $this->hr->id, 'decided_at' => $now, 'lock_version' => 2]));
+    }
+
     public function test_at_most_thirty_waiting_free_times(): void
     {
         $locum = $this->linkedLocum('E');

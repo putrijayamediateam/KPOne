@@ -45,6 +45,7 @@ return new class extends Migration
             ends_at > starts_at AND ends_at - starts_at <= interval '16 hours' AND length(timezone) > 0
             AND status IN ('waiting', 'used', 'declined', 'withdrawn') AND lock_version >= 1
             AND ((status IN ('used', 'declined')) = (decided_at IS NOT NULL AND decided_by_user_id IS NOT NULL))
+            AND ((status IN ('waiting', 'withdrawn')) = (decided_at IS NULL AND decided_by_user_id IS NULL))
             AND ((status = 'declined') = (decline_reason IS NOT NULL))
             AND (decline_reason IS NULL OR decline_reason IN ('not_needed', 'outside_hours', 'other'))
             AND ((status = 'used') = (roster_shift_id IS NOT NULL))
@@ -52,16 +53,16 @@ return new class extends Migration
 
         DB::unprepared(<<<'SQL'
 -- A proposal is made by a linked locum sign-in that holds the propose permission, assigned to the branch on its first
--- and last day, for a time that has not started, with at most 30 waiting at once. It is used, declined or withdrawn
+-- and last day, for a time that has not started and starts within 90 days, with at most 30 waiting at once. It is used, declined or withdrawn
 -- once; only a roster planner, never the locum, uses or declines it; a use points at a roster shift of the locum at the
 -- same branch inside the offered time.
 CREATE OR REPLACE FUNCTION guard_hr_locum_availability() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF TG_OP = 'INSERT' THEN
-  IF NEW.status <> 'waiting' OR NEW.lock_version <> 1 OR NEW.starts_at <= NEW.proposed_at
+  IF NEW.status <> 'waiting' OR NEW.lock_version <> 1 OR NEW.starts_at <= NEW.proposed_at OR NEW.starts_at > NEW.proposed_at + interval '90 days'
     OR NOT hr_open_shift_assigned(NEW.locum_user_id, NEW.branch_id, (NEW.starts_at AT TIME ZONE NEW.timezone)::date)
     OR NOT hr_open_shift_assigned(NEW.locum_user_id, NEW.branch_id, ((NEW.ends_at - interval '1 second') AT TIME ZONE NEW.timezone)::date)
-    OR NOT EXISTS (SELECT 1 FROM hr_locum_sign_ins l WHERE l.linked_user_id = NEW.locum_user_id AND l.status = 'done')
+    OR NOT EXISTS (SELECT 1 FROM hr_locum_sign_ins l WHERE l.linked_user_id = NEW.locum_user_id AND l.organisation_id = NEW.organisation_id AND l.status = 'done')
     OR NOT hr_user_holds(NEW.locum_user_id, 'hr.locum_availability.propose.own') THEN
    RAISE EXCEPTION 'A linked locum assigned to the branch proposes a time that has not started' USING ERRCODE = '23514';
   END IF;

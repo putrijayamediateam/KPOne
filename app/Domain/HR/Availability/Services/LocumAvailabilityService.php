@@ -96,6 +96,7 @@ final class LocumAvailabilityService
             if ($row->status !== 'waiting') {
                 throw ValidationException::withMessages(['availability' => 'This free time was already answered.']);
             }
+            $this->refuseEnded($row);
             $this->support->assertLock($row, $input);
             DB::table('hr_locum_availability')->where('id', $row->id)->update(['status' => 'withdrawn', 'lock_version' => (int) $row->lock_version + 1,
                 'updated_at' => now()->utc()]);
@@ -126,6 +127,7 @@ final class LocumAvailabilityService
             if ($row->status !== 'waiting') {
                 throw ValidationException::withMessages(['availability' => 'This free time was already answered or withdrawn.']);
             }
+            $this->refuseEnded($row);
             $this->support->assertLock($row, $input);
             $now = now()->utc();
             DB::table('hr_locum_availability')->where('id', $row->id)->update(['status' => 'declined', 'decline_reason' => $reason,
@@ -194,6 +196,14 @@ final class LocumAvailabilityService
             $this->support->audit->record('hr.locum_availability.used', null, ['availability_id' => (int) $row->id, 'roster_version_id' => $version->id,
                 'roster_shift_id' => $rosterShift->id], $actor, $branch, $actor->organisation_id);
         }, 3);
+    }
+
+    /** A free time whose offered time has ended stays as it is (Suresh m3): it shows as expired and frees a slot. */
+    private function refuseEnded(\stdClass $row): void
+    {
+        if (CarbonImmutable::parse((string) $row->ends_at, 'UTC')->lessThanOrEqualTo(now()->utc())) {
+            throw ValidationException::withMessages(['availability' => 'This free time has ended.']);
+        }
     }
 
     /** The branch week's open draft, or a new one (a change of the approved week, or blank). A sent week is refused. */
