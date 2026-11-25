@@ -54,3 +54,11 @@ test('the row menu offers Show details only where the board already shows the tr
         );
     }
 });
+
+test('the details open as a right-hand side panel from 1280 px and a full-screen sheet below, with allergies kept distinct (Daniel)', () => {
+    assert.match(dialog, /<SheetContent/);
+    assert.match(dialog, /side="right"/);
+    assert.match(dialog, /w-full[\s\S]{0,80}xl:w-\[28rem\]/);
+    assert.match(dialog, /'None known'/);
+    assert.match(dialog, /'Not yet reviewed'/);
+});

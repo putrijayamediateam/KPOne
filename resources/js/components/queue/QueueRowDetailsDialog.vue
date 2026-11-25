@@ -3,16 +3,16 @@ import { LoaderCircle } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 
-// Q-16c (owner decisions 25 Nov 2026): the details of one board row. Read only. It is offered only where the board already shows
+// Q-16c (owner decisions 25 Nov 2026): the details of one board row, as a right-hand side panel from 1280 px and a full-screen sheet below. Read only. It is offered only where the board already shows
 // the viewer the triage zone (CA, CA Supervisor, Medical Assistant and the patient's own doctor), and the server checks that again
 // and records each open. Age (never the date of birth), allergies, last BP, last visit, who pays, the reason and the triage readings.
 type Details = {
@@ -75,23 +75,27 @@ const allergyText = (d: Details) =>
     d.allergies.length > 0
         ? d.allergies.join(', ')
         : d.allergyStatus === 'no_known_allergies'
-          ? 'No known allergies'
+          ? 'None known'
           : 'Not yet reviewed';
 const reading = (d: Details, key: string) => d.triage?.readings[key] ?? '–';
 </script>
 
 <template>
-    <Dialog
+    <Sheet
         :open="visitNumber !== null"
         @update:open="(v) => !v && emit('close')"
     >
-        <DialogContent data-testid="queue-row-details" class="sm:max-w-lg">
-            <DialogHeader>
-                <DialogTitle>Patient details</DialogTitle>
-                <DialogDescription>
+        <SheetContent
+            data-testid="queue-row-details"
+            side="right"
+            class="w-full gap-3 p-4 sm:max-w-none xl:w-[28rem] xl:max-w-[28rem]"
+        >
+            <SheetHeader>
+                <SheetTitle>Patient details</SheetTitle>
+                <SheetDescription>
                     Read only. Opening this is recorded.
-                </DialogDescription>
-            </DialogHeader>
+                </SheetDescription>
+            </SheetHeader>
             <div v-if="loading" class="flex items-center gap-2 py-4 text-sm">
                 <LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
                 Loading…
@@ -155,7 +159,7 @@ const reading = (d: Details, key: string) => d.triage?.readings[key] ?? '–';
                 </dd>
                 <dd v-else>No triage yet</dd>
             </dl>
-            <DialogFooter>
+            <SheetFooter>
                 <Button
                     type="button"
                     variant="outline"
@@ -164,7 +168,7 @@ const reading = (d: Details, key: string) => d.triage?.readings[key] ?? '–';
                 >
                     Close
                 </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+            </SheetFooter>
+        </SheetContent>
+    </Sheet>
 </template>
