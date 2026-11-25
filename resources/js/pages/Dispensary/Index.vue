@@ -75,12 +75,29 @@ const submitSearch = () => visit({ search: search.value.trim() });
 const medicines = (n: number) => (n === 1 ? '1 medicine' : `${n} medicines`);
 const from = (row: Row) =>
     row.caseType === 'otc' ? 'Medicine only' : (row.doctorName ?? 'Doctor');
-const waiting = (row: Row) =>
-    row.waitingMinutes === null
-        ? ''
-        : row.waitingMinutes < 1
-          ? 'Just now'
-          : `Waiting ${row.waitingMinutes} min`;
+const waiting = (row: Row) => {
+    const minutes = row.waitingMinutes;
+
+    if (minutes === null) {
+        return '';
+    }
+
+    if (minutes < 1) {
+        return 'Just now';
+    }
+
+    if (minutes < 60) {
+        return `Waiting ${minutes} min`;
+    }
+
+    if (minutes < 24 * 60) {
+        return `Waiting ${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+    }
+
+    const days = Math.floor(minutes / (24 * 60));
+
+    return `Waiting ${days} ${days === 1 ? 'day' : 'days'}`;
+};
 const emptyText = computed(
     () =>
         ({
@@ -107,16 +124,12 @@ onBeforeUnmount(() => timer && clearInterval(timer));
     <main
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
     >
-        <PageHeader
-            title="Dispensary"
-            :description="`${list.branchName} · today`"
-        />
+        <PageHeader title="Dispensary" :description="list.branchName" />
 
         <OperationalTabs
             :model-value="list.tab"
             label="Dispensary cases by status"
             :tabs="tabs"
-            class="max-sm:[&>button]:h-11"
             @update:model-value="selectTab"
         />
 
@@ -132,7 +145,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                 id="dispensary-search"
                 v-model="search"
                 type="search"
-                placeholder="Patient name, KP or visit number"
+                placeholder="Name, KP or visit no."
                 class="max-lg:min-h-11"
             />
             <Button type="submit" variant="outline" class="max-lg:min-h-11">
@@ -163,7 +176,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
             <div class="hidden md:block">
                 <OperationalTable
                     label="Dispensary cases"
-                    :columns="5"
+                    :columns="6"
                     min-width="820px"
                 >
                     <template #head>
@@ -225,6 +238,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                         as-child
                                         variant="outline"
                                         size="sm"
+                                        class="max-lg:min-h-11"
                                         ><a
                                             :href="row.labelUrl"
                                             target="_blank"
@@ -254,6 +268,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                         :href="row.caseUrl"
                                         variant="outline"
                                         size="sm"
+                                        class="max-lg:min-h-11"
                                         :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
                                         >Open case</ActionLink
                                     >

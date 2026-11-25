@@ -73,6 +73,19 @@ class DispensaryListTest extends ClinicalTestCase
             ->where('list.rows.0.completedAt', fn ($t) => is_string($t) && $t !== '')
             ->where('list.rows.0.labelUrl', route('dispensary.labels', $done['case']))
             ->where('list.rows.0.labelAction', 'reprint'));
+
+        // The label link opens for the CA (print) and for the doctor (view only).
+        $this->listAs($preparing['ca'])->assertOk();
+        $this->actingAs($preparing['ca'])->get(route('dispensary.labels', $done['case']))->assertOk();
+        $this->selectBranch($preparing['doctor'], $this->branch);
+        $this->actingAs($preparing['doctor'])->get(route('dispensary.labels', $done['case']))->assertOk();
+    }
+
+    public function test_a_page_past_the_end_falls_back_to_the_last_page(): void
+    {
+        $f = $this->prepared();
+
+        $this->listAs($f['ca'], ['page' => 9])->assertInertia(fn (Assert $page) => $page->where('list.page', 1)->has('list.rows', 1));
     }
 
     public function test_done_today_counts_from_branch_local_midnight_only(): void

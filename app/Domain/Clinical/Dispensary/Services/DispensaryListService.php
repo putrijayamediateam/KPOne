@@ -54,7 +54,9 @@ final class DispensaryListService
         $this->search($query, $search);
         $query->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'handoffs' => fn ($q) => $q->orderByDesc('attempt_number')->withCount(['items as given_count' => fn ($i) => $i->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)])]);
         $tab === self::TAB_DONE ? $query->orderByDesc('completed_at')->orderByDesc('id') : $query->orderBy('received_at')->orderBy('id');
-        $paginator = $query->paginate(self::PER_PAGE, page: max(1, $page));
+        // A refresh can move cases between tabs; a page past the end falls back to the last page.
+        $lastPage = max(1, (int) ceil((clone $query)->count() / self::PER_PAGE));
+        $paginator = $query->paginate(self::PER_PAGE, page: min(max(1, $page), $lastPage));
 
         $cases = $paginator->getCollection();
         $numbers = $this->queueNumbers(array_values($cases->map(fn (DispensaryCase $case): int => (int) $case->visit_id)->all()));
@@ -72,6 +74,7 @@ final class DispensaryListService
                 $handoff = $case->handoffs->first();
                 $received = CarbonImmutable::parse($case->received_at);
                 $completed = $case->completed_at === null ? null : CarbonImmutable::parse($case->completed_at);
+                $labels = $completed !== null && $handoff?->status === DispensaryHandoff::STATUS_COMPLETED && $mayPreview;
 
                 return [
                     'publicId' => $case->public_id,
@@ -88,8 +91,8 @@ final class DispensaryListService
                     'completedAt' => $completed?->setTimezone($branch->timezone)->format('g:i A'),
                     'caseUrl' => route('dispensary.show', $case),
                     // A finished case's labels: the CA reprints from the preview; the doctor's preview is view only.
-                    'labelUrl' => $completed !== null && $handoff?->status === DispensaryHandoff::STATUS_COMPLETED && $mayPreview ? route('dispensary.labels', $case) : null,
-                    'labelAction' => $completed !== null && $mayPreview ? ($mayPrint ? 'reprint' : 'view') : null,
+                    'labelUrl' => $labels ? route('dispensary.labels', $case) : null,
+                    'labelAction' => $labels ? ($mayPrint ? 'reprint' : 'view') : null,
                 ];
             })->values()->all(),
             'total' => $paginator->total(),
