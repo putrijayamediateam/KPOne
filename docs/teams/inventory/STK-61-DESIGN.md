@@ -60,3 +60,22 @@ Return: approver only, not the counter or proposer; reason rules; no stock movem
 allowed; audit with no note. Change quantity: smaller only, never more or 0; reason required; Not sent lines; the
 receiving branch receives against the sent quantity; "Ask for the rest" pre-fills the shortfall; the PostgreSQL rules;
 a race of a dispatch against an approval change on the same request.
+
+## Daniel's conditions (25 Nov, OK with changes; build to these)
+
+- Return: Approve stays the one filled button; Return is outline beside it (stacked, 44 px at 390). Its dialog:
+  reasons as radios, none selected ("Pick a reason to continue."), the "other" note 0 / 200 with "Do not write
+  patient details.", the line "This sends the case back. Nothing changes in stock. The proposer can start a new one.",
+  and a filled (not red) confirm.
+- After: a neutral "Returned" chip with reason, who and when, kept as history; under the note "Only the proposer and
+  approvers see this note.". Someone who counted or proposed sees "You counted this case, so someone else decides."
+- Dispatch: each line starts at the full quantity with two outline actions, "Change quantity" and "Not sent"; reasons
+  as radios; the quantity field shows the allowed range ("1 to 9 tablets") and refuses outside it beside the field,
+  never clamping. Changed lines carry a chip ("Sending 6 of 10", "Not sent") and the page shows "2 of 5 lines
+  changed".
+- Confirm dialog: each changed line with its reason, then one filled "Send". If every line is Not sent, it says nothing
+  will be sent and points to the existing cancel flow; no empty dispatch.
+- At 390 each line is a card with the actions at the bottom, 44 px.
+- Receipt: "Sent 6 of 10 (not enough stock)" with the chip "Short by 4", a quiet "Ask for the rest" link and "The rest
+  is not kept open on this request."
+- Shots at 1440 and 390 of the dispatch form with one changed and one not-sent line, and the confirm dialog.
