@@ -30,6 +30,7 @@ use App\Domain\Organisation\Compliance\CompliancePermissions;
 use App\Domain\Organisation\Website\WebsitePermissions;
 use App\Domain\Queue\Readiness\CallHoldPermissions;
 use App\Domain\Queue\Treatment\TreatmentStepPermissions;
+use App\Domain\Visit\Assignment\AutoAssignPermissions;
 
 final class PermissionCatalogue
 {
@@ -89,6 +90,7 @@ final class PermissionCatalogue
             ...array_keys(CallHoldPermissions::grants()),
             ...array_keys(TreatmentStepPermissions::grants()),
             ...array_keys(TriagePermissions::grants()),
+            ...array_keys(AutoAssignPermissions::grants()),
             ...array_keys(TreatmentRoomPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
@@ -520,6 +522,13 @@ final class PermissionCatalogue
         // TRI-1 (owner decisions 19 Nov 2026): triage readings for CA and CA Supervisor; the guideline for the
         // Director and the HR Manager only (the HR Manager never sees triage readings).
         foreach (TriagePermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        // AUTO-1 (owner, 24 Nov 2026): the Director's per-branch switch for automatic doctor assignment.
+        foreach (AutoAssignPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
