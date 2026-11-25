@@ -17,6 +17,7 @@ import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import CallNextControl from '@/components/queue/CallNextControl.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
+import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
@@ -581,6 +582,7 @@ const recall = (row: PatientBoardRow) => {
     );
 };
 // Calls a serving patient to a treatment room on the TV; the consultation stays with the doctor.
+const detailsVisit = ref<string | null>(null);
 const treatmentRow = ref<PatientBoardRow | null>(null);
 const treatmentRoomId = ref<string | number>('');
 const treatmentError = ref('');
@@ -872,6 +874,7 @@ onBeforeUnmount(() => {
                 :busy-key="busyKey"
                 @call="requestCall"
                 @recall="recall"
+                @show-details="detailsVisit = $event.visitNumber"
                 @call-treatment="openTreatmentCall"
                 @open-consultation="openConsultation"
                 @cancel="requestCancellation"
@@ -1027,5 +1030,9 @@ onBeforeUnmount(() => {
                 </div>
             </section>
         </div>
+        <QueueRowDetailsDialog
+            :visit-number="detailsVisit"
+            @close="detailsVisit = null"
+        />
     </main>
 </template>

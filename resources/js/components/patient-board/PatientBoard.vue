@@ -49,6 +49,8 @@ defineEmits<{
     callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
     readinessChanged: [];
+    // Q-16c: ask the page to open the read-only details dialog of this row.
+    showDetails: [row: PatientBoardRow];
 }>();
 
 // Q-2: one treatment dialog at a time, opened from the row menu or the inline "Mark done" button.
@@ -447,6 +449,14 @@ const triageTextClass = (zone: TriageZone | null) =>
                                             "
                                             >View Patient</Link
                                         >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.triage && from === 'queue'"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        data-testid="row-details-menu"
+                                        @select="$emit('showDetails', row)"
+                                    >
+                                        Show details
                                     </DropdownMenuItem>
                                     <!-- TRI-1e: the patient's own doctor reads the triage record (view only). -->
                                     <DropdownMenuItem
