@@ -11,7 +11,7 @@ const CLASSIC = {
     root: {
         '--background': '#f5f5f7',
         '--foreground': '#1d1d1f',
-        '--primary': '#0852da',
+        '--primary': '#006ae0',
         '--primary-foreground': '#ffffff',
         '--muted-foreground': '#6e6e73',
         '--brand': '#c2185b',
@@ -19,7 +19,7 @@ const CLASSIC = {
         '--success': '#1d7a3a',
         '--warning': '#8a5a00',
         '--destructive': '#c7141f',
-        '--ring': '#0a56d1',
+        '--ring': '#007aff',
         '--radius': '0.875rem',
         '--card': '#ffffff',
     },

@@ -171,7 +171,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             :ref="(element) => setTabElement(element, index)"
             type="button"
             role="tab"
-            class="relative flex h-9 shrink-0 max-lg:h-11 max-sm:px-3 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            class="relative flex h-9 shrink-0 max-lg:h-11 max-sm:px-3 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50"
             :class="
                 modelValue === tab.value
                     ? 'bg-primary/10 font-semibold text-link hover:bg-primary/10 hover:text-link dark:bg-primary/20'
