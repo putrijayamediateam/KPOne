@@ -256,3 +256,19 @@ The lane and the banner both carry one muted line: "Also tell a doctor in person
   endpoint and tests (needs TRI-1a).
 - **TRI-2b:** the lane on the Queue and Registration boards and Call next ordering.
 - **TRI-2c:** the banner on every staff page, sound and accessibility.
+
+## 12. Owner answers (owner-confirmed, 25 Nov 2026, tick box in the coordinator session)
+
+All nine open questions in section 10 were answered **A**, the recommendation:
+
+1. Two buttons: "I'll see this patient" assigns the patient and stops the alert; "Seen, not taking" is recorded and the alert continues.
+2. Resident Doctors whose active branch is this branch are alerted.
+3. Nobody acknowledges on a doctor's behalf in v1.
+4. The not-ready flag cannot be set while an alert is open.
+5. Sound is on by default, repeats every 10 seconds, and can be silenced on one device for at most 2 minutes.
+6. The new permission `queue.emergency.respond.branch` is **approved for `resident_doctor` only**.
+7. No escalation beyond the lane counter ("Not acknowledged for N min").
+8. Locums without a clinical role see nothing.
+9. One confirmed "Hold my current patient, then take" action: Hold first, then Take; if Take fails, the patient stays held and the doctor is told.
+
+**Overlap with Q-16b (Amirul):** TRI-2 builds the lane, the Call next ordering and the take-over action, and **reuses** the Q-16b alert record and endpoint. The shared model is agreed with Amirul before either builds the alert. Build order: after the Registration restyle, Treatment room and Family link.
