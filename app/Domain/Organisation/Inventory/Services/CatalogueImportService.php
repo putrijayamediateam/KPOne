@@ -13,6 +13,8 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
+use App\Domain\Visit\Billing\Services\PanelPriceTarget;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Models\User;
@@ -32,7 +34,7 @@ use RuntimeException;
  * written in one transaction, or nothing is. A dry run does the whole write and rolls it back, so it reports exactly
  * what a real run would do. An existing code is refused (so running the same file twice changes nothing), branch prices are for this file's
  * medicines only, and an inactive branch book is refused rather than switched back on.
- * Panel prices are not imported here: since owner decision 27 they change only by proposal and approval.
+ * Panel prices are never published here: since owner decision 27 they are filed as proposals for someone to approve.
  */
 /** Not final, so the console test can stand in a service that a domain rule refuses. */
 class CatalogueImportService
@@ -57,14 +59,19 @@ class CatalogueImportService
         private PricePublicationService $publication,
         private BranchAccessService $branches,
         private AuditRecorder $audit,
+        private PanelPriceProposalService $proposals,
     ) {}
 
     /**
-     * @return array{medicines:int, hqPrices:int, branchPrices:int, controlled:int, dryRun:bool}
+     * Panel prices (owner, 25 Nov 2026): an `hq_panel_rm` value is never published. It is filed as a proposal for the
+     * default Panel book through PanelPriceProposalService, as the named Panel Officer, with one agreement reference and
+     * today's date; a Director or Finance Officer approves it on the Panel price changes page (owner decision 27).
+     *
+     * @return array{medicines:int, hqPrices:int, branchPrices:int, controlled:int, panelProposals:int, dryRun:bool}
      *
      * @throws CatalogueImportRefused when either file has a problem; nothing is written
      */
-    public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun): array
+    public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun, ?User $panelProposer = null, ?string $panelReference = null): array
     {
         $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
         if ($actor === null || ! $actor->is_active || $homeBranch->organisation_id !== $actor->organisation_id || ! $homeBranch->is_active) {
@@ -80,14 +87,14 @@ class CatalogueImportService
 
         [$rows, $errors] = $this->readCatalogue($actor, $cataloguePath);
         [$branchRows, $branchErrors] = $branchPricesPath === null ? [[], []] : $this->readBranchPrices($actor, $branchPricesPath, $rows);
-        $errors = [...$errors, ...$branchErrors];
+        $errors = [...$errors, ...$branchErrors, ...$this->panelProblems($rows, $homeBranch, $panelProposer, $panelReference)];
         if ($errors !== []) {
             throw new CatalogueImportRefused($errors);
         }
 
-        $report = ['medicines' => 0, 'hqPrices' => 0, 'branchPrices' => 0, 'controlled' => 0, 'dryRun' => $dryRun];
+        $report = ['medicines' => 0, 'hqPrices' => 0, 'branchPrices' => 0, 'controlled' => 0, 'panelProposals' => 0, 'dryRun' => $dryRun];
         try {
-            DB::transaction(function () use ($actor, $homeBranch, $rows, $branchRows, $dryRun, &$report): void {
+            DB::transaction(function () use ($actor, $homeBranch, $rows, $branchRows, $dryRun, $panelProposer, $panelReference, &$report): void {
                 $this->branches->select($actor, $homeBranch);
                 $created = [];
                 foreach ($rows as $row) {
@@ -107,6 +114,20 @@ class CatalogueImportService
                     }
                     $created[Str::lower($row['code'])] = $medicine;
                 }
+                if ($panelProposer !== null) {
+                    $this->branches->select($panelProposer, $homeBranch);
+                    $today = now($homeBranch->timezone)->toDateString();
+                    foreach ($rows as $row) {
+                        if ($row['hq_panel_sen'] === null) {
+                            continue;
+                        }
+                        $this->proposals->propose($panelProposer, PanelPriceTarget::forPanel(null), $this->charge($actor, $created[Str::lower($row['code'])]), [
+                            'expected_branch_id' => $homeBranch->id, 'expected_version' => 0, 'amount_sen' => $row['hq_panel_sen'],
+                            'agreement_reference' => (string) $panelReference, 'effective_date' => $today, 'idempotency_key' => (string) Str::uuid(),
+                        ]);
+                        $report['panelProposals']++;
+                    }
+                }
                 foreach ($this->groupByBranch($branchRows) as $branchId => $prices) {
                     $branch = Branch::query()->whereKey($branchId)->firstOrFail();
                     $this->branches->select($actor, $branch);
@@ -120,7 +141,7 @@ class CatalogueImportService
                     }
                 }
                 $this->branches->select($actor, $homeBranch);
-                abort_if($this->audit->record('inventory.catalogue_import.recorded', null, ['medicines' => $report['medicines'], 'hq_prices' => $report['hqPrices'], 'branch_prices' => $report['branchPrices'], 'controlled' => $report['controlled'], 'dry_run' => $dryRun], $actor, $homeBranch) === null, 503, 'The import could not be audited. Nothing was saved.');
+                abort_if($this->audit->record('inventory.catalogue_import.recorded', null, ['medicines' => $report['medicines'], 'hq_prices' => $report['hqPrices'], 'branch_prices' => $report['branchPrices'], 'controlled' => $report['controlled'], 'panel_proposals' => $report['panelProposals'], 'dry_run' => $dryRun], $actor, $homeBranch) === null, 503, 'The import could not be audited. Nothing was saved.');
                 if ($dryRun) {
                     throw new CatalogueDryRunComplete;
                 }
@@ -146,7 +167,7 @@ class CatalogueImportService
             $row = ['code' => Str::upper($r['code']), 'display_name' => $r['display_name'], 'generic_name' => $this->nullable($r['generic_name']), 'strength' => $this->nullable($r['strength']),
                 'dosage_form' => $this->nullable($r['dosage_form']), 'category' => $this->nullable($r['category']), 'sku_code' => Str::upper($r['sku_code'] !== '' ? $r['sku_code'] : $r['code']),
                 'barcode' => $this->nullable($r['barcode']), 'purchase_unit' => $r['purchase_unit'], 'pack_size' => $r['pack_size'], 'stock_unit' => $r['stock_unit'],
-                'dispensing_unit' => $r['dispensing_unit'], 'controlled' => false, 'hq_self_pay_sen' => null];
+                'dispensing_unit' => $r['dispensing_unit'], 'controlled' => false, 'hq_self_pay_sen' => null, 'hq_panel_sen' => null];
             foreach (['code' => 64, 'display_name' => 500, 'purchase_unit' => 100, 'stock_unit' => 100, 'dispensing_unit' => 100] as $field => $max) {
                 if ($r[$field] === '' || mb_strlen($r[$field]) > $max) {
                     $errors[] = "{$where}: {$field} is required (at most {$max} characters).";
@@ -169,9 +190,7 @@ class CatalogueImportService
             }
             $row['controlled'] = $controlled === 'yes';
             $row['hq_self_pay_sen'] = $this->sen($r['hq_self_pay_rm'], "{$where}: hq_self_pay_rm", $errors);
-            if ($r['hq_panel_rm'] !== '') {
-                $errors[] = "{$where}: hq_panel_rm must be blank. Panel prices change only by proposal and approval (owner decision 27).";
-            }
+            $row['hq_panel_sen'] = $this->sen($r['hq_panel_rm'], "{$where}: hq_panel_rm", $errors);
             foreach (['code', 'sku_code', 'barcode'] as $key) {
                 $value = $row[$key] === null ? null : Str::lower((string) $row[$key]);
                 if ($value === null) {
@@ -201,6 +220,33 @@ class CatalogueImportService
         }
 
         return [array_values($rows), $this->limit($errors)];
+    }
+
+    /**
+     * @param  list<array<string,mixed>>  $rows
+     * @return list<string>
+     */
+    private function panelProblems(array $rows, Branch $homeBranch, ?User $proposer, ?string $reference): array
+    {
+        if (array_filter($rows, fn (array $row): bool => $row['hq_panel_sen'] !== null) === []) {
+            return $proposer === null ? [] : ['--panel-proposer was given, but no row has an hq_panel_rm value.'];
+        }
+        $proposer = $proposer?->fresh()?->load(['roles.permissions', 'permissions']);
+        if ($proposer === null) {
+            return ['hq_panel_rm values are filed as Panel price proposals: give --panel-proposer (a named Panel Officer) and --panel-reference.'];
+        }
+        $errors = [];
+        if (! $proposer->is_active || $proposer->organisation_id !== $homeBranch->organisation_id || ! $proposer->can(PanelPriceProposalService::PROPOSE_PERMISSION)) {
+            $errors[] = 'The --panel-proposer account must be an active account that may propose Panel prices.';
+        } elseif (! $this->branches->hasEffectiveAssignment($proposer, $homeBranch)) {
+            $errors[] = "The --panel-proposer account is not assigned to the home branch {$homeBranch->code}.";
+        }
+        $reference = trim((string) preg_replace('/\s+/u', ' ', (string) $reference));
+        if (mb_strlen($reference) < 3 || mb_strlen($reference) > 120 || preg_match('/[\p{Cc}\p{Cf}<>]/u', $reference) === 1) {
+            $errors[] = 'Give --panel-reference, the Panel agreement reference, 3 to 120 characters of plain text.';
+        }
+
+        return $errors;
     }
 
     /**

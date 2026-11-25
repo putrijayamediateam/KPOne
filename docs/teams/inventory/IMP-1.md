@@ -9,6 +9,8 @@ php artisan inventory:import-catalogue catalogue.csv \
     --branch-prices=branch_prices.csv \
     --actor=<named administrator email> \
     --branch=PUCHONG \
+    --panel-proposer=<named panel officer email> \
+    --panel-reference="<Panel agreement reference>" \
     --dry-run
 ```
 
@@ -28,7 +30,9 @@ code,display_name,generic_name,strength,dosage_form,category,sku_code,barcode,pu
 - `sku_code` blank means the medicine code; `barcode` is optional and must be new.
 - `controlled` is `yes`, `no` or blank.
 - `hq_self_pay_rm` is ringgit with up to 2 decimals (`12.50`), or blank for no price yet.
-- `hq_panel_rm` must be blank: Panel prices change only by proposal and approval.
+- `hq_panel_rm` is never published. Each value is filed as a Panel price proposal for the default Panel book, as the
+  `--panel-proposer` Panel Officer, with the `--panel-reference` agreement reference and today's date (owner, 25 Nov
+  2026; decision 27). A Director or Finance Officer approves them on the Panel price changes page before Monday.
 
 ## branch_prices.csv (optional)
 
@@ -42,5 +46,6 @@ not switched back on. Panel patients use the HQ Panel prices.
 
 ## After the import
 
-1. Pilot readiness: verify each SKU's base unit.
-2. Opening stock per branch with the STK-35 opening import (with unit cost), then the STK-1 sign-off by someone else.
+1. Panel price changes: a Director or Finance Officer approves the filed Panel prices.
+2. Pilot readiness: verify each SKU's base unit.
+3. Opening stock per branch with the STK-35 opening import (with unit cost), then the STK-1 sign-off by someone else.

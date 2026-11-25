@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Inventory\Services\CatalogueImportRefused;
 use App\Domain\Organisation\Inventory\Services\CatalogueImportService;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Visit\Billing\Models\PriceChangeProposal;
+use App\Domain\Visit\Billing\Services\PanelPriceProposalService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -75,9 +78,9 @@ final class CatalogueImportTest extends VisitTestCase
         return implode(',', [$code, 'Synthetic '.$code, 'synthetamol', '500 mg', 'Tablet', 'Analgesic', '', $barcode ?? '', 'box', '100', $stock, $dispensing, $controlled, $selfPay, $panel]);
     }
 
-    private function import(string $catalogue, ?string $prices = null, bool $dryRun = false, ?User $actor = null): array
+    private function import(string $catalogue, ?string $prices = null, bool $dryRun = false, ?User $actor = null, ?User $proposer = null, ?string $reference = null): array
     {
-        return app(CatalogueImportService::class)->run($actor ?? $this->admin, $this->branch, $catalogue, $prices, $dryRun);
+        return app(CatalogueImportService::class)->run($actor ?? $this->admin, $this->branch, $catalogue, $prices, $dryRun, $proposer, $reference);
     }
 
     /** @return list<string> */
@@ -114,7 +117,7 @@ final class CatalogueImportTest extends VisitTestCase
             $this->prices(['IMP-A,'.$this->other->code.',13.00', 'IMP-B,'.$this->other->code.',3.10', 'IMP-A,'.$this->branch->code.',12.00']),
         );
 
-        $this->assertSame(['medicines' => 3, 'hqPrices' => 2, 'branchPrices' => 3, 'controlled' => 1, 'dryRun' => false], $report);
+        $this->assertSame(['medicines' => 3, 'hqPrices' => 2, 'branchPrices' => 3, 'controlled' => 1, 'panelProposals' => 0, 'dryRun' => false], $report);
         $this->assertSame(1250, $this->price('IMP-A', 'organisation'));
         $this->assertSame(305, $this->price('IMP-B', 'organisation'));
         $this->assertNull($this->price('IMP-C', 'organisation'));
@@ -132,7 +135,7 @@ final class CatalogueImportTest extends VisitTestCase
         $this->assertSame(0, DB::table('stock_movements')->count());
 
         $audit = DB::table('audit_logs')->where('event', 'inventory.catalogue_import.recorded')->sole();
-        $this->assertSame(['medicines' => 3, 'hq_prices' => 2, 'branch_prices' => 3, 'controlled' => 1, 'dry_run' => false], json_decode((string) $audit->metadata, true));
+        $this->assertSame(['medicines' => 3, 'hq_prices' => 2, 'branch_prices' => 3, 'controlled' => 1, 'panel_proposals' => 0, 'dry_run' => false], json_decode((string) $audit->metadata, true));
         $this->assertSame($this->admin->id, (int) $audit->actor_user_id);
     }
 
@@ -144,7 +147,7 @@ final class CatalogueImportTest extends VisitTestCase
 
         $report = $this->import($catalogue, $prices, true);
 
-        $this->assertSame(['medicines' => 2, 'hqPrices' => 2, 'branchPrices' => 1, 'controlled' => 1, 'dryRun' => true], $report);
+        $this->assertSame(['medicines' => 2, 'hqPrices' => 2, 'branchPrices' => 1, 'controlled' => 1, 'panelProposals' => 0, 'dryRun' => true], $report);
         $this->assertSame($before, $this->counts());
         // The same files then import for real.
         $this->assertSame(2, $this->import($catalogue, $prices)['medicines']);
@@ -171,7 +174,7 @@ final class CatalogueImportTest extends VisitTestCase
             'catalogue line 4: controlled must be yes, no or blank.',
             'catalogue line 5: stock_unit and dispensing_unit must be the same unit',
             'catalogue line 6: code IMP-OK is also on line 2.',
-            'catalogue line 7: hq_panel_rm must be blank.',
+            'hq_panel_rm values are filed as Panel price proposals: give --panel-proposer',
             'branch prices line 2: branch_code NOPE is not an active branch',
             'branch prices line 3: code IMP-GHOST is not in the catalogue file.',
             'branch prices line 4: self_pay_rm is required.',
@@ -205,6 +208,43 @@ final class CatalogueImportTest extends VisitTestCase
         $problems = $this->refusal(fn () => $this->import($this->catalogue([$this->row('IMP-K')])));
         $this->assertSame(['catalogue line 2: an inventory item with code IMP-K already exists in KPOne.'], $problems);
         $this->assertSame($before, $this->counts());
+    }
+
+    public function test_panel_prices_are_filed_as_proposals_for_someone_else_to_approve_and_never_published(): void
+    {
+        $officer = $this->staff('panel_officer');
+        $catalogue = $this->catalogue([$this->row('IMP-S', '10.00', '', '8.50'), $this->row('IMP-T', '4.00', '', '3.00'), $this->row('IMP-U', '2.00')]);
+        $panelEntries = fn (): int => DB::table('price_entries as e')->join('price_books as b', 'b.id', '=', 'e.price_book_id')->where('b.price_tier', 'panel')->count();
+
+        // Without a proposer, or with someone who may not propose, or without a reference: refused, nothing written.
+        $before = $this->counts();
+        $this->assertSame(['hq_panel_rm values are filed as Panel price proposals: give --panel-proposer (a named Panel Officer) and --panel-reference.'], $this->refusal(fn () => $this->import($catalogue)));
+        $this->assertContains('The --panel-proposer account must be an active account that may propose Panel prices.', $this->refusal(fn () => $this->import($catalogue, null, false, null, $this->staff('finance_officer'), 'AGR-2026-01')));
+        $this->assertSame(['Give --panel-reference, the Panel agreement reference, 3 to 120 characters of plain text.'], $this->refusal(fn () => $this->import($catalogue, null, false, null, $officer, 'x')));
+        $this->assertSame(['--panel-proposer was given, but no row has an hq_panel_rm value.'], $this->refusal(fn () => $this->import($this->catalogue([$this->row('IMP-V')]), null, false, null, $officer, 'AGR-2026-01')));
+        $this->assertSame($before, $this->counts());
+
+        // A dry run files nothing.
+        $this->assertSame(2, $this->import($catalogue, null, true, null, $officer, 'AGR-2026-01')['panelProposals']);
+        $this->assertSame(0, DB::table('price_change_proposals')->count());
+
+        $report = $this->import($catalogue, null, false, null, $officer, 'AGR-2026-01');
+        $this->assertSame(2, $report['panelProposals']);
+        $proposals = DB::table('price_change_proposals')->orderBy('id')->get();
+        $this->assertSame([850, 300], $proposals->pluck('proposed_unit_price_sen')->map(fn ($v): int => (int) $v)->all());
+        $this->assertSame(['proposed', 'proposed'], $proposals->pluck('status')->all());
+        $this->assertSame(['panel:default', 'panel:default'], $proposals->pluck('scope_key')->all());
+        $this->assertSame([$officer->id, $officer->id], $proposals->pluck('proposed_by_user_id')->map(fn ($v): int => (int) $v)->all());
+        $this->assertSame(['AGR-2026-01', 'AGR-2026-01'], $proposals->pluck('agreement_reference')->all());
+        // Nothing is published until someone other than the proposer approves.
+        $this->assertSame(0, $panelEntries());
+
+        $director = $this->staff('director');
+        app(BranchAccessService::class)->select($director, $this->branch);
+        $proposal = PriceChangeProposal::query()->whereKey($proposals->first()->id)->firstOrFail();
+        app(PanelPriceProposalService::class)->approve($director, $proposal, ['expected_branch_id' => $this->branch->id, 'lock_version' => $proposal->lock_version]);
+        $this->assertSame(850, $this->price('IMP-S', 'panel:default'));
+        $this->assertSame(1, $panelEntries());
     }
 
     public function test_branch_problems_are_listed_before_any_write(): void
@@ -310,7 +350,7 @@ final class CatalogueImportTest extends VisitTestCase
         {
             public function __construct() {}
 
-            public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun): array
+            public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun, ?User $panelProposer = null, ?string $panelReference = null): array
             {
                 throw ValidationException::withMessages(['code' => 'A synthetic domain rule refused this.']);
             }
@@ -324,7 +364,7 @@ final class CatalogueImportTest extends VisitTestCase
         {
             public function __construct() {}
 
-            public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun): array
+            public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun, ?User $panelProposer = null, ?string $panelReference = null): array
             {
                 abort(403, 'Synthetic refusal.');
             }

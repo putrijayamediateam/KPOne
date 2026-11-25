@@ -23,6 +23,8 @@ class ImportCatalogue extends Command
         {--branch-prices= : Path to branch_prices.csv (optional)}
         {--actor= : Email of the named account the import acts as (must hold the medicine, price and inventory reference permissions)}
         {--branch= : Code of the home branch for HQ prices, for example PUCHONG}
+        {--panel-proposer= : Email of the named Panel Officer who files the hq_panel_rm values as Panel price proposals}
+        {--panel-reference= : The Panel agreement reference those proposals carry}
         {--dry-run : Check and do everything, then roll it all back}';
 
     protected $description = 'Import medicines, SKUs and Self-pay prices from CSV, through the existing services (all or nothing).';
@@ -41,9 +43,18 @@ class ImportCatalogue extends Command
 
             return self::FAILURE;
         }
+        $proposer = null;
+        if ($this->option('panel-proposer') !== null) {
+            $proposer = User::query()->where('organisation_id', $actor->organisation_id)->where('email', (string) $this->option('panel-proposer'))->first();
+            if ($proposer === null) {
+                $this->error('No account has that --panel-proposer email.');
+
+                return self::FAILURE;
+            }
+        }
         $dryRun = (bool) $this->option('dry-run');
         try {
-            $report = $import->run($actor, $branch, (string) $this->argument('catalogue'), $this->option('branch-prices') !== null ? (string) $this->option('branch-prices') : null, $dryRun);
+            $report = $import->run($actor, $branch, (string) $this->argument('catalogue'), $this->option('branch-prices') !== null ? (string) $this->option('branch-prices') : null, $dryRun, $proposer, $this->option('panel-reference') !== null ? (string) $this->option('panel-reference') : null);
         } catch (CatalogueImportRefused $refused) {
             $this->error($refused->getMessage());
             foreach ($refused->problems as $problem) {
@@ -65,7 +76,10 @@ class ImportCatalogue extends Command
 
             return self::FAILURE;
         }
-        $this->table(['Medicines', 'HQ Self-pay prices', 'Branch Self-pay prices', 'Marked controlled'], [[$report['medicines'], $report['hqPrices'], $report['branchPrices'], $report['controlled']]]);
+        $this->table(['Medicines', 'HQ Self-pay prices', 'Branch Self-pay prices', 'Marked controlled', 'Panel price proposals'], [[$report['medicines'], $report['hqPrices'], $report['branchPrices'], $report['controlled'], $report['panelProposals']]]);
+        if ($report['panelProposals'] > 0 && ! $dryRun) {
+            $this->line('Panel prices are waiting for a Director or Finance Officer on the Panel price changes page.');
+        }
         $this->components->info($dryRun ? 'Dry run: everything was checked and rolled back. Nothing was saved.' : 'Imported. Next: Pilot readiness (verify base units), then the opening-stock import per branch.');
 
         return self::SUCCESS;

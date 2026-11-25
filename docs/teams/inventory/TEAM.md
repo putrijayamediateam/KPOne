@@ -352,8 +352,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     `inventory.catalogue_import.recorded` with counts only. The actor must hold all four of
     `medicines.manage.organisation`, `prices.publish.organisation`, `pricing.references.manage.organisation` and
     `inventory.references.manage.organisation` (on main: Administrator and CA Supervisor; the Director lacks
-    `prices.publish`). Panel prices are refused (`hq_panel_rm` must be blank): since owner decision 27 they change only
-    by proposal and approval. Opening stock and its unit cost stay with the STK-35 opening import and its STK-1 sign-off.
+    `prices.publish`); the owner chose a named Administrator. Panel prices (owner, 25 Nov 2026): `hq_panel_rm` is never
+    published; each value is filed through PanelPriceProposalService as a proposal for the default Panel book, as a
+    named Panel Officer (`--panel-proposer`, `--panel-reference`, today's date), and a Director or Finance Officer
+    approves it (decision 27 unchanged). Opening stock and its unit cost stay with the STK-35 opening import and its STK-1 sign-off.
 
 ## 7. Open items and known limits
 
