@@ -424,9 +424,9 @@ const isPlannerMonth = computed(
 
         <!-- Planner -->
         <section
-            v-if="roster.tab === 'planner' && planner"
+            v-if="roster.tab === 'planner' && planner && !isPlannerMonth"
             aria-labelledby="planner-title"
-            class="flex min-w-0 flex-col gap-3"
+            class="flex flex-col gap-3"
         >
             <h2 id="planner-title" class="sr-only">Planner</h2>
             <div class="flex flex-wrap items-end gap-3">
@@ -446,17 +446,13 @@ const isPlannerMonth = computed(
                     />
                 </div>
                 <StatusBadge
-                    v-if="shown && !isPlannerMonth"
+                    v-if="shown"
                     :status="statusKey(shown.status)"
                     :label="statusLabel[shown.status]"
                     data-test="version-status"
                 />
                 <div
-                    v-if="
-                        planner.approvedVersion &&
-                        planner.openVersion &&
-                        !isPlannerMonth
-                    "
+                    v-if="planner.approvedVersion && planner.openVersion"
                     class="flex gap-1"
                     role="group"
                     aria-label="Version shown"
@@ -493,7 +489,7 @@ const isPlannerMonth = computed(
                 </div>
             </div>
             <p
-                v-if="shown && !isPlannerMonth"
+                v-if="shown"
                 class="text-xs text-muted-foreground"
                 data-test="version-line"
             >
@@ -506,7 +502,6 @@ const isPlannerMonth = computed(
             <ErrorState v-if="errors.roster" :message="errors.roster" />
 
             <div
-                v-if="!isPlannerMonth"
                 class="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
                 data-test="planner-actions"
             >
@@ -565,6 +560,336 @@ const isPlannerMonth = computed(
                 </ul>
             </div>
 
+            <CompliancePanel
+                v-if="planner.compliance"
+                :compliance="planner.compliance"
+                :branch="planner.branch.name"
+            />
+
+            <div
+                v-if="planner.warnings.length > 0"
+                role="status"
+                class="rounded-xl border border-l-4 border-l-warning bg-card p-4 text-sm"
+                data-test="roster-warnings"
+            >
+                <p class="font-medium">Check before approval</p>
+                <ul class="mt-1 list-disc pl-5">
+                    <li v-for="warning in planner.warnings" :key="warning">
+                        {{ warning }}
+                    </li>
+                </ul>
+            </div>
+
+            <div v-if="!shown" class="flex flex-col gap-3">
+                <EmptyState
+                    :title="`No roster for ${planner.branch.name} this week.`"
+                    :description="
+                        planner.can.start
+                            ? 'Start a draft, or copy the last approved week.'
+                            : 'Nothing has been planned for this week yet.'
+                    "
+                />
+                <div
+                    v-if="planner.can.start"
+                    class="flex flex-col gap-2 sm:flex-row"
+                >
+                    <Button @click="openDialog('start')">Start draft</Button>
+                    <Button
+                        v-if="planner.can.copy"
+                        variant="outline"
+                        @click="openDialog('copy')"
+                        >Copy last approved week</Button
+                    >
+                </div>
+            </div>
+
+            <template v-else>
+                <!-- Desktop grid (from 1024 px) -->
+                <div class="hidden lg:block">
+                    <OperationalTable
+                        :label="`Roster for ${planner.branch.name}, ${roster.week.label}`"
+                        :columns="8"
+                        :empty="planner.rows.length === 0"
+                        empty-message="No shifts yet. Use Add shift to plan the week."
+                        min-width="960px"
+                    >
+                        <template #head>
+                            <tr>
+                                <th scope="col" class="w-48">Staff</th>
+                                <th
+                                    v-for="day in planner.days"
+                                    :key="day.date"
+                                    scope="col"
+                                >
+                                    {{ day.label }}
+                                </th>
+                            </tr>
+                        </template>
+                        <template #body>
+                            <tr
+                                v-for="row in planner.rows"
+                                :key="row.staffUserId"
+                            >
+                                <th scope="row" class="align-top font-normal">
+                                    <span class="block font-medium">{{
+                                        row.name
+                                    }}</span>
+                                    <span
+                                        class="block text-xs text-muted-foreground"
+                                        >{{ row.role }}</span
+                                    >
+                                </th>
+                                <td
+                                    v-for="day in planner.days"
+                                    :key="day.date"
+                                    class="align-top"
+                                >
+                                    <div class="flex flex-col gap-1">
+                                        <Badge
+                                            v-if="row.leaveDays[day.date]"
+                                            variant="outline"
+                                            class="w-fit"
+                                            data-test="on-leave-chip"
+                                            >{{
+                                                row.leaveDays[day.date] ===
+                                                'half'
+                                                    ? 'On leave (half day)'
+                                                    : 'On leave'
+                                            }}</Badge
+                                        >
+                                        <component
+                                            :is="
+                                                planner.can.edit
+                                                    ? 'button'
+                                                    : 'div'
+                                            "
+                                            v-for="shift in shiftsOn(
+                                                row,
+                                                day.date,
+                                            )"
+                                            :key="shift.id"
+                                            :type="
+                                                planner.can.edit
+                                                    ? 'button'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 rounded-md border bg-card px-2 py-1 text-left text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                            :class="
+                                                planner.can.edit
+                                                    ? 'hover:bg-muted'
+                                                    : ''
+                                            "
+                                            :aria-label="
+                                                planner.can.edit
+                                                    ? `Edit shift: ${row.name}, ${day.long}, ${shift.startLabel} to ${shift.endLabel}`
+                                                    : undefined
+                                            "
+                                            @click="
+                                                planner.can.edit &&
+                                                openEdit(shift)
+                                            "
+                                        >
+                                            <!-- Each time stays whole, never "2:00 / PM" (Daniel, HR-5b nit). -->
+                                            <span
+                                                class="block font-medium tabular-nums"
+                                                ><span
+                                                    class="whitespace-nowrap"
+                                                    >{{
+                                                        shift.startLabel
+                                                    }}</span
+                                                >
+                                                –
+                                                <span
+                                                    class="whitespace-nowrap"
+                                                    >{{ shift.endLabel }}</span
+                                                ></span
+                                            >
+                                            <span
+                                                class="block text-muted-foreground"
+                                            >
+                                                {{ shift.sessionLabel
+                                                }}<template
+                                                    v-if="shift.roomName"
+                                                >
+                                                    ·
+                                                    {{
+                                                        shift.roomName
+                                                    }}</template
+                                                ><template
+                                                    v-if="shift.stationLabel"
+                                                >
+                                                    ·
+                                                    {{
+                                                        shift.stationLabel
+                                                    }}</template
+                                                >
+                                            </span>
+                                        </component>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="font-medium">
+                                    Total on shift
+                                </th>
+                                <td
+                                    v-for="(day, index) in planner.days"
+                                    :key="day.date"
+                                    class="tabular-nums"
+                                >
+                                    <span
+                                        class="inline-flex items-center gap-2 whitespace-nowrap"
+                                        data-test="day-total"
+                                    >
+                                        <span
+                                            >{{ planner.totals[index]
+                                            }}<template
+                                                v-if="
+                                                    planner.onCallTotals[
+                                                        index
+                                                    ] > 0
+                                                "
+                                            >
+                                                ·
+                                                {{
+                                                    planner.onCallTotals[index]
+                                                }}
+                                                on call</template
+                                            ></span
+                                        >
+                                        <StatusBadge
+                                            v-if="isShort(day.date)"
+                                            status="roster_short"
+                                            label="Short"
+                                            tone="warning"
+                                        />
+                                    </span>
+                                </td>
+                            </tr>
+                        </template>
+                    </OperationalTable>
+                </div>
+
+                <!-- Phone: one card per day -->
+                <ul
+                    class="flex flex-col gap-3 lg:hidden"
+                    data-test="planner-days"
+                >
+                    <li
+                        v-for="day in planner.days"
+                        :key="day.date"
+                        class="rounded-xl border bg-card p-4"
+                    >
+                        <div class="flex items-center justify-between gap-2">
+                            <h3 class="text-sm font-semibold">
+                                {{ day.long }}
+                            </h3>
+                            <StatusBadge
+                                v-if="isShort(day.date)"
+                                status="roster_short"
+                                label="Short"
+                                tone="warning"
+                            />
+                        </div>
+                        <p
+                            v-if="onLeave(day.date).length > 0"
+                            class="mt-2 text-xs text-muted-foreground"
+                            data-test="on-leave-day"
+                        >
+                            On leave: {{ onLeave(day.date).join(', ') }}
+                        </p>
+                        <p
+                            v-if="dayShifts(day.date).length === 0"
+                            class="mt-2 text-xs text-muted-foreground"
+                        >
+                            No shifts.
+                        </p>
+                        <ul v-else class="mt-2 flex flex-col divide-y">
+                            <li
+                                v-for="item in dayShifts(day.date)"
+                                :key="item.shift.id"
+                                class="flex min-w-0 items-center justify-between gap-2 py-2"
+                            >
+                                <div class="min-w-0 text-sm">
+                                    <p class="truncate font-medium">
+                                        {{ item.row.name }}
+                                        <span
+                                            class="font-normal text-muted-foreground"
+                                            >· {{ item.row.role }}</span
+                                        >
+                                    </p>
+                                    <p class="text-xs text-muted-foreground">
+                                        <span class="tabular-nums">{{
+                                            timeText(item.shift)
+                                        }}</span>
+                                        · {{ item.shift.sessionLabel
+                                        }}<template v-if="item.shift.roomName">
+                                            ·
+                                            {{ item.shift.roomName }}</template
+                                        ><template
+                                            v-if="item.shift.stationLabel"
+                                        >
+                                            ·
+                                            {{
+                                                item.shift.stationLabel
+                                            }}</template
+                                        >
+                                    </p>
+                                </div>
+                                <Button
+                                    v-if="planner.can.edit"
+                                    variant="outline"
+                                    class="min-h-11 min-w-11"
+                                    :aria-label="`Edit shift: ${item.row.name}, ${day.long}, ${item.shift.startLabel} to ${item.shift.endLabel}`"
+                                    @click="openEdit(item.shift)"
+                                >
+                                    Edit
+                                </Button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </template>
+        </section>
+
+        <!-- HR-22e: the planner's month view -->
+        <section
+            v-else-if="roster.tab === 'planner' && planner && isPlannerMonth"
+            aria-labelledby="planner-month-title"
+            class="flex min-w-0 flex-col gap-3"
+        >
+            <h2 id="planner-month-title" class="sr-only">Planner by month</h2>
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="grid w-full gap-2 sm:w-56">
+                    <Label for="planner-branch">Branch</Label>
+                    <OperationalSelect
+                        id="planner-branch"
+                        :model-value="planner.branch.id"
+                        :options="
+                            planner.branches.map((b) => ({
+                                value: b.id,
+                                label: b.name,
+                            }))
+                        "
+                        label="Branch"
+                        @update:model-value="changeBranch"
+                    />
+                </div>
+            </div>
+
+            <ErrorState v-if="errors.roster" :message="errors.roster" />
+
+            <div
+                v-if="skipped.length > 0"
+                role="status"
+                class="rounded-xl border border-l-4 border-l-warning bg-card p-4 text-sm"
+            >
+                <p class="font-medium">Some shifts were not copied</p>
+                <ul class="mt-1 list-disc pl-5">
+                    <li v-for="note in skipped" :key="note">{{ note }}</li>
+                </ul>
+            </div>
+
             <template v-if="isPlannerMonth && roster.plannerMonth">
                 <div
                     v-if="monthCopy.length > 0"
@@ -608,318 +933,6 @@ const isPlannerMonth = computed(
                     @open="(week) => showPlannerWeek(week)"
                     @copy="copyToMonth"
                 />
-            </template>
-
-            <template v-if="!isPlannerMonth">
-                <CompliancePanel
-                    v-if="planner.compliance"
-                    :compliance="planner.compliance"
-                    :branch="planner.branch.name"
-                />
-
-                <div
-                    v-if="planner.warnings.length > 0"
-                    role="status"
-                    class="rounded-xl border border-l-4 border-l-warning bg-card p-4 text-sm"
-                    data-test="roster-warnings"
-                >
-                    <p class="font-medium">Check before approval</p>
-                    <ul class="mt-1 list-disc pl-5">
-                        <li v-for="warning in planner.warnings" :key="warning">
-                            {{ warning }}
-                        </li>
-                    </ul>
-                </div>
-
-                <div v-if="!shown" class="flex flex-col gap-3">
-                    <EmptyState
-                        :title="`No roster for ${planner.branch.name} this week.`"
-                        :description="
-                            planner.can.start
-                                ? 'Start a draft, or copy the last approved week.'
-                                : 'Nothing has been planned for this week yet.'
-                        "
-                    />
-                    <div
-                        v-if="planner.can.start"
-                        class="flex flex-col gap-2 sm:flex-row"
-                    >
-                        <Button @click="openDialog('start')"
-                            >Start draft</Button
-                        >
-                        <Button
-                            v-if="planner.can.copy"
-                            variant="outline"
-                            @click="openDialog('copy')"
-                            >Copy last approved week</Button
-                        >
-                    </div>
-                </div>
-
-                <template v-else>
-                    <!-- Desktop grid (from 1024 px) -->
-                    <div class="hidden lg:block">
-                        <OperationalTable
-                            :label="`Roster for ${planner.branch.name}, ${roster.week.label}`"
-                            :columns="8"
-                            :empty="planner.rows.length === 0"
-                            empty-message="No shifts yet. Use Add shift to plan the week."
-                            min-width="960px"
-                        >
-                            <template #head>
-                                <tr>
-                                    <th scope="col" class="w-48">Staff</th>
-                                    <th
-                                        v-for="day in planner.days"
-                                        :key="day.date"
-                                        scope="col"
-                                    >
-                                        {{ day.label }}
-                                    </th>
-                                </tr>
-                            </template>
-                            <template #body>
-                                <tr
-                                    v-for="row in planner.rows"
-                                    :key="row.staffUserId"
-                                >
-                                    <th
-                                        scope="row"
-                                        class="align-top font-normal"
-                                    >
-                                        <span class="block font-medium">{{
-                                            row.name
-                                        }}</span>
-                                        <span
-                                            class="block text-xs text-muted-foreground"
-                                            >{{ row.role }}</span
-                                        >
-                                    </th>
-                                    <td
-                                        v-for="day in planner.days"
-                                        :key="day.date"
-                                        class="align-top"
-                                    >
-                                        <div class="flex flex-col gap-1">
-                                            <Badge
-                                                v-if="row.leaveDays[day.date]"
-                                                variant="outline"
-                                                class="w-fit"
-                                                data-test="on-leave-chip"
-                                                >{{
-                                                    row.leaveDays[day.date] ===
-                                                    'half'
-                                                        ? 'On leave (half day)'
-                                                        : 'On leave'
-                                                }}</Badge
-                                            >
-                                            <component
-                                                :is="
-                                                    planner.can.edit
-                                                        ? 'button'
-                                                        : 'div'
-                                                "
-                                                v-for="shift in shiftsOn(
-                                                    row,
-                                                    day.date,
-                                                )"
-                                                :key="shift.id"
-                                                :type="
-                                                    planner.can.edit
-                                                        ? 'button'
-                                                        : undefined
-                                                "
-                                                class="min-h-11 rounded-md border bg-card px-2 py-1 text-left text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                                :class="
-                                                    planner.can.edit
-                                                        ? 'hover:bg-muted'
-                                                        : ''
-                                                "
-                                                :aria-label="
-                                                    planner.can.edit
-                                                        ? `Edit shift: ${row.name}, ${day.long}, ${shift.startLabel} to ${shift.endLabel}`
-                                                        : undefined
-                                                "
-                                                @click="
-                                                    planner.can.edit &&
-                                                    openEdit(shift)
-                                                "
-                                            >
-                                                <!-- Each time stays whole, never "2:00 / PM" (Daniel, HR-5b nit). -->
-                                                <span
-                                                    class="block font-medium tabular-nums"
-                                                    ><span
-                                                        class="whitespace-nowrap"
-                                                        >{{
-                                                            shift.startLabel
-                                                        }}</span
-                                                    >
-                                                    –
-                                                    <span
-                                                        class="whitespace-nowrap"
-                                                        >{{
-                                                            shift.endLabel
-                                                        }}</span
-                                                    ></span
-                                                >
-                                                <span
-                                                    class="block text-muted-foreground"
-                                                >
-                                                    {{ shift.sessionLabel
-                                                    }}<template
-                                                        v-if="shift.roomName"
-                                                    >
-                                                        ·
-                                                        {{
-                                                            shift.roomName
-                                                        }}</template
-                                                    ><template
-                                                        v-if="
-                                                            shift.stationLabel
-                                                        "
-                                                    >
-                                                        ·
-                                                        {{
-                                                            shift.stationLabel
-                                                        }}</template
-                                                    >
-                                                </span>
-                                            </component>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row" class="font-medium">
-                                        Total on shift
-                                    </th>
-                                    <td
-                                        v-for="(day, index) in planner.days"
-                                        :key="day.date"
-                                        class="tabular-nums"
-                                    >
-                                        <span
-                                            class="inline-flex items-center gap-2 whitespace-nowrap"
-                                            data-test="day-total"
-                                        >
-                                            <span
-                                                >{{ planner.totals[index]
-                                                }}<template
-                                                    v-if="
-                                                        planner.onCallTotals[
-                                                            index
-                                                        ] > 0
-                                                    "
-                                                >
-                                                    ·
-                                                    {{
-                                                        planner.onCallTotals[
-                                                            index
-                                                        ]
-                                                    }}
-                                                    on call</template
-                                                ></span
-                                            >
-                                            <StatusBadge
-                                                v-if="isShort(day.date)"
-                                                status="roster_short"
-                                                label="Short"
-                                                tone="warning"
-                                            />
-                                        </span>
-                                    </td>
-                                </tr>
-                            </template>
-                        </OperationalTable>
-                    </div>
-
-                    <!-- Phone: one card per day -->
-                    <ul
-                        class="flex flex-col gap-3 lg:hidden"
-                        data-test="planner-days"
-                    >
-                        <li
-                            v-for="day in planner.days"
-                            :key="day.date"
-                            class="rounded-xl border bg-card p-4"
-                        >
-                            <div
-                                class="flex items-center justify-between gap-2"
-                            >
-                                <h3 class="text-sm font-semibold">
-                                    {{ day.long }}
-                                </h3>
-                                <StatusBadge
-                                    v-if="isShort(day.date)"
-                                    status="roster_short"
-                                    label="Short"
-                                    tone="warning"
-                                />
-                            </div>
-                            <p
-                                v-if="onLeave(day.date).length > 0"
-                                class="mt-2 text-xs text-muted-foreground"
-                                data-test="on-leave-day"
-                            >
-                                On leave: {{ onLeave(day.date).join(', ') }}
-                            </p>
-                            <p
-                                v-if="dayShifts(day.date).length === 0"
-                                class="mt-2 text-xs text-muted-foreground"
-                            >
-                                No shifts.
-                            </p>
-                            <ul v-else class="mt-2 flex flex-col divide-y">
-                                <li
-                                    v-for="item in dayShifts(day.date)"
-                                    :key="item.shift.id"
-                                    class="flex min-w-0 items-center justify-between gap-2 py-2"
-                                >
-                                    <div class="min-w-0 text-sm">
-                                        <p class="truncate font-medium">
-                                            {{ item.row.name }}
-                                            <span
-                                                class="font-normal text-muted-foreground"
-                                                >· {{ item.row.role }}</span
-                                            >
-                                        </p>
-                                        <p
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            <span class="tabular-nums">{{
-                                                timeText(item.shift)
-                                            }}</span>
-                                            · {{ item.shift.sessionLabel
-                                            }}<template
-                                                v-if="item.shift.roomName"
-                                            >
-                                                ·
-                                                {{
-                                                    item.shift.roomName
-                                                }}</template
-                                            ><template
-                                                v-if="item.shift.stationLabel"
-                                            >
-                                                ·
-                                                {{
-                                                    item.shift.stationLabel
-                                                }}</template
-                                            >
-                                        </p>
-                                    </div>
-                                    <Button
-                                        v-if="planner.can.edit"
-                                        variant="outline"
-                                        class="min-h-11 min-w-11"
-                                        :aria-label="`Edit shift: ${item.row.name}, ${day.long}, ${item.shift.startLabel} to ${item.shift.endLabel}`"
-                                        @click="openEdit(item.shift)"
-                                    >
-                                        Edit
-                                    </Button>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </template>
             </template>
         </section>
 

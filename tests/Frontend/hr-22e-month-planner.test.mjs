@@ -18,12 +18,15 @@ test('the planner has a Week | Month switch with its own address key', () => {
     assert.match(page, /data-test="planner-month-switcher"/);
 });
 
-test('in month view the week-only parts are hidden and the month shows instead', () => {
+test('in month view the week section is replaced by its own month section', () => {
     assert.match(
         page,
-        /v-if="!isPlannerMonth"\s+class="flex flex-col gap-2 sm:flex-row sm:flex-wrap"\s+data-test="planner-actions"/,
+        /v-if="roster\.tab === 'planner' && planner && !isPlannerMonth"/,
     );
-    assert.match(page, /<template v-if="!isPlannerMonth">\s+<CompliancePanel/);
+    assert.match(
+        page,
+        /v-else-if="roster\.tab === 'planner' && planner && isPlannerMonth"/,
+    );
     assert.match(page, /<PlannerMonth/);
     assert.match(page, /data-test="month-copy-result"/);
 });
