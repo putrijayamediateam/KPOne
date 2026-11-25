@@ -47,3 +47,13 @@ test('Consultation settings links to the phrases page, and the review page appro
     assert.match(review, /phrase\.enteredLabel/);
     assert.match(review, /\{\{ waiting \}\} waiting/);
 });
+
+test('The phrase dialogs show live counters, use the shared select and explain a disabled Confirm', () => {
+    assert.match(phrases, /addForm\.label_en\.length \}\} \/ \{\{ MAX \}\}/);
+    assert.match(phrases, /editForm\.label_ms\.length \}\} \/ \{\{ MAX \}\}/);
+    assert.match(phrases, /Enter both English and Bahasa Melayu to continue\./);
+    assert.match(phrases, /:disabled="addForm\.processing \|\| addIncomplete"/);
+    assert.match(phrases, /OperationalSelect/);
+    assert.match(phrases, /max-lg:min-h-11/);
+    assert.doesNotMatch(phrases, /<select/);
+});

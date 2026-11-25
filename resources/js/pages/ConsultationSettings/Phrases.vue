@@ -12,6 +12,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { CompactPagination } from '@/components/ui/pagination';
+import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 
 type Phrase = {
@@ -140,6 +141,21 @@ const toggle = (phrase: Phrase) => {
         },
     );
 };
+const kindFilterOptions = computed(() => [
+    { value: 'all', label: 'All kinds' },
+    ...props.kinds,
+]);
+const statusOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'archived', label: 'Archived' },
+];
+const addIncomplete = computed(
+    () => !addForm.label_en.trim() || !addForm.label_ms.trim(),
+);
+const editIncomplete = computed(
+    () => !editForm.label_en.trim() || !editForm.label_ms.trim(),
+);
 const emptyTitle = computed(() =>
     props.q || props.kind !== 'all' || props.status !== 'all'
         ? 'No phrases match.'
@@ -185,43 +201,34 @@ const emptyTitle = computed(() =>
                 class="mt-5 flex flex-wrap items-end gap-3"
                 @submit.prevent="go(1)"
             >
-                <label class="grid gap-1 text-sm font-medium"
-                    >Kind<select
-                        :value="kind"
-                        class="h-11 rounded-md border bg-background px-3 font-normal md:h-9"
-                        @change="
-                            go(1, {
-                                kind: ($event.target as HTMLSelectElement)
-                                    .value,
-                            })
-                        "
+                <div class="grid gap-1">
+                    <label for="phrase-filter-kind" class="text-sm font-medium"
+                        >Kind</label
                     >
-                        <option value="all">All kinds</option>
-                        <option
-                            v-for="item in kinds"
-                            :key="item.value"
-                            :value="item.value"
-                        >
-                            {{ item.label }}
-                        </option>
-                    </select></label
-                >
-                <label class="grid gap-1 text-sm font-medium"
-                    >Status<select
-                        :value="status"
-                        class="h-11 rounded-md border bg-background px-3 font-normal md:h-9"
-                        @change="
-                            go(1, {
-                                status: ($event.target as HTMLSelectElement)
-                                    .value,
-                            })
-                        "
+                    <OperationalSelect
+                        id="phrase-filter-kind"
+                        :model-value="kind"
+                        label="Kind"
+                        :options="kindFilterOptions"
+                        trigger-class="max-lg:min-h-11 min-w-36"
+                        @update:model-value="go(1, { kind: String($event) })"
+                    />
+                </div>
+                <div class="grid gap-1">
+                    <label
+                        for="phrase-filter-status"
+                        class="text-sm font-medium"
+                        >Status</label
                     >
-                        <option value="all">All</option>
-                        <option value="active">Active</option>
-                        <option value="archived">Archived</option>
-                    </select></label
-                >
+                    <OperationalSelect
+                        id="phrase-filter-status"
+                        :model-value="status"
+                        label="Status"
+                        :options="statusOptions"
+                        trigger-class="max-lg:min-h-11 min-w-28"
+                        @update:model-value="go(1, { status: String($event) })"
+                    />
+                </div>
                 <label class="grid min-w-0 gap-1 text-sm font-medium"
                     >Search<input
                         v-model="search"
@@ -313,12 +320,14 @@ const emptyTitle = computed(() =>
                     </div>
                 </li>
             </ul>
-            <CompactPagination
-                :current-page="pagination.currentPage"
-                :last-page="pagination.lastPage"
-                :total="pagination.total"
-                @change="go"
-            />
+            <div class="mt-4">
+                <CompactPagination
+                    :current-page="pagination.currentPage"
+                    :last-page="pagination.lastPage"
+                    :total="pagination.total"
+                    @change="go"
+                />
+            </div>
         </section>
     </main>
     <Dialog v-model:open="adding"
@@ -331,25 +340,21 @@ const emptyTitle = computed(() =>
                 ></DialogHeader
             >
             <form class="grid gap-4" @submit.prevent="save">
-                <label class="grid gap-2 text-sm font-medium"
-                    ><span
+                <div class="grid gap-2">
+                    <label for="phrase-kind" class="text-sm font-medium"
                         >Kind<span class="text-destructive" aria-hidden="true">
                             *</span
-                        ></span
-                    ><select
-                        v-model="addForm.kind"
-                        required
-                        class="h-11 rounded-md border bg-background px-3 font-normal"
+                        ></label
                     >
-                        <option
-                            v-for="item in kinds"
-                            :key="item.value"
-                            :value="item.value"
-                        >
-                            {{ item.label }}
-                        </option></select
-                    ><InputError :message="addForm.errors.kind"
-                /></label>
+                    <OperationalSelect
+                        id="phrase-kind"
+                        v-model="addForm.kind"
+                        label="Kind"
+                        :options="kinds"
+                        trigger-class="h-11"
+                    />
+                    <InputError :message="addForm.errors.kind" />
+                </div>
                 <label class="grid gap-2 text-sm font-medium"
                     ><span
                         >English<span
@@ -363,8 +368,10 @@ const emptyTitle = computed(() =>
                         required
                         :maxlength="MAX"
                         placeholder="For example After food"
-                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
-                        :message="addForm.errors.label_en"
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><span
+                        class="text-[13px] font-normal text-muted-foreground"
+                        >{{ addForm.label_en.length }} / {{ MAX }}</span
+                    ><InputError :message="addForm.errors.label_en"
                 /></label>
                 <label class="grid gap-2 text-sm font-medium"
                     ><span
@@ -379,18 +386,28 @@ const emptyTitle = computed(() =>
                         required
                         :maxlength="MAX"
                         placeholder="Contoh Selepas makan"
-                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
-                        :message="addForm.errors.label_ms"
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><span
+                        class="text-[13px] font-normal text-muted-foreground"
+                        >{{ addForm.label_ms.length }} / {{ MAX }}</span
+                    ><InputError :message="addForm.errors.label_ms"
                 /></label>
-                <InputError :message="generalError" /><DialogFooter
-                    class="sm:justify-between"
+                <InputError :message="generalError" />
+                <p
+                    v-if="addIncomplete"
+                    class="text-[13px] text-muted-foreground"
+                >
+                    Enter both English and Bahasa Melayu to continue.
+                </p>
+                <DialogFooter class="sm:justify-between"
                     ><Button
                         type="button"
                         variant="ghost"
                         :disabled="addForm.processing"
                         @click="adding = false"
                         >Cancel</Button
-                    ><Button type="submit" :disabled="addForm.processing"
+                    ><Button
+                        type="submit"
+                        :disabled="addForm.processing || addIncomplete"
                         >Confirm</Button
                     ></DialogFooter
                 >
@@ -422,8 +439,10 @@ const emptyTitle = computed(() =>
                         v-model="editForm.label_en"
                         required
                         :maxlength="MAX"
-                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
-                        :message="editForm.errors.label_en"
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><span
+                        class="text-[13px] font-normal text-muted-foreground"
+                        >{{ editForm.label_en.length }} / {{ MAX }}</span
+                    ><InputError :message="editForm.errors.label_en"
                 /></label>
                 <label class="grid gap-2 text-sm font-medium"
                     ><span
@@ -437,17 +456,28 @@ const emptyTitle = computed(() =>
                         v-model="editForm.label_ms"
                         required
                         :maxlength="MAX"
-                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
-                        :message="editForm.errors.label_ms"
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><span
+                        class="text-[13px] font-normal text-muted-foreground"
+                        >{{ editForm.label_ms.length }} / {{ MAX }}</span
+                    ><InputError :message="editForm.errors.label_ms"
                 /></label>
-                <InputError :message="generalError" /><DialogFooter
+                <InputError :message="generalError" />
+                <p
+                    v-if="editIncomplete"
+                    class="text-[13px] text-muted-foreground"
+                >
+                    Enter both English and Bahasa Melayu to continue.
+                </p>
+                <DialogFooter
                     ><Button
                         type="button"
                         variant="ghost"
                         :disabled="editForm.processing"
                         @click="editing = null"
                         >Cancel</Button
-                    ><Button type="submit" :disabled="editForm.processing"
+                    ><Button
+                        type="submit"
+                        :disabled="editForm.processing || editIncomplete"
                         >Save</Button
                     ></DialogFooter
                 >
