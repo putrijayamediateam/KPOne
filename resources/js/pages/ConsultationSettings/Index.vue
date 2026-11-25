@@ -25,6 +25,8 @@ import { OperationalTable } from '@/components/ui/table';
 type Preset = {
     id: number;
     name: string;
+    icd10Code: string | null;
+    status: 'draft' | 'approved';
     active: boolean;
     lockVersion: number;
 };
@@ -69,13 +71,20 @@ const addForm = useForm({
     expected_branch_id: props.branchId,
     idempotency_key: crypto.randomUUID(),
     names: [''],
+    codes: [''],
 });
 const renameForm = useForm({
     expected_branch_id: props.branchId,
     idempotency_key: crypto.randomUUID(),
     lock_version: 1,
     name: '',
+    icd10_code: '',
 });
+const detail = (preset: Preset) =>
+    [
+        preset.icd10Code ? `ICD-10 ${preset.icd10Code}` : 'No ICD-10 code',
+        preset.status === 'draft' ? 'Waiting for doctor review' : 'Reviewed',
+    ].join(' · ');
 const busy = ref<number | null>(null);
 const statusKeys = new Map<string, string>();
 const generalError = computed(
@@ -116,6 +125,7 @@ const openRename = (preset: Preset) => {
     selected.value = preset;
     renameForm.clearErrors();
     renameForm.name = preset.name;
+    renameForm.icd10_code = preset.icd10Code ?? '';
     renameForm.lock_version = preset.lockVersion;
     renameForm.expected_branch_id = props.branchId;
     renameForm.idempotency_key = crypto.randomUUID();
@@ -364,6 +374,10 @@ const presetEmptyDescription = computed(() =>
                             class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]"
                         >
                             {{ preset.name }}
+                            <span
+                                class="block text-xs font-normal text-muted-foreground"
+                                >{{ detail(preset) }}</span
+                            >
                         </p>
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
@@ -443,6 +457,10 @@ const presetEmptyDescription = computed(() =>
                         <tr v-for="preset in presets" :key="preset.id">
                             <td class="[overflow-wrap:anywhere]">
                                 {{ preset.name }}
+                                <span
+                                    class="block text-xs text-muted-foreground"
+                                    >{{ detail(preset) }}</span
+                                >
                             </td>
                             <td>
                                 <div class="flex items-center gap-3">
@@ -545,7 +563,15 @@ const presetEmptyDescription = computed(() =>
                             maxlength="500"
                             placeholder="Enter diagnosis name"
                             class="h-11 rounded-md border bg-background px-3" /><InputError
-                            :message="nameError(index)"
+                            :message="nameError(index)" /><span
+                            class="mt-1 text-xs font-medium"
+                            >ICD-10 code (optional)</span
+                        ><input
+                            v-model="addForm.codes[index]"
+                            maxlength="20"
+                            placeholder="For example R50.9"
+                            class="h-11 rounded-md border bg-background px-3" /><InputError
+                            :message="addForm.errors[`codes.${index}`]"
                     /></label>
                 </div>
                 <InputError :message="addForm.errors.names" /><InputError
@@ -555,7 +581,10 @@ const presetEmptyDescription = computed(() =>
                     variant="outline"
                     class="w-fit"
                     :disabled="addForm.names.length >= 20 || addForm.processing"
-                    @click="addForm.names.push('')"
+                    @click="
+                        addForm.names.push('');
+                        addForm.codes.push('');
+                    "
                     >Add more diagnosis</Button
                 ><DialogFooter class="sm:justify-between"
                     ><Button
@@ -587,9 +616,20 @@ const presetEmptyDescription = computed(() =>
                         required
                         maxlength="500"
                         class="h-11 rounded-md border bg-background px-3" /></label
-                ><InputError :message="renameForm.errors.name" /><InputError
-                    :message="generalError"
-                /><DialogFooter
+                ><label class="grid gap-2 text-sm"
+                    >ICD-10 code (optional)<input
+                        v-model="renameForm.icd10_code"
+                        maxlength="20"
+                        placeholder="For example R50.9"
+                        class="h-11 rounded-md border bg-background px-3" /></label
+                ><InputError
+                    :message="renameForm.errors.icd10_code"
+                /><InputError :message="renameForm.errors.name" />
+                <p class="text-xs text-muted-foreground">
+                    A changed name or code goes back to a doctor for review
+                    before it is offered while typing.
+                </p>
+                <InputError :message="generalError" /><DialogFooter
                     ><Button
                         type="button"
                         variant="ghost"

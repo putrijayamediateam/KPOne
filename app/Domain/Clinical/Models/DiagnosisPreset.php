@@ -11,7 +11,7 @@ class DiagnosisPreset extends Model
 {
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'lock_version' => 'integer'];
+        return ['is_active' => 'boolean', 'lock_version' => 'integer', 'approved_at' => 'datetime'];
     }
 
     protected static function booted(): void
