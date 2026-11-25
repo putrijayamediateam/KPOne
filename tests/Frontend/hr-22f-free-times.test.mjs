@@ -20,9 +20,10 @@ test('a locum offers a free time with an optional note only HR sees, and may wit
     assert.match(view, />Offer a free time</);
     assert.match(
         view,
-        /Only you and HR see it\. Do not\s+write patient details\./,
+        /Only you and HR see it\. Do not write patient\s+details\./,
     );
     assert.match(view, /maxlength="200"/);
+    assert.match(view, /\{\{ offer\.note\.length \}\} \/ 200/);
     assert.match(view, /v-if="f\.status === 'waiting'"/);
     assert.match(composable, /'\/hr\/free-times'/);
     assert.match(composable, /\/withdraw`/);
@@ -45,4 +46,22 @@ test('every write carries the lock version and an idempotency key', () => {
     );
     assert.match(composable, /idempotency_key: offer\.key/);
     assert.match(composable, /idempotency_key: using\.key/);
+});
+
+test('Daniel: one filled button per view, neutral waiting chip, the window said before the click', () => {
+    assert.match(view, />Use this time</);
+    assert.doesNotMatch(view, /'warning'/);
+    assert.match(composable, /status === 'used' \? 'success' : 'neutral'/);
+    assert.match(view, /Between \{\{ using\.item\?\.startLabel \}\} and/);
+    assert.match(composable, /Keep the shift between/);
+    assert.match(view, /Note from the locum:/);
+    assert.match(view, /max-sm:sticky max-sm:bottom-0/);
+    assert.match(
+        page,
+        /Free times offered by locums\. Use one to add a draft shift, or decline it\./,
+    );
+    assert.match(
+        page,
+        /v-if="openShifts\.canManage && openShifts\.tab === 'open'"/,
+    );
 });

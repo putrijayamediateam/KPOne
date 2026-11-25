@@ -52,7 +52,11 @@ final class LocumAvailabilityPageService
             $props['branchOptions'] = array_values($branches->only($assigned->all())->map(fn (Branch $b): array => ['value' => (string) $b->id, 'label' => (string) $b->name])->all());
             $rows = DB::table('hr_locum_availability')->where('organisation_id', $actor->organisation_id)->where('locum_user_id', $actor->id)
                 ->orderByDesc('starts_at')->limit(100)->get();
-            $props['mine'] = array_values($rows->map(fn (\stdClass $r): array => $this->row($r, $branches, $now, own: true))->all());
+            // Daniel: what the locum can still act on first (soonest first), then the rest newest first.
+            $mine = $rows->map(fn (\stdClass $r): array => $this->row($r, $branches, $now, own: true) + ['_starts' => (string) $r->starts_at]);
+            $waiting = $mine->where('status', 'waiting')->sortBy('_starts');
+            $rest = $mine->where('status', '<>', 'waiting')->sortByDesc('_starts');
+            $props['mine'] = array_values($waiting->concat($rest)->map(fn (array $r): array => array_diff_key($r, ['_starts' => true]))->all());
             $props['waitingCount'] = $rows->where('status', 'waiting')->filter(fn (\stdClass $r): bool => CarbonImmutable::parse((string) $r->ends_at, 'UTC')->greaterThan($now))->count();
         }
         if ($props['canDecide']) {
@@ -90,6 +94,7 @@ final class LocumAvailabilityPageService
             'locum' => $own ? null : (string) ($r->locum_name ?? 'Locum'),
             'when' => $starts->format('D j M Y, g:i A').' to '.($ends->isSameDay($starts) ? $ends->format('g:i A') : $ends->format('D j M, g:i A')),
             'startTime' => $starts->format('H:i'), 'endTime' => $ends->format('H:i'),
+            'startLabel' => $starts->format('g:i A'), 'endLabel' => $ends->format('g:i A'),
             // The note is for the locum and HR; it never reaches anyone else.
             'note' => $r->note_encrypted === null ? null : Crypt::decryptString((string) $r->note_encrypted),
             'status' => $status, 'statusLabel' => $this->label($status, $r->decline_reason, $own), 'lockVersion' => (int) $r->lock_version];
@@ -100,7 +105,7 @@ final class LocumAvailabilityPageService
         return match ($status) {
             'waiting' => $own ? 'Waiting for HR' : 'Waiting for a decision',
             'expired' => 'Expired',
-            'used' => $own ? 'Used. It shows on My roster once the week is approved.' : 'Used, added to the draft roster',
+            'used' => $own ? 'It shows on My roster once the week is approved.' : 'Used, added to the draft roster',
             'withdrawn' => $own ? 'Withdrawn' : 'Withdrawn by the locum',
             default => 'Declined: '.(LocumAvailabilityService::DECLINE_REASONS[$reason ?? ''] ?? 'other reason'),
         };

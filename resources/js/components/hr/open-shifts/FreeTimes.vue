@@ -41,7 +41,10 @@ const {
     using,
     startUse,
     useRooms,
+    outsideWindow,
     sendUse,
+    mineWaiting,
+    mineAnswered,
     declining,
     decline,
 } = useFreeTimes(props);
@@ -113,12 +116,12 @@ const {
                 description="Use Offer a free time when you can take a shift."
             />
             <ul
-                v-else
+                v-if="mineWaiting.length > 0"
                 class="divide-y rounded-xl border bg-card"
                 data-test="free-time-mine"
             >
                 <li
-                    v-for="f in freeTimes.mine"
+                    v-for="f in mineWaiting"
                     :key="f.id"
                     class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
@@ -133,6 +136,7 @@ const {
                                     f.status === 'used' ? 'Used' : f.statusLabel
                                 "
                                 :tone="tone(f.status)"
+                                dot
                             />
                         </p>
                         <p class="text-sm text-muted-foreground">
@@ -162,6 +166,42 @@ const {
                     >
                 </li>
             </ul>
+            <template v-if="mineAnswered.length > 0">
+                <h3 class="text-sm font-semibold">Answered</h3>
+                <ul
+                    class="divide-y rounded-xl border bg-card"
+                    data-test="free-time-mine-answered"
+                >
+                    <li
+                        v-for="f in mineAnswered"
+                        :key="f.id"
+                        class="flex flex-col gap-1 p-4"
+                    >
+                        <p
+                            class="flex flex-wrap items-center gap-2 font-medium"
+                        >
+                            <span>{{ f.when }}</span>
+                            <StatusBadge
+                                :status="f.status"
+                                :label="
+                                    f.status === 'used' ? 'Used' : f.statusLabel
+                                "
+                                :tone="tone(f.status)"
+                                dot
+                            />
+                        </p>
+                        <p class="text-sm text-muted-foreground">
+                            {{ f.branch }}
+                        </p>
+                        <p
+                            v-if="f.status === 'used'"
+                            class="text-sm text-muted-foreground"
+                        >
+                            {{ f.statusLabel }}
+                        </p>
+                    </li>
+                </ul>
+            </template>
         </section>
 
         <!-- HR: free times waiting for a decision, then the latest answered -->
@@ -209,11 +249,12 @@ const {
                         </div>
                         <div class="flex flex-wrap gap-2">
                             <Button
+                                variant="outline"
                                 class="max-lg:min-h-11"
                                 :aria-label="`Use ${f.locum}'s free time on ${f.when}`"
                                 data-test="free-time-use"
                                 @click="startUse(f)"
-                                >Use</Button
+                                >Use this time</Button
                             >
                             <Button
                                 variant="outline"
@@ -255,6 +296,7 @@ const {
                                 :status="f.status"
                                 :label="f.statusLabel"
                                 :tone="tone(f.status)"
+                                dot
                             />
                         </p>
                         <p class="text-sm text-muted-foreground">
@@ -319,7 +361,7 @@ const {
                     >
                 </SheetHeader>
                 <form
-                    class="flex flex-col gap-4 px-4 pb-4"
+                    class="flex flex-1 flex-col gap-4 px-4 pb-4 max-sm:pb-0"
                     @submit.prevent="sendOffer"
                 >
                     <ErrorState
@@ -402,12 +444,22 @@ const {
                             id="free-time-note-help"
                             class="text-xs text-muted-foreground"
                         >
-                            Up to 200 characters. Only you and HR see it. Do not
-                            write patient details.
+                            <span
+                                >Only you and HR see it. Do not write patient
+                                details.</span
+                            >
+                            <span
+                                class="ml-2 tabular-nums"
+                                data-test="free-time-note-count"
+                                >{{ offer.note.length }} / 200</span
+                            >
                         </p>
                         <InputError :message="errors.note" />
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div
+                        class="flex flex-wrap items-center gap-2 max-sm:sticky max-sm:bottom-0 max-sm:-mx-4 max-sm:mt-auto max-sm:border-t max-sm:bg-background max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))]"
+                        data-test="free-time-offer-actions"
+                    >
                         <Button
                             type="submit"
                             class="max-lg:min-h-11"
@@ -464,16 +516,27 @@ const {
                         v-if="errors.availability"
                         :message="errors.availability"
                     />
+                    <p
+                        v-if="using.item?.note"
+                        class="rounded-lg border bg-muted/40 p-3 text-sm break-words"
+                        data-test="free-time-use-note"
+                    >
+                        <span class="font-medium">Note from the locum:</span>
+                        {{ using.item.note }}
+                    </p>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="flex flex-col gap-2">
                             <Label for="free-time-use-start">Start time</Label>
                             <Input
                                 id="free-time-use-start"
+                                aria-describedby="free-time-use-window"
                                 v-model="using.start_time"
                                 type="time"
                                 class="max-lg:min-h-11"
                                 :aria-invalid="
-                                    errors.start_time ? 'true' : undefined
+                                    errors.start_time || outsideWindow
+                                        ? 'true'
+                                        : undefined
                                 "
                             />
                             <InputError :message="errors.start_time" />
@@ -482,6 +545,7 @@ const {
                             <Label for="free-time-use-end">End time</Label>
                             <Input
                                 id="free-time-use-end"
+                                aria-describedby="free-time-use-window"
                                 v-model="using.end_time"
                                 type="time"
                                 class="max-lg:min-h-11"
@@ -491,6 +555,18 @@ const {
                             />
                             <InputError :message="errors.end_time" />
                         </div>
+                        <p
+                            id="free-time-use-window"
+                            class="text-sm text-muted-foreground sm:col-span-2"
+                            data-test="free-time-use-window"
+                        >
+                            Between {{ using.item?.startLabel }} and
+                            {{ using.item?.endLabel }}.
+                        </p>
+                        <InputError
+                            class="sm:col-span-2"
+                            :message="outsideWindow ?? undefined"
+                        />
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="flex flex-col gap-2">
@@ -573,7 +649,9 @@ const {
                         <Button
                             type="submit"
                             class="max-lg:min-h-11"
-                            :disabled="using.processing"
+                            :disabled="
+                                using.processing || outsideWindow !== null
+                            "
                             data-test="free-time-use-save"
                             >{{
                                 using.processing

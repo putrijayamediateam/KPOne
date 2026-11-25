@@ -22,7 +22,7 @@ class LocumAvailabilityController extends Controller
 
     public function withdraw(Request $request, LocumAvailabilityService $availability, string $availability_id): RedirectResponse
     {
-        return $this->run($request, 'Free time withdrawn.', fn () => $availability->withdraw($request->user(), $availability_id,
+        return $this->run($request, 'Withdrawn. You can offer it again.', fn () => $availability->withdraw($request->user(), $availability_id,
             $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 

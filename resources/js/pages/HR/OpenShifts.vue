@@ -2,6 +2,7 @@
 // HR-15b /hr/open-shifts: a linked locum sees open shifts at their branches and asks for one; the Director and HR
 // Manager post shifts and confirm one locum, which adds the shift to the branch's next draft roster week.
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import FreeTimes from '@/components/hr/open-shifts/FreeTimes.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
@@ -49,6 +50,17 @@ const {
     ask,
     withdrawAsk,
 } = useOpenShiftsPage(props);
+
+// Daniel: the intro line follows the tab.
+const description = computed(() =>
+    props.openShifts.tab === 'free'
+        ? props.openShifts.canManage
+            ? 'Free times offered by locums. Use one to add a draft shift, or decline it.'
+            : 'Times you are free to work, and what HR did with them.'
+        : props.openShifts.canManage
+          ? 'Post shifts that need a locum. Locums ask; you choose one, and the shift joins the next draft roster for that week.'
+          : 'Shifts the clinic needs covered at your branches. Ask for one; HR chooses who takes it.',
+);
 </script>
 
 <template>
@@ -57,13 +69,12 @@ const {
         <PageHeader
             eyebrow="KPOne HR"
             title="Open shifts"
-            :description="
-                openShifts.canManage
-                    ? 'Post shifts that need a locum. Locums ask; you choose one, and the shift joins the next draft roster for that week.'
-                    : 'Shifts the clinic needs covered at your branches. Ask for one; HR chooses who takes it.'
-            "
+            :description="description"
         >
-            <template v-if="openShifts.canManage" #actions>
+            <template
+                v-if="openShifts.canManage && openShifts.tab === 'open'"
+                #actions
+            >
                 <Button
                     class="max-lg:min-h-11"
                     data-test="open-shift-new"

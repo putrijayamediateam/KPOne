@@ -15,6 +15,8 @@ export type FreeTime = {
     when: string;
     startTime: string;
     endTime: string;
+    startLabel: string;
+    endLabel: string;
     note: string | null;
     status: 'waiting' | 'expired' | 'used' | 'declined' | 'withdrawn';
     statusLabel: string;
@@ -46,12 +48,15 @@ export function useFreeTimes(props: {
         () => (page.props.errors ?? {}) as Record<string, string | undefined>,
     );
     const busy = reactive<{ id: string | null }>({ id: null });
+    // Daniel: waiting for HR is not a warning for the locum; only Used is green.
     const tone = (status: FreeTime['status']) =>
-        status === 'used'
-            ? 'success'
-            : status === 'waiting'
-              ? 'warning'
-              : 'neutral';
+        status === 'used' ? 'success' : 'neutral';
+    const mineWaiting = computed(() =>
+        props.freeTimes.mine.filter((f) => f.status === 'waiting'),
+    );
+    const mineAnswered = computed(() =>
+        props.freeTimes.mine.filter((f) => f.status !== 'waiting'),
+    );
     const post = (
         url: string,
         data: Record<string, unknown>,
@@ -161,6 +166,41 @@ export function useFreeTimes(props: {
             ? (props.freeTimes.rooms[String(using.item.branchId)] ?? [])
             : [],
     );
+    // The server refuses a shift outside the offered time; say it before the click. Overnight times wrap past midnight.
+    const minutes = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+
+        return (h ?? 0) * 60 + (m ?? 0);
+    };
+    const outsideWindow = computed(() => {
+        const item = using.item;
+
+        if (!item || !using.start_time || !using.end_time) {
+            return null;
+        }
+
+        const from = minutes(item.startTime);
+        let until = minutes(item.endTime);
+
+        if (until <= from) {
+            until += 1440;
+        }
+
+        let start = minutes(using.start_time);
+        let end = minutes(using.end_time);
+
+        if (start < from) {
+            start += 1440;
+        }
+
+        if (end <= start) {
+            end += 1440;
+        }
+
+        return start >= from && end <= until
+            ? null
+            : `Keep the shift between ${item.startLabel} and ${item.endLabel}.`;
+    });
     const sendUse = () => {
         const item = using.item;
 
@@ -226,7 +266,10 @@ export function useFreeTimes(props: {
         using,
         startUse,
         useRooms,
+        outsideWindow,
         sendUse,
+        mineWaiting,
+        mineAnswered,
         declining,
         decline,
     };
