@@ -28,7 +28,7 @@ actual cost is corrected by the existing receiving correction, never by typing o
 1. **Enter.** A Finance Officer or Store Admin opens **Inventory > Costs to fill in**, its own page (Stock value is
    Director-only, so the people who enter costs could not open a tab there). The page lists entries with a missing or
    estimated cost: SKU, branch, date, quantity and its current cost basis, and never a stock value total, COGS or
-   margin. They pick an entry, and types the **total paid for that entry in RM** (the same "Total paid for this
+   margin. They pick an entry and type the **total paid for that entry in RM** (the same "Total paid for this
    batch" wording receiving uses), with a short reason from a fixed list ("supplier invoice found", "opening price list",
    "estimate was wrong", "other" with a note of up to 200 characters, no patient details) and an optional reference.
 2. **Waiting.** The entry shows "Entered by hand · waiting for a check". It does **not** count yet: valuation, COGS
@@ -102,7 +102,8 @@ The page needs the enter or check permission plus the existing `inventory.cost.v
 1. The replay rule in section 4: (a) from the start, recommended, or (b) from acceptance onward.
 2. **Receipts from before STK-10B:** the cost engine treats a unit cost with an empty cost source as actual, but STK-10
    found many of those copied the order's estimate. Recommended: they may also take a hand cost, labelled "pre-STK-10B
-   cost", under the same two-person check. Otherwise they stay uncorrectable (a known limit).
+   cost", under the same two-person check. Otherwise they stay uncorrectable (a known limit). Whichever the owner
+   chooses, the page's list, the service and the insert trigger's "missing or estimate" check follow the same rule.
 
 ## 8. Known limits
 
