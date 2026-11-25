@@ -87,7 +87,7 @@ Q6 Do other roles see it? (Director, CA Supervisor already open Edit visit)
 Dependencies: Queue (Amirul: the Queue board rows and the busy/held definitions), HR (RosterOnDuty and leave), Daniel (the
 chip and the Reassign link).
 
-## 7. Answers (24 Nov 2026, approved by B.E.R.N.I.S.S. for the owner during "BE ME", marked "check this" on the owner's board)
+## 7. Answers (24 Nov 2026, approved by B.E.R.N.I.S.S. for the owner during "BE ME"; confirmed by the owner on return, 25 Nov 2026: "Setuju")
 
 All six take the recommended option:
 - Q1: "leaves" = off today's approved roster, on approved leave now, or no room today.
@@ -97,5 +97,5 @@ All six take the recommended option:
 - Q5: the chip simply follows the facts (nothing remembered after a reassign back).
 - Q6: whoever may open Edit visit on that row.
 
-Build waits until AUTO-1 has merged. These answers carry B.E.R.N.I.S.S.'s label, not the owner's own words; the owner's own
-confirmation is added to this note when it arrives.
+Build waits until AUTO-1 (PR #1099) has merged. The owner's own word on the Q1 to Q6 design, relayed by B.E.R.N.I.S.S. as
+recorded: "Setuju".
