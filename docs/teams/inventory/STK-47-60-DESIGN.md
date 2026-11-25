@@ -83,3 +83,21 @@ haven't sent and never to a branch that already sent; nothing outside KPOne; 403
 permission; no cost on the page; more than one store location; held, expired and returns stock left out of on hand;
 zero use shows "No recent use"; rejected and cancelled requests against "sent this week"; the warning uses the
 requester's branch-local day.
+
+## Daniel's conditions (25 Nov, OK with changes; build to these)
+
+- Order by action: "This week" first as one card per branch ("Week of 24 Nov", branch time), then tabs or a
+  segmented control for Store stock, Branch stock, Requests to the store.
+- This week cards: "Sent Thu 27 Nov by <name>" success; "Not sent yet" neutral before the request day, warning on
+  and after it; never red.
+- Store stock: "3.2 weeks" with a dot-plus-word tone ("Less than 1 week" destructive, 1 to 2 weeks warning); "No
+  dispensing data" when the rate is zero. Tabular figures. No cost columns (removed, per revision 2).
+- Branch stock: a matrix from 1024 px ("40 of 100", "Below level"), cards per SKU below; short-anywhere first.
+- Requests to the store: grouped by branch, status chips, oldest first, an outline "Open" link each; links only.
+- Request-day setting: header subline "Request day: Thursday" and an outline "Change" for holders only; sheet with
+  weekday radios, "This only reminds and warns. It never blocks a request.", one filled "Save". (Revision 2 drops
+  the cut-off time.)
+- Off-day warning: a warning-wash alert at the top of the request form, not a modal; Send stays the one filled button.
+- Reminder: info tone with an icon and one outline "Start a store request" link, on the Inventory page and the My day
+  home; it goes away once the branch has sent.
+- Shots at 1440 and 390, including a branch that has not sent on the request day.
