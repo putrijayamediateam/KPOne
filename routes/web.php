@@ -127,6 +127,7 @@ use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\StockHealthController;
 use App\Http\Controllers\StockValuationController;
+use App\Http\Controllers\SuggestionReviewController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
@@ -836,6 +837,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
     Route::post('registration-settings/auto-assign', [AutoAssignSettingController::class, 'update'])->middleware(['permission:registration.auto_assign.manage.branch', 'sensitive.no-store', 'throttle:20,1'])->name('registration-settings.auto-assign');
+    // SUG-1a: the doctor's review of the recommendation lists.
+    Route::middleware(['permission:clinical_suggestions.approve.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('consultation-settings/review', [SuggestionReviewController::class, 'index'])->name('suggestion-review.index');
+        Route::patch('consultation-settings/review/diagnoses/{preset}', [SuggestionReviewController::class, 'decide'])->whereNumber('preset')->middleware('throttle:30,1')->name('suggestion-review.decide');
+    });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('registration-settings', [RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
         Route::post('registration-settings', [RegistrationSettingsController::class, 'store'])->middleware('throttle:20,1')->name('registration-settings.store');
