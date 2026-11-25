@@ -9,6 +9,8 @@ use App\Domain\Organisation\Inventory\Services\CatalogueImportService;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * IMP-1 (owner, 25 Nov 2026): one-off import of the clinic's medicines, SKUs and Self-pay prices, run by the coordinator.
@@ -47,6 +49,19 @@ class ImportCatalogue extends Command
             foreach ($refused->problems as $problem) {
                 $this->line('  - '.$problem);
             }
+
+            return self::FAILURE;
+        } catch (ValidationException $invalid) {
+            $this->error('A service refused the import. Nothing was saved.');
+            foreach ($invalid->errors() as $messages) {
+                foreach ($messages as $message) {
+                    $this->line('  - '.$message);
+                }
+            }
+
+            return self::FAILURE;
+        } catch (HttpException $refused) {
+            $this->error('The import was refused ('.$refused->getStatusCode().'): '.$refused->getMessage().' Nothing was saved.');
 
             return self::FAILURE;
         }

@@ -8,6 +8,8 @@ use App\Domain\Organisation\Inventory\Services\CatalogueImportService;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\GovernedStockFixture;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
@@ -37,11 +39,13 @@ final class CatalogueImportTest extends VisitTestCase
         parent::tearDown();
     }
 
-    private function staff(string $role): User
+    private function staff(string $role, bool $bothBranches = true): User
     {
         $actor = (new GovernedStockFixture($this->branch))->actor($role);
-        $profile = StaffProfile::query()->where('user_id', $actor->id)->firstOrFail();
-        StaffBranchAssignmentBootstrapper::create($profile, $this->other, ['is_primary' => false]);
+        if ($bothBranches) {
+            $profile = StaffProfile::query()->where('user_id', $actor->id)->firstOrFail();
+            StaffBranchAssignmentBootstrapper::create($profile, $this->other, ['is_primary' => false]);
+        }
 
         return $actor;
     }
@@ -169,7 +173,7 @@ final class CatalogueImportTest extends VisitTestCase
             'catalogue line 6: code IMP-OK is also on line 2.',
             'catalogue line 7: hq_panel_rm must be blank.',
             'branch prices line 2: branch_code NOPE is not an active branch',
-            'branch prices line 3: code IMP-GHOST is neither in the catalogue file nor in KPOne.',
+            'branch prices line 3: code IMP-GHOST is not in the catalogue file.',
             'branch prices line 4: self_pay_rm is required.',
         ] as $expected) {
             $this->assertStringContainsString($expected, $joined);
@@ -190,10 +194,72 @@ final class CatalogueImportTest extends VisitTestCase
         $this->assertContains('catalogue line 2: barcode 9555000000024 already belongs to another SKU.', $problems);
         $this->assertSame($before, $this->counts());
 
-        // A branch price for a medicine already in KPOne is still accepted on its own.
-        $report = $this->import($this->catalogue([$this->row('IMP-G')]), $this->prices(['IMP-F,'.$this->other->code.',2.20']));
-        $this->assertSame(1, $report['branchPrices']);
-        $this->assertSame(220, $this->price('IMP-F', 'branch:'.$this->other->id));
+        // A branch price for a medicine already in KPOne is refused: live prices change in Pricing, not here.
+        $problems = $this->refusal(fn () => $this->import($this->catalogue([$this->row('IMP-G')]), $this->prices(['IMP-F,'.$this->other->code.',2.20'])));
+        $this->assertStringContainsString('branch prices line 2: code IMP-F is not in the catalogue file.', $problems[0]);
+
+        // An inventory item that already has the code would be silently reused, so it is refused too.
+        $item = DB::table('inventory_items')->where('code', 'IMP-F')->sole();
+        DB::table('inventory_items')->where('id', $item->id)->update(['code' => 'IMP-K']);
+        DB::table('inventory_skus')->where('inventory_item_id', $item->id)->update(['sku_code' => 'IMP-K-OLD']);
+        $problems = $this->refusal(fn () => $this->import($this->catalogue([$this->row('IMP-K')])));
+        $this->assertSame(['catalogue line 2: an inventory item with code IMP-K already exists in KPOne.'], $problems);
+        $this->assertSame($before, $this->counts());
+    }
+
+    public function test_branch_problems_are_listed_before_any_write(): void
+    {
+        $before = $this->counts();
+        $catalogue = $this->catalogue([$this->row('IMP-L'), $this->row('IMP-M')]);
+
+        // The actor must be assigned to every branch in the branch file, and to the home branch.
+        $homeOnly = $this->staff('administrator', false);
+        $problems = $this->refusal(fn () => $this->import($catalogue, $this->prices(['IMP-L,'.$this->other->code.',1.00', 'IMP-M,'.$this->other->code.',1.00']), false, $homeOnly));
+        $this->assertSame(["branch prices line 2: the actor is not assigned to branch {$this->other->code}, so cannot publish its prices."], $problems);
+
+        $outsider = (new GovernedStockFixture($this->other))->actor('administrator');
+        $problems = $this->refusal(fn () => $this->import($catalogue, null, false, $outsider));
+        $this->assertSame(["The actor is not assigned to the home branch {$this->branch->code}."], $problems);
+
+        // An inactive branch book is never switched back on by the import.
+        DB::table('price_books')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => $this->other->id, 'scope_key' => 'branch:'.$this->other->id,
+            'name' => 'Synthetic inactive book', 'currency' => 'MYR', 'price_tier' => 'self_pay', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()]);
+        $before = $this->counts();
+        $problems = $this->refusal(fn () => $this->import($catalogue, $this->prices(['IMP-L,'.$this->other->code.',1.00', 'IMP-L,'.$this->other->code.',2.00'])));
+        $this->assertSame([
+            "branch prices line 2: the branch price book for {$this->other->code} is inactive; reactivate it in Pricing first.",
+            'branch prices line 3: this code and branch are also on line 2.',
+        ], $problems);
+        $this->assertSame($before, $this->counts());
+    }
+
+    public function test_the_file_itself_is_checked_before_any_row(): void
+    {
+        $header = implode(',', CatalogueImportService::CATALOGUE_COLUMNS);
+        $cases = [
+            'The catalogue file must be UTF-8.' => "{$header}\r\n".$this->row('IMP-N')."\xFF\r\n",
+            'catalogue line 2: expected 15 columns, found 2.' => "{$header}\r\nIMP-N,Synthetic\r\n",
+            'catalogue line 2: use plain text only (no control characters or < >).' => "{$header}\r\n".str_replace('Synthetic IMP-N', '<b>Synthetic</b>', $this->row('IMP-N'))."\r\n",
+            'catalogue line 3: use plain text only (no control characters or < >).' => "{$header}\r\n".$this->row('IMP-N')."\r\n".str_replace('Synthetic IMP-O', "\"Synthetic\tIMP-O\"", $this->row('IMP-O'))."\r\n",
+            'The catalogue file has no rows.' => "{$header}\r\n\r\n",
+            'The catalogue file has more than 5000 rows.' => "{$header}\r\n".implode("\r\n", array_map(fn (int $i): string => $this->row('IMP-R'.$i), range(1, 5001)))."\r\n",
+            'The catalogue file is larger than 5 MB.' => "{$header}\r\n".str_repeat(' ', CatalogueImportService::MAX_BYTES),
+        ];
+        $before = $this->counts();
+        foreach ($cases as $expected => $content) {
+            $path = tempnam(sys_get_temp_dir(), 'imp1-');
+            file_put_contents($path, $content);
+            $this->files[] = $path;
+            $problems = $this->refusal(fn () => $this->import($path));
+            $this->assertContains($expected, $problems, $expected);
+        }
+        $this->assertSame($before, $this->counts());
+
+        // A BOM and a plain (no BOM) file both read the same.
+        $plain = tempnam(sys_get_temp_dir(), 'imp1-');
+        file_put_contents($plain, "{$header}\n".$this->row('IMP-P')."\n");
+        $this->files[] = $plain;
+        $this->assertSame(1, $this->import($plain)['medicines']);
     }
 
     public function test_the_actor_must_hold_all_four_permissions_and_a_wrong_header_is_refused(): void
@@ -233,5 +299,39 @@ final class CatalogueImportTest extends VisitTestCase
             ->expectsOutputToContain('already exists in KPOne')
             ->assertExitCode(1);
         $this->assertSame(1, DB::table('medicine_catalogue_items')->where('code', 'IMP-J')->count());
+    }
+
+    public function test_the_command_reports_a_domain_refusal_without_a_stack_trace(): void
+    {
+        $catalogue = $this->catalogue([$this->row('IMP-Q')]);
+        $args = ['catalogue' => $catalogue, '--actor' => $this->admin->email, '--branch' => $this->branch->code];
+
+        $this->app->instance(CatalogueImportService::class, new class extends CatalogueImportService
+        {
+            public function __construct() {}
+
+            public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun): array
+            {
+                throw ValidationException::withMessages(['code' => 'A synthetic domain rule refused this.']);
+            }
+        });
+        $this->artisan('inventory:import-catalogue', $args)
+            ->expectsOutputToContain('A service refused the import. Nothing was saved.')
+            ->expectsOutputToContain('A synthetic domain rule refused this.')
+            ->assertExitCode(1);
+
+        $this->app->instance(CatalogueImportService::class, new class extends CatalogueImportService
+        {
+            public function __construct() {}
+
+            public function run(User $actor, Branch $homeBranch, string $cataloguePath, ?string $branchPricesPath, bool $dryRun): array
+            {
+                abort(403, 'Synthetic refusal.');
+            }
+        });
+        $this->artisan('inventory:import-catalogue', $args)
+            ->expectsOutputToContain('The import was refused (403): Synthetic refusal. Nothing was saved.')
+            ->assertExitCode(1);
+        $this->assertSame(0, DB::table('medicine_catalogue_items')->where('code', 'IMP-Q')->count());
     }
 }

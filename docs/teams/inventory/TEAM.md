@@ -345,8 +345,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     Self-pay prices and the controlled flag through the existing services (UnifiedCatalogueSetupService,
     MedicineAdministrationService, PricingReferenceAdministrationService, PricePublicationService) as one named actor,
     in one transaction: both files are checked first and refused with every problem listed, then everything is written
-    or nothing. `--dry-run` does every write and rolls it back. An existing code, SKU code or barcode is refused, so a
-    second run changes nothing. No new permission, screen or migration; one audit row
+    or nothing. `--dry-run` does every write and rolls it back. An existing medicine code, inventory item code, SKU code
+    or barcode is refused, so a second run changes nothing. Branch prices only for medicines in the same file; the actor
+    must be assigned to the home branch and every priced branch; an inactive branch book is refused, never switched
+    back on, and every charge is new (Mei Ling's review). No new permission, screen or migration; one audit row
     `inventory.catalogue_import.recorded` with counts only. The actor must hold all four of
     `medicines.manage.organisation`, `prices.publish.organisation`, `pricing.references.manage.organisation` and
     `inventory.references.manage.organisation` (on main: Administrator and CA Supervisor; the Director lacks

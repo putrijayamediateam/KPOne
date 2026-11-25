@@ -36,8 +36,9 @@ code,display_name,generic_name,strength,dosage_form,category,sku_code,barcode,pu
 code,branch_code,self_pay_rm
 ```
 
-One branch Self-pay price per medicine and branch; the medicine can be in the catalogue file or already in KPOne. Panel
-patients use the HQ Panel prices.
+One branch Self-pay price per medicine and branch, for medicines in the same catalogue file only (a live price changes
+in Pricing). The actor must be assigned to every branch named, and a branch price book that was switched off is refused,
+not switched back on. Panel patients use the HQ Panel prices.
 
 ## After the import
 

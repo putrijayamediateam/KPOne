@@ -7,6 +7,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Services\MedicineAdministrationService;
 use App\Domain\Clinical\Services\UnifiedCatalogueSetupService;
+use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
@@ -29,10 +30,12 @@ use RuntimeException;
  *
  * All or nothing: both files are checked completely first and refused with every problem listed; then everything is
  * written in one transaction, or nothing is. A dry run does the whole write and rolls it back, so it reports exactly
- * what a real run would do. A code that already exists is refused, so running the same file twice changes nothing.
+ * what a real run would do. An existing code is refused (so running the same file twice changes nothing), branch prices are for this file's
+ * medicines only, and an inactive branch book is refused rather than switched back on.
  * Panel prices are not imported here: since owner decision 27 they change only by proposal and approval.
  */
-final class CatalogueImportService
+/** Not final, so the console test can stand in a service that a domain rule refuses. */
+class CatalogueImportService
 {
     public const CATALOGUE_COLUMNS = ['code', 'display_name', 'generic_name', 'strength', 'dosage_form', 'category', 'sku_code', 'barcode', 'purchase_unit', 'pack_size', 'stock_unit', 'dispensing_unit', 'controlled', 'hq_self_pay_rm', 'hq_panel_rm'];
 
@@ -71,6 +74,9 @@ final class CatalogueImportService
         if ($missing !== []) {
             throw new CatalogueImportRefused(['The actor lacks: '.implode(', ', $missing).'. Use a named Administrator or CA Supervisor account.']);
         }
+        if (! $this->branches->hasEffectiveAssignment($actor, $homeBranch)) {
+            throw new CatalogueImportRefused(["The actor is not assigned to the home branch {$homeBranch->code}."]);
+        }
 
         [$rows, $errors] = $this->readCatalogue($actor, $cataloguePath);
         [$branchRows, $branchErrors] = $branchPricesPath === null ? [[], []] : $this->readBranchPrices($actor, $branchPricesPath, $rows);
@@ -106,7 +112,7 @@ final class CatalogueImportService
                     $this->branches->select($actor, $branch);
                     $book = $this->branchBook($actor, $branch);
                     foreach ($prices as $price) {
-                        $medicine = $created[Str::lower($price['code'])] ?? MedicineCatalogueItem::query()->where('organisation_id', $actor->organisation_id)->whereRaw('LOWER(code) = ?', [Str::lower($price['code'])])->firstOrFail();
+                        $medicine = $created[Str::lower($price['code'])];
                         $charge = $this->charge($actor, $medicine);
                         $version = (int) PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->max('version');
                         $this->publication->publish($actor, $book, $charge, $price['self_pay_sen'], $version, $branch->id);
@@ -183,6 +189,10 @@ final class CatalogueImportService
         foreach ($this->existing(MedicineCatalogueItem::query()->where('organisation_id', $org), 'code', array_keys($seen['code'])) as $code) {
             $errors[] = "catalogue line {$seen['code'][$code]}: medicine code ".Str::upper($code).' already exists in KPOne.';
         }
+        // The medicine setup would silently reuse an inventory item with the same code (possibly another product).
+        foreach ($this->existing(InventoryItem::query()->where('organisation_id', $org), 'code', array_keys($seen['code'])) as $code) {
+            $errors[] = "catalogue line {$seen['code'][$code]}: an inventory item with code ".Str::upper($code).' already exists in KPOne.';
+        }
         foreach ($this->existing(InventorySku::query()->where('organisation_id', $org), 'sku_code', array_keys($seen['sku_code'])) as $code) {
             $errors[] = "catalogue line {$seen['sku_code'][$code]}: SKU code ".Str::upper($code).' already exists in KPOne.';
         }
@@ -204,19 +214,29 @@ final class CatalogueImportService
             return [[], $errors];
         }
         $inFile = array_flip(array_map(fn (array $row): string => Str::lower($row['code']), $catalogue));
-        $existing = array_flip($this->existing(MedicineCatalogueItem::query()->where('organisation_id', $actor->organisation_id), 'code', array_values(array_map(fn (array $r): string => Str::lower($r['code']), $records))));
         $branches = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->get()->keyBy(fn (Branch $b): string => Str::upper((string) $b->code));
         $rows = [];
         $seen = [];
+        $checked = [];
         foreach ($records as $line => $r) {
             $where = "branch prices line {$line}";
             $code = Str::lower($r['code']);
-            if ($code === '' || (! isset($inFile[$code]) && ! isset($existing[$code]))) {
-                $errors[] = "{$where}: code {$r['code']} is neither in the catalogue file nor in KPOne.";
+            if ($code === '' || ! isset($inFile[$code])) {
+                $errors[] = "{$where}: code {$r['code']} is not in the catalogue file. This import prices new medicines only; change a live price in Pricing.";
             }
             $branch = $branches[Str::upper($r['branch_code'])] ?? null;
             if ($branch === null) {
                 $errors[] = "{$where}: branch_code {$r['branch_code']} is not an active branch (use ".implode(', ', $branches->keys()->all()).').';
+            } elseif (! isset($checked[$branch->id])) {
+                // Fix 1 and 2: every branch problem is listed before any write.
+                $checked[$branch->id] = true;
+                if (! $this->branches->hasEffectiveAssignment($actor, $branch)) {
+                    $errors[] = "{$where}: the actor is not assigned to branch {$branch->code}, so cannot publish its prices.";
+                }
+                $book = PriceBook::query()->where('organisation_id', $actor->organisation_id)->where('scope_key', 'branch:'.$branch->id)->first();
+                if ($book !== null && ! $book->is_active) {
+                    $errors[] = "{$where}: the branch price book for {$branch->code} is inactive; reactivate it in Pricing first.";
+                }
             }
             $sen = $this->sen($r['self_pay_rm'], "{$where}: self_pay_rm", $errors);
             if ($sen === null) {
@@ -340,17 +360,15 @@ final class CatalogueImportService
             return $this->pricing->createPriceBook($actor, $branch, ['name' => $branch->name.' Self-pay', 'currency' => 'MYR', 'price_tier' => 'self_pay']);
         }
 
-        return $book->is_active ? $book : $this->pricing->activatePriceBook($actor, $book);
+        // An inactive book is refused while checking; never switched back on here.
+        return $book;
     }
 
     private function charge(User $actor, MedicineCatalogueItem $medicine): ChargeDefinition
     {
-        $charge = ChargeDefinition::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $medicine->id)->first();
-        if ($charge === null) {
-            return $this->pricing->createMedicineCharge($actor, $medicine, ['code' => $medicine->code, 'display_name' => $medicine->display_name]);
-        }
-
-        return $charge->is_active ? $charge : $this->pricing->activateCharge($actor, $charge);
+        // Every branch-priced medicine was created in this run, so its charge is new or was just made by the setup.
+        return ChargeDefinition::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $medicine->id)->first()
+            ?? $this->pricing->createMedicineCharge($actor, $medicine, ['code' => $medicine->code, 'display_name' => $medicine->display_name]);
     }
 
     /**
