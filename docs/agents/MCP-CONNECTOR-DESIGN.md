@@ -185,7 +185,7 @@ configured allowlist value, not as a literal of a forbidden word); the build che
 7. **Sign-in.** Use the same sign-in as KPOne (password or Google) for connecting, or Google only?
 8. **Connected apps page.** Do you want a small KPOne page that shows "Claude is connected, last used at …" with a
    Disconnect button? (Optional, a later slice; the artisan revoke exists either way.)
-9. **Data.** Decided: the PDPA review is approved (owner-confirmed, verbal, 25 Nov 2026); the trial server may hold real patient data only after the owner's separate written OK naming that server and the date.
+9. **Data.** Decided: the PDPA review is approved (owner-confirmed, verbal, 25 Nov 2026); the connector stays off on any server with real patient data until the owner gives a separate written OK at switch-on, naming the server and the date.
 10. **Later chatbot.** The tools are built so an in-app chatbot could reuse them. That needs KPOne to call an AI service
     and is **not** part of this; just confirm you do not want it designed now.
 

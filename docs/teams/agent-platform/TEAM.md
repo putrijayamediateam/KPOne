@@ -131,6 +131,9 @@ All in the contract; the main ones:
 - Ask KPOne Option A: Claude Code on the server through the masked `ai_read` schema; the PDPA and legal
   review is approved (owner-confirmed, verbal, 25 Nov 2026; the owner keeps the written copy, the coordinator records it in BASELINE) (contract section 13).
 - The connector keeps its own switch: off on a server with real patient data until the owner's separate written OK at switch-on, naming the server and the date (REL-AG.md).
+- kpjaya.com, Puchong test (25 Nov 2026): the AI connector stays OFF there (written exception: the clinic's real inventory and
+  prices may go on kpjaya.com; patients stay fictional). It is switched off on Sun 29 Nov evening by the person who manages the
+  server, with the owner; nobody changes the server without the owner.
 - Team names: Lead Irfan, Reviewer Shalini (2026-11-05).
 - Nadia's title: "QA Reviewer (AI agent)", Technology (2026-11-05).
 - Team PRs never edit `docs/BASELINE.md`; the coordinator records BASELINE updates (2026-11-05).

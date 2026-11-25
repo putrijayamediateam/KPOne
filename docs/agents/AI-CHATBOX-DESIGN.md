@@ -129,7 +129,8 @@ as OK with these changes and will do a full look on the screenshots (a new kind 
 
 1. **`AGENTS.md`** (non-negotiable boundaries) proposed wording: "The owner-authorised AI chatbox (2026-11-24, docs/agents/AI-CHATBOX-DESIGN.md)
    permits KPOne to send questions to one configured AI provider for staff features slice by slice. It never sends patient names,
-   identity numbers or contact details; data stays synthetic until the PDPA review; the provider key lives only in environment
+   identity numbers or contact details; it is switched on only by the owner (the PDPA and lawyer review was approved, owner-confirmed,
+   verbal, 25 Nov 2026); the provider key lives only in environment
    secrets; every AI feature has a kill switch, a spending cap and an audit trail without the text; and the AI never saves, orders
    or changes clinic data without a person's own action. The connector (Claude calls KPOne) is separate."
 2. **`docs/BASELINE.md`**: the AGENT-PLATFORM row's "KPOne calls no AI service" and the "Not authorised" list are updated by the coordinator

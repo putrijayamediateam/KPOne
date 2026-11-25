@@ -5,6 +5,9 @@ data: **the connector stays off there until the owner gives a separate written O
 
 ## Before switching on
 
+**kpjaya.com** (Puchong test from 30 Nov 2026: the clinic's real inventory and prices, fictional patients): the connector stays
+**off** (owner decision, 25 Nov 2026). The switch-off steps for 29 Nov were sent to the coordinator.
+
 1. Either the server holds **fictional data only**, or the owner has given the **separate written OK** for this server (naming the server and the date).
 2. `php artisan migrate` has run (adds the permission and the OAuth tables).
 3. The OAuth signing keys exist: `php artisan passport:keys`, or `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY` set in the
@@ -39,5 +42,5 @@ data: **the connector stays off there until the owner gives a separate written O
 
 ## Record
 
-15. Write down: who switched it on, the date, which server, and that the data is fictional. The team needs a name to
+15. Write down: who switched it on, the date, which server, and either that the data is fictional or the reference to the owner's written OK. The team needs a name to
     record, not a login.
