@@ -15,8 +15,8 @@ const tokens = (selector) => {
     const out = {};
 
     for (const m of block(selector).matchAll(/--([a-z-]+):\s*([^;]+);/g)) {
-out[m[1]] = m[2].trim();
-}
+        out[m[1]] = m[2].trim();
+    }
 
     return out;
 };
@@ -63,6 +63,7 @@ const PAIRS = [
     ['input', 'card', 3],
     ['input', 'field-fill', 3],
     ['ring', 'background', 3],
+    ['accent-blue', 'card', 3],
 ];
 
 for (const [name, set] of [
@@ -73,8 +74,8 @@ for (const [name, set] of [
         for (const [fg, bg, min] of PAIRS) {
             // The page background `--background` and the muted/accent washes may be translucent in light; only solid pairs are checked.
             if (!/^#/.test(set[fg] ?? '') || !/^#/.test(set[bg] ?? '')) {
-continue;
-}
+                continue;
+            }
 
             const r = ratio(set[fg], set[bg]);
             assert.ok(
@@ -86,7 +87,8 @@ continue;
 }
 
 test('the accent is blue and pink stays on the logo token only', () => {
-    assert.equal(light.primary, '#0852da');
+    assert.equal(light.primary, '#006ae0');
+    assert.equal(light['accent-blue'], '#007aff');
     assert.equal(dark.primary, '#4d94ff');
     assert.equal(light.brand, '#c2185b');
     assert.notEqual(light.ring, light.brand);
