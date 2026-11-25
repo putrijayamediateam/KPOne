@@ -339,6 +339,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     reworded in the same PR. Two owner-approved existing assertion changes (`StockJournalSummaryTest.php:133`,
     `stk35-opening-import.test.mjs:11`). No change to how cost is worked out, who sees it, or any stored figure.
     When the accountant's approval is written down, REL-STK.md can point to it.
+50. STK-45 Report a difference (owner, 25 Nov 2026, relayed by B.E.R.N.I.S.S: "Lulus nota + kebenaran", then
+    "Lulus + ship it"): note `docs/teams/inventory/STK-45-DESIGN.md` revision 4; P10 permission
+    `inventory.differences.report.branch` for CA, CA Supervisor, Store Admin, Branch Manager and Medical Assistant. A
+    report opens the governed STK-5 count or joins the newest live one and never moves stock; the reporter never counts,
+    recounts or approves that case (service and PostgreSQL: STK-5's `guard_governed_stock_action` gains the reporter
+    exclusion, and `down()` restores the STK-5 body). Owner-approved existing assertion changes: one line each in
+    `RoleOneRolesTest::tables()` (branch_manager, store_admin) and `MedicalAssistantRoleTest::EXPECTED`.
 51. IMP-1 catalogue import (owner, 25 Nov 2026, relayed by B.E.R.N.I.S.S, for the Puchong live test): a one-off console
     command, `inventory:import-catalogue {catalogue} --branch-prices= --actor= --branch= --dry-run`, run by the
     coordinator. It creates medicines, SKUs (stock unit = dispensing unit, conversion 1), HQ Self-pay prices, branch
@@ -453,6 +460,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - Every stock movement goes through the ledger writer allowlist; never write balances or movements directly.
 - Exact thousandth arithmetic through `StockUnitQuantity`; refuse negative stock and overflow.
 - Independent-person rules are never weakened without an owner decision recorded in section 6.
+- Any permission granted to `ca` is also granted to `medical_assistant` (MA-1a); a new grant names both.
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including every inventory contention
   test with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen change.

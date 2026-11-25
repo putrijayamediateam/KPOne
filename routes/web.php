@@ -41,6 +41,7 @@ use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
+use App\Http\Controllers\DifferenceReportController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\DispensaryDoctorCheckController;
 use App\Http\Controllers\DispensaryReviewController;
@@ -1018,6 +1019,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('inventory/counts', [GovernedStockController::class, 'counts'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-counts');
         Route::get('inventory/writeoffs', [GovernedStockController::class, 'writeoffs'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-writeoffs');
+        Route::post('inventory/difference-reports', [DifferenceReportController::class, 'store'])->middleware(['permission:inventory.differences.report.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.difference-reports.store');
         Route::post('inventory/counts/cycle', [GovernedStockController::class, 'startCycleCount'])->middleware(['permission:inventory.stocktake.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.governed-counts.cycle');
         Route::post('inventory/governed/{kind}', [GovernedStockController::class, 'store'])->whereIn('kind', ['count', 'writeoff', 'reversal'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.store');
         Route::post('inventory/governed/{governedCase}/{action}', [GovernedStockController::class, 'act'])->whereNumber('governedCase')->whereIn('action', ['counted', 'recounted', 'approved'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.act');
@@ -1181,6 +1183,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.settings.manage.branch', 'sensitive.no-store'])->name('dispensary-settings.show');
         Route::put('dispensary-settings', [DispensarySettingsController::class, 'update'])
             ->middleware(['permission:dispensary.settings.manage.branch', 'throttle:20,1'])->name('dispensary-settings.update');
+        // DSP-27: the branch's Dispensary list (To prepare, Waiting for the doctor's check, Done today). Read only.
+        Route::get('dispensary', [DispensaryController::class, 'index'])
+            ->middleware(['permission:dispensary.view.branch,dispensary.view_readonly.branch', 'sensitive.no-store', 'throttle:120,1'])->name('dispensary.index');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
