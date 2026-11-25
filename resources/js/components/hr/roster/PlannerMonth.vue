@@ -13,17 +13,21 @@ import type {
     PlannerMonthWeek,
 } from '@/composables/hr/useRosterPage';
 
-defineProps<{
-    month: PlannerMonth;
-    copying: string | null;
-    copyError: string;
-}>();
 const emit = defineEmits<{
     open: [week: string];
     copy: [week: PlannerMonthWeek, done: () => void];
 }>();
 
+const props = defineProps<{
+    month: PlannerMonth;
+    copying: string | null;
+    copyError: string;
+}>();
 const asking = ref<PlannerMonthWeek | null>(null);
+// The last week copied to may run into the next month (its Monday is in this month).
+const inSentence = (label: string) => label.replace(/^Week/, 'week');
+const lastLabel = (week: PlannerMonthWeek) =>
+    props.month.weeks[props.month.weeks.length - 1]?.label ?? week.label;
 const confirmOpen = ref(false);
 const ask = (week: PlannerMonthWeek) => {
     asking.value = week;
@@ -39,11 +43,11 @@ const confirm = () => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4" data-test="planner-month">
+    <div class="flex min-w-0 flex-col gap-4" data-test="planner-month">
         <section
             v-for="week in month.weeks"
             :key="week.start"
-            class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+            class="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4"
             :aria-labelledby="`week-${week.start}`"
             data-test="planner-month-week"
         >
@@ -93,8 +97,10 @@ const confirm = () => {
             >
                 No shifts.
             </p>
-            <div v-else class="overflow-x-auto">
-                <table class="w-full min-w-[46rem] border-collapse text-sm">
+            <div v-else class="relative overflow-x-auto">
+                <table
+                    class="w-full min-w-[60rem] table-fixed border-collapse text-sm"
+                >
                     <caption class="sr-only">
                         Shifts in the
                         {{
@@ -146,11 +152,13 @@ const confirm = () => {
                                 <span
                                     v-for="(cell, j) in cells"
                                     :key="j"
-                                    class="block whitespace-nowrap tabular-nums"
-                                    >{{ cell.time
-                                    }}<template v-if="cell.station">
+                                    class="flex flex-wrap items-center gap-x-1 tabular-nums"
+                                    ><span class="whitespace-nowrap">{{
+                                        cell.time
+                                    }}</span
+                                    ><template v-if="cell.station">
                                         <span
-                                            class="ml-1 rounded border px-1 text-xs text-muted-foreground"
+                                            class="rounded border px-1 text-xs text-muted-foreground"
                                             aria-hidden="true"
                                             :title="cell.stationLabel ?? ''"
                                             >{{ cell.station }}</span
@@ -159,7 +167,7 @@ const confirm = () => {
                                         ></template
                                     ><span
                                         v-if="cell.onCall"
-                                        class="ml-1 text-xs text-muted-foreground"
+                                        class="text-xs text-muted-foreground"
                                         >On call</span
                                     ></span
                                 >
@@ -175,7 +183,7 @@ const confirm = () => {
             title="Copy this week to the rest of the month?"
             :description="
                 asking
-                    ? `The shifts in the ${asking.label.toLowerCase()} are copied to each later week of ${month.label}. A week with no roster gets a new draft; a week with a draft gets the shifts added. Weeks waiting for approval or already approved are not changed. Each week is still sent for approval on its own.`
+                    ? `The shifts in the ${inSentence(asking.label)} are copied to each later week of ${month.label}, up to the ${inSentence(lastLabel(asking))}. A week with no roster gets a new draft; a week with a draft gets the shifts added. Weeks waiting for approval or already approved are not changed. Each week is still sent for approval on its own.`
                     : ''
             "
             confirm-label="Copy"

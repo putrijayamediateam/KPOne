@@ -116,7 +116,8 @@ final class RosterService
         }
 
         return DB::transaction(function () use ($actor, $versionId, $month, $key): array {
-            $this->lockPeople($actor, $this->subjectsOf($actor, $versionId));
+            $people = $this->subjectsOf($actor, $versionId);
+            $this->lockPeople($actor, $people);
             $actor = $this->authority->lock($actor, RosterPermissions::MANAGE);
             $this->serializeKey($actor, $key);
             $hash = $this->hash([$actor->id, 'copy_month', $versionId, $month]);
@@ -130,6 +131,13 @@ final class RosterService
             }
             if (! $source->shifts()->exists()) {
                 throw ValidationException::withMessages(['roster' => 'This week has no shifts to copy.']);
+            }
+            // People are locked before the week (Suresh, m1): someone added to the source after that read would be locked late.
+            $now = $this->subjectsOf($actor, $versionId);
+            sort($now);
+            sort($people);
+            if ($now !== $people) {
+                throw ValidationException::withMessages(['roster' => 'This roster changed. Reload the page.']);
             }
             $first = CarbonImmutable::createFromFormat('!Y-m', $month, $branch->timezone);
             if (! $first instanceof CarbonImmutable) {

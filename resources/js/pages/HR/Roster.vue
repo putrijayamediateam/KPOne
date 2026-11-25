@@ -420,7 +420,7 @@ const isPlannerMonth = computed(
         <section
             v-if="roster.tab === 'planner' && planner"
             aria-labelledby="planner-title"
-            class="flex flex-col gap-3"
+            class="flex min-w-0 flex-col gap-3"
         >
             <h2 id="planner-title" class="sr-only">Planner</h2>
             <div class="flex flex-wrap items-end gap-3">
