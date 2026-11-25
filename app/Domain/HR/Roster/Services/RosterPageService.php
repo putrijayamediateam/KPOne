@@ -136,7 +136,8 @@ final class RosterPageService
             $hasLater = $start->addWeek()->lte($last);
             $out[] = [
                 'start' => $key, 'label' => 'Week of '.$this->rules->shortDayLabel($start),
-                'days' => collect(range(0, 6))->map(fn (int $d): array => ['date' => $start->addDays($d)->toDateString(), 'label' => $start->addDays($d)->format('D j'),
+                'days' => collect(range(0, 6))->map(fn (int $d): array => ['date' => $start->addDays($d)->toDateString(), // A day in the month next door names its month, so a copy into it is plain (Daniel).
+                    'label' => $start->addDays($d)->format($start->addDays($d)->month === $first->month ? 'D j' : 'D j M'),
                     'inMonth' => $start->addDays($d)->month === $first->month])->all(),
                 'status' => $version?->status, 'statusLabel' => $version === null ? 'No roster yet' : $statusLabels[$version->status],
                 // A change in progress over an approved week: say so, so nobody thinks the approved week is gone.

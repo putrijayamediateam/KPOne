@@ -80,7 +80,10 @@ class RosterController extends Controller
         if ($result['skipped'] !== []) {
             Inertia::flash('rosterSkipped', $result['skipped']);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Copied to the rest of the month. Send each week for approval on its own.']);
+        // The result box on the page is the record; the toast only appears when there is no box (a repeated request).
+        if ($result['weeks'] === []) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Already copied.']);
+        }
 
         return redirect($back);
     }

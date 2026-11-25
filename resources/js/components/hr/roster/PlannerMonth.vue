@@ -86,7 +86,10 @@ const confirm = () => {
                         :aria-label="`Copy ${week.label} to the rest of the month`"
                         data-test="copy-to-month"
                         @click="ask(week)"
-                        >Copy to the rest of the month</Button
+                        ><span class="sm:hidden">Copy to rest of month</span
+                        ><span class="hidden sm:inline"
+                            >Copy to the rest of the month</span
+                        ></Button
                     >
                 </div>
             </div>
@@ -97,7 +100,13 @@ const confirm = () => {
             >
                 No shifts.
             </p>
-            <div v-else class="relative overflow-x-auto">
+            <p
+                v-if="week.rows.length > 0"
+                class="text-xs text-muted-foreground lg:hidden"
+            >
+                Scroll sideways for the rest of the week.
+            </p>
+            <div v-if="week.rows.length > 0" class="relative overflow-x-auto">
                 <table
                     class="w-full min-w-[60rem] table-fixed border-collapse text-sm"
                 >
@@ -109,7 +118,10 @@ const confirm = () => {
                     </caption>
                     <thead>
                         <tr class="border-b text-left text-xs">
-                            <th scope="col" class="w-44 py-2 pr-3 font-medium">
+                            <th
+                                scope="col"
+                                class="sticky left-0 z-10 w-32 bg-card py-2 pr-3 font-medium lg:w-44"
+                            >
                                 Staff
                             </th>
                             <th
@@ -131,7 +143,10 @@ const confirm = () => {
                             :key="row.staffUserId"
                             class="border-b align-top last:border-b-0"
                         >
-                            <th scope="row" class="py-2 pr-3 text-left">
+                            <th
+                                scope="row"
+                                class="sticky left-0 z-10 bg-card py-2 pr-3 text-left"
+                            >
                                 <span class="block font-medium">{{
                                     row.name
                                 }}</span>

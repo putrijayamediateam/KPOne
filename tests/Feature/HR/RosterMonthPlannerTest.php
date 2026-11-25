@@ -100,8 +100,8 @@ class RosterMonthPlannerTest extends VisitTestCase
         $weeks = collect($this->flash('rosterMonthCopy'))->keyBy('week');
         $label = fn (CarbonImmutable $w): string => 'Week of '.$w->format('D j M');
         $this->assertSame('skipped', $weeks[$label($this->w1->addWeek())]['outcome'], 'an approved week is left alone');
-        $this->assertSame(['updated', 'Added to the draft: 1 shift.'], [$weeks[$label($this->w1->addWeeks(2))]['outcome'], $weeks[$label($this->w1->addWeeks(2))]['note']]);
-        $this->assertSame(['created', 'New draft: 1 shift.'], [$weeks[$label($this->w1->addWeeks(3))]['outcome'], $weeks[$label($this->w1->addWeeks(3))]['note']]);
+        $this->assertSame(['updated', '1 shift added.'], [$weeks[$label($this->w1->addWeeks(2))]['outcome'], $weeks[$label($this->w1->addWeeks(2))]['note']]);
+        $this->assertSame(['created', '1 shift.'], [$weeks[$label($this->w1->addWeeks(3))]['outcome'], $weeks[$label($this->w1->addWeeks(3))]['note']]);
         $this->assertCount(2, $this->flash('rosterSkipped'), 'the overlapping Monday and the Tuesday on leave');
 
         $this->assertSame(1, $this->versions($this->w1->addWeek())->where('status', 'approved')->count());

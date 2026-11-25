@@ -49,3 +49,12 @@ test('editing stays in the week view and the copy asks first, with an idempotenc
     assert.match(composable, /idempotency_key: crypto\.randomUUID\(\)/);
     assert.doesNotMatch(month, /\/shifts/);
 });
+
+test('Daniel: a scroll hint and a sticky Staff column, one button row on phones, a word beside each result', () => {
+    assert.match(month, /Scroll sideways for the rest of the week\./);
+    assert.match(month, /class="sticky left-0 z-10/);
+    assert.match(month, /<span class="sm:hidden">Copy to rest of month<\/span/);
+    assert.match(page, /created: 'Draft created'/);
+    assert.match(page, /skipped: 'Skipped'/);
+    assert.match(page, /:data-outcome="item\.outcome"/);
+});

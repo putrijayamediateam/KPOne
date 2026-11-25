@@ -187,7 +187,7 @@ final class RosterService
                 $this->audit->record('hr.roster.week_copied_to_month', $draft, ['roster_week_id' => $week->id, 'source_version_id' => $source->id,
                     'new_draft' => $created, 'copied_shift_count' => $copied, 'skipped_shift_count' => count($notes)], $actor, $branch);
                 $weeks[] = ['week' => $label, 'outcome' => $created ? 'created' : 'updated',
-                    'note' => ($created ? 'New draft' : 'Added to the draft').': '.$copied.' '.($copied === 1 ? 'shift' : 'shifts').'.'];
+                    'note' => $copied.' '.($copied === 1 ? 'shift' : 'shifts').($created ? '.' : ' added.')];
             }
             if ($weeks === []) {
                 throw ValidationException::withMessages(['roster' => 'This is the last week of the month. There is no later week to copy to.']);

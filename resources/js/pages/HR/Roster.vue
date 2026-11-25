@@ -122,6 +122,12 @@ const {
 const isMonth = computed(
     () => props.roster.tab === 'my' && props.roster.view === 'month',
 );
+// HR-22e: a plain word beside each copy result, so "not changed" never reads as an error (Daniel).
+const outcomeWord = {
+    created: 'Draft created',
+    updated: 'Added to draft',
+    skipped: 'Skipped',
+} as const;
 // HR-22e: the planner's month view.
 const isPlannerMonth = computed(
     () =>
@@ -567,9 +573,27 @@ const isPlannerMonth = computed(
                     data-test="month-copy-result"
                 >
                     <p class="font-medium">Copied to the rest of the month</p>
-                    <ul class="mt-1 list-disc pl-5">
-                        <li v-for="item in monthCopy" :key="item.week">
-                            {{ item.week }}: {{ item.note }}
+                    <ul class="mt-1 flex flex-col gap-1">
+                        <li
+                            v-for="item in monthCopy"
+                            :key="item.week"
+                            class="flex flex-wrap items-baseline gap-x-2"
+                        >
+                            <span
+                                class="inline-flex items-center gap-1.5 font-medium"
+                                :data-outcome="item.outcome"
+                                ><span
+                                    class="inline-block size-2 rounded-full"
+                                    :class="
+                                        item.outcome === 'skipped'
+                                            ? 'bg-muted-foreground'
+                                            : 'bg-success'
+                                    "
+                                    aria-hidden="true"
+                                ></span
+                                >{{ outcomeWord[item.outcome] }}</span
+                            >
+                            <span>{{ item.week }}: {{ item.note }}</span>
                         </li>
                     </ul>
                 </div>
