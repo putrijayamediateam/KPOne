@@ -32,7 +32,7 @@ final class EncounterDiagnosisPresetDirectoryService
                 && $visit->status === Visit::STATUS_REGISTERED && $queue->status === QueueEntry::STATUS_SERVING
                 && $encounter->status === ClinicalEncounter::STATUS_IN_PROGRESS
                 && ! $encounter->holds()->whereNull('resumed_at')->exists(), 403);
-            $presets = DiagnosisPreset::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true);
+            $presets = DiagnosisPreset::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->where('status', 'approved');
             if ($query !== '') {
                 $needle = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($query)).'%';
                 $presets->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$needle]);

@@ -1,5 +1,5 @@
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import type { Compliance } from '@/components/hr/compliance/CompliancePanel.vue';
 import type { ComplianceSettings } from '@/components/hr/compliance/ComplianceRules.vue';
 
@@ -22,6 +22,9 @@ export type Shift = {
     sessionLabel: string;
     roomId: number | null;
     roomName: string | null;
+    /** HR-22c: Registration, MA, Dispensary or Treatment; null when none. */
+    station: string | null;
+    stationLabel: string | null;
 };
 export type Version = {
     id: string;
@@ -57,8 +60,11 @@ export type Planner = {
     warnings: string[];
     /** HR-5b: compliance warnings and fair rotation; null when no week is shown. */
     compliance: Compliance | null;
-    staffOptions: { id: number; label: string }[];
+    staffOptions: { id: number; label: string; takesStation: boolean }[];
     rooms: { id: number; name: string }[];
+    /** HR-22c: the stations, and whether this branch plans them (warning only). */
+    stations: Option[];
+    planStations: boolean;
     returnReasons: Option[];
     previousWeekApproved: boolean;
     can: {
@@ -76,6 +82,8 @@ export type Minimums = {
     branch: { id: number; name: string };
     values: Record<string, Record<string, number>>;
     lockVersion: number;
+    /** HR-22c: warn about CA, CA Supervisor and MA shifts with no station. */
+    planStations: boolean;
     roles: { value: string; label: string; plural: string }[];
     /** HR-5b rules, for Director and HR Manager only. */
     compliance: ComplianceSettings | null;
@@ -370,6 +378,7 @@ export function useRosterPage(props: RosterProps) {
         break_minutes: 0 as number | string,
         session_type: 'morning',
         branch_room_id: '' as string | number,
+        station: '',
     });
 
     const shiftKey = ref('');
@@ -394,6 +403,7 @@ export function useRosterPage(props: RosterProps) {
         shiftForm.break_minutes = shift.breakMinutes;
         shiftForm.session_type = shift.sessionType;
         shiftForm.branch_room_id = shift.roomId ?? '';
+        shiftForm.station = shift.station ?? '';
         sheetOpen.value = true;
     };
 
@@ -409,6 +419,7 @@ export function useRosterPage(props: RosterProps) {
             ...data,
             branch_room_id:
                 data.branch_room_id === '' ? null : data.branch_room_id,
+            station: data.station === '' ? null : data.station,
             branch_id: p.branch.id,
             week: props.roster.week.start,
             expected_version_lock: version.lockVersion,
@@ -490,6 +501,27 @@ export function useRosterPage(props: RosterProps) {
         })),
     ]);
     const sessionOptions = computed(() => props.roster.sessions);
+    // HR-22c: a station only for a CA, CA Supervisor or Medical Assistant, and never on call. Doctors get a room.
+    const stationOptions = computed(() => [
+        { value: '', label: 'No station' },
+        ...(planner.value?.stations ?? []),
+    ]);
+    const takesStation = computed(() => {
+        if (shiftForm.session_type === 'on_call') {
+            return false;
+        }
+
+        const option = (planner.value?.staffOptions ?? []).find(
+            (s) => s.id === Number(shiftForm.staff_user_id),
+        );
+
+        return option ? option.takesStation : !!editing.value?.station;
+    });
+    watch(takesStation, (can) => {
+        if (!can) {
+            shiftForm.station = '';
+        }
+    });
 
     const shiftsOn = (row: Planner['rows'][number], date: string) =>
         row.shifts.filter((s) => s.date === date);
@@ -507,6 +539,7 @@ export function useRosterPage(props: RosterProps) {
         values: JSON.parse(
             JSON.stringify(props.roster.minimums?.values ?? {}),
         ) as Record<string, Record<string, number | string>>,
+        plan_stations: props.roster.minimums?.planStations ?? false,
     });
     const saveMinimums = () => {
         const m = props.roster.minimums;
@@ -520,6 +553,7 @@ export function useRosterPage(props: RosterProps) {
                 branch_id: m.branch.id,
                 week: props.roster.week.start,
                 minimums: data.values,
+                plan_stations: data.plan_stations,
                 expected_lock_version: m.lockVersion,
             }))
             .put('/hr/roster/minimum-staffing', { preserveScroll: true });
@@ -576,6 +610,8 @@ export function useRosterPage(props: RosterProps) {
         staffOptions,
         roomOptions,
         sessionOptions,
+        stationOptions,
+        takesStation,
         shiftsOn,
         dayShifts,
         isShort,

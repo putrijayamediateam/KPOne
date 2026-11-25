@@ -214,8 +214,9 @@ const record = () => {
                 <li><code>expiry_date</code>: YYYY-MM-DD, after today</li>
                 <li><code>quantity</code>: in the SKU's stock unit</li>
                 <li data-testid="opening-import-cost-column">
-                    <code>unit_cost</code> (optional): RM per stock unit. Cost
-                    policy to be confirmed by the accountant.
+                    <code>unit_cost</code> (optional): RM per stock unit. It
+                    uses the weighted average cost policy approved by the
+                    clinic's accountant.
                 </li>
             </ul>
             <a

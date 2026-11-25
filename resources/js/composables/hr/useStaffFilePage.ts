@@ -70,6 +70,9 @@ export type StaffFilePageProps = {
             accountName: string | null;
             at: string | null;
             lockVersion: number | null;
+            // HR-22b: what HR asked for; null when nothing was asked.
+            role: 'locum' | 'locum_doctor' | null;
+            roleLabel: string | null;
         } | null;
         periods: Period[];
         positions: {
@@ -119,6 +122,7 @@ export function useStaffFilePage(props: StaffFilePageProps) {
     // ---- HR-15a: a locum's KPOne sign-in ----
     const signIn = reactive({
         email: '',
+        role: 'locum' as 'locum' | 'locum_doctor',
         key: crypto.randomUUID(),
         processing: false,
         cancelOpen: false,
@@ -127,11 +131,16 @@ export function useStaffFilePage(props: StaffFilePageProps) {
         signIn.processing = true;
         router.post(
             `/hr/records/${w.value.id}/sign-in`,
-            { email: signIn.email, idempotency_key: signIn.key },
+            {
+                email: signIn.email,
+                role: signIn.role,
+                idempotency_key: signIn.key,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     signIn.email = '';
+                    signIn.role = 'locum';
                     signIn.key = crypto.randomUUID();
                 },
                 onFinish: () => (signIn.processing = false),

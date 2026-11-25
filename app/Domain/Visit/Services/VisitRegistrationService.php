@@ -146,7 +146,7 @@ class VisitRegistrationService
                 ])->save();
                 $this->reasons->assign($visit, $reasons);
                 if (array_key_exists('coverage_panel_note', $validated)) {
-                    $this->panelNotes->record($lockedActor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($lockedActor, 'create', $validated));
+                    $this->panelNotes->record($lockedActor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($lockedActor, 'create', Arr::except($validated, ['doctor_source', 'doctor_reason_code'])));
                 }
                 if ($visit->coverage_panel_note !== null) {
                     $this->audit->record('visit.panel_note.updated', $visit, ['record_version' => 1, 'has_note' => true], $lockedActor, $branch);
@@ -157,6 +157,8 @@ class VisitRegistrationService
                     'coverage_type' => $visit->coverage_type,
                     'repeat_attendance_confirmed' => $repeatExists,
                     'record_version' => 1,
+                    // AUTO-1: only when automatic assignment was available; never any sales or target value.
+                    ...($validated['doctor_source'] ?? null ? ['doctor_source' => $validated['doctor_source'], 'doctor_reason_code' => $validated['doctor_reason_code'] ?? null] : []),
                 ], $lockedActor, $branch, $lockedActor->organisation_id);
                 if ($visit->priority === 'urgent') {
                     $this->audit->record('visit.priority.marked_urgent', $visit, ['record_version' => 1], $lockedActor, $branch);
@@ -215,6 +217,8 @@ class VisitRegistrationService
             ],
             'visit_type' => ['required', Rule::in(['consultation', 'otc'])],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
+            'doctor_source' => ['nullable', Rule::in(['auto', 'manual', 'override'])],
+            'doctor_reason_code' => ['nullable', 'string', 'max:40'],
             'visit_reason' => ['prohibited'],
             'visit_reason_public_ids' => ['nullable', 'array', 'max:5', 'required_if:visit_type,consultation'],
             'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],
@@ -284,7 +288,7 @@ class VisitRegistrationService
     /** @param array<string, mixed> $validated */
     private function assertPanelNoteReplay(User $actor, Visit $visit, array $validated): void
     {
-        $replayed = $this->panelNotes->replay($actor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($actor, 'create', $validated));
+        $replayed = $this->panelNotes->replay($actor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($actor, 'create', Arr::except($validated, ['doctor_source', 'doctor_reason_code'])));
         if (! $replayed && array_key_exists('coverage_panel_note', $validated) && $this->panelNotes->value($validated) !== $visit->coverage_panel_note) {
             throw ValidationException::withMessages(['idempotency_key' => 'This Registration was already saved with different details. Start a new form.']);
         }

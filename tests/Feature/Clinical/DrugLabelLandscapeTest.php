@@ -84,7 +84,7 @@ class DrugLabelLandscapeTest extends VisitTestCase
         $this->assertStringContainsString('Indication: 73 characters', implode(' ', $blocked['blocked'][0]['errors']));
     }
 
-    public function test_the_preview_page_shows_the_provisional_landscape_size(): void
+    public function test_the_preview_page_shows_the_landscape_size(): void
     {
         $f = $this->fixture();
         $case = $this->open($f);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Patient\Services\RegistrationSettingsService;
+use App\Domain\Visit\Assignment\AutoAssignSettingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -11,9 +12,9 @@ use Inertia\Response;
 
 final class RegistrationSettingsController extends Controller
 {
-    public function index(Request $request, RegistrationSettingsService $settings): Response
+    public function index(Request $request, RegistrationSettingsService $settings, AutoAssignSettingService $autoAssign): Response
     {
-        return Inertia::render('RegistrationSettings/Index', $settings->index($request->user()));
+        return Inertia::render('RegistrationSettings/Index', [...$settings->index($request->user()), 'autoAssign' => $autoAssign->panel($request->user())]);
     }
 
     public function store(Request $request, RegistrationSettingsService $settings): RedirectResponse

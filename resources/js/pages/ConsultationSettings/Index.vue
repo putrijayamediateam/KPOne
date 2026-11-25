@@ -25,6 +25,8 @@ import { OperationalTable } from '@/components/ui/table';
 type Preset = {
     id: number;
     name: string;
+    icd10Code: string | null;
+    status: 'draft' | 'approved';
     active: boolean;
     lockVersion: number;
 };
@@ -69,12 +71,14 @@ const addForm = useForm({
     expected_branch_id: props.branchId,
     idempotency_key: crypto.randomUUID(),
     names: [''],
+    codes: [''],
 });
 const renameForm = useForm({
     expected_branch_id: props.branchId,
     idempotency_key: crypto.randomUUID(),
     lock_version: 1,
     name: '',
+    icd10_code: '',
 });
 const busy = ref<number | null>(null);
 const statusKeys = new Map<string, string>();
@@ -116,6 +120,7 @@ const openRename = (preset: Preset) => {
     selected.value = preset;
     renameForm.clearErrors();
     renameForm.name = preset.name;
+    renameForm.icd10_code = preset.icd10Code ?? '';
     renameForm.lock_version = preset.lockVersion;
     renameForm.expected_branch_id = props.branchId;
     renameForm.idempotency_key = crypto.randomUUID();
@@ -364,6 +369,24 @@ const presetEmptyDescription = computed(() =>
                             class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]"
                         >
                             {{ preset.name }}
+                            <span
+                                v-if="
+                                    preset.icd10Code ||
+                                    preset.status === 'draft'
+                                "
+                                class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] font-normal text-muted-foreground"
+                                data-testid="row-detail"
+                                ><span v-if="preset.icd10Code"
+                                    >ICD-10 {{ preset.icd10Code }}</span
+                                ><span
+                                    v-if="preset.status === 'draft'"
+                                    class="inline-flex items-center gap-1.5"
+                                    ><span
+                                        class="size-1.5 rounded-full bg-muted-foreground"
+                                        aria-hidden="true"
+                                    />Waiting for doctor review</span
+                                ></span
+                            >
                         </p>
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
@@ -443,6 +466,24 @@ const presetEmptyDescription = computed(() =>
                         <tr v-for="preset in presets" :key="preset.id">
                             <td class="[overflow-wrap:anywhere]">
                                 {{ preset.name }}
+                                <span
+                                    v-if="
+                                        preset.icd10Code ||
+                                        preset.status === 'draft'
+                                    "
+                                    class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] text-muted-foreground"
+                                    data-testid="row-detail"
+                                    ><span v-if="preset.icd10Code"
+                                        >ICD-10 {{ preset.icd10Code }}</span
+                                    ><span
+                                        v-if="preset.status === 'draft'"
+                                        class="inline-flex items-center gap-1.5"
+                                        ><span
+                                            class="size-1.5 rounded-full bg-muted-foreground"
+                                            aria-hidden="true"
+                                        />Waiting for doctor review</span
+                                    ></span
+                                >
                             </td>
                             <td>
                                 <div class="flex items-center gap-3">
@@ -535,18 +576,41 @@ const presetEmptyDescription = computed(() =>
             >
             <form class="grid gap-4" @submit.prevent="save">
                 <div class="max-h-[50vh] overflow-y-auto">
-                    <label
+                    <div
                         v-for="(_, index) in addForm.names"
                         :key="index"
-                        class="mb-3 grid gap-2 text-sm"
-                        >Diagnosis<input
-                            v-model="addForm.names[index]"
-                            required
-                            maxlength="500"
-                            placeholder="Enter diagnosis name"
-                            class="h-11 rounded-md border bg-background px-3" /><InputError
-                            :message="nameError(index)"
-                    /></label>
+                        class="mb-3 grid gap-3"
+                    >
+                        <label class="grid gap-2 text-sm font-medium"
+                            ><span
+                                >Diagnosis<span
+                                    class="text-destructive"
+                                    aria-hidden="true"
+                                >
+                                    *</span
+                                ></span
+                            ><input
+                                v-model="addForm.names[index]"
+                                required
+                                maxlength="500"
+                                placeholder="Enter diagnosis name"
+                                class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                                :message="nameError(index)"
+                        /></label>
+                        <label class="grid gap-2 text-sm font-medium"
+                            ><span
+                                >ICD-10 code
+                                <span class="font-normal text-muted-foreground"
+                                    >(optional)</span
+                                ></span
+                            ><input
+                                v-model="addForm.codes[index]"
+                                maxlength="20"
+                                placeholder="For example R50.9"
+                                class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                                :message="addForm.errors[`codes.${index}`]"
+                        /></label>
+                    </div>
                 </div>
                 <InputError :message="addForm.errors.names" /><InputError
                     :message="generalError"
@@ -555,7 +619,10 @@ const presetEmptyDescription = computed(() =>
                     variant="outline"
                     class="w-fit"
                     :disabled="addForm.names.length >= 20 || addForm.processing"
-                    @click="addForm.names.push('')"
+                    @click="
+                        addForm.names.push('');
+                        addForm.codes.push('');
+                    "
                     >Add more diagnosis</Button
                 ><DialogFooter class="sm:justify-between"
                     ><Button
@@ -581,15 +648,39 @@ const presetEmptyDescription = computed(() =>
                 ></DialogHeader
             >
             <form class="grid gap-4" @submit.prevent="rename">
-                <label class="grid gap-2 text-sm"
-                    >Diagnosis<input
+                <label class="grid gap-2 text-sm font-medium"
+                    ><span
+                        >Diagnosis<span
+                            class="text-destructive"
+                            aria-hidden="true"
+                        >
+                            *</span
+                        ></span
+                    ><input
                         v-model="renameForm.name"
                         required
                         maxlength="500"
-                        class="h-11 rounded-md border bg-background px-3" /></label
-                ><InputError :message="renameForm.errors.name" /><InputError
-                    :message="generalError"
-                /><DialogFooter
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                        :message="renameForm.errors.name"
+                /></label>
+                <label class="grid gap-2 text-sm font-medium"
+                    ><span
+                        >ICD-10 code
+                        <span class="font-normal text-muted-foreground"
+                            >(optional)</span
+                        ></span
+                    ><input
+                        v-model="renameForm.icd10_code"
+                        maxlength="20"
+                        placeholder="For example R50.9"
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                        :message="renameForm.errors.icd10_code"
+                /></label>
+                <p class="text-[13px] text-muted-foreground">
+                    A changed name or code goes back to a doctor for review
+                    before it is offered while typing.
+                </p>
+                <InputError :message="generalError" /><DialogFooter
                     ><Button
                         type="button"
                         variant="ghost"
