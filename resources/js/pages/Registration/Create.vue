@@ -529,26 +529,29 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
     <main
         class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 md:p-6"
     >
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
+        <!-- Clean Look (spec section 6): page header; the one filled button is Register at the bottom. -->
+        <header class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 space-y-1">
+                <h1
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                >
                     Register Visit
                 </h1>
-                <div
-                    class="mt-1 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                <p
+                    class="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground"
                 >
                     <MapPin class="size-3.5" />
                     {{ options.branch.name }} · current branch
-                </div>
+                </p>
             </div>
             <Button variant="outline" as-child
                 ><Link href="/registration"
                     ><ArrowLeft class="size-4" /> Console</Link
                 ></Button
             >
-        </div>
+        </header>
 
-        <section class="overflow-hidden rounded-lg border bg-card">
+        <section class="overflow-hidden rounded-lg border bg-card shadow-card">
             <div class="flex items-center justify-between px-4 pt-4 pb-2">
                 <div>
                     <h2 class="font-semibold">1. Patient</h2>
@@ -567,20 +570,16 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </div>
             <div
                 v-if="selectedPatient"
-                class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-emerald-200/70 bg-emerald-50/70 px-3 py-3 dark:border-brand/40 dark:bg-zinc-900/85"
+                class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-success/25 bg-success-wash px-3 py-3"
             >
-                <div
-                    class="rounded-full bg-emerald-100 p-2 text-emerald-800 dark:bg-brand/15 dark:text-brand"
-                >
+                <div class="rounded-full bg-card p-2 text-success">
                     <Check class="size-4" />
                 </div>
                 <div class="min-w-0">
                     <div class="font-medium text-foreground">
                         {{ selectedPatient.fullName }}
                     </div>
-                    <div
-                        class="font-mono text-xs text-slate-600 dark:text-slate-300"
-                    >
+                    <div class="font-mono text-xs text-muted-foreground">
                         {{ selectedPatient.patientNumber }} ·
                         {{
                             selectedPatient.dateOfBirth
@@ -588,9 +587,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 : 'DOB not recorded'
                         }}
                     </div>
-                    <div
-                        class="mt-0.5 text-xs text-slate-600 dark:text-slate-300"
-                    >
+                    <div class="mt-0.5 text-xs text-muted-foreground">
                         {{
                             selectedPatient.identifier?.maskedValue ??
                             selectedPatient.maskedPhone ??
@@ -623,7 +620,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             autocomplete="off"
                             aria-controls="patient-results"
                             aria-label="Search Patient"
-                            class="h-10 w-full rounded-md border bg-background pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                            class="h-9 w-full rounded-[10px] border border-input bg-field-fill pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11"
                             placeholder="Name / NRIC / Phone / Patient No."
                             @keydown="handlePatientSearchKeydown" /></label
                     ><LoaderCircle
@@ -664,7 +661,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             :aria-selected="activeResultIndex === index"
                             :class="
                                 activeResultIndex === index
-                                    ? 'bg-emerald-50/80 dark:bg-emerald-950/30'
+                                    ? 'bg-primary/8 dark:bg-primary/16'
                                     : 'hover:bg-muted/35'
                             "
                             class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"
@@ -750,7 +747,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         aria-describedby="quick-name-error"
                         v-model="quick.full_name"
                         autocomplete="off"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11" /><InputError
                         id="quick-name-error"
                         :message="errorFor('quick_patient.full_name')"
                 /></label>
@@ -777,7 +774,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             "
                             aria-describedby="quick-identity-error"
                             autocomplete="off"
-                            class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1 sm:rounded-l-none sm:border-l-0"
+                            class="h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"
                         />
                     </div>
                     <InputError
@@ -803,7 +800,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         "
                         aria-describedby="quick-identity-error"
                         maxlength="2"
-                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /></label
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /></label
                 ><span v-else />
                 <PhoneInput
                     id="quick-phone"
@@ -855,7 +852,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         "
                         maxlength="2"
                         placeholder="MY"
-                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /><InputError
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /><InputError
                         :message="errorFor('quick_patient.nationality_code')"
                 /></label>
                 <label class="grid gap-1" for="quick-gender"
@@ -905,7 +902,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             class="space-y-3 max-lg:flex max-lg:flex-col max-lg:gap-3 max-lg:space-y-0"
             @submit.prevent="submit"
         >
-            <section class="rounded-lg border bg-card">
+            <section class="rounded-lg border bg-card shadow-card">
                 <div class="px-4 pt-4 pb-2">
                     <h2 class="font-semibold">Visit details</h2>
                     <p class="text-xs text-muted-foreground">
@@ -933,7 +930,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 @click="form.visit_type = 'consultation'"
                             >
                                 Consultation
@@ -946,7 +943,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 @click="form.visit_type = 'otc'"
                             >
                                 OTC
@@ -1134,7 +1131,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     !!form.errors.coverage_member_reference
                                 "
                                 autocomplete="off"
-                                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none" /><InputError
+                                class="h-9 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11" /><InputError
                                 :message="
                                     errorFor('coverage_member_reference')
                                 "
@@ -1153,7 +1150,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 v-model="form.coverage_panel_note"
                                 rows="2"
                                 maxlength="500"
-                                class="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="w-full resize-y rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 data-testid="registration-panel-note"
                             />
                             <span
@@ -1190,7 +1187,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 "
             />
             <div
-                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
+                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-lg border bg-card p-3 shadow-pop max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
             >
                 <div class="hidden min-w-0 sm:block">
                     <p class="truncate text-sm font-medium">

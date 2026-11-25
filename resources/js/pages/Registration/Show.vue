@@ -226,12 +226,10 @@ const dispensaryStatusLabel: Record<string, string> = {
         </section>
         <section
             v-if="visit.queue"
-            class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900 dark:bg-emerald-950/30"
+            class="flex items-center justify-between rounded-lg border border-success/25 bg-success-wash p-4"
         >
             <div class="flex items-center gap-3">
-                <ListOrdered
-                    class="size-5 text-emerald-800 dark:text-emerald-300"
-                />
+                <ListOrdered class="size-5 text-success" />
                 <div>
                     <div
                         class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
@@ -266,7 +264,7 @@ const dispensaryStatusLabel: Record<string, string> = {
                 queueError('queue')
             "
         />
-        <section class="rounded-lg border bg-card p-4">
+        <section class="rounded-lg border bg-card p-4 shadow-card">
             <h2 class="font-semibold">Visit Reason</h2>
             <template v-if="visit.visitReasons.primary">
                 <p class="mt-2 text-sm">
