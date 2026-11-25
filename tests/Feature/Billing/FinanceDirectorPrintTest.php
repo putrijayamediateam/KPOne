@@ -4,10 +4,12 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\IssuedBillingDocument;
 use App\Domain\Visit\Billing\Models\IssuedBillingDocumentPrint;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\PaymentService;
+use App\Domain\Visit\Models\Panel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -88,6 +90,37 @@ class FinanceDirectorPrintTest extends BillingTestCase
         $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertRedirect();
         $this->assertSame(1, IssuedBillingDocumentPrint::query()->count());
         $this->assertSame(0, AuditLog::query()->where('event', 'billing.document_viewed')->count());
+    }
+
+    public function test_the_finance_officer_is_refused_at_another_branch_and_on_a_panel_invoice(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $input = ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'];
+        $otherBranch = Branch::query()->where('organisation_id', $visit->organisation_id)->where('id', '<>', $visit->branch_id)->firstOrFail();
+        $elsewhere = $this->actor('finance_officer', $otherBranch);
+        $this->selectBranch($elsewhere, $otherBranch);
+        $this->post(route('billing.issue', [$visit, $invoice]), $input)->assertNotFound();
+
+        // PCA-1: a Panel share proposed on the invoice blocks the invoice print for every printer, Finance included.
+        $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
+        $this->selectBranch($ca, $visit->branch);
+        $this->post(route('billing.propose', [$visit, $invoice, 'panel']), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '3000',
+            'panel_id' => $panel->id, 'reason' => 'Synthetic Panel responsibility'])->assertSessionHasNoErrors();
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance, $visit->branch);
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.can.printInvoice', false));
+        $this->post(route('billing.issue', [$visit, $invoice]), [...$input, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('document');
+        $this->assertSame(0, IssuedBillingDocument::query()->count());
+    }
+
+    public function test_the_director_issues_a_receipt(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash', 'classification' => 'cash'])->save();
+        $payment = app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
+        $this->selectBranch($this->actor('director'), $visit->branch);
+        $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertInertia(fn (Assert $page) => $page->where('issued.label', 'original'));
+        $this->assertSame(['receipt'], IssuedBillingDocument::query()->pluck('document_type')->all());
     }
 
     public function test_the_migration_grants_additively_and_is_idempotent(): void

@@ -161,6 +161,11 @@ class PostgresBillingRegressionTest extends TestCase
         foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.lines.view.branch', 'billing.print.patient_identity.branch'] as $permission) {
             $f['ca2']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
         }
+        // Kumar: the fixture's CA permissions include billing.view.branch; take it away so the lines come only from
+        // billing.lines.view.branch, as for a real Finance Officer.
+        $f['ca2']->revokePermissionTo('billing.view.branch');
+        $this->assertFalse($f['ca2']->fresh()->can('billing.view.branch'));
+        $this->assertFalse($f['ca2']->fresh()->can('patients.view.organisation'));
         $out = $this->race([$this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()]), $this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()], 'ca2')], $f['patient']);
         $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
         $this->assertSame(1, DB::table('issued_billing_documents')->where('invoice_id', $f['invoice']->id)->count());
