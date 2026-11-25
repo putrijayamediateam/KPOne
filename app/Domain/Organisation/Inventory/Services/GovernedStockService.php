@@ -164,7 +164,12 @@ final class GovernedStockService
      */
     public function newestLiveCountIds(int $organisationId, int $branchId, array $balanceIds): array
     {
-        $latest = DB::table('inventory_governed_actions')->select('case_id')->selectRaw('MAX(lock_version) as version')->groupBy('case_id');
+        if ($balanceIds === []) {
+            return [];
+        }
+        // Only the actions of count cases on these balances, not the whole actions table (Mei Ling's review).
+        $cases = DB::table('inventory_governed_cases')->where('organisation_id', $organisationId)->where('branch_id', $branchId)->whereIn('balance_id', $balanceIds)->where('kind', 'count')->select('id');
+        $latest = DB::table('inventory_governed_actions')->whereIn('case_id', $cases)->select('case_id')->selectRaw('MAX(lock_version) as version')->groupBy('case_id');
 
         return DB::table('inventory_governed_cases as c')->joinSub($latest, 'latest', 'latest.case_id', '=', 'c.id')
             ->join('inventory_governed_actions as a', fn ($j) => $j->on('a.case_id', '=', 'c.id')->on('a.lock_version', '=', 'latest.version'))
@@ -194,11 +199,12 @@ final class GovernedStockService
     /**
      * STK-45: open a count case for a difference report, inside the caller's transaction after it locked the source.
      * The report (P10) is the permission; everything else is as in propose(). The reporter is the case's proposer, which
-     * STK-5's case trigger requires of the creation action.
+     * STK-5's case trigger requires of the creation action. Only DifferenceReportService::report() calls this, after
+     * lockForBranch(P10) and lockReportSource(); it re-checks the permission and the branch assignment as a backstop.
      */
     public function openCountForReport(User $actor, Branch $branch, InventorySku $sku, InventoryBatch $batch, InventoryLocation $location, stdClass $balance, string $retryKey, string $hash): int
     {
-        abort_unless(DB::transactionLevel() > 0 && $actor->can(DifferenceReportService::PERMISSION), 403);
+        abort_unless(DB::transactionLevel() > 0 && $actor->can(DifferenceReportService::PERMISSION) && $branch->organisation_id === $actor->organisation_id && app(BranchAccessService::class)->hasEffectiveAssignment($actor, $branch), 403);
         $id = DB::table('inventory_governed_cases')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'inventory_location_id' => $location->id, 'balance_id' => $balance->id, 'kind' => 'count', 'base_unit' => $sku->stock_unit, 'reason' => 'count_variance', 'expected_quantity' => $balance->quantity, 'expected_balance_version' => $balance->lock_version, 'quantity' => null, 'disposal_reference' => null, 'proposer_user_id' => $actor->id, 'reverses_case_id' => null, 'created_at' => now()->utc()]);
         $this->append($actor, $branch, $id, 'created', 'awaiting_count', 1, $retryKey, $hash, null, null);
 

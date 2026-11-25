@@ -6,6 +6,7 @@ use App\Domain\Organisation\Inventory\Services\DifferenceReportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 /** STK-45: Report a difference on a stock line. It returns to the page it came from; nothing here moves stock. */
 final class DifferenceReportController extends Controller
@@ -22,6 +23,8 @@ final class DifferenceReportController extends Controller
             throw $e->redirectTo(route($route, $query));
         }
 
-        return to_route($route, $query)->with('success', $result['openedCase'] ? 'Sent. A stock count was opened for this batch.' : 'Sent. Added to the stock count already open for this batch.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => $result['openedCase'] ? 'Sent. A stock count was opened for this batch.' : 'Sent. Added to the stock count already open for this batch.']);
+
+        return to_route($route, $query);
     }
 }

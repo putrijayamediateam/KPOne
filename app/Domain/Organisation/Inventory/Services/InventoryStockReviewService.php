@@ -132,13 +132,8 @@ final class InventoryStockReviewService
         foreach ($history as $review) {
             $grouped[$review->worklist][$review->item_id][] = ['id' => $review->id, 'version' => $review->lock_version, 'reviewer' => $names[$review->actor_user_id] ?? 'Former reviewer', 'when' => CarbonImmutable::parse($review->created_at)->setTimezone($branch->timezone)->format('d M Y H:i'), 'outcome' => $review->outcome, 'reviewBy' => $review->review_by, 'overdue' => $review->review_by !== null && $review->review_by < $today];
         }
-        // STK-45: Report a difference on Expiring and Expired rows (one batch each), never on Low stock rows.
-        $differences = app(DifferenceReportService::class)->forRows($actor, $branch, array_map('intval', [...$ids['expiring'], ...$ids['expired']]));
         foreach ($lists as $kind => &$list) {
             foreach ($list['rows'] as &$row) {
-                if ($kind !== 'low_stock' && isset($differences[(int) $row['item_id']])) {
-                    $row['difference'] = $differences[(int) $row['item_id']];
-                }
                 $row['history'] = $grouped[$kind][$row['item_id']] ?? [];
                 $row['latest'] = $row['history'][0] ?? null;
                 $row['lock_version'] = $row['latest']['version'] ?? 0;

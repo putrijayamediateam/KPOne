@@ -6,8 +6,8 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Organisation\Inventory\Services\DifferenceReportService as Reports;
 use App\Domain\Organisation\Inventory\Services\GovernedStockService;
+use App\Domain\Organisation\Inventory\Services\InventoryBatchHoldService;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -162,6 +162,10 @@ class DifferenceReportTest extends VisitTestCase
         $case = DB::table('inventory_governed_cases')->where('id', $result['caseId'])->sole();
         $row = fn (int $actorId, string $action, string $state, int $version): array => ['organisation_id' => $case->organisation_id, 'case_id' => $case->id, 'actor_user_id' => $actorId, 'action' => $action, 'state' => $state, 'quantity' => '8.000', 'movement_id' => null, 'lock_version' => $version, 'retry_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'created_at' => now()];
         $this->assertDatabaseRefuses(fn () => DB::table('inventory_governed_actions')->insert($row($ca->id, 'counted', 'awaiting_recount', 2)), 'Invalid independent count');
+        // A recount by a reporter is refused too, after an honest first count.
+        $counter = $this->actorAt('ca_supervisor');
+        app(GovernedStockService::class)->act($counter, $case->id, 'counted', $this->command(1, '8.000'));
+        $this->assertDatabaseRefuses(fn () => DB::table('inventory_governed_actions')->insert($row($ca->id, 'recounted', 'awaiting_approval', 3)), 'Invalid independent count');
 
         // Update, delete and truncate of reports are refused.
         $this->assertDatabaseRefuses(fn () => DB::table('inventory_difference_reports')->where('id', $result['reportId'])->update(['observed' => 'more']), 'append-only');
@@ -182,6 +186,14 @@ class DifferenceReportTest extends VisitTestCase
         $id = app(GovernedStockService::class)->propose($f['proposer'], 'count', ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(), 'balance_id' => $balance->id, 'balance_version' => $balance->lock_version, 'unit' => 'unit']);
         app(GovernedStockService::class)->act($f['proposer'], $id, 'counted', $this->command(1, '10.000'));
         $this->assertSame('closed_zero', DB::table('inventory_governed_actions')->where('case_id', $id)->orderByDesc('lock_version')->value('state'));
+    }
+
+    public function test_a_held_batch_can_still_be_reported(): void
+    {
+        $f = $this->f('10.000');
+        app(InventoryBatchHoldService::class)->act($f['proposer'], $f['batch']->public_id, 'place', ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(), 'reason' => 'recall']);
+        $result = app(Reports::class)->report($this->actorAt('ca'), $this->input($f, ['observed' => 'damaged_or_expired']));
+        $this->assertTrue($result['openedCase']);
     }
 
     public function test_stale_page_retry_key_and_unreportable_stock(): void
@@ -274,9 +286,9 @@ class DifferenceReportTest extends VisitTestCase
         $f = $this->f();
         $ca = $this->actorAt('ca');
         $this->actingAs($ca)->post(route('inventory.difference-reports.store'), [...$this->input($f), 'return_to' => 'stock-review'])
-            ->assertRedirect(route('inventory.stock-review'))->assertSessionHas('success', 'Sent. A stock count was opened for this batch.');
+            ->assertRedirect(route('inventory.stock-review'))->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Sent. A stock count was opened for this batch.']);
         $this->post(route('inventory.difference-reports.store'), [...$this->input($f), 'return_to' => 'inventory', 'return_query' => ['tab' => 'stock', 'evil' => 'x']])
-            ->assertRedirect(route('inventory.index', ['tab' => 'stock']))->assertSessionHas('success', 'Sent. Added to the stock count already open for this batch.');
+            ->assertRedirect(route('inventory.index', ['tab' => 'stock']))->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Sent. Added to the stock count already open for this batch.']);
     }
 
     /** Synthetic bootstrap: the stock changes after a snapshot (as any movement would), so open cases go stale. */
