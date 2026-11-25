@@ -625,15 +625,6 @@ const turnPage = (value: number) =>
         </form>
 
         <template v-if="tab === 'waiting' || tab === 'decided'">
-            <EmptyState
-                v-if="(tab === 'waiting' ? waiting : decided).length === 0"
-                :title="
-                    tab === 'waiting'
-                        ? 'No proposals are waiting.'
-                        : 'Nothing has been decided yet.'
-                "
-                description="Proposed Panel price changes appear here."
-            />
             <div
                 v-if="tab === 'waiting' && canApprove && selectable.length > 0"
                 class="mb-3 space-y-2 rounded-xl border bg-card p-4 text-sm"
@@ -697,6 +688,15 @@ const turnPage = (value: number) =>
                     </div>
                 </div>
             </div>
+            <EmptyState
+                v-if="(tab === 'waiting' ? waiting : decided).length === 0"
+                :title="
+                    tab === 'waiting'
+                        ? 'No proposals are waiting.'
+                        : 'Nothing has been decided yet.'
+                "
+                description="Proposed Panel price changes appear here."
+            />
             <ul
                 v-else
                 class="divide-y rounded-xl border bg-card"

@@ -22,5 +22,8 @@ Owner decision (25 Nov 2026, relayed by B.E.R.N.I.S.S): the catalogue import (IM
 ## Tests
 `PanelPriceBulkApproveTest` (service and route): all approved with own entry and audit and one counts-only batch row; stale, already decided and own-proposal rows skipped and named while the rest go through; a Panel Officer changes nothing (403); empty, oversized and repeated selections refused; the route toast and the skipped-rows message. Frontend source test `pnl-30-bulk-approve.test.mjs`.
 
+## Review notes (Priya)
+Priya's review found one blocker, fixed before this PR: the bulk panel had been placed between the empty state and the list, so the list lost its `v-else` and the rows never showed. The panel now sits before the empty state, a frontend test pins the order, and a browser pass confirms five rows with checkboxes and the confirm step at 1440 and 390 px. Also fixed: an upper-case proposal id is matched (lower-cased). Known and accepted: a permission failure part-way through a batch leaves earlier approvals in place (each has its own audit row, but no batch row is written); after a partly skipped batch the selection is cleared and the skipped rows stay waiting; a proxy or web server timeout shorter than the batch time would cut a very large press, so keep batches at 100 to 200.
+
 ## Not in this slice
 A two-process race of two approvers on one batch (each approval is the existing, race-tested `approve()`); an "approve everything without ticking" button; rejecting in bulk.

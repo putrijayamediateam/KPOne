@@ -202,10 +202,10 @@ final class PanelPriceProposalService
         $approved = 0;
         $skipped = [];
         $proposals = PriceChangeProposal::query()->where('organisation_id', $actor->organisation_id)
-            ->whereIn('public_id', array_column($items, 'id'))->orderBy('id')->get()->keyBy('public_id');
+            ->whereIn('public_id', array_map(static fn (array $i): string => strtolower((string) $i['id']), $items))->orderBy('id')->get()->keyBy('public_id');
         $lockOf = [];
         foreach ($items as $item) {
-            $lockOf[(string) $item['id']] = (int) $item['lock_version'];
+            $lockOf[strtolower((string) $item['id'])] = (int) $item['lock_version'];
         }
         foreach ($proposals as $publicId => $proposal) {
             try {

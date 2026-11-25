@@ -44,3 +44,14 @@ test('the page says when more are waiting than are shown and nothing is sent twi
     );
     assert.match(page, /if \(bulkActing\.value \|\|/);
 });
+
+test("the bulk panel sits before the empty state, so it never takes the list's v-else", () => {
+    const bulk = page.indexOf('data-testid="bulk-approve"');
+    const empty = page.indexOf('<EmptyState\n                v-if="(tab ===');
+    const list = page.indexOf('<ul\n                v-else');
+    assert.ok(bulk > 0 && empty > bulk && list > empty);
+    // The only thing between the empty state and the list is the empty state itself.
+    const between = page.slice(empty, list);
+    assert.ok(!between.includes('bulk-approve'));
+    assert.match(between, /\/>\s*$/);
+});

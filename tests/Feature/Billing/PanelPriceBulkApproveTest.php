@@ -110,6 +110,16 @@ class PanelPriceBulkApproveTest extends ClinicalTestCase
         $this->assertSame([PanelPriceProposalService::CHANGED], collect($result['skipped'])->pluck('message')->unique()->all());
     }
 
+    public function test_an_upper_case_proposal_id_is_still_matched(): void
+    {
+        $proposal = $this->proposal();
+
+        $result = $this->service->approveMany($this->finance, $this->branch->id, [['id' => strtoupper($proposal->public_id), 'lock_version' => $proposal->lock_version]]);
+
+        $this->assertSame(1, $result['approved']);
+        $this->assertSame('approved', $proposal->refresh()->status);
+    }
+
     public function test_the_approver_cannot_approve_their_own_proposal_in_a_batch(): void
     {
         $this->finance->givePermissionTo(PanelPriceProposalService::PROPOSE_PERMISSION);
