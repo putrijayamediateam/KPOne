@@ -37,7 +37,9 @@ final class BusinessDetailsController extends Controller
             throw $e->redirectTo(route('business-details.index'));
         }
 
-        return to_route('business-details.index')->with('success', 'Business details saved.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Business details saved.']);
+
+        return to_route('business-details.index');
     }
 
     public function footer(Request $request, BranchDocumentFooterService $service): RedirectResponse
@@ -48,7 +50,9 @@ final class BusinessDetailsController extends Controller
             throw $e->redirectTo(route('business-details.index'));
         }
 
-        return to_route('business-details.index')->with('success', 'Print footer saved.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Print footer saved.']);
+
+        return to_route('business-details.index');
     }
 
     public function logo(Request $request, int $branch, string $asset, BusinessDetailsAccess $access): BinaryFileResponse

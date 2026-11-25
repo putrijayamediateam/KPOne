@@ -3,6 +3,7 @@
 namespace App\Domain\Shared\TrialData;
 
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
+use App\Domain\Clinical\Models\DiagnosisPreset;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Services\DiagnosisPresetSettingsService;
 use App\Domain\Clinical\Services\MedicineAdministrationService;
@@ -267,6 +268,17 @@ final class PhaseOneFoundation
                 'idempotency_key' => (string) Str::uuid(),
                 'names' => $missing,
             ]);
+            // SUG-1a: a new preset is a draft until a doctor reviews it, so the demo does it the real way.
+            $doctor = $this->context->as(TrialDataContext::key(TrialDataContext::MAIN_BRANCH, 'doctor1'), $main);
+            foreach (DiagnosisPreset::query()->where('organisation_id', $organisation->id)->where('status', 'draft')
+                ->whereIn('normalized_name', array_map(mb_strtolower(...), $missing))->get() as $preset) {
+                app(DiagnosisPresetSettingsService::class)->review($doctor, $preset->id, [
+                    'expected_branch_id' => $main->id,
+                    'idempotency_key' => (string) Str::uuid(),
+                    'lock_version' => $preset->lock_version,
+                    'decision' => 'approve',
+                ]);
+            }
             $this->count('diagnosis_presets', count($missing));
         }
     }

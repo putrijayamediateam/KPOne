@@ -58,6 +58,7 @@ use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
 use App\Http\Controllers\HR\LabourCostController as HrLabourCostController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
+use App\Http\Controllers\HR\LocumAvailabilityController as HrLocumAvailabilityController;
 use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
@@ -128,6 +129,7 @@ use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\StockHealthController;
 use App\Http\Controllers\StockValuationController;
+use App\Http\Controllers\SuggestionReviewController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
@@ -263,6 +265,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
             Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
             Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/copy-to-month', 'copyToMonth')->whereUuid('version')->name('hr.roster.copy-month');
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
@@ -575,10 +578,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    // HR-22f locum free times (HR-PLAN 29.7): a linked locum proposes; a roster planner uses or declines.
+    Route::prefix('hr/free-times')->controller(HrLocumAvailabilityController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::middleware(['permission:hr.locum_availability.propose.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'propose')->name('hr.free-times.store');
+            Route::post('{availability_id}/withdraw', 'withdraw')->whereUuid('availability_id')->name('hr.free-times.withdraw');
+        });
+        Route::middleware(['permission:hr.roster.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('{availability_id}/use', 'use')->whereUuid('availability_id')->name('hr.free-times.use');
+            Route::post('{availability_id}/decline', 'decline')->whereUuid('availability_id')->name('hr.free-times.decline');
+        });
+    });
     // HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Everyone reports; the Director and HR Manager handle.
     // HR-15b open shifts (HR-PLAN 21.4): managers post and confirm; a linked locum asks.
     Route::prefix('hr/open-shifts')->controller(HrOpenShiftsController::class)->middleware('sensitive.no-store')->group(function (): void {
-        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation')->name('hr.open-shifts.index');
+        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation,hr.locum_availability.propose.own')->name('hr.open-shifts.index');
         Route::middleware(['permission:hr.open_shifts.request.own', 'throttle:30,1'])->group(function (): void {
             Route::post('{shift}/ask', 'ask')->whereUuid('shift')->name('hr.open-shifts.ask');
             Route::post('asks/{ask}/withdraw', 'withdrawAsk')->whereUuid('ask')->name('hr.open-shifts.ask-withdraw');
@@ -837,6 +851,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
     Route::post('registration-settings/auto-assign', [AutoAssignSettingController::class, 'update'])->middleware(['permission:registration.auto_assign.manage.branch', 'sensitive.no-store', 'throttle:20,1'])->name('registration-settings.auto-assign');
+    // SUG-1a: the doctor's review of the recommendation lists.
+    Route::middleware(['permission:clinical_suggestions.approve.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('consultation-settings/review', [SuggestionReviewController::class, 'index'])->name('suggestion-review.index');
+        Route::patch('consultation-settings/review/diagnoses/{preset}', [SuggestionReviewController::class, 'decide'])->whereNumber('preset')->middleware('throttle:30,1')->name('suggestion-review.decide');
+    });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('registration-settings', [RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
         Route::post('registration-settings', [RegistrationSettingsController::class, 'store'])->middleware('throttle:20,1')->name('registration-settings.store');
