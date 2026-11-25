@@ -141,7 +141,7 @@ const help = computed(() =>
             @update:model-value="(value: string) => go({ view: value })"
         />
         <div
-            class="inline-flex w-fit max-w-full flex-wrap gap-1 rounded-full bg-muted p-1"
+            class="grid w-full grid-cols-3 gap-1 rounded-full bg-muted p-1 sm:inline-grid sm:w-fit"
             role="group"
             aria-label="Which medicines"
         >
@@ -149,7 +149,7 @@ const help = computed(() =>
                 v-for="option in filters"
                 :key="option.value"
                 type="button"
-                class="rounded-full px-3 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:min-h-11 lg:h-8"
+                class="rounded-full px-2 text-center text-sm leading-tight transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:min-h-11 sm:px-3 lg:h-8"
                 :class="
                     controlled === option.value
                         ? 'bg-background font-medium text-foreground shadow-sm'
