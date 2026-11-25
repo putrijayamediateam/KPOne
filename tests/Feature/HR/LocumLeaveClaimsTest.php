@@ -26,6 +26,8 @@ class LocumLeaveClaimsTest extends VisitTestCase
         foreach (StaffKind::WITHHELD_FROM_LOCUMS as $permission) {
             $this->assertFalse($locumDoctor->can($permission), $permission);
             $this->assertFalse($locumDoctor->hasPermissionTo($permission), $permission);
+            $id = (int) DB::table('permissions')->where('name', $permission)->where('guard_name', 'web')->value('id');
+            $this->assertFalse($locumDoctor->hasPermissionTo($id), "{$permission} by id");
             $this->assertFalse($locumDoctor->getAllPermissions()->contains('name', $permission), $permission);
             $this->assertTrue($resident->can($permission), $permission);
             $this->assertTrue($resident->getAllPermissions()->contains('name', $permission), $permission);

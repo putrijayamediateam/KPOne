@@ -57,7 +57,9 @@ class User extends Authenticatable implements OAuthenticatable
 
     /**
      * HR-22b2: a locum (a locum doctor included) never holds the leave-request or staff-claim permissions, whatever other
-     * role brings them. Every `can()`, route permission check and HR lock passes through here.
+     * role brings them. Every `can()`, route permission check and HR lock passes through here. Read permissions only
+     * through `can()`, `hasPermissionTo()` or `getAllPermissions()`: Spatie's other readers (getPermissionsViaRoles,
+     * getPermissionNames, getDirectPermissions) are not filtered (Suresh, m2).
      *
      * @param  string|int|Permission|\BackedEnum  $permission
      */
@@ -86,6 +88,8 @@ class User extends Authenticatable implements OAuthenticatable
             is_string($permission) => $permission,
             $permission instanceof Permission => $permission->name,
             $permission instanceof \BackedEnum => (string) $permission->value,
+            // Spatie also takes a permission id (Suresh, m1).
+            is_int($permission) => \Spatie\Permission\Models\Permission::query()->whereKey($permission)->value('name'),
             default => null,
         };
 
