@@ -384,7 +384,15 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                 :href="row.labelUrl"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                >{{
+                                ><Printer
+                                    v-if="row.labelAction === 'reprint'"
+                                    class="size-4"
+                                    aria-hidden="true"
+                                /><Eye
+                                    v-else
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />{{
                                     row.labelAction === 'reprint'
                                         ? 'Reprint labels'
                                         : 'View labels'
