@@ -80,11 +80,6 @@ const renameForm = useForm({
     name: '',
     icd10_code: '',
 });
-const detail = (preset: Preset) =>
-    [
-        preset.icd10Code ? `ICD-10 ${preset.icd10Code}` : 'No ICD-10 code',
-        preset.status === 'draft' ? 'Waiting for doctor review' : 'Reviewed',
-    ].join(' · ');
 const busy = ref<number | null>(null);
 const statusKeys = new Map<string, string>();
 const generalError = computed(
@@ -375,8 +370,22 @@ const presetEmptyDescription = computed(() =>
                         >
                             {{ preset.name }}
                             <span
-                                class="block text-xs font-normal text-muted-foreground"
-                                >{{ detail(preset) }}</span
+                                v-if="
+                                    preset.icd10Code ||
+                                    preset.status === 'draft'
+                                "
+                                class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] font-normal text-muted-foreground"
+                                data-testid="row-detail"
+                                ><span v-if="preset.icd10Code"
+                                    >ICD-10 {{ preset.icd10Code }}</span
+                                ><span
+                                    v-if="preset.status === 'draft'"
+                                    class="inline-flex items-center gap-1.5"
+                                    ><span
+                                        class="size-1.5 rounded-full bg-muted-foreground"
+                                        aria-hidden="true"
+                                    />Waiting for doctor review</span
+                                ></span
                             >
                         </p>
                         <DropdownMenu>
@@ -458,8 +467,22 @@ const presetEmptyDescription = computed(() =>
                             <td class="[overflow-wrap:anywhere]">
                                 {{ preset.name }}
                                 <span
-                                    class="block text-xs text-muted-foreground"
-                                    >{{ detail(preset) }}</span
+                                    v-if="
+                                        preset.icd10Code ||
+                                        preset.status === 'draft'
+                                    "
+                                    class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] text-muted-foreground"
+                                    data-testid="row-detail"
+                                    ><span v-if="preset.icd10Code"
+                                        >ICD-10 {{ preset.icd10Code }}</span
+                                    ><span
+                                        v-if="preset.status === 'draft'"
+                                        class="inline-flex items-center gap-1.5"
+                                        ><span
+                                            class="size-1.5 rounded-full bg-muted-foreground"
+                                            aria-hidden="true"
+                                        />Waiting for doctor review</span
+                                    ></span
                                 >
                             </td>
                             <td>
@@ -553,25 +576,41 @@ const presetEmptyDescription = computed(() =>
             >
             <form class="grid gap-4" @submit.prevent="save">
                 <div class="max-h-[50vh] overflow-y-auto">
-                    <label
+                    <div
                         v-for="(_, index) in addForm.names"
                         :key="index"
-                        class="mb-3 grid gap-2 text-sm"
-                        >Diagnosis<input
-                            v-model="addForm.names[index]"
-                            required
-                            maxlength="500"
-                            placeholder="Enter diagnosis name"
-                            class="h-11 rounded-md border bg-background px-3" /><InputError
-                            :message="nameError(index)" /><span class="mt-1"
-                            >ICD-10 code (optional)</span
-                        ><input
-                            v-model="addForm.codes[index]"
-                            maxlength="20"
-                            placeholder="For example R50.9"
-                            class="h-11 rounded-md border bg-background px-3" /><InputError
-                            :message="addForm.errors[`codes.${index}`]"
-                    /></label>
+                        class="mb-3 grid gap-3"
+                    >
+                        <label class="grid gap-2 text-sm font-medium"
+                            ><span
+                                >Diagnosis<span
+                                    class="text-destructive"
+                                    aria-hidden="true"
+                                >
+                                    *</span
+                                ></span
+                            ><input
+                                v-model="addForm.names[index]"
+                                required
+                                maxlength="500"
+                                placeholder="Enter diagnosis name"
+                                class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                                :message="nameError(index)"
+                        /></label>
+                        <label class="grid gap-2 text-sm font-medium"
+                            ><span
+                                >ICD-10 code
+                                <span class="font-normal text-muted-foreground"
+                                    >(optional)</span
+                                ></span
+                            ><input
+                                v-model="addForm.codes[index]"
+                                maxlength="20"
+                                placeholder="For example R50.9"
+                                class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                                :message="addForm.errors[`codes.${index}`]"
+                        /></label>
+                    </div>
                 </div>
                 <InputError :message="addForm.errors.names" /><InputError
                     :message="generalError"
@@ -609,22 +648,35 @@ const presetEmptyDescription = computed(() =>
                 ></DialogHeader
             >
             <form class="grid gap-4" @submit.prevent="rename">
-                <label class="grid gap-2 text-sm"
-                    >Diagnosis<input
+                <label class="grid gap-2 text-sm font-medium"
+                    ><span
+                        >Diagnosis<span
+                            class="text-destructive"
+                            aria-hidden="true"
+                        >
+                            *</span
+                        ></span
+                    ><input
                         v-model="renameForm.name"
                         required
                         maxlength="500"
-                        class="h-11 rounded-md border bg-background px-3" /></label
-                ><label class="grid gap-2 text-sm"
-                    >ICD-10 code (optional)<input
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                        :message="renameForm.errors.name"
+                /></label>
+                <label class="grid gap-2 text-sm font-medium"
+                    ><span
+                        >ICD-10 code
+                        <span class="font-normal text-muted-foreground"
+                            >(optional)</span
+                        ></span
+                    ><input
                         v-model="renameForm.icd10_code"
                         maxlength="20"
                         placeholder="For example R50.9"
-                        class="h-11 rounded-md border bg-background px-3" /></label
-                ><InputError
-                    :message="renameForm.errors.icd10_code"
-                /><InputError :message="renameForm.errors.name" />
-                <p class="text-xs text-muted-foreground">
+                        class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
+                        :message="renameForm.errors.icd10_code"
+                /></label>
+                <p class="text-[13px] text-muted-foreground">
                     A changed name or code goes back to a doctor for review
                     before it is offered while typing.
                 </p>

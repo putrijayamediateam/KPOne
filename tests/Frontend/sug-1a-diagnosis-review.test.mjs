@@ -16,7 +16,7 @@ const service = readFileSync(
 );
 
 test('The settings page takes an optional ICD-10 code and says a change goes back for review', () => {
-    assert.match(settings, /ICD-10 code \(optional\)/);
+    assert.match(settings, /ICD-10 code[^<]*<span[^>]*>\s*\(optional\)/);
     assert.match(settings, /addForm\.codes\.push\(''\)/);
     assert.match(settings, /icd10_code: ''/);
     assert.match(settings, /Waiting for doctor review/);
@@ -33,6 +33,10 @@ test('The review page approves with a retry key, the branch and the lock version
     assert.match(review, /lock_version: draft\.lockVersion/);
     assert.match(review, /idempotency_key: key/);
     assert.match(review, /draft\.ownEntry/);
+    assert.match(review, /\{\{ drafts\.length \}\} waiting/);
+    assert.match(review, /draft\.enteredLabel/);
+    assert.match(review, /You entered this, so someone else approves it/);
+    assert.match(review, /variant="outline"/);
     assert.match(review, /role="alert"/);
     assert.doesNotMatch(review, /localStorage|sessionStorage|fetch\(/);
 });

@@ -11,6 +11,7 @@ type Draft = {
     icd10Code: string | null;
     lockVersion: number;
     ownEntry: boolean;
+    enteredLabel: string;
 };
 const props = defineProps<{ branchId: number; drafts: Draft[] }>();
 const page = usePage();
@@ -53,10 +54,15 @@ const approve = (draft: Draft) => {
     <Head title="Review suggestions" />
     <div class="mx-auto w-full max-w-3xl space-y-4 p-4">
         <PageHeader title="Review suggestions">
+            <template #title-extra>
+                <span class="text-sm text-muted-foreground"
+                    >{{ drafts.length }} waiting</span
+                >
+            </template>
             <template #description>
-                Approve the diagnoses that doctors may pick from while they
-                type. Only approved items are offered. You cannot approve an
-                item that you entered or changed.
+                Diagnoses waiting for your approval. Only approved diagnoses are
+                offered to doctors while they type. You cannot approve a
+                diagnosis that you entered or changed.
             </template>
         </PageHeader>
         <p v-if="error" role="alert" class="text-sm text-destructive">
@@ -76,22 +82,28 @@ const approve = (draft: Draft) => {
                     <p class="text-sm font-medium break-words">
                         {{ draft.name }}
                     </p>
-                    <p class="text-xs text-muted-foreground">
-                        {{
-                            draft.icd10Code
-                                ? `ICD-10 ${draft.icd10Code}`
-                                : 'No ICD-10 code'
-                        }}
-                        <span v-if="draft.ownEntry">
-                            · You entered or changed this, so someone else must
-                            review it.</span
-                        >
+                    <p
+                        v-if="draft.icd10Code"
+                        class="text-[13px] text-muted-foreground"
+                    >
+                        ICD-10 {{ draft.icd10Code }}
+                    </p>
+                    <p class="text-[13px] text-muted-foreground">
+                        {{ draft.enteredLabel }}
+                    </p>
+                    <p
+                        v-if="draft.ownEntry"
+                        class="text-[13px] text-muted-foreground"
+                    >
+                        You entered this, so someone else approves it.
                     </p>
                 </div>
                 <Button
+                    v-if="!draft.ownEntry"
+                    variant="outline"
                     size="sm"
                     class="max-sm:min-h-11"
-                    :disabled="busy !== null || draft.ownEntry"
+                    :disabled="busy !== null"
                     @click="approve(draft)"
                     >Approve</Button
                 >

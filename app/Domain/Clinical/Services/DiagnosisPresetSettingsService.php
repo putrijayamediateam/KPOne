@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Models\DiagnosisPreset;
@@ -17,7 +18,7 @@ final class DiagnosisPresetSettingsService
 {
     public const PERMISSION = 'catalogue.settings.manage.organisation';
 
-    public function __construct(private TransactionalActorAuthority $authority, private BranchAccessService $branches, private AuditRecorder $audit) {}
+    public function __construct(private TransactionalActorAuthority $authority, private BranchAccessService $branches, private AuditRecorder $audit, private StaffAccessService $staff) {}
 
     /** @return array<string, mixed> */
     public function index(User $actor, string $status, string $search, int $page): array
@@ -146,10 +147,21 @@ final class DiagnosisPresetSettingsService
             $drafts = DiagnosisPreset::query()->where('organisation_id', $actor->organisation_id)
                 ->where('status', 'draft')->where('is_active', true)->orderBy('name')->orderBy('id')->limit(100)->get();
 
-            return ['branchId' => $branch->id, 'drafts' => $drafts->map(fn (DiagnosisPreset $preset): array => [
-                'id' => $preset->id, 'name' => $preset->name, 'icd10Code' => $preset->icd10_code, 'lockVersion' => $preset->lock_version,
-                'ownEntry' => in_array($actor->id, [$preset->created_by_user_id, $preset->edited_by_user_id], true),
-            ])->all()];
+            // Who and when: names follow the staff-directory visibility rule (others read "Staff member").
+            $people = $drafts->map(fn (DiagnosisPreset $preset): int => (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id))->unique()->all();
+            $names = $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
+
+            return ['branchId' => $branch->id, 'drafts' => $drafts->map(function (DiagnosisPreset $preset) use ($actor, $names, $branch): array {
+                $changed = $preset->edited_by_user_id !== null;
+                $by = (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id);
+                $at = $changed ? $preset->updated_at : $preset->created_at;
+
+                return [
+                    'id' => $preset->id, 'name' => $preset->name, 'icd10Code' => $preset->icd10_code, 'lockVersion' => $preset->lock_version,
+                    'ownEntry' => in_array($actor->id, [$preset->created_by_user_id, $preset->edited_by_user_id], true),
+                    'enteredLabel' => ($changed ? 'Changed by ' : 'Entered by ').($names[$by] ?? 'Staff member').', '.$at?->setTimezone($branch->timezone)->format('j M Y'),
+                ];
+            })->all()];
         });
     }
 
