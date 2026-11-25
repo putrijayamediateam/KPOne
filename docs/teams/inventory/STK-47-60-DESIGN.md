@@ -1,4 +1,6 @@
-# STK-47 and STK-60: central store, HQ view and the weekly request day (design note, revision 1)
+# STK-47 and STK-60: central store, HQ view and the weekly request day (design note, revision 2)
+
+Revision 2 applies Mei Ling's review.
 
 Owner decision 19 (20-21 Nov 2026): a central store in Cheras; suppliers deliver to the store; branches request from it
 on a weekly request day (Thursday) with a reminder. TEAM.md decision 47: (b) the Cheras central store **is the
@@ -13,28 +15,40 @@ B.E.R.N.I.S.S.
   STK-6). Holders of `inventory.warehouse.organisation` (CA Supervisor, Store Admin) act for the store.
 - So no new stock movement, transfer type or permission is needed. STK-47/60 adds the views and the rhythm around it.
 
+**"The store"** means every active location with no branch (the organisation store; today Cheras is one). The page,
+the off-day warning and the reminder use this one definition; with more than one such location, each is shown by name
+and a request to any of them counts as a store request.
+
 ## 2. HQ view (STK-47)
 
 A new page, **Inventory > Central store**, for holders of `inventory.warehouse.organisation`:
 
-- **Store stock:** each SKU in the store with quantity on hand, nearest expiry, and how many weeks it covers at the
-  branches' combined 30-day dispensing rate. Cost columns only for cost-view holders.
-- **Branch stock:** for each SKU, each branch's quantity against its reorder level (below level in warning tone, in
-  words "Below level"), so the store sees who is short before they ask.
+- **Store stock:** each SKU in the store with **usable** quantity on hand (the STK-2 eligibility rule: not held,
+  recalled or expired, never a patient-returns location), held or expired quantity shown apart, nearest expiry, and
+  how many weeks it covers at the branches' combined 30-day rate (the same rate as STK-16 reorder suggestions:
+  dispensing plus unreversed treatment use); "No recent use" when the rate is zero. **No cost or value columns**
+  (store value is valuation, which stays on the Director-only Stock value page).
+- **Branch stock:** for each SKU, each branch's usable quantity against its reorder level (below level in warning
+  tone, in words "Below level"), so the store sees who is short before they ask. 25 SKUs a page, with search. The
+  warehouse permission is organisation-wide, so a CA Supervisor holding it sees every branch's quantities here: stock
+  only, no patient data.
 - **Requests to the store:** every open stock request whose source is the store, grouped by branch and status
   (Waiting for approval, Approved, Dispatched, Received with differences), oldest first, each linking to its existing
   page. The approve, dispatch and receive actions stay where they are today.
-- **This week:** per branch, whether it has sent its request this week ("Sent Thu 27 Nov", "Not sent yet").
+- **This week:** per branch, whether it has sent its request this week ("Sent Thu 27 Nov", "Not sent yet"). "Sent"
+  means a store request created Monday to Sunday (the branch's time zone) that is not a draft and not cancelled; a
+  rejected request still counts as sent (the branch did send one; the rejection shows on its own line).
 
 Read only: the page writes nothing.
 
 ## 3. Weekly request day (STK-60)
 
-- **Setting:** one organisation setting, the request day (Monday to Sunday, default **Thursday**), and an optional
-  cut-off time (default none). Edited on the Central store page by holders of the existing
+- **Setting:** one organisation setting, the request day (Monday to Sunday, default **Thursday**). No cut-off time in
+  this slice. Edited on the Central store page by holders of the existing
   `inventory.references.manage.organisation` (Director, CA Supervisor, Administrator, Store Admin where held), versioned
   and audited (changed field names only). No new permission.
-- **Warning, never a block:** a branch that starts a stock request to the store on another day sees "The store's
+- **Warning, never a block:** a branch that starts a stock request to the store on another day (its own branch-local
+  day) sees "The store's
   request day is Thursday. You can still send this; the store may pack it with next Thursday's requests." The request
   is saved as usual. Urgent requests have nothing extra to do.
 - **Reminder (inside KPOne only):** on the request day, and on the day before, holders of
@@ -45,8 +59,8 @@ Read only: the page writes nothing.
 
 ## 4. Data
 
-One small table, `inventory_store_settings` (organisation, request weekday 1 to 7, optional cut-off time,
-`lock_version`, updated by and at), with an append-only history of versions. No change to stock requests or movements.
+One small table, `inventory_store_settings` (organisation, request weekday 1 to 7, `lock_version`, updated by and
+at), with an append-only history of versions. No change to stock requests or movements.
 A stock request "to the store" is one whose source location has no branch, as today.
 
 ## 5. Every write
@@ -56,11 +70,16 @@ idempotency key, audit with field names only.
 
 ## 6. Pages
 
-Clean Look, shared components only; tables from 1024 px, cards below. Daniel's look first.
+Clean Look, shared components only; tables from 1024 px, cards below. Daniel's look first. A new Inventory entry
+may touch `dd-12-inventory-headers.test.mjs` or the Inventory tab lists, and the Approvals home notice may touch that
+page's pinned props; any such existing assertion is listed for the owner first.
 
 ## 7. Tests
 
 Store stock and cover weeks; branch levels and "Below level"; requests grouped and ordered; "sent this week" at
 branch-local week boundaries; the setting saved, versioned and refused without permission; the off-day warning shown
 and the request still saved; the reminder shown on the day and the day before only to the right people at branches that
-haven't sent; nothing outside KPOne; 403 for roles without warehouse permission; cost columns only for cost holders.
+haven't sent and never to a branch that already sent; nothing outside KPOne; 403 for roles without warehouse
+permission; no cost on the page; more than one store location; held, expired and returns stock left out of on hand;
+zero use shows "No recent use"; rejected and cancelled requests against "sent this week"; the warning uses the
+requester's branch-local day.
