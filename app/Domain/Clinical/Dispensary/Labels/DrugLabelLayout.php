@@ -5,8 +5,8 @@ namespace App\Domain\Clinical\Dispensary\Labels;
 /**
  * Print-only layout of the drug label; never alters clinical storage validation or truncates content.
  *
- * DSP-10 (owner decisions 2026-11-06): the clinic's landscape label, 100 × 62 mm provisional until the real printer
- * and sticker test. Monospace rows of 48 cells, at most 13 rows inside the border; the controlled-medicine line sits
+ * DSP-10 (owner decisions 2026-11-06): the clinic's landscape label, 100 × 62 mm, confirmed by the owner on
+ * 25 Nov 2026 after the real printer and sticker test (REL-DSP). Monospace rows of 48 cells, at most 13 rows inside the border; the controlled-medicine line sits
  * in a strip below the border. Every row is a fixed-width string, so the server alone decides what fits: a field or
  * block over its limit blocks the label, it is never cut, shrunk or split.
  */

@@ -1,5 +1,8 @@
 # Drug label printer test
 
+**Result (REL-DSP):** done. Owner-confirmed, verbal, 25 Nov 2026: 100 × 62 mm on the real printer and sticker stock.
+The checklist below is kept as the record of what was checked.
+
 **Who:** a CA Supervisor at the pilot branch prints (only a CA or CA Supervisor can print labels). The owner
 (Director) or an Administrator sets Business details first.
 **Where:** the real label printer and sticker stock at the pilot branch.
@@ -10,7 +13,7 @@
 
 | Setting | Value |
 |---|---|
-| Page (sticker) size | 100 mm wide × 62 mm tall, landscape, no margin (provisional) |
+| Page (sticker) size | 100 mm wide × 62 mm tall, landscape, no margin |
 | Border | rounded box 97 × 55 mm, 1.5 mm in from the edges; a 4.5 mm strip below it is kept for the controlled line |
 | Text | Courier New 9 pt, 3.8 mm per row, 48 characters per row |
 | Bold rows | Clinic name, "Tel: …", patient name, medicine name with QTY, and "Ubat Terkawal/Controlled Medicine" below the border |

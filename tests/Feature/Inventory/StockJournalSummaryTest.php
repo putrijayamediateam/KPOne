@@ -130,7 +130,9 @@ final class StockJournalSummaryTest extends VisitTestCase
         $this->assertStringContainsString('kpone-stock-journal-'.$t['this'].'-to-date-branch-'.$this->branch->id.'.csv', (string) $response->headers->get('Content-Disposition'));
         $csv = $response->getContent();
         $this->assertStringStartsWith("\xEF\xBB\xBF", (string) $csv);
-        $this->assertStringContainsString('not professional accounting advice', (string) $csv);
+        // REL-STK (owner-approved assertion change, 25 Nov 2026): the accountant approved the cost policy verbally.
+        $this->assertStringContainsString("approved verbally by the clinic's accountant on 25 Nov 2026", (string) $csv);
+        $this->assertStringContainsString('not a statutory financial statement', (string) $csv);
         $this->assertStringContainsString('No real accounting system receives this file.', (string) $csv);
         $this->assertStringContainsString('Line,Date,Description,Account,"Debit (RM)","Credit (RM)",Note', (string) $csv);
         $this->assertStringContainsString('"Cost of goods sold, dispensed","Cost of goods sold",2.00,', (string) $csv);

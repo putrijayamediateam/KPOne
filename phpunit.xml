@@ -70,6 +70,7 @@
             <exclude>tests/Feature/PostgresVisitRegistrationRegressionTest.php</exclude>
             <exclude>tests/Feature/Queue/CallReadinessConcurrencyTest.php</exclude>
             <exclude>tests/Feature/Queue/PostgresVisitEditRaceTest.php</exclude>
+            <exclude>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</exclude>
             <exclude>tests/Feature/Website/WebsiteOutputPlanTest.php</exclude>
             <exclude>tests/Feature/Website/WebsiteReleaseTest.php</exclude>
         </testsuite>
@@ -138,6 +139,7 @@
             <file>tests/Feature/PostgresVisitRegistrationRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Queue/PostgresVisitEditRaceTest.php</file>
+            <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
         </testsuite>
@@ -211,6 +213,7 @@
             <file>tests/Feature/PostgresVisitReasonRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Queue/PostgresVisitEditRaceTest.php</file>
+            <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
         </testsuite>
