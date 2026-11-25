@@ -34,3 +34,15 @@ test('DSP-27: the list refreshes itself only while the browser tab is visible', 
     assert.match(page, /document\.visibilityState === 'visible'/);
     assert.match(page, /router\.reload\(\{ only: \['list'\] \}\)/);
 });
+
+test('DSP-27 (Daniel): the check tab warns above the search, and waiting time uses the Q-1 tones with words', () => {
+    assert.ok(
+        page.indexOf('data-testid="dispensary-check-note"') <
+            page.indexOf('role="search"'),
+    );
+    assert.match(page, /<Info aria-hidden="true" \/>/);
+    assert.match(page, /waitingTone\(row\.waitingMinutes\)/);
+    assert.match(page, /amber: 'font-medium text-warning-strong'/);
+    assert.match(page, /red: 'font-semibold text-destructive'/);
+    assert.match(page, /waitingToneDescription\(tone\(row\)\)/);
+});

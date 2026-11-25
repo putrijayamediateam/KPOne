@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Eye, Printer, Search } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { Eye, Info, Printer, Search } from '@lucide/vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -10,6 +11,8 @@ import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import { waitingTone, waitingToneDescription } from '@/lib/waiting-time';
+import type { WaitingTone } from '@/lib/waiting-time';
 
 /**
  * DSP-27 (owner, 25 Nov 2026, Clean Look gap list B1 and B2): the branch's Dispensary list in three status tabs with
@@ -98,6 +101,14 @@ const waiting = (row: Row) => {
 
     return `Waiting ${days} ${days === 1 ? 'day' : 'days'}`;
 };
+// Q-1 (Daniel): the same limits and tones as the queue boards, with a dot and words, never colour alone.
+const toneClass = (tone: WaitingTone) =>
+    ({
+        normal: 'text-muted-foreground',
+        amber: 'font-medium text-warning-strong',
+        red: 'font-semibold text-destructive',
+    })[tone];
+const tone = (row: Row) => waitingTone(row.waitingMinutes);
 const emptyText = computed(
     () =>
         ({
@@ -110,6 +121,12 @@ const emptyText = computed(
 // The list refreshes itself every 15 seconds while the tab is visible, as the Registration board does.
 let timer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
+    // DD-30: a tab chosen from the address (for example Done today) is scrolled into view on a phone.
+    void nextTick(() =>
+        document
+            .querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+            ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }),
+    );
     timer = setInterval(() => {
         if (document.visibilityState === 'visible') {
             router.reload({ only: ['list'] });
@@ -133,6 +150,18 @@ onBeforeUnmount(() => timer && clearInterval(timer));
             @update:model-value="selectTab"
         />
 
+        <Alert
+            v-if="list.tab === 'check'"
+            class="text-sm"
+            data-testid="dispensary-check-note"
+        >
+            <Info aria-hidden="true" />
+            <AlertDescription class="text-sm text-foreground">
+                The doctor checks these on the consultation page. Do not hand
+                over the medicine until the doctor has checked it.
+            </AlertDescription>
+        </Alert>
+
         <form
             class="flex max-w-md gap-2"
             role="search"
@@ -152,15 +181,6 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                 <Search class="size-4" aria-hidden="true" />Search
             </Button>
         </form>
-
-        <p
-            v-if="list.tab === 'check'"
-            class="text-xs text-muted-foreground"
-            data-testid="dispensary-check-note"
-        >
-            The doctor checks these on the consultation page. Do not hand over
-            the medicine until the doctor has checked it.
-        </p>
 
         <EmptyState
             v-if="list.rows.length === 0"
@@ -227,8 +247,23 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                 }}</span>
                                 <span
                                     v-if="row.waitingMinutes !== null"
-                                    class="block text-xs text-muted-foreground"
-                                    >{{ waiting(row) }}</span
+                                    class="inline-flex items-center gap-1.5 text-xs"
+                                    :class="toneClass(tone(row))"
+                                    data-testid="dispensary-waiting"
+                                    ><span
+                                        v-if="tone(row) !== 'normal'"
+                                        class="size-1.5 rounded-full bg-current"
+                                        aria-hidden="true"
+                                    ></span
+                                    >{{ waiting(row)
+                                    }}<span
+                                        v-if="waitingToneDescription(tone(row))"
+                                        class="sr-only"
+                                    >
+                                        ({{
+                                            waitingToneDescription(tone(row))
+                                        }})</span
+                                    ></span
                                 >
                             </td>
                             <td class="text-right">
@@ -301,9 +336,31 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                                 {{ row.patientNumber }} · {{ row.visitNumber }}
                             </p>
                         </div>
-                        <span class="shrink-0 text-xs text-muted-foreground">{{
-                            row.completedAt ?? waiting(row)
-                        }}</span>
+                        <span
+                            class="inline-flex shrink-0 items-center gap-1.5 text-xs"
+                            :class="
+                                row.completedAt
+                                    ? 'text-muted-foreground'
+                                    : toneClass(tone(row))
+                            "
+                            ><span
+                                v-if="
+                                    !row.completedAt && tone(row) !== 'normal'
+                                "
+                                class="size-1.5 rounded-full bg-current"
+                                aria-hidden="true"
+                            ></span
+                            >{{ row.completedAt ?? waiting(row)
+                            }}<span
+                                v-if="
+                                    !row.completedAt &&
+                                    waitingToneDescription(tone(row))
+                                "
+                                class="sr-only"
+                            >
+                                ({{ waitingToneDescription(tone(row)) }})</span
+                            ></span
+                        >
                     </div>
                     <p class="mt-2 text-muted-foreground">
                         {{ medicines(row.medicineCount) }} · {{ from(row) }}
