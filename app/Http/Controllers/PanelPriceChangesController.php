@@ -44,6 +44,31 @@ class PanelPriceChangesController extends Controller
         return $this->run(fn () => $service->approve($this->actor($request), $proposal, $request->only(['expected_branch_id', 'lock_version'])), 'Price change approved.');
     }
 
+    /** PNL-30: approve the ticked waiting proposals in one press; each is decided on its own (see approveMany). */
+    public function approveSelected(Request $request, PanelPriceProposalService $service): RedirectResponse
+    {
+        $items = $request->input('items');
+        $items = is_array($items) ? array_values(array_filter($items, 'is_array')) : [];
+        $back = route('panel-price-changes.index');
+        set_time_limit(180);
+        try {
+            $result = $service->approveMany($this->actor($request), (int) $request->input('expected_branch_id'), $items);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        }
+        $count = $result['approved'];
+        if ($count > 0) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => $count === 1 ? '1 price change approved.' : $count.' price changes approved.']);
+        }
+        if ($result['skipped'] !== []) {
+            $first = collect($result['skipped'])->pluck('message')->unique()->take(3)->implode(' ');
+
+            return redirect($back)->withErrors(['bulk' => count($result['skipped']).' could not be approved and are still waiting. '.$first]);
+        }
+
+        return redirect($back);
+    }
+
     public function reject(Request $request, PriceChangeProposal $proposal, PanelPriceProposalService $service): RedirectResponse
     {
         return $this->run(fn () => $service->reject($this->actor($request), $proposal, $request->only(['expected_branch_id', 'lock_version', 'reason_code', 'note'])), 'Price change rejected.');

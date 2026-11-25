@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Panel price changes by proposal (owner decision 27, 20-21 Nov 2026; design note
@@ -177,6 +178,54 @@ final class PanelPriceProposalService
 
             return $proposal;
         }, 3);
+    }
+
+    /** The most proposals one "Approve selected" press may decide (PNL-30). */
+    public const BULK_LIMIT = 200;
+
+    /**
+     * Approves the selected waiting proposals, each through approve() in its own transaction with its own lock, check
+     * and audit row, so one proposal that changed meanwhile is skipped and named instead of undoing the rest. The
+     * approver is never the proposer (approve() refuses it per proposal). Proposals are decided oldest first.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array{approved: int, skipped: list<array{id: string, message: string}>}
+     */
+    public function approveMany(User $actor, int $expectedBranchId, array $items): array
+    {
+        Validator::make(['items' => $items], [
+            'items' => ['required', 'array', 'min:1', 'max:'.self::BULK_LIMIT],
+            'items.*.id' => ['required', 'uuid', 'distinct'],
+            'items.*.lock_version' => ['required', 'integer', 'min:1'],
+        ], ['items.max' => 'Select at most '.self::BULK_LIMIT.' price changes at a time.', 'items.required' => 'Select at least one price change.', 'items.min' => 'Select at least one price change.'])->validate();
+
+        $approved = 0;
+        $skipped = [];
+        $proposals = PriceChangeProposal::query()->where('organisation_id', $actor->organisation_id)
+            ->whereIn('public_id', array_column($items, 'id'))->orderBy('id')->get()->keyBy('public_id');
+        $lockOf = [];
+        foreach ($items as $item) {
+            $lockOf[(string) $item['id']] = (int) $item['lock_version'];
+        }
+        foreach ($proposals as $publicId => $proposal) {
+            try {
+                $this->approve($actor, $proposal, ['expected_branch_id' => $expectedBranchId, 'lock_version' => $lockOf[$publicId]]);
+                $approved++;
+            } catch (ValidationException $e) {
+                $skipped[] = ['id' => (string) $publicId, 'message' => (string) collect($e->errors())->flatten()->first()];
+            } catch (NotFoundHttpException) {
+                $skipped[] = ['id' => (string) $publicId, 'message' => 'This price change can no longer be approved.'];
+            }
+        }
+        foreach (array_diff(array_keys($lockOf), $proposals->keys()->all()) as $missing) {
+            $skipped[] = ['id' => (string) $missing, 'message' => 'This price change was not found.'];
+        }
+        DB::transaction(function () use ($actor, $expectedBranchId, $approved, $skipped, $items): void {
+            $branch = $this->authority->branch($actor, $expectedBranchId);
+            $this->audit->record('panel_price.bulk_approved', $actor, ['requested' => count($items), 'approved' => $approved, 'skipped' => count($skipped)], $actor, $branch);
+        });
+
+        return ['approved' => $approved, 'skipped' => $skipped];
     }
 
     /** @param array<string, mixed> $a */
