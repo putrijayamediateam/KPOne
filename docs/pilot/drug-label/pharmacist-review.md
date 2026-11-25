@@ -1,5 +1,9 @@
 # Drug label: pharmacist review sheet
 
+**Result (REL-DSP):** owner-confirmed, verbal, 25 Nov 2026: the label is accepted as it is, with no change to any
+answer below. No signed sheet is held in KPOne. The sheet is kept as the record of what was reviewed, and the
+sign-off box stays a blank form for any signed copy the clinic keeps on paper.
+
 **For:** a registered pharmacist reviewing the KPOne drug label before the pilot.
 **Please:** read the sample labels, then answer each question in section 3 with *Accept* or the change you
 want. KPOne changes nothing until the clinic owner decides on your answers.
@@ -35,7 +39,7 @@ Capitals are for printing only; the saved text keeps its own case.
 **Not printed:** identity card number, date of birth or age, the patient's phone or address, allergies, the
 name of the person who dispensed, the queue number, the route, the batch number and any barcode.
 
-**Size:** sticker 100 × 62 mm (provisional until the real printer test), Courier New 9 pt, 48 characters per
+**Size:** sticker 100 × 62 mm, Courier New 9 pt, 48 characters per
 row, at most 13 rows inside the border.
 
 ## 2. Sample labels
