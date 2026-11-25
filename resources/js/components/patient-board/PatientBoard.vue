@@ -418,6 +418,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                         size="icon"
                                         class="min-h-11 min-w-11"
                                         :aria-label="`Actions for ${row.patientName}`"
+                                        :data-row-menu="row.visitNumber"
                                     >
                                         <LoaderCircle
                                             v-if="busyKey === row.key"
