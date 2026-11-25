@@ -1,4 +1,6 @@
-# STK-48: request for quotation (RFQ) before the purchase order (design note, revision 1)
+# STK-48: request for quotation (RFQ) before the purchase order (design note, revision 2)
+
+Revision 2 applies Mei Ling's review.
 
 Owner decision 21 (20-21 Nov 2026): "RFQ before the PO: pick items, one RFQ per supplier, convert the chosen quote to
 a PO." Build before Monday: owner by tick box, 25 Nov 2026, relayed by B.E.R.N.I.S.S.
@@ -13,14 +15,20 @@ a PO." Build before Monday: owner by tick box, 25 Nov 2026, relayed by B.E.R.N.I
    no prices). KPOne sends nothing: staff print or save it as PDF and send it themselves. Marking it **Sent** records
    who and when.
 3. **Record the quote.** When the supplier answers, the same group of staff type the quote on that RFQ: a price per
-   line (pack price, pack size, or "can't supply"), lead time in days and a valid-until date, plus an optional
-   supplier quote reference. A quote can be corrected until it is chosen; each save is a new version.
+   line (pack price, and "stock units in one pack (<unit>)", or "can't supply"), lead time in days and a valid-until
+   date, plus an optional supplier quote reference. A quote can be corrected until it is chosen; each save is a new,
+   append-only version, the version in force is frozen when the RFQ is chosen, and the purchase order records which
+   version it came from.
 4. **Compare and choose.** The round shows the RFQs side by side: per line the price per stock unit, the total, the
-   lead time and which supplier is cheapest, plus each RFQ's total. Someone picks **one** RFQ as chosen (with a reason
-   when it is not the cheapest: "faster delivery", "preferred supplier", "stock availability", "other" with a note).
+   lead time and which supplier is cheapest, plus each RFQ's total. Ranking uses the exact pack price divided by the
+   pack size (never a rounded figure); ties go to the shorter lead time, then the lower RFQ number. Someone picks
+   **one** RFQ as chosen (with a reason when it is not the cheapest: "faster delivery", "preferred supplier", "stock
+   availability", "other" with a note). A quote past its valid-until date is refused unless they tick "Still valid,
+   confirmed with the supplier".
 5. **Convert.** The chosen RFQ becomes a **draft purchase order** for that supplier through the existing
-   `ProcurementService::create`, with the quoted price per stock unit as each line's estimated cost and a link back to
-   the RFQ. From there the existing flow applies (submit, then the Director approves under STK-50). The other RFQs in
+   `ProcurementService::create`, with the quoted price per stock unit as each line's estimated cost (whole sen per stock
+   unit as STK-10B requires, rounded half up with whole-number maths) and a link back to the RFQ. Conversion is refused
+   if the supplier has since been archived. From there the existing flow applies (submit, then the Director approves under STK-50). The other RFQs in
    the round close as "Not chosen". A line the chosen supplier can't supply is left off the order and listed.
 6. **Cancel.** An RFQ or a whole round can be cancelled with a reason before conversion.
 
@@ -36,7 +44,26 @@ RFQs are optional: a purchase order can still be raised without one.
 - Supplier quote prices also update nothing else: the STK-13 supplier price list is not changed automatically (a
   later slice can offer "save as the supplier's price").
 
-## 3. Data
+## 3. Quoted prices on the purchase order
+
+The converted draft order carries quoted prices as estimates, so the order side must hide them too:
+
+- The purchase order screens (Operations panel and order detail) and the print show estimated cost only to
+  `inventory.cost.view.organisation` holders. The print already does (`PurchaseOrderPrintService`); the panel and the
+  edit form are checked and fixed in this slice.
+- `ProcurementService::updateDraft` replaces every line. An actor without cost view edits a draft with no cost fields,
+  so each line **keeps its existing estimate** when the request carries none (matched by SKU); a line they add has no
+  estimate. Tested.
+
+## 4. Conversion: locks and retries
+
+In one transaction: lock the actor (create permission and cost view), then the round, then its RFQs in id order; check
+under the round lock that the RFQ is `chosen` and has no purchase order; call `create()` in that same transaction (so
+the order stays actor, round, RFQs, supplier, location, SKUs); then link the order and mark the others `not_chosen`.
+The conversion has its own idempotency key, and a retry returns the order already made. PostgreSQL makes
+`inventory_rfqs.purchase_order_id` unique, so a second click can never make two orders.
+
+## 5. Data
 
 New tables `inventory_rfq_rounds`, `inventory_rfqs` (round, supplier, status `draft`, `sent`, `quoted`, `chosen`,
 `not_chosen`, `cancelled`, quote reference, lead time, valid until, chosen reason, purchase order id, lock_version,
@@ -46,15 +73,18 @@ organisation; statuses move only forward; nothing is deleted. Every write: fresh
 `DB::transaction`, row locks (round, then RFQs in id order), `lock_version`, idempotency key, audit with ids and codes
 only (never prices or notes).
 
-## 4. Pages
+## 6. Pages
 
 Inventory > Purchasing gets an **RFQs** tab: a list of rounds with their status, a round page with the comparison
-table (cards below 1024 px), the quote sheet and the print. Clean Look, shared components only. Daniel's look first.
+table (cards below 1024 px), the quote sheet and the print. Clean Look, shared components only. Daniel's look first. A new tab may touch existing assertions in
+`dd-12-inventory-headers.test.mjs` or the purchasing tab lists; any such change is listed for the owner first.
 
-## 5. Tests
+## 7. Tests
 
 One RFQ per supplier with the same lines; the print has no prices; quotes saved and corrected until chosen; prices
 hidden without cost view and refused when recording; the comparison picks the cheapest per line and in total; choosing
 a non-cheapest RFQ needs a reason; conversion creates the draft order with the quoted estimates and closes the others;
 can't-supply lines left off; cancel rules; the PostgreSQL rules; a two-process race of two people choosing in one
-round.
+round and of two conversions in one round (one order); a CA Supervisor never receives prices in the RFQ props or on the
+converted order; editing the converted draft without cost fields keeps the estimates; an expired quote; an archived
+supplier; the rounding of a pack price that does not divide evenly.
