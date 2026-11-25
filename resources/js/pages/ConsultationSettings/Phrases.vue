@@ -362,7 +362,7 @@ const emptyTitle = computed(() =>
                         v-model="addForm.label_en"
                         required
                         :maxlength="MAX"
-                        placeholder="For example 1 tablet three times daily after food"
+                        placeholder="For example After food"
                         class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
                         :message="addForm.errors.label_en"
                 /></label>
@@ -378,7 +378,7 @@ const emptyTitle = computed(() =>
                         v-model="addForm.label_ms"
                         required
                         :maxlength="MAX"
-                        placeholder="Contoh 1 biji 3 kali sehari selepas makan"
+                        placeholder="Contoh Selepas makan"
                         class="h-11 rounded-md border bg-background px-3 font-normal" /><InputError
                         :message="addForm.errors.label_ms"
                 /></label>
