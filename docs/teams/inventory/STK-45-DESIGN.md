@@ -1,6 +1,6 @@
 # STK-45: Report a difference
 
-Revision 2 (Mei Ling's review of revision 1 applied), for Daniel's look and the owner's approval. **Nothing is built
+Revision 3 (Mei Ling: OK, with her last three wording points applied), for Daniel's look and the owner's approval. **Nothing is built
 until the owner approves this note.** Synthetic data only; not production-approved.
 
 **Owner decision:** "Stock quantities still never typed in directly; add **Report a difference** for staff, which
@@ -79,20 +79,21 @@ Read only.
   does. Only an approval after an independent recount can post a movement, unchanged.
 - **Open and live.** STK-5 keeps a case's state in its latest `inventory_governed_actions` row.
   - A count case is **open** when its latest state is `awaiting_count`, `awaiting_recount` or `awaiting_approval`.
-  - It is **live** when it is open and its `expected_balance_version` and `expected_quantity` still equal the
-    balance's.
+  - It is **live** when it is open, its `expected_balance_version` and `expected_quantity` still equal the
+    balance's, and its `base_unit` still equals the SKU's stock unit (the same checks STK-5's `act()` makes).
   - A case whose snapshot went stale stays at its last state forever: STK-5 refuses to count it ("Stock changed after
     the snapshot") and has no cancel step.
-  - A report **joins the live count case** on that balance if there is one; otherwise it opens a new case. It never
-    joins a stale case.
+  - A report **joins the newest live count case** on that balance (the highest id) if there is one; otherwise it
+    opens a new case. It never joins a stale case. (Two live cases can exist, because STK-5's `propose()` can still
+    open one beside a report's case.)
 - **No new index.** Today's data can already hold two open count cases on one balance (STK-5's `propose()` never
   checks), so a unique index isn't possible. One live case per report is kept by the balance row lock plus the
   service check above. **STK-5's own `propose()` is unchanged** and can still open a count beside a report's case.
 - **Lock order** (the STK-5 order: case, then SKU, batch, balance):
-  1. Read the candidate live case without a lock.
+  1. Read the candidate: the newest live case (highest id), without a lock.
   2. Lock it `FOR UPDATE`.
   3. Lock the source with STK-5's `lockSource` (SKU, batch, balance).
-  4. Under the balance lock, check that the candidate is still the live case and no other live case has appeared.
+  4. Under the balance lock, check that the candidate is still the newest live case.
      If not, roll back and retry the whole transaction (up to 3 times, as STK-5 does).
 
   This matters: inserting a report row with a foreign key to a case that isn't locked takes `FOR KEY SHARE` on it,
@@ -133,6 +134,8 @@ PostgreSQL:
 - Update, delete and truncate on the table are refused (the STK-5 append-only trigger pattern).
 - An insert trigger checks:
   - the case is a `count` case on the same organisation, branch and balance;
+  - the case is open and live (latest state, snapshot version and quantity, and stock unit, as above), so even a
+    direct insert can't attach a report to a closed or stale case;
   - the reporter has not counted or recounted it.
 - **STK-5's trigger function changes.** `guard_governed_stock_action` is replaced (`CREATE OR REPLACE`) so that, for
   `counted`, `recounted` and `approved`, it also refuses an actor who has a report on that case. Its other rules stay
