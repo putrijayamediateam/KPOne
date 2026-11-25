@@ -1,7 +1,7 @@
 # STK-45: Report a difference
 
-Revision 1, for Mei Ling's review, Daniel's look and the owner's approval. **Nothing is built until the owner approves
-this note.** Synthetic data only; not production-approved.
+Revision 2 (Mei Ling's review of revision 1 applied), for Daniel's look and the owner's approval. **Nothing is built
+until the owner approves this note.** Synthetic data only; not production-approved.
 
 **Owner decision:** "Stock quantities still never typed in directly; add **Report a difference** for staff, which
 opens a count case for approval" (`docs/decisions/2026-11-20-finance-inventory-proposals.md`, item 18). The order
@@ -12,16 +12,20 @@ listed below for the owner to confirm the exact name.
 
 A CA notices the shelf doesn't match KPOne (for example KPOne says 200 Paracetamol tablets, the box clearly holds
 far fewer). Today only a CA Supervisor or Store Admin can open a stock count, so the CA has to find one and explain.
-With STK-45 the CA presses **Report a difference** on that stock line, picks what they saw and why, and sends it.
-That opens the **existing governed stock count case** (STK-5) for that batch and location. From there nothing
-changes: a counter counts it blind, someone else recounts any difference, and a third person approves. **The report
-itself never changes stock.** No quantity is typed into stock by the reporter.
+With STK-45 the CA presses **Report a difference** on that stock line, picks what they saw, and sends it. That opens
+the **existing governed stock count case** (STK-5) for that batch and location, or adds the report to one already
+open. From there nothing changes: a counter counts it blind, someone else recounts any difference, and a third person
+approves. **The report itself never changes stock.** No quantity is typed into stock by the reporter.
 
 ## What staff see
 
-**Where the button is.** On the Inventory stock list (the balance rows at the active branch) and on Stock review
-rows, a row menu item **Report a difference**. It shows only to holders of P10, and only for stock at the active
-branch.
+**Where the button is.** A row menu item **Report a difference** on rows that are one batch at one location:
+
+- the Inventory stock list (balance rows at the active branch);
+- Stock review **Expiring** and **Expired** rows, and the **At risk in 6 months** list.
+
+It is **not** on Stock review **Low stock** rows: those are reorder-level rows for a medicine, not one batch, so there
+is nothing to count. It shows only to holders of P10, and only for stock at the active branch.
 
 **The sheet** (a side sheet on desktop, full screen below 640 px):
 
@@ -31,25 +35,26 @@ branch.
   - "More than KPOne shows"
   - "Some are damaged or expired"
   - "Not sure; please count it"
-- **About how many?** (optional, whole or decimal number in the stock unit, labelled "Your rough count, if you
-  have one. The counter won't see it."). This is a note for the approver, not a stock figure.
+- **About how many?** (optional, a number in the stock unit, labelled "Your rough count, if you have one. The counter
+  won't see it."). This is a note for the approver, not a stock figure.
 - **Note** (optional, 200 characters, plain text; hint: "Don't write patient names or details.").
 - Buttons: **Send for counting** and **Cancel**.
 
-After sending, a toast: "Sent. A stock count was opened for this batch." The row shows a small neutral chip
-"Count open" (STK-5 already lists open cases on Stock count).
+After sending, a toast: "Sent. A stock count was opened for this batch." or, when the report joined a count already
+open, "Sent. Added to the stock count already open for this batch." The row shows a small neutral chip "Count open".
 
-**If a count is already open** for the same batch and location, the sheet says "A count is already open for this
-batch. Your report has been added to it." and adds the report to that case rather than opening a second one. This
-avoids two cases on one balance.
+**Where the reports show.** On the governed Stock count page, a case with reports shows "Reported by <name>: Fewer
+than KPOne shows" under the item. The **reporters' rough counts and notes are hidden from the counter and recounter**
+(the count stays blind) and shown only to the approver, beside the counted figures.
 
-**Where the reports show.** On the governed Stock count page, an open case started by a report shows "Reported by
-<name>: Fewer than KPOne shows" under the item. The **reporter's rough count and note are hidden from the counter
-and recounter** (the count stays blind) and shown only to the approver, beside the counted figures.
+**My reports.** On the Inventory page, under "My reports": the last 25 of my reports at this branch (item, what I saw,
+when, and the case state in words):
 
-**My reports.** A small "My reports" list on the same sheet's page (the last 25 of mine at this branch: item,
-what I saw, when, and the case state in words: "Waiting for count", "Being recounted", "Waiting for approval",
-"No difference found", "Approved"). Read only.
+- "Waiting for count", "Being recounted", "Waiting for approval", "No difference found", "Approved";
+- **"Stock changed before the count. Report again if it still looks wrong."** when the case's snapshot no longer
+  matches the stock (see Rules), because STK-5 can no longer count that case.
+
+Read only.
 
 ## Who can do what
 
@@ -59,30 +64,54 @@ what I saw, when, and the case state in words: "Waiting for count", "Being recou
 | Count and recount | existing `inventory.stocktake.branch` | CA Supervisor, Store Admin (unchanged) |
 | Approve | existing `inventory.variances.approve.branch` | CA Supervisor, Finance Officer, Director (unchanged) |
 
-**The second-person rule.** The reporter can never count, recount or approve the case their report opened or joined
-(added to the existing STK-5 exclusion list: counter, recounter and proposer). So a CA Supervisor who reports a
-difference needs another holder to count it, as with any STK-5 case today. A test proves each refusal.
+**The second-person rule.**
+- Anyone who reported on a case can never count, recount or approve it. This is based on the reports table, not on the
+  case's proposer, so ordinary STK-5 proposers can still count their own cases, as today.
+- Anyone who has already counted or recounted a case can't add a report to it (otherwise the reporter and the counter
+  would be the same person).
+- Both rules are enforced in the service, in PostgreSQL (below) and in the Stock count page's `canCount` and
+  `canApprove`. So a CA Supervisor who reports a difference needs another holder to count it, as with any STK-5 case.
 
 ## Rules
 
-- **The report never moves stock.** It writes one report row and, if no count is open, one STK-5 count case (state
-  `awaiting_count`). The case starts from a snapshot of the balance at that moment, exactly as STK-5 `propose()`
+- **The report never moves stock.** It writes one report row and, when no live count is open, one STK-5 count case
+  (first state `awaiting_count`), taken from a snapshot of the balance at that moment, exactly as STK-5 `propose()`
   does. Only an approval after an independent recount can post a movement, unchanged.
-- **One open count per balance.** Inside the transaction, with the balance row locked, if a case of kind `count` is
-  open on that balance (not `closed_zero` or `posted`), the report joins it; otherwise a new case is created. A
-  PostgreSQL partial unique index on open count cases per balance backs this up. *(To check during the build: if
-  STK-5 data already allows two open count cases on one balance, the index goes on report rows instead and the
-  service rule stays.)*
-- **The case's proposer** is the reporter (`proposer_user_id`), so the existing STK-5 exclusion already keeps them
-  away from approval; STK-45 adds them to the counter and recounter exclusion too. The service calls a new internal
-  `GovernedStockService::openCountForReport()` that skips the `inventory.stocktake.branch` check (the report is the
-  permission) but keeps everything else from `propose()`. No new public route can open a case without a report.
-- **Stock that can't be counted** is refused with a plain message: a deactivated SKU, a returns location (it can be
-  counted only by STK-5 directly), or a balance at another branch (404).
-- **Every write:** permission and active branch checked again under the user's row lock (`InventoryAuthorityService`),
-  `DB::transaction`, the balance and any open case locked in the STK-5 order (case, then SKU, batch, balance),
-  the balance `lock_version` from the page (a stale page is refused: "Stock changed. Reload before reporting."),
-  an idempotency key (`retry_key`, the STK-5 retry pattern) and one audit row.
+- **Open and live.** STK-5 keeps a case's state in its latest `inventory_governed_actions` row.
+  - A count case is **open** when its latest state is `awaiting_count`, `awaiting_recount` or `awaiting_approval`.
+  - It is **live** when it is open and its `expected_balance_version` and `expected_quantity` still equal the
+    balance's.
+  - A case whose snapshot went stale stays at its last state forever: STK-5 refuses to count it ("Stock changed after
+    the snapshot") and has no cancel step.
+  - A report **joins the live count case** on that balance if there is one; otherwise it opens a new case. It never
+    joins a stale case.
+- **No new index.** Today's data can already hold two open count cases on one balance (STK-5's `propose()` never
+  checks), so a unique index isn't possible. One live case per report is kept by the balance row lock plus the
+  service check above. **STK-5's own `propose()` is unchanged** and can still open a count beside a report's case.
+- **Lock order** (the STK-5 order: case, then SKU, batch, balance):
+  1. Read the candidate live case without a lock.
+  2. Lock it `FOR UPDATE`.
+  3. Lock the source with STK-5's `lockSource` (SKU, batch, balance).
+  4. Under the balance lock, check that the candidate is still the live case and no other live case has appeared.
+     If not, roll back and retry the whole transaction (up to 3 times, as STK-5 does).
+
+  This matters: inserting a report row with a foreign key to a case that isn't locked takes `FOR KEY SHARE` on it,
+  while a concurrent count holds the case `FOR UPDATE` and waits on the balance. That would deadlock.
+- **Opening the case.** The service calls a new internal `GovernedStockService::openCountForReport()`.
+  - It checks P10 with `InventoryAuthorityService::lockForBranch(…, P10)` instead of `inventory.stocktake.branch`.
+  - Everything else is as in `propose()`.
+  - The reporter is the case's `proposer_user_id`, which satisfies STK-5's case trigger: the creation action's actor
+    must equal the proposer.
+  - No public route can open a case without a report.
+- **Stock that can't be reported** is refused with a plain message: a deactivated SKU, a returns location (count it
+  with STK-5 directly), or a balance at another branch (404).
+- **Every write:**
+  - permission and active branch checked again under the user's row lock;
+  - `DB::transaction`;
+  - the locks above;
+  - the balance `lock_version` from the page (a stale page is refused: "Stock changed. Reload before reporting.");
+  - an idempotency key (`retry_key`, the STK-5 retry pattern);
+  - one audit row.
 - **The rough count** is stored in the stock unit with three decimals (`StockUnitQuantity`), must be zero or more, and
   is never used in any calculation.
 - **The note** is encrypted at rest (as other free-text staff notes), never audited, never sent to agents, and not in
@@ -100,10 +129,18 @@ One new append-only table, `inventory_difference_reports`:
 - `opened_case` (boolean: did this report open the case, or join one);
 - `retry_key`, `payload_hash`, `created_at`.
 
-PostgreSQL: update, delete and truncate refused (the STK-5 append-only trigger pattern); an insert trigger checks
-that the case is a `count` case on the same organisation, branch and balance. Migrations in the Inventory range,
-next free number after `2026_11_07_003500`: the table, then the **P10 grant** (additive, never revoking, a missing
-role logged and skipped, `down()` a no-op).
+PostgreSQL:
+- Update, delete and truncate on the table are refused (the STK-5 append-only trigger pattern).
+- An insert trigger checks:
+  - the case is a `count` case on the same organisation, branch and balance;
+  - the reporter has not counted or recounted it.
+- **STK-5's trigger function changes.** `guard_governed_stock_action` is replaced (`CREATE OR REPLACE`) so that, for
+  `counted`, `recounted` and `approved`, it also refuses an actor who has a report on that case. Its other rules stay
+  word for word, and the migration's `down()` restores the STK-5 body.
+
+Migrations in the Inventory range, next free numbers after `2026_11_07_003500`:
+1. the table and the trigger change;
+2. the **P10 grant** (additive, never revoking, a missing role logged and skipped, `down()` a no-op).
 
 ## Audit
 
@@ -114,35 +151,51 @@ count, no names.
 
 - No photo upload (a possible later slice).
 - No reminder or message to the counter; the open case shows on Stock count as today.
-- No change to the STK-5 counting, recount or approval rules or screens beyond the "Reported by" line and the hidden
-  rough count for the approver.
+- No cancel step for stale STK-5 cases (an STK-5 gap, noted for later); STK-45 only avoids joining them.
+- No change to STK-5's counting, recount or approval screens beyond the "Reported by" line, the hidden rough count for
+  the approver, and the reporter exclusion.
 - No report from a phone camera or barcode scan (STK-9 scan can still find the row).
 
 ## Known limits
 
 - A report on a balance whose stock is all held (STK-2 hold) still opens a count; that is intended (counting a held
   batch is allowed in STK-5).
-- If the stock changes between the report and the count, STK-5's snapshot check already refuses the count and asks
-  for a new snapshot; the report stays linked to the old case, which closes without a movement.
+- If the stock changes after a report, its case goes stale: it stays at its last state without a movement and can't be
+  counted. "My reports" says so, and the next report on that balance opens a new, live case.
+- STK-5 cases that are already stale stay listed on Stock count, as today.
 
-## Existing assertions this may change
+## Existing assertions the build will probably touch (for the owner, before building)
 
-None expected. If the build finds an exact permission list or menu list pinned by an existing test (for example the
-role permission pins or the Inventory row menu), I'll list it before and after for the owner before changing it.
+These will be listed line by line, with before and after, once the build finds them. None is changed without the
+owner's approval:
+
+1. the exact role permission pins for `ca`, `ca_supervisor`, `store_admin`, `branch_manager` and `medical_assistant`
+   (they gain P10);
+2. the MA-1a "Medical Assistant mirrors CA" test (it should still pass, because both gain P10, but it is listed in
+   case it pins a count);
+3. any test pinning the Stock review or Inventory row props or row menu items;
+4. STK-5 trigger tests, if any asserts the body of `guard_governed_stock_action`.
 
 ## Tests (planned)
 
 - Each P10 holder can report; every other role gets 403; Medical Assistant matches CA.
 - A report opens one `awaiting_count` case with the right snapshot; a second report on the same balance joins it.
-- The reporter is refused as counter, recounter and approver (service and PostgreSQL where possible).
+- A report joins a live case but not a stale one (it opens a new case instead).
+- The reporter is refused as counter, recounter and approver, in the service and by a direct insert into
+  `inventory_governed_actions` (PostgreSQL trigger).
+- Someone who already counted a case is refused when reporting on it (service and the reports insert trigger).
+- An ordinary STK-5 proposer can still count their own case (no regression); STK-5 `propose()` is not blocked by a
+  report's case.
 - The report writes no stock movement and changes no balance (before-and-after table snapshot).
 - Stale balance version refused; retry with the same key returns the same report; a changed payload with the same key
   is refused.
 - Rough count and note never reach the counter's page data, the audit row, or the agent data sources.
-- Two-process race: two people reporting the same balance at once give one case and two reports (Contention suite).
-- Frontend: the menu item shows only with P10; the sheet's choices, labels and 44 px targets below 1024 px.
+- Two-process races (Contention suite): two people reporting the same balance at once give one case and two reports;
+  a report against a count on the same case (the lock order above) finishes without a deadlock.
+- Frontend: the menu item shows only with P10 and not on Low stock rows; the sheet's choices, labels and 44 px
+  targets below 1024 px; "My reports" shows the stale-case wording.
 
 ## Size
 
-About two days: one table and a grant, one service method plus the internal STK-5 entry point, the sheet and row menu
-on two pages, the "Reported by" line, "My reports", and the tests above.
+About two and a half days: one table, a trigger change and a grant, one service method plus the internal STK-5 entry
+point, the sheet and row menu on two pages, the "Reported by" line, "My reports", and the tests above.
