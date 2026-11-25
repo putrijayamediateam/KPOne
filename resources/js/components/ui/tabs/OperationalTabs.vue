@@ -156,7 +156,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
 <template>
     <nav
         ref="nav"
-        class="flex min-w-0 gap-1 overflow-x-auto border-b"
+        class="flex min-w-0 gap-1 overflow-x-auto pb-1"
         :class="
             moreTabsRight
                 ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
@@ -171,10 +171,10 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             :ref="(element) => setTabElement(element, index)"
             type="button"
             role="tab"
-            class="relative flex h-10 shrink-0 max-lg:h-11 max-sm:px-2.5 cursor-pointer items-center gap-1.5 px-3 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50"
+            class="relative flex h-9 shrink-0 max-lg:h-11 max-sm:px-3 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50"
             :class="
                 modelValue === tab.value
-                    ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand'
+                    ? 'bg-primary/10 font-semibold text-link hover:bg-primary/10 hover:text-link dark:bg-primary/20'
                     : ''
             "
             :aria-selected="modelValue === tab.value"
@@ -187,13 +187,13 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             {{ tab.label }}
             <span
                 v-if="tab.count !== undefined"
-                class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground"
+                class="rounded-full bg-info-wash px-1.5 py-0.5 text-xs tabular-nums text-info"
             >
                 {{ tab.count }}
             </span>
             <span
                 v-if="tab.badge"
-                class="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-1.5 py-0.5 text-[11px] font-medium text-warning-strong"
+                class="inline-flex items-center gap-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-xs font-medium text-warning"
                 data-testid="tab-badge"
             >
                 <span aria-hidden="true">{{ tab.badge.text }}</span>
