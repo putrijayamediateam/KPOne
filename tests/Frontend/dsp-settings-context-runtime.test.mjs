@@ -119,6 +119,7 @@ test('waiting navigation appears only for a server-authorized URL', async () => 
     const allowed = await render({ waitingCasesUrl: '/dispensary?tab=check' });
     assert.match(allowed, /href="\/dispensary\?tab=check"/);
     assert.match(allowed, /See cases waiting for the doctor&#39;s check/);
+
     for (const waitingCasesUrl of [null, undefined]) {
         const denied = await render({ waitingCasesUrl });
         assert.doesNotMatch(denied, /data-testid="settings-waiting-cases"|<a /);
