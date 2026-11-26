@@ -163,6 +163,29 @@ class PanelSettingsTest extends VisitTestCase
         $this->assertValidationFails(fn () => $service->update($officer, $back, $this->payload(['lock_version' => 2, 'claim_due_rule' => 'monthly', 'claim_due_time' => '10:00'])), 'claim_due_offset');
     }
 
+    public function test_every_saved_action_flashes_a_toast_the_page_can_show(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+        $toast = static fn (string $message): array => ['type' => 'success', 'message' => $message];
+
+        $this->post(route('panel-settings.store'), $this->payload())->assertRedirect(route('panel-settings.index'))
+            ->assertInertiaFlash('toast', $toast('Panel added.'));
+        $this->get(route('panel-settings.index'));
+        $panel = Panel::query()->where('code', 'SYN-CARE')->sole();
+        $this->patch(route('panel-settings.update', $panel->id), $this->payload(['phone' => '0312345678', 'lock_version' => 1]))
+            ->assertInertiaFlash('toast', $toast('Panel saved.'));
+        $this->get(route('panel-settings.index')); // the page consumes the flash
+        $this->post(route('panel-settings.active', $panel->id), ['active' => false, 'lock_version' => 2])
+            ->assertInertiaFlash('toast', $toast('Panel archived.'));
+        $this->get(route('panel-settings.index')); // the page consumes the flash
+        $this->post(route('panel-settings.active', $panel->id), ['active' => true, 'lock_version' => 3])
+            ->assertInertiaFlash('toast', $toast('Panel restored.'));
+        $this->get(route('panel-settings.index')); // the page consumes the flash
+        $this->patch(route('panel-settings.claim-message'), ['body' => 'Hi {panel_name}', 'lock_version' => 0])
+            ->assertInertiaFlash('toast', $toast('Claim message saved.'));
+    }
+
     public function test_claim_message_template_is_saved_versioned_validated_and_audited_without_its_text(): void
     {
         $officer = $this->actor('panel_officer');

@@ -150,6 +150,28 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(['copy', 'original'], DB::table('issued_billing_document_prints')->where('organisation_id', $f['organisation']->id)->orderBy('label')->pluck('label')->all());
     }
 
+    public function test_a_finance_style_printer_and_a_ca_pressing_print_at_once_give_one_original_and_one_copy(): void
+    {
+        // BIL-36: a Finance Officer prints through billing.lines.view.branch and the narrow identity grant, without
+        // billing.view or patient view; the same invoice row lock puts their press and the CA's in order.
+        $f = $this->billingFixture();
+        foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch', 'patients.view.organisation'] as $permission) {
+            $f['ca']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.lines.view.branch', 'billing.print.patient_identity.branch'] as $permission) {
+            $f['ca2']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        // Kumar: the fixture's CA permissions include billing.view.branch; take it away so the lines come only from
+        // billing.lines.view.branch, as for a real Finance Officer.
+        $f['ca2']->revokePermissionTo('billing.view.branch');
+        $this->assertFalse($f['ca2']->fresh()->can('billing.view.branch'));
+        $this->assertFalse($f['ca2']->fresh()->can('patients.view.organisation'));
+        $out = $this->race([$this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()]), $this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()], 'ca2')], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, DB::table('issued_billing_documents')->where('invoice_id', $f['invoice']->id)->count());
+        $this->assertSame(['copy', 'original'], DB::table('issued_billing_document_prints')->where('organisation_id', $f['organisation']->id)->orderBy('label')->pluck('label')->all());
+    }
+
     public function test_adjustment_race_serializes_two_cashiers_and_payment_without_overpaying(): void
     {
         $f = $this->billingFixture();

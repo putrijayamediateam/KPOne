@@ -35,6 +35,9 @@ final class IssuedBillingDocumentService
 {
     public const PERMISSION = 'billing.print.branch';
 
+    /** BIL-36 (owner answer 1C): sees the patient's IC/passport and phone on the printed paper only, not the patient pages. */
+    public const IDENTITY_PERMISSION = 'billing.print.patient_identity.branch';
+
     /** BIL-9 (owner decision 2): the seven printed categories, in the clinic's order. */
     public const CATEGORIES = ['Service', 'Procedure', 'Investigation', 'Consultation', 'Medicine', 'Document', 'Package'];
 
@@ -143,6 +146,11 @@ final class IssuedBillingDocumentService
                 throw $failed;
             }
             $this->assertCanSeeIdentity($actor, $content);
+            // BIL-36 (owner answer 3A): someone who sees the printed IC/passport and phone only through the narrow print
+            // grant, not through patient view, leaves an audit row each time they open a copy (ids only).
+            if (! $actor->can('patients.view.organisation') && $actor->can(self::IDENTITY_PERMISSION)) {
+                $this->audit->record('billing.document_viewed', $document, ['document_type' => $document->document_type, 'version' => $document->version], $actor, $branch);
+            }
             $latest = (int) IssuedBillingDocument::query()->where('invoice_id', $document->invoice_id)
                 ->where(fn ($q) => $document->payment_id ? $q->where('payment_id', $document->payment_id) : $q->whereNull('payment_id'))->max('version');
             $notes = [];
@@ -225,7 +233,7 @@ final class IssuedBillingDocumentService
     {
         // BIL-9 (owner decision 1): the paper names the patient by IC/passport and phone, so the printer must be able
         // to see them (CA and CA Supervisor hold this already).
-        if (! $actor->can('patients.view.organisation')) {
+        if (! $this->canSeePrintedIdentity($actor)) {
             throw ValidationException::withMessages(['document' => 'You cannot see every part of this document, so you cannot issue it.']);
         }
         [$legacy, $head, $source] = $this->legacyContent($actor, $visit, $invoice, $payment, $branch);
@@ -347,9 +355,15 @@ final class IssuedBillingDocumentService
      */
     private function assertCanSeeIdentity(User $actor, array $content): void
     {
-        if (($content['layout'] ?? null) === 'bil9' && ! $actor->can('patients.view.organisation')) {
+        if (($content['layout'] ?? null) === 'bil9' && ! $this->canSeePrintedIdentity($actor)) {
             throw ValidationException::withMessages(['document' => 'You cannot see every part of this document, so you cannot open it.']);
         }
+    }
+
+    /** BIL-9 and BIL-36: the paper names the patient by IC/passport and phone. */
+    private function canSeePrintedIdentity(User $actor): bool
+    {
+        return $actor->can('patients.view.organisation') || $actor->can(self::IDENTITY_PERMISSION);
     }
 
     /** @return array<string, mixed> */
