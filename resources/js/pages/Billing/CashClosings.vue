@@ -151,10 +151,10 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
 
 <template>
     <Head title="Daily cash closing" />
-    <main class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6">
+    <main class="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 md:px-6">
         <PageHeader
             title="Daily cash closing"
-            :description="`${day.branch} · Count the day's cash takings, then someone else approves the closing`"
+            description="Count the day's cash takings, then someone else approves the closing"
         >
             <template #actions>
                 <ActionLink href="/payment-reconciliations" variant="secondary">
@@ -172,7 +172,10 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
         <section
             class="flex flex-wrap items-end justify-between gap-4 rounded-xl border bg-card p-4"
         >
-            <form class="flex items-end gap-2" @submit.prevent="loadDate">
+            <form
+                class="flex flex-wrap items-end gap-2"
+                @submit.prevent="loadDate"
+            >
                 <label class="grid gap-1 text-sm font-medium" for="cash-date">
                     Business date
                     <DateField
@@ -185,20 +188,24 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 <Button type="submit" variant="outline">Load day</Button>
             </form>
             <p
-                class="rounded-full border px-3 py-1 text-sm font-medium"
+                class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium"
                 :class="
                     day.status === 'approved'
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100'
-                        : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+                        ? 'border-success/30 bg-success-wash text-success'
+                        : 'border-warning/30 bg-warning-wash text-warning'
                 "
                 data-testid="cash-closing-status"
             >
+                <span
+                    class="size-1.5 shrink-0 rounded-full bg-current"
+                    aria-hidden="true"
+                />
                 {{ statusText }}
             </p>
             <InputError class="w-full" :message="errors.business_date" />
             <p
                 v-if="day.status === 'waiting'"
-                class="w-full text-sm text-amber-900 dark:text-amber-100"
+                class="w-full text-sm text-warning"
                 data-testid="cash-closing-paused"
             >
                 Waiting for approval: new payments and changes to this day's
@@ -207,7 +214,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
             </p>
             <p
                 v-else-if="day.locked"
-                class="w-full text-sm text-emerald-900 dark:text-emerald-100"
+                class="w-full text-sm text-success"
                 data-testid="cash-closing-locked"
             >
                 Locked: this day's bills and receipts cannot be changed or
@@ -226,7 +233,9 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                         formatDate(day.businessDate)
                     }}</span>
                 </p>
-                <p class="mt-1 text-2xl font-semibold tabular-nums">
+                <p
+                    class="mt-2 mb-3 text-3xl font-semibold tracking-tight tabular-nums"
+                >
                     {{ money(day.expected.cashSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
@@ -243,7 +252,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                     −{{ myr(day.refunds.sen) }}.
                     <span
                         v-if="day.refunds.waiting"
-                        class="font-medium text-amber-700 dark:text-amber-300"
+                        class="font-medium text-warning"
                         >{{ day.refunds.waiting }} still waiting for approval{{
                             day.status === 'approved'
                                 ? '.'
@@ -291,9 +300,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                     Difference:
                     <span
                         :class="
-                            difference === 0
-                                ? 'text-emerald-700 dark:text-emerald-300'
-                                : 'text-amber-700 dark:text-amber-300'
+                            difference === 0 ? 'text-success' : 'text-warning'
                         "
                         >{{ signed(difference) }}</span
                     >
@@ -345,7 +352,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
         />
         <p
             v-if="day.changedSinceApproval"
-            class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+            class="rounded-xl border border-warning/30 bg-warning-wash p-4 text-sm text-warning"
             data-testid="cash-changed-since-approval"
         >
             Cash receipts for this day changed after the closing was approved
@@ -393,7 +400,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                             :class="
                                 closing.varianceSen === 0
                                     ? ''
-                                    : 'font-semibold text-amber-700 dark:text-amber-300'
+                                    : 'font-semibold text-warning'
                             "
                         >
                             {{ signed(closing.varianceSen) }}
