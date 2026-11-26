@@ -19,7 +19,7 @@ final class BillingPermissions
             // BIL-32 (owner decision 2026-11-22): the Branch Manager opens the cash closing pages read only.
             'branch_manager' => ['payments.cash_closing.view.branch'],
             // BIL-30 (owner P7, round 2): a Resident Doctor sees only their own monthly sales target.
-            'resident_doctor' => ['sales_targets.view.own'],
+            'resident_doctor' => ['sales_targets.view.own', 'billing.view_readonly.branch'],
         ];
     }
 

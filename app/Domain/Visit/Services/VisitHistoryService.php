@@ -20,6 +20,7 @@ use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentAllocation;
+use App\Domain\Visit\Billing\Review\BillingReviewService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\InvoiceActivityService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
@@ -107,6 +108,8 @@ class VisitHistoryService
                 'back' => route('registration.index'),
                 'consultation' => route('visits.history', $visit),
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
+                // BIL-37: the Resident Doctor's read-only bill of their own patient (the page itself shows no money).
+                'billView' => $this->billView($actor, $visit, 'invoices'),
                 'payments' => $canFinance ? route('billing.payments', $visit) : null,
                 'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id),
                 // BIL-35: straight to the Panel claim, or Create claim, for Panel Claims users only.
@@ -185,6 +188,7 @@ class VisitHistoryService
                     : route('registration.index'),
                 'backLabel' => $consultationReturnVisit ? 'Consultation' : 'Registration',
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
+                'billView' => $this->billView($actor, $visit, 'history'),
                 'consultation' => $actor->can('encounters.history.view.organisation') && $encounter !== null
                     ? route('encounters.history.show', $visit) : null,
             ],
@@ -393,6 +397,15 @@ class VisitHistoryService
             'printUrl' => $canPrint && ! $panelPrintBlocked ? route('billing.print', [$visit, $invoice]) : null,
             'panelNoInvoicePrint' => $canPrint && $panelPrintBlocked,
         ];
+    }
+
+    /** BIL-37: offered only to the visit's own doctor, and only once a non-draft invoice exists. */
+    private function billView(User $actor, Visit $visit, string $from): ?string
+    {
+        $review = app(BillingReviewService::class);
+
+        return $actor->can(BillingReviewService::PERMISSION) && $review->canOpen($actor, $visit) && $review->hasBill($visit)
+            ? route('billing.review', [$visit, 'from' => $from]) : null;
     }
 
     private function age(?CarbonInterface $dateOfBirth): ?string
