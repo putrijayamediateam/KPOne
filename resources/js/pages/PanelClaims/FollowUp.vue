@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
+import PanelWorkspaceNav from '@/components/panel/PanelWorkspaceNav.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { myr } from '@/types/billing';
@@ -55,17 +55,10 @@ const go = (panel: string, page = 1) =>
             title="Follow-up list"
             description="Open Panel claims with no new action for longer than their Panel's follow-up days. Follow them up on the Panel's portal."
         />
+        <PanelWorkspaceNav active="follow-up" />
         <div class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_240px]">
             <section class="min-w-0 space-y-4" aria-label="Follow-up claims">
                 <div class="flex flex-wrap items-end gap-3">
-                    <Button
-                        as-child
-                        variant="outline"
-                        size="sm"
-                        class="min-h-11 lg:min-h-9"
-                    >
-                        <Link href="/panel-claims">Back to Panel Claims</Link>
-                    </Button>
                     <label class="grid min-w-0 gap-1 text-xs">
                         Panel
                         <select
