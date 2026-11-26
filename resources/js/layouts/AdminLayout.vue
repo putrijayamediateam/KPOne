@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue';
 import ClockPhotoDialog from '@/components/hr/attendance/ClockPhotoDialog.vue';
+import EmergencyAlertHost from '@/components/queue/EmergencyAlertHost.vue';
 import WorkspaceRail from '@/components/shell/WorkspaceRail.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { useMainLandmark } from '@/composables/useMainLandmark';
@@ -18,6 +19,7 @@ const { content, role } = useMainLandmark();
             class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col lg:pl-[var(--shell-offset,72px)]"
             :role="role"
         >
+            <EmergencyAlertHost />
             <slot />
         </div>
         <Toaster v-bind="STAFF_TOAST_PLACEMENT" />
