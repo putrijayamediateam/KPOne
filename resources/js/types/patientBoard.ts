@@ -20,6 +20,7 @@ export type TriageZoneSummary = {
 
 export type PatientBoardRow = {
     key: string;
+    emergency?: { alertLabel: string; takenLabel: string };
     canWhatsapp: boolean;
     callHold?: CallReadiness | null;
     /** Q-13: the doctor's own row whose dispensary case waits for the doctor's check. */

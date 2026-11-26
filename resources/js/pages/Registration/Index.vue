@@ -19,18 +19,25 @@ import {
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
+import EmergencyLane from '@/components/queue/EmergencyLane.vue';
 import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import { emergencyBoardMetadata } from '@/lib/emergency-lane';
 import { formatDate } from '@/lib/presentation';
 import {
     queuePresentationLabel,
     waitingDurationLabel,
     servingDurationLabel,
 } from '@/lib/r1c2-presentation';
-import type { PatientBoardRow, VisitOptions, VisitRow } from '@/types';
+import type {
+    EmergencyLaneSnapshot,
+    PatientBoardRow,
+    VisitOptions,
+    VisitRow,
+} from '@/types';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Registration', href: '/registration' }] },
@@ -39,6 +46,7 @@ defineOptions({
 const props = defineProps<{
     visits: {
         data: VisitRow[];
+        emergency?: EmergencyLaneSnapshot<VisitRow>;
         total: number;
         currentPage: number;
         lastPage: number;
@@ -153,6 +161,7 @@ const activeTab = ref<BoardTab>(
             : 'all',
 );
 const rows = ref(props.visits.data);
+const emergency = ref(props.visits.emergency);
 const total = ref(props.visits.total);
 const currentPage = ref(props.visits.currentPage);
 const lastPage = ref(props.visits.lastPage);
@@ -240,85 +249,95 @@ const registrationDateLabel = computed(() =>
 const isCustomDateFilter = computed(
     () => form.date_from !== today || form.date_to !== today,
 );
-const boardRows = computed<PatientBoardRow[]>(() =>
-    rows.value.map((visit) => {
-        const status =
-            visit.status === 'completed'
-                ? { label: 'Completed', tone: 'neutral' as const }
-                : visit.awaitingBilling
-                  ? { label: 'Awaiting Billing', tone: 'neutral' as const }
-                  : visit.dispensaryStatus
-                    ? {
-                          label:
-                              visit.dispensaryStatus === 'pending'
-                                  ? 'Pending'
-                                  : visit.dispensaryStatus ===
-                                      'awaiting_doctor_check'
-                                    ? "Waiting for doctor's check"
-                                    : 'Dispensing',
-                          tone:
-                              visit.dispensaryStatus === 'pending'
-                                  ? ('waiting' as const)
-                                  : ('serving' as const),
-                      }
-                    : visit.status === 'cancelled'
-                      ? { label: 'Cancelled', tone: 'cancelled' as const }
-                      : visit.queueStatus === 'serving'
-                        ? { label: 'Serving Now', tone: 'serving' as const }
-                        : visit.queueStatus === 'waiting'
-                          ? { label: 'Waiting', tone: 'waiting' as const }
-                          : visit.queueStatus === 'removed'
-                            ? {
-                                  label: queuePresentationLabel({
-                                      status: 'removed',
-                                      removalReason: visit.queueRemovalReason,
-                                      visitStatus: visit.status,
-                                  }),
-                                  tone: 'removed' as const,
-                              }
-                            : { label: 'Registered', tone: 'neutral' as const };
+const toBoardRow = (visit: VisitRow): PatientBoardRow => {
+    const status =
+        visit.status === 'completed'
+            ? { label: 'Completed', tone: 'neutral' as const }
+            : visit.awaitingBilling
+              ? { label: 'Awaiting Billing', tone: 'neutral' as const }
+              : visit.dispensaryStatus
+                ? {
+                      label:
+                          visit.dispensaryStatus === 'pending'
+                              ? 'Pending'
+                              : visit.dispensaryStatus ===
+                                  'awaiting_doctor_check'
+                                ? "Waiting for doctor's check"
+                                : 'Dispensing',
+                      tone:
+                          visit.dispensaryStatus === 'pending'
+                              ? ('waiting' as const)
+                              : ('serving' as const),
+                  }
+                : visit.status === 'cancelled'
+                  ? { label: 'Cancelled', tone: 'cancelled' as const }
+                  : visit.queueStatus === 'serving'
+                    ? { label: 'Serving Now', tone: 'serving' as const }
+                    : visit.queueStatus === 'waiting'
+                      ? { label: 'Waiting', tone: 'waiting' as const }
+                      : visit.queueStatus === 'removed'
+                        ? {
+                              label: queuePresentationLabel({
+                                  status: 'removed',
+                                  removalReason: visit.queueRemovalReason,
+                                  visitStatus: visit.status,
+                              }),
+                              tone: 'removed' as const,
+                          }
+                        : { label: 'Registered', tone: 'neutral' as const };
 
-        return {
-            key: visit.visitNumber,
-            canWhatsapp: visit.canWhatsapp,
-            callHold: visit.callHold,
-            triage: visit.triage,
-            patientName: visit.patientName,
-            patientNumber: visit.patientNumber,
-            visitNumber: visit.visitNumber,
-            queueNumber: visit.queueNumber,
-            arrivedDate: formatDate(
-                visit.registeredAtDate,
-                props.options.branch.timezone,
-            ),
-            arrivedTime: compactTime(visit.registeredAt),
-            visitNotes: visit.visitReasonExcerpt,
-            doctorName: visit.doctorName,
-            coverageLabel: visit.coverageLabel,
-            panelNote: visit.panelNote,
-            durationLabel: visit.isHeld
-                ? 'On Hold'
-                : visit.queueStatus === 'serving'
-                  ? servingDurationLabel(visit.durationMinutes)
-                  : visit.queueStatus === 'waiting'
-                    ? waitingDurationLabel(visit.durationMinutes)
-                    : '—',
-            waitingMinutes:
-                !visit.isHeld && visit.queueStatus === 'waiting'
-                    ? visit.durationMinutes
-                    : null,
-            priority: visit.priority,
-            returnedFromDispensary: visit.returnedFromDispensary,
-            dispensaryUrl: visit.dispensaryUrl,
-            billingUrl: visit.billingUrl,
-            historyUrl: visit.historyUrl,
-            completedAt: visit.completedAt,
-            statusLabel: visit.isHeld ? 'On Hold' : status.label,
-            statusTone: visit.isHeld ? ('held' as const) : status.tone,
-            can: visit.can,
-            source: visit,
-        };
-    }),
+    return {
+        key: visit.visitNumber,
+        canWhatsapp: visit.canWhatsapp,
+        callHold: visit.callHold,
+        triage: visit.triage,
+        patientName: visit.patientName,
+        patientNumber: visit.patientNumber,
+        visitNumber: visit.visitNumber,
+        queueNumber: visit.queueNumber,
+        arrivedDate: formatDate(
+            visit.registeredAtDate,
+            props.options.branch.timezone,
+        ),
+        arrivedTime: compactTime(visit.registeredAt),
+        visitNotes: visit.visitReasonExcerpt,
+        doctorName: visit.doctorName,
+        coverageLabel: visit.coverageLabel,
+        panelNote: visit.panelNote,
+        durationLabel: visit.isHeld
+            ? 'On Hold'
+            : visit.queueStatus === 'serving'
+              ? servingDurationLabel(visit.durationMinutes)
+              : visit.queueStatus === 'waiting'
+                ? waitingDurationLabel(visit.durationMinutes)
+                : '—',
+        waitingMinutes:
+            !visit.isHeld && visit.queueStatus === 'waiting'
+                ? visit.durationMinutes
+                : null,
+        priority: visit.priority,
+        returnedFromDispensary: visit.returnedFromDispensary,
+        dispensaryUrl: visit.dispensaryUrl,
+        billingUrl: visit.billingUrl,
+        historyUrl: visit.historyUrl,
+        completedAt: visit.completedAt,
+        statusLabel: visit.isHeld ? 'On Hold' : status.label,
+        statusTone: visit.isHeld ? ('held' as const) : status.tone,
+        can: visit.can,
+        source: visit,
+    };
+};
+const boardRows = computed<PatientBoardRow[]>(() => rows.value.map(toBoardRow));
+const emergencyFocusTarget = ref<HTMLElement | null>(null);
+const requestEmergencyPage = (page: number) => {
+    emergencyFocusTarget.value?.focus({ preventScroll: true });
+    void search(currentPage.value, false, page);
+};
+const emergencyRows = computed<PatientBoardRow[]>(() =>
+    (emergency.value?.data ?? []).map((entry) => ({
+        ...toBoardRow(entry.boardRow),
+        emergency: emergencyBoardMetadata(entry, props.options.branch.timezone),
+    })),
 );
 
 const triageRows = computed(() =>
@@ -343,6 +362,7 @@ const clearBoard = () => {
     total.value = 0;
     currentPage.value = 1;
     lastPage.value = 1;
+    emergency.value = undefined;
 };
 const clearPollTimer = () => {
     if (pollTimer !== undefined) {
@@ -395,7 +415,7 @@ const recordSearchFailure = (automatic: boolean, message: string) => {
         clearBoard();
     }
 };
-const search = async (page = 1, automatic = false) => {
+const search = async (page = 1, automatic = false, emergencyPage?: number) => {
     if (disposed) {
         return;
     }
@@ -428,7 +448,10 @@ const search = async (page = 1, automatic = false) => {
     }
 
     if (!automatic) {
-        appliedFilters = { ...form };
+        if (emergencyPage === undefined) {
+            appliedFilters = { ...form };
+        }
+
         pollFailures = 0;
         pollingStopped = false;
         error.value = '';
@@ -449,7 +472,16 @@ const search = async (page = 1, automatic = false) => {
                 'X-CSRF-TOKEN': csrf(),
             },
             signal: request.signal,
-            body: JSON.stringify({ ...appliedFilters, page }),
+            body: JSON.stringify({
+                ...appliedFilters,
+                page,
+                ...(emergency.value
+                    ? {
+                          emergency_page:
+                              emergencyPage ?? emergency.value.currentPage,
+                      }
+                    : {}),
+            }),
         });
         const payload = await response.json();
 
@@ -481,6 +513,7 @@ const search = async (page = 1, automatic = false) => {
 
         tabCounts.value = payload.tabCounts;
         rows.value = payload.data;
+        emergency.value = payload.emergency;
         total.value = payload.total;
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
@@ -830,7 +863,11 @@ onBeforeUnmount(() => {
                         ><X class="size-4" /> Reset</Button
                     >
                 </div>
-                <InputError class="mt-2" :message="error" />
+                <InputError
+                    id="registration-board-error"
+                    class="mt-2"
+                    :message="error"
+                />
             </form>
 
             <p
@@ -841,6 +878,39 @@ onBeforeUnmount(() => {
                 {{ liveRefreshNotice }}
             </p>
 
+            <div
+                ref="emergencyFocusTarget"
+                tabindex="-1"
+                role="region"
+                aria-label="Emergency lane results"
+                :aria-describedby="
+                    error ? 'registration-board-error' : undefined
+                "
+            >
+                <EmergencyLane
+                    v-if="emergencyRows.length"
+                    :total="emergency?.total ?? emergencyRows.length"
+                    :current-page="emergency?.currentPage ?? 1"
+                    :last-page="emergency?.lastPage ?? 1"
+                    :busy="loading || busyKey !== null"
+                    @page="requestEmergencyPage"
+                >
+                    <PatientBoard
+                        :branch-id="options.branch.id"
+                        from="registration"
+                        :rows="emergencyRows"
+                        :busy-key="busyKey"
+                        :empty-message="boardEmptyMessage"
+                        @send-to-waiting="sendToWaiting"
+                        @readiness-changed="refreshAppliedBoard"
+                        @call="callIn"
+                        @open-consultation="openConsultation"
+                        @dispense="dispenseOtc"
+                        @call-dispensary="callOtcToDispensary"
+                        @cancel="requestCancellation"
+                    />
+                </EmergencyLane>
+            </div>
             <section class="overflow-hidden border-y bg-background">
                 <div
                     class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
