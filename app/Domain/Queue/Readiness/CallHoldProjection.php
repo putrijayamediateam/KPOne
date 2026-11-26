@@ -21,7 +21,9 @@ class CallHoldProjection
             return [];
         }
         $flags = CallHold::query()->where('organisation_id', $actor->organisation_id)->whereIn('queue_entry_id', $entryIds)->orderBy('id')->get()->groupBy('queue_entry_id');
-        $entries = DB::table('queue_entries')->join('visits', 'visits.id', '=', 'queue_entries.visit_id')->where('queue_entries.organisation_id', $actor->organisation_id)->whereIn('queue_entries.id', $entryIds)->where('visits.visit_type', 'consultation')->where('visits.organisation_id', $actor->organisation_id)->select('queue_entries.id', 'queue_entries.status', 'visits.assigned_doctor_user_id')->get()->keyBy('id');
+        $entries = DB::table('queue_entries')->join('visits', 'visits.id', '=', 'queue_entries.visit_id')->where('queue_entries.organisation_id', $actor->organisation_id)->whereIn('queue_entries.id', $entryIds)->where('visits.visit_type', 'consultation')->where('visits.organisation_id', $actor->organisation_id)->select('queue_entries.id', 'queue_entries.status', 'visits.assigned_doctor_user_id')
+            ->selectSub(DB::table('visit_triage_assessments')->select('chosen_zone')->whereColumn('visit_id', 'visits.id')->orderByDesc('sequence')->limit(1), 'latest_triage_zone')
+            ->get()->keyBy('id');
         $result = [];
         foreach ($entryIds as $id) {
             $entry = $entries->get($id);
@@ -33,7 +35,7 @@ class CallHoldProjection
             $result[$id] = [
                 'id' => $flag?->id, 'lockVersion' => $flag?->lock_version, 'active' => $active, 'overridden' => $flag?->state === 'overridden',
                 'reason' => $flag ? CallHoldService::REASONS[$flag->reason_code] : null,
-                'canSet' => $entry->status === 'waiting' && $actor->can(CallHoldPermissions::SET),
+                'canSet' => $entry->status === 'waiting' && $entry->latest_triage_zone !== 'red' && $actor->can(CallHoldPermissions::SET),
                 'canClear' => $entry->status === 'waiting' && ($actor->can(CallHoldPermissions::SET) || $actor->can(CallHoldPermissions::CLEAR)),
                 'canOverride' => $entry->assigned_doctor_user_id === $actor->id && $actor->can(CallHoldPermissions::OVERRIDE),
             ];
