@@ -34,7 +34,7 @@ owner decision.
 | Who | The **Director only** at first, by a new narrow permission (section 5). |
 | What | About 11 read-only tools that return totals, never people (section 6). |
 | Safety | Every call re-checks the user, permission and branch; every result is scanned for personal data; every call is audited without its results; rate limits, timeouts, a size cap and a kill switch that is **off by default** (section 7). |
-| Data | Fictional data only until the PDPA review (section 8). |
+| Data | PDPA review approved (owner-confirmed, verbal, 25 Nov 2026); real patient data needs a separate written OK at switch-on (section 8). |
 
 ### How the pieces fit with what exists
 
@@ -154,8 +154,8 @@ OAuth events are audited too: authorised, refreshed, revoked.
 
 Results reach the owner's Claude account and so reach Anthropic as part of the owner's own use of Claude (the same
 position as Ask KPOne, CONTRACT section 13). Even though the tools return totals only, small counts can still point at a
-person on a quiet day. **Fictional data only until the PDPA review is done.** The connector stays off (default) on any
-server holding real patient data until the owner has the privacy review and says so in writing. This note is not legal
+person on a quiet day. The PDPA and lawyer review is approved (owner-confirmed, verbal, 25 Nov 2026; the owner keeps the written copy). **The connector still stays off (default) on any
+server holding real patient data until the owner gives a separate written OK at switch-on, naming the server and the date.** This note is not legal
 advice.
 
 ## 9. Tests (for the build)
@@ -185,7 +185,7 @@ configured allowlist value, not as a literal of a forbidden word); the build che
 7. **Sign-in.** Use the same sign-in as KPOne (password or Google) for connecting, or Google only?
 8. **Connected apps page.** Do you want a small KPOne page that shows "Claude is connected, last used at …" with a
    Disconnect button? (Optional, a later slice; the artisan revoke exists either way.)
-9. **Data.** Confirm: fictional data only on the trial server until the PDPA review.
+9. **Data.** Decided: the PDPA review is approved (owner-confirmed, verbal, 25 Nov 2026); the connector stays off on any server with real patient data until the owner gives a separate written OK at switch-on, naming the server and the date.
 10. **Later chatbot.** The tools are built so an in-app chatbot could reuse them. That needs KPOne to call an AI service
     and is **not** part of this; just confirm you do not want it designed now.
 

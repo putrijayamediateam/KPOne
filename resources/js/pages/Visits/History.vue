@@ -114,6 +114,14 @@ const totals = computed(() => {
                     :href="history.links.billing"
                     >Open billing</ActionLink
                 >
+                <ActionLink
+                    v-if="history.links.billView"
+                    :href="history.links.billView"
+                    variant="outline"
+                    class="max-sm:h-11"
+                    data-testid="history-view-bill"
+                    >View bill</ActionLink
+                >
             </div>
         </header>
 
