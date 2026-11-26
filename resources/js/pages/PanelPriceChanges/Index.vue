@@ -396,7 +396,7 @@ const turnPage = (value: number) =>
     >
         <PageHeader
             title="Panel price changes"
-            :description="`${branch.name} · A Panel Officer proposes a Panel price. Someone else approves it before it applies.`"
+            description="A Panel Officer proposes a Panel price. Someone else approves it before it applies."
         />
         <p class="text-sm text-muted-foreground">
             A new price applies to bills built on or after its start time. Bills
@@ -417,557 +417,721 @@ const turnPage = (value: number) =>
             {{ message }}
         </p>
 
-        <div class="flex flex-wrap gap-1 border-b" role="tablist">
-            <button
-                v-for="item in tabs"
-                :key="item.id"
-                type="button"
-                role="tab"
-                :aria-selected="tab === item.id"
-                class="min-h-11 border-b-2 px-3 text-sm font-medium"
-                :class="
-                    tab === item.id
-                        ? 'border-brand text-brand-strong'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                "
-                @click="tab = item.id"
-            >
-                {{ item.label }}
-            </button>
-        </div>
-
-        <form
-            v-if="tab === 'propose' && canPropose"
-            class="grid max-w-2xl gap-4"
-            @submit.prevent="propose"
-        >
-            <label class="grid gap-1 text-sm">
-                Panel *
-                <select
-                    v-model="form.book"
-                    class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
-                    @change="loadSelection"
-                >
-                    <option value="">Choose a Panel</option>
-                    <option v-for="b in panels" :key="b.id" :value="b.id">
-                        {{ b.name }}
-                    </option>
-                </select>
-            </label>
-            <p
-                v-if="selection && !selection.hasPriceList"
-                class="-mt-2 text-xs text-muted-foreground"
-                data-testid="no-price-list"
-            >
-                This Panel has no price list yet. It is created when someone
-                else approves this.
-            </p>
-            <label class="grid gap-1 text-sm">
-                Charge *
-                <select
-                    v-model="form.charge"
-                    class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
-                    @change="loadSelection"
-                >
-                    <option value="">Choose a charge</option>
-                    <option v-for="c in charges" :key="c.id" :value="c.id">
-                        {{ c.name }} ({{ c.code }})
-                    </option>
-                </select>
-            </label>
-
+        <div class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
             <section
-                v-if="selection"
-                aria-label="Current Panel price"
-                class="rounded-lg border p-3 text-sm"
+                class="min-w-0 space-y-4"
+                aria-label="Panel price proposals"
             >
-                <p class="font-medium">
-                    Current price:
-                    <span class="tabular-nums">{{
-                        selection.currentAmountSen === null
-                            ? 'No price yet'
-                            : myr(selection.currentAmountSen)
-                    }}</span>
-                </p>
-                <ul
-                    v-if="selection.history.length"
-                    class="mt-2 space-y-1 text-xs text-muted-foreground"
+                <div
+                    class="flex flex-wrap gap-1 border-b"
+                    role="tablist"
+                    aria-label="Panel price change views"
                 >
-                    <li
-                        v-for="h in selection.history"
-                        :key="h.version"
-                        class="flex justify-between gap-2"
+                    <button
+                        v-for="item in tabs"
+                        :key="item.id"
+                        type="button"
+                        role="tab"
+                        :aria-selected="tab === item.id"
+                        class="min-h-11 rounded-t-md border-b-2 px-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        :class="
+                            tab === item.id
+                                ? 'border-primary text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                        "
+                        @click="tab = item.id"
+                    >
+                        {{ item.label }}
+                    </button>
+                </div>
+
+                <form
+                    v-if="tab === 'propose' && canPropose"
+                    class="grid gap-4 rounded-xl border bg-card p-4 shadow-card"
+                    @submit.prevent="propose"
+                >
+                    <label class="grid gap-1 text-sm">
+                        Panel *
+                        <select
+                            v-model="form.book"
+                            class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
+                            @change="loadSelection"
+                        >
+                            <option value="">Choose a Panel</option>
+                            <option
+                                v-for="b in panels"
+                                :key="b.id"
+                                :value="b.id"
+                            >
+                                {{ b.name }}
+                            </option>
+                        </select>
+                    </label>
+                    <p
+                        v-if="selection && !selection.hasPriceList"
+                        class="-mt-2 text-xs text-muted-foreground"
+                        data-testid="no-price-list"
+                    >
+                        This Panel has no price list yet. It is created when
+                        someone else approves this.
+                    </p>
+                    <label class="grid gap-1 text-sm">
+                        Charge *
+                        <select
+                            v-model="form.charge"
+                            class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
+                            @change="loadSelection"
+                        >
+                            <option value="">Choose a charge</option>
+                            <option
+                                v-for="c in charges"
+                                :key="c.id"
+                                :value="c.id"
+                            >
+                                {{ c.name }} ({{ c.code }})
+                            </option>
+                        </select>
+                    </label>
+
+                    <section
+                        v-if="selection"
+                        aria-label="Current Panel price"
+                        class="rounded-lg border p-3 text-sm"
+                    >
+                        <p class="font-medium">
+                            Current price:
+                            <span class="tabular-nums">{{
+                                selection.currentAmountSen === null
+                                    ? 'No price yet'
+                                    : myr(selection.currentAmountSen)
+                            }}</span>
+                        </p>
+                        <ul
+                            v-if="selection.history.length"
+                            class="mt-2 space-y-1 text-xs text-muted-foreground"
+                        >
+                            <li
+                                v-for="h in selection.history"
+                                :key="h.version"
+                                class="flex justify-between gap-2"
+                            >
+                                <span
+                                    >Version {{ h.version }} · from
+                                    {{ h.effectiveLabel
+                                    }}<template v-if="h.scheduled">
+                                        (scheduled)</template
+                                    ></span
+                                >
+                                <span class="tabular-nums">{{
+                                    myr(h.amountSen)
+                                }}</span>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <label class="grid gap-1 text-sm">
+                        New price (RM) *
+                        <input
+                            v-model="form.price"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            class="h-11 w-full rounded-md border bg-background px-3 text-sm tabular-nums lg:h-9"
+                            :aria-invalid="
+                                errors.amount_sen ? 'true' : undefined
+                            "
+                        />
+                        <span
+                            v-if="errors.amount_sen"
+                            class="text-xs text-destructive"
+                            >{{ errors.amount_sen }}</span
+                        >
+                    </label>
+                    <p
+                        v-if="change"
+                        class="text-sm tabular-nums"
+                        data-testid="price-change-line"
+                    >
+                        {{ myr(change.before) }} → {{ myr(priceSen ?? 0) }} ({{
+                            sign(change.diff)
+                        }}{{ myr(Math.abs(change.diff))
+                        }}<template v-if="change.pct !== null"
+                            >, {{ sign(change.diff)
+                            }}{{ Math.abs(change.pct).toFixed(1) }}%</template
+                        >)
+                    </p>
+                    <p
+                        v-if="change?.large"
+                        class="flex items-center gap-2 text-sm text-warning"
                     >
                         <span
-                            >Version {{ h.version }} · from {{ h.effectiveLabel
-                            }}<template v-if="h.scheduled">
-                                (scheduled)</template
-                            ></span
-                        >
-                        <span class="tabular-nums">{{ myr(h.amountSen) }}</span>
-                    </li>
-                </ul>
-            </section>
-
-            <label class="grid gap-1 text-sm">
-                New price (RM) *
-                <input
-                    v-model="form.price"
-                    inputmode="decimal"
-                    autocomplete="off"
-                    class="h-11 w-full rounded-md border bg-background px-3 text-sm tabular-nums lg:h-9"
-                    :aria-invalid="errors.amount_sen ? 'true' : undefined"
-                />
-                <span
-                    v-if="errors.amount_sen"
-                    class="text-xs text-destructive"
-                    >{{ errors.amount_sen }}</span
-                >
-            </label>
-            <p
-                v-if="change"
-                class="text-sm tabular-nums"
-                data-testid="price-change-line"
-            >
-                {{ myr(change.before) }} → {{ myr(priceSen ?? 0) }} ({{
-                    sign(change.diff)
-                }}{{ myr(Math.abs(change.diff))
-                }}<template v-if="change.pct !== null"
-                    >, {{ sign(change.diff)
-                    }}{{ Math.abs(change.pct).toFixed(1) }}%</template
-                >)
-            </p>
-            <p
-                v-if="change?.large"
-                class="flex items-center gap-2 text-sm text-warning"
-            >
-                <span
-                    class="size-2 rounded-full bg-warning"
-                    aria-hidden="true"
-                />
-                Large change. Check the agreement reference.
-            </p>
-
-            <label class="grid gap-1 text-sm">
-                Agreement reference *
-                <input
-                    v-model="form.reference"
-                    maxlength="120"
-                    autocomplete="off"
-                    class="h-11 w-full rounded-md border bg-background px-3 text-sm lg:h-9"
-                    :aria-invalid="
-                        errors.agreement_reference ? 'true' : undefined
-                    "
-                />
-                <span
-                    :class="
-                        errors.agreement_reference
-                            ? 'text-xs text-destructive'
-                            : 'text-xs text-muted-foreground'
-                    "
-                    >{{
-                        errors.agreement_reference ||
-                        'Plain text, 3 to 120 characters. Do not enter patient details.'
-                    }}</span
-                >
-            </label>
-
-            <div class="grid items-start gap-3 sm:grid-cols-2">
-                <div class="grid gap-1 text-sm">
-                    <label for="price-start-date">Starts on *</label>
-                    <DateField id="price-start-date" v-model="form.date" />
-                    <span class="text-xs text-muted-foreground"
-                        >{{ branch.name }} time ({{ branch.timezone }})</span
-                    >
-                    <span v-if="datePast" class="text-xs text-destructive">{{
-                        'Choose today or a later date.'
-                    }}</span>
-                    <span
-                        v-else-if="errors.effective_date"
-                        class="text-xs text-destructive"
-                        >{{ errors.effective_date }}</span
-                    >
-                </div>
-                <label class="grid content-start gap-1 text-sm">
-                    Time
-                    <input
-                        v-model="form.time"
-                        type="time"
-                        class="h-11 w-full rounded-md border bg-background px-3 text-sm lg:h-9"
-                    />
-                </label>
-            </div>
-            <p class="text-xs text-muted-foreground">
-                If the start has already passed when it is approved, the price
-                starts at approval.
-            </p>
-
-            <p
-                v-if="missing"
-                class="text-sm text-muted-foreground"
-                data-testid="propose-missing"
-            >
-                {{ missing }}
-            </p>
-            <div class="flex flex-wrap items-center gap-2">
-                <Button
-                    type="submit"
-                    class="max-sm:min-h-11"
-                    :disabled="!canSubmit"
-                >
-                    {{ form.busy ? 'Proposing…' : 'Propose price change' }}
-                </Button>
-            </div>
-            <p v-if="stale" class="text-sm">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    class="max-sm:min-h-11"
-                    @click="loadSelection"
-                    >Propose again</Button
-                >
-            </p>
-        </form>
-
-        <template v-if="tab === 'waiting' || tab === 'decided'">
-            <div
-                v-if="tab === 'waiting' && canApprove && selectable.length > 0"
-                class="mb-3 space-y-2 rounded-xl border bg-card p-4 text-sm"
-                data-testid="bulk-approve"
-            >
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <label class="flex min-h-11 items-center gap-2">
-                        <input
-                            type="checkbox"
-                            class="size-5"
-                            :checked="allSelected"
-                            @change="toggleAll"
+                            class="size-2 rounded-full bg-warning"
+                            aria-hidden="true"
                         />
-                        Select all {{ selectable.length }} that someone else
-                        proposed
-                    </label>
-                    <Button
-                        type="button"
-                        class="min-h-11"
-                        :disabled="selectedRows.length === 0 || bulkActing"
-                        @click="bulkOpen = true"
-                        >Approve selected ({{ selectedRows.length }})</Button
-                    >
-                </div>
-                <p
-                    v-if="waitingCount > waiting.length"
-                    class="text-xs text-muted-foreground"
-                >
-                    Showing the oldest {{ waiting.length }} of
-                    {{ waitingCount }} waiting. Approve these and the next ones
-                    appear.
-                </p>
-                <div
-                    v-if="bulkOpen && selectedRows.length > 0"
-                    class="space-y-2 border-t pt-3"
-                    role="group"
-                    aria-label="Confirm approval of the selected price changes"
-                >
-                    <p>
-                        Approve {{ selectedRows.length }} price
-                        {{ selectedRows.length === 1 ? 'change' : 'changes' }}?
-                        Each one is checked on its own. Any that cannot be
-                        approved are skipped. Review the refreshed lists and
-                        reasons after approval.
+                        Large change. Check the agreement reference.
                     </p>
-                    <div class="flex flex-wrap gap-2">
-                        <Button
-                            type="button"
-                            class="min-h-11"
-                            :disabled="bulkActing"
-                            @click="approveSelected"
-                            >Confirm approval</Button
+
+                    <label class="grid gap-1 text-sm">
+                        Agreement reference *
+                        <input
+                            v-model="form.reference"
+                            maxlength="120"
+                            autocomplete="off"
+                            class="h-11 w-full rounded-md border bg-background px-3 text-sm lg:h-9"
+                            :aria-invalid="
+                                errors.agreement_reference ? 'true' : undefined
+                            "
+                        />
+                        <span
+                            :class="
+                                errors.agreement_reference
+                                    ? 'text-xs text-destructive'
+                                    : 'text-xs text-muted-foreground'
+                            "
+                            >{{
+                                errors.agreement_reference ||
+                                'Plain text, 3 to 120 characters. Do not enter patient details.'
+                            }}</span
                         >
+                    </label>
+
+                    <div class="grid items-start gap-3 sm:grid-cols-2">
+                        <div class="grid gap-1 text-sm">
+                            <label for="price-start-date">Starts on *</label>
+                            <DateField
+                                id="price-start-date"
+                                v-model="form.date"
+                            />
+                            <span class="text-xs text-muted-foreground"
+                                >{{ branch.name }} time ({{
+                                    branch.timezone
+                                }})</span
+                            >
+                            <span
+                                v-if="datePast"
+                                class="text-xs text-destructive"
+                                >{{ 'Choose today or a later date.' }}</span
+                            >
+                            <span
+                                v-else-if="errors.effective_date"
+                                class="text-xs text-destructive"
+                                >{{ errors.effective_date }}</span
+                            >
+                        </div>
+                        <label class="grid content-start gap-1 text-sm">
+                            Time
+                            <input
+                                v-model="form.time"
+                                type="time"
+                                class="h-11 w-full rounded-md border bg-background px-3 text-sm lg:h-9"
+                            />
+                        </label>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        If the start has already passed when it is approved, the
+                        price starts at approval.
+                    </p>
+
+                    <p
+                        v-if="missing"
+                        class="text-sm text-muted-foreground"
+                        data-testid="propose-missing"
+                    >
+                        {{ missing }}
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="submit"
+                            class="min-h-11 lg:min-h-9"
+                            :disabled="!canSubmit"
+                        >
+                            {{
+                                form.busy
+                                    ? 'Proposing…'
+                                    : 'Propose price change'
+                            }}
+                        </Button>
+                    </div>
+                    <p v-if="stale" class="text-sm">
                         <Button
                             type="button"
                             variant="outline"
-                            class="min-h-11"
-                            :disabled="bulkActing"
-                            @click="bulkOpen = false"
-                            >Cancel</Button
+                            size="sm"
+                            class="min-h-11 lg:min-h-9"
+                            @click="loadSelection"
+                            >Propose again</Button
                         >
-                    </div>
-                </div>
-            </div>
-            <EmptyState
-                v-if="(tab === 'waiting' ? waiting : decided).length === 0"
-                :title="
-                    tab === 'waiting'
-                        ? 'No proposals are waiting.'
-                        : 'Nothing has been decided yet.'
-                "
-                description="Proposed Panel price changes appear here."
-            />
-            <ul
-                v-else
-                class="divide-y rounded-xl border bg-card"
-                :aria-label="
-                    tab === 'waiting'
-                        ? 'Waiting proposals'
-                        : 'Decided proposals'
-                "
-            >
-                <li
-                    v-for="row in tab === 'waiting' ? waiting : decided"
-                    :key="row.id"
-                    class="space-y-2 p-4 text-sm"
-                >
-                    <label
-                        v-if="tab === 'waiting' && canApprove && !row.mine"
-                        class="flex min-h-11 items-center gap-2 text-xs"
-                    >
-                        <input
-                            type="checkbox"
-                            class="size-5"
-                            :checked="selected.includes(row.id)"
-                            :aria-label="`Select ${row.panelName} ${row.chargeName}`"
-                            @change="toggleRow(row)"
-                        />
-                        Select for approval
-                    </label>
-                    <div
-                        class="flex flex-wrap items-baseline justify-between gap-2"
-                    >
-                        <span class="min-w-0 font-medium wrap-anywhere"
-                            >{{ row.panelName }} · {{ row.chargeName }}</span
-                        >
-                        <strong class="tabular-nums"
-                            ><template v-if="row.oldAmountSen !== null"
-                                >{{ myr(row.oldAmountSen) }} → </template
-                            >{{ myr(row.newAmountSen) }}</strong
-                        >
-                    </div>
-                    <p class="text-xs wrap-anywhere text-muted-foreground">
-                        Starts {{ row.effectiveLabel }} · Reference:
-                        {{ row.reference }} · Proposed by {{ row.proposedBy }},
-                        {{ row.proposedAtLabel }}
                     </p>
-                    <p class="flex items-center gap-2 text-xs">
-                        <span
-                            class="size-2 shrink-0 rounded-full"
-                            :class="statusDot(row.status)"
-                            aria-hidden="true"
-                        />
-                        <span class="font-medium">{{
-                            statusWord(row.status)
-                        }}</span>
-                    </p>
+                </form>
 
-                    <p
-                        v-if="row.decidedBy"
-                        class="text-xs wrap-anywhere text-muted-foreground"
+                <template v-if="tab === 'waiting' || tab === 'decided'">
+                    <div
+                        v-if="
+                            tab === 'waiting' &&
+                            canApprove &&
+                            selectable.length > 0
+                        "
+                        class="mb-3 space-y-2 rounded-xl border bg-card p-4 text-sm"
+                        data-testid="bulk-approve"
                     >
-                        By {{ row.decidedBy }}, {{ row.decidedAtLabel
-                        }}<template v-if="row.reasonLabel">
-                            · {{ row.reasonLabel }}</template
-                        ><template
-                            v-if="row.status === 'approved' && row.appliedLabel"
-                        >
-                            · applies from {{ row.appliedLabel }}</template
-                        >
-                    </p>
-                    <template v-if="changeOf(row)">
-                        <p
-                            class="text-xs text-muted-foreground tabular-nums"
-                            data-testid="row-change"
-                        >
-                            Change: {{ sign(changeOf(row)!.diff)
-                            }}{{ myr(Math.abs(changeOf(row)!.diff))
-                            }}<template v-if="changeOf(row)!.pct !== null"
-                                >, {{ sign(changeOf(row)!.diff)
-                                }}{{ pctText(changeOf(row)!.pct!) }}%</template
-                            >
-                        </p>
-                        <p
-                            v-if="
-                                row.status === 'proposed' &&
-                                changeOf(row)!.large
-                            "
-                            class="flex items-center gap-2 text-xs text-warning"
-                        >
-                            <span
-                                class="size-2 shrink-0 rounded-full bg-warning"
-                                aria-hidden="true"
-                            />
-                            Large change. Check the agreement reference.
-                        </p>
-                    </template>
-                    <p
-                        v-if="row.status === 'proposed' && row.effectivePassed"
-                        class="text-xs text-muted-foreground"
-                    >
-                        Start has passed: takes effect at approval.
-                    </p>
-                    <template v-if="row.status === 'proposed'">
-                        <p
-                            v-if="row.mine"
-                            class="text-xs text-muted-foreground"
-                        >
-                            You proposed this. Someone else must decide.
-                        </p>
                         <div
-                            v-if="open?.id !== row.id"
-                            class="flex flex-wrap gap-2"
+                            class="flex flex-wrap items-center justify-between gap-3"
                         >
+                            <label class="flex min-h-11 items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    class="size-5"
+                                    :checked="allSelected"
+                                    @change="toggleAll"
+                                />
+                                Select all {{ selectable.length }} that someone
+                                else proposed
+                            </label>
                             <Button
-                                v-if="canApprove && !row.mine"
                                 type="button"
-                                variant="outline"
-                                size="sm"
-                                class="max-sm:min-h-11"
-                                :id="`start-${row.id}-approve`"
-                                @click="begin(row, 'approve')"
-                                >Approve</Button
-                            >
-                            <Button
-                                v-if="canApprove && !row.mine"
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                class="max-sm:min-h-11"
-                                :id="`start-${row.id}-reject`"
-                                @click="begin(row, 'reject')"
-                                >Reject</Button
-                            >
-                            <Button
-                                v-if="row.mine"
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                class="max-sm:min-h-11"
-                                :id="`start-${row.id}-withdraw`"
-                                @click="begin(row, 'withdraw')"
-                                >Withdraw</Button
+                                class="min-h-11"
+                                :disabled="
+                                    selectedRows.length === 0 || bulkActing
+                                "
+                                @click="bulkOpen = true"
+                                >Approve selected ({{
+                                    selectedRows.length
+                                }})</Button
                             >
                         </div>
-                        <form
-                            v-else
-                            class="grid max-w-xl gap-3 rounded-lg border p-3"
-                            @submit.prevent="act(row)"
+                        <p
+                            v-if="waitingCount > waiting.length"
+                            class="text-xs text-muted-foreground"
                         >
-                            <p v-if="open.kind === 'approve'" class="text-sm">
-                                Approve {{ row.panelName }} ·
-                                {{ row.chargeName }}:
-                                <template v-if="row.oldAmountSen !== null"
-                                    >{{ myr(row.oldAmountSen) }} → </template
-                                >{{ myr(row.newAmountSen) }}, starting
-                                {{ row.effectiveLabel }}.
-                                <template v-if="changeOf(row)?.large"
-                                    ><strong class="text-warning"
-                                        >Large change{{
-                                            changeOf(row)!.pct !== null
-                                                ? ` (${sign(changeOf(row)!.diff)}${pctText(changeOf(row)!.pct!)}%)`
-                                                : ''
-                                        }}.</strong
-                                    >
-                                    Check the agreement reference.
-                                </template>
-                                <template v-if="row.effectivePassed"
-                                    >This will take effect now, at
-                                    approval.</template
-                                >
-                            </p>
-                            <template v-else-if="open.kind === 'reject'">
-                                <label class="grid gap-1 text-xs">
-                                    Reason *
-                                    <select
-                                        :id="`reason-${row.id}`"
-                                        v-model="rejectReason"
-                                        class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
-                                    >
-                                        <option value="" disabled>
-                                            Choose a reason
-                                        </option>
-                                        <option
-                                            v-for="(
-                                                label, code
-                                            ) in rejectReasons"
-                                            :key="code"
-                                            :value="code"
-                                        >
-                                            {{ label }}
-                                        </option>
-                                    </select>
-                                </label>
-                                <label class="grid gap-1 text-xs">
-                                    Note (optional)
-                                    <textarea
-                                        v-model="rejectNote"
-                                        maxlength="200"
-                                        rows="2"
-                                        class="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                                    />
-                                </label>
-                            </template>
-                            <p v-else class="text-sm">
-                                Withdraw this proposal? Nothing changes in the
-                                Panel price.
+                            Showing the oldest {{ waiting.length }} of
+                            {{ waitingCount }} waiting. Approve these and the
+                            next ones appear.
+                        </p>
+                        <div
+                            v-if="bulkOpen && selectedRows.length > 0"
+                            class="space-y-2 border-t pt-3"
+                            role="group"
+                            aria-label="Confirm approval of the selected price changes"
+                        >
+                            <p>
+                                Approve {{ selectedRows.length }} price
+                                {{
+                                    selectedRows.length === 1
+                                        ? 'change'
+                                        : 'changes'
+                                }}? Each one is checked on its own. Any that
+                                cannot be approved are skipped. Review the
+                                refreshed lists and reasons after approval.
                             </p>
                             <div class="flex flex-wrap gap-2">
                                 <Button
-                                    :id="`confirm-${row.id}`"
-                                    type="submit"
-                                    size="sm"
-                                    class="max-sm:min-h-11"
-                                    :variant="
-                                        open.kind === 'reject'
-                                            ? 'destructive'
-                                            : 'default'
-                                    "
-                                    :disabled="
-                                        acting ||
-                                        (open.kind === 'reject' &&
-                                            rejectReason === '')
-                                    "
+                                    type="button"
+                                    class="min-h-11"
+                                    :disabled="bulkActing"
+                                    @click="approveSelected"
+                                    >Confirm approval</Button
                                 >
-                                    {{
-                                        open.kind === 'approve'
-                                            ? 'Confirm approval'
-                                            : open.kind === 'reject'
-                                              ? 'Confirm rejection'
-                                              : 'Confirm withdrawal'
-                                    }}
-                                </Button>
                                 <Button
                                     type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    class="max-sm:min-h-11"
-                                    :disabled="acting"
-                                    @click="cancel(row)"
+                                    variant="outline"
+                                    class="min-h-11"
+                                    :disabled="bulkActing"
+                                    @click="bulkOpen = false"
                                     >Cancel</Button
                                 >
                             </div>
-                        </form>
-                    </template>
-                    <Button
-                        v-else-if="
-                            canPropose &&
-                            (row.status === 'rejected' ||
-                                row.status === 'withdrawn')
+                        </div>
+                    </div>
+                    <EmptyState
+                        v-if="
+                            (tab === 'waiting' ? waiting : decided).length === 0
                         "
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        class="max-sm:min-h-11"
-                        @click="proposeAgain(row)"
-                        >Propose again</Button
+                        :title="
+                            tab === 'waiting'
+                                ? 'No proposals are waiting.'
+                                : 'Nothing has been decided yet.'
+                        "
+                        description="Proposed Panel price changes appear here."
+                    />
+                    <ul
+                        v-else
+                        class="divide-y rounded-xl border bg-card"
+                        :aria-label="
+                            tab === 'waiting'
+                                ? 'Waiting proposals'
+                                : 'Decided proposals'
+                        "
                     >
-                </li>
-            </ul>
-            <CompactPagination
-                v-if="tab === 'decided' && decidedPagination.total > 0"
-                :current-page="decidedPagination.page"
-                :last-page="decidedPagination.lastPage"
-                :total="decidedPagination.total"
-                @change="turnPage"
-            />
-        </template>
+                        <li
+                            v-for="row in tab === 'waiting' ? waiting : decided"
+                            :key="row.id"
+                            class="space-y-2 p-4 text-sm"
+                        >
+                            <label
+                                v-if="
+                                    tab === 'waiting' && canApprove && !row.mine
+                                "
+                                class="flex min-h-11 items-center gap-2 text-xs"
+                            >
+                                <input
+                                    type="checkbox"
+                                    class="size-5"
+                                    :checked="selected.includes(row.id)"
+                                    :aria-label="`Select ${row.panelName} ${row.chargeName}`"
+                                    @change="toggleRow(row)"
+                                />
+                                Select for approval
+                            </label>
+                            <div
+                                class="flex flex-wrap items-baseline justify-between gap-2"
+                            >
+                                <span class="min-w-0 font-medium wrap-anywhere"
+                                    >{{ row.panelName }} ·
+                                    {{ row.chargeName }}</span
+                                >
+                                <strong class="tabular-nums"
+                                    ><template v-if="row.oldAmountSen !== null"
+                                        >{{
+                                            myr(row.oldAmountSen)
+                                        }}
+                                        → </template
+                                    >{{ myr(row.newAmountSen) }}</strong
+                                >
+                            </div>
+                            <p
+                                class="text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                Starts {{ row.effectiveLabel }} · Reference:
+                                {{ row.reference }} · Proposed by
+                                {{ row.proposedBy }},
+                                {{ row.proposedAtLabel }}
+                            </p>
+                            <p class="flex items-center gap-2 text-xs">
+                                <span
+                                    class="size-2 shrink-0 rounded-full"
+                                    :class="statusDot(row.status)"
+                                    aria-hidden="true"
+                                />
+                                <span class="font-medium">{{
+                                    statusWord(row.status)
+                                }}</span>
+                            </p>
+
+                            <p
+                                v-if="row.decidedBy"
+                                class="text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                By {{ row.decidedBy }}, {{ row.decidedAtLabel
+                                }}<template v-if="row.reasonLabel">
+                                    · {{ row.reasonLabel }}</template
+                                ><template
+                                    v-if="
+                                        row.status === 'approved' &&
+                                        row.appliedLabel
+                                    "
+                                >
+                                    · applies from
+                                    {{ row.appliedLabel }}</template
+                                >
+                            </p>
+                            <template v-if="changeOf(row)">
+                                <p
+                                    class="text-xs text-muted-foreground tabular-nums"
+                                    data-testid="row-change"
+                                >
+                                    Change: {{ sign(changeOf(row)!.diff)
+                                    }}{{ myr(Math.abs(changeOf(row)!.diff))
+                                    }}<template
+                                        v-if="changeOf(row)!.pct !== null"
+                                        >, {{ sign(changeOf(row)!.diff)
+                                        }}{{
+                                            pctText(changeOf(row)!.pct!)
+                                        }}%</template
+                                    >
+                                </p>
+                                <p
+                                    v-if="
+                                        row.status === 'proposed' &&
+                                        changeOf(row)!.large
+                                    "
+                                    class="flex items-center gap-2 text-xs text-warning"
+                                >
+                                    <span
+                                        class="size-2 shrink-0 rounded-full bg-warning"
+                                        aria-hidden="true"
+                                    />
+                                    Large change. Check the agreement reference.
+                                </p>
+                            </template>
+                            <p
+                                v-if="
+                                    row.status === 'proposed' &&
+                                    row.effectivePassed
+                                "
+                                class="text-xs text-muted-foreground"
+                            >
+                                Start has passed: takes effect at approval.
+                            </p>
+                            <template v-if="row.status === 'proposed'">
+                                <p
+                                    v-if="row.mine"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    You proposed this. Someone else must decide.
+                                </p>
+                                <div
+                                    v-if="open?.id !== row.id"
+                                    class="flex flex-wrap gap-2"
+                                >
+                                    <Button
+                                        v-if="canApprove && !row.mine"
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="min-h-11 lg:min-h-9"
+                                        :id="`start-${row.id}-approve`"
+                                        @click="begin(row, 'approve')"
+                                        >Approve</Button
+                                    >
+                                    <Button
+                                        v-if="canApprove && !row.mine"
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="min-h-11 lg:min-h-9"
+                                        :id="`start-${row.id}-reject`"
+                                        @click="begin(row, 'reject')"
+                                        >Reject</Button
+                                    >
+                                    <Button
+                                        v-if="row.mine"
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="min-h-11 lg:min-h-9"
+                                        :id="`start-${row.id}-withdraw`"
+                                        @click="begin(row, 'withdraw')"
+                                        >Withdraw</Button
+                                    >
+                                </div>
+                                <form
+                                    v-else
+                                    class="grid max-w-xl gap-3 rounded-lg border p-3"
+                                    @submit.prevent="act(row)"
+                                >
+                                    <p
+                                        v-if="open.kind === 'approve'"
+                                        class="text-sm"
+                                    >
+                                        Approve {{ row.panelName }} ·
+                                        {{ row.chargeName }}:
+                                        <template
+                                            v-if="row.oldAmountSen !== null"
+                                            >{{
+                                                myr(row.oldAmountSen)
+                                            }}
+                                            → </template
+                                        >{{ myr(row.newAmountSen) }}, starting
+                                        {{ row.effectiveLabel }}.
+                                        <template v-if="changeOf(row)?.large"
+                                            ><strong class="text-warning"
+                                                >Large change{{
+                                                    changeOf(row)!.pct !== null
+                                                        ? ` (${sign(changeOf(row)!.diff)}${pctText(changeOf(row)!.pct!)}%)`
+                                                        : ''
+                                                }}.</strong
+                                            >
+                                            Check the agreement reference.
+                                        </template>
+                                        <template v-if="row.effectivePassed"
+                                            >This will take effect now, at
+                                            approval.</template
+                                        >
+                                    </p>
+                                    <template
+                                        v-else-if="open.kind === 'reject'"
+                                    >
+                                        <label class="grid gap-1 text-xs">
+                                            Reason *
+                                            <select
+                                                :id="`reason-${row.id}`"
+                                                v-model="rejectReason"
+                                                class="h-11 w-full rounded-md border bg-background px-2 text-sm lg:h-9"
+                                            >
+                                                <option value="" disabled>
+                                                    Choose a reason
+                                                </option>
+                                                <option
+                                                    v-for="(
+                                                        label, code
+                                                    ) in rejectReasons"
+                                                    :key="code"
+                                                    :value="code"
+                                                >
+                                                    {{ label }}
+                                                </option>
+                                            </select>
+                                        </label>
+                                        <label class="grid gap-1 text-xs">
+                                            Note (optional)
+                                            <textarea
+                                                v-model="rejectNote"
+                                                maxlength="200"
+                                                rows="2"
+                                                class="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                                            />
+                                        </label>
+                                    </template>
+                                    <p v-else class="text-sm">
+                                        Withdraw this proposal? Nothing changes
+                                        in the Panel price.
+                                    </p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <Button
+                                            :id="`confirm-${row.id}`"
+                                            type="submit"
+                                            size="sm"
+                                            class="min-h-11 lg:min-h-9"
+                                            :variant="
+                                                open.kind === 'reject'
+                                                    ? 'destructive'
+                                                    : 'default'
+                                            "
+                                            :disabled="
+                                                acting ||
+                                                (open.kind === 'reject' &&
+                                                    rejectReason === '')
+                                            "
+                                        >
+                                            {{
+                                                open.kind === 'approve'
+                                                    ? 'Confirm approval'
+                                                    : open.kind === 'reject'
+                                                      ? 'Confirm rejection'
+                                                      : 'Confirm withdrawal'
+                                            }}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            class="min-h-11 lg:min-h-9"
+                                            :disabled="acting"
+                                            @click="cancel(row)"
+                                            >Cancel</Button
+                                        >
+                                    </div>
+                                </form>
+                            </template>
+                            <Button
+                                v-else-if="
+                                    canPropose &&
+                                    (row.status === 'rejected' ||
+                                        row.status === 'withdrawn')
+                                "
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                class="min-h-11 lg:min-h-9"
+                                @click="proposeAgain(row)"
+                                >Propose again</Button
+                            >
+                        </li>
+                    </ul>
+                    <CompactPagination
+                        v-if="tab === 'decided' && decidedPagination.total > 0"
+                        class="[&_button]:min-h-11 lg:[&_button]:min-h-9"
+                        :current-page="decidedPagination.page"
+                        :last-page="decidedPagination.lastPage"
+                        :total="decidedPagination.total"
+                        @change="turnPage"
+                    />
+                </template>
+            </section>
+            <aside
+                class="min-w-0 space-y-4"
+                aria-label="Panel price review context"
+            >
+                <section
+                    class="space-y-3 rounded-xl border bg-card p-4 shadow-card"
+                    aria-labelledby="proposal-scope-title"
+                >
+                    <h2 id="proposal-scope-title" class="text-sm font-semibold">
+                        Organisation proposals
+                    </h2>
+                    <dl class="space-y-3 text-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-muted-foreground">
+                                Waiting for approval
+                            </dt>
+                            <dd class="font-semibold tabular-nums">
+                                {{ waitingCount }}
+                            </dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-muted-foreground">
+                                Oldest waiting proposals loaded
+                            </dt>
+                            <dd class="font-semibold tabular-nums">
+                                {{ waiting.length }}
+                            </dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-muted-foreground">
+                                Decided proposals
+                            </dt>
+                            <dd class="font-semibold tabular-nums">
+                                {{ decidedPagination.total }}
+                            </dd>
+                        </div>
+                    </dl>
+                    <p class="text-xs text-muted-foreground">
+                        Decision page {{ decidedPagination.page }} of
+                        {{ Math.max(1, decidedPagination.lastPage) }} contains
+                        {{ decided.length }} proposals.
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        Times are shown in {{ branch.timezone }}. These
+                        proposals apply across the organisation.
+                    </p>
+                </section>
+                <details
+                    open
+                    class="rounded-xl border bg-card px-4 shadow-card"
+                >
+                    <summary
+                        class="min-h-11 cursor-pointer py-3 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        Reviewing a proposal
+                    </summary>
+                    <div class="space-y-3 pb-4 text-sm text-muted-foreground">
+                        <p>
+                            Check the Panel, charge, new price, agreement
+                            reference and start time before deciding.
+                        </p>
+                        <p>
+                            Someone other than the proposer must approve. A
+                            proposal can become stale if its price changes while
+                            it is waiting.
+                        </p>
+                        <p>
+                            Already built bills keep their original price.
+                            Self-pay prices are managed separately.
+                        </p>
+                    </div>
+                </details>
+                <details class="rounded-xl border bg-card px-4 shadow-card">
+                    <summary
+                        class="min-h-11 cursor-pointer py-3 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        Selected approvals
+                    </summary>
+                    <p class="pb-4 text-sm text-muted-foreground">
+                        Each selected proposal is checked separately. After
+                        approval, review the refreshed lists and any reasons for
+                        proposals that could not be approved.
+                    </p>
+                </details>
+            </aside>
+        </div>
     </main>
 </template>

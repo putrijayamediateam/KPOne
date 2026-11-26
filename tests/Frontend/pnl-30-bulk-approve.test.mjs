@@ -13,7 +13,10 @@ test('approvers can tick waiting rows proposed by someone else and approve them 
         page,
         /selectable = computed\(\(\) =>\s*props\.waiting\.filter\(\(row\) => !row\.mine\)/,
     );
-    assert.match(page, /Approve selected \(\{\{ selectedRows\.length \}\}\)/);
+    assert.match(
+        flat(page),
+        /Approve selected \(\{\{ selectedRows\.length \}\}\)/,
+    );
     assert.match(flat(page), /Confirm approval/);
     assert.match(flat(page), /Each one is checked on its own/);
     // One request for the batch, with each row's own lock version.
@@ -26,10 +29,13 @@ test('approvers can tick waiting rows proposed by someone else and approve them 
 
 test('the bulk controls are for approvers only and every row checkbox has a name and a 44 px target', () => {
     assert.match(
-        page,
-        /v-if="tab === 'waiting' && canApprove && selectable\.length > 0"/,
+        flat(page),
+        /v-if="\s*tab === 'waiting' && canApprove && selectable\.length > 0\s*"/,
     );
-    assert.match(page, /v-if="tab === 'waiting' && canApprove && !row\.mine"/);
+    assert.match(
+        flat(page),
+        /v-if="\s*tab === 'waiting' && canApprove && !row\.mine\s*"/,
+    );
     assert.match(
         flat(page),
         /:aria-label="`Select \$\{row\.panelName\} \$\{row\.chargeName\}`"/,
@@ -47,8 +53,8 @@ test('the page says when more are waiting than are shown and nothing is sent twi
 
 test("the bulk panel sits before the empty state, so it never takes the list's v-else", () => {
     const bulk = page.indexOf('data-testid="bulk-approve"');
-    const empty = page.indexOf('<EmptyState\n                v-if="(tab ===');
-    const list = page.indexOf('<ul\n                v-else');
+    const empty = page.search(/<EmptyState\s+v-if="\s*\(tab ===/);
+    const list = page.search(/<ul\s+v-else/);
     assert.ok(bulk > 0 && empty > bulk && list > empty);
     // The only thing between the empty state and the list is the empty state itself.
     const between = page.slice(empty, list);
