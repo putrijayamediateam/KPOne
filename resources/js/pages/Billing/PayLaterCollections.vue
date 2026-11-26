@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
 import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { PageHeader } from '@/components/ui/page-header';
@@ -69,17 +70,23 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
 
 <template>
     <Head title="Bills to collect" />
-    <main class="mx-auto w-full max-w-7xl space-y-4 px-4 py-6 md:px-6">
-        <PageHeader
-            title="Bills to collect"
-            :description="`${collections.branch} · Money patients still owe: approved pay later and money due on completed visits, oldest first`"
-        >
-            <template #actions>
-                <ActionLink href="/workspace" variant="secondary">
-                    Return to Workspace
-                </ActionLink>
-            </template>
-        </PageHeader>
+    <BillingBoardFrame
+        active="collect"
+        about="Money patients still owe at this branch: approved pay later and money due on completed visits, oldest first."
+        guidance="This list records no payments. Open the patient's billing page to collect. Payments clear money due now before pay later. Review any invoice marked Review required before asking the patient to pay."
+    >
+        <template #header>
+            <PageHeader
+                title="Billing"
+                description="Money patients still owe, oldest first"
+            >
+                <template #actions>
+                    <ActionLink href="/workspace" variant="secondary">
+                        Return to Workspace
+                    </ActionLink>
+                </template>
+            </PageHeader>
+        </template>
 
         <section
             class="grid gap-3 sm:grid-cols-2"
@@ -282,21 +289,16 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
         <div v-if="collections.data.length > 0" class="hidden min-w-0 lg:block">
             <OperationalTable
                 label="Bills to collect"
-                :columns="9"
-                min-width="1120px"
+                :columns="6"
+                min-width="680px"
             >
                 <template #head>
                     <tr>
+                        <th scope="col">KP no.</th>
                         <th scope="col">Patient</th>
-                        <th scope="col">Visit / Invoice</th>
-                        <th scope="col">Visit date</th>
-                        <th scope="col">Due date</th>
-                        <th scope="col" class="text-right">
-                            Approved pay later
-                        </th>
-                        <th scope="col" class="text-right">Pay later</th>
-                        <th scope="col" class="text-right">Due now</th>
+                        <th scope="col">Invoice</th>
                         <th scope="col" class="text-right">Still owed</th>
+                        <th scope="col">Due</th>
                         <th scope="col" class="text-right">Action</th>
                     </tr>
                 </template>
@@ -306,80 +308,94 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         :key="row.invoiceNumber"
                         data-testid="pay-later-row"
                     >
+                        <td class="font-mono text-xs">
+                            {{ row.patientNumber }}
+                        </td>
                         <td>
-                            <span class="block font-medium text-foreground">
-                                {{ row.patientName }}
-                            </span>
-                            <span
-                                class="block font-mono text-xs text-muted-foreground"
-                            >
-                                {{ row.patientNumber }}
-                            </span>
+                            <span class="block font-medium text-foreground">{{
+                                row.patientName
+                            }}</span>
                             <MergedFromNote
                                 v-if="row.mergedFrom"
                                 :numbers="[row.mergedFrom]"
                             />
                         </td>
                         <td>
-                            <span class="block">{{ row.visitNumber }}</span>
-                            <span
-                                class="block font-mono text-xs text-muted-foreground"
-                                >{{ row.invoiceNumber }}</span
-                            >
-                        </td>
-                        <td class="whitespace-nowrap">{{ row.visitDate }}</td>
-                        <td class="whitespace-nowrap">
-                            {{ dueNowOf(row) > 0 ? 'Now' : row.dueDate }}
-                            <span
-                                v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-                                >{{ daysSinceVisit(row.daysOverdue) }}</span
-                            >
-                            <span
-                                v-else-if="row.daysOverdue > 0"
-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-                                >{{ row.daysOverdue }}
-                                {{ row.daysOverdue === 1 ? 'day' : 'days' }}
-                                past due</span
-                            >
-                        </td>
-                        <td class="text-right whitespace-nowrap tabular-nums">
-                            {{
-                                row.approvedSen > 0 ? myr(row.approvedSen) : '–'
-                            }}
-                        </td>
-                        <td class="text-right whitespace-nowrap tabular-nums">
-                            {{
-                                row.remainingSen > 0
-                                    ? myr(row.remainingSen)
-                                    : '–'
-                            }}
-                            <span
-                                v-if="
-                                    collections.payLaterDue?.[row.visitNumber]
-                                "
-                                class="block text-xs text-muted-foreground"
-                                data-testid="bill-pay-later-due"
-                                >due
-                                {{
-                                    collections.payLaterDue[row.visitNumber]
-                                }}</span
-                            >
-                        </td>
-                        <td class="text-right whitespace-nowrap tabular-nums">
-                            <span
-                                v-if="dueNowOf(row) > 0"
-                                data-testid="pay-later-due-now"
-                                >{{ myr(dueNowOf(row)) }}</span
-                            >
-                            <span v-else>–</span>
+                            <span class="block font-mono text-xs">{{
+                                row.invoiceNumber
+                            }}</span>
+                            <details class="mt-1 text-xs">
+                                <summary
+                                    class="min-h-9 cursor-pointer py-2 text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                    Bill details
+                                </summary>
+                                <dl class="space-y-2 py-2">
+                                    <div>
+                                        <dt class="text-muted-foreground">
+                                            Visit
+                                        </dt>
+                                        <dd>
+                                            {{ row.visitNumber }} ·
+                                            {{ row.visitDate }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">
+                                            Approved pay later
+                                        </dt>
+                                        <dd>
+                                            {{
+                                                row.approvedSen > 0
+                                                    ? myr(row.approvedSen)
+                                                    : '–'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">
+                                            Pay later
+                                        </dt>
+                                        <dd>
+                                            {{ myr(row.remainingSen) }}
+                                            <span
+                                                v-if="
+                                                    collections.payLaterDue?.[
+                                                        row.visitNumber
+                                                    ]
+                                                "
+                                                data-testid="bill-pay-later-due"
+                                                >due
+                                                {{
+                                                    collections.payLaterDue[
+                                                        row.visitNumber
+                                                    ]
+                                                }}</span
+                                            >
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">
+                                            Due now
+                                        </dt>
+                                        <dd data-testid="pay-later-due-now">
+                                            {{ myr(dueNowOf(row)) }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <p v-if="needsReview(row)" class="pb-2">
+                                    The amount may change; open billing before
+                                    collecting.
+                                </p>
+                            </details>
                         </td>
                         <td
                             class="text-right font-semibold whitespace-nowrap tabular-nums"
                         >
-                            {{ myr(owedOf(row)) }}
-                            <span v-if="needsReview(row)" class="mt-1 block">
-                                <StatusBadge
+                            {{ myr(owedOf(row))
+                            }}<span v-if="needsReview(row)" class="mt-1 block"
+                                ><StatusBadge
+                                    v-if="needsReview(row)"
                                     status="review_required"
                                     label="Review required"
                                     tone="neutral"
@@ -387,18 +403,33 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                                 /><span class="sr-only"
                                     >, the amount may change; open billing
                                     before collecting.</span
-                                >
-                            </span>
+                                ></span
+                            >
+                        </td>
+                        <td>
+                            <span class="block whitespace-nowrap">{{
+                                dueNowOf(row) > 0 ? 'Now' : row.dueDate
+                            }}</span>
+                            <span
+                                v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
+                                class="text-xs text-muted-foreground"
+                                >{{ daysSinceVisit(row.daysOverdue) }}</span
+                            ><span
+                                v-else-if="row.daysOverdue > 0"
+                                class="text-xs text-muted-foreground"
+                                >{{ row.daysOverdue }}
+                                {{ row.daysOverdue === 1 ? 'day' : 'days' }}
+                                past due</span
+                            >
                         </td>
                         <td class="text-right">
                             <ActionLink
                                 :href="row.url"
                                 variant="secondary"
-                                size="sm"
+                                class="min-h-9"
                                 :aria-label="`Open billing for ${row.visitNumber}`"
+                                >Open billing</ActionLink
                             >
-                                Open billing
-                            </ActionLink>
                         </td>
                     </tr>
                 </template>
@@ -412,5 +443,31 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             :total="collections.shown.count"
             @change="(page: number) => visit(page)"
         />
-    </main>
+        <template #context>
+            <dl class="space-y-3 text-sm">
+                <div>
+                    <dt class="text-muted-foreground">Branch</dt>
+                    <dd class="font-medium">{{ collections.branch }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">As of</dt>
+                    <dd>{{ collections.today }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">
+                        Bills in this filtered list
+                    </dt>
+                    <dd class="tabular-nums">{{ collections.shown.count }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">
+                        Still owed in this filtered list
+                    </dt>
+                    <dd class="font-semibold tabular-nums">
+                        {{ myr(collections.shown.totalSen) }}
+                    </dd>
+                </div>
+            </dl>
+        </template>
+    </BillingBoardFrame>
 </template>
