@@ -15,6 +15,7 @@ import {
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import FamilyWaitingCard from '@/components/clinical/FamilyWaitingCard.vue';
 import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -1134,6 +1135,11 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         />
                     </div>
                 </section>
+
+                <FamilyWaitingCard
+                    v-if="clinical.familyWaiting"
+                    :family="clinical.familyWaiting"
+                />
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
