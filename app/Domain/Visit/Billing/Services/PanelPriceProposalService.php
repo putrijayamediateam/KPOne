@@ -195,9 +195,15 @@ final class PanelPriceProposalService
     {
         Validator::make(['items' => $items], [
             'items' => ['required', 'array', 'min:1', 'max:'.self::BULK_LIMIT],
-            'items.*.id' => ['required', 'uuid', 'distinct'],
+            'items.*.id' => ['required', 'uuid', 'distinct:ignore_case'],
             'items.*.lock_version' => ['required', 'integer', 'min:1'],
         ], ['items.max' => 'Select at most '.self::BULK_LIMIT.' price changes at a time.', 'items.required' => 'Select at least one price change.', 'items.min' => 'Select at least one price change.'])->validate();
+
+        $actor = DB::transaction(function () use ($actor, $expectedBranchId): User {
+            $branch = $this->authority->branch($actor, $expectedBranchId);
+
+            return $this->authority->lock($actor, $branch, self::APPROVE_PERMISSION);
+        });
 
         $approved = 0;
         $skipped = [];
@@ -222,6 +228,7 @@ final class PanelPriceProposalService
         }
         DB::transaction(function () use ($actor, $expectedBranchId, $approved, $skipped, $items): void {
             $branch = $this->authority->branch($actor, $expectedBranchId);
+            $actor = $this->authority->lock($actor, $branch, self::APPROVE_PERMISSION);
             $this->audit->record('panel_price.bulk_approved', $actor, ['requested' => count($items), 'approved' => $approved, 'skipped' => count($skipped)], $actor, $branch);
         });
 

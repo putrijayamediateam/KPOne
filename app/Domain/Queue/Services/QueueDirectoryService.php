@@ -12,6 +12,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Queue\QueueWaitingOrder;
 use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -81,12 +82,12 @@ class QueueDirectoryService
         $waitingEntries = new EloquentCollection;
         $waitingMeta = ['total' => 0, 'currentPage' => 1, 'lastPage' => 1];
         if ($status === '' || $status === QueueEntry::STATUS_WAITING) {
-            $paginator = (clone $base)
-                ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
-                ->whereDate('queue_entries.operational_date', $today)
-                ->orderByRaw("CASE visits.priority WHEN 'urgent' THEN 0 ELSE 1 END")
-                ->orderBy('queue_entries.queued_at')
-                ->orderBy('queue_entries.id')
+            $paginator = QueueWaitingOrder::apply(
+                (clone $base)
+                    ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
+                    ->whereDate('queue_entries.operational_date', $today),
+                $today,
+            )
                 ->paginate(25, page: $page, total: $counts['today']);
             $waitingEntries = $paginator->getCollection();
             $waitingMeta = [
@@ -100,13 +101,13 @@ class QueueDirectoryService
         $carryOverEntries = new EloquentCollection;
         $carryOverMeta = ['total' => 0, 'currentPage' => 1, 'lastPage' => 1];
         if ($status === '' || $status === QueueEntry::STATUS_WAITING) {
-            $carryPaginator = (clone $base)
-                ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
-                ->whereDate('queue_entries.operational_date', '<', $today)
-                ->orderByRaw("CASE visits.priority WHEN 'urgent' THEN 0 ELSE 1 END")
-                ->orderBy('queue_entries.operational_date')
-                ->orderBy('queue_entries.queued_at')
-                ->orderBy('queue_entries.id')
+            $carryPaginator = QueueWaitingOrder::apply(
+                (clone $base)
+                    ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
+                    ->whereDate('queue_entries.operational_date', '<', $today),
+                $today,
+                byDate: true,
+            )
                 ->paginate(25, pageName: 'carry_page', page: $carryPage, total: $counts['carryOver']);
             $carryOverEntries = $carryPaginator->getCollection();
             $carryOverMeta = [

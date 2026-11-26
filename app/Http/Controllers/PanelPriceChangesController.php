@@ -50,11 +50,19 @@ class PanelPriceChangesController extends Controller
         $items = $request->input('items');
         $items = is_array($items) ? array_values(array_filter($items, 'is_array')) : [];
         $back = route('panel-price-changes.index');
-        set_time_limit(180);
+        // Unlimited CLI workers must not acquire a request timer that outlives this action.
+        $originalLimit = (int) ini_get('max_execution_time');
+        if ($originalLimit > 0) {
+            set_time_limit(180);
+        }
         try {
             $result = $service->approveMany($this->actor($request), (int) $request->input('expected_branch_id'), $items);
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        } finally {
+            if ($originalLimit > 0) {
+                set_time_limit($originalLimit);
+            }
         }
         $count = $result['approved'];
         if ($count > 0) {
@@ -63,7 +71,7 @@ class PanelPriceChangesController extends Controller
         if ($result['skipped'] !== []) {
             $first = collect($result['skipped'])->pluck('message')->unique()->take(3)->implode(' ');
 
-            return redirect($back)->withErrors(['bulk' => count($result['skipped']).' could not be approved and are still waiting. '.$first]);
+            return redirect($back)->withErrors(['bulk' => count($result['skipped']).' could not be approved. Review the refreshed lists. '.$first]);
         }
 
         return redirect($back);

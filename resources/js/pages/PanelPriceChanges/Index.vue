@@ -334,6 +334,12 @@ const approveSelected = () => {
                 selected.value = [];
                 bulkOpen.value = false;
             },
+            onError: (errors) => {
+                if (errors.bulk) {
+                    selected.value = [];
+                    bulkOpen.value = false;
+                }
+            },
             onFinish: () => {
                 bulkActing.value = false;
             },
@@ -666,8 +672,9 @@ const turnPage = (value: number) =>
                     <p>
                         Approve {{ selectedRows.length }} price
                         {{ selectedRows.length === 1 ? 'change' : 'changes' }}?
-                        Each one is checked on its own. Any that changed in the
-                        meantime stay waiting and are listed here.
+                        Each one is checked on its own. Any that cannot be
+                        approved are skipped. Review the refreshed lists and
+                        reasons after approval.
                     </p>
                     <div class="flex flex-wrap gap-2">
                         <Button

@@ -1184,6 +1184,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.settings.manage.branch', 'sensitive.no-store'])->name('dispensary-settings.show');
         Route::put('dispensary-settings', [DispensarySettingsController::class, 'update'])
             ->middleware(['permission:dispensary.settings.manage.branch', 'throttle:20,1'])->name('dispensary-settings.update');
+        // DSP-27: the branch's Dispensary list (To prepare, Waiting for the doctor's check, Done today). Read only.
+        Route::get('dispensary', [DispensaryController::class, 'index'])
+            ->middleware(['permission:dispensary.view.branch,dispensary.view_readonly.branch', 'sensitive.no-store', 'throttle:120,1'])->name('dispensary.index');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
@@ -1493,6 +1496,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::get('queue/red-zone-alerts', [QueueController::class, 'redZoneAlerts'])
+            ->middleware(['permission:queue.call.own,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.red-zone-alerts');
+        Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
+            ->middleware(['permission:queue.call.own', 'throttle:30,1'])
+            ->name('queue.take-red-zone');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.call-next.block');

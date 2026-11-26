@@ -174,6 +174,45 @@ class PanelPriceBulkApproveTest extends ClinicalTestCase
         $this->assertSame(2, PriceChangeProposal::query()->where('status', 'approved')->count());
     }
 
+    public function test_a_proposer_cannot_create_a_batch_audit_when_all_selected_ids_are_missing(): void
+    {
+        $this->actingAs($this->officer)->post(route('panel-price-changes.approve-selected'), [
+            'expected_branch_id' => $this->branch->id,
+            'items' => [['id' => (string) Str::uuid(), 'lock_version' => 1]],
+        ])->assertForbidden();
+
+        $this->assertSame(0, AuditLog::query()->where('event', 'panel_price.bulk_approved')->count());
+    }
+
+    public function test_case_variants_of_one_uuid_are_refused_before_any_decision(): void
+    {
+        $proposal = $this->proposal();
+        $items = [
+            ['id' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'lock_version' => 1],
+            ['id' => 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA', 'lock_version' => 1],
+        ];
+        try {
+            $this->service->approveMany($this->finance, $this->branch->id, $items);
+            $this->fail('A case-variant duplicate was accepted.');
+        } catch (ValidationException) {
+            $this->assertSame('proposed', $proposal->refresh()->status);
+            $this->assertSame(0, AuditLog::query()->where('event', 'panel_price.bulk_approved')->count());
+        }
+    }
+
+    public function test_skipped_missing_and_decided_items_do_not_claim_to_be_waiting(): void
+    {
+        $proposal = $this->proposal();
+        $this->service->reject($this->finance, $proposal, ['expected_branch_id' => $this->branch->id, 'lock_version' => $proposal->lock_version, 'reason_code' => 'wrong_amount']);
+
+        $this->actingAs($this->finance)->post(route('panel-price-changes.approve-selected'), [
+            'expected_branch_id' => $this->branch->id,
+            'items' => [...$this->items([$proposal]), ['id' => (string) Str::uuid(), 'lock_version' => 1]],
+        ])->assertRedirect(route('panel-price-changes.index'))
+            ->assertSessionHasErrors(['bulk' => '2 could not be approved. Review the refreshed lists. '.PanelPriceProposalService::CHANGED.' This price change was not found.']);
+        $this->assertSame('rejected', $proposal->refresh()->status);
+    }
+
     public function test_the_route_says_how_many_were_skipped_and_why(): void
     {
         $good = $this->proposal();
@@ -182,6 +221,50 @@ class PanelPriceBulkApproveTest extends ClinicalTestCase
 
         $this->actingAs($this->finance)->post(route('panel-price-changes.approve-selected'), ['expected_branch_id' => $this->branch->id, 'items' => $this->items([$good, $mine])])
             ->assertRedirect(route('panel-price-changes.index'))
-            ->assertSessionHasErrors(['bulk' => '1 could not be approved and are still waiting. You proposed this. Someone else must decide.']);
+            ->assertSessionHasErrors(['bulk' => '1 could not be approved. Review the refreshed lists. You proposed this. Someone else must decide.']);
+    }
+
+    public function test_bulk_approval_preserves_an_unlimited_worker_timeout(): void
+    {
+        $original = (int) ini_get('max_execution_time');
+        try {
+            set_time_limit(0);
+            $proposal = $this->proposal();
+            $this->actingAs($this->finance)->post(route('panel-price-changes.approve-selected'), [
+                'expected_branch_id' => $this->branch->id, 'items' => $this->items([$proposal]),
+            ])->assertRedirect(route('panel-price-changes.index'))->assertSessionHasNoErrors();
+            $this->assertSame(0, (int) ini_get('max_execution_time'));
+        } finally {
+            set_time_limit($original);
+        }
+    }
+
+    public function test_bulk_validation_failure_restores_the_original_bounded_timeout(): void
+    {
+        $original = (int) ini_get('max_execution_time');
+        try {
+            set_time_limit(60);
+            $this->actingAs($this->finance)->post(route('panel-price-changes.approve-selected'), [
+                'expected_branch_id' => $this->branch->id, 'items' => [],
+            ])->assertRedirect(route('panel-price-changes.index'))->assertSessionHasErrors();
+            $this->assertSame(60, (int) ini_get('max_execution_time'));
+        } finally {
+            set_time_limit($original);
+        }
+    }
+
+    public function test_successful_bulk_approval_restores_the_original_bounded_timeout(): void
+    {
+        $original = (int) ini_get('max_execution_time');
+        try {
+            set_time_limit(60);
+            $proposal = $this->proposal();
+            $this->actingAs($this->finance)->post(route('panel-price-changes.approve-selected'), [
+                'expected_branch_id' => $this->branch->id, 'items' => $this->items([$proposal]),
+            ])->assertRedirect(route('panel-price-changes.index'))->assertSessionHasNoErrors();
+            $this->assertSame(60, (int) ini_get('max_execution_time'));
+        } finally {
+            set_time_limit($original);
+        }
     }
 }

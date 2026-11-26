@@ -55,3 +55,10 @@ test("the bulk panel sits before the empty state, so it never takes the list's v
     assert.ok(!between.includes('bulk-approve'));
     assert.match(between, /\/>\s*$/);
 });
+
+test('a partly skipped batch clears its selection and confirmation while preserving other error handling', () => {
+    assert.match(
+        flat(page),
+        /onError: \(errors\) => \{ if \(errors\.bulk\) \{ selected\.value = \[\]; bulkOpen\.value = false;/,
+    );
+});

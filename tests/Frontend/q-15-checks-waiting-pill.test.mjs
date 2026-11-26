@@ -19,8 +19,8 @@ test('the shared tabs render the pill only when a tab has a badge, after the cou
         template.indexOf('v-if="tab.count !== undefined"') <
             template.indexOf('v-if="tab.badge"'),
     );
-    assert.match(pill, /border border-warning\/25 bg-warning\/10/);
-    assert.match(pill, /text-warning-strong/);
+    assert.match(pill, /bg-warning-wash/);
+    assert.match(pill, /text-warning/);
     assert.match(
         pill,
         /<span aria-hidden="true">\{\{ tab\.badge\.text \}\}<\/span>/,
@@ -46,9 +46,9 @@ test('the shared tabs render the pill only when a tab has a badge, after the cou
     // the existing tab classes the other tests pin stay as they are
     assert.match(
         tabs,
-        /class="relative flex h-10 shrink-0 max-lg:h-11 max-sm:px-2\.5/,
+        /class="relative flex h-9 shrink-0 max-lg:h-11 max-sm:px-3/,
     );
-    assert.match(tabs, /after:bg-brand/);
+    assert.match(tabs, /bg-primary\/10/);
 });
 
 test('the Queue page gives the Consultation Completed tab a badge only when checksWaiting is above 0', () => {

@@ -27,3 +27,7 @@ Priya's review found one blocker, fixed before this PR: the bulk panel had been 
 
 ## Not in this slice
 A two-process race of two approvers on one batch (each approval is the existing, race-tested `approve()`); an "approve everything without ticking" button; rejecting in bulk.
+
+## Current-main continuation, 26 November 2026
+
+Codex billing_panel reproduced two additional edge cases on the recovered candidate: a Panel Officer submitting only absent UUIDs reached the counts audit without the approval permission check, and case variants of one UUID bypassed `distinct` before normalization. The batch now checks fresh transactional approval authority before lookup and again before its counts audit; UUID duplicate validation ignores case. Per-item approval checks remain unchanged. Two new regression tests cover these cases; existing assertions remain untouched. Partial-result validation responses now clear selection and close confirmation through the Inertia error callback, matching the behavior described above. No new role grants or migrations.
