@@ -22,6 +22,17 @@ final class ClinicManagementNavigation
     }
 
     /**
+     * Clean Look shell menu: the same rows, built on every page, so it skips the one row check that needs the person's staff profile
+     * (see hasDestinations). The hub page itself still uses the exact groups().
+     *
+     * @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}>
+     */
+    public function groupsForMenu(User $actor): array
+    {
+        return $this->build($actor, false);
+    }
+
+    /**
      * Whether the hub has anything for this person: the shell's menu flag, built on every page. It skips the one
      * row check that needs the person's staff profile (the approval inbox's branch assignment, AG-11), so ordinary
      * pages read no staff record for the menu; every person who may see the inbox also has other rows.

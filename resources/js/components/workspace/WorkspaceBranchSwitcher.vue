@@ -10,6 +10,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+defineProps<{ overlayOwner?: string }>();
+
 const page = usePage();
 const context = computed(() => page.props.branchContext);
 
@@ -43,6 +45,7 @@ const changeBranch = (value: unknown) => {
             <SelectValue class="truncate" />
         </SelectTrigger>
         <SelectContent
+            :data-shell-overlay="overlayOwner"
             align="end"
             class="rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/5"
         >
