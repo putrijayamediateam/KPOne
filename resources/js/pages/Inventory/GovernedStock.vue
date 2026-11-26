@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import StockCountCaseList from '@/components/inventory/StockCountCaseList.vue';
 import StockCountsDueList from '@/components/inventory/StockCountsDueList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import {
@@ -579,98 +580,116 @@ const caseKindLabel = (kind: string) =>
                 {{ stock.cases.total }} cases · Page {{ stock.cases.page }} of
                 {{ stock.cases.lastPage }} · 25 per page.
             </p>
-            <article
-                v-for="row in stock.cases.rows"
-                :key="row.id"
-                class="min-w-0 space-y-2 rounded border p-3"
+            <StockCountCaseList
+                :rows="stock.cases.rows"
+                :enabled="stock.mode === 'count'"
+                :branch-id="stock.branchId"
+                :busy="form.processing"
+                :states="states"
+                :case-label="caseKindLabel"
             >
-                <h3 class="font-semibold break-words">
-                    {{ caseKindLabel(row.kind) }} · {{ row.sku_code }} ·
-                    {{ row.batch_number }}
-                </h3>
-                <p>
-                    {{ row.location }} ·
-                    {{ formatInventoryReason(row.reason) }}
-                </p>
-                <ul
-                    v-if="row.reports?.length"
-                    class="space-y-1 text-sm"
-                    data-testid="difference-reports"
-                >
-                    <li
-                        v-for="(report, index) in row.reports"
-                        :key="index"
-                        class="break-words"
+                <template #default="{ row }">
+                    <article
+                        :key="row.id"
+                        class="min-w-0 space-y-2 rounded border p-3"
                     >
-                        Reported by {{ report.reporter }}:
-                        {{ observedLabels[report.observed] ?? report.observed
-                        }}<span
-                            v-if="report.roughQuantity"
-                            class="text-muted-foreground"
+                        <h3 class="font-semibold break-words">
+                            {{ caseKindLabel(row.kind) }} · {{ row.sku_code }} ·
+                            {{ row.batch_number }}
+                        </h3>
+                        <p>
+                            {{ row.location }} ·
+                            {{ formatInventoryReason(row.reason) }}
+                        </p>
+                        <ul
+                            v-if="row.reports?.length"
+                            class="space-y-1 text-sm"
+                            data-testid="difference-reports"
                         >
-                            · rough count
-                            {{ trimQuantity(report.roughQuantity) }}
-                            {{ row.stock_unit }}</span
-                        ><span
-                            v-if="report.note"
-                            class="block text-muted-foreground"
-                            >Note: {{ report.note }}</span
-                        >
-                    </li>
-                </ul>
-                <p v-if="row.blind" data-testid="blind-count">
-                    Blind count: the expected quantity shows to the approver
-                    once the counts are in.
-                </p>
-                <p v-else>
-                    Snapshot {{ row.expected_quantity }} {{ row.stock_unit }}
-                </p>
-                <p v-if="row.quantity">Requested quantity {{ row.quantity }}</p>
-                <p v-if="row.disposal_reference" class="break-words">
-                    Disposal reference:
-                    {{ row.disposal_reference }} (referenced, not proven)
-                </p>
-                <p class="font-semibold">{{ states[row.state] }}</p>
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        v-if="row.canCount"
-                        class="min-h-11 rounded border px-3"
-                        @click="
-                            showCase(
-                                row,
-                                row.state === 'awaiting_count'
-                                    ? 'counted'
-                                    : 'recounted',
-                            )
-                        "
-                    >
-                        {{
-                            row.state === 'awaiting_count'
-                                ? 'Enter count'
-                                : 'Independent recount'
-                        }}</button
-                    ><button
-                        v-if="row.canApprove"
-                        class="min-h-11 rounded border px-3"
-                        @click="showCase(row, 'approved')"
-                    >
-                        Approve and post</button
-                    ><button
-                        v-if="row.canReverse"
-                        class="min-h-11 rounded border px-3"
-                        @click="showCase(row, 'reversal')"
-                    >
-                        Propose reversal</button
-                    ><button
-                        type="button"
-                        class="inline-flex min-h-11 items-center px-2 underline lg:min-h-9"
-                        @click="history = row"
-                    >
-                        Evidence history
-                    </button>
-                </div>
-            </article>
-            <p v-if="!stock.cases.rows.length">No matching cases.</p>
+                            <li
+                                v-for="(report, index) in row.reports"
+                                :key="index"
+                                class="break-words"
+                            >
+                                Reported by {{ report.reporter }}:
+                                {{
+                                    observedLabels[report.observed] ??
+                                    report.observed
+                                }}<span
+                                    v-if="report.roughQuantity"
+                                    class="text-muted-foreground"
+                                >
+                                    · rough count
+                                    {{ trimQuantity(report.roughQuantity) }}
+                                    {{ row.stock_unit }}</span
+                                ><span
+                                    v-if="report.note"
+                                    class="block text-muted-foreground"
+                                    >Note: {{ report.note }}</span
+                                >
+                            </li>
+                        </ul>
+                        <p v-if="row.blind" data-testid="blind-count">
+                            Blind count: the expected quantity shows to the
+                            approver once the counts are in.
+                        </p>
+                        <p v-else>
+                            Snapshot {{ row.expected_quantity }}
+                            {{ row.stock_unit }}
+                        </p>
+                        <p v-if="row.quantity">
+                            Requested quantity {{ row.quantity }}
+                        </p>
+                        <p v-if="row.disposal_reference" class="break-words">
+                            Disposal reference:
+                            {{ row.disposal_reference }} (referenced, not
+                            proven)
+                        </p>
+                        <p class="font-semibold">{{ states[row.state] }}</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                v-if="row.canCount"
+                                class="min-h-11 rounded border px-3"
+                                @click="
+                                    showCase(
+                                        row,
+                                        row.state === 'awaiting_count'
+                                            ? 'counted'
+                                            : 'recounted',
+                                    )
+                                "
+                            >
+                                {{
+                                    row.state === 'awaiting_count'
+                                        ? 'Enter count'
+                                        : 'Independent recount'
+                                }}</button
+                            ><button
+                                v-if="row.canApprove"
+                                class="min-h-11 rounded border px-3"
+                                @click="showCase(row, 'approved')"
+                            >
+                                Approve and post</button
+                            ><button
+                                v-if="row.canReverse"
+                                class="min-h-11 rounded border px-3"
+                                @click="showCase(row, 'reversal')"
+                            >
+                                Propose reversal</button
+                            ><button
+                                type="button"
+                                class="inline-flex min-h-11 items-center px-2 underline lg:min-h-9"
+                                @click="history = row"
+                            >
+                                Evidence history
+                            </button>
+                        </div>
+                    </article>
+                </template>
+            </StockCountCaseList>
+            <p v-if="stock.mode === 'writeoff' && !stock.cases.rows.length">
+                No matching cases.
+            </p>
             <div class="flex justify-between gap-2">
                 <button
                     class="min-h-11 rounded border px-4 disabled:opacity-40"
