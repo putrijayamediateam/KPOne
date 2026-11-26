@@ -446,3 +446,7 @@ Team rules for this backlog: run the PHPStan stopgap before each push; migration
 ### Read-only review context — 26 November 2026 (in review)
 
 Owner-authorized F27 presentation slice recomposes the existing patient/visit/case-branch facts and Case/Allergies cards. Case branch stays explicitly distinct from active shell branch during organisation-authorized review. Only the existing Back link remains; unknown/allergy/null-time predicates and all clinical projection/audit policy are unchanged. Script differs only by a decorative icon import. Medicine/service/return contents remain outside this bounded slice.
+
+### Read-only review line cards — 26 November 2026 (in review)
+
+Owner-authorized F27 follow-up aligns existing medicine/service/return cards and ordered-versus-dispensed facts with the common presentation. Entire script and clinical expressions remain unchanged; pack precedence, CA-added/edited/removed wording, pending return outcomes and latest-return cap are preserved. No new actions, data or authority. Actual return preview uses an existing synthetic completed case through DispensaryReturnService, separate from production.
