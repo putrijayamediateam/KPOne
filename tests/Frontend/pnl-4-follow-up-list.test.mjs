@@ -9,6 +9,7 @@ const read = (path) =>
 
 const page = read('resources/js/pages/PanelClaims/FollowUp.vue');
 const index = read('resources/js/pages/PanelClaims/Index.vue');
+const navigation = read('resources/js/components/panel/PanelWorkspaceNav.vue');
 const form = read('resources/js/pages/PanelSettings/Form.vue');
 const routes = read('routes/web.php');
 const service = read(
@@ -16,10 +17,10 @@ const service = read(
 );
 
 test('The Follow-up list is a read-only page reached from Panel Claims', () => {
-    assert.match(
-        index,
-        /<Link href="\/panel-claims\/follow-up">Follow-up list<\/Link>/,
-    );
+    assert.match(index, /<PanelWorkspaceNav\s+active="claims"/);
+    assert.match(navigation, /href: '\/panel-claims\/follow-up'/);
+    assert.match(navigation, /label: 'Follow-up list'/);
+    assert.match(navigation, /can\('panel\.claims\.manage\.branch'\)/);
     const followUpRoute = routes.indexOf("'panel-claims/follow-up'");
     const claimRoute = routes.indexOf("Route::get('panel-claims/{claim}'");
     assert.ok(followUpRoute > 0 && followUpRoute < claimRoute);

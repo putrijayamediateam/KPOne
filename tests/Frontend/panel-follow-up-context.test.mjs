@@ -71,6 +71,10 @@ async function render(overrides = {}) {
                 };
             }
 
+            if (name === '@/components/panel/PanelWorkspaceNav.vue') {
+                return container;
+            }
+
             if (name === '@/types/billing') {
                 return money.exports;
             }

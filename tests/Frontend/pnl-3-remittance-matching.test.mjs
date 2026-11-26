@@ -9,6 +9,7 @@ const read = (path) =>
 
 const page = read('resources/js/pages/PanelRemittances/Index.vue');
 const claims = read('resources/js/pages/PanelClaims/Index.vue');
+const navigation = read('resources/js/components/panel/PanelWorkspaceNav.vue');
 const invoices = read('resources/js/pages/PanelInvoices/Index.vue');
 const routes = read('routes/web.php');
 const billing = read('app/Domain/Access/BillingPermissions.php');
@@ -23,13 +24,20 @@ test('The page is reached by the new narrow permission from Panel Claims and Pan
         /Route::post\('panel-remittances', \[PanelRemittancesController::class, 'store'\]\)->middleware\('throttle:20,1'\)/,
     );
 
-    for (const source of [claims, invoices]) {
-        assert.match(source, /v-if="(work\.)?can\.recordRemittances"/);
-        assert.match(
-            source,
-            /<Link href="\/panel-remittances">Record Panel payment<\/Link>/,
-        );
-    }
+    assert.match(claims, /<PanelWorkspaceNav\s+active="claims"/);
+    assert.match(
+        claims,
+        /:can-record-payments="work\.can\.recordRemittances === true"/,
+    );
+    assert.match(navigation, /can\('panel\.remittances\.record\.branch'\)/);
+    assert.match(navigation, /props\.canRecordPayments !== false/);
+    assert.match(navigation, /href: '\/panel-remittances'/);
+    assert.match(navigation, /label: 'Record Panel payment'/);
+    assert.match(invoices, /v-if="can\.recordRemittances"/);
+    assert.match(
+        invoices,
+        /<Link href="\/panel-remittances">Record Panel payment<\/Link>/,
+    );
 
     const holders = [
         ...billing.matchAll(/'([a-z_]+)' => \[([^\]]*)\]/g),

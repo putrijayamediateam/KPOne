@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import PanelWorkspaceNav from '@/components/panel/PanelWorkspaceNav.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
@@ -626,17 +627,6 @@ const visitTypeLabel = (value: string) =>
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <Button as-child variant="secondary" size="sm">
-                    <Link href="/panel-claims/follow-up">Follow-up list</Link>
-                </Button>
-                <Button
-                    v-if="work.can.recordRemittances"
-                    as-child
-                    variant="secondary"
-                    size="sm"
-                >
-                    <Link href="/panel-remittances">Record Panel payment</Link>
-                </Button>
                 <template v-if="work.filters.range === 'custom'">
                     <span class="flex items-center gap-1.5">
                         <label
@@ -679,6 +669,10 @@ const visitTypeLabel = (value: string) =>
                 />
             </div>
         </header>
+        <PanelWorkspaceNav
+            active="claims"
+            :can-record-payments="work.can.recordRemittances === true"
+        />
 
         <p
             v-if="error"

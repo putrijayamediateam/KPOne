@@ -4,6 +4,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import PanelStatementHelper from '@/components/panel/PanelStatementHelper.vue';
 import type { Statement } from '@/components/panel/PanelStatementHelper.vue';
+import PanelWorkspaceNav from '@/components/panel/PanelWorkspaceNav.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
@@ -263,8 +264,10 @@ const record = () => {
     >
         <PageHeader
             title="Panel payments"
-            :description="`${branch.name} · Record one payment from a Panel and split it across that Panel's accepted claims.`"
+            description="Record one payment from a Panel and split it across that Panel's accepted claims."
         />
+
+        <PanelWorkspaceNav active="payments" />
 
         <section
             class="space-y-4 rounded-xl border bg-card p-4"
@@ -282,7 +285,7 @@ const record = () => {
                     Panel
                     <select
                         :value="filters.panel"
-                        class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                        class="min-h-11 w-full min-w-0 rounded-md border bg-background px-2 text-sm lg:min-h-9"
                         aria-label="Panel"
                         @change="
                             choosePanel(

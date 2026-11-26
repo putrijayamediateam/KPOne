@@ -6,6 +6,7 @@ import test from 'node:test';
 const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const classic = read('resources/js/pages/PanelClaims/Index.vue');
+const navigation = read('resources/js/components/panel/PanelWorkspaceNav.vue');
 const flat = (text) => text.replace(/[\s,()]/g, '');
 
 test('Classic Panel Claims list imports no V2 code', () => {
@@ -44,11 +45,15 @@ test('Classic Panel Claims list keeps its routes, query keys and payloads', () =
     }
 
     for (const link of ['/panel-claims/follow-up', '/panel-remittances']) {
-        assert.ok(classic.includes(link), `Classic links ${link}`);
+        assert.ok(
+            navigation.includes(link),
+            `Classic navigation links ${link}`,
+        );
     }
 });
 
 test('Classic Panel Claims list keeps its wording', () => {
+    assert.match(classic, /<PanelWorkspaceNav\s+active="claims"/);
     const strings = [
         'Panel Claims',
         'Create claims for manual submission and track Panel decisions and remittances.',
@@ -95,7 +100,11 @@ test('Classic Panel Claims list keeps its wording', () => {
 
     for (const text of strings) {
         assert.ok(
-            flat(classic).includes(flat(text.split('${')[0])),
+            flat(
+                ['Follow-up list', 'Record Panel payment'].includes(text)
+                    ? navigation
+                    : classic,
+            ).includes(flat(text.split('${')[0])),
             `Classic has: ${text}`,
         );
     }
