@@ -9,3 +9,7 @@ Reason: the original nine-column table hid the primary action behind horizontal 
 No grant, migration, business rule, financial calculation, approval/retry/lock logic or production operation is authorized by this decision. Remaining full-demo work and the next search/age-filter slice remain outside this PR. This draft must not be merged merely because the previously blocked tests pass.
 
 Validation: scoped frontend suite98/98 passed. Independent staff/design reviewer approved the two replacements as faithful to the verified disclosure layout, independently reran BIL23 plus the new frame tests9/9, and confirmed the prior twelve-state visual review remains applicable because runtime source is unchanged. No merge was authorized by this review.
+
+## DD44 full-suite followup — delegated review
+
+The full CI frontend suite additionally exposed DD44's old literal main-wrapper and1120px table expectations. Independent staff/design review approved the exact proposed replacement under the same delegated technical authority: verify BillingBoardFrame active collect, bounded PageFrame wide, the260px contextual column and the compact680px/six-column table. Keep the guard against page-local1600px sizing so width remains owned by the shared PageFrame. This matches the previously reviewed populated visuals and preserves every financial/date/review-required/read-only contract. This is a delegated review decision, not a new direct owner answer. No runtime source change accompanies this test update.
