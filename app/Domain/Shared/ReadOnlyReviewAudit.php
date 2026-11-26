@@ -12,8 +12,9 @@ use RuntimeException;
 
 /**
  * DSP-25 (owner decision 4 of 20-21 Nov 2026, answers P4, P5, 15 and 16): a Director's read-only review of a clinical
- * record is recorded before any content is built. Shared with the consultation review (Queue & TV, Amirul) and, from
- * TRI-1e, the doctor's read-only triage view (Patients & Registration, Syazwan).
+ * record is recorded before any content is built. Shared with the consultation review (Queue & TV, Amirul), from
+ * TRI-1e the doctor's read-only triage view (Patients & Registration, Syazwan) and, since BIL-37, the Resident Doctor's
+ * read-only bill of their own patient (Billing, event billing.reviewed).
  *
  * Call it first and let it commit; only then build the page data. If the audit row cannot be written it throws, so the
  * caller shows nothing. Event names and id keys are allowlisted, so no content can slip into the audit row: a new
@@ -22,10 +23,10 @@ use RuntimeException;
 final class ReadOnlyReviewAudit
 {
     /** @var list<string> */
-    public const EVENTS = ['dispensary.case_reviewed', 'consultation.reviewed', 'triage.viewed', 'queue.details_viewed'];
+    public const EVENTS = ['dispensary.case_reviewed', 'consultation.reviewed', 'triage.viewed', 'billing.reviewed', 'queue.details_viewed'];
 
     /** @var list<string> */
-    public const ID_KEYS = ['case', 'visit', 'patient', 'encounter'];
+    public const ID_KEYS = ['case', 'visit', 'patient', 'encounter', 'invoice'];
 
     public function __construct(private AuditRecorder $audit) {}
 

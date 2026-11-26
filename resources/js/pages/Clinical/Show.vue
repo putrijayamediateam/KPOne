@@ -63,6 +63,8 @@ const props = defineProps<{
     treatmentRooms?: Array<{ id: number; name: string }>;
     // Q-2: the Serving consultation's treatment step (board only; never the TV).
     treatmentProgress?: TreatmentProgress | null;
+    // BIL-37: the doctor's read-only bill of this visit (only once a finalised invoice exists).
+    billViewUrl?: string | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -824,6 +826,20 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             class="size-3.5"
                             aria-hidden="true"
                         /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <!-- BIL-37 (Daniel): the doctor's read-only bill, same tab, so no external-link icon. -->
+                <Button
+                    v-if="billViewUrl"
+                    variant="outline"
+                    size="sm"
+                    class="h-9 text-[14px] max-lg:h-11"
+                    as-child
+                >
+                    <Link
+                        :href="billViewUrl"
+                        data-testid="consultation-view-bill"
+                        >View bill</Link
                     ></Button
                 >
                 <WaitingPatientsButton
