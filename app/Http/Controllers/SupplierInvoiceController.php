@@ -30,7 +30,9 @@ final class SupplierInvoiceController extends Controller
             throw $e->redirectTo(route('inventory.supplier-invoices'));
         }
 
-        return to_route('inventory.supplier-invoices')->with('success', 'Invoice recorded.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Invoice recorded.']);
+
+        return to_route('inventory.supplier-invoices');
     }
 
     public function decide(Request $request, string $supplierInvoice, string $decision, SupplierInvoiceService $service): RedirectResponse
@@ -44,6 +46,8 @@ final class SupplierInvoiceController extends Controller
             throw ValidationException::withMessages(['status' => $e->getMessage()])->redirectTo(route('inventory.supplier-invoices'));
         }
 
-        return to_route('inventory.supplier-invoices', ['tab' => $decision])->with('success', $decision === 'accepted' ? 'Invoice accepted.' : 'Invoice rejected.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => $decision === 'accepted' ? 'Invoice accepted.' : 'Invoice rejected.']);
+
+        return to_route('inventory.supplier-invoices', ['tab' => $decision]);
     }
 }
