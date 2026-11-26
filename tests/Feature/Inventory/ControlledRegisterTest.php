@@ -86,7 +86,7 @@ final class ControlledRegisterTest extends VisitTestCase
 
         $register = $this->registerPage($viewer, $f['sku']->public_id);
         $this->actingAs($viewer)->post(route('inventory.controlled-register.check', ['sku' => $f['sku']->public_id]), $this->input($register['newestMovementId'], '10'))
-            ->assertRedirect(route('inventory.controlled-register.show', ['sku' => $f['sku']->public_id]))->assertSessionHas('success', 'Check recorded.');
+            ->assertRedirect(route('inventory.controlled-register.show', ['sku' => $f['sku']->public_id]))->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Check recorded.']);
         $row = $this->actingAs($viewer)->get(route('inventory.controlled-register'))->viewData('page')['props']['register']['rows'][0];
         $this->assertSame(['checked', 'matches'], [$row['status'], $row['lastOutcome']]);
 
