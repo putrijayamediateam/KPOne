@@ -66,10 +66,7 @@ async function render(overrides = {}) {
 }
 test('authorized setting explanation does not invent last-change identities or navigation', async () => {
     const html = await render();
-    assert.match(
-        html,
-        /Synthetic Branch · These settings apply to this branch only/,
-    );
+    assert.match(html, /These settings apply to this branch only/);
     assert.match(html, /Only staff authorized to manage this branch/);
     assert.match(html, /Changes are recorded/);
     assert.match(

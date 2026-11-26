@@ -454,3 +454,7 @@ Owner-authorized F24 existing-data reader returns current switch and metadata fr
 ### Settings waiting-case link — 26 November 2026 (in review)
 
 Owner-authorized F24 navigation gap: separate nullable URL derives from actual DispensaryDirectoryService viewer authority on the freshly authorized settings actor, targeting the real check tab. Settings permission alone does not expose the link; destination guards remain unchanged. No new queries, grants, counts or workflow. Existing toggle and last-change contracts preserved; positive Supervisor and negative settings-only Director checks accompany publication.
+
+### Settings compact switch — 26 November 2026 (in review)
+
+Owner-authorized F24 presentation follow-up replaces the pink track with the specified semantic-success 44×26 track and 22px knob inside the preserved 44px button target. On/Off, aria, keyboard action, disabled state and exact script remain unchanged; reduced-motion preference is respected. Scope-only description avoids repeating the existing shared branch subline. No backend, permission or workflow change; one faithful redundant-description assertion adaptation is documented in the review packet.
