@@ -35,6 +35,7 @@ defineProps<{
     >
         <PageHeader
             title="Dispensary completed"
+            class="[&_p]:break-words"
             :description="`${dispensary.patient.name} · ${dispensary.patient.patientNumber} · ${dispensary.visit.visitNumber}`"
         >
             <template #actions>
@@ -43,6 +44,7 @@ defineProps<{
                     as-child
                     variant="outline"
                     size="sm"
+                    class="min-h-11 lg:min-h-9"
                     ><a
                         :href="dispensary.labelUrl"
                         target="_blank"
@@ -56,7 +58,12 @@ defineProps<{
                     ></Button
                 >
                 <!-- DSP-26: for the doctor this is the back link (to the consultation or Registration). -->
-                <Button as-child variant="outline" size="sm">
+                <Button
+                    as-child
+                    variant="outline"
+                    size="sm"
+                    class="min-h-11 lg:min-h-9"
+                >
                     <Link
                         v-if="dispensary.backLink"
                         :href="dispensary.backLink.href"
@@ -68,7 +75,11 @@ defineProps<{
                         >Return to Registration</Link
                     >
                 </Button>
-                <Button v-if="dispensary.billingUrl" as-child size="sm"
+                <Button
+                    v-if="dispensary.billingUrl"
+                    as-child
+                    size="sm"
+                    class="min-h-11 lg:min-h-9"
                     ><Link :href="dispensary.billingUrl"
                         >Continue to Billing</Link
                     ></Button
@@ -86,20 +97,30 @@ defineProps<{
             class="mb-4"
             :check="supervisorCheck"
         />
-        <p v-if="dispensary.completedAt" class="mt-3 text-sm">
-            Completed {{ dispensary.completedAt }}
-        </p>
-        <p
-            v-if="!dispensary.viewOnly"
-            class="mt-1 text-sm text-muted-foreground"
+        <section
+            v-if="dispensary.completedAt || !dispensary.viewOnly"
+            aria-label="Completion status"
+            class="my-5 flex flex-wrap items-start gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm"
+            data-testid="completion-context"
         >
-            This case is read-only. Fulfilment has finished and it cannot be
-            returned to the doctor.
-            <template v-if="returns?.lines.length"
-                >If the patient brings medicine back, record it under Medicine
-                returns.</template
+            <p
+                v-if="dispensary.completedAt"
+                class="max-w-full rounded-full bg-success-wash px-3 py-1.5 text-sm font-medium break-words text-success"
             >
-        </p>
+                Completed {{ dispensary.completedAt }}
+            </p>
+            <p
+                v-if="!dispensary.viewOnly"
+                class="min-w-0 flex-1 basis-72 text-sm leading-6 text-muted-foreground"
+            >
+                This case is read-only. Fulfilment has finished and it cannot be
+                returned to the doctor.
+                <template v-if="returns?.lines.length"
+                    >If the patient brings medicine back, record it under
+                    Medicine returns.</template
+                >
+            </p>
+        </section>
         <MedicineReturnsSection
             v-if="returns && returns.lines.length"
             :returns="returns"

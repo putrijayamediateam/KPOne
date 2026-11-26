@@ -442,3 +442,7 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Completed case context — 26 November 2026 (in review)
+
+Owner-authorized bounded F21 presentation continuation: existing completion timestamp/explanation grouped in a context card, existing header actions44/36 and long patient context wrapping. Script, actor-specific URLs, readonly and returns child guards unchanged. No new return behavior, clinical facts, follow-up link or completion state. Exact focused/runtime/browser evidence will accompany the scoped publication packet.
