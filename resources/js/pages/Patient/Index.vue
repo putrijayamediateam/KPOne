@@ -5,6 +5,7 @@ import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import RegistrationWorkspaceNav from '@/components/registration/RegistrationWorkspaceNav.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 
@@ -126,6 +127,8 @@ const identifierLabel = (result: Result) =>
                 >
             </div>
         </div>
+
+        <RegistrationWorkspaceNav active="patients" />
 
         <section class="rounded-lg border bg-card">
             <div class="border-b px-5 py-4">

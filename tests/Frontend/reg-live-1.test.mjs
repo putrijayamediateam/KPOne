@@ -243,6 +243,7 @@ const requireMap = {
         default: NullStub,
     },
     '@/components/registration/QrIntakeTable.vue': { default: NullStub },
+    '@/components/registration/RegistrationWorkspaceNav.vue': { default: NullStub },
     '@/components/ui/button': { Button: ButtonStub },
     '@/components/ui/date-field': { DateField: NullStub },
     '@/components/ui/select': { OperationalSelect: OperationalSelectStub },
@@ -281,7 +282,13 @@ const makeVisit = (key, overrides = {}) => ({
 const mountIndex = (initialRows, overrides = {}) => {
     const Index = compileComponent(
         'resources/js/pages/Registration/Index.vue',
-        requireMap,
+        {
+            ...requireMap,
+            '@inertiajs/vue3': {
+                ...requireMap['@inertiajs/vue3'],
+                usePage: () => ({ url: overrides.url ?? '/registration' }),
+            },
+        },
     );
     const mounted = createMountedRenderer();
     const app = mounted.renderer.createApp(Index, {
@@ -670,8 +677,9 @@ test('REG-LIVE-1 unmount removes the timer/listener and aborts before a late res
     assert.equal(environment.timers.size, 0);
 });
 
-test('REG-LIVE-1 pauses visit polling on the separate QR Intake tab and resumes on an operational tab', async () => {
+test('REG-LIVE-1 pauses polling on the QR route and resumes after navigating back to Today', async () => {
     const mounted = mount({
+        url: '/registration?tab=qr-intake',
         qrIntakes: {
             pendingCount: 0,
             branch: { id: 1 },
@@ -679,11 +687,16 @@ test('REG-LIVE-1 pauses visit polling on the separate QR Intake tab and resumes 
             history: { total: 0, currentPage: 1, lastPage: 1 },
         },
     });
-    tabButton(mounted.root, 'qr-intake').props.onClick();
     await environment.advance(30000);
     assert.equal(environment.requests.length, 0);
-    tabButton(mounted.root, 'all').props.onClick();
+    mounted.app.unmount();
+    mountedApps.pop();
+    assert.equal(environment.timers.size, 0);
+    assert.equal(environment.listeners.size, 0);
+    mount({ url: '/registration' });
     await flush();
+    assert.equal(environment.requests.length, 0);
+    await environment.advance(10000);
     assert.equal(environment.requests.length, 1);
     await environment.advance(10000);
     assert.equal(environment.requests.length, 2);
