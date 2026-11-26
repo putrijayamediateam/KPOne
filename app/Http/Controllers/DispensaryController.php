@@ -133,8 +133,10 @@ class DispensaryController extends Controller
     /** DSP-27: the branch's Dispensary list in three status tabs, with counts. Read only. */
     public function index(Request $request, DispensaryListService $list, DispensaryReturnService $returns): Response
     {
+        $caseType = $request->query('case_type', 'all');
+
         return Inertia::render('Dispensary/Index', [
-            'list' => $list->page($request->user(), (string) $request->query('tab', DispensaryListService::TAB_PREPARE), (int) $request->query('page', '1'), (string) $request->query('search', '')),
+            'list' => $list->page($request->user(), (string) $request->query('tab', DispensaryListService::TAB_PREPARE), (int) $request->query('page', '1'), (string) $request->query('search', ''), is_string($caseType) ? $caseType : 'all'),
             'canViewReturns' => $request->user()->can('dispensary.view.branch') && $returns->canCheckReturns($request->user()),
         ]);
     }
