@@ -8,26 +8,27 @@ const read = (p) =>
 const squash = (s) => s.replace(/\s+/g, ' ');
 
 const CLASSIC_CLINIC =
-    squash(`<WorkspaceHeader v-if="!focusMode" context="clinic" />
+    squash(`<WorkspaceRail v-if="!focusMode" context="clinic" />
         <div
             ref="content"
             id="main-content"
             class="flex min-h-0 w-full flex-1 flex-col"
+            :class="focusMode ? '' : 'lg:pl-[var(--shell-offset,72px)]'"
             :role="role"
         >
             <slot />
         </div>`);
-const CLASSIC_ADMIN = squash(`<WorkspaceHeader context="admin" />
+const CLASSIC_ADMIN = squash(`<WorkspaceRail context="admin" />
         <div
             ref="content"
             id="main-content"
-            class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col"
+            class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col lg:pl-[var(--shell-offset,72px)]"
             :role="role"
         >
             <slot />
         </div>`);
 
-test('both staff layouts draw the Classic header and main landmark once, with one Toaster and no V2 shell', () => {
+test('both staff layouts draw the Clean Look rail and main landmark once, with one Toaster and no V2 shell', () => {
     for (const [path, classic] of [
         ['resources/js/layouts/ClinicLayout.vue', CLASSIC_CLINIC],
         ['resources/js/layouts/AdminLayout.vue', CLASSIC_ADMIN],

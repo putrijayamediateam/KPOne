@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
+use App\Domain\Access\ShellMenu;
 use App\Domain\Access\WorkspaceLandingService;
 use App\Domain\DepartmentSpace\AccountMenuLinks;
 use App\Domain\Patient\Models\PublicPatientIntake;
@@ -93,6 +94,7 @@ class HandleInertiaRequests extends Middleware
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
                 'accountMenu' => app(AccountMenuLinks::class)->for($user),
+                'shellMenu' => app(ShellMenu::class)->for($user),
                 'navigation' => [
                     'clinicManagement' => app(ClinicManagementNavigation::class)->hasDestinations($user),
                     'businessDetails' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
