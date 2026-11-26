@@ -36,6 +36,7 @@ defineProps<{
     rows: PatientBoardRow[];
     branchId?: number;
     from?: 'registration' | 'queue';
+    queueLayout?: 'own' | 'branch';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
@@ -126,23 +127,46 @@ const triageTextClass = (zone: TriageZone | null) =>
 </script>
 
 <template>
-    <div class="patient-board overflow-x-auto">
+    <div class="patient-board overflow-x-auto" :data-queue-layout="queueLayout">
         <table
-            class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
+            class="w-full text-left text-[13px] leading-5"
+            :class="
+                queueLayout
+                    ? 'table-fixed md:min-w-[800px]'
+                    : 'table-fixed md:min-w-[1040px]'
+            "
         >
             <thead
                 class="border-y bg-card-quiet text-[13px] font-semibold text-muted-foreground"
             >
                 <tr>
-                    <th class="w-[15%] px-3 py-2">Patient</th>
-                    <th class="w-[7%] px-3 py-2">Queue</th>
-                    <th class="w-[9%] px-3 py-2">Arrived</th>
-                    <th class="w-[12%] px-3 py-2">Visit notes</th>
-                    <th class="w-[10%] px-3 py-2">Doctor</th>
-                    <th class="w-[18%] px-3 py-2">Payment</th>
-                    <th class="w-[8%] px-3 py-2">Duration</th>
-                    <th class="w-[15%] px-3 py-2">Status</th>
-                    <th class="w-[112px] px-3 py-2 text-right">Actions</th>
+                    <template v-if="queueLayout">
+                        <th class="w-20 px-3 py-2">No.</th>
+                        <th class="w-56 px-3 py-2">Patient</th>
+                        <th v-if="queueLayout === 'own'" class="w-40 px-3 py-2">
+                            Reason
+                        </th>
+                        <th
+                            v-if="queueLayout === 'branch'"
+                            class="w-36 px-3 py-2"
+                        >
+                            Doctor
+                        </th>
+                        <th class="w-40 px-3 py-2">Waiting / since</th>
+                        <th class="w-40 px-3 py-2">Status</th>
+                        <th class="w-[112px] px-3 py-2 text-right">Actions</th>
+                    </template>
+                    <template v-else>
+                        <th class="w-[15%] px-3 py-2">Patient</th>
+                        <th class="w-[7%] px-3 py-2">Queue</th>
+                        <th class="w-[9%] px-3 py-2">Arrived</th>
+                        <th class="w-[12%] px-3 py-2">Visit notes</th>
+                        <th class="w-[10%] px-3 py-2">Doctor</th>
+                        <th class="w-[18%] px-3 py-2">Payment</th>
+                        <th class="w-[8%] px-3 py-2">Duration</th>
+                        <th class="w-[15%] px-3 py-2">Status</th>
+                        <th class="w-[112px] px-3 py-2 text-right">Actions</th>
+                    </template>
                 </tr>
             </thead>
             <tbody>
@@ -154,9 +178,17 @@ const triageTextClass = (zone: TriageZone | null) =>
                     :data-history-url="row.historyUrl ?? undefined"
                     @click="openHistory($event, row)"
                 >
+                    <td
+                        v-if="queueLayout"
+                        class="px-3 py-2.5 align-middle font-semibold tabular-nums"
+                        data-label="No."
+                    >
+                        {{ row.queueNumber ?? '—' }}
+                    </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Patient">
                         <div class="flex min-w-0 items-center gap-2.5">
                             <span
+                                v-if="!queueLayout"
                                 class="grid size-8 shrink-0 place-items-center rounded-full bg-muted/75 text-muted-foreground"
                                 aria-hidden="true"
                             >
@@ -164,19 +196,52 @@ const triageTextClass = (zone: TriageZone | null) =>
                             </span>
                             <div class="min-w-0">
                                 <div
-                                    class="truncate font-medium text-foreground"
+                                    :class="
+                                        queueLayout
+                                            ? 'font-medium break-words text-foreground'
+                                            : 'truncate font-medium text-foreground'
+                                    "
                                 >
                                     {{ row.patientName }}
                                 </div>
                                 <div
                                     class="truncate text-[11px] font-normal text-muted-foreground"
                                 >
-                                    {{ row.patientNumber }}
+                                    {{
+                                        queueLayout
+                                            ? row.coverageLabel
+                                            : row.patientNumber
+                                    }}
                                 </div>
                             </div>
                         </div>
+                        <div
+                            v-if="queueLayout === 'own' && row.doctorWarning"
+                            class="mt-2 flex flex-wrap items-center gap-1"
+                            data-testid="own-doctor-warning"
+                        >
+                            <span
+                                class="rounded-md border px-1.5 py-0.5 text-xs"
+                                :class="
+                                    row.doctorWarning.code === 'another_free'
+                                        ? 'border-border text-muted-foreground'
+                                        : 'border-warning/40 bg-warning/10 text-warning-strong'
+                                "
+                                >{{ row.doctorWarning.label }}</span
+                            >
+                            <Link
+                                :href="editHref(row.visitNumber)"
+                                class="inline-flex min-h-9 items-center text-xs font-medium underline underline-offset-2 max-lg:min-h-11"
+                                :aria-label="`Reassign visit ${row.visitNumber}: ${row.doctorWarning.label}`"
+                                >Reassign</Link
+                            >
+                        </div>
                     </td>
-                    <td class="px-3 py-2.5 align-middle" data-label="Queue">
+                    <td
+                        v-if="!queueLayout"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Queue"
+                    >
                         <span
                             class="inline-flex min-w-9 justify-center rounded-md bg-muted/65 px-2 py-0.5 font-normal text-foreground tabular-nums"
                             >{{ row.queueNumber ?? '—' }}</span
@@ -184,6 +249,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     </td>
                     <td
                         class="px-3 py-2.5 align-middle font-normal tabular-nums"
+                        v-if="!queueLayout"
                         data-label="Arrived"
                     >
                         <span class="block truncate" :title="row.arrivedDate">{{
@@ -196,6 +262,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                     </td>
                     <td
                         class="px-3 py-2.5 align-middle"
+                        v-if="queueLayout !== 'branch'"
                         data-label="Visit notes"
                     >
                         <div class="text-xs leading-5">
@@ -206,13 +273,18 @@ const triageTextClass = (zone: TriageZone | null) =>
                             />
                         </div>
                     </td>
-                    <td class="px-3 py-2.5 align-middle" data-label="Doctor">
+                    <td
+                        v-if="queueLayout !== 'own'"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Doctor"
+                    >
                         <TooltipProvider :delay-duration="350">
                             <Tooltip>
                                 <TooltipTrigger as-child>
                                     <span
                                         class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
                                         tabindex="0"
+                                        :class="queueLayout ? 'max-w-36' : ''"
                                         :title="row.doctorName ?? 'Unassigned'"
                                     >
                                         <UserRound
@@ -269,7 +341,11 @@ const triageTextClass = (zone: TriageZone | null) =>
                             >
                         </div>
                     </td>
-                    <td class="px-3 py-2.5 align-middle" data-label="Payment">
+                    <td
+                        v-if="!queueLayout"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Payment"
+                    >
                         <TooltipProvider :delay-duration="350">
                             <Tooltip>
                                 <TooltipTrigger as-child>
@@ -662,7 +738,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                 </tr>
                 <tr v-if="!rows.length">
                     <td
-                        colspan="9"
+                        :colspan="queueLayout ? 6 : 9"
                         class="px-4 py-12 text-center text-sm text-muted-foreground"
                     >
                         {{

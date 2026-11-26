@@ -120,7 +120,7 @@ test('Registration and Queue share one two-line Payment column with full-name/no
         board,
         /td\[data-label='Payment'\] \{\s+grid-column: 1 \/ -1;/,
     );
-    assert.match(board, /colspan="9"/);
+    assert.match(board, /:colspan="queueLayout \? 6 : 9"/);
     assert.match(
         read('resources/js/pages/Registration/Index.vue'),
         /v-model="form.coverage_type"/,

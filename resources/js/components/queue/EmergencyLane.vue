@@ -61,11 +61,11 @@ const headingId = useId();
 
 <style scoped>
 @media (width >= 768px) {
-    /* The emergency timestamp/response needs more room than the ordinary duration chip. */
-    section :deep(th:nth-child(6)) {
+    /* The legacy nine-column board needs extra duration room; focused Queue columns size themselves. */
+    section :deep(.patient-board:not([data-queue-layout]) th:nth-child(6)) {
         width: 7%;
     }
-    section :deep(th:nth-child(7)) {
+    section :deep(.patient-board:not([data-queue-layout]) th:nth-child(7)) {
         width: 19%;
     }
 }
