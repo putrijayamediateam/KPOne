@@ -8,6 +8,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * BIL-3 (owner decision 2026-11-05): the branch's approved pay-later amounts still to collect, oldest due date first,
@@ -24,10 +25,13 @@ final class PayLaterCollectionService
 
     public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority) {}
 
-    /** @return array<string, mixed> */
-    public function page(User $actor, int $page, bool $overdueOnly): array
+    /**
+     * @param  array{query?: string, age?: string}  $criteria
+     * @return array<string, mixed>
+     */
+    public function page(User $actor, int $page, bool $overdueOnly, array $criteria = []): array
     {
-        return DB::transaction(function () use ($actor, $page, $overdueOnly): array {
+        return DB::transaction(function () use ($actor, $page, $overdueOnly, $criteria): array {
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 404);
             $actor = $this->authority->lock($actor, $branch, 'outstanding.view.branch');
@@ -38,6 +42,9 @@ final class PayLaterCollectionService
             if ($overdueOnly) {
                 $query->where('b.effective_due', '<', $today->toDateString());
             }
+            $search = trim($criteria['query'] ?? '');
+            $age = $criteria['age'] ?? 'all';
+            $this->filter($query, $today, $search, $age);
             $shown = $this->totals(clone $query, $today);
             $lastPage = max(1, (int) ceil($shown['count'] / self::PER_PAGE));
             $page = min(max(1, $page), $lastPage);
@@ -47,6 +54,7 @@ final class PayLaterCollectionService
 
             return ['branch' => $branch->name, 'today' => $today->format('j M Y'), 'overdueOnly' => $overdueOnly,
                 'all' => $all, 'shown' => $shown, 'currentPage' => $page, 'lastPage' => $lastPage,
+                'filters' => ['query' => $search, 'age' => $age],
                 // BIL-17 / BIL-23: money due now on a completed visit, beside the rows (visit number => sen, only when
                 // above zero) so each row keeps its agreed fields. A payment pays it before pay-later.
                 'dueNow' => $rows->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => (int) $row->due_now_sen])
@@ -124,6 +132,27 @@ final class PayLaterCollectionService
             // The earlier of the pay-later due date and, when money is due now, the visit day.
             ->selectRaw('case when due_now_sen > 0 then least(coalesce(pay_later_due, visit_day), visit_day) else pay_later_due end as effective_due'), 'b')
             ->where(fn ($q) => $q->where('b.remaining_sen', '>', 0)->orWhere('b.due_now_sen', '>', 0));
+    }
+
+    /** Apply read filters to the full authorised eligible set, before totals and pagination. */
+    private function filter(Builder $query, CarbonImmutable $today, string $search, string $age): void
+    {
+        if ($search !== '') {
+            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], Str::lower($search)).'%';
+            $query->where(fn (Builder $match) => $match
+                ->whereRaw("LOWER(COALESCE(b.kept_full_name, b.full_name)) LIKE ? ESCAPE '!'", [$pattern])
+                ->orWhereRaw("LOWER(COALESCE(b.kept_patient_number, b.patient_number)) LIKE ? ESCAPE '!'", [$pattern])
+                ->orWhereRaw("LOWER(b.patient_number) LIKE ? ESCAPE '!'", [$pattern])
+                ->orWhereRaw("LOWER(b.invoice_number) LIKE ? ESCAPE '!'", [$pattern]));
+        }
+
+        match ($age) {
+            'over60' => $query->where('b.effective_due', '<', $today->subDays(60)->toDateString()),
+            '31to60' => $query->whereBetween('b.effective_due', [$today->subDays(60)->toDateString(), $today->subDays(31)->toDateString()]),
+            '1to30' => $query->whereBetween('b.effective_due', [$today->subDays(30)->toDateString(), $today->subDay()->toDateString()]),
+            'not_overdue' => $query->where('b.effective_due', '>=', $today->toDateString()),
+            default => null,
+        };
     }
 
     /** @return array{count: int, totalSen: int, overdueCount: int, overdueSen: int} */
