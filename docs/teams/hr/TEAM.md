@@ -710,6 +710,8 @@ check items, keep them"). The rest stand unless the owner changes them.
   with "Synthetic data only." Remove it together with the PDPA review, in `AccountantNote.vue`, `Payslip.vue` and
   `PayrollExportService`, and in the `hr-7a-payroll`, `hr-7c-payslips-exports` and `PayrollRunsTest` pins.
 
+- HR-22f (Suresh m5): a free time whose offered time has ended stays `waiting` in `hr_locum_availability`; the screens show it as Expired. Any later report or count of waiting free times must filter `ends_at > now`, as the 30 cap and HR's list do.
+
 ## 8. Rules (every task)
 
 - Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md`, `docs/design/GUIDE.md`, this file and `HR-PLAN.md` first.

@@ -7,6 +7,7 @@ use App\Domain\Clinical\Models\DiagnosisPreset;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Services\DiagnosisPresetSettingsService;
 use App\Domain\Clinical\Services\MedicineAdministrationService;
+use App\Domain\Clinical\Services\PrescribingPhraseSettingsService;
 use App\Domain\Clinical\Services\UnifiedCatalogueSetupService;
 use App\Domain\Identity\Services\ClinicianCredentialService;
 use App\Domain\Identity\Services\StaffProvisioningService;
@@ -280,6 +281,19 @@ final class PhaseOneFoundation
                 ]);
             }
             $this->count('diagnosis_presets', count($missing));
+        }
+
+        // SUG-1b: a few fictional starter phrases, left as Drafts for a doctor to review (local and testing only).
+        if (! DB::table('prescribing_phrases')->where('organisation_id', $organisation->id)->exists()) {
+            foreach ([
+                ['frequency', '3 times daily', '3 kali sehari'], ['frequency', 'Twice daily', '2 kali sehari'], ['frequency', 'At night', 'Pada waktu malam'],
+                ['instruction', 'After food', 'Selepas makan'], ['instruction', 'Before food', 'Sebelum makan'], ['duration', 'For 5 days', 'Selama 5 hari'],
+            ] as [$kind, $english, $malay]) {
+                app(PrescribingPhraseSettingsService::class)->create($this->context->as('administrator', $main), [
+                    'expected_branch_id' => $main->id, 'idempotency_key' => (string) Str::uuid(),
+                    'kind' => $kind, 'label_en' => $english, 'label_ms' => $malay,
+                ]);
+            }
         }
     }
 
