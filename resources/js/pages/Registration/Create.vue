@@ -23,6 +23,7 @@ import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import RegistrationReviewSummary from '@/components/registration/RegistrationReviewSummary.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
@@ -1172,6 +1173,40 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </div>
                 </div>
             </section>
+            <RegistrationReviewSummary
+                :patient-name="
+                    selectedPatient?.fullName ||
+                    (quickMode ? quick.full_name.trim() : '')
+                "
+                :patient-number="selectedPatient?.patientNumber"
+                :new-patient="quickMode"
+                :branch="options.branch.name"
+                :visit-type="form.visit_type"
+                :doctor="
+                    doctorOptions.find(
+                        (doctor) =>
+                            doctor.value === form.assigned_doctor_user_id,
+                    )?.label || 'Selected doctor unavailable'
+                "
+                :reasons="
+                    form.visit_reason_public_ids.map(
+                        (id) =>
+                            selectedVisitReasons.find(
+                                (reason) => reason.publicId === id,
+                            )?.name || 'Selected reason unavailable',
+                    )
+                "
+                :priority="form.priority"
+                :coverage="form.coverage_type"
+                :panel="
+                    options.panels.find((panel) => panel.id === form.panel_id)
+                        ?.name ||
+                    (form.panel_id === ''
+                        ? 'No panel selected'
+                        : 'Selected panel unavailable')
+                "
+                :member-reference="form.coverage_member_reference"
+            />
             <label
                 v-if="errorFor('confirm_repeat')"
                 class="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
