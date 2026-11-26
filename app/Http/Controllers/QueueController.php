@@ -106,6 +106,17 @@ class QueueController extends Controller
         return to_route('queue.index');
     }
 
+    public function workload(Request $request, QueueDirectoryService $directory): JsonResponse
+    {
+        $data = $request->validate([
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'section' => ['required', 'in:held,treatment,checks'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'],
+        ]);
+
+        return response()->json($directory->workload($request->user(), (int) $data['expected_branch_id'], $data['section'], (int) ($data['page'] ?? 1)));
+    }
+
     public function search(SearchQueueEntriesRequest $request, QueueDirectoryService $directory): JsonResponse
     {
         return response()->json($directory->poll($request->user(), $request->validated()));
