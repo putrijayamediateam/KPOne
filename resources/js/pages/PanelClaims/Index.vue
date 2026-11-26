@@ -126,6 +126,7 @@ const tabLabels: [string, string][] = [
     ['overdue', 'Overdue'],
     ['submitted', 'Submitted'],
     ['approved', 'Approved'],
+    ['queried', 'Queried'],
     ['rejected', 'Rejected'],
     ['received', 'Received'],
 ];
@@ -799,6 +800,14 @@ const visitTypeLabel = (value: string) =>
                 class="text-sm text-muted-foreground"
             >
                 Prepared claims not submitted by the Panel's due date.
+            </p>
+
+            <p
+                v-else-if="work.filters.tab === 'queried'"
+                class="text-sm text-muted-foreground"
+            >
+                Claims with a recorded Panel query. Open a claim to review its
+                recorded history and update it.
             </p>
 
             <section

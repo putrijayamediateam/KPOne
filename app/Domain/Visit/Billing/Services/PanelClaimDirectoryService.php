@@ -55,7 +55,7 @@ final class PanelClaimDirectoryService
 
     private const APPROVED = ['accepted', 'partially_accepted', 'partially_paid'];
 
-    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'rejected', 'received'];
+    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'queried', 'rejected', 'received'];
 
     /** PNL-28a: Pending lists approved invoices with no claim; Overdue lists Prepared claims past the Panel's due date. */
     private const INVOICE_TABS = ['pending'];
@@ -384,6 +384,7 @@ final class PanelClaimDirectoryService
             'overdue' => $query->whereIn('id', $overdueIds),
             'submitted' => $query->whereIn('status', self::SUBMITTED),
             'approved' => $query->whereIn('status', self::APPROVED),
+            'queried' => $query->where('status', 'queried'),
             'rejected' => $query->where('status', 'rejected'),
             'received' => $query->where('status', 'paid'),
             default => null,
