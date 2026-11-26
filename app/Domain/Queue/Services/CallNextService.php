@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Queue\QueueWaitingOrder;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Models\User;
@@ -207,16 +208,13 @@ class CallNextService
 
     private function next(User $actor, Branch $branch, int $doctorId, string $today): ?QueueEntry
     {
-        return $this->waiting($actor, $branch, $doctorId, $today)
+        $query = $this->waiting($actor, $branch, $doctorId, $today)
             ->whereNotExists(fn ($flag) => $flag->selectRaw('1')->from('queue_call_holds')
                 ->whereColumn('queue_call_holds.queue_entry_id', 'queue_entries.id')
-                ->whereNull('queue_call_holds.closed_at'))
-            // Today first; carry-over only when today has nobody. Within each: Urgent first, then arrival.
-            ->orderByRaw('CASE WHEN queue_entries.operational_date = ? THEN 0 ELSE 1 END', [$today])
-            ->orderByRaw("CASE visits.priority WHEN 'urgent' THEN 0 ELSE 1 END")
-            ->orderBy('queue_entries.operational_date')
-            ->orderBy('queue_entries.queued_at')
-            ->orderBy('queue_entries.id')
+                ->whereNull('queue_call_holds.closed_at'));
+
+        // Today first (carry-over only when today has nobody), then red, yellow, the rest; inside each Urgent, then arrival.
+        return QueueWaitingOrder::apply($query, $today, todayFirst: true)
             ->select('queue_entries.*')
             // QueueEntryService::call() reads only these Visit columns before it re-locks the row; add any column
             // it starts reading earlier here too.
