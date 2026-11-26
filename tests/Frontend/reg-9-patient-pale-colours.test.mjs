@@ -41,7 +41,7 @@ test('warning notices use the warning tokens', () => {
     for (const path of [
         'resources/js/pages/Patient/Create.vue',
         'resources/js/pages/Patient/Edit.vue',
-        'resources/js/pages/Registration/Create.vue',
+        'resources/js/components/registration/RegistrationCreateForm.vue',
     ]) {
         const source = read(path);
 

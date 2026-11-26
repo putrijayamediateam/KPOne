@@ -24,8 +24,8 @@ assert.ok(fields.includes(label));
     assert.match(fields, /minor \|\| guardian/);
     assert.doesNotMatch(fields, /WhatsAppLink|v-html|localStorage|sessionStorage|mobile_phone\s*=/);
 
-    for (const path of ['Patient/Create.vue','Patient/Edit.vue','Registration/Create.vue']) {
-assert.match(read(`resources/js/pages/${path}`), /knownMinor/);
+    for (const path of ['pages/Patient/Create.vue','pages/Patient/Edit.vue','components/registration/RegistrationCreateForm.vue']) {
+assert.match(read(`resources/js/${path}`), /knownMinor/);
 }
 
     assert.match(read('resources/js/components/patient/PatientFormFields.vue'), /<GuardianFields/);
@@ -47,5 +47,5 @@ test('guardian storage never enters WA, matching, public status, TV, billing pri
 });
 
 test('Quick create HTML phone requirement follows the same minor rule as validation', () => {
-    assert.match(read('resources/js/pages/Registration/Create.vue'), /:required="!knownMinor\(quick.date_of_birth, guardianToday\)"/);
+    assert.match(read('resources/js/components/registration/RegistrationCreateForm.vue'), /:required="!knownMinor\(quick.date_of_birth, guardianToday\)"/);
 });

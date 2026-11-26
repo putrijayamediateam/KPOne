@@ -135,7 +135,7 @@ test('UX-3: the Panel claim due days field is named', () => {
 
 test('UX-3: the Quick create patient list takes its name from its visible caption', () => {
     const nodes = elements(
-        template('resources/js/pages/Registration/Create.vue'),
+        template('resources/js/components/registration/RegistrationCreateForm.vue'),
     );
     const list = nodes.find((node) => attr(node, 'id') === 'patient-results');
     const caption = nodes.find(

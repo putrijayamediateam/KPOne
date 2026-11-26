@@ -14,7 +14,7 @@ const includes = (actual, expected) => expected.split(' ').forEach((token) => as
 const green = 'dark:border-emerald-900 dark:bg-emerald-950/30';
 
 test('DARK-1 S1-001: selected patient uses Clean Look blue washes in both themes without changing unselected styling', () => {
-    const option = elements(template('Registration/Create.vue')).find((node) => node.tag === 'button' && attribute(node, 'role') === 'option');
+    const option = elements(template('../components/registration/RegistrationCreateForm.vue')).find((node) => node.tag === 'button' && attribute(node, 'role') === 'option');
     includes(classes(option, { activeResultIndex: 0, index: 0 }), 'bg-primary/8 dark:bg-primary/16');
     includes(classes(option, { activeResultIndex: 0, index: 1 }), 'hover:bg-muted/35');
     assert.ok(!classes(option, { activeResultIndex: 0, index: 1 }).includes('bg-primary/8'));

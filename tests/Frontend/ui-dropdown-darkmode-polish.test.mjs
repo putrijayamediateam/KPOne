@@ -11,7 +11,7 @@ const patientFields = read(
 );
 const patientCreate = read('resources/js/pages/Patient/Create.vue');
 const staffDirectory = read('resources/js/pages/Staff/Index.vue');
-const registerVisit = read('resources/js/pages/Registration/Create.vue');
+const registerVisit = read('resources/js/components/registration/RegistrationCreateForm.vue');
 
 test('approved Patient controls use OperationalSelect without changing submitted values', () => {
     assert.match(

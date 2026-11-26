@@ -48,7 +48,7 @@ test('each identifier box on Patient create is a shrinkable one-column grid on p
 });
 
 test('the Quick create identity row stacks below sm and joins from sm up', () => {
-    const quick = read('resources/js/pages/Registration/Create.vue');
+    const quick = read('resources/js/components/registration/RegistrationCreateForm.vue');
     assert.match(
         quick,
         /<div class="flex flex-col gap-2 sm:flex-row sm:gap-0">/,

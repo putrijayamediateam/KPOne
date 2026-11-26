@@ -257,6 +257,7 @@ test('R1-C2 operational areas do not render native selects', () => {
     const files = [
         'resources/js/pages/Registration/Index.vue',
         'resources/js/pages/Registration/Create.vue',
+        'resources/js/components/registration/RegistrationCreateForm.vue',
         'resources/js/pages/Registration/Edit.vue',
         'resources/js/pages/Queue/Index.vue',
         'resources/js/pages/Clinical/Partials/AllergyProblemPanel.vue',
