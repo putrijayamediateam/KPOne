@@ -572,7 +572,7 @@ const submit = () => {
                             <button
                                 v-if="zoneTouched"
                                 type="button"
-                                class="mt-2 min-h-11 text-xs underline lg:min-h-0"
+                                class="mt-2 min-h-11 rounded-md text-xs underline focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
                                 @click="resetZone"
                             >
                                 Use the suggested zone
