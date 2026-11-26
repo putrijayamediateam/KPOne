@@ -47,6 +47,7 @@ use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\DispensaryDoctorCheckController;
 use App\Http\Controllers\DispensaryReviewController;
 use App\Http\Controllers\DispensarySettingsController;
+use App\Http\Controllers\EmergencyAlertController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
@@ -1523,11 +1524,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/queue/details', [QueueController::class, 'details'])
             ->middleware(['permission:visits.triage.record.branch,queue.view.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.details');
+        Route::post('visits/{visit}/queue/emergency-seen', [EmergencyAlertController::class, 'seen'])
+            ->middleware(['permission:queue.emergency.respond.branch', 'sensitive.no-store', 'throttle:120,1'])->name('queue.emergency-seen');
         Route::get('queue/red-zone-alerts', [QueueController::class, 'redZoneAlerts'])
-            ->middleware(['permission:queue.call.own,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->middleware(['permission:queue.emergency.respond.branch,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.red-zone-alerts');
         Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
-            ->middleware(['permission:queue.call.own', 'throttle:30,1'])
+            ->middleware(['permission:queue.emergency.respond.branch', 'throttle:30,1'])
             ->name('queue.take-red-zone');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])

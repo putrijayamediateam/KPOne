@@ -3,6 +3,7 @@
 namespace Tests\Feature\Queue;
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Queue\Emergency\EmergencyAlert;
 use App\Domain\Queue\Models\QueueRedZoneClaim;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -48,11 +49,24 @@ class RedZoneAlertTest extends TriageTestCase
         return $this->actingAs($actor)->getJson(route('queue.red-zone-alerts', ['expected_branch_id' => $this->branch->id]))->assertOk()->json('alerts');
     }
 
+    private function episodeCommand(User $actor, Visit $visit): array
+    {
+        $alert = EmergencyAlert::query()->where('visit_id', $visit->id)->whereNull('closed_at')->first();
+        if (! $alert) {
+            return [];
+        }
+        $claim = $alert->taken_claim_id ? QueueRedZoneClaim::find($alert->taken_claim_id) : null;
+        $event = $claim && $claim->claimed_by_user_id === $actor->id && $visit->refresh()->assigned_doctor_user_id === $actor->id
+            ? DB::table('queue_emergency_alert_events')->where('claim_id', $claim->id)->first() : null;
+
+        return ['episode_id' => $alert->id, 'lock_version' => $event ? $event->result_version - 1 : $alert->lock_version, 'idempotency_key' => $event?->idempotency_key ?? (string) Str::uuid()];
+    }
+
     private function take(User $actor, Visit $visit)
     {
         $this->selectBranch($actor);
 
-        return $this->actingAs($actor)->post(route('queue.take-red-zone', $visit->visit_number), ['expected_branch_id' => $this->branch->id]);
+        return $this->actingAs($actor)->post(route('queue.take-red-zone', $visit->visit_number), ['expected_branch_id' => $this->branch->id, ...$this->episodeCommand($actor, $visit)]);
     }
 
     public function test_every_branch_doctor_and_the_recorders_see_the_alert_with_only_number_and_minutes(): void
@@ -62,7 +76,7 @@ class RedZoneAlertTest extends TriageTestCase
         foreach ([$other, $assigned, $ca] as $viewer) {
             $rows = $this->alerts($viewer);
             $this->assertCount(1, $rows);
-            $this->assertSame(['canTake', 'mine', 'queueNumber', 'takenBy', 'visitNumber', 'waitingMinutes'], collect($rows[0])->keys()->sort()->values()->all());
+            $this->assertSame(['alertOrigin', 'alertStartedAt', 'canTake', 'episodeId', 'legacy', 'lockVersion', 'mine', 'queueNumber', 'seenByMe', 'takenBy', 'visitNumber', 'waitingMinutes'], collect($rows[0])->keys()->sort()->values()->all());
             $this->assertNull($rows[0]['takenBy']);
         }
         $this->assertTrue($this->alerts($other)[0]['canTake']);
@@ -70,7 +84,7 @@ class RedZoneAlertTest extends TriageTestCase
         $this->assertStringNotContainsString($visit->patient->full_name, json_encode($this->alerts($other)));
     }
 
-    public function test_a_green_or_flagged_or_called_patient_is_no_alert(): void
+    public function test_green_has_no_alert_and_new_not_ready_flag_on_red_is_refused(): void
     {
         [$ca, , $visit] = $this->red('green');
         $this->assertSame([], $this->alerts($ca));
@@ -82,8 +96,8 @@ class RedZoneAlertTest extends TriageTestCase
             'queue_lock_version' => $visit->queueEntry->refresh()->lock_version,
             'reason_code' => 'other_administrative',
             'idempotency_key' => (string) Str::uuid(),
-        ])->assertRedirect();
-        $this->assertSame([], $this->alerts($assigned));
+        ])->assertSessionHasErrors('queue');
+        $this->assertCount(1, $this->alerts($assigned));
     }
 
     public function test_other_roles_and_branches_get_no_alerts(): void
@@ -184,6 +198,7 @@ class RedZoneAlertTest extends TriageTestCase
             'expected_branch_id' => $this->branch->id,
             'from' => 'consultation',
             'from_visit' => $own->visit_number,
+            ...$this->episodeCommand($taker, $red),
         ])->assertRedirect(route('encounters.show', $own->visit_number));
         $this->assertSame($taker->id, $red->refresh()->assigned_doctor_user_id);
     }

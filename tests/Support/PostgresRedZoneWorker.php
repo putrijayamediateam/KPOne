@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Queue\Emergency\EmergencyAlert;
 use App\Domain\Queue\Services\RedZoneAlertService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\Support\IsolatedTestStorage;
 
@@ -33,7 +35,9 @@ try {
     $actor = User::findOrFail((int) $actorId);
     $visit = Visit::findOrFail((int) $visitId);
     try {
-        app(RedZoneAlertService::class)->take($actor, $visit, (int) $branchId);
+        $episode = EmergencyAlert::query()->where('visit_id', $visit->id)->whereNull('closed_at')->first();
+        $command = $episode ? ['episode_id' => $episode->id, 'lock_version' => $episode->lock_version, 'idempotency_key' => (string) Str::uuid()] : [];
+        app(RedZoneAlertService::class)->take($actor, $visit, (int) $branchId, $command);
         fwrite(STDOUT, 'TAKE_OK'.PHP_EOL);
     } catch (ValidationException|AuthorizationException $e) {
         fwrite(STDOUT, 'TAKE_REFUSED'.PHP_EOL);
