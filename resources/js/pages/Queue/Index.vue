@@ -275,6 +275,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         arrivedTime: compactTime(row.queuedTime),
         visitNotes: row.visitReasonExcerpt,
         doctorName: row.doctorName,
+        doctorWarning: row.doctorWarning,
         coverageLabel: row.coverageLabel,
         panelNote: row.panelNote,
         durationLabel: row.isHeld
