@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -141,19 +142,27 @@ const recordClose = () => {
 </script>
 
 <template>
-    <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+    <BillingBoardFrame
+        active="terminal"
+        about="Compare a terminal closing report with KPOne receipts for the loaded business date."
+        guidance="Recording a terminal report does not create or change KPOne payments. Check the payment method and business date, and explain any difference. Daily cash counts are recorded separately in Cash closing."
     >
-        <PageHeader
-            title="Terminal Reconciliation"
-            description="Record a terminal closing summary and compare approved sales with KPOne receipts."
-        >
-            <template #actions>
-                <ActionLink href="/cash-closings" variant="secondary">
-                    Daily cash closing
-                </ActionLink>
-            </template>
-        </PageHeader>
+        <template #header>
+            <PageHeader
+                title="Billing"
+                description="Terminal reconciliation — record a closing summary and compare approved sales with KPOne receipts."
+            >
+                <template #actions>
+                    <ActionLink
+                        href="/cash-closings"
+                        variant="secondary"
+                        class="min-h-11 lg:min-h-9"
+                    >
+                        Daily cash closing
+                    </ActionLink>
+                </template>
+            </PageHeader>
+        </template>
 
         <section class="rounded-xl border bg-card p-4">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -207,7 +216,7 @@ const recordClose = () => {
                     <select
                         id="payment-method"
                         v-model="form.payment_method_id"
-                        class="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        class="h-11 rounded-md border border-input bg-background px-3 text-sm lg:h-10"
                         required
                     >
                         <option value="" disabled>
@@ -582,5 +591,23 @@ const recordClose = () => {
                 No terminal closes have been recorded for this date.
             </p>
         </section>
-    </main>
+        <template #context
+            ><dl class="space-y-2 text-sm">
+                <div>
+                    <dt class="text-muted-foreground">Branch</dt>
+                    <dd>{{ branch.name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Loaded business date</dt>
+                    <dd>{{ formatDate(businessDate) }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">
+                        Recorded terminal closes
+                    </dt>
+                    <dd>{{ reconciliations.length }}</dd>
+                </div>
+            </dl></template
+        >
+    </BillingBoardFrame>
 </template>

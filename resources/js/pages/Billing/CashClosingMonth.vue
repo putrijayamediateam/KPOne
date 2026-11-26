@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
 import CashClosingStartDate from '@/components/billing/CashClosingStartDate.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { PageHeader } from '@/components/ui/page-header';
@@ -189,20 +190,27 @@ const goTo = (month: string | null) => {
 
 <template>
     <Head title="Monthly cash closing" />
-    <main class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6">
-        <PageHeader
-            title="Monthly cash closing"
-            :description="`${view.branch} · One row per day. Open a day to count or approve.`"
-        >
-            <template #actions>
-                <ActionLink
-                    :href="`/cash-closings?date=${lastDay}`"
-                    variant="outline"
-                >
-                    Daily view
-                </ActionLink>
-            </template>
-        </PageHeader>
+    <BillingBoardFrame
+        active="month"
+        about="Review each day’s cash count and approval for the selected month."
+        guidance="Totals include only the counts shown. Days without a count add nothing. Open a day to count or review it; approved figures remain visible if expected cash later changes."
+    >
+        <template #header>
+            <PageHeader
+                title="Billing"
+                description="Monthly cash closing — one row per day. Open a day to count or approve."
+            >
+                <template #actions>
+                    <ActionLink
+                        :href="`/cash-closings?date=${lastDay}`"
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                    >
+                        Daily view
+                    </ActionLink>
+                </template>
+            </PageHeader>
+        </template>
 
         <CashClosingStartDate
             :start-date="view.startDate"
@@ -498,7 +506,7 @@ const goTo = (month: string | null) => {
                         <td class="text-right whitespace-nowrap">
                             <Link
                                 :href="dayHref(row)"
-                                class="font-medium text-brand-strong underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="inline-flex min-h-11 items-center px-2 font-medium text-brand-strong underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
                                 :aria-label="`Open day, ${longDate(row.date)}`"
                                 >Open day</Link
                             >
@@ -606,5 +614,21 @@ const goTo = (month: string | null) => {
                 </Link>
             </li>
         </ul>
-    </main>
+        <template #context
+            ><dl class="space-y-2 text-sm">
+                <div>
+                    <dt class="text-muted-foreground">Branch</dt>
+                    <dd>{{ view.branch }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Month</dt>
+                    <dd>{{ monthTitle }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Counts shown</dt>
+                    <dd>{{ view.summary.countsShown }}</dd>
+                </div>
+            </dl></template
+        >
+    </BillingBoardFrame>
 </template>

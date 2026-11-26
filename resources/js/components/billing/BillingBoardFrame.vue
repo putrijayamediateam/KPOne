@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 
 const props = defineProps<{
-    active: 'collect' | 'close';
+    active: 'collect' | 'close' | 'month' | 'terminal';
     about: string;
     guidance: string;
 }>();
