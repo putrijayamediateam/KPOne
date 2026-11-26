@@ -115,6 +115,9 @@ type RosterProps = {
         // HR-15f: the month calendar on My roster.
         view?: 'week' | 'month';
         month?: RosterMonth | null;
+        // HR-22e: the planner's month view.
+        plannerView?: 'week' | 'month';
+        plannerMonth?: PlannerMonth | null;
     };
 };
 
@@ -146,6 +149,44 @@ export type RosterMonth = {
     current: string;
     days: MonthDay[];
     hoursLabel: string;
+};
+
+/** HR-22e: the planner's month view, one branch. */
+export type PlannerMonthCell = {
+    time: string;
+    station: string | null;
+    stationLabel: string | null;
+    onCall: boolean;
+};
+export type PlannerMonthWeek = {
+    start: string;
+    label: string;
+    days: { date: string; label: string; inMonth: boolean }[];
+    status: 'draft' | 'submitted' | 'approved' | null;
+    statusLabel: string;
+    approvedToo: boolean;
+    versionId: string | null;
+    shiftCount: number;
+    rows: {
+        staffUserId: number;
+        name: string;
+        role: string;
+        days: PlannerMonthCell[][];
+    }[];
+    canCopy: boolean;
+};
+export type PlannerMonth = {
+    key: string;
+    label: string;
+    previous: string;
+    next: string;
+    current: string;
+    weeks: PlannerMonthWeek[];
+};
+export type MonthCopyResult = {
+    week: string;
+    outcome: 'created' | 'updated' | 'skipped';
+    note: string | null;
 };
 
 export function useRosterPage(props: RosterProps) {
@@ -205,6 +246,58 @@ export function useRosterPage(props: RosterProps) {
         visit({ myView: 'month', month: month ?? props.roster.month?.key });
     const showWeek = () => visit({ myView: undefined, month: undefined });
     const changeBranch = (value: string | number) => visit({ branch: value });
+    // HR-22e: Week or Month on the planner; its own address key, so it never meets "view" or "myView".
+    const showPlannerMonth = (month?: string) =>
+        visit({
+            plannerView: 'month',
+            month:
+                month ??
+                props.roster.plannerMonth?.key ??
+                props.roster.week.start.slice(0, 7),
+        });
+    const showPlannerWeek = (week?: string) =>
+        visit({
+            plannerView: undefined,
+            month: undefined,
+            week: week ?? props.roster.week.start,
+        });
+    const monthCopy = computed(
+        () =>
+            ((
+                page as unknown as {
+                    flash?: { rosterMonthCopy?: MonthCopyResult[] };
+                }
+            ).flash?.rosterMonthCopy ?? []) as MonthCopyResult[],
+    );
+    const copying = ref<string | null>(null);
+    const copyError = ref('');
+    const copyToMonth = (week: PlannerMonthWeek, done: () => void) => {
+        if (!week.versionId || !props.roster.plannerMonth) {
+            return;
+        }
+
+        copying.value = week.start;
+        copyError.value = '';
+        router.post(
+            `/hr/roster/versions/${week.versionId}/copy-to-month`,
+            {
+                month: props.roster.plannerMonth.key,
+                branch_id: branchId.value ?? undefined,
+                idempotency_key: crypto.randomUUID(),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => done(),
+                onError: (e) => {
+                    copyError.value =
+                        e.roster ?? 'The week was not copied. Try again.';
+                },
+                onFinish: () => {
+                    copying.value = null;
+                },
+            },
+        );
+    };
 
     const versionLine = computed(() => {
         const v = shown.value;
@@ -591,6 +684,12 @@ export function useRosterPage(props: RosterProps) {
         visit,
         changeTab,
         changeBranch,
+        showPlannerMonth,
+        showPlannerWeek,
+        monthCopy,
+        copying,
+        copyError,
+        copyToMonth,
         versionLine,
         dialog,
         dialogText,

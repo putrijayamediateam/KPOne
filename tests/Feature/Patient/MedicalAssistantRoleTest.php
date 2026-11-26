@@ -81,6 +81,7 @@ class MedicalAssistantRoleTest extends VisitTestCase
         'hr.roster.view.own',
         'hr.sops.acknowledge.own',
         'insights.view.organisation',
+        'inventory.differences.report.branch',
         'inventory.purchase_requests.create.branch',
         'inventory.stock_requests.create.branch',
         'inventory.transfer.branch',

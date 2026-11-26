@@ -25,6 +25,8 @@ final class RegistrationSettingsController extends Controller
             throw $exception->redirectTo(route('registration-settings.index'));
         }
 
-        return to_route('registration-settings.index')->with('success', 'Registration settings saved.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Registration settings saved.']);
+
+        return to_route('registration-settings.index');
     }
 }

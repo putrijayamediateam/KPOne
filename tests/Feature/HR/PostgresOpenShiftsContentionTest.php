@@ -3,6 +3,8 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\HR\Availability\AvailabilityPermissions;
+use App\Domain\HR\Availability\Services\LocumAvailabilityService;
 use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\OpenShifts\Services\OpenShiftService;
 use App\Domain\HR\Records\RecordPermissions;
@@ -31,7 +33,8 @@ use Tests\TestCase;
 /**
  * HR-15b under real PostgreSQL contention: two managers confirming two different locums for one open shift confirm one,
  * and the shift joins the draft roster once. The race holds the open shift row in this test's session until both
- * workers are proven to be waiting.
+ * workers are proven to be waiting. HR-22f: two managers using one locum free time use it once, and a manager using it
+ * while the locum withdraws it ends with exactly one of the two.
  *
  * @phpstan-type WorkerProcess array{process: Process, input: InputStream}
  */
@@ -125,6 +128,67 @@ class PostgresOpenShiftsContentionTest extends TestCase
         $this->assertSame(2, DB::table('hr_roster_shifts')->where('roster_version_id', $versions[0]->id)->count());
         $this->assertSame(2, DB::table('hr_open_shifts')->where('organisation_id', $f['organisation']->id)->where('status', 'filled')->count());
         $this->assertSame(2, DB::table('hr_open_shift_requests')->where('organisation_id', $f['organisation']->id)->where('status', 'confirmed')->count());
+    }
+
+    public function test_two_managers_using_one_free_time_use_it_once(): void
+    {
+        $f = $this->freeTimeFixture();
+
+        $out = $this->race('hr_locum_availability', $f['id'], [
+            $this->worker($f['hr'], ['action' => 'use', 'availability' => $f['availability']] + $f['use']),
+            $this->worker($f['hr2'], ['action' => 'use', 'availability' => $f['availability']] + $f['use']),
+        ]);
+
+        $this->assertSame(1, substr_count($out, 'SUCCESS use'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE availability: This free time was already answered or withdrawn.'), $out);
+        $row = DB::table('hr_locum_availability')->where('id', $f['id'])->first();
+        $this->assertSame(['used', 2], [$row->status, (int) $row->lock_version]);
+        $this->assertSame(1, DB::table('hr_roster_shifts')->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame((int) $row->roster_shift_id, (int) DB::table('hr_roster_shifts')->where('organisation_id', $f['organisation']->id)->value('id'));
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'hr.locum_availability.used')->count());
+    }
+
+    public function test_a_manager_using_a_free_time_while_the_locum_withdraws_it_ends_with_one(): void
+    {
+        $f = $this->freeTimeFixture();
+
+        $out = $this->race('hr_locum_availability', $f['id'], [
+            $this->worker($f['hr'], ['action' => 'use', 'availability' => $f['availability']] + $f['use']),
+            $this->worker($f['locum'], ['action' => 'withdraw', 'availability' => $f['availability'], 'expected_lock_version' => 1]),
+        ]);
+
+        $this->assertSame(1, substr_count($out, 'SUCCESS '), $out);
+        $this->assertSame(1, substr_count($out, 'STALE availability: '), $out);
+        $status = (string) DB::table('hr_locum_availability')->where('id', $f['id'])->value('status');
+        $this->assertContains($status, ['used', 'withdrawn']);
+        $this->assertSame($status === 'used' ? 1 : 0, DB::table('hr_roster_shifts')->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    /** @return array<string, mixed> */
+    private function freeTimeFixture(): array
+    {
+        $organisation = new Organisation;
+        $organisation->forceFill(['code' => 'HR_FT_'.Str::upper(Str::random(8)), 'name' => 'Synthetic Free Time Organisation', 'is_active' => true])->save();
+        $this->organisationIds[] = $organisation->id;
+        $branch = new Branch;
+        $branch->forceFill(['organisation_id' => $organisation->id, 'code' => 'F'.Str::upper(Str::random(5)), 'name' => 'Synthetic Free Time Branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $managing = [RosterPermissions::MANAGE, RecordPermissions::MANAGE];
+        $hr = $this->user($organisation, $branch, $managing);
+        $hr2 = $this->user($organisation, $branch, $managing);
+        $admin = $this->user($organisation, $branch, ['staff.manage.organisation', 'access.manage.organisation'], 'technical_admin');
+        $locum = $this->user($organisation, $branch, [AvailabilityPermissions::PROPOSE_OWN, RosterPermissions::VIEW_OWN], PermissionCatalogue::LOCUM_ROLE);
+        $worker = app(StaffFileService::class)->addLocum($hr, ['display_name' => 'Synthetic Locum F', 'phone' => '012-345 6789', 'idempotency_key' => (string) Str::uuid()]);
+        app(LocumSignIns::class)->request($hr, $worker->public_id, ['email' => $locum->email, 'idempotency_key' => (string) Str::uuid()]);
+        $request = DB::table('hr_locum_sign_ins')->where('worker_id', $worker->id)->first();
+        app(LocumSignIns::class)->link($admin, $request->public_id, ['user_id' => $locum->id, 'expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()]);
+        $date = now('Asia/Kuala_Lumpur')->addDays(7)->toDateString();
+        app(LocumAvailabilityService::class)->propose($locum->refresh(), ['branch_id' => $branch->id, 'date' => $date, 'start_time' => '08:00', 'end_time' => '14:00',
+            'idempotency_key' => (string) Str::uuid()]);
+        $row = DB::table('hr_locum_availability')->where('locum_user_id', $locum->id)->sole();
+
+        return ['organisation' => $organisation, 'hr' => $hr, 'hr2' => $hr2, 'locum' => $locum, 'id' => (int) $row->id, 'availability' => (string) $row->public_id,
+            'use' => ['start_time' => '09:00', 'end_time' => '13:00', 'break_minutes' => 0, 'session_type' => 'morning', 'branch_room_id' => null, 'station' => null,
+                'expected_lock_version' => 1]];
     }
 
     /** @return array<string, mixed> */
@@ -331,7 +395,7 @@ class PostgresOpenShiftsContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic open shift evidence.
-            foreach (['hr_open_shift_requests', 'hr_open_shifts', 'hr_locum_sign_ins', 'hr_roster_requests', 'hr_roster_actions', 'hr_roster_shifts', 'hr_roster_versions',
+            foreach (['hr_locum_availability', 'hr_open_shift_requests', 'hr_open_shifts', 'hr_locum_sign_ins', 'hr_roster_requests', 'hr_roster_actions', 'hr_roster_shifts', 'hr_roster_versions',
                 'hr_roster_weeks', 'hr_record_changes', 'hr_record_retries'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
