@@ -166,7 +166,8 @@ const ButtonStub = defineComponent({
 });
 const InputErrorStub = defineComponent({
     props: { message: String },
-    setup: (props) => () => h('p', { 'data-testid': 'input-error' }, props.message),
+    setup: (props) => () =>
+        h('p', { 'data-testid': 'input-error' }, props.message),
 });
 const PatientBoardStub = defineComponent({
     inheritAttrs: false,
@@ -225,8 +226,12 @@ const requireMap = {
         SlidersHorizontal: NullStub,
         X: NullStub,
     },
+    '@/components/queue/EmergencyLane.vue': { default: NullStub },
+    '@/lib/emergency-lane': { emergencyBoardMetadata: () => ({}) },
     '@/components/InputError.vue': { default: InputErrorStub },
-    '@/components/patient-board/PatientBoard.vue': { default: PatientBoardStub },
+    '@/components/patient-board/PatientBoard.vue': {
+        default: PatientBoardStub,
+    },
     '@/components/patient-board/VisitCancellationDialog.vue': {
         default: NullStub,
     },
@@ -234,7 +239,9 @@ const requireMap = {
     '@/components/ui/button': { Button: ButtonStub },
     '@/components/ui/date-field': { DateField: NullStub },
     '@/components/ui/select': { OperationalSelect: NullStub },
-    '@/components/ui/tabs/OperationalTabs.vue': { default: OperationalTabsStub },
+    '@/components/ui/tabs/OperationalTabs.vue': {
+        default: OperationalTabsStub,
+    },
     '@/lib/presentation': { formatDate: (value) => String(value) },
     '@/lib/r1c2-presentation': {
         queuePresentationLabel: () => 'Removed',
@@ -295,11 +302,14 @@ const mountIndex = (initialRows) => {
 };
 
 const tabButton = (root, value) =>
-    descendants(root, 'button').find((button) => button.props['data-tab'] === value);
+    descendants(root, 'button').find(
+        (button) => button.props['data-tab'] === value,
+    );
 
-const board = (root) => descendants(root, 'div').find(
-    (node) => node.props['data-testid'] === 'patient-board',
-);
+const board = (root) =>
+    descendants(root, 'div').find(
+        (node) => node.props['data-testid'] === 'patient-board',
+    );
 const boardRowKeys = (root) =>
     descendants(root, 'div')
         .filter((node) => node.props['data-testid'] === 'board-row')
@@ -340,7 +350,7 @@ test.beforeEach(() => {
     };
 });
 
-test('a failed search clears the previous tab\'s rows and surfaces the error in place of the table', async () => {
+test("a failed search clears the previous tab's rows and surfaces the error in place of the table", async () => {
     const originalFetch = globalThis.fetch;
     const originalError = console.error;
     const errors = [];
@@ -352,7 +362,9 @@ test('a failed search clears the previous tab\'s rows and surfaces the error in 
         assert.deepEqual(boardRowKeys(mounted.root), ['SERVING-1']);
 
         globalThis.fetch = async () =>
-            jsonResponse(500, { message: 'Something went wrong on the server.' });
+            jsonResponse(500, {
+                message: 'Something went wrong on the server.',
+            });
 
         tabButton(mounted.root, 'dispensary').props.onClick();
         await flush();
@@ -435,7 +447,10 @@ test('a superseded (stale) response never overwrites a newer result, whether it 
             }),
         );
         await flush();
-        assert.deepEqual(boardRowKeys(mounted.root), ['BILLING-1', 'BILLING-2']);
+        assert.deepEqual(boardRowKeys(mounted.root), [
+            'BILLING-1',
+            'BILLING-2',
+        ]);
 
         // The stale first request now resolves successfully, after the
         // newer one already rendered. It must be discarded, not applied.

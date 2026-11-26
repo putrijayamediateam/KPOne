@@ -8,7 +8,7 @@ const source = readFileSync(
     'utf8',
 );
 const actions = source.match(
-    /can: (\{\s*viewPatient: row\.can\.viewPatient,[\s\S]*?\n        \}),\n        source: row/,
+    /can: (\{\s*viewPatient: row\.can\.viewPatient,[\s\S]*?\n\s*\}),\n\s*source: row/,
 );
 assert.ok(actions, 'Queue row action mapper remains discoverable');
 const map = new Function('row', 'props', `return (${actions[1]});`);

@@ -290,6 +290,16 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 }})</span
                             >
                         </span>
+                        <div
+                            v-if="row.emergency"
+                            class="mt-2 space-y-1 text-[12.5px] text-muted-foreground"
+                            data-testid="emergency-lane-metadata"
+                        >
+                            <p>{{ row.emergency.alertLabel }}</p>
+                            <p class="font-medium text-foreground">
+                                {{ row.emergency.takenLabel }}
+                            </p>
+                        </div>
                     </td>
                     <td
                         class="px-3 py-2.5 align-middle"

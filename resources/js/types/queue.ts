@@ -50,7 +50,31 @@ export type QueueRow = {
     };
 };
 
+export type EmergencyLaneEntry<Row> = {
+    visitNumber: string;
+    queueNumber: string;
+    patientName: string;
+    assignedDoctorName: string | null;
+    waitingMinutes: number;
+    operationalDate: string;
+    episodeId: number | null;
+    alertStartedAt: string | null;
+    alertOrigin: 'clinical' | 'activation' | null;
+    takenBy: string | null;
+    takenAt: string | null;
+    boardRow: Row;
+};
+export type EmergencyLaneSnapshot<Row> = {
+    data: EmergencyLaneEntry<Row>[];
+    total: number;
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    hasMore: boolean;
+};
+
 export type QueuePollSnapshot = {
+    emergency?: EmergencyLaneSnapshot<QueueRow>;
     tabCounts?: {
         all: number;
         waiting: number;
