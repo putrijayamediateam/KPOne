@@ -107,6 +107,8 @@ class RoleOneRolesTest extends VisitTestCase
                 'hr.roster.view.own',
                 'hr.sops.acknowledge.own',
                 'insights.view.organisation',
+                'inventory.cost.check.organisation',
+                'inventory.cost.enter.organisation',
                 'inventory.cost.view.organisation',
                 'inventory.differences.report.branch',
                 'inventory.purchase_orders.create.organisation',
