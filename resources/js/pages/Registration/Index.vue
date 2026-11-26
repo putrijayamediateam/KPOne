@@ -20,6 +20,7 @@ import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
+import RegistrationWorkspaceNav from '@/components/registration/RegistrationWorkspaceNav.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
@@ -703,12 +704,18 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Registration</h1>
+        <RegistrationWorkspaceNav
+            :active="isQrIntake ? 'qr' : 'today'"
+            :qr-available="!!qrIntakes"
+            :qr-pending-count="qrIntakes?.pendingCount"
+        />
         <div class="flex items-center gap-2 border-b">
             <OperationalTabs
+                v-if="!isQrIntake"
                 class="min-w-0 flex-1"
                 :model-value="activeTab"
                 label="Patient board status"
-                :tabs="tabs"
+                :tabs="tabs.filter((tab) => tab.value !== 'qr-intake')"
                 @update:model-value="selectOperationalTab"
             />
             <Button v-if="canCreate" as-child size="sm" class="shrink-0"
