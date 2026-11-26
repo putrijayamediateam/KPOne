@@ -1583,7 +1583,7 @@ const saveReorder = () =>
                 <div
                     v-for="row in operations.lowStock"
                     :key="`${row.location}-${row.sku}`"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm dark:bg-amber-950/20"
+                    class="rounded-xl bg-warning-wash p-2 text-sm"
                 >
                     <strong>{{ row.sku }}</strong> ·
                     {{ row.availableQuantity }} available /

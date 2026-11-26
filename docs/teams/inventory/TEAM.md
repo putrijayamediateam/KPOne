@@ -131,6 +131,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
+| CLEAN-INV-1 stage 1 | Publication candidate refreshed onto main `bd9a4233` on 26 Nov 2026 from reviewed `a8048811`: semantic warning/error surfaces and shared transfer-status badge across eight existing Inventory components/pages. No workflow, permissions, migrations or STK-46 changes. Retains the owner-approved STK6 token assertion adaptation; candidate validation and carried visual evidence are recorded in the publication packet. No commit or push; owner review pending. | Local publication candidate |
 
 ## 6. Owner decisions already made (never ask again)
 

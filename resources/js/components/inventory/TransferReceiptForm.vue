@@ -104,7 +104,7 @@ const submit = () => {
             </div>
             <p
                 v-if="errors[index]"
-                class="text-xs text-red-700 dark:text-red-300"
+                class="text-xs text-destructive"
                 aria-live="polite"
             >
                 {{ errors[index] }}
