@@ -62,7 +62,7 @@ test('AUTO-1: the reason is asked only for a doctor other than the one Auto woul
         page.indexOf('for="assigned-doctor"') <
             page.indexOf('id="doctor-override-reason"') &&
             page.indexOf('id="doctor-override-reason"') <
-                page.indexOf('4. Visit Reason'),
+                page.indexOf('id="visit-reasons-label"'),
     );
     assert.match(page, /This doctor has no room today/);
     assert.match(

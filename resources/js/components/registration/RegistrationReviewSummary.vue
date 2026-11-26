@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 const props = defineProps<{
+    heading?: string;
     patientName: string;
     patientNumber?: string;
     newPatient: boolean;
@@ -47,7 +48,7 @@ const rows = computed(() => [
         class="rounded-lg border bg-card p-4 sm:p-5"
     >
         <h2 id="registration-review-heading" class="text-base font-semibold">
-            Check and register
+            {{ heading ?? 'Check and register' }}
         </h2>
         <p class="mt-1 text-sm text-muted-foreground">
             Review your current choices. Nothing is saved until you register the

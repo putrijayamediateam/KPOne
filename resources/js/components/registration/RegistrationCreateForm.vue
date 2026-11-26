@@ -977,13 +977,17 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
         class="space-y-3 max-lg:flex max-lg:flex-col max-lg:gap-3 max-lg:space-y-0"
         @submit.prevent="submit"
     >
-        <section class="rounded-lg border bg-card shadow-card">
+        <section
+            aria-labelledby="registration-visit-heading"
+            class="rounded-lg border bg-card shadow-card"
+        >
             <fieldset :disabled="draftLocked" class="contents">
                 <div class="px-4 pt-4 pb-2">
-                    <h2 class="font-semibold">Visit details</h2>
+                    <h2 id="registration-visit-heading" class="font-semibold">
+                        2. Visit
+                    </h2>
                     <p class="text-xs text-muted-foreground">
-                        Consultation / OTC · Doctor · Reason · Coverage ·
-                        Urgency
+                        Consultation / OTC · Doctor · Reason · Urgency
                     </p>
                 </div>
                 <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
@@ -991,7 +995,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         class="grid content-start gap-1 md:justify-self-start"
                     >
                         <legend class="mb-1 text-sm font-medium">
-                            2. Visit type
+                            Visit type
                         </legend>
                         <div
                             class="grid w-full grid-cols-2 gap-1 rounded-md bg-muted/70 p-1 sm:w-72"
@@ -1029,7 +1033,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     <div class="grid content-start gap-3">
                         <label class="grid gap-1" for="assigned-doctor"
                             ><span class="text-sm font-medium"
-                                >3. Doctor
+                                >Doctor
                                 <span
                                     v-if="form.visit_type === 'otc'"
                                     class="font-normal text-muted-foreground"
@@ -1093,9 +1097,15 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             />
                         </div>
                     </div>
-                    <div class="grid gap-1 md:col-span-2">
-                        <span class="text-sm font-medium"
-                            >4. Visit Reason
+                    <div
+                        class="grid gap-1 md:col-span-2"
+                        role="group"
+                        aria-labelledby="visit-reasons-label"
+                    >
+                        <span
+                            id="visit-reasons-label"
+                            class="text-sm font-medium"
+                            >Visit Reason
                             <span
                                 v-if="form.visit_type === 'otc'"
                                 class="font-normal text-muted-foreground"
@@ -1110,7 +1120,62 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </div>
                     <fieldset class="grid gap-1">
                         <legend class="mb-1 text-sm font-medium">
-                            5. Coverage
+                            Urgency
+                        </legend>
+                        <div
+                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                        >
+                            <button
+                                type="button"
+                                :aria-pressed="form.priority === 'normal'"
+                                :class="
+                                    form.priority === 'normal'
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                "
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                @click="form.priority = 'normal'"
+                            >
+                                Normal
+                            </button>
+                            <button
+                                type="button"
+                                :aria-pressed="form.priority === 'urgent'"
+                                :class="
+                                    form.priority === 'urgent'
+                                        ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
+                                        : 'text-muted-foreground hover:text-warning-strong'
+                                "
+                                class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors max-lg:h-11"
+                                @click="form.priority = 'urgent'"
+                            >
+                                Urgent
+                            </button>
+                        </div>
+                    </fieldset>
+                </div>
+            </fieldset>
+        </section>
+        <section
+            aria-labelledby="registration-coverage-heading"
+            class="rounded-lg border bg-card shadow-card"
+        >
+            <fieldset :disabled="draftLocked" class="contents">
+                <div class="px-4 pt-4 pb-2">
+                    <h2
+                        id="registration-coverage-heading"
+                        class="font-semibold"
+                    >
+                        3. Who pays
+                    </h2>
+                    <p class="text-xs text-muted-foreground">
+                        Self-pay or Panel · Details for this visit
+                    </p>
+                </div>
+                <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
+                    <fieldset class="grid gap-1">
+                        <legend class="mb-1 text-sm font-medium">
+                            Coverage
                         </legend>
                         <div
                             class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
@@ -1142,41 +1207,6 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 @click="form.coverage_type = 'panel'"
                             >
                                 Panel
-                            </button>
-                        </div>
-                    </fieldset>
-                    <fieldset class="grid gap-1">
-                        <legend class="mb-1 text-sm font-medium">
-                            6. Urgency
-                        </legend>
-                        <div
-                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
-                        >
-                            <button
-                                type="button"
-                                :aria-pressed="form.priority === 'normal'"
-                                :class="
-                                    form.priority === 'normal'
-                                        ? 'bg-background text-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
-                                @click="form.priority = 'normal'"
-                            >
-                                Normal
-                            </button>
-                            <button
-                                type="button"
-                                :aria-pressed="form.priority === 'urgent'"
-                                :class="
-                                    form.priority === 'urgent'
-                                        ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
-                                        : 'text-muted-foreground hover:text-warning-strong'
-                                "
-                                class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors max-lg:h-11"
-                                @click="form.priority = 'urgent'"
-                            >
-                                Urgent
                             </button>
                         </div>
                     </fieldset>
@@ -1256,6 +1286,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             {{ submissionNotice }}
         </p>
         <RegistrationReviewSummary
+            heading="4. Check and register"
             :patient-name="
                 selectedPatient?.fullName ||
                 (quickMode ? quick.full_name.trim() : '')
