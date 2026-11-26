@@ -32,7 +32,9 @@ final class GovernedStockController extends Controller
             throw $e->redirectTo(route('inventory.governed-counts'));
         }
 
-        return to_route('inventory.governed-counts')->with('success', $opened === 0 ? 'A count is already open for every batch here.' : ($opened === 1 ? '1 batch is ready to count.' : "{$opened} batches are ready to count."));
+        Inertia::flash('toast', ['type' => 'success', 'message' => $opened === 0 ? 'A count is already open for every batch here.' : ($opened === 1 ? '1 batch is ready to count.' : "{$opened} batches are ready to count.")]);
+
+        return to_route('inventory.governed-counts');
     }
 
     public function writeoffs(Request $request, GovernedStockService $service): Response
