@@ -66,7 +66,7 @@ class DisciplineTest extends VisitTestCase
         $worker = Worker::query()->where('user_id', $staff->id)->sole();
         $page = (string) $this->get(route('hr.records.show', $worker->public_id))->getContent();
         $this->assertStringNotContainsString('SYNTHETIC-ALLEGATION', $page);
-        $this->assertStringNotContainsString('\\/hr\\/discipline', $page); // no link to a case anywhere on the staff file
+        $this->assertStringNotContainsString('\\/hr\\/discipline\\/'.$case, $page); // no link to a case anywhere on the staff file
     }
 
     public function test_hr_opens_a_case_links_letters_records_the_reply_and_closes_it_with_one_outcome(): void

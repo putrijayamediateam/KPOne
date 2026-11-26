@@ -129,6 +129,8 @@ final class InventoryDirectoryService
         $this->applyCommonFilters($query, $filters, $locationId, $localDate);
         $results = $query->orderBy('s.sku_code')->orderBy('l.name')->orderBy('batch.expiry_date')->paginate(self::PER_PAGE, page: $filters['page']);
         $medicineNames = $this->medicineNames($actor, $this->skuIds($results->items()));
+        // STK-45: Report a difference, for P10 holders only. Returns locations are counted with Stock count directly.
+        $differences = app(DifferenceReportService::class)->forRows($actor, $branch, array_values(array_map(fn (mixed $row): int => (int) ((array) $row)['id'], $results->items())));
         $data = [];
         foreach ($results->items() as $row) {
             $values = (array) $row;
@@ -146,6 +148,7 @@ final class InventoryDirectoryService
                 'available' => $available,
                 'availabilityStatus' => $returned ? 'Patient return' : ($values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable')),
                 ...($values['hold_reason'] ? ['holdReason' => $values['hold_reason']] : []),
+                ...(isset($differences[(int) $values['id']]) ? ['difference' => $differences[(int) $values['id']]] : []),
             ];
         }
 

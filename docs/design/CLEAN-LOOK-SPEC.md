@@ -1,10 +1,10 @@
 # KPOne Clean Look: spec (Stage 0)
 
-Status: **draft 1 for B.E.R.N.I.S.S and Kavitha, 25 Nov 2026.** Written by the Lead UI/UX Designer. Authority: the
+Status: **reconstructed draft 2, independently reconciled 26 Nov 2026; coordinator reviewed; publication pending.** Based on the recovered PR #1119 draft 1, the uploaded full handoff, local demo boards, approved implementation decisions and recorded evidence. This is not a recovery of the lost Claude-container draft or a new designer sign-off. Authority: the
 owner's decision of 25 Nov 2026 (Clean Look replaces Classic, restyled **in place**, no second version, no switch).
 Nothing here changes a permission, route, payload, validation or business rule. A restyle never changes who sees what.
 
-Source: the owner's locked canvas "KPOne Clean Look" (https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ), read
+Original draft source: the owner's locked canvas "KPOne Clean Look" (https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ), described in draft 1 as read
 board by board (Sidebar, Settings, Registration, HomeCA, Modern and the other boards), plus the measured contrast work
 in `NEWLOOK-PILOT.md` and the DS-0 tokens (`resources/css/space-shell.css`). Contrast numbers below are **computed**
 from the hex values, not eyeballed. Where the canvas misses our rules, this spec says what we use instead (section 9).
@@ -33,7 +33,7 @@ only. Dark mode is a near-black page with raised dark cards, the same blue made 
 ## 2. Tokens
 
 Names are the existing ones in `resources/css/app.css` (so every component already reading them restyles at once), plus
-five new ones marked **new**. Values replace the current ones.
+the additions marked **new** in draft 1. Core values shipped in #1120; the radius/card/sheet follow-up is tracked separately in section 14.
 
 | Token | Light | Dark | Notes (measured) |
 |---|---|---|---|
@@ -51,7 +51,7 @@ five new ones marked **new**. Values replace the current ones.
 | `--border` | `rgba(0,0,0,0.08)` | `#2a2a2e` | **Decoration only** (card edges, row dividers) |
 | `--input` | `#8a8a93` | `#6b6b73` | **Edge of a control** (fields, outline buttons, selected states). 3.42:1 on white; 3.48:1 on dark card |
 | `--field-fill` | `#ffffff` | `#1b1b1e` | Field background |
-| `--brand`, `--brand-strong` | `#c2185b` / `#9f1239` | `#ff6b9d` / `#ff9ec0` | Logo mark and the rare brand moment only |
+| `--brand`, `--brand-strong` | `#c2185b` / `#9f1239` | `#ff6b9d` / `#ff9ec0` | Logo mark only |
 | `--success` | `#1d7a3a` | `#30d158` | Text. 5.39:1 on white; dark 9.1:1 |
 | `--success-wash` **new** | `#e9f8ee` | `#12281a` | Chip background. Text on it 4.91:1; dark 7.73:1 |
 | `--warning` | `#8a5a00` | `#ffb454` | Text. 5.43:1 on `#fff4dc`; dark 10.4:1 |
@@ -59,7 +59,7 @@ five new ones marked **new**. Values replace the current ones.
 | `--info`, `--info-wash` **new** | `#1a4fa0` / `#e8f0fe` | `#6ba6ff` / `#1a2a44` | 6.86:1; dark 5.84:1. Information, "waiting", counts |
 | `--destructive` | `#c7141f` | `#ff6961` | Text and fill. 5.92:1 on white; dark 6.52:1 |
 | `--sidebar-*` | rail `#fbfbfd`, line `rgba(0,0,0,0.08)` | rail `#1b1b1e`, shell `#141416`, line `#2a2a2e` | Section 6 |
-| `--radius` | `0.875rem` (14 px) | same | `--radius-md` 10 px, `--radius-sm` 8 px, pills `980px` |
+| `--radius` | `0.875rem` (14 px) | same | `--radius-xl` and `--radius-lg` map to `--radius`; `--radius-md` 10 px, `--radius-sm` 8 px, pills `980px` |
 | `--shadow-card` **new** | `0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.03)` | `none` (the border carries it) | Cards only. No shadow on rows inside a card |
 | `--shadow-pop` **new** | `0 18px 50px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.06)` | `0 18px 50px rgba(0,0,0,.6)` | Menus and dialogs |
 
@@ -84,12 +84,13 @@ Insights team restyles the charts (Stage 2).
 
 - **Page:** 16 px side padding below 640 px, 24 px to 1023, 32 px from 1024. Content column max 1280 px centred from
   1440 px, except boards that are tables or kanban, which may use the full width.
+- **Approved case-layout exception (26 Nov):** the existing Dispensary case keeps its 1500 px frame and side-column widths; three columns start at Tailwind `xl` (1280 px). Below that, patient → medicines/services → actions stack. This does not change the control breakpoint: 36 px from 1024, 44 px below 1024. Existing clinical field groups and action order remain.
 - **Gaps:** 16 between cards, 24 between page sections, 8 between a label and its field, 12 inside a row group.
 - **Cards:** `--card`, 14 px radius, `--shadow-card`, padding 16 (phone) or 20. A card header is 15/600 with a quiet
   action on the right.
 - **Rows** inside a card: min height 48 (56 when two lines), 1 px `--border` divider inset 16 px from the left. No card
   inside a card; use `--card-quiet` for a well.
-- **Controls:** 36 px tall from 1024 px, **44 px below 1024 px** (GUIDE). Buttons and tabs are **pills** (`980px`);
+- **Controls:** minimum 36 px tall from 1024 px, **minimum 44 px below 1024 px** (GUIDE; including tablets). Buttons and tabs are **pills** (`980px`);
   fields and selects are 10 px radius; icon buttons are 36/44 square with 10 px radius.
 - **Switch:** 44 × 26, knob 22; on-state track `--success` fill with the knob right and a word beside it ("On"/"Off"
   or the setting's own label). Colour is never the only signal.
@@ -185,9 +186,7 @@ One layout, role-specific contents; each home is a **grid of cards** on the page
    existing data; no new endpoint is assumed.
 4. Quiet cards at the end: shortcuts, updates.
 
-Real pages: `MyDay`, `Dashboard`, `Spaces/*`, `Insights/*`. Canvas homes for roles KPOne does not have yet (Branch
-Manager, Account Assistant, Store Admin, Medical Assistant) are **not built** until those roles are authorised; the
-canvas marks them as proposals.
+Real pages: `MyDay`, `Dashboard`, `Spaces/*`, `Insights/*`. Branch Manager, Account Assistant, Store Admin and Medical Assistant already exist in `PermissionCatalogue`. Their homes use existing permissions; a demo role label does not grant access or authorise a new permission.
 
 ## 8. Dark mode
 
@@ -213,7 +212,7 @@ the TV in print keep a white page (PRINT-1) whatever the theme.
 ## 10. Check before a page PR asks for my look
 
 - Light and dark shots at 1440 and 390 (more only if the page is odd), no sideways scroll.
-- No hex or palette class in the diff (the token test will fail it; Kavitha adds it in the tokens PR).
+- No hex or palette class in page diffs. The final Classic-remnant guard is the recorded Sunday sweep task, not a claim that an exhaustive guard has already shipped.
 - One filled button; row actions outline; every status dot plus word; 44 px targets below 1024 px.
 - Text 12 px or more; contrast of anything new measured, not guessed.
 - Same behaviour: the PR body lists every changed existing assertion (class-string tests are expected to change; the
@@ -223,8 +222,7 @@ the TV in print keep a white page (PRINT-1) whatever the theme.
 ## 11. Board → route → owner
 
 Canvas board (file under `project/`) → current KPOne page → owning team. Stage 1 = Puchong CA flow (by Sat 28 Nov
-20:00); Stage 2 = everything else (by Sun 29 Nov 18:00). "Shell" is Kavitha's one shell PR. A board marked **n/a**
-is a proposal or a role KPOne does not have; it is not built.
+20:00); Stage 2 = everything else (by Sun 29 Nov 18:00). "Shell" is Kavitha's one shell PR. A board marked **n/a** is a presentation-only map or guide. Family link, family bill, Treatment room and Emergency lane are authorised work in the 25 Nov handoff, subject to their domain notes and recorded review gates; do not exclude them merely because the demo calls them proposals.
 
 ### Stage 0 (shared)
 | Board | Page | Owner |
@@ -253,29 +251,29 @@ is a proposal or a role KPOne does not have; it is not built.
 |---|---|---|
 | Panel, PanelClaims, CreateClaim, ClaimPack, ClaimsFollowUp, ClaimMessageTemplate, PanelPayments, CorrectPanelPayment, PanelInvoices, PanelSummary, PanelPriceChanges, PanelResponsibility, HomePanel | `/panel-claims`, `/panel-invoices`, `/panel-remittances`, `/panel-payment-corrections`, `/panel-price-changes`, `/checkout-settings` | Syafiq |
 | MedicineCatalogue, MedicineDetails, ServiceCatalogue, Pricing, PriceCheck, Suppliers, SkuEdit, ConsultationSettings, RegistrationSettings, PaymentMethods, ApprovalLimits, CheckoutSettings, McTemplates, ClinicianCredentials, QrLinks, QueueDisplaySettings, Settings (Business details) | settings and catalogue pages | Adlina (QrLinks and QueueDisplaySettings: Nurul and Amirul reviewers) |
-| Purchase*, Inv* (PO, RFQ, supplier bill), SupplierInvoices, SupplierPriceList, SupplierReturns, ReorderSuggestions, Recalls, ControlledRegister, StockHealth, StockMovement, StockValue, StockOtherBranches, OpeningImport, PilotReadiness, BatchHolds, HomeStore (n/a), InvTimeline, InvLanes, InventoryFlow (map: n/a) | `/inventory/*` | Zulkifli |
+| Purchase*, Inv* (PO, RFQ, supplier bill), SupplierInvoices, SupplierPriceList, SupplierReturns, ReorderSuggestions, Recalls, ControlledRegister, StockHealth, StockMovement, StockValue, StockOtherBranches, OpeningImport, PilotReadiness, BatchHolds, HomeStore, InvTimeline, InvLanes, InventoryFlow (map: n/a) | `/inventory/*` | Zulkifli |
 | HR, Leave, Attendance, OpenShifts, Credentials, MyCredentials, Sops, Memos, Letters, StaffFiles, StaffClaims, Payroll, Payslip, LocumPay, LabourCost, Appraisals, Incidents, Discipline, JobApplications, HrMessages, HrDashboard, HomeHR, Compliance, CareersPublic | `/hr/*`, `/careers/*` | Liyana |
 | AgentOffice, AgentDailySummary, AllAgents, Approvals, QuickAnswers, Insights, Reports, DailySummaryOld, TransactionDetail | `/agents/*`, `/approvals`, `/insights/*`, `/reports/*` | Irfan (Reports pages with billing content: Farah reviews) |
 | DirectorHome, DirectorOverview, HomeFin, HomeAdm, HomeOffice | Today for those roles | Kavitha |
 | Staff, Admin, AccessControl, Branches, ProfileSettings, PasswordPages, SignIn, AuditLog, HqView | `/staff`, `/access-control`, `/branches`, `/settings/*`, auth pages, `/audit-logs` | Kavitha |
 | WebsiteBranches, WebsiteCareers, WebsiteDoctors, WebsiteFaqs, WebsiteLittleShield, WebsiteMedia, WebsitePromotions, WebsiteReleases, WebsiteServices | `/website/*` | Kavitha's team (Stage 2, tokens only unless time) |
 | PublicQrForm, PublicQrStatus | `/check-in`, `/check-in/status` | Nurul (tokens and fonts; patient screens stay Bahasa Melayu) |
-| HomeBM, HomeAA, HomeMA, HomeStore | none | **n/a** (roles not authorised yet) |
+| HomeBM, HomeAA, HomeMA, HomeStore | existing role home / My day routes, permission-filtered | Kavitha; domain owners review their cards |
 | JourneyMap, BillingMap, InventoryFlow, StatusGuide | none | **n/a** (maps and guides) |
 
 A board that exists in the canvas but has no row above gets a row from the owning team's gap list; the Lead tells
 B.E.R.N.I.S.S, and Daniel adds it here.
 
-## 12. Open points for the owner (decide before Stage 1 ends; none blocks Stage 0)
+## 12. Recorded design decisions (do not reopen)
 
 1. ~~Main action colour~~ **Decided (owner, 25 Nov): accent blue `#007aff`; KPOne pink on the logo only.** Spec applies it as
    `#007aff` for graphics and `#006ae0` for text and button fills, because `#007aff` under white text measures 4.02:1.
-   One token (`--primary`) if the owner ever wants another colour.
-2. **Pill buttons everywhere.** The canvas uses full pills for all buttons; the 18 Nov note kept rows at 10 to 14 px.
+   This is the settled colour split, not a pending colour question.
+2. **Pill buttons and tabs.** The canvas uses full pills for all buttons; the 18 Nov note kept rows at 10 to 14 px.
    This spec follows the canvas (pills) for buttons and tabs, 10 px for fields.
-3. **Fonts.** Geist and Inter self-hosted; confirm Kavitha may add the files.
+3. **Fonts.** Geist and Inter are already self-hosted on main through #1120; use the existing files and licences.
 
-## 13. Order of work in Stage 0 (for Kavitha)
+## 13. Stage 0 implementation sequence (original plan)
 
 1. Tokens (`app.css`), fonts, `color-scheme`, the token contrast test.
 2. `ui/*` components in section 5 order: button, input family, badge, card, tabs, table, dialog and sheet, menus,
@@ -285,3 +283,21 @@ B.E.R.N.I.S.S, and Daniel adds it here.
 
 Every PR: light and dark shots at 1440 and 390 of the **ten busiest existing pages** (before and after) so a shared
 change is seen on real content.
+
+## 14. Reconciliation snapshot (26 Nov)
+
+This is a point-in-time coordinator snapshot, not deployment approval. Individual PRs retain their own exact-head CI and review gates.
+
+- Core tokens and self-hosted fonts merged in #1120. Shell #1125 merged at `88210df4347404506ac55f49d0afb14f974e9385`. The shared radius/card/sheet follow-up #1129 merged at `14701efae9106f568947e5286db2a47ee06a0009`; its post-merge CI is a separate release gate.
+- Desktop rail has a three-letter branch chip with full accessible name and tooltip; its panel contains the switcher. Phone header contains the switcher. PageHeader carries the branch subline. Pin preference is per person and panel focus accounts for the portalled branch control.
+- Legacy `rounded-xl border bg-card` uses the 14 px radius/card shadow, with no duplicate nested shadow. Sheets use popup surface/foreground/shadow and 18% light / 50% dark overlay. No role or business-state behavior changes.
+- Queue review evidence now covers the recovered Q16a–f slices, including `<1 min`, patient-named details, vital units and warning styling for unreviewed allergies. Local implementation evidence does not mean those branches are merged.
+- Dispensary preserves the existing workflow: doctor Verify completes the case; no invented Ready tab, approvals inbox or follow-up link. The case restyle and its six owner-approved assertion groups are reviewed local work. Its approved `xl` layout and 36/44 px control minima are recorded in section 4. Remaining shared attention/check partials are separate scoped work.
+- The final Classic-remnant sweep and guard remain Sunday work. This spec does not certify every screen compliant. Patient-facing screens remain Bahasa Melayu and TV/staff screens English.
+- Deadlines (MYT): Stage 0: 26 Nov 20:00; Stage 1: 28 Nov 20:00; Stage 2: 29 Nov 18:00; Puchong CA test: 30 Nov 08:30. These are handoff targets, not reported completion times.
+
+## 15. Provenance and bounded review
+
+The original draft 1 is the version of this path at commit `bbc896d69c4e3e5298e7e62d34deddecb557df12` in PR #1119. The full handoff states that Daniel's draft 2 was never committed and may be lost. This document is a reconstruction reviewed by the current Staff Experience team, not recovered draft 2 bytes or Daniel's historical sign-off. Canvas descriptions and contrast calculations are inherited from draft 1; this reconciliation inspected the supplied local demo and actual CSS tokens and does not claim a new live-canvas session or contrast recalculation.
+
+Resolved owner choices remain settled: replacement in place/no theme switch, blue accent/pink logo only, self-hosted fonts, permission-filtered role homes, authorised domain work subject to its recorded gates, and the exact approved case breakpoint/assertion changes. No new product feature or role grant is introduced. Remaining implementation discrepancies are scoped follow-up work, not a reason to reopen settled choices. Existing assertion changes still require explicit approval.
