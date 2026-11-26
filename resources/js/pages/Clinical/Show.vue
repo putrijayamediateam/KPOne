@@ -705,7 +705,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 <template>
     <Head title="Clinical Encounter" />
     <main
-        class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 bg-neutral-100 px-3 py-3 md:px-5 dark:bg-background"
+        class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-6 bg-background px-4 py-6 sm:px-6 lg:px-8"
     >
         <header
             class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"
@@ -720,7 +720,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <span class="rounded-md border bg-card px-2 py-1 text-xs">{{
                     clinical.encounter.attendingClinician
                 }}</span>
-                <span class="text-[11px] text-muted-foreground"
+                <span class="text-[12.5px] text-muted-foreground"
                     >{{ clinical.visit.visitNumber }} ·
                     {{
                         consultationCompleted
@@ -730,7 +730,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                               : 'In progress'
                     }}</span
                 >
-                <span class="text-[11px] text-muted-foreground"
+                <span class="text-[12.5px] text-muted-foreground"
                     >{{ waitedDurationLabel(waitedMinutes) }} · Active
                     {{ clinical.hold.activeMinutes }} min · Held
                     {{ clinical.hold.heldMinutes }} min</span
@@ -962,7 +962,9 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             class="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
         >
             <div class="min-w-0 space-y-3" data-testid="consultation-left">
-                <section class="overflow-hidden rounded-lg border bg-card">
+                <section
+                    class="overflow-hidden rounded-lg border bg-card shadow-card"
+                >
                     <div
                         class="grid sm:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]"
                         data-testid="consultation-patient-grid"
@@ -1032,7 +1034,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 <Link
                                     v-if="clinical.visit.triageViewUrl"
                                     :href="clinical.visit.triageViewUrl"
-                                    class="inline-flex min-h-11 items-center px-1 text-xs font-medium text-brand-strong underline underline-offset-4 lg:min-h-0"
+                                    class="inline-flex min-h-11 items-center px-1 text-xs font-medium text-link underline underline-offset-4 lg:min-h-0"
                                     data-testid="consultation-view-triage"
                                     >View triage</Link
                                 >
@@ -1205,7 +1207,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </div>
 
                 <form
-                    class="space-y-4 rounded-lg border bg-card p-4"
+                    class="space-y-4 rounded-lg border bg-card p-4 shadow-card"
                     data-testid="consultation-record-card"
                     @submit.prevent="save"
                 >
@@ -1808,7 +1810,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <div
                     v-show="workspaceTab === 'history'"
                     data-testid="consultation-history-pane"
-                    class="min-h-0 rounded-lg border bg-card p-4 lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
+                    class="min-h-0 rounded-lg border bg-card p-4 shadow-card lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
                 >
                     <ClinicalHistoryPanel
                         :history="clinical.history"
@@ -1850,7 +1852,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
     font-size: 12.5px;
 }
 .consultation-workspace :deep(.text-xs) {
-    font-size: 11.5px;
+    font-size: 12.5px;
 }
 .consultation-workspace :deep(h2),
 .consultation-workspace :deep(h3) {
@@ -1858,8 +1860,8 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 }
 .consultation-workspace :deep(button),
 .consultation-workspace :deep(button[class]) {
-    height: 30px;
-    font-size: 12px;
+    height: 36px;
+    font-size: 14px;
     padding-inline: 8px;
 }
 .consultation-workspace :deep(#clinical-safety button) {
@@ -1880,10 +1882,30 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 }
 .consultation-workspace
     :deep(input:not([type='radio']):not([type='checkbox'])) {
-    height: 30px;
-    font-size: 12px;
+    height: 36px;
+    font-size: 14px;
 }
 .consultation-workspace :deep(textarea) {
     font-size: 12.5px;
+}
+/* Use 36px desktop controls; touch controls need the shared 44px minimum below 1024px. */
+@media (max-width: 1023px) {
+    .consultation-workspace :deep(button),
+    .consultation-workspace :deep(button[class]) {
+        min-width: 44px;
+        min-height: 44px;
+        height: auto;
+    }
+    .consultation-workspace
+        :deep(input:not([type='radio']):not([type='checkbox'])),
+    .consultation-workspace :deep(select) {
+        min-height: 44px;
+        height: 44px;
+    }
+    .consultation-workspace :deep(a[href]) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
 }
 </style>
