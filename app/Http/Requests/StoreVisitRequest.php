@@ -22,6 +22,7 @@ class StoreVisitRequest extends FormRequest
     {
         return [
             'idempotency_key' => ['required', 'uuid'],
+            'emergency_contact_command' => ['sometimes', 'nullable', 'array'],
             'expected_branch_id' => ['required', 'integer'],
             'patient_number' => [
                 'nullable', 'string', 'max:20', 'required_without:quick_patient',

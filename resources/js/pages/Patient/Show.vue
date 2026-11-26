@@ -3,6 +3,8 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { BadgeCheck, Pencil, Plus } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import EmergencyContactCard from '@/components/patient/EmergencyContactCard.vue';
+import type { EmergencyContact } from '@/components/patient/EmergencyContactCard.vue';
 import PatientChangeHistory from '@/components/patient/PatientChangeHistory.vue';
 import type { PatientChangeHistoryData } from '@/components/patient/PatientChangeHistory.vue';
 import PatientMergePanel from '@/components/patient/PatientMergePanel.vue';
@@ -22,6 +24,8 @@ defineOptions({
 });
 const props = defineProps<{
     patient: PatientDetail;
+    emergencyContact?: EmergencyContact;
+    emergencyContactBranchId?: number | null;
     merge?: PatientMergePanelData;
     history?: PatientChangeHistoryData | null;
     mergedGuardian?: {
@@ -352,6 +356,13 @@ const formatTime = (value: string) =>
         </section>
 
         <PatientChangeHistory v-if="history" :history="history" />
+        <EmergencyContactCard
+            v-if="emergencyContact"
+            :patient-number="patient.patientNumber"
+            :initial="emergencyContact"
+            :can-edit="patient.can.update && !!emergencyContactBranchId"
+            :branch-id="emergencyContactBranchId ?? 0"
+        />
         <PatientMergePanel
             v-if="merge"
             :patient-number="patient.patientNumber"

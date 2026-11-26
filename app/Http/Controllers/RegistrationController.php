@@ -50,6 +50,9 @@ class RegistrationController extends Controller
             'guardianToday' => app(PatientGuardianService::class)->today($request->user()),
             'options' => $directory->formOptions($request->user()),
             'requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id),
+            'canViewEmergencyContact' => $request->user()->can('patients.view.organisation'),
+            'canUpdateEmergencyContact' => $request->user()->can('patients.update.organisation'),
+            'canCreateEmergencyContact' => $request->user()->can('patients.create.organisation') && $request->user()->can('patients.view.organisation'),
             'recentPatients' => $directory->recentPatients($request->user()),
         ]);
     }
