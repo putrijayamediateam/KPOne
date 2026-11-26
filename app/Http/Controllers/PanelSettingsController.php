@@ -40,7 +40,9 @@ class PanelSettingsController extends Controller
             throw $e->redirectTo(route('panel-settings.create'));
         }
 
-        return to_route('panel-settings.index')->with('success', 'Panel added.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Panel added.']);
+
+        return to_route('panel-settings.index');
     }
 
     public function update(Request $request, Panel $panel, PanelSettingsService $panels): RedirectResponse
@@ -51,7 +53,9 @@ class PanelSettingsController extends Controller
             throw $e->redirectTo(route('panel-settings.edit', $panel->id));
         }
 
-        return to_route('panel-settings.index')->with('success', 'Panel saved.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Panel saved.']);
+
+        return to_route('panel-settings.index');
     }
 
     public function active(Request $request, Panel $panel, PanelSettingsService $panels): RedirectResponse
@@ -62,7 +66,9 @@ class PanelSettingsController extends Controller
             throw $e->redirectTo(route('panel-settings.index'));
         }
 
-        return to_route('panel-settings.index')->with('success', $updated->is_active ? 'Panel restored.' : 'Panel archived.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => $updated->is_active ? 'Panel restored.' : 'Panel archived.']);
+
+        return to_route('panel-settings.index');
     }
 
     public function claimMessage(Request $request, PanelClaimMessageService $messages): RedirectResponse
@@ -73,7 +79,9 @@ class PanelSettingsController extends Controller
             throw $e->redirectTo(route('panel-settings.index'));
         }
 
-        return to_route('panel-settings.index')->with('success', 'Claim message saved.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Claim message saved.']);
+
+        return to_route('panel-settings.index');
     }
 
     private function actor(Request $request): User
