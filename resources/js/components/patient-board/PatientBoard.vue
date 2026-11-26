@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     Clock3,
     Ellipsis,
+    Info,
     LoaderCircle,
     UserRound,
 } from '@lucide/vue';
@@ -49,6 +50,8 @@ defineEmits<{
     callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
     readinessChanged: [];
+    // Q-16c: ask the page to open the read-only details dialog of this row.
+    showDetails: [row: PatientBoardRow];
 }>();
 
 // Q-2: one treatment dialog at a time, opened from the row menu or the inline "Mark done" button.
@@ -210,6 +213,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                     <span
                                         class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
                                         tabindex="0"
+                                        :title="row.doctorName ?? 'Unassigned'"
                                     >
                                         <UserRound
                                             class="size-3 shrink-0 text-muted-foreground"
@@ -228,6 +232,42 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
+                        <!-- AUTO-1c: a neutral warning and the way to reassign (Edit visit keeps the patient's place). The server
+                             sends it only to a viewer who may edit the visit, and never names another doctor. -->
+                        <div
+                            v-if="row.doctorWarning"
+                            class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5"
+                            data-testid="doctor-warning"
+                        >
+                            <span
+                                class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium"
+                                :class="
+                                    row.doctorWarning.code === 'another_free'
+                                        ? 'border-border bg-transparent text-muted-foreground'
+                                        : 'border-warning/40 bg-warning/10 text-warning-strong'
+                                "
+                            >
+                                <Info
+                                    v-if="
+                                        row.doctorWarning.code ===
+                                        'another_free'
+                                    "
+                                    class="size-3 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                <AlertTriangle
+                                    v-else
+                                    class="size-3 shrink-0"
+                                    aria-hidden="true"
+                                />{{ row.doctorWarning.label }}
+                            </span>
+                            <Link
+                                :href="editHref(row.visitNumber)"
+                                class="inline-flex items-center text-xs font-medium underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none max-lg:min-h-11"
+                                :aria-label="`Reassign visit ${row.visitNumber}: ${row.doctorWarning.label}`"
+                                >Reassign</Link
+                            >
+                        </div>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Payment">
                         <TooltipProvider :delay-duration="350">
@@ -288,6 +328,16 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 }})</span
                             >
                         </span>
+                        <div
+                            v-if="row.emergency"
+                            class="mt-2 space-y-1 text-[12.5px] text-muted-foreground"
+                            data-testid="emergency-lane-metadata"
+                        >
+                            <p>{{ row.emergency.alertLabel }}</p>
+                            <p class="font-medium text-foreground">
+                                {{ row.emergency.takenLabel }}
+                            </p>
+                        </div>
                     </td>
                     <td
                         class="px-3 py-2.5 align-middle"
@@ -416,6 +466,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                         size="icon"
                                         class="min-h-11 min-w-11"
                                         :aria-label="`Actions for ${row.patientName}`"
+                                        :data-row-menu="row.visitNumber"
                                     >
                                         <LoaderCircle
                                             v-if="busyKey === row.key"
@@ -447,6 +498,14 @@ const triageTextClass = (zone: TriageZone | null) =>
                                             "
                                             >View Patient</Link
                                         >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.triage && from === 'queue'"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        data-testid="row-details-menu"
+                                        @select="$emit('showDetails', row)"
+                                    >
+                                        Show details
                                     </DropdownMenuItem>
                                     <!-- TRI-1e: the patient's own doctor reads the triage record (view only). -->
                                     <DropdownMenuItem

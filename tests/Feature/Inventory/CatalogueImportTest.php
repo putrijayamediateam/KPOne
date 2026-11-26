@@ -307,8 +307,11 @@ final class CatalogueImportTest extends VisitTestCase
         $catalogue = $this->catalogue([$this->row('IMP-H')]);
         $before = $this->counts();
 
-        // The Director has no prices.publish, so cannot run the import.
-        $problems = $this->refusal(fn () => $this->import($catalogue, null, false, $this->staff('director')));
+        // BIL-38: a Director normally has publish; this fixture explicitly lacks it.
+        $director = $this->staff('director');
+        $director->roles()->firstOrFail()->revokePermissionTo('prices.publish.organisation');
+        $director->unsetRelation('roles');
+        $problems = $this->refusal(fn () => $this->import($catalogue, null, false, $director));
         $this->assertStringContainsString('prices.publish.organisation', $problems[0]);
         $problems = $this->refusal(fn () => $this->import($catalogue, null, false, $this->staff('ca')));
         $this->assertStringContainsString('The actor lacks', $problems[0]);
@@ -320,6 +323,12 @@ final class CatalogueImportTest extends VisitTestCase
         $this->assertSame($before, $this->counts());
         // A CA Supervisor holds all four and may run it.
         $this->assertSame(1, $this->import($catalogue, null, false, $this->staff('ca_supervisor'))['medicines']);
+    }
+
+    public function test_director_with_all_required_permissions_can_import_catalogue(): void
+    {
+        $catalogue = $this->catalogue([$this->row('BIL38-IMPORT')]);
+        $this->assertSame(1, $this->import($catalogue, null, false, $this->staff('director'))['medicines']);
     }
 
     public function test_the_console_command_prints_counts_or_problems(): void

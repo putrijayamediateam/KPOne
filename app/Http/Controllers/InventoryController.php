@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Services\DifferenceReportService;
+use App\Domain\Organisation\Inventory\Services\HandCostPageService;
 use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
@@ -77,6 +78,7 @@ class InventoryController extends Controller
         return [
             'canManage' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
             // STK-28: both Inventory homes link "Stock value and cost" for its holders only (the Director).
+            'canFillCosts' => HandCostPageService::visible($actor),
             'canViewStockValue' => $actor->can(StockValuationReportService::PERMISSION),
             // STK-44: the "Medicine sales" link, for its holders only (the Director and Finance Officer).
             'canViewMedicineSales' => $actor->can(MedicineSalesReportService::PERMISSION),

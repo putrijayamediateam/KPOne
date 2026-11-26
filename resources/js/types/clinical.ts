@@ -195,7 +195,19 @@ export type DispensarySupervisorCheck = {
     overrideNote: string | null;
 };
 
+export type FamilyWaiting = {
+    rows: Array<{
+        relationshipLabel: string;
+        name: string;
+        patientNumber: string;
+        queueLabel: string;
+        url: string;
+    }>;
+    recordUrl: string | null;
+};
+
 export type ClinicalEncounterPage = {
+    familyWaiting?: FamilyWaiting | null;
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
         patientNumber: string;

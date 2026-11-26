@@ -23,9 +23,15 @@ test('Classic Inventory home keeps its 16 task links in order', () => {
         .filter(
             (link) =>
                 link !== '/inventory/stock-value=Stock value and cost' &&
-                link !== '/inventory/medicine-sales=Medicine sales',
+                link !== '/inventory/medicine-sales=Medicine sales' &&
+                link !== '/inventory/hand-costs=Costs to fill in',
         );
+    // STK-46 owner-approved 26 Nov: the separately guarded hand-cost link is not one of the 16 common links.
     assert.equal(classicLinks.length, 16);
+    assert.match(
+        desktop,
+        /href="\/inventory\/hand-costs"\s+variant="outline"\s+v-if="referenceData\.canFillCosts"[\s\S]*?>Costs to fill in<\/ActionLink/,
+    );
     assert.match(
         desktop,
         /href="\/inventory\/stock-value"\s+variant="outline"\s+v-if="referenceData\.canViewStockValue"[\s\S]*?>Stock value and cost<\/ActionLink/,

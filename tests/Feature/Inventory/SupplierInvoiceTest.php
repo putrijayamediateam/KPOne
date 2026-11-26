@@ -64,7 +64,7 @@ final class SupplierInvoiceTest extends VisitTestCase
     {
         $holders = fn (string $p) => collect(PermissionCatalogue::roles())->filter(fn (array $perms) => in_array($p, $perms, true))->keys()->sort()->values()->all();
         $this->assertSame(['account_assistant', 'ca_supervisor', 'finance_officer'], $holders(SupplierInvoiceService::RECORD));
-        $this->assertSame(['director', 'finance_officer'], $holders(SupplierInvoiceService::APPROVE));
+        $this->assertSame(['finance_officer'], $holders(SupplierInvoiceService::APPROVE));
     }
 
     public function test_an_invoice_that_matches_the_order_estimate_is_matched_with_nothing_more_to_do(): void
@@ -91,13 +91,13 @@ final class SupplierInvoiceTest extends VisitTestCase
         $line = fn (string $id) => DB::table('inventory_supplier_invoice_lines')->where('supplier_invoice_id', $this->row($id)->id)->sole();
         $first = $service->record($this->as($supervisor), $this->invoice($f));
         $this->assertSame(['waiting', 'price_differs', 'receipt', 300], [$this->row($first)->status, $line($first)->result, $line($first)->price_basis, (int) $line($first)->expected_total_sen]);
-        $service->decide($this->as($f['director']), $first, 'rejected', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'wrong_price']);
+        $service->decide($this->as($f['finance']), $first, 'rejected', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'wrong_price']);
         // The same number may be recorded again, corrected, once the first copy is rejected.
         $again = $service->record($this->as($supervisor), $this->invoice($f, ['invoice_number' => $this->row($first)->invoice_number], '2', '3.00'));
         $this->assertSame('matched', $this->row($again)->status);
     }
 
-    public function test_a_mismatch_is_decided_by_a_finance_officer_or_director_who_did_not_record_it(): void
+    public function test_a_mismatch_is_decided_by_a_finance_officer_who_did_not_record_it(): void
     {
         $f = $this->received();
         $service = app(SupplierInvoiceService::class);
@@ -109,15 +109,18 @@ final class SupplierInvoiceTest extends VisitTestCase
         $cmd = ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'credit_note_expected'];
         $this->assertThrows(fn () => $service->decide($this->as($finance), $id, 'accepted', $cmd), AuthorizationException::class);
         $this->assertThrows(fn () => $service->decide($this->as($this->staff('ca_supervisor')), $id, 'accepted', $cmd), AuthorizationException::class);
-        $this->assertThrows(fn () => $service->decide($this->as($f['director']), $id, 'accepted', [...$cmd, 'reason' => 'other']), ValidationException::class);
-        $this->assertThrows(fn () => $service->decide($this->as($f['director']), $id, 'accepted', [...$cmd, 'reason' => 'wrong_price']), ValidationException::class);
-        $this->assertThrows(fn () => $service->decide($this->as($f['director']), $id, 'accepted', [...$cmd, 'lock_version' => 2]), ValidationException::class);
-        $service->decide($this->as($f['director']), $id, 'accepted', [...$cmd, 'note' => '  Supplier will credit one box  ']);
+        // STK-51: the Director no longer decides.
+        $this->assertThrows(fn () => $service->decide($this->as($f['director']), $id, 'accepted', $cmd), AuthorizationException::class);
+        $second = $this->staff('finance_officer');
+        $this->assertThrows(fn () => $service->decide($this->as($second), $id, 'accepted', [...$cmd, 'reason' => 'other']), ValidationException::class);
+        $this->assertThrows(fn () => $service->decide($this->as($second), $id, 'accepted', [...$cmd, 'reason' => 'wrong_price']), ValidationException::class);
+        $this->assertThrows(fn () => $service->decide($this->as($second), $id, 'accepted', [...$cmd, 'lock_version' => 2]), ValidationException::class);
+        $service->decide($this->as($second), $id, 'accepted', [...$cmd, 'note' => '  Supplier will credit one box  ']);
         $row = $this->row($id);
-        $this->assertSame(['accepted', 'credit_note_expected', 'Supplier will credit one box', $f['director']->id, 2], [$row->status, $row->decision_reason, $row->decision_note, (int) $row->decided_by_user_id, (int) $row->lock_version]);
+        $this->assertSame(['accepted', 'credit_note_expected', 'Supplier will credit one box', $second->id, 2], [$row->status, $row->decision_reason, $row->decision_note, (int) $row->decided_by_user_id, (int) $row->lock_version]);
         $this->assertSame(['reason', 'supplier_invoice_id'], collect(json_decode(DB::table('audit_logs')->where('event', 'inventory.supplier_invoice.accepted')->sole()->metadata, true))->keys()->sort()->values()->all());
         // Decided once only.
-        $this->assertThrows(fn () => $service->decide($this->as($f['director']), $id, 'rejected', [...$cmd, 'lock_version' => 2, 'reason' => 'wrong_price']), ValidationException::class);
+        $this->assertThrows(fn () => $service->decide($this->as($second), $id, 'rejected', [...$cmd, 'lock_version' => 2, 'reason' => 'wrong_price']), ValidationException::class);
     }
 
     public function test_recording_rules(): void
@@ -278,7 +281,7 @@ final class SupplierInvoiceTest extends VisitTestCase
         $f = $this->received();
         $service = app(SupplierInvoiceService::class);
         $id = $service->record($this->as($this->staff('ca_supervisor')), $this->invoice($f, [], '2', '9.00'));
-        $service->decide($this->as($f['director']), $id, 'rejected', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'wrong_price']);
+        $service->decide($this->as($f['finance']), $id, 'rejected', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'wrong_price']);
         $copy = (array) $this->row($id);
         unset($copy['id']);
         DB::beginTransaction();

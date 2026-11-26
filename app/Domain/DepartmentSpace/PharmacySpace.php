@@ -37,7 +37,7 @@ final class PharmacySpace
 
         $links = [];
         if ($toDispense !== null) {
-            $links[] = ['title' => 'Open Dispensary list', 'href' => route('registration.index', absolute: false)];
+            $links[] = ['title' => 'Open Dispensary list', 'href' => route('dispensary.index', absolute: false)];
         }
         if ($returnsToCheck !== null) {
             $links[] = ['title' => 'Returns to check', 'href' => route('dispensary.returns-to-check', absolute: false)];
@@ -97,7 +97,7 @@ final class PharmacySpace
         $toDispense = [
             'total' => (int) $board['total'],
             'limit' => self::LIST_LIMIT,
-            'seeAllHref' => route('registration.index', absolute: false),
+            'seeAllHref' => route('dispensary.index', absolute: false),
             'rows' => array_map(fn (array $r): array => [
                 'visitNumber' => $r['visitNumber'],
                 'queueNumber' => $numbers[$r['visitNumber']] ?? null,
@@ -139,7 +139,7 @@ final class PharmacySpace
             return null;
         }
 
-        return ['total' => $this->returns->waitingList($actor, 1)['total']];
+        return ['total' => $this->returns->waitingTotal($actor)];
     }
 
     /** "Waiting 144 min, Very long wait": the words as well as the colour. */

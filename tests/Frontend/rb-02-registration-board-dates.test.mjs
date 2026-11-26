@@ -239,6 +239,8 @@ const requireMap = {
         SlidersHorizontal: NullStub,
         X: NullStub,
     },
+    '@/components/queue/EmergencyLane.vue': { default: NullStub },
+    '@/lib/emergency-lane': { emergencyBoardMetadata: () => ({}) },
     '@/components/InputError.vue': { default: InputErrorStub },
     '@/components/patient-board/PatientBoard.vue': { default: PatientBoardStub },
     '@/components/patient-board/VisitCancellationDialog.vue': {

@@ -19,18 +19,25 @@ import {
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
+import EmergencyLane from '@/components/queue/EmergencyLane.vue';
 import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import { emergencyBoardMetadata } from '@/lib/emergency-lane';
 import { formatDate } from '@/lib/presentation';
 import {
     queuePresentationLabel,
     waitingDurationLabel,
     servingDurationLabel,
 } from '@/lib/r1c2-presentation';
-import type { PatientBoardRow, VisitOptions, VisitRow } from '@/types';
+import type {
+    EmergencyLaneSnapshot,
+    PatientBoardRow,
+    VisitOptions,
+    VisitRow,
+} from '@/types';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Registration', href: '/registration' }] },
@@ -39,6 +46,7 @@ defineOptions({
 const props = defineProps<{
     visits: {
         data: VisitRow[];
+        emergency?: EmergencyLaneSnapshot<VisitRow>;
         total: number;
         currentPage: number;
         lastPage: number;
@@ -141,9 +149,19 @@ const activeTab = ref<BoardTab>(
         : initialTab === 'triage' &&
             props.visits.tabCounts?.triage !== undefined
           ? 'triage'
-          : 'all',
+          : [
+                  'waiting',
+                  'serving',
+                  'dispensary',
+                  'billing',
+                  'completed',
+                  'cancelled',
+              ].includes(initialTab ?? '')
+            ? (initialTab as BoardTab)
+            : 'all',
 );
 const rows = ref(props.visits.data);
+const emergency = ref(props.visits.emergency);
 const total = ref(props.visits.total);
 const currentPage = ref(props.visits.currentPage);
 const lastPage = ref(props.visits.lastPage);
@@ -231,85 +249,91 @@ const registrationDateLabel = computed(() =>
 const isCustomDateFilter = computed(
     () => form.date_from !== today || form.date_to !== today,
 );
-const boardRows = computed<PatientBoardRow[]>(() =>
-    rows.value.map((visit) => {
-        const status =
-            visit.status === 'completed'
-                ? { label: 'Completed', tone: 'neutral' as const }
-                : visit.awaitingBilling
-                  ? { label: 'Awaiting Billing', tone: 'neutral' as const }
-                  : visit.dispensaryStatus
-                    ? {
-                          label:
-                              visit.dispensaryStatus === 'pending'
-                                  ? 'Pending'
-                                  : visit.dispensaryStatus ===
-                                      'awaiting_doctor_check'
-                                    ? "Waiting for doctor's check"
-                                    : 'Dispensing',
-                          tone:
-                              visit.dispensaryStatus === 'pending'
-                                  ? ('waiting' as const)
-                                  : ('serving' as const),
-                      }
-                    : visit.status === 'cancelled'
-                      ? { label: 'Cancelled', tone: 'cancelled' as const }
-                      : visit.queueStatus === 'serving'
-                        ? { label: 'Serving Now', tone: 'serving' as const }
-                        : visit.queueStatus === 'waiting'
-                          ? { label: 'Waiting', tone: 'waiting' as const }
-                          : visit.queueStatus === 'removed'
-                            ? {
-                                  label: queuePresentationLabel({
-                                      status: 'removed',
-                                      removalReason: visit.queueRemovalReason,
-                                      visitStatus: visit.status,
-                                  }),
-                                  tone: 'removed' as const,
-                              }
-                            : { label: 'Registered', tone: 'neutral' as const };
+const toBoardRow = (visit: VisitRow): PatientBoardRow => {
+    const status =
+        visit.status === 'completed'
+            ? { label: 'Completed', tone: 'neutral' as const }
+            : visit.awaitingBilling
+              ? { label: 'Awaiting Billing', tone: 'neutral' as const }
+              : visit.dispensaryStatus
+                ? {
+                      label:
+                          visit.dispensaryStatus === 'pending'
+                              ? 'Pending'
+                              : visit.dispensaryStatus ===
+                                  'awaiting_doctor_check'
+                                ? "Waiting for doctor's check"
+                                : 'Dispensing',
+                      tone:
+                          visit.dispensaryStatus === 'pending'
+                              ? ('waiting' as const)
+                              : ('serving' as const),
+                  }
+                : visit.status === 'cancelled'
+                  ? { label: 'Cancelled', tone: 'cancelled' as const }
+                  : visit.queueStatus === 'serving'
+                    ? { label: 'Serving Now', tone: 'serving' as const }
+                    : visit.queueStatus === 'waiting'
+                      ? { label: 'Waiting', tone: 'waiting' as const }
+                      : visit.queueStatus === 'removed'
+                        ? {
+                              label: queuePresentationLabel({
+                                  status: 'removed',
+                                  removalReason: visit.queueRemovalReason,
+                                  visitStatus: visit.status,
+                              }),
+                              tone: 'removed' as const,
+                          }
+                        : { label: 'Registered', tone: 'neutral' as const };
 
-        return {
-            key: visit.visitNumber,
-            canWhatsapp: visit.canWhatsapp,
-            callHold: visit.callHold,
-            triage: visit.triage,
-            patientName: visit.patientName,
-            patientNumber: visit.patientNumber,
-            visitNumber: visit.visitNumber,
-            queueNumber: visit.queueNumber,
-            arrivedDate: formatDate(
-                visit.registeredAtDate,
-                props.options.branch.timezone,
-            ),
-            arrivedTime: compactTime(visit.registeredAt),
-            visitNotes: visit.visitReasonExcerpt,
-            doctorName: visit.doctorName,
-            coverageLabel: visit.coverageLabel,
-            panelNote: visit.panelNote,
-            durationLabel: visit.isHeld
-                ? 'On Hold'
-                : visit.queueStatus === 'serving'
-                  ? servingDurationLabel(visit.durationMinutes)
-                  : visit.queueStatus === 'waiting'
-                    ? waitingDurationLabel(visit.durationMinutes)
-                    : '—',
-            waitingMinutes:
-                !visit.isHeld && visit.queueStatus === 'waiting'
-                    ? visit.durationMinutes
-                    : null,
-            priority: visit.priority,
-            returnedFromDispensary: visit.returnedFromDispensary,
-            dispensaryUrl: visit.dispensaryUrl,
-            billingUrl: visit.billingUrl,
-            historyUrl: visit.historyUrl,
-            completedAt: visit.completedAt,
-            statusLabel: visit.isHeld ? 'On Hold' : status.label,
-            statusTone: visit.isHeld ? ('held' as const) : status.tone,
-            can: visit.can,
-            source: visit,
-        };
-    }),
+    return {
+        key: visit.visitNumber,
+        canWhatsapp: visit.canWhatsapp,
+        callHold: visit.callHold,
+        triage: visit.triage,
+        patientName: visit.patientName,
+        patientNumber: visit.patientNumber,
+        visitNumber: visit.visitNumber,
+        queueNumber: visit.queueNumber,
+        arrivedDate: formatDate(
+            visit.registeredAtDate,
+            props.options.branch.timezone,
+        ),
+        arrivedTime: compactTime(visit.registeredAt),
+        visitNotes: visit.visitReasonExcerpt,
+        doctorName: visit.doctorName,
+        doctorWarning: visit.doctorWarning,
+        coverageLabel: visit.coverageLabel,
+        panelNote: visit.panelNote,
+        durationLabel: visit.isHeld
+            ? 'On Hold'
+            : visit.queueStatus === 'serving'
+              ? servingDurationLabel(visit.durationMinutes)
+              : visit.queueStatus === 'waiting'
+                ? waitingDurationLabel(visit.durationMinutes)
+                : '—',
+        waitingMinutes:
+            !visit.isHeld && visit.queueStatus === 'waiting'
+                ? visit.durationMinutes
+                : null,
+        priority: visit.priority,
+        returnedFromDispensary: visit.returnedFromDispensary,
+        dispensaryUrl: visit.dispensaryUrl,
+        billingUrl: visit.billingUrl,
+        historyUrl: visit.historyUrl,
+        completedAt: visit.completedAt,
+        statusLabel: visit.isHeld ? 'On Hold' : status.label,
+        statusTone: visit.isHeld ? ('held' as const) : status.tone,
+        can: visit.can,
+        source: visit,
+    };
+};
+const boardRows = computed<PatientBoardRow[]>(() => rows.value.map(toBoardRow));
+const emergencyRows = computed<PatientBoardRow[]>(() =>
+    (emergency.value?.data ?? []).map((entry) => ({
+        ...toBoardRow(entry.boardRow),
+        emergency: emergencyBoardMetadata(entry, props.options.branch.timezone),
+    })),
 );
 
 const triageRows = computed(() =>
@@ -334,6 +358,7 @@ const clearBoard = () => {
     total.value = 0;
     currentPage.value = 1;
     lastPage.value = 1;
+    emergency.value = undefined;
 };
 const clearPollTimer = () => {
     if (pollTimer !== undefined) {
@@ -386,7 +411,7 @@ const recordSearchFailure = (automatic: boolean, message: string) => {
         clearBoard();
     }
 };
-const search = async (page = 1, automatic = false) => {
+const search = async (page = 1, automatic = false, emergencyPage?: number) => {
     if (disposed) {
         return;
     }
@@ -419,7 +444,10 @@ const search = async (page = 1, automatic = false) => {
     }
 
     if (!automatic) {
-        appliedFilters = { ...form };
+        if (emergencyPage === undefined) {
+            appliedFilters = { ...form };
+        }
+
         pollFailures = 0;
         pollingStopped = false;
         error.value = '';
@@ -440,7 +468,16 @@ const search = async (page = 1, automatic = false) => {
                 'X-CSRF-TOKEN': csrf(),
             },
             signal: request.signal,
-            body: JSON.stringify({ ...appliedFilters, page }),
+            body: JSON.stringify({
+                ...appliedFilters,
+                page,
+                ...(emergency.value
+                    ? {
+                          emergency_page:
+                              emergencyPage ?? emergency.value.currentPage,
+                      }
+                    : {}),
+            }),
         });
         const payload = await response.json();
 
@@ -472,6 +509,7 @@ const search = async (page = 1, automatic = false) => {
 
         tabCounts.value = payload.tabCounts;
         rows.value = payload.data;
+        emergency.value = payload.emergency;
         total.value = payload.total;
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
@@ -665,6 +703,11 @@ onMounted(() => {
         return;
     }
 
+    // Clean Look rail links open a board tab (?tab=dispensary, ?tab=billing): load that tab's rows at once.
+    if (activeTab.value !== 'all' && activeTab.value !== 'qr-intake') {
+        void search(1, true);
+    }
+
     pollingEnabled = true;
     document.addEventListener('visibilitychange', handleVisibility);
     schedulePoll();
@@ -686,23 +729,33 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Registration" />
     <main
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
-        <h1 class="sr-only">Registration</h1>
-        <div class="flex items-center gap-2 border-b">
-            <OperationalTabs
-                class="min-w-0 flex-1"
-                :model-value="activeTab"
-                label="Patient board status"
-                :tabs="tabs"
-                @update:model-value="selectOperationalTab"
-            />
-            <Button v-if="canCreate" as-child size="sm" class="shrink-0"
+        <!-- Clean Look (spec section 6): page header (PageHeader classes) with the one main action on the right. -->
+        <header class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 space-y-1">
+                <h1
+                    class="text-[26px] font-semibold tracking-[-0.02em] text-foreground lg:text-[30px]"
+                >
+                    Registration
+                </h1>
+                <p class="text-[13px] text-muted-foreground">
+                    {{ options.branch.name }} · {{ registrationDateLabel }}
+                </p>
+            </div>
+            <Button v-if="canCreate" as-child class="shrink-0"
                 ><Link href="/registration/create"
                     ><Plus class="size-4" /> Register Visit</Link
                 ></Button
             >
-        </div>
+        </header>
+        <OperationalTabs
+            class="min-w-0"
+            :model-value="activeTab"
+            label="Patient board status"
+            :tabs="tabs"
+            @update:model-value="selectOperationalTab"
+        />
 
         <QrIntakeTable
             v-if="isQrIntake && qrIntakes"
@@ -712,7 +765,10 @@ onBeforeUnmount(() => {
             @history-page-change="changeQrHistoryPage"
         />
 
-        <div v-else-if="plannedTab" class="border-y px-4 py-12 text-center">
+        <div
+            v-else-if="plannedTab"
+            class="rounded-lg border bg-card px-4 py-12 text-center shadow-card"
+        >
             <h2 class="font-semibold">
                 {{
                     activeTab === 'dispensary'
@@ -727,14 +783,17 @@ onBeforeUnmount(() => {
         </div>
 
         <template v-else>
-            <form class="border-b pb-3" @submit.prevent="search(1)">
+            <form
+                class="rounded-lg border bg-card p-4 shadow-card"
+                @submit.prevent="search(1)"
+            >
                 <div
                     class="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.6fr)_minmax(150px,0.8fr)_140px_140px_auto_auto]"
                 >
                     <label class="relative md:col-span-2 xl:col-span-1">
                         <span class="sr-only">Search patients</span>
                         <Search
-                            class="absolute top-2.5 left-3 size-4 text-muted-foreground"
+                            class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                         />
                         <input
                             id="registration-board-search"
@@ -742,27 +801,31 @@ onBeforeUnmount(() => {
                             autocomplete="off"
                             @compositionstart="searchComposing = true"
                             @compositionend="searchComposing = false"
-                            class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
+                            class="h-9 w-full rounded-[10px] border border-input bg-field-fill pr-3 pl-9 text-[14px] transition-colors outline-none hover:border-foreground/25 focus:ring-2 focus:ring-ring max-lg:h-11 dark:bg-field-fill/30"
                             placeholder="Patient name or exact Patient No."
                         />
                     </label>
                     <OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         v-model="form.doctor_id"
                         label="Doctor"
                         :options="doctorOptions"
                     />
                     <OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         v-model="form.coverage_type"
                         label="Coverage"
                         :options="coverageOptions"
                     />
                     <OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         v-model="form.priority"
                         label="Urgency"
                         :options="urgencyOptions"
                     />
                     <Button
                         size="sm"
+                        class="h-9 max-lg:min-h-11"
                         type="submit"
                         variant="outline"
                         :disabled="loading"
@@ -774,6 +837,7 @@ onBeforeUnmount(() => {
                     <Button
                         type="button"
                         size="sm"
+                        class="h-9 max-lg:min-h-11"
                         variant="outline"
                         @click="showMoreFilters = !showMoreFilters"
                     >
@@ -796,6 +860,7 @@ onBeforeUnmount(() => {
                         for="registration-visit-type"
                         >Visit type
                         <OperationalSelect
+                            trigger-class="max-lg:min-h-11"
                             id="registration-visit-type"
                             v-model="form.visit_type"
                             label="Visit type"
@@ -827,9 +892,34 @@ onBeforeUnmount(() => {
                 {{ liveRefreshNotice }}
             </p>
 
-            <section class="overflow-hidden border-y bg-background">
+            <EmergencyLane
+                v-if="emergencyRows.length"
+                :total="emergency?.total ?? emergencyRows.length"
+                :current-page="emergency?.currentPage ?? 1"
+                :last-page="emergency?.lastPage ?? 1"
+                :busy="loading || busyKey !== null"
+                @page="search(currentPage, false, $event)"
+            >
+                <PatientBoard
+                    :branch-id="options.branch.id"
+                    from="registration"
+                    :rows="emergencyRows"
+                    :busy-key="busyKey"
+                    :empty-message="boardEmptyMessage"
+                    @send-to-waiting="sendToWaiting"
+                    @readiness-changed="refreshAppliedBoard"
+                    @call="callIn"
+                    @open-consultation="openConsultation"
+                    @dispense="dispenseOtc"
+                    @call-dispensary="callOtcToDispensary"
+                    @cancel="requestCancellation"
+                />
+            </EmergencyLane>
+            <section
+                class="overflow-hidden rounded-lg border bg-card shadow-card"
+            >
                 <div
-                    class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
+                    class="flex items-center justify-between px-4 py-3 text-[12.5px] text-muted-foreground"
                 >
                     <span
                         >{{ total }} Visit{{ total === 1 ? '' : 's' }}
@@ -856,7 +946,7 @@ onBeforeUnmount(() => {
                             Consultations waiting for triage, longest wait first
                         </caption>
                         <thead
-                            class="border-y bg-muted/40 text-left text-xs text-muted-foreground"
+                            class="border-y bg-card-quiet text-left text-[13px] font-semibold text-muted-foreground"
                         >
                             <tr>
                                 <th scope="col" class="px-3 py-2 font-medium">

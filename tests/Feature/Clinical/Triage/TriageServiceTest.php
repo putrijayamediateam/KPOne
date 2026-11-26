@@ -302,9 +302,12 @@ class TriageServiceTest extends TriageTestCase
         if (DB::getDriverName() !== 'pgsql') {
             return;
         }
-        foreach (['UPDATE visit_triage_assessments SET pulse_bpm = 99', 'DELETE FROM visit_triage_assessments', 'TRUNCATE visit_triage_assessments'] as $sql) {
+        foreach (['UPDATE visit_triage_assessments SET pulse_bpm = 99', 'DELETE FROM visit_triage_assessments'] as $sql) {
             $this->assertDatabaseRefuses($sql, 'P0001');
         }
+        $this->assertDatabaseRefuses('TRUNCATE visit_triage_assessments', '0A000');
+        $this->assertDatabaseRefuses('TRUNCATE visit_triage_assessments CASCADE', 'P0001', 'Triage evidence is append-only');
+        $this->assertSame(1, VisitTriageAssessment::query()->count());
         $insert = fn (string $columns, string $values): string => "INSERT INTO visit_triage_assessments (organisation_id, branch_id, visit_id, queue_entry_id, sequence, recorded_by_user_id, recorded_at, idempotency_key, payload_hash, created_at{$columns})
              SELECT organisation_id, branch_id, visit_id, queue_entry_id, 2, recorded_by_user_id, now(), gen_random_uuid(), repeat('a', 64), now(){$values} FROM visit_triage_assessments LIMIT 1";
         $this->assertDatabaseRefuses(str_replace(', 2, recorded_by', ', 3, recorded_by', $insert('', '')), '23514', 'numbered in order');

@@ -12,12 +12,14 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
+use App\Domain\Queue\Emergency\EmergencyLaneProjection;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Visit\Assignment\DoctorAssignmentService;
+use App\Domain\Visit\Assignment\DoctorWarningProjection;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -25,6 +27,8 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -103,9 +107,15 @@ class VisitDirectoryService
             $query->where('assigned_doctor_user_id', (int) $criteria['doctor_id']);
         }
 
+        $lane = app(EmergencyLaneProjection::class);
+        $emergencyRead = $lane->read($actor, $branch, (int) ($criteria['emergency_page'] ?? 1));
+        $emergencyVisits = new \Illuminate\Database\Eloquent\Collection($emergencyRead['entries']->map(fn (QueueEntry $entry): Visit => $entry->visit)->all());
+        $emergency = Arr::except($emergencyRead, ['entries', 'exclusionQuery']);
+        $query->whereNotIn('visits.id', $emergencyRead['exclusionQuery']);
         $tabCounts = $this->tabCounts($query, $actor, $branch, $criteria);
-        if ($dispensaryBoard !== null) {
-            return [...$dispensaryBoard, 'tabCounts' => $tabCounts];
+
+        if ($dispensaryBoard !== null && $emergencyVisits->isEmpty()) {
+            return [...$dispensaryBoard, 'tabCounts' => $tabCounts, 'emergency' => $emergency];
         }
         $boardStatus = (string) ($criteria['board_status'] ?? 'all');
         if ($boardStatus === 'billing') {
@@ -121,29 +131,56 @@ class VisitDirectoryService
 
         // TRI-1b: the Triage tab lists the longest-waiting patient first; every other tab stays newest first.
         $boardStatus === 'triage' ? $query->oldest('registered_at')->oldest('id') : $query->latest('registered_at');
-        $paginator = $query->paginate(25, page: (int) ($criteria['page'] ?? 1), total: $tabCounts[$boardStatus] ?? $tabCounts['all']);
+        $paginator = $dispensaryBoard !== null
+            ? new LengthAwarePaginator(collect(), 0, 25)
+            : $query->paginate(25, page: (int) ($criteria['page'] ?? 1), total: $tabCounts[$boardStatus] ?? $tabCounts['all']);
         $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
         $eligibleDoctorIds = $this->doctors->eligibleDoctors($branch, $effectiveDate)
             ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
         $queueHints = app(QueueEntryPolicy::class)->boardHints($actor, $branch);
         $actionHints = [];
         $visits = $paginator->getCollection();
-        $checkouts = ConsultationCheckout::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-            ->whereIn('current_visit_guard', $visits->map(fn (Visit $visit): int => $visit->id)->all())->get(['current_visit_guard', 'route'])->keyBy('current_visit_guard');
-        $cases = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-            ->whereIn('visit_id', $visits->map(fn (Visit $visit): int => $visit->id)->all())->orderBy('id')->get(['visit_id', 'public_id', 'case_type', 'status'])->groupBy('visit_id');
+        $emergencyVisits->load(['patient:id,organisation_id,patient_number,full_name,mobile_phone', 'assignedDoctor:id,name', 'reasonAssignments.reason:id,public_id,name', 'queueEntry', 'otcQueueEntry', 'clinicalEncounter.holds']);
+        $allVisits = $visits->merge($emergencyVisits);
 
-        $readinessIds = $paginator->getCollection()->map(fn ($visit) => $this->visibleQueueEntry($actor, $visit, $queueHints)?->id)->filter()->values()->all();
+        $checkouts = ConsultationCheckout::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('current_visit_guard', $allVisits->map(fn (Visit $visit): int => $visit->id)->all())->get(['current_visit_guard', 'route'])->keyBy('current_visit_guard');
+        $cases = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('visit_id', $allVisits->map(fn (Visit $visit): int => $visit->id)->all())->orderBy('id')->get(['visit_id', 'public_id', 'case_type', 'status'])->groupBy('visit_id');
+
+        $readinessIds = $allVisits->map(fn ($visit) => $this->visibleQueueEntry($actor, $visit, $queueHints)?->id)->filter()->values()->all();
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($readinessIds));
         // TRI-1c: the zone chip, only for CA, CA Supervisor and the patient's own doctor (one query).
-        $triageZones = app(TriageZoneProjection::class)->forVisits($actor, $paginator->getCollection()
+        $triageZones = app(TriageZoneProjection::class)->forVisits($actor, $allVisits
             ->map(fn (Visit $visit): array => TriageZoneProjection::subject($visit, $this->visibleQueueEntry($actor, $visit, $queueHints)))->all());
-        foreach ($paginator->getCollection() as $visit) {
+        // AUTO-1c: a warning for a waiting consultation whose doctor is off roster, on leave, without a room, or busy while
+        // another doctor is free (one batched read; shown only to a viewer who may edit the visit).
+        $doctorWarnings = app(DoctorWarningProjection::class)->forDoctors($actor, $branch, $allVisits
+            ->filter(fn (Visit $visit): bool => $visit->visit_type === 'consultation'
+                && $this->visibleQueueEntry($actor, $visit, $queueHints)?->status === QueueEntry::STATUS_WAITING)
+            ->map(fn (Visit $visit): ?int => $visit->assigned_doctor_user_id)->values()->all());
+        foreach ($allVisits as $visit) {
             $visit->setRelation('callReadiness', $readiness[$visit->queueEntry?->id] ?? null);
             $visit->setRelation('triageZone', $triageZones[$visit->id] ?? null);
+            $visit->setRelation('doctorWarning', $visit->visit_type === 'consultation' && $this->visibleQueueEntry($actor, $visit, $queueHints)?->status === QueueEntry::STATUS_WAITING
+                ? ($doctorWarnings[$visit->assigned_doctor_user_id] ?? null) : null);
+        }
+
+        $emergencyBoardRows = $emergencyVisits->map(function (Visit $visit) use ($actor, $branch, $eligibleDoctorIds, &$actionHints, $checkouts, $cases, $queueHints): array {
+            $visit->setRelation('branch', $branch);
+
+            return $this->row($actor, $visit, $branch, $eligibleDoctorIds, $actionHints, $checkouts->get($visit->id), $cases->get($visit->id) ?? collect(), $queueHints);
+        })->keyBy('visitNumber');
+        foreach ($emergency['data'] as &$emergencyRow) {
+            $emergencyRow['boardRow'] = $emergencyBoardRows->get($emergencyRow['visitNumber']);
+        }
+        unset($emergencyRow);
+        if ($dispensaryBoard !== null) {
+            return [...$dispensaryBoard, 'tabCounts' => $tabCounts, 'emergency' => $emergency];
         }
 
         return [
+            'emergency' => $emergency,
             'data' => $paginator->getCollection()
                 ->map(function (Visit $visit) use ($actor, $branch, $eligibleDoctorIds, &$actionHints, $checkouts, $cases, $queueHints): array {
                     $visit->setRelation('branch', $branch);
@@ -490,6 +527,8 @@ class VisitDirectoryService
             'registeredAtDate' => $visit->registered_at->setTimezone($branch->timezone)->format('Y-m-d'),
             'visitReasonExcerpt' => ($summary = $this->reasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
+            // AUTO-1c: only for a viewer who may edit the visit (the reassign path).
+            'doctorWarning' => $actions['update'] && $visit->relationLoaded('doctorWarning') ? $visit->getRelation('doctorWarning') : null,
             'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null,
             'coverageLabel' => $visit->coverage_type === 'panel'
                 ? $visit->coverage_panel_name_snapshot : 'Self-pay',

@@ -10,6 +10,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\QueueCallRecorder;
+use App\Domain\Queue\Emergency\EmergencyAlertService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
@@ -240,6 +241,7 @@ class QueueEntryService
                 'updated_by_user_id' => $lockedActor->id,
                 'lock_version' => $lockedEntry->lock_version + 1,
             ])->save();
+            app(EmergencyAlertService::class)->closeLocked($lockedEntry, 'left_waiting');
             $call = $this->calls->record($lockedEntry, QueueCall::SERVICE_CONSULTATION, $room, $lockedActor, $effectiveDate, $calledAt, false);
             if ($flag) {
                 $readiness->override($flag, $call, $lockedActor, $validated);

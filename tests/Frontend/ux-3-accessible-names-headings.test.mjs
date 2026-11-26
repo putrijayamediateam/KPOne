@@ -39,16 +39,32 @@ for (const [path, heading] of [
 
         assert.equal(h1s.length, 1);
         assert.equal(text(h1s[0]), heading);
-        assert.equal(attr(h1s[0], 'class'), 'sr-only');
+
+        if (path.endsWith('Registration/Index.vue')) {
+            assert.ok(!attr(h1s[0], 'class')?.split(/\s+/).includes('sr-only'));
+            assert.match(attr(h1s[0], 'class'), /text-foreground/);
+        } else {
+            assert.equal(attr(h1s[0], 'class'), 'sr-only');
+        }
 
         const main = nodes.find((node) => node.tag === 'main');
 
         assert.ok(main, 'the page keeps its main landmark');
-        assert.equal(
-            main.children.find((child) => child.type === 1),
-            h1s[0],
-            'the h1 is the first thing inside main',
-        );
+        const first = main.children.find((child) => child.type === 1);
+
+        if (path.endsWith('Registration/Index.vue')) {
+            assert.equal(first.tag, 'header');
+            assert.equal(
+                elements(first).find((node) => node.tag === 'h1'),
+                h1s[0],
+            );
+        } else {
+            assert.equal(
+                first,
+                h1s[0],
+                'the h1 is the first thing inside main',
+            );
+        }
     });
 }
 

@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\EncounterDiagnosisPresetDirectoryService;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPolicy;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
 use App\Domain\Queue\Treatment\TreatmentStepService;
+use App\Domain\Visit\Billing\Review\BillingReviewService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\StartClinicalEncounterRequest;
 use App\Http\Requests\UpdateClinicalEncounterRequest;
@@ -37,6 +39,7 @@ class ClinicalEncounterController extends Controller
         RoomCallService $calls,
         TreatmentStepService $treatment,
         TreatmentStepProjection $treatmentProjection,
+        BillingReviewService $billReview,
     ): Response {
         // detail() authorises the encounter view first; only then may the attending doctor's open acknowledge Q-2.
         $clinical = $directory->detail($request->user(), $visit);
@@ -51,8 +54,12 @@ class ClinicalEncounterController extends Controller
 
         return Inertia::render('Clinical/Show', [
             'clinical' => $clinical,
+            'treatmentRoomUrl' => app(TreatmentRoomPolicy::class)->view($request->user(), $visit) ? route('treatment-room.records', $visit) : null,
             'treatmentRooms' => $calls->rooms($visit->branch, BranchRoom::KIND_TREATMENT),
             'treatmentProgress' => $entry ? ($treatmentProjection->rows($request->user(), [$entry])[$entry->id] ?? null) : null,
+            // BIL-37: the doctor's read-only bill of this visit, once a non-draft invoice exists.
+            'billViewUrl' => $request->user()->can(BillingReviewService::PERMISSION) && $billReview->canOpen($request->user(), $visit) && $billReview->hasBill($visit)
+                ? route('billing.review', $visit) : null,
         ]);
     }
 
@@ -62,6 +69,7 @@ class ClinicalEncounterController extends Controller
         ClinicalEncounterDirectoryService $directory,
     ): Response|JsonResponse {
         $historical = $directory->historicalDetail($request->user(), $historicalVisit);
+        $historical['treatmentRoomUrl'] = app(TreatmentRoomPolicy::class)->view($request->user(), $historicalVisit, true) ? route('treatment-room.history', $historicalVisit) : null;
 
         if ($request->expectsJson()) {
             return response()->json($historical);

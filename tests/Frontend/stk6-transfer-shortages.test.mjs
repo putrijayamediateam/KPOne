@@ -85,7 +85,7 @@ test('receipt form and differences use the shared helpers and explain independen
     assert.match(differences, /type="radio"/);
     assert.match(differences, /You received this transfer/);
     assert.match(differences, /Resolve difference/);
-    assert.match(differences, /dark:/);
+    assert.match(differences, /bg-warning-wash/);
     assert.doesNotMatch(differences, /<select\b/i);
 });
 

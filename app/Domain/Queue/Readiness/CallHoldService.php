@@ -6,6 +6,7 @@ use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Audit\Models\SystemEvent;
 use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Clinical\Triage\VisitTriageAssessment;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
@@ -75,6 +76,9 @@ class CallHoldService
                 $this->refuse('The queue state has changed. Reload the page.');
             }
             $flag = CallHold::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
+            if (! $clear && VisitTriageAssessment::query()->where('visit_id', $visit->id)->latest('sequence')->value('chosen_zone') === 'red') {
+                $this->refuse('A red Waiting patient cannot be marked not ready. Existing readiness flags remain until explicitly cleared or overridden.');
+            }
             if ($clear) {
                 if (! $flag || $flag->id !== (int) $data['call_hold_id'] || $flag->lock_version !== (int) $data['lock_version']) {
                     $this->refuse('The flag has changed. Reload the page.');

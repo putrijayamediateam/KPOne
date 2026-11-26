@@ -1149,8 +1149,8 @@ const saveReorder = () =>
                             "
                             class="w-full text-sm text-muted-foreground"
                         >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must approve it.
+                            You raised or submitted this order, so a Director
+                            who did not raise or submit it must approve it.
                         </p>
                         <p
                             v-if="
@@ -1163,9 +1163,9 @@ const saveReorder = () =>
                             "
                             class="w-full text-sm text-muted-foreground"
                         >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must cancel it now that
-                            it is approved.
+                            You raised or submitted this order, so a Director
+                            who did not raise or submit it must cancel it now
+                            that it is approved.
                         </p>
                         <Button
                             v-if="canPurchase(row, 'short_close')"
@@ -1186,9 +1186,9 @@ const saveReorder = () =>
                             "
                             class="w-full text-sm text-muted-foreground"
                         >
-                            You raised or submitted this order, so a different
-                            Finance Officer or Director must close the rest of
-                            it.
+                            You raised or submitted this order, so a Director
+                            who did not raise or submit it must close the rest
+                            of it.
                         </p>
                         <Button
                             v-if="canPurchase(row, 'close')"
@@ -1583,7 +1583,7 @@ const saveReorder = () =>
                 <div
                     v-for="row in operations.lowStock"
                     :key="`${row.location}-${row.sku}`"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm dark:bg-amber-950/20"
+                    class="rounded-xl bg-warning-wash p-2 text-sm"
                 >
                     <strong>{{ row.sku }}</strong> ·
                     {{ row.availableQuantity }} available /

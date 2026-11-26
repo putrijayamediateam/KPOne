@@ -8,13 +8,17 @@ import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { myr } from '@/types/billing';
 import type { CompletedInvoicePage } from '@/types/completedInvoice';
 
-const props = defineProps<{ invoice: CompletedInvoicePage }>();
+const props = defineProps<{
+    invoice: CompletedInvoicePage;
+    treatmentRoomUrl?: string | null;
+}>();
 const tab = ref('all');
 // BIL-5: billing prints are recorded; the old print address only redirects to Issued copies (BIL-14).
 const billingPrint = /\/billing\/[^/]+\/(?:receipts\/[^/]+\/)?print$/;
@@ -120,6 +124,13 @@ const totals = computed(() => {
                 :notes-context="invoice.notes"
             />
             <ActionLink
+                v-if="invoice.links.billView"
+                :href="invoice.links.billView"
+                variant="outline"
+                data-testid="invoice-view-bill"
+                >View bill</ActionLink
+            >
+            <ActionLink
                 v-if="invoice.links.panelClaim"
                 :href="invoice.links.panelClaim.href"
                 variant="outline"
@@ -217,11 +228,20 @@ const totals = computed(() => {
                 <OutstandingBills :groups="invoice.outstanding" />
             </aside>
 
+            <!-- BIL-37 (Daniel): for the doctor the items card would only repeat the Bill page line; the card next to
+                 the actions carries it once. -->
             <section
+                v-if="
+                    invoice.canSeeFinancial ||
+                    invoice.canSeeLines ||
+                    !invoice.links.billView
+                "
                 class="min-w-0 overflow-hidden rounded-xl border bg-card"
                 data-testid="invoice-lines"
             >
+                <!-- BIL-37 (Daniel): without billing access the tabs only ever counted 0, so they are hidden. -->
                 <OperationalTabs
+                    v-if="invoice.canSeeFinancial || invoice.canSeeLines"
                     v-model="tab"
                     :tabs="tabs"
                     label="Invoice items"
@@ -453,7 +473,9 @@ const totals = computed(() => {
                     {{
                         invoice.canSeeFinancial
                             ? 'No invoice was issued for this visit.'
-                            : 'Billing details are not shown for your role.'
+                            : invoice.links.billView
+                              ? 'The bill is on the read-only Bill page.'
+                              : 'Billing details are not shown for your role.'
                     }}
                 </p>
                 <Button
@@ -464,6 +486,10 @@ const totals = computed(() => {
                 >
             </aside>
         </div>
+        <TreatmentRoomReadPanel
+            v-if="treatmentRoomUrl && (tab === 'all' || tab === 'services')"
+            :url="treatmentRoomUrl"
+        />
     </main>
 </template>
 

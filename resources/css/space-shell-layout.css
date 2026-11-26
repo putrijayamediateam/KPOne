@@ -977,24 +977,37 @@
 
     --space-bg: var(--background);
     --space-surface: var(--card);
-    --space-surface-2: var(--muted);
+    --space-surface-2: var(--card-quiet);
     --space-side: var(--muted);
     --space-fg: var(--foreground);
     --space-muted: var(--muted-foreground);
     --space-line: var(--border);
     --space-hover: var(--accent);
-    --space-accent: var(--brand-strong);
-    --space-accent-fg: var(--brand-foreground);
-    --space-accent-tint: color-mix(in srgb, var(--brand) 12%, transparent);
+    --space-accent: var(--primary);
+    --space-accent-fg: var(--primary-foreground);
+    --space-accent-tint: color-mix(in srgb, var(--primary) 12%, transparent);
     --space-ok: var(--success);
     --space-warn: var(--warning);
     --space-bad: var(--destructive);
     --space-radius-card: 14px;
+    /* Personal-home surfaces reuse the same semantic tokens in both themes. */
+    --space-g1: var(--info-wash);
+    --space-g2: var(--card-quiet);
+    --space-t1: var(--info-wash);
+    --space-t2: var(--card-quiet);
+    --space-t3: var(--success-wash);
+    --space-t4: var(--warning-wash);
+    --space-me-muted: var(--foreground);
+    --space-brand: var(--primary);
+}
+.space-shell[data-classic-frame] .space-card.shadow-card {
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
 }
 .space-shell[data-classic-frame] .space-main {
     padding: 0;
 }
-/* Dark: the light pink accent needs dark text (white on it measures about 2.5:1; near-black is above 8:1). */
+/* The shared primary foreground also supplies the dark-theme accent label. */
 .space-shell[data-classic-frame]:is(.dark *) {
     --space-accent-fg: var(--primary-foreground);
 }
@@ -1021,7 +1034,7 @@
     color: var(--foreground);
 }
 .space-shell[data-classic-frame] .space-tab.is-on {
-    border-bottom-color: var(--brand);
+    border-bottom-color: var(--primary);
     color: var(--foreground);
 }
 .space-shell[data-classic-frame] .space-tab:focus-visible {

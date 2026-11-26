@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
 use App\Domain\Patient\Services\PatientChangeHistoryService;
 use App\Domain\Patient\Services\PatientDirectoryService;
+use App\Domain\Patient\Services\PatientEmergencyContactService;
 use App\Domain\Patient\Services\PatientGuardianService;
 use App\Domain\Patient\Services\PatientMergeDirectoryService;
 use App\Domain\Patient\Services\PatientMergeLinks;
@@ -59,6 +61,8 @@ class PatientController extends Controller
         return Inertia::render('Patient/Show', [
             'patient' => $directory->detail($request->user(), $patient),
             'merge' => $merges->panel($request->user(), $patient),
+            'emergencyContactBranchId' => app(BranchAccessService::class)->activeBranch($request->user())?->id,
+            'emergencyContact' => app(PatientEmergencyContactService::class)->contact($request->user(), $patient),
             'mergedGuardian' => app(PatientGuardianService::class)->mergedFallback($patient),
             'history' => $request->user()->can(PatientChangeHistoryService::PERMISSION)
                 ? app(PatientChangeHistoryService::class)->page($request->user(), $patient, null, PatientChangeHistoryService::FIRST_PAGE)

@@ -2,10 +2,12 @@
 import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import QueueCallsToday from '@/components/queue/QueueCallsToday.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
+import type { QueueCallStats } from '@/lib/queue-call-stats';
 import type { DisplaySettings } from '@/lib/queue-display';
 
 type RoomKind = 'consultation' | 'dispensary' | 'treatment';
@@ -23,6 +25,7 @@ const props = defineProps<{
     branch: { id: number; name: string };
     rooms: RoomRow[];
     settings: DisplaySettings;
+    callsToday: QueueCallStats;
     youtubeUrl: string | null;
     maxPosters: number;
     screenUrl: string;
@@ -202,6 +205,12 @@ const removePoster = (posterId: string) => {
                 >
             </div>
         </section>
+
+        <QueueCallsToday
+            :key="branch.id"
+            :branch-name="branch.name"
+            :stats="callsToday"
+        />
 
         <section class="rounded-xl border bg-card p-4">
             <h2 class="text-sm font-semibold">Rooms</h2>

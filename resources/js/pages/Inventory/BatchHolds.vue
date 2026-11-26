@@ -148,10 +148,7 @@ watch(
                     · Status:
                     {{ label(row.status) }}
                 </p>
-                <p
-                    v-if="row.reason"
-                    class="font-semibold text-amber-800 dark:text-amber-300"
-                >
+                <p v-if="row.reason" class="font-semibold text-warning">
                     Held: {{ formatInventoryReason(row.reason) }}
                 </p>
                 <p v-else>No active branch hold</p>

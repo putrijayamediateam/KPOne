@@ -329,3 +329,18 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
   stays the one filled button (one filled button per view). The owner approved, in this team session, changing
   the one existing assertion that pinned the TRI-1b rule (`tests/Frontend/tri-1b-triage-zone.test.mjs`, the
   Apply variant line). Frontend only.
+
+
+## Family links F1–F3 — 26 November 2026
+
+Owner authorised the direct five-label, single-active-pair design; retained/suppressed merged links with no automatic transfer and original active relationship returning on unmerge unless unlinked; and the exact two-table non-destructive migration. Existing patient-view/update policies apply to both endpoints. No shared-phone suggestion, transitive family inference, legal guardian authority or clinical access is granted. Consultation shows only authorised direct relatives waiting today and Patient links, with no clinical conditions. See [FAMILY-LINK-DESIGN.md](FAMILY-LINK-DESIGN.md). Implementation and validation remain local pending coordinator integration; no existing assertion edits.
+
+## 26 Nov 2026 — TRI-2a backend implementation (Codex team)
+
+Owner explicitly approved the reconciliation decisions, observed-time activation implementation and synthetic tests (not production execution), exact migration SHA256 `dfff7e9cd1926c5f2060f7356cec4d4980a86db5717654510aad03e9ea979ab6`, the previously settled resident-doctor permission, and existing backend assertion groups A–C. No frontend assertion changes are approved or applied in this slice.
+
+The isolated backend adds immutable emergency episodes/events, Seen and canonical Take commands, actor/visit/queue locks, retry hashes, claim floors, atomic triage/Call In/cancellation closure, and a fixed-scope dry-run-first activation command with remaining-legacy and invalid-open reconciliation. Existing not-ready flags remain; red alerts cannot receive a new flag. Reassignment restarts effective alarm state without rewriting history. Doctor permission does not change staff-account authority.
+
+Initial Queue entry cannot already have clinical triage through supported services: triage requires an existing queue; `enter` returns/refuses existing entries without resetting them to Waiting. Clinical completion and dispensary return operate on Serving, after Call In closes an episode. Visit editing cannot move branch or change an already queued consultation to OTC. Any future re-entry/source writer must explicitly add lifecycle integration before use; arbitrary SQL source edits are detected by activation health, not automatically repaired.
+
+Independent Codex Billing/Panel review closed Seen-response rollover, inactive-organisation activation and invalid-open health findings. Independent Codex Queue review found no scoped implementation blocker; these are current agent reviews, not historical named human approvals. Test evidence and source manifest are exported under `/workspace/kpone-validation/tri2/`. Production activation remains unauthorised. Backend rollout must include the compatible Take client before activation and full TRI-2 UI only after zero eligible legacy/invalid-open reconciliation. Existing frontend remains unchanged in this backend-only patch.

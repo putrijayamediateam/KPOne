@@ -63,7 +63,7 @@ test('TRI-1e (Daniel): readings show what was measured, and the link is underlin
     assert.match(view, /trimReading\(save\.readings\[f\.key\]/);
     assert.match(
         consultation,
-        /text-brand-strong underline underline-offset-4 lg:min-h-0" data-testid="consultation-view-triage"/,
+        /text-link underline underline-offset-4 lg:min-h-0" data-testid="consultation-view-triage"/,
     );
     assert.match(consultation, /min-h-11/);
 });

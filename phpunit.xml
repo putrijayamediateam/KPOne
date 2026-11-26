@@ -9,6 +9,8 @@
             <directory>tests/Unit</directory>
         </testsuite>
         <testsuite name="Feature">
+            <exclude>tests/Feature/Clinical/PostgresTreatmentRoomRecordTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php</exclude>
             <directory>tests/Feature</directory>
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</exclude>
@@ -37,6 +39,7 @@
             <exclude>tests/Feature/HR/PostgresClaimsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresPayrollContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresInterviewContentionTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresHandCostRaceTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresDifferenceReportTest.php</exclude>
@@ -53,6 +56,9 @@
             <exclude>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</exclude>
             <exclude>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</exclude>
+            <exclude>tests/Feature/Patient/PostgresFamilyLinkContentionTest.php</exclude>
+            <exclude>tests/Feature/Queue/PostgresEmergencyAlertContentionTest.php</exclude>
+            <exclude>tests/Feature/Patient/PostgresEmergencyContactContentionTest.php</exclude>
             <exclude>tests/Feature/PilotStorageIsolationTest.php</exclude>
             <exclude>tests/Feature/PostgresAttendanceNumberTest.php</exclude>
             <exclude>tests/Feature/PostgresBillingRegressionTest.php</exclude>
@@ -71,6 +77,7 @@
             <exclude>tests/Feature/PostgresVisitRegistrationRegressionTest.php</exclude>
             <exclude>tests/Feature/Queue/CallReadinessConcurrencyTest.php</exclude>
             <exclude>tests/Feature/Queue/PostgresVisitEditRaceTest.php</exclude>
+            <exclude>tests/Feature/Queue/PostgresRedZoneRaceTest.php</exclude>
             <exclude>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</exclude>
             <exclude>tests/Feature/Website/WebsiteOutputPlanTest.php</exclude>
             <exclude>tests/Feature/Website/WebsiteReleaseTest.php</exclude>
@@ -80,6 +87,9 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Clinical/PostgresTreatmentRoomRecordTest.php</file>
+            <file>tests/Feature/Inventory/PostgresHandCostRaceTest.php</file>
+            <file>tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPriceProposalRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
@@ -123,6 +133,9 @@
             <file>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</file>
             <file>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</file>
             <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
+            <file>tests/Feature/Patient/PostgresFamilyLinkContentionTest.php</file>
+            <file>tests/Feature/Queue/PostgresEmergencyAlertContentionTest.php</file>
+            <file>tests/Feature/Patient/PostgresEmergencyContactContentionTest.php</file>
             <file>tests/Feature/PilotStorageIsolationTest.php</file>
             <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
             <file>tests/Feature/PostgresBillingRegressionTest.php</file>
@@ -141,6 +154,7 @@
             <file>tests/Feature/PostgresVisitRegistrationRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Queue/PostgresVisitEditRaceTest.php</file>
+            <file>tests/Feature/Queue/PostgresRedZoneRaceTest.php</file>
             <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
@@ -196,6 +210,9 @@
             <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
         </testsuite>
         <testsuite name="Contention3">
+            <file>tests/Feature/Clinical/PostgresTreatmentRoomRecordTest.php</file>
+            <file>tests/Feature/Inventory/PostgresHandCostRaceTest.php</file>
+            <file>tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
             <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
@@ -207,6 +224,9 @@
             <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
+            <file>tests/Feature/Patient/PostgresFamilyLinkContentionTest.php</file>
+            <file>tests/Feature/Queue/PostgresEmergencyAlertContentionTest.php</file>
+            <file>tests/Feature/Patient/PostgresEmergencyContactContentionTest.php</file>
             <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
             <file>tests/Feature/PostgresMyRoutineContentionTest.php</file>
             <file>tests/Feature/PostgresBusinessDetailsRegressionTest.php</file>
@@ -216,6 +236,7 @@
             <file>tests/Feature/PostgresVisitReasonRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Queue/PostgresVisitEditRaceTest.php</file>
+            <file>tests/Feature/Queue/PostgresRedZoneRaceTest.php</file>
             <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>

@@ -44,10 +44,10 @@ final class PurchaseOrderShortCloseTest extends VisitTestCase
         return $f;
     }
 
-    public function test_a_different_finance_officer_closes_the_rest_with_no_stock_or_money_change(): void
+    public function test_the_director_closes_the_rest_with_no_stock_or_money_change(): void
     {
         $f = $this->partlyReceived();
-        $finance = $this->staff('finance_officer');
+        $finance = $f['director'];
         $movements = DB::table('stock_movements')->count();
         $balances = DB::table('inventory_stock_balances')->orderBy('id')->get()->toArray();
 
@@ -200,12 +200,13 @@ final class PurchaseOrderShortCloseTest extends VisitTestCase
         $this->assertSame('short', $closed->close_kind);
     }
 
-    public function test_the_raiser_is_refused_on_the_inventory_page_with_the_reason(): void
+    public function test_a_finance_officer_is_refused_on_the_inventory_page(): void
     {
         $f = $this->partlyReceived();
+        // STK-50: only the Director closes the rest of an order, so the Finance Officer who raised it is refused outright.
         $this->actingAs($this->as($f['finance']))->from(route('inventory.index'))
             ->post(route('inventory.purchase-orders.short-close', $f['order']->public_id), $this->cmd($f['order'], ['reason' => 'discontinued']), ['X-Inertia-Error-Bag' => 'inventoryOperations'])
-            ->assertRedirect(route('inventory.index'))->assertSessionHasErrors('purchase_order');
+            ->assertForbidden();
         $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $f['order']->refresh()->status);
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.purchase_order.short_closed')->count());
     }

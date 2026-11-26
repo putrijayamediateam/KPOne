@@ -2,6 +2,7 @@
 import AppContent from '@/components/AppContent.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
+import EmergencyAlertHost from '@/components/queue/EmergencyAlertHost.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
@@ -18,6 +19,7 @@ withDefaults(defineProps<Props>(), {
     <AppShell variant="header">
         <AppHeader :breadcrumbs="breadcrumbs" />
         <AppContent variant="header">
+            <EmergencyAlertHost />
             <slot />
         </AppContent>
         <Toaster />

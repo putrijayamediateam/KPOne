@@ -25,6 +25,7 @@ class SearchVisitsRequest extends FormRequest
             'board_status' => ['nullable', 'in:all,waiting,triage,serving,dispensary,billing,completed,cancelled'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d'],
+            'emergency_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
     }

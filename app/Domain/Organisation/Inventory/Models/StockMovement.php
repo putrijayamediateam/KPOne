@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
+/**
+ * Receipt cost evidence columns are added by the STK-10B PostgreSQL migration.
+ *
+ * @property int|null $cost_total_sen
+ * @property string|null $cost_source
+ */
 #[Guarded(['*'])]
 class StockMovement extends Model
 {

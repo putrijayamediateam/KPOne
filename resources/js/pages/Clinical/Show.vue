@@ -13,8 +13,9 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import FamilyWaitingCard from '@/components/clinical/FamilyWaitingCard.vue';
 import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -23,6 +24,7 @@ import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +35,7 @@ import {
 import { OperationalSelect } from '@/components/ui/select';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
+import { useEmergencyHoldBridge } from '@/composables/useEmergencyHoldBridge';
 import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
@@ -62,6 +65,9 @@ const props = defineProps<{
     treatmentRooms?: Array<{ id: number; name: string }>;
     // Q-2: the Serving consultation's treatment step (board only; never the TV).
     treatmentProgress?: TreatmentProgress | null;
+    // BIL-37: the doctor's read-only bill of this visit (only once a finalised invoice exists).
+    billViewUrl?: string | null;
+    treatmentRoomUrl?: string | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -673,6 +679,10 @@ const save = () => {
         },
     );
 };
+let emergencyHoldContinuation: {
+    success: () => void;
+    failure: (message: string) => void;
+} | null = null;
 const changeHoldState = (action: 'hold' | 'resume') => {
     holdProcessing.value = true;
     holdError.value = '';
@@ -691,21 +701,108 @@ const changeHoldState = (action: 'hold' | 'resume') => {
         {
             preserveScroll: true,
             preserveState: true,
+            onSuccess: async () => {
+                await nextTick();
+
+                if (action === 'hold' && props.clinical.hold.isHeld) {
+                    const continuation = emergencyHoldContinuation;
+                    emergencyHoldContinuation = null;
+                    continuation?.success();
+                }
+            },
             onError: (errors) => {
                 holdError.value =
                     Object.values(errors)[0] ??
                     'The consultation state could not be changed.';
+                emergencyHoldContinuation?.failure(holdError.value);
+                emergencyHoldContinuation = null;
+            },
+            onCancel: () => {
+                emergencyHoldContinuation?.failure(
+                    'The Hold result is not confirmed. Reload this consultation before taking the emergency.',
+                );
+                emergencyHoldContinuation = null;
+            },
+            onNetworkError: () => {
+                emergencyHoldContinuation?.failure(
+                    'The Hold result is not confirmed. Reload this consultation before taking the emergency.',
+                );
+                emergencyHoldContinuation = null;
+
+                return false;
+            },
+            onHttpException: () => {
+                emergencyHoldContinuation?.failure(
+                    'The Hold result is not confirmed. Reload this consultation before taking the emergency.',
+                );
+                emergencyHoldContinuation = null;
+
+                return false;
             },
             onFinish: () => (holdProcessing.value = false),
         },
     );
 };
+
+useEmergencyHoldBridge({
+    get visitNumber() {
+        return props.clinical.visit.visitNumber;
+    },
+    get branchId() {
+        return props.clinical.branch.id;
+    },
+    canHold: () =>
+        props.clinical.hold.canHold &&
+        !holdProcessing.value &&
+        !callNextProcessing.value,
+    isHeld: () => props.clinical.hold.isHeld,
+    request: (success, failure) => {
+        if (
+            !props.clinical.hold.canHold ||
+            holdProcessing.value ||
+            callNextProcessing.value
+        ) {
+            failure(
+                'The current consultation cannot be held. Review its latest state.',
+            );
+
+            return;
+        }
+
+        emergencyHoldContinuation = { success, failure };
+        requestHold();
+    },
+    cancel: () => {
+        emergencyHoldContinuation = null;
+    },
+});
+const updateUnsavedWorkOpen = (open: boolean) => {
+    unsavedWorkOpen.value = open;
+
+    if (
+        !open &&
+        !holdProcessing.value &&
+        !unsavedWorkProcessing.value &&
+        emergencyHoldContinuation
+    ) {
+        emergencyHoldContinuation.failure(
+            'Hold was cancelled. The emergency was not taken.',
+        );
+        emergencyHoldContinuation = null;
+    }
+};
+watch(
+    [() => props.clinical.visit.visitNumber, () => props.clinical.branch.id],
+    () => {
+        emergencyHoldContinuation = null;
+    },
+);
 </script>
 
 <template>
     <Head title="Clinical Encounter" />
     <main
-        class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 bg-neutral-100 px-3 py-3 md:px-5 dark:bg-background"
+        class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-6 bg-background px-4 py-6 sm:px-6 lg:px-8"
     >
         <header
             class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"
@@ -720,7 +817,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <span class="rounded-md border bg-card px-2 py-1 text-xs">{{
                     clinical.encounter.attendingClinician
                 }}</span>
-                <span class="text-[11px] text-muted-foreground"
+                <span class="text-[12.5px] text-muted-foreground"
                     >{{ clinical.visit.visitNumber }} ·
                     {{
                         consultationCompleted
@@ -730,7 +827,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                               : 'In progress'
                     }}</span
                 >
-                <span class="text-[11px] text-muted-foreground"
+                <span class="text-[12.5px] text-muted-foreground"
                     >{{ waitedDurationLabel(waitedMinutes) }} · Active
                     {{ clinical.hold.activeMinutes }} min · Held
                     {{ clinical.hold.heldMinutes }} min</span
@@ -813,6 +910,20 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             class="size-3.5"
                             aria-hidden="true"
                         /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <!-- BIL-37 (Daniel): the doctor's read-only bill, same tab, so no external-link icon. -->
+                <Button
+                    v-if="billViewUrl"
+                    variant="outline"
+                    size="sm"
+                    class="h-9 text-[14px] max-lg:h-11"
+                    as-child
+                >
+                    <Link
+                        :href="billViewUrl"
+                        data-testid="consultation-view-bill"
+                        >View bill</Link
                     ></Button
                 >
                 <WaitingPatientsButton
@@ -962,7 +1073,9 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             class="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
         >
             <div class="min-w-0 space-y-3" data-testid="consultation-left">
-                <section class="overflow-hidden rounded-lg border bg-card">
+                <section
+                    class="overflow-hidden rounded-lg border bg-card shadow-card"
+                >
                     <div
                         class="grid sm:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]"
                         data-testid="consultation-patient-grid"
@@ -1032,7 +1145,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 <Link
                                     v-if="clinical.visit.triageViewUrl"
                                     :href="clinical.visit.triageViewUrl"
-                                    class="inline-flex min-h-11 items-center px-1 text-xs font-medium text-brand-strong underline underline-offset-4 lg:min-h-0"
+                                    class="inline-flex min-h-11 items-center px-1 text-xs font-medium text-link underline underline-offset-4 lg:min-h-0"
                                     data-testid="consultation-view-triage"
                                     >View triage</Link
                                 >
@@ -1124,6 +1237,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     </div>
                 </section>
 
+                <FamilyWaitingCard
+                    v-if="clinical.familyWaiting"
+                    :family="clinical.familyWaiting"
+                />
+
+                <TreatmentRoomReadPanel
+                    v-if="treatmentRoomUrl"
+                    :url="treatmentRoomUrl"
+                />
+
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
                 />
@@ -1205,7 +1328,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </div>
 
                 <form
-                    class="space-y-4 rounded-lg border bg-card p-4"
+                    class="space-y-4 rounded-lg border bg-card p-4 shadow-card"
                     data-testid="consultation-record-card"
                     @submit.prevent="save"
                 >
@@ -1808,7 +1931,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <div
                     v-show="workspaceTab === 'history'"
                     data-testid="consultation-history-pane"
-                    class="min-h-0 rounded-lg border bg-card p-4 lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
+                    class="min-h-0 rounded-lg border bg-card p-4 shadow-card lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
                 >
                     <ClinicalHistoryPanel
                         :history="clinical.history"
@@ -1824,7 +1947,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             :processing="unsavedWorkProcessing"
             :processing-action="unsavedWorkAction"
             :error="unsavedWorkError"
-            @update:open="unsavedWorkOpen = $event"
+            @update:open="updateUnsavedWorkOpen"
             @save-and-hold="saveAndHold"
             @hold-without-saving="holdWithoutSaving"
         />
@@ -1850,7 +1973,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
     font-size: 12.5px;
 }
 .consultation-workspace :deep(.text-xs) {
-    font-size: 11.5px;
+    font-size: 12.5px;
 }
 .consultation-workspace :deep(h2),
 .consultation-workspace :deep(h3) {
@@ -1858,8 +1981,8 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 }
 .consultation-workspace :deep(button),
 .consultation-workspace :deep(button[class]) {
-    height: 30px;
-    font-size: 12px;
+    height: 36px;
+    font-size: 14px;
     padding-inline: 8px;
 }
 .consultation-workspace :deep(#clinical-safety button) {
@@ -1880,10 +2003,30 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 }
 .consultation-workspace
     :deep(input:not([type='radio']):not([type='checkbox'])) {
-    height: 30px;
-    font-size: 12px;
+    height: 36px;
+    font-size: 14px;
 }
 .consultation-workspace :deep(textarea) {
     font-size: 12.5px;
+}
+/* Use 36px desktop controls; touch controls need the shared 44px minimum below 1024px. */
+@media (max-width: 1023px) {
+    .consultation-workspace :deep(button),
+    .consultation-workspace :deep(button[class]) {
+        min-width: 44px;
+        min-height: 44px;
+        height: auto;
+    }
+    .consultation-workspace
+        :deep(input:not([type='radio']):not([type='checkbox'])),
+    .consultation-workspace :deep(select) {
+        min-height: 44px;
+        height: 44px;
+    }
+    .consultation-workspace :deep(a[href]) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
 }
 </style>

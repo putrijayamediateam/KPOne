@@ -6,6 +6,7 @@ import { ActionLink } from '@/components/ui/action-link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
@@ -138,279 +139,294 @@ onBeforeUnmount(() => timer && clearInterval(timer));
 
 <template>
     <Head title="Dispensary" />
-    <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
-    >
-        <PageHeader title="Dispensary" :description="list.branchName" />
+    <main class="min-w-0">
+        <PageFrame class="sm:px-6">
+            <PageHeader title="Dispensary" :description="list.branchName" />
 
-        <OperationalTabs
-            :model-value="list.tab"
-            label="Dispensary cases by status"
-            :tabs="tabs"
-            @update:model-value="selectTab"
-        />
-
-        <Alert
-            v-if="list.tab === 'check'"
-            class="text-sm"
-            data-testid="dispensary-check-note"
-        >
-            <Info aria-hidden="true" />
-            <AlertDescription class="text-sm text-foreground">
-                The doctor checks these on the consultation page. Do not hand
-                over the medicine until the doctor has checked it.
-            </AlertDescription>
-        </Alert>
-
-        <form
-            class="flex max-w-md gap-2"
-            role="search"
-            @submit.prevent="submitSearch"
-        >
-            <label for="dispensary-search" class="sr-only"
-                >Search patient name, KP number or visit number</label
-            >
-            <Input
-                id="dispensary-search"
-                v-model="search"
-                type="search"
-                placeholder="Name, KP or visit no."
-                class="max-lg:min-h-11"
+            <OperationalTabs
+                :model-value="list.tab"
+                label="Dispensary cases by status"
+                :tabs="tabs"
+                @update:model-value="selectTab"
             />
-            <Button type="submit" variant="outline" class="max-lg:min-h-11">
-                <Search class="size-4" aria-hidden="true" />Search
-            </Button>
-        </form>
 
-        <EmptyState
-            v-if="list.rows.length === 0"
-            :title="list.search ? 'No match' : 'Nothing here'"
-            :description="
-                list.search
-                    ? `No case matches “${list.search}” in this tab.`
-                    : emptyText
-            "
-        />
+            <Alert
+                v-if="list.tab === 'check'"
+                class="text-sm"
+                data-testid="dispensary-check-note"
+            >
+                <Info aria-hidden="true" />
+                <AlertDescription class="text-sm text-foreground">
+                    The doctor checks these on the consultation page. Do not
+                    hand over the medicine until the doctor has checked it.
+                </AlertDescription>
+            </Alert>
 
-        <template v-else>
-            <div class="hidden md:block">
-                <OperationalTable
-                    label="Dispensary cases"
-                    :columns="6"
-                    min-width="820px"
+            <form
+                class="flex max-w-md gap-2"
+                role="search"
+                @submit.prevent="submitSearch"
+            >
+                <label for="dispensary-search" class="sr-only"
+                    >Search patient name, KP number or visit number</label
                 >
-                    <template #head>
-                        <tr>
-                            <th scope="col">No.</th>
-                            <th scope="col">Patient</th>
-                            <th scope="col">Items</th>
-                            <th scope="col">From</th>
-                            <th scope="col" class="text-right">
-                                {{
-                                    list.tab === 'done'
-                                        ? 'Completed'
-                                        : 'Received'
-                                }}
-                            </th>
-                            <th scope="col" class="text-right">
-                                <span class="sr-only">Actions</span>
-                            </th>
-                        </tr>
-                    </template>
-                    <template #body>
-                        <tr
-                            v-for="row in list.rows"
-                            :key="row.publicId"
-                            data-testid="dispensary-list-row"
-                        >
-                            <td class="font-mono whitespace-nowrap">
-                                {{ row.queueNumber ?? '—' }}
-                            </td>
-                            <td>
-                                <span
-                                    class="block font-medium text-foreground"
-                                    >{{ row.patientName }}</span
-                                >
-                                <span
-                                    class="block font-mono text-xs text-muted-foreground"
-                                    >{{ row.patientNumber }} ·
-                                    {{ row.visitNumber }}</span
-                                >
-                            </td>
-                            <td class="whitespace-nowrap">
-                                {{ medicines(row.medicineCount) }}
-                            </td>
-                            <td>{{ from(row) }}</td>
-                            <td class="text-right whitespace-nowrap">
-                                <span class="block tabular-nums">{{
-                                    row.completedAt ?? row.receivedAt
-                                }}</span>
-                                <span
-                                    v-if="row.waitingMinutes !== null"
-                                    class="inline-flex items-center gap-1.5 text-xs"
-                                    :class="toneClass(tone(row))"
-                                    data-testid="dispensary-waiting"
-                                    ><span
-                                        v-if="tone(row) !== 'normal'"
-                                        class="size-1.5 rounded-full bg-current"
-                                        aria-hidden="true"
-                                    ></span
-                                    >{{ waiting(row)
-                                    }}<span
-                                        v-if="waitingToneDescription(tone(row))"
-                                        class="sr-only"
+                <Input
+                    id="dispensary-search"
+                    v-model="search"
+                    type="search"
+                    placeholder="Name, KP or visit no."
+                    class="max-lg:min-h-11"
+                />
+                <Button type="submit" variant="outline" class="max-lg:min-h-11">
+                    <Search class="size-4" aria-hidden="true" />Search
+                </Button>
+            </form>
+
+            <EmptyState
+                v-if="list.rows.length === 0"
+                :title="list.search ? 'No match' : 'Nothing here'"
+                :description="
+                    list.search
+                        ? `No case matches “${list.search}” in this tab.`
+                        : emptyText
+                "
+            />
+
+            <template v-else>
+                <div class="hidden lg:block">
+                    <OperationalTable
+                        label="Dispensary cases"
+                        :columns="6"
+                        min-width="820px"
+                    >
+                        <template #head>
+                            <tr>
+                                <th scope="col">No.</th>
+                                <th scope="col">Patient</th>
+                                <th scope="col">Items</th>
+                                <th scope="col">From</th>
+                                <th scope="col" class="text-right">
+                                    {{
+                                        list.tab === 'done'
+                                            ? 'Completed'
+                                            : 'Received'
+                                    }}
+                                </th>
+                                <th scope="col" class="text-right">
+                                    <span class="sr-only">Actions</span>
+                                </th>
+                            </tr>
+                        </template>
+                        <template #body>
+                            <tr
+                                v-for="row in list.rows"
+                                :key="row.publicId"
+                                data-testid="dispensary-list-row"
+                            >
+                                <td class="font-mono whitespace-nowrap">
+                                    {{ row.queueNumber ?? '—' }}
+                                </td>
+                                <td>
+                                    <span
+                                        class="block font-medium text-foreground"
+                                        >{{ row.patientName }}</span
                                     >
-                                        ({{
-                                            waitingToneDescription(tone(row))
-                                        }})</span
-                                    ></span
+                                    <span
+                                        class="block font-mono text-xs text-muted-foreground"
+                                        >{{ row.patientNumber }} ·
+                                        {{ row.visitNumber }}</span
+                                    >
+                                </td>
+                                <td class="whitespace-nowrap">
+                                    {{ medicines(row.medicineCount) }}
+                                </td>
+                                <td>{{ from(row) }}</td>
+                                <td
+                                    class="text-right whitespace-nowrap tabular-nums"
                                 >
-                            </td>
-                            <td class="text-right">
-                                <div class="flex justify-end gap-2">
-                                    <Button
-                                        v-if="row.labelUrl"
-                                        as-child
-                                        variant="outline"
-                                        size="sm"
-                                        class="max-lg:min-h-11"
-                                        ><a
-                                            :href="row.labelUrl"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            data-testid="dispensary-list-labels"
-                                            :aria-label="`${row.labelAction === 'reprint' ? 'Reprint labels' : 'View labels'} for ${row.patientName}, ${row.visitNumber} (opens in a new tab)`"
+                                    <span class="block tabular-nums">{{
+                                        row.completedAt ?? row.receivedAt
+                                    }}</span>
+                                    <span
+                                        v-if="row.waitingMinutes !== null"
+                                        class="inline-flex items-center gap-1.5 text-xs"
+                                        :class="toneClass(tone(row))"
+                                        data-testid="dispensary-waiting"
+                                        ><span
+                                            v-if="tone(row) !== 'normal'"
+                                            class="size-1.5 rounded-full bg-current"
+                                            aria-hidden="true"
+                                        ></span
+                                        >{{ waiting(row)
+                                        }}<span
+                                            v-if="
+                                                waitingToneDescription(
+                                                    tone(row),
+                                                )
+                                            "
+                                            class="sr-only"
                                         >
-                                            <Printer
-                                                v-if="
+                                            ({{
+                                                waitingToneDescription(
+                                                    tone(row),
+                                                )
+                                            }})</span
+                                        ></span
+                                    >
+                                </td>
+                                <td class="text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <Button
+                                            v-if="row.labelUrl"
+                                            as-child
+                                            variant="outline"
+                                            size="sm"
+                                            class="max-lg:min-h-11"
+                                            ><a
+                                                :href="row.labelUrl"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                data-testid="dispensary-list-labels"
+                                                :aria-label="`${row.labelAction === 'reprint' ? 'Reprint labels' : 'View labels'} for ${row.patientName}, ${row.visitNumber} (opens in a new tab)`"
+                                            >
+                                                <Printer
+                                                    v-if="
+                                                        row.labelAction ===
+                                                        'reprint'
+                                                    "
+                                                    class="size-4"
+                                                    aria-hidden="true"
+                                                /><Eye
+                                                    v-else
+                                                    class="size-4"
+                                                    aria-hidden="true"
+                                                />{{
                                                     row.labelAction ===
                                                     'reprint'
-                                                "
-                                                class="size-4"
-                                                aria-hidden="true"
-                                            /><Eye
-                                                v-else
-                                                class="size-4"
-                                                aria-hidden="true"
-                                            />{{
-                                                row.labelAction === 'reprint'
-                                                    ? 'Reprint labels'
-                                                    : 'View labels'
-                                            }}</a
-                                        ></Button
-                                    >
-                                    <ActionLink
-                                        :href="row.caseUrl"
-                                        variant="outline"
-                                        size="sm"
-                                        class="max-lg:min-h-11"
-                                        :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
-                                        >Open case</ActionLink
-                                    >
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                </OperationalTable>
-            </div>
+                                                        ? 'Reprint labels'
+                                                        : 'View labels'
+                                                }}</a
+                                            ></Button
+                                        >
+                                        <ActionLink
+                                            :href="row.caseUrl"
+                                            variant="outline"
+                                            size="sm"
+                                            class="max-lg:min-h-11"
+                                            :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
+                                            >Open case</ActionLink
+                                        >
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </OperationalTable>
+                </div>
 
-            <ul
-                class="flex flex-col gap-3 md:hidden"
-                aria-label="Dispensary cases"
-            >
-                <li
-                    v-for="row in list.rows"
-                    :key="row.publicId"
-                    class="rounded-xl border bg-card p-4 text-sm"
-                    data-testid="dispensary-list-card"
+                <ul
+                    class="flex flex-col gap-3 lg:hidden"
+                    aria-label="Dispensary cases"
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="font-medium text-foreground">
-                                <span class="mr-2 font-mono">{{
-                                    row.queueNumber ?? '—'
-                                }}</span
-                                >{{ row.patientName }}
-                            </p>
-                            <p class="font-mono text-xs text-muted-foreground">
-                                {{ row.patientNumber }} · {{ row.visitNumber }}
-                            </p>
-                        </div>
-                        <span
-                            class="inline-flex shrink-0 items-center gap-1.5 text-xs"
-                            :class="
-                                row.completedAt
-                                    ? 'text-muted-foreground'
-                                    : toneClass(tone(row))
-                            "
-                            ><span
-                                v-if="
-                                    !row.completedAt && tone(row) !== 'normal'
+                    <li
+                        v-for="row in list.rows"
+                        :key="row.publicId"
+                        class="rounded-xl border bg-card p-4 text-sm shadow-card"
+                        data-testid="dispensary-list-card"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-medium text-foreground">
+                                    <span class="mr-2 font-mono">{{
+                                        row.queueNumber ?? '—'
+                                    }}</span
+                                    >{{ row.patientName }}
+                                </p>
+                                <p
+                                    class="font-mono text-xs text-muted-foreground"
+                                >
+                                    {{ row.patientNumber }} ·
+                                    {{ row.visitNumber }}
+                                </p>
+                            </div>
+                            <span
+                                class="inline-flex shrink-0 items-center gap-1.5 text-xs tabular-nums"
+                                :class="
+                                    row.completedAt
+                                        ? 'text-muted-foreground'
+                                        : toneClass(tone(row))
                                 "
-                                class="size-1.5 rounded-full bg-current"
-                                aria-hidden="true"
-                            ></span
-                            >{{ row.completedAt ?? waiting(row)
-                            }}<span
-                                v-if="
-                                    !row.completedAt &&
-                                    waitingToneDescription(tone(row))
-                                "
-                                class="sr-only"
+                                ><span
+                                    v-if="
+                                        !row.completedAt &&
+                                        tone(row) !== 'normal'
+                                    "
+                                    class="size-1.5 rounded-full bg-current"
+                                    aria-hidden="true"
+                                ></span
+                                >{{ row.completedAt ?? waiting(row)
+                                }}<span
+                                    v-if="
+                                        !row.completedAt &&
+                                        waitingToneDescription(tone(row))
+                                    "
+                                    class="sr-only"
+                                >
+                                    ({{
+                                        waitingToneDescription(tone(row))
+                                    }})</span
+                                ></span
                             >
-                                ({{ waitingToneDescription(tone(row)) }})</span
-                            ></span
-                        >
-                    </div>
-                    <p class="mt-2 text-muted-foreground">
-                        {{ medicines(row.medicineCount) }} · {{ from(row) }}
-                    </p>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <ActionLink
-                            :href="row.caseUrl"
-                            variant="outline"
-                            size="sm"
-                            class="min-h-11"
-                            :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
-                            >Open case</ActionLink
-                        >
-                        <Button
-                            v-if="row.labelUrl"
-                            as-child
-                            variant="outline"
-                            size="sm"
-                            class="min-h-11"
-                            ><a
-                                :href="row.labelUrl"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                ><Printer
-                                    v-if="row.labelAction === 'reprint'"
-                                    class="size-4"
-                                    aria-hidden="true"
-                                /><Eye
-                                    v-else
-                                    class="size-4"
-                                    aria-hidden="true"
-                                />{{
-                                    row.labelAction === 'reprint'
-                                        ? 'Reprint labels'
-                                        : 'View labels'
-                                }}<span class="sr-only">
-                                    (opens in a new tab)</span
-                                ></a
-                            ></Button
-                        >
-                    </div>
-                </li>
-            </ul>
+                        </div>
+                        <p class="mt-2 text-muted-foreground">
+                            {{ medicines(row.medicineCount) }} · {{ from(row) }}
+                        </p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <ActionLink
+                                :href="row.caseUrl"
+                                variant="outline"
+                                size="sm"
+                                class="min-h-11"
+                                :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
+                                >Open case</ActionLink
+                            >
+                            <Button
+                                v-if="row.labelUrl"
+                                as-child
+                                variant="outline"
+                                size="sm"
+                                class="min-h-11"
+                                ><a
+                                    :href="row.labelUrl"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    ><Printer
+                                        v-if="row.labelAction === 'reprint'"
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    /><Eye
+                                        v-else
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />{{
+                                        row.labelAction === 'reprint'
+                                            ? 'Reprint labels'
+                                            : 'View labels'
+                                    }}<span class="sr-only">
+                                        (opens in a new tab)</span
+                                    ></a
+                                ></Button
+                            >
+                        </div>
+                    </li>
+                </ul>
 
-            <CompactPagination
-                :current-page="list.page"
-                :last-page="list.lastPage"
-                :total="list.total"
-                @change="(page: number) => visit({ page })"
-            />
-        </template>
+                <CompactPagination
+                    :current-page="list.page"
+                    :last-page="list.lastPage"
+                    :total="list.total"
+                    @change="(page: number) => visit({ page })"
+                />
+            </template>
+        </PageFrame>
     </main>
 </template>

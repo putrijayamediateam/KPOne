@@ -520,7 +520,8 @@ test('Classic Registration board keeps its search route, poll backoff, pause sel
     const typing = board.match(/'(input, textarea, select[^']+)'/)?.[1];
     assert.ok(overlay && typing, 'Classic selectors found');
     assert.match(board, /registration-board-search/);
-    assert.match(board, /JSON\.stringify\(\{ \.\.\.appliedFilters, page \}\)/);
+    assert.match(board, /JSON\.stringify\(\{\s*\.\.\.appliedFilters,\s*page,/);
+    assert.match(board, /emergency_page:\s*emergencyPage/);
 
     for (const key of [
         'patient_query',
