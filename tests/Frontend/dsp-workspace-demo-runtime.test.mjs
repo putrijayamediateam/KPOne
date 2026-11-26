@@ -33,20 +33,24 @@ function mount(permissions = ['dispensary.view.branch']) {
     vm.runInNewContext(code, {
         exports: module.exports,
         require: (name) => {
-            if (name === 'vue')
+            if (name === 'vue') {
                 return {
                     ...vue,
                     onMounted: () => {},
                     onBeforeUnmount: () => {},
                 };
-            if (name === '@inertiajs/vue3')
+            }
+
+            if (name === '@inertiajs/vue3') {
                 return {
                     Head: stub(),
                     Link: stub('a'),
                     usePage: () => ({ props: { auth: { permissions } } }),
                     router: { get: (...args) => calls.push(args) },
                 };
-            if (name.startsWith('@/components/') || name === '@lucide/vue')
+            }
+
+            if (name.startsWith('@/components/') || name === '@lucide/vue') {
                 return new Proxy(
                     {},
                     {
@@ -56,11 +60,15 @@ function mount(permissions = ['dispensary.view.branch']) {
                                 : stub(key === 'Button' ? 'button' : 'div'),
                     },
                 );
-            if (name === '@/lib/waiting-time')
+            }
+
+            if (name === '@/lib/waiting-time') {
                 return {
                     waitingTone: () => 'normal',
                     waitingToneDescription: () => '',
                 };
+            }
+
             return require(name);
         },
     });
@@ -85,15 +93,18 @@ function mount(permissions = ['dispensary.view.branch']) {
         nextSibling: (n) =>
             n.parent?.children[n.parent.children.indexOf(n) + 1] ?? null,
         insert: (n, p, anchor) => {
-            if (n.parent)
+            if (n.parent) {
                 n.parent.children.splice(n.parent.children.indexOf(n), 1);
+            }
+
             n.parent = p;
             const i = anchor ? p.children.indexOf(anchor) : -1;
             p.children.splice(i < 0 ? p.children.length : i, 0, n);
         },
         remove: (n) => {
-            if (n.parent)
+            if (n.parent) {
                 n.parent.children.splice(n.parent.children.indexOf(n), 1);
+            }
         },
     });
     const list = vue.reactive({
@@ -118,8 +129,10 @@ function mount(permissions = ['dispensary.view.branch']) {
             n.children.forEach(walk);
         };
         walk(root);
+
         return out;
     };
+
     return { list, calls, all };
 }
 
