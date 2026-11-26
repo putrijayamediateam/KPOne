@@ -19,6 +19,7 @@ import { nextTick, ref, useId, watch } from 'vue';
 const props = defineProps<{
     rows: Row[];
     enabled: boolean;
+    listLabel?: string;
     branchId: number;
     busy: boolean;
     states: Record<string, string>;
@@ -119,7 +120,7 @@ watch(
         v-else
         ref="list"
         tabindex="-1"
-        aria-label="Stock count cases"
+        :aria-label="listLabel ?? 'Stock count cases'"
         :aria-busy="busy"
         class="overflow-hidden rounded-2xl border border-border bg-card"
         @focusin="rememberFocus"
@@ -183,8 +184,8 @@ watch(
                         v-if="row.blind"
                         class="mt-1 block text-xs text-muted-foreground"
                         >Blind count · system quantity hidden</span
-                    ></span
-                >
+                    ><slot name="summary" :row="row"
+                /></span>
             </button>
             <div
                 :id="`${id}-${row.public_id}`"
