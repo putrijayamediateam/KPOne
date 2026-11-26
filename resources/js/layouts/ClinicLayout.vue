@@ -3,8 +3,8 @@ import { useMediaQuery } from '@vueuse/core';
 import { computed } from 'vue';
 import AppShell from '@/components/AppShell.vue';
 import ClockPhotoDialog from '@/components/hr/attendance/ClockPhotoDialog.vue';
+import WorkspaceRail from '@/components/shell/WorkspaceRail.vue';
 import { Toaster } from '@/components/ui/sonner';
-import WorkspaceHeader from '@/components/workspace/WorkspaceHeader.vue';
 import { useMainLandmark } from '@/composables/useMainLandmark';
 import {
     FOCUS_DESKTOP_TOAST_MEDIA,
@@ -28,11 +28,12 @@ const toastPlacement = computed(() =>
 
 <template>
     <AppShell variant="header">
-        <WorkspaceHeader v-if="!focusMode" context="clinic" />
+        <WorkspaceRail v-if="!focusMode" context="clinic" />
         <div
             ref="content"
             id="main-content"
             class="flex min-h-0 w-full flex-1 flex-col"
+            :class="focusMode ? '' : 'lg:pl-[var(--shell-offset,72px)]'"
             :role="role"
         >
             <slot />

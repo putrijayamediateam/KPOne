@@ -137,7 +137,9 @@ onBeforeUnmount(() => {
                     alert.queueNumber
                 }}</span>
                 <span class="text-muted-foreground">
-                    Red zone, waiting {{ alert.waitingMinutes }} min
+                    Red zone, waiting
+                    {{ alert.waitingMinutes < 1 ? '<1' : alert.waitingMinutes }}
+                    min
                 </span>
                 <span
                     v-if="alert.takenBy"

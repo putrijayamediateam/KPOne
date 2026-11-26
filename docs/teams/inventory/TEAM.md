@@ -346,6 +346,23 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     recounts or approves that case (service and PostgreSQL: STK-5's `guard_governed_stock_action` gains the reporter
     exclusion, and `down()` restores the STK-5 body). Owner-approved existing assertion changes: one line each in
     `RoleOneRolesTest::tables()` (branch_manager, store_admin) and `MedicalAssistantRoleTest::EXPECTED`.
+51. IMP-1 catalogue import (owner, 25 Nov 2026, relayed by B.E.R.N.I.S.S, for the Puchong live test): a one-off console
+    command, `inventory:import-catalogue {catalogue} --branch-prices= --actor= --branch= --dry-run`, run by the
+    coordinator. It creates medicines, SKUs (stock unit = dispensing unit, conversion 1), HQ Self-pay prices, branch
+    Self-pay prices and the controlled flag through the existing services (UnifiedCatalogueSetupService,
+    MedicineAdministrationService, PricingReferenceAdministrationService, PricePublicationService) as one named actor,
+    in one transaction: both files are checked first and refused with every problem listed, then everything is written
+    or nothing. `--dry-run` does every write and rolls it back. An existing medicine code, inventory item code, SKU code
+    or barcode is refused, so a second run changes nothing. Branch prices only for medicines in the same file; the actor
+    must be assigned to the home branch and every priced branch; an inactive branch book is refused, never switched
+    back on, and every charge is new (Mei Ling's review). No new permission, screen or migration; one audit row
+    `inventory.catalogue_import.recorded` with counts only. The actor must hold all four of
+    `medicines.manage.organisation`, `prices.publish.organisation`, `pricing.references.manage.organisation` and
+    `inventory.references.manage.organisation` (on main: Administrator and CA Supervisor; the Director lacks
+    `prices.publish`); the owner chose a named Administrator. Panel prices (owner, 25 Nov 2026): `hq_panel_rm` is never
+    published; each value is filed through PanelPriceProposalService as a proposal for the default Panel book, as a
+    named Panel Officer (`--panel-proposer`, `--panel-reference`, today's date), and a Director or Finance Officer
+    approves it (decision 27 unchanged). Opening stock and its unit cost stay with the STK-35 opening import and its STK-1 sign-off.
 
 ## 7. Open items and known limits
 
