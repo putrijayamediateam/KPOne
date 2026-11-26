@@ -54,6 +54,11 @@ export type VisitRow = {
     registeredAtDate: string;
     visitReasonExcerpt: string | null;
     doctorName: string | null;
+    /** AUTO-1c: a neutral warning, only for a viewer who may edit the visit (see PatientBoardRow). */
+    doctorWarning?: {
+        code: 'off_roster' | 'on_leave' | 'no_room' | 'another_free';
+        label: string;
+    } | null;
     coverageLabel: string;
     panelNote?: string | null;
     priority: VisitPriority;
