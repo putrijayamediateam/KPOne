@@ -212,7 +212,8 @@ class InvoiceBillToTest extends BillingTestCase
         $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null)->missing('billing.billTo')->missing('billing.notes'))->assertDontSee('Synthetic recipient sentinel')->assertDontSee('Synthetic secret note print sentinel');
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);
-        $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden();
+        // BIL-36 (owner approved 2026-11-24): the Finance Officer now prints, so the old address sends them to Issued copies.
+        $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
         $this->selectBranch($ca);
         $ca->syncRoles([]);
         $ca->givePermissionTo(['billing.print.branch', 'billing.view.branch', 'patients.view.organisation']);
