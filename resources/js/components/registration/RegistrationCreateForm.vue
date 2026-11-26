@@ -274,6 +274,28 @@ const csrf = () =>
         ?.content ?? '';
 let patientSearchTimer: ReturnType<typeof setTimeout> | undefined;
 let patientSearchController: AbortController | undefined;
+let patientSearchGeneration = 0;
+let patientSearchDisposed = false;
+let pendingPatientQuery: string | null = null;
+const acceptedPatientSearch = ref<{ query: string; generation: number } | null>(
+    null,
+);
+const emptyPatientSearchMessage = computed(() => {
+    const query = patientQuery.value.trim();
+
+    if (query.length < 3) {
+        return 'Enter at least 3 characters.';
+    }
+
+    if (patientSearchError.value) {
+        return 'Search unavailable. No results have been confirmed.';
+    }
+
+    return acceptedPatientSearch.value?.query === query &&
+        acceptedPatientSearch.value.generation === patientSearchGeneration
+        ? 'No matching Patient found.'
+        : 'Search pending…';
+});
 const showingRecent = computed(() => patientQuery.value.trim() === '');
 const patientSearchType = (query: string) => {
     const trimmed = query.trim();
@@ -294,7 +316,32 @@ const patientSearchType = (query: string) => {
     return 'name';
 };
 const searchPatients = async () => {
+    if (patientSearchDisposed) {
+        return;
+    }
+
     const query = patientQuery.value.trim();
+
+    if (patientSearchTimer) {
+        clearTimeout(patientSearchTimer);
+    }
+
+    patientSearchTimer = undefined;
+
+    if (
+        patientSearchController &&
+        !patientSearchController.signal.aborted &&
+        pendingPatientQuery === query
+    ) {
+        return;
+    }
+
+    const generation = ++patientSearchGeneration;
+    acceptedPatientSearch.value = null;
+    patientSearchController?.abort();
+    patientSearchController = undefined;
+    pendingPatientQuery = null;
+    searching.value = false;
 
     if (query.length < 3) {
         patientResults.value = query === '' ? [...props.recentPatients] : [];
@@ -305,9 +352,15 @@ const searchPatients = async () => {
 
     searching.value = true;
     patientSearchError.value = '';
-    patientSearchController?.abort();
     const controller = new AbortController();
     patientSearchController = controller;
+    pendingPatientQuery = query;
+    const isCurrentSearch = () =>
+        !patientSearchDisposed &&
+        !controller.signal.aborted &&
+        patientSearchController === controller &&
+        generation === patientSearchGeneration &&
+        patientQuery.value.trim() === query;
 
     try {
         const response = await fetch('/patients/search', {
@@ -324,7 +377,16 @@ const searchPatients = async () => {
                 search_type: patientSearchType(query),
             }),
         });
+
+        if (!isCurrentSearch()) {
+            return;
+        }
+
         const payload = await response.json();
+
+        if (!isCurrentSearch()) {
+            return;
+        }
 
         if (!response.ok) {
             patientSearchError.value =
@@ -333,28 +395,42 @@ const searchPatients = async () => {
             return;
         }
 
+        acceptedPatientSearch.value = { query, generation };
         patientResults.value = payload.data;
         activeResultIndex.value = patientResults.value.length ? 0 : -1;
     } catch (error) {
+        if (!isCurrentSearch()) {
+            return;
+        }
+
         if (error instanceof DOMException && error.name === 'AbortError') {
             return;
         }
 
         patientSearchError.value = 'Patient search could not be completed.';
     } finally {
-        if (patientSearchController === controller) {
+        if (
+            patientSearchController === controller &&
+            generation === patientSearchGeneration
+        ) {
             searching.value = false;
             patientSearchController = undefined;
+            pendingPatientQuery = null;
         }
     }
 };
 watch(patientQuery, (query) => {
+    ++patientSearchGeneration;
+    acceptedPatientSearch.value = null;
+
     if (patientSearchTimer) {
         clearTimeout(patientSearchTimer);
     }
 
+    patientSearchTimer = undefined;
     patientSearchController?.abort();
     patientSearchController = undefined;
+    pendingPatientQuery = null;
     searching.value = false;
 
     patientSearchError.value = '';
@@ -401,6 +477,9 @@ watch(
     },
 );
 onBeforeUnmount(() => {
+    patientSearchDisposed = true;
+    ++patientSearchGeneration;
+
     if (patientSearchTimer) {
         clearTimeout(patientSearchTimer);
     }
@@ -783,11 +862,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     "
                     class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
                 >
-                    <span>{{
-                        patientQuery.trim().length < 3
-                            ? 'Enter at least 3 characters.'
-                            : 'No matching Patient found.'
-                    }}</span
+                    <span>{{ emptyPatientSearchMessage }}</span
                     ><Button
                         type="button"
                         size="sm"
