@@ -210,3 +210,15 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 4. **Q-4 Call next.** One button for the doctor (and on the branch board for `queue.call.branch` holders) that
    calls the next eligible patient in the existing order (Urgent first), skipping entries with an active
    not-ready flag; same Call In rules, room requirement and audit as today. Built in #282 (decision 14).
+
+## MA-1b treatment-call adapter — prepared 26 November 2026
+
+Coordinator authorized the narrow call adapter from MA-ROLE-DESIGN §§3.3 and9a, using the already merged MA-1a permission. The treatment-call route and locked RoomCallService check now accept `queue.treatment_call.branch`. Only holders of that permission can announce a held serving patient; ordinary doctor authority retains its held refusal. Queue, consultation and hold state remain unchanged. Call In, Call next and consultation recall receive no new authority.
+
+No permission grant, migration, clinical treatment record or page is added. Existing assertions remain unchanged. New feature coverage checks held MA/supervisor calls, unchanged state, cooldown/recall, stale Resume versions, branch concealment, room/state boundaries, revoked/inactive authority and denial of doctor calls. A new two-process PostgreSQL regression covers both Visit-lock orders against Resume and is registered in Contention and Contention3, excluded from Feature. Independent review and focused validation evidence accompany the review bundle; full integration gates and release remain with the coordinator. Nothing committed or pushed.
+
+### Treatment-call scoped recovery (26 Nov 2026)
+
+The frozen approved adapter and existing Queue consumer are recovered on current main83c5999 in `release/treatment-call`, independent of archive1142. Dedicated `canCallTreatment` preserves ordinary Call/Recall authority, while the existing narrow MA/supervisor permission permits a treatment announcement for a held Serving visit without resuming it. Local dialog targets retain36px desktop/44px below1024. No permission grant, migration, clinical-state policy or existing assertion changes.
+
+Focused current-main Feature/Unit15/230 and registered real Resume-vs-call Contention1/14 passed on separate isolated PostgreSQL18 databases. Race registration remains in Contention+Contention3 with Feature exclusion; all prior entries remain. Scoped PHPStan0 and mapper2 passed. Final frontend/browser/independent extraction evidence and immutable hashes live in `/workspace/kpone-validation/queue-release-path/`; this checkpoint does not claim full demo parity or authorize an archive merge.

@@ -1514,7 +1514,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/otc-queue/call', [RoomCallController::class, 'otcDispensary'])
             ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('otc-queue.call');
         Route::patch('visits/{visit}/queue/treatment-call', [RoomCallController::class, 'treatment'])
-            ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
+            ->middleware(['permission:queue.call.own,queue.call.branch,queue.treatment_call.branch', 'throttle:30,1'])
             ->name('queue.treatment-call');
         Route::patch('visits/{visit}/queue/recall', [QueueController::class, 'recall'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])

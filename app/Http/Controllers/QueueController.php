@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
@@ -48,7 +49,8 @@ class QueueController extends Controller
     ): Response {
         $this->authorize('viewAny', QueueEntry::class);
         $branch = $branches->activeBranch($request->user());
-        $canCall = $request->user()->can('queue.call.own') || $request->user()->can('queue.call.branch');
+        $canCall = $request->user()->can('queue.call.own') || $request->user()->can('queue.call.branch')
+            || $request->user()->can(TreatmentRoomPermissions::TREATMENT_CALL_BRANCH);
 
         return Inertia::render('Queue/Index', [
             'snapshot' => $directory->snapshot($request->user()),

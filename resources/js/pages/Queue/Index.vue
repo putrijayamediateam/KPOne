@@ -314,10 +314,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             call: row.canCall && row.status === 'waiting',
             recall: row.canCall && row.status === 'serving' && !row.isHeld,
             callTreatment:
-                row.canCall &&
-                row.status === 'serving' &&
-                !row.isHeld &&
-                (props.treatmentRooms?.length ?? 0) > 0,
+                row.canCallTreatment && (props.treatmentRooms?.length ?? 0) > 0,
             openConsultation: row.canOpenEncounter,
         },
         source: row,
@@ -1021,6 +1018,7 @@ onBeforeUnmount(() => {
                     <OperationalSelect
                         v-model="treatmentRoomId"
                         label="Treatment room"
+                        trigger-class="min-h-9 max-lg:min-h-11"
                         placeholder="Choose room"
                         :options="
                             (treatmentRooms ?? []).map((room) => ({
@@ -1034,12 +1032,14 @@ onBeforeUnmount(() => {
                 <div class="mt-4 flex justify-end gap-2">
                     <Button
                         size="sm"
+                        class="h-9 max-lg:h-11"
                         variant="outline"
                         @click="treatmentRow = null"
                         >Cancel</Button
                     >
                     <Button
                         size="sm"
+                        class="h-9 max-lg:h-11"
                         :disabled="busyKey !== null"
                         @click="submitTreatmentCall"
                         >Call to room</Button

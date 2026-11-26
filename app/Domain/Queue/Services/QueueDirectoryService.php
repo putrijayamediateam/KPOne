@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
@@ -15,6 +16,7 @@ use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\QueueWaitingOrder;
 use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
+use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -411,6 +413,12 @@ class QueueDirectoryService
             // service re-authorize Call In; avoid a branch-assignment query
             // for every row in the three-second polling projection.
             'canCall' => $doctorEligible && $canCall,
+            // Announcement authority is independent of calling a patient to the doctor.
+            'canCallTreatment' => $actor->is_active
+                && $visit->status === Visit::STATUS_REGISTERED
+                && $entry->status === QueueEntry::STATUS_SERVING
+                && ($actor->can(TreatmentRoomPermissions::TREATMENT_CALL_BRANCH)
+                    || ($doctorEligible && $canCall && $activeHold === null)),
             // Clinical permissions are independent of Queue authority. This
             // remains a UI hint; Encounter start re-authorizes under lock.
             'canOpenEncounter' => $canOpenEncounter,
