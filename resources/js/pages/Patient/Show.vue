@@ -3,6 +3,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { BadgeCheck, Pencil, Plus } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import FamilyLinksCard from '@/components/patient/FamilyLinksCard.vue';
 import PatientChangeHistory from '@/components/patient/PatientChangeHistory.vue';
 import type { PatientChangeHistoryData } from '@/components/patient/PatientChangeHistory.vue';
 import PatientMergePanel from '@/components/patient/PatientMergePanel.vue';
@@ -406,6 +407,11 @@ const formatTime = (value: string) =>
                 the guardian details.
             </p>
         </section>
+
+        <FamilyLinksCard
+            :patient-number="patient.patientNumber"
+            :patient-name="patient.identity.fullName"
+        />
 
         <OperationalConfirmDialog
             :open="retireTarget !== null"

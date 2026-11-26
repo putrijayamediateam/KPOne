@@ -100,6 +100,7 @@ use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientFamilyLinkController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientSearchController;
@@ -1621,6 +1622,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        Route::get('patients/{patient}/family-links', [PatientFamilyLinkController::class, 'show'])
+            ->middleware(['permission:patients.view.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('patients.family-links.show');
+        Route::post('patients/{patient}/family-links/commands', [PatientFamilyLinkController::class, 'store'])
+            ->middleware(['permission:patients.update.organisation', 'sensitive.no-store', 'throttle:30,1'])
+            ->name('patients.family-links.store');
         // REG-4: patient change history (field names only).
         Route::get('patients/{patient}/history', [PatientController::class, 'history'])
             ->middleware(['permission:patients.history.view.organisation', 'sensitive.no-store', 'throttle:60,1'])

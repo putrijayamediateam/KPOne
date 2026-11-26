@@ -11,6 +11,7 @@ use App\Domain\Clinical\Triage\TriageGuidelineService;
 use App\Domain\Clinical\Triage\TriageService;
 use App\Domain\Clinical\Triage\TriageViewProjection;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
+use App\Domain\Patient\Services\FamilyWaitingProjection;
 use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -76,6 +77,7 @@ class ClinicalEncounterDirectoryService
         $elapsedSeconds = $encounter->started_at->diffInSeconds(now()->utc());
 
         return [
+            'familyWaiting' => app(FamilyWaitingProjection::class)->forEncounter($actor, $encounter),
             'branch' => $encounter->visit->branch->only(['id', 'code', 'name', 'timezone']),
             'patient' => [
                 'patientNumber' => $encounter->visit->patient->patient_number,

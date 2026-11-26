@@ -15,6 +15,7 @@ import {
 } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import FamilyWaitingCard from '@/components/clinical/FamilyWaitingCard.vue';
 import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
@@ -1237,6 +1238,11 @@ watch(
                 <TreatmentRoomReadPanel
                     v-if="treatmentRoomUrl"
                     :url="treatmentRoomUrl"
+                />
+
+                <FamilyWaitingCard
+                    v-if="clinical.familyWaiting"
+                    :family="clinical.familyWaiting"
                 />
 
                 <DispensaryAttentionPanel
