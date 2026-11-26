@@ -777,6 +777,7 @@ onBeforeUnmount(() => {
                     />
                     <Button
                         size="sm"
+                        class="h-9 max-lg:min-h-11"
                         type="submit"
                         variant="outline"
                         :disabled="loading"
@@ -788,6 +789,7 @@ onBeforeUnmount(() => {
                     <Button
                         type="button"
                         size="sm"
+                        class="h-9 max-lg:min-h-11"
                         variant="outline"
                         @click="showMoreFilters = !showMoreFilters"
                     >

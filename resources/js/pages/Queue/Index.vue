@@ -757,7 +757,7 @@ onBeforeUnmount(() => {
                 labelledby="doctor-room-label"
                 :options="roomOptions"
                 :disabled="roomSaving || roomChoice.rooms.length === 0"
-                trigger-class="h-8 w-48"
+                trigger-class="h-9 w-48 max-lg:min-h-11"
                 @update:model-value="chooseRoom"
             />
             <span
@@ -812,23 +812,26 @@ onBeforeUnmount(() => {
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
                     v-model="draftFilters.query"
                     autocomplete="off"
-                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
+                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25 max-lg:min-h-11"
                     placeholder="Patient or exact Queue number"
             /></label>
             <OperationalSelect
                 v-if="live.scope === 'branch'"
                 v-model="draftFilters.doctor_id"
                 label="Doctor"
+                trigger-class="h-9 max-lg:min-h-11"
                 :options="doctorOptions"
             /><span v-else class="hidden xl:block" />
             <OperationalSelect
                 v-model="draftFilters.priority"
                 label="Urgency"
+                trigger-class="h-9 max-lg:min-h-11"
                 :options="urgencyOptions"
             />
             <Button
                 type="submit"
                 size="sm"
+                class="h-9 max-lg:min-h-11"
                 :variant="live.callNext ? 'outline' : 'default'"
                 :disabled="isApplyingFilters"
                 ><LoaderCircle
@@ -839,6 +842,7 @@ onBeforeUnmount(() => {
             <Button
                 type="button"
                 size="sm"
+                class="h-9 max-lg:min-h-11"
                 variant="ghost"
                 @click="clearFilters"
                 >Reset</Button
