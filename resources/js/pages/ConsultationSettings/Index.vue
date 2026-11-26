@@ -201,6 +201,11 @@ const presetEmptyDescription = computed(() =>
                 >Consultation settings</span
             >
             <Link
+                href="/consultation-settings/phrases"
+                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                >Prescribing phrases</Link
+            >
+            <Link
                 v-if="canCheckoutSettings"
                 href="/checkout-settings"
                 class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
