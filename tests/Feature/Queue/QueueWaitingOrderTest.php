@@ -70,9 +70,10 @@ class QueueWaitingOrderTest extends TriageTestCase
         $red = $this->waiting($ca, $doctor, '2026-08-25 01:03:00 UTC', [], 'red');
         $green2 = $this->waiting($ca, $doctor, '2026-08-25 01:04:00 UTC', [], 'green');
 
-        $expected = [$red, $yellow, $green1, $untriaged, $green2];
+        $expected = [$yellow, $green1, $untriaged, $green2];
         $numbers = array_map(fn (Visit $v) => $v->visit_number, $expected);
         $this->assertSame($numbers, $this->board($ca));
+        $this->assertSame([$red->visit_number], array_column($this->actingAs($ca)->postJson(route('queue.search'), [])->assertOk()->json('emergency.data'), 'visitNumber'));
         $this->assertSame($red->visit_number, $this->next($doctor));
     }
 

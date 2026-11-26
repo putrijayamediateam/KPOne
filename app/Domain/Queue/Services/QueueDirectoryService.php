@@ -11,6 +11,7 @@ use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
+use App\Domain\Queue\Emergency\EmergencyLaneProjection;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\QueueWaitingOrder;
@@ -24,6 +25,7 @@ use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -74,6 +76,11 @@ class QueueDirectoryService
             ? array_values($eligibleDoctors->pluck('id')->map(fn ($id) => (int) $id)->all())
             : $this->doctors->eligibleDoctorIds($branch, $today);
         $base = $this->baseQuery($actor, $branch, $criteria);
+        $lane = app(EmergencyLaneProjection::class);
+        $emergencyRead = $lane->read($actor, $branch, (int) ($criteria['emergency_page'] ?? 1));
+        $emergencyEntries = $emergencyRead['entries'];
+        $emergency = Arr::except($emergencyRead, ['entries', 'exclusionQuery']);
+        $base->whereNotIn('visits.id', $emergencyRead['exclusionQuery']);
         $counts = $this->tabCounts($base, $today);
         $status = (string) ($criteria['status'] ?? '');
         $page = (int) ($criteria['page'] ?? 1);
@@ -140,6 +147,7 @@ class QueueDirectoryService
         }
 
         $entries = new EloquentCollection([
+            ...$emergencyEntries->all(),
             ...$waitingEntries->all(),
             ...$carryOverEntries->all(),
             ...$servingEntries->all(),
@@ -188,7 +196,14 @@ class QueueDirectoryService
             $entry->setRelation('triageZone', $triageZones[$entry->visit_id] ?? null);
         }
 
+        $emergencyBoardRows = $this->rows($actor, $emergencyEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints)->keyBy('visitNumber');
+        foreach ($emergency['data'] as &$emergencyRow) {
+            $emergencyRow['boardRow'] = $emergencyBoardRows->get($emergencyRow['visitNumber']);
+        }
+        unset($emergencyRow);
+
         $dynamic = [
+            'emergency' => $emergency,
             'tabCounts' => $counts['tabs'],
             // Q-15: every dispensary case waiting for this doctor's check (0 for anyone else); a top-level key, so tabCounts keeps its shape.
             'checksWaiting' => $checksWaiting,

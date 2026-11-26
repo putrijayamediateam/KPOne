@@ -4,7 +4,7 @@ namespace Tests\Feature\Queue;
 
 use App\Domain\Queue\Emergency\EmergencyAlert;
 use App\Domain\Queue\Emergency\EmergencyAlertService;
-use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Emergency\EmergencyLaneProjection;
 use App\Domain\Queue\Models\QueueRedZoneClaim;
 use App\Domain\Queue\Services\RedZoneAlertService;
 use App\Domain\Visit\Models\Visit;
@@ -48,8 +48,9 @@ class EmergencyAlertBoundedAlarmTest extends TriageTestCase
         }
         $this->selectBranch($doctor);
         $alerts = app(RedZoneAlertService::class)->alerts($doctor, $this->branch->id);
+        $lane = app(EmergencyLaneProjection::class)->snapshot($doctor, $this->branch);
         $this->assertCount(25, $alerts, 'The global response must remain bounded.');
-        $this->assertSame(26, EmergencyAlert::query()->whereNull('closed_at')->whereIn('queue_entry_id', QueueEntry::query()->where('status', QueueEntry::STATUS_WAITING)->select('id'))->count(), 'Taking preserves all open Waiting episodes for the later lane projection.');
+        $this->assertSame(26, $lane['total'], 'Taken Waiting rows still belong to the emergency lane.');
         $this->assertSame(1, EmergencyAlert::query()->whereNull('closed_at')->whereNull('taken_claim_id')->count());
         $this->assertTrue(collect($alerts)->contains(fn (array $alert): bool => $alert['visitNumber'] === $latest->visit_number && $alert['takenBy'] === null), 'The one untaken emergency must stay visible to the alarm even behind 25 older taken rows.');
     }
