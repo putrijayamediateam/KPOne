@@ -30,6 +30,7 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Queue\Readiness\CallHoldService;
 use App\Domain\Queue\Treatment\TreatmentStepService;
+use App\Domain\Visit\Assignment\DoctorWarningProjection;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
@@ -65,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
         // CHAT-1: the one adapter to the AI provider (tests bind a fake).
         $this->app->bind(ChatModel::class, HttpChatModel::class);
         $this->app->scoped(BranchAccessService::class);
+        // AUTO-1c: one roster-published read per request, shared by the boards' tabs.
+        $this->app->scoped(DoctorWarningProjection::class);
         // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
         $this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);
         // STK-41: approving a transfer or restock suggestion may prepare an Inventory record (behind agents.prepare_enabled).

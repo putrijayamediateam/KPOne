@@ -18,6 +18,7 @@ use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Visit\Assignment\DoctorAssignmentService;
+use App\Domain\Visit\Assignment\DoctorWarningProjection;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -138,9 +139,17 @@ class VisitDirectoryService
         // TRI-1c: the zone chip, only for CA, CA Supervisor and the patient's own doctor (one query).
         $triageZones = app(TriageZoneProjection::class)->forVisits($actor, $paginator->getCollection()
             ->map(fn (Visit $visit): array => TriageZoneProjection::subject($visit, $this->visibleQueueEntry($actor, $visit, $queueHints)))->all());
+        // AUTO-1c: a warning for a waiting consultation whose doctor is off roster, on leave, without a room, or busy while
+        // another doctor is free (one batched read; shown only to a viewer who may edit the visit).
+        $doctorWarnings = app(DoctorWarningProjection::class)->forDoctors($actor, $branch, $paginator->getCollection()
+            ->filter(fn (Visit $visit): bool => $visit->visit_type === 'consultation'
+                && $this->visibleQueueEntry($actor, $visit, $queueHints)?->status === QueueEntry::STATUS_WAITING)
+            ->map(fn (Visit $visit): ?int => $visit->assigned_doctor_user_id)->values()->all());
         foreach ($paginator->getCollection() as $visit) {
             $visit->setRelation('callReadiness', $readiness[$visit->queueEntry?->id] ?? null);
             $visit->setRelation('triageZone', $triageZones[$visit->id] ?? null);
+            $visit->setRelation('doctorWarning', $visit->visit_type === 'consultation' && $this->visibleQueueEntry($actor, $visit, $queueHints)?->status === QueueEntry::STATUS_WAITING
+                ? ($doctorWarnings[$visit->assigned_doctor_user_id] ?? null) : null);
         }
 
         return [
@@ -490,6 +499,8 @@ class VisitDirectoryService
             'registeredAtDate' => $visit->registered_at->setTimezone($branch->timezone)->format('Y-m-d'),
             'visitReasonExcerpt' => ($summary = $this->reasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
+            // AUTO-1c: only for a viewer who may edit the visit (the reassign path).
+            'doctorWarning' => $actions['update'] && $visit->relationLoaded('doctorWarning') ? $visit->getRelation('doctorWarning') : null,
             'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null,
             'coverageLabel' => $visit->coverage_type === 'panel'
                 ? $visit->coverage_panel_name_snapshot : 'Self-pay',
