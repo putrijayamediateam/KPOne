@@ -120,6 +120,13 @@ const totals = computed(() => {
                 :notes-context="invoice.notes"
             />
             <ActionLink
+                v-if="invoice.links.billView"
+                :href="invoice.links.billView"
+                variant="outline"
+                data-testid="invoice-view-bill"
+                >View bill</ActionLink
+            >
+            <ActionLink
                 v-if="invoice.links.panelClaim"
                 :href="invoice.links.panelClaim.href"
                 variant="outline"
@@ -217,11 +224,20 @@ const totals = computed(() => {
                 <OutstandingBills :groups="invoice.outstanding" />
             </aside>
 
+            <!-- BIL-37 (Daniel): for the doctor the items card would only repeat the Bill page line; the card next to
+                 the actions carries it once. -->
             <section
+                v-if="
+                    invoice.canSeeFinancial ||
+                    invoice.canSeeLines ||
+                    !invoice.links.billView
+                "
                 class="min-w-0 overflow-hidden rounded-xl border bg-card"
                 data-testid="invoice-lines"
             >
+                <!-- BIL-37 (Daniel): without billing access the tabs only ever counted 0, so they are hidden. -->
                 <OperationalTabs
+                    v-if="invoice.canSeeFinancial || invoice.canSeeLines"
                     v-model="tab"
                     :tabs="tabs"
                     label="Invoice items"
@@ -453,7 +469,9 @@ const totals = computed(() => {
                     {{
                         invoice.canSeeFinancial
                             ? 'No invoice was issued for this visit.'
-                            : 'Billing details are not shown for your role.'
+                            : invoice.links.billView
+                              ? 'The bill is on the read-only Bill page.'
+                              : 'Billing details are not shown for your role.'
                     }}
                 </p>
                 <Button

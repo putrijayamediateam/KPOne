@@ -27,7 +27,9 @@ final class SkuEditController extends Controller
             throw $e->redirectTo(route('inventory.skus'));
         }
 
-        return to_route('inventory.skus')->with('success', 'SKU saved.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'SKU saved.']);
+
+        return to_route('inventory.skus');
     }
 
     /** STK-52: propose a pack conversion version (or to stop using one). */
@@ -39,7 +41,9 @@ final class SkuEditController extends Controller
             throw $e->redirectTo($this->backToList($request));
         }
 
-        return redirect($this->backToList($request))->with('success', 'Proposed. Someone else must check it before Dispensary uses it.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Proposed. Someone else must check it before Dispensary uses it.']);
+
+        return redirect($this->backToList($request));
     }
 
     /** STK-52: the blind check. A wrong count is recorded as refused and never repeats the proposed number. */
@@ -54,7 +58,9 @@ final class SkuEditController extends Controller
             return redirect($this->backToList($request))->withErrors(['checked_base_per_pack' => PackConversionService::MISMATCH_MESSAGE]);
         }
 
-        return redirect($this->backToList($request))->with('success', 'Checked. Dispensary can now use this pack conversion.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Checked. Dispensary can now use this pack conversion.']);
+
+        return redirect($this->backToList($request));
     }
 
     public function refuseConversion(Request $request, string $conversion, PackConversionService $service): RedirectResponse
@@ -65,7 +71,9 @@ final class SkuEditController extends Controller
             throw $e->redirectTo($this->backToList($request));
         }
 
-        return redirect($this->backToList($request))->with('success', 'Refused. The pack conversion in use is unchanged.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Refused. The pack conversion in use is unchanged.']);
+
+        return redirect($this->backToList($request));
     }
 
     public function withdrawConversion(Request $request, string $conversion, PackConversionService $service): RedirectResponse
@@ -76,7 +84,9 @@ final class SkuEditController extends Controller
             throw $e->redirectTo($this->backToList($request));
         }
 
-        return redirect($this->backToList($request))->with('success', 'Withdrawn.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Withdrawn.']);
+
+        return redirect($this->backToList($request));
     }
 
     /** STK-52: back to the same filtered list, so the SKU (and its message) stays on screen. */

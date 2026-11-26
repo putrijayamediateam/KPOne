@@ -51,7 +51,9 @@ final class ControlledRegisterController extends Controller
             throw ValidationException::withMessages(['counted' => $e->getMessage()])->redirectTo($back);
         }
 
-        return redirect($back)->with('success', 'Check recorded.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Check recorded.']);
+
+        return redirect($back);
     }
 
     /** STK-40b: the reason for a check that differs, added afterwards by the person who recorded it. */
@@ -66,7 +68,9 @@ final class ControlledRegisterController extends Controller
             throw ValidationException::withMessages(['reason' => $e->getMessage()])->redirectTo($back);
         }
 
-        return redirect($back)->with('success', 'Reason added.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Reason added.']);
+
+        return redirect($back);
     }
 
     private function branch(Request $request, BranchAccessService $branches): Branch
