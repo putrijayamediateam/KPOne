@@ -582,12 +582,42 @@ const caseKindLabel = (kind: string) =>
             </p>
             <StockCountCaseList
                 :rows="stock.cases.rows"
-                :enabled="stock.mode === 'count'"
+                :enabled="true"
+                :list-label="
+                    stock.mode === 'count'
+                        ? 'Stock count cases'
+                        : 'Stock write-off cases'
+                "
                 :branch-id="stock.branchId"
                 :busy="form.processing"
                 :states="states"
                 :case-label="caseKindLabel"
             >
+                <template v-if="stock.mode === 'writeoff'" #summary="{ row }">
+                    <span class="mt-2 block text-sm">
+                        Requested quantity:
+                        <template
+                            v-if="
+                                row.quantity !== null &&
+                                row.quantity !== undefined
+                            "
+                        >
+                            {{ trimQuantity(row.quantity) }}
+                            {{ row.stock_unit }}
+                        </template>
+                        <template v-else>Unavailable</template>
+                    </span>
+                    <span
+                        class="mt-1 block text-xs break-words text-muted-foreground"
+                    >
+                        {{
+                            row.kind === 'reversal' &&
+                            row.reason === 'correction'
+                                ? 'Correction'
+                                : formatInventoryReason(row.reason)
+                        }}
+                    </span>
+                </template>
                 <template #default="{ row }">
                     <article
                         :key="row.id"
@@ -599,7 +629,12 @@ const caseKindLabel = (kind: string) =>
                         </h3>
                         <p>
                             {{ row.location }} ·
-                            {{ formatInventoryReason(row.reason) }}
+                            {{
+                                row.kind === 'reversal' &&
+                                row.reason === 'correction'
+                                    ? 'Correction'
+                                    : formatInventoryReason(row.reason)
+                            }}
                         </p>
                         <ul
                             v-if="row.reports?.length"
@@ -687,9 +722,6 @@ const caseKindLabel = (kind: string) =>
                     </article>
                 </template>
             </StockCountCaseList>
-            <p v-if="stock.mode === 'writeoff' && !stock.cases.rows.length">
-                No matching cases.
-            </p>
             <div class="flex justify-between gap-2">
                 <button
                     class="min-h-11 rounded border px-4 disabled:opacity-40"

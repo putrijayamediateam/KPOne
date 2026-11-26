@@ -37,7 +37,7 @@ const row = (extra = {}) => ({
     stock_unit: 'tablet',
     ...extra,
 });
-function setup() {
+function setup(mode = 'count') {
     const page = reactive({
         props: { branchContext: { active: { id: 1 } }, errors: {} },
     });
@@ -87,7 +87,7 @@ function setup() {
         stock: {
             branchId: 1,
             branchName: 'Synthetic branch',
-            mode: 'count',
+            mode,
             q: '',
             state: '',
             legacyLimit: 'Read only',
@@ -146,4 +146,44 @@ test('actual branch identity change closes the pending dialog and clears target/
     assert.equal(m.state.form.quantity, '');
     assert.equal(m.requests.length, 0);
     m.scope.stop();
+});
+
+test('actual writeoff approval and reversal retain original immutable case target across refreshed lists', async () => {
+    for (const action of ['approved', 'reversal']) {
+        const m = setup('writeoff');
+        m.state.showCase(
+            row({
+                kind: 'writeoff',
+                blind: false,
+                quantity: '2.000',
+                balance_id: 12,
+                current_balance_version: 7,
+            }),
+            action,
+        );
+        m.props.stock.cases.rows = [
+            row({ id: 92, public_id: 'case-b', lock_version: 9 }),
+        ];
+        await nextTick();
+        m.state.submit();
+        assert.equal(m.requests.length, 1);
+
+        if (action === 'reversal') {
+            assert.equal(m.requests[0].url, '/inventory/governed/reversal');
+            assert.equal(m.requests[0].data.reverses_case_id, 91);
+            assert.equal(m.requests[0].data.balance_id, 12);
+            assert.equal(m.requests[0].data.balance_version, 7);
+            assert.equal(m.requests[0].data.lock_version, 0);
+        } else {
+            assert.equal(m.requests[0].url, '/inventory/governed/91/approved');
+            assert.equal(m.requests[0].data.lock_version, 3);
+            assert.equal(m.requests[0].data.return_to, 'writeoff');
+        }
+
+        assert.equal(m.requests[0].data.expected_branch_id, 1);
+        assert.equal(m.requests[0].data.retry_key, 'synthetic-retry-key');
+        assert.equal('quantity' in m.requests[0].data, false);
+        assert.match(m.state.label.value, /SYN-A/);
+        m.scope.stop();
+    }
 });
