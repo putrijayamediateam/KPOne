@@ -55,7 +55,7 @@ final class PanelClaimDirectoryService
 
     private const APPROVED = ['accepted', 'partially_accepted', 'partially_paid'];
 
-    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'queried', 'rejected', 'received'];
+    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'waiting_payment', 'queried', 'rejected', 'received'];
 
     /** PNL-28a: Pending lists approved invoices with no claim; Overdue lists Prepared claims past the Panel's due date. */
     private const INVOICE_TABS = ['pending'];
@@ -79,7 +79,10 @@ final class PanelClaimDirectoryService
             $eligible = $invoices(null)
                 ->orderBy('v.registered_at')->orderBy('c.id')
                 ->paginate(20, ['*'], 'allocations_page', $allocationsPage);
-            $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab, $overdueIds)
+            $waitingPayment = $tab === 'waiting_payment'
+                ? app(PanelWaitingPaymentProjection::class)->read($this->applyListFilters($base(), $filters, 'all', $overdueIds), $claimsPage)
+                : null;
+            $claims = $waitingPayment['claims'] ?? $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab, $overdueIds)
                 ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
             $paymentRemarks = $this->latestPaymentReferences(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
@@ -99,7 +102,8 @@ final class PanelClaimDirectoryService
                 // PNL-28a: every approved Panel share at this branch with no claim, whatever the list filters.
                 'waiting' => app(PanelClaimEligibility::class)->query($actor->organisation_id, $branch->id)->count(),
                 'summary' => $this->summary($base, $invoices, $overdueIds),
-                'tabs' => $this->tabCounts($base, $invoices, $filters, $overdueIds),
+                'tabs' => $this->tabCounts($base, $invoices, $filters, $overdueIds, $waitingPayment['totals']['count'] ?? null),
+                'waitingPayment' => $waitingPayment['totals'] ?? null,
                 'panels' => DB::table('panels')->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->pluck('name')->all(),
                 'filters' => [
                     'tab' => $tab,
@@ -132,6 +136,11 @@ final class PanelClaimDirectoryService
                         'panelName' => $claim->panel_name_snapshot,
                         'panelId' => (int) $claim->panel_id,
                         'claimAmountSen' => $claim->claim_amount_sen,
+                        ...($waitingPayment === null ? [] : ['paymentBalance' => [
+                            'acceptedSen' => (int) $claim->accepted_amount_sen,
+                            'receivedSen' => (int) $claim->getAttribute('received_sen'),
+                            'outstandingSen' => (int) $claim->getAttribute('outstanding_sen'),
+                        ]]),
                         'status' => self::statusLabel($claim),
                         'overdue' => in_array($claim->id, $overdueIds, true),
                         'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
@@ -384,6 +393,7 @@ final class PanelClaimDirectoryService
             'overdue' => $query->whereIn('id', $overdueIds),
             'submitted' => $query->whereIn('status', self::SUBMITTED),
             'approved' => $query->whereIn('status', self::APPROVED),
+            'waiting_payment' => app(PanelWaitingPaymentProjection::class)->eligible($query),
             'queried' => $query->where('status', 'queried'),
             'rejected' => $query->where('status', 'rejected'),
             'received' => $query->where('status', 'paid'),
@@ -474,10 +484,15 @@ final class PanelClaimDirectoryService
      * @param  list<int>  $overdueIds
      * @return array<string, int>
      */
-    private function tabCounts(callable $base, callable $invoices, array $filters, array $overdueIds): array
+    private function tabCounts(callable $base, callable $invoices, array $filters, array $overdueIds, ?int $waitingPaymentCount = null): array
     {
         $counts = [];
         foreach (self::TABS as $tab) {
+            if ($tab === 'waiting_payment' && $waitingPaymentCount !== null) {
+                $counts[$tab] = $waitingPaymentCount;
+
+                continue;
+            }
             $counts[$tab] = in_array($tab, self::INVOICE_TABS, true)
                 ? $invoices(null)->count()
                 : $this->applyListFilters($base(), $filters, $tab, $overdueIds)->count();

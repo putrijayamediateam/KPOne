@@ -43,7 +43,7 @@ class PanelClaimsController extends Controller
         return [
             'allocations_page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'claims_page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
-            'tab' => ['sometimes', 'string', 'in:all,pending,overdue,submitted,approved,queried,rejected,received'],
+            'tab' => ['sometimes', 'string', 'in:all,pending,overdue,submitted,approved,waiting_payment,queried,rejected,received'],
             'range' => ['sometimes', 'string', 'in:all,yesterday,last_7_days,last_30_days,last_90_days,this_week,this_month,this_year,last_week,last_month,custom'],
             'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
