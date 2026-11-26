@@ -9,6 +9,7 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Treatment\TreatmentStep;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 /** Structural workload membership only; existing row projections decide what clinical detail is visible. */
@@ -19,8 +20,22 @@ final class QueueWorkloadQuery
      */
     public function apply(Builder $query, User $actor, Branch $branch, string $section): Builder
     {
-        $query->where('visits.status', Visit::STATUS_REGISTERED)
+        $query->whereIn('visits.status', $section === 'completed' ? [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED] : [Visit::STATUS_REGISTERED])
             ->where('visits.organisation_id', $actor->organisation_id)->where('visits.branch_id', $branch->id);
+        if ($section === 'completed') {
+            $start = CarbonImmutable::now($branch->timezone)->startOfDay();
+
+            return $query->where('queue_entries.status', QueueEntry::STATUS_REMOVED)
+                ->whereIn('queue_entries.removal_reason', ['sent_to_billing', 'sent_to_dispensary'])
+                ->where('queue_entries.removed_at', '>=', $start->utc())
+                ->where('queue_entries.removed_at', '<', $start->addDay()->utc());
+        }
+        if ($section === 'seeing') {
+            return $query->where('queue_entries.status', QueueEntry::STATUS_SERVING)
+                ->whereNotExists(fn ($holds) => $holds->selectRaw('1')->from('consultation_holds')
+                    ->whereColumn('consultation_holds.queue_entry_id', 'queue_entries.id')
+                    ->whereColumn('consultation_holds.visit_id', 'visits.id')->whereNull('resumed_at'));
+        }
         if ($section === 'held') {
             return $query->where('queue_entries.status', QueueEntry::STATUS_SERVING)
                 ->whereExists(fn ($holds) => $holds->selectRaw('1')->from('consultation_holds')

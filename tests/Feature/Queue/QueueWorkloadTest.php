@@ -4,6 +4,7 @@ namespace Tests\Feature\Queue;
 
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
+use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Clinical\TreatmentRoom\TreatmentRoomService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Treatment\TreatmentStep;
@@ -146,6 +147,52 @@ class QueueWorkloadTest extends ClinicalTestCase
         $this->assertSame('done', $branch['data'][0]['treatmentProgress']['state']);
         $this->assertArrayNotHasKey('outcome', $branch['data'][0]['treatmentProgress']);
         $this->assertNull($encounter->holds()->sole()->resumed_at);
+    }
+
+    public function test_seeing_now_excludes_active_holds_and_applies_doctor_and_search_filters(): void
+    {
+        [$doctor, $ca, $held, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $held, $queue);
+        $this->holdEncounter($doctor, $held, $queue, $encounter);
+        [, , $seeing] = $this->servingFixture($doctor, $ca);
+        $this->selectBranch($ca);
+        $directory = app(QueueDirectoryService::class);
+        $result = $directory->workload($ca, $this->branch->id, 'seeing', 1, ['doctor_id' => $doctor->id]);
+        $this->assertSame(1, $result['counts']['seeing']);
+        $this->assertSame(1, $result['counts']['held']);
+        $this->assertSame([$seeing->visit_number], $result['data']->pluck('visitNumber')->all());
+        $this->assertFalse($result['data'][0]['isHeld']);
+        $filtered = $directory->workload($ca, $this->branch->id, 'seeing', 1, ['query' => $held->patient->patient_number]);
+        $this->assertSame(0, $filtered['total']);
+        $this->assertSame(1, $filtered['counts']['held']);
+    }
+
+    public function test_done_today_uses_branch_local_checkout_day_with_inclusive_start_exclusive_end(): void
+    {
+        $start = CarbonImmutable::parse('2026-11-26 00:00:00', $this->branch->timezone);
+        Date::setTestNow($start->addMinutes(5)->utc());
+        $times = [$start->subSecond(), $start, $start->addDay()->subSecond(), $start->addDay()];
+        $expected = [];
+        foreach ($times as $index => $time) {
+            [$doctor, , $visit, $queue] = $this->servingFixture();
+            $encounter = $this->startEncounter($doctor, $visit, $queue);
+            app(CompleteConsultationService::class)->complete($doctor, $visit, [
+                'expected_branch_id' => $this->branch->id, 'visit_lock_version' => $visit->refresh()->lock_version,
+                'queue_lock_version' => $queue->refresh()->lock_version, 'encounter_lock_version' => $encounter->refresh()->lock_version,
+                'lock_version' => null, 'service_deliveries' => [],
+            ]);
+            // Synthetic read-boundary fixture: actual checkout state, with its timestamp placed at each day edge.
+            $queue->refresh()->forceFill(['removed_at' => $time->utc()])->save();
+            if (in_array($index, [1, 2], true)) {
+                $expected[] = $visit->visit_number;
+            }
+        }
+        $this->selectBranch($ca = $this->actor('ca'));
+        $result = app(QueueDirectoryService::class)->workload($ca, $this->branch->id, 'completed');
+        $this->assertSame(2, $result['total']);
+        $this->assertSame($expected, $result['data']->pluck('visitNumber')->all());
+        $this->assertSame(2, $result['counts']['completed']);
+        $this->assertSame('2026-11-25', $start->utc()->toDateString(), 'MYT midnight belongs to the previous UTC date.');
     }
 
     public function test_endpoint_checks_branch_section_and_read_authority(): void

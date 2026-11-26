@@ -2,12 +2,14 @@ import { ref } from 'vue';
 import { requestJson } from '@/lib/json-client';
 import type { QueueRow } from '@/types/queue';
 
-export type QueueWorkloadSection = 'held' | 'treatment' | 'checks';
+export type QueueWorkloadSection =
+    'held' | 'treatment' | 'checks' | 'seeing' | 'completed' | 'summary';
 export type QueueWorkloadPage = {
     branchId: number;
     scope: 'own' | 'branch';
     section: QueueWorkloadSection;
     serverNow: string;
+    counts: Record<Exclude<QueueWorkloadSection, 'summary'>, number>;
     data: QueueRow[];
     total: number;
     currentPage: number;
@@ -39,8 +41,17 @@ export function useQueueWorkload() {
         requestedPage: number,
         parentSignal: AbortSignal,
         accepts: () => boolean = () => true,
+        filters: { query?: string; doctor_id?: string; priority?: string } = {},
     ) => {
-        const key = `${branchId}:${section}:${requestedPage}`;
+        const parameters = new URLSearchParams({
+            expected_branch_id: String(branchId),
+            section,
+            page: String(requestedPage),
+            query: filters.query ?? '',
+            doctor_id: filters.doctor_id ?? '',
+            priority: filters.priority ?? '',
+        });
+        const key = parameters.toString();
 
         if (selection !== key) {
             reset();
@@ -64,7 +75,7 @@ export function useQueueWorkload() {
 
         try {
             const response = await requestJson<QueueWorkloadPage>(
-                `/queue/workload?expected_branch_id=${branchId}&section=${section}&page=${requestedPage}`,
+                `/queue/workload?${parameters}`,
                 { signal: request.signal },
             );
 
