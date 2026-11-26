@@ -37,7 +37,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <DialogContent
       data-slot="sheet-content"
       :class="cn(
-        'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
+        'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-pop transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
         side === 'right'
           && 'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
         side === 'left'
@@ -52,9 +52,9 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       <slot />
 
       <DialogClose
-        class="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+        class="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-2 right-2 flex size-11 cursor-pointer items-center justify-center rounded-[10px] opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <X class="size-4" />
+        <X class="size-5" />
         <span class="sr-only">Close</span>
       </DialogClose>
     </DialogContent>

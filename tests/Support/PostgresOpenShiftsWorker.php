@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\HR\Availability\Services\LocumAvailabilityService;
 use App\Domain\HR\OpenShifts\Services\OpenShiftService;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -12,8 +13,9 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /*
- * HR-15b contention worker: one manager confirms one ask, in its own PostgreSQL session.
- * Prints READY <pid>, waits for GO, runs and prints SUCCESS confirm, STALE <field>: <message> or DENIED.
+ * HR-15b contention worker: one manager confirms one ask, in its own PostgreSQL session. HR-22f adds two actions on a
+ * locum free time: a manager uses it, or the locum withdraws it.
+ * Prints READY <pid>, waits for GO, runs and prints SUCCESS <action>, STALE <field>: <message> or DENIED.
  */
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
@@ -32,8 +34,13 @@ try {
     }
     $actor = User::query()->findOrFail((int) $argv[1]);
     $a = json_decode(base64_decode($argv[2], true), true, 64, JSON_THROW_ON_ERROR);
-    app(OpenShiftService::class)->confirm($actor, (string) $a['ask'], $a);
-    fwrite(STDOUT, 'SUCCESS confirm'.PHP_EOL);
+    $action = (string) ($a['action'] ?? 'confirm');
+    match ($action) {
+        'use' => app(LocumAvailabilityService::class)->use($actor, (string) $a['availability'], $a),
+        'withdraw' => app(LocumAvailabilityService::class)->withdraw($actor, (string) $a['availability'], $a),
+        default => app(OpenShiftService::class)->confirm($actor, (string) $a['ask'], $a),
+    };
+    fwrite(STDOUT, 'SUCCESS '.$action.PHP_EOL);
 } catch (ValidationException $e) {
     while (DB::transactionLevel() > 0) {
         DB::rollBack();

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Services\DifferenceReportService;
 use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
@@ -63,6 +64,8 @@ class InventoryController extends Controller
             'operations' => $operationDirectory,
             'receiptMemoryContext' => $this->receiptMemoryContext($request, $actor, $activeBranch),
             'referenceData' => $this->referenceData($actor, $activeBranch),
+            // STK-45: Report a difference and "My reports", for P10 holders only.
+            'differences' => $actor->can(DifferenceReportService::PERMISSION) ? ['canReport' => true, 'expectedBranchId' => $activeBranch->id, 'myReports' => app(DifferenceReportService::class)->myReports($actor)] : ['canReport' => false],
         ]);
     }
 

@@ -27,7 +27,9 @@ class MedicineOptionSettingsController extends Controller
             throw $e->redirectTo(route('medicine-details.index', ['type' => $type]));
         }
 
-        return to_route('medicine-details.index', ['type' => $type])->with('success', 'Options added.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Options added.']);
+
+        return to_route('medicine-details.index', ['type' => $type]);
     }
 
     public function rename(Request $request, string $type, int $option, MedicineOptionSettingsService $service): RedirectResponse

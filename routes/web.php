@@ -41,6 +41,7 @@ use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
+use App\Http\Controllers\DifferenceReportController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\DispensaryDoctorCheckController;
 use App\Http\Controllers\DispensaryReviewController;
@@ -57,6 +58,7 @@ use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
 use App\Http\Controllers\HR\LabourCostController as HrLabourCostController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
+use App\Http\Controllers\HR\LocumAvailabilityController as HrLocumAvailabilityController;
 use App\Http\Controllers\HR\LocumPayController as HrLocumPayController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
@@ -263,6 +265,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
             Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
             Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/copy-to-month', 'copyToMonth')->whereUuid('version')->name('hr.roster.copy-month');
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
@@ -575,10 +578,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    // HR-22f locum free times (HR-PLAN 29.7): a linked locum proposes; a roster planner uses or declines.
+    Route::prefix('hr/free-times')->controller(HrLocumAvailabilityController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::middleware(['permission:hr.locum_availability.propose.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'propose')->name('hr.free-times.store');
+            Route::post('{availability_id}/withdraw', 'withdraw')->whereUuid('availability_id')->name('hr.free-times.withdraw');
+        });
+        Route::middleware(['permission:hr.roster.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('{availability_id}/use', 'use')->whereUuid('availability_id')->name('hr.free-times.use');
+            Route::post('{availability_id}/decline', 'decline')->whereUuid('availability_id')->name('hr.free-times.decline');
+        });
+    });
     // HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Everyone reports; the Director and HR Manager handle.
     // HR-15b open shifts (HR-PLAN 21.4): managers post and confirm; a linked locum asks.
     Route::prefix('hr/open-shifts')->controller(HrOpenShiftsController::class)->middleware('sensitive.no-store')->group(function (): void {
-        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation')->name('hr.open-shifts.index');
+        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation,hr.locum_availability.propose.own')->name('hr.open-shifts.index');
         Route::middleware(['permission:hr.open_shifts.request.own', 'throttle:30,1'])->group(function (): void {
             Route::post('{shift}/ask', 'ask')->whereUuid('shift')->name('hr.open-shifts.ask');
             Route::post('asks/{ask}/withdraw', 'withdrawAsk')->whereUuid('ask')->name('hr.open-shifts.ask-withdraw');
@@ -1005,6 +1019,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('inventory/counts', [GovernedStockController::class, 'counts'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-counts');
         Route::get('inventory/writeoffs', [GovernedStockController::class, 'writeoffs'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-writeoffs');
+        Route::post('inventory/difference-reports', [DifferenceReportController::class, 'store'])->middleware(['permission:inventory.differences.report.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.difference-reports.store');
         Route::post('inventory/counts/cycle', [GovernedStockController::class, 'startCycleCount'])->middleware(['permission:inventory.stocktake.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.governed-counts.cycle');
         Route::post('inventory/governed/{kind}', [GovernedStockController::class, 'store'])->whereIn('kind', ['count', 'writeoff', 'reversal'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.store');
         Route::post('inventory/governed/{governedCase}/{action}', [GovernedStockController::class, 'act'])->whereNumber('governedCase')->whereIn('action', ['counted', 'recounted', 'approved'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.act');
@@ -1168,6 +1183,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.settings.manage.branch', 'sensitive.no-store'])->name('dispensary-settings.show');
         Route::put('dispensary-settings', [DispensarySettingsController::class, 'update'])
             ->middleware(['permission:dispensary.settings.manage.branch', 'throttle:20,1'])->name('dispensary-settings.update');
+        // DSP-27: the branch's Dispensary list (To prepare, Waiting for the doctor's check, Done today). Read only.
+        Route::get('dispensary', [DispensaryController::class, 'index'])
+            ->middleware(['permission:dispensary.view.branch,dispensary.view_readonly.branch', 'sensitive.no-store', 'throttle:120,1'])->name('dispensary.index');
         Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
             ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         // DSP-25: the Director's read-only view of a dispensary case at any branch; every open recorded. GET only.
@@ -1477,6 +1495,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::get('visits/{visit}/queue/details', [QueueController::class, 'details'])
+            ->middleware(['permission:visits.triage.record.branch,queue.view.own', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.details');
+        Route::get('queue/red-zone-alerts', [QueueController::class, 'redZoneAlerts'])
+            ->middleware(['permission:queue.call.own,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.red-zone-alerts');
+        Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
+            ->middleware(['permission:queue.call.own', 'throttle:30,1'])
+            ->name('queue.take-red-zone');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.call-next.block');

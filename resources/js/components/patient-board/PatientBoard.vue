@@ -49,6 +49,8 @@ defineEmits<{
     callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
     readinessChanged: [];
+    // Q-16c: ask the page to open the read-only details dialog of this row.
+    showDetails: [row: PatientBoardRow];
 }>();
 
 // Q-2: one treatment dialog at a time, opened from the row menu or the inline "Mark done" button.
@@ -128,7 +130,7 @@ const triageTextClass = (zone: TriageZone | null) =>
             class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
         >
             <thead
-                class="border-y bg-muted/25 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                class="border-y bg-card-quiet text-[13px] font-semibold text-muted-foreground"
             >
                 <tr>
                     <th class="w-[15%] px-3 py-2">Patient</th>
@@ -416,6 +418,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                         size="icon"
                                         class="min-h-11 min-w-11"
                                         :aria-label="`Actions for ${row.patientName}`"
+                                        :data-row-menu="row.visitNumber"
                                     >
                                         <LoaderCircle
                                             v-if="busyKey === row.key"
@@ -447,6 +450,14 @@ const triageTextClass = (zone: TriageZone | null) =>
                                             "
                                             >View Patient</Link
                                         >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.triage && from === 'queue'"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        data-testid="row-details-menu"
+                                        @select="$emit('showDetails', row)"
+                                    >
+                                        Show details
                                     </DropdownMenuItem>
                                     <!-- TRI-1e: the patient's own doctor reads the triage record (view only). -->
                                     <DropdownMenuItem

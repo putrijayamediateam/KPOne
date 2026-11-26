@@ -375,7 +375,7 @@ onUnmounted(() => {
             </div>
             <div class="min-h-0 flex-1 overflow-auto rounded-md border">
                 <table class="w-full min-w-[520px] text-left text-sm">
-                    <thead class="sticky top-0 bg-muted">
+                    <thead class="sticky top-0 bg-card-quiet">
                         <tr>
                             <th class="px-3 py-2">#</th>
                             <th class="px-3 py-2">
