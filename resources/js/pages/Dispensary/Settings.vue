@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/page-header';
 const props = defineProps<{
     branch: { id: number; name: string };
     settings: { doctorCheckRequired: boolean; lockVersion: number };
+    settingsChange?: { changedAt: string; changedBy: string } | null;
 }>();
 
 const busy = ref(false);
@@ -48,52 +49,68 @@ const toggle = () => {
             :description="`${branch.name} · These settings apply to this branch only.`"
         />
         <section
-            class="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm sm:flex-row sm:items-start sm:justify-between"
+            class="rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
             data-testid="doctor-check-setting"
         >
-            <div class="min-w-0">
-                <h2 id="doctor-check-label" class="text-base font-semibold">
-                    Doctor checks prepared medicine before payment
-                </h2>
-                <p
-                    id="doctor-check-help"
-                    class="mt-2 leading-6 text-muted-foreground"
-                >
-                    When on, the CA sends each consultation case to the
-                    attending doctor, who verifies it before the visit goes to
-                    billing. Stock is taken out when the doctor verifies. OTC
-                    visits are not affected.
-                </p>
-                <InputError
-                    :message="
-                        errors.doctor_check_required ??
-                        errors.expected_branch_id
-                    "
-                />
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-                <button
-                    type="button"
-                    role="switch"
-                    :aria-checked="on"
-                    aria-labelledby="doctor-check-label"
-                    aria-describedby="doctor-check-help"
-                    :disabled="busy"
-                    class="relative inline-flex h-11 w-[4.5rem] shrink-0 items-center rounded-full border-2 border-transparent p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
-                    :class="on ? 'bg-brand' : 'bg-muted-foreground/40'"
-                    data-testid="doctor-check-switch"
-                    @click="toggle"
-                >
-                    <span
-                        class="block size-7 rounded-full bg-background shadow transition-transform"
-                        :class="on ? 'translate-x-7' : 'translate-x-0'"
-                        aria-hidden="true"
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+            >
+                <div class="min-w-0">
+                    <h2 id="doctor-check-label" class="text-base font-semibold">
+                        Doctor checks prepared medicine before payment
+                    </h2>
+                    <p
+                        id="doctor-check-help"
+                        class="mt-2 leading-6 text-muted-foreground"
+                    >
+                        When on, the CA sends each consultation case to the
+                        attending doctor, who verifies it before the visit goes
+                        to billing. Stock is taken out when the doctor verifies.
+                        OTC visits are not affected.
+                    </p>
+                    <InputError
+                        :message="
+                            errors.doctor_check_required ??
+                            errors.expected_branch_id
+                        "
                     />
-                </button>
-                <span class="w-7 font-medium" aria-hidden="true">{{
-                    on ? 'On' : 'Off'
-                }}</span>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                    <button
+                        type="button"
+                        role="switch"
+                        :aria-checked="on"
+                        aria-labelledby="doctor-check-label"
+                        aria-describedby="doctor-check-help"
+                        :disabled="busy"
+                        class="relative inline-flex h-11 w-[4.5rem] shrink-0 items-center rounded-full border-2 border-transparent p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                        :class="on ? 'bg-brand' : 'bg-muted-foreground/40'"
+                        data-testid="doctor-check-switch"
+                        @click="toggle"
+                    >
+                        <span
+                            class="block size-7 rounded-full bg-background shadow transition-transform"
+                            :class="on ? 'translate-x-7' : 'translate-x-0'"
+                            aria-hidden="true"
+                        />
+                    </button>
+                    <span class="w-7 font-medium" aria-hidden="true">{{
+                        on ? 'On' : 'Off'
+                    }}</span>
+                </div>
             </div>
+            <dl
+                class="mt-4 flex flex-wrap items-start justify-between gap-2 border-t border-border pt-4"
+            >
+                <dt class="text-muted-foreground">Last changed</dt>
+                <dd class="min-w-0 break-words text-foreground">
+                    <template v-if="settingsChange">
+                        {{ settingsChange.changedAt }} by
+                        {{ settingsChange.changedBy }}
+                    </template>
+                    <template v-else>Not available</template>
+                </dd>
+            </dl>
         </section>
         <section
             aria-labelledby="settings-access-heading"

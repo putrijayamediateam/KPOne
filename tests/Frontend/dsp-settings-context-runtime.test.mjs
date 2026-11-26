@@ -30,6 +30,7 @@ async function render(overrides = {}) {
     const app = vue.createSSRApp({
         setup: () => ({
             branch: { id: 1, name: 'Synthetic Branch' },
+            settingsChange: null,
             on: true,
             busy: false,
             errors: {},
@@ -69,7 +70,9 @@ test('authorized setting explanation does not invent last-change identities or n
     );
     assert.match(html, /Stock is taken out when the doctor verifies/);
     assert.match(html, /OTC visits are not affected/);
-    assert.doesNotMatch(html, /Last changed|<a |Follow-up/);
+    assert.doesNotMatch(html, /<a |Follow-up/);
+    assert.match(html, /Last changed/);
+    assert.match(html, /Not available/);
 });
 test('real switch accessibility and busy/error state remain independent of explanatory content', async () => {
     const html = await render({
@@ -84,4 +87,22 @@ test('real switch accessibility and busy/error state remain independent of expla
     assert.match(html, /Synthetic branch changed/);
     assert.match(html, />Off</);
     assert.match(html, /About this setting/);
+});
+
+test('attributed change renders only provided safe text, including a generic hidden-staff label', async () => {
+    const html = await render({
+        settingsChange: {
+            changedAt: '27 Nov 2026, 7:30 AM',
+            changedBy: 'Synthetic <Editor>',
+        },
+    });
+    assert.match(html, /27 Nov 2026, 7:30 AM by Synthetic &lt;Editor&gt;/);
+    assert.doesNotMatch(html, /<Editor>|Not available/);
+    const hidden = await render({
+        settingsChange: {
+            changedAt: 'Synthetic time',
+            changedBy: 'Staff member',
+        },
+    });
+    assert.match(hidden, /Synthetic time by Staff member/);
 });

@@ -446,3 +446,7 @@ Team rules for this backlog: run the PHPStan stopgap before each push; migration
 ### Dispensary settings context — 26 November 2026 (in review)
 
 Owner-authorized F24 content slice adds source-backed access, recorded-change and frozen-waiting-case explanation around the existing branch switch. Script, payload/locks/retry behavior, switch aria/44px target and original Verify-completes/OTC explanation unchanged. No invented last-change actor/time, new waiting link, confirmation, authority or workflow.
+
+### Settings last changed reader — 26 November 2026 (in review)
+
+Owner-authorized F24 existing-data reader returns current switch and metadata from one row snapshot after fresh actor/active branch/permission checks. Only attributable successful changes have localized time; updater names use existing staff visibility with Staff member fallback. Default/legacy missing attribution displays Not available. Separate settingsChange prop preserves original settings DTO. No migration/grant/write/current() change or waiting link. Exact faithful prior no-label assertion adaptation recorded in the review packet.
