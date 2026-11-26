@@ -117,6 +117,29 @@ class DoctorRoomRosterTest extends QueueTestCase
         $this->assertSame($this->morning, QueueCall::query()->where('queue_entry_id', $entry->id)->sole()->branch_room_id);
     }
 
+    public function test_batch_resolution_matches_existing_single_room_rules_at_shift_boundaries_and_manual_overrides(): void
+    {
+        $service = app(DoctorRoomService::class);
+        $other = $this->doctor();
+        $ids = [$this->doctor->id, $other->id];
+        foreach (['07:00', '08:00', '09:30', '12:00', '13:00', '14:00', '18:00'] as $time) {
+            $this->at($time);
+            $batch = $service->resolveMany($ids, $this->branch, $this->week->toDateString());
+            foreach ($ids as $id) {
+                $single = $service->resolve($id, $this->branch, $this->week->toDateString());
+                $this->assertSame([$single['room']?->id, $single['source']], [$batch[$id]['room']?->id, $batch[$id]['source']]);
+            }
+        }
+        $this->at('09:30');
+        $service->select($this->doctor, $this->morning, $this->branch->id);
+        foreach (['09:30', '14:00'] as $time) {
+            $this->at($time);
+            $single = $service->resolve($this->doctor->id, $this->branch, $this->week->toDateString());
+            $batch = $service->resolveMany($ids, $this->branch, $this->week->toDateString())[$this->doctor->id];
+            $this->assertSame([$single['room']?->id, $single['source']], [$batch['room']?->id, $batch['source']]);
+        }
+    }
+
     /** @return array{0: int|null, 1: string|null} */
     private function room_now(): array
     {
