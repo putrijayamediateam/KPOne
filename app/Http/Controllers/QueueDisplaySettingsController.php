@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Queue\Display\QueueCallStatsService;
 use App\Domain\Queue\Display\QueueDisplayAccess;
 use App\Domain\Queue\Display\QueueDisplayAdministrationService;
 use App\Domain\Queue\Display\QueueDisplayFeedService;
@@ -18,11 +19,12 @@ use Inertia\Response;
 
 class QueueDisplaySettingsController extends Controller
 {
-    public function index(Request $request, QueueDisplayAccess $access, QueueDisplayFeedService $feed): Response
+    public function index(Request $request, QueueDisplayAccess $access, QueueDisplayFeedService $feed, QueueCallStatsService $callStats): Response
     {
         $branches = $access->manageableBranches($request->user());
         $branch = $branches->firstWhere('id', (int) $request->query('branch')) ?? $branches->first();
         abort_if($branch === null, 403);
+        $pages = $request->validate(['rooms_page' => ['nullable', 'integer', 'min:1', 'max:1000000']]);
 
         return Inertia::render('QueueDisplay/Settings', [
             'branches' => $branches->map->only(['id', 'name'])->values(),
@@ -42,6 +44,8 @@ class QueueDisplaySettingsController extends Controller
                 ])
                 ->values(),
             'settings' => $feed->settings($branch),
+            // Q-16f: today's call counts for this branch. Counts only; never on the TV feed.
+            'callsToday' => $callStats->today($branch, (int) ($pages['rooms_page'] ?? 1)),
             'youtubeUrl' => $this->youtubeUrl($branch),
             'maxPosters' => BranchDisplaySetting::MAX_POSTERS,
             'screenUrl' => route('queue-display.screen', ['branch' => $branch->id], absolute: false),
