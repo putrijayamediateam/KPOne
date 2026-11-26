@@ -134,10 +134,10 @@ final class CycleCountTest extends VisitTestCase
         $counter = $this->actorAt('ca_supervisor');
         $input = ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'sku_public_id' => $f['sku']->public_id, 'location_public_id' => $f['location']->public_id];
 
-        $this->actingAs($counter)->post(route('inventory.governed-counts.cycle'), $input)->assertRedirect(route('inventory.governed-counts'))->assertSessionHas('success', '2 batches are ready to count.');
+        $this->actingAs($counter)->post(route('inventory.governed-counts.cycle'), $input)->assertRedirect(route('inventory.governed-counts'))->assertInertiaFlash('toast', ['type' => 'success', 'message' => '2 batches are ready to count.']);
         $this->assertSame(2, DB::table('inventory_governed_cases')->where('inventory_sku_id', $f['sku']->id)->where('kind', 'count')->count());
         // Pressing again, or retrying the same page, opens nothing more.
-        $this->actingAs($counter)->post(route('inventory.governed-counts.cycle'), $input)->assertSessionHas('success', 'A count is already open for every batch here.');
+        $this->actingAs($counter)->post(route('inventory.governed-counts.cycle'), $input)->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'A count is already open for every batch here.']);
         $this->actingAs($counter)->post(route('inventory.governed-counts.cycle'), [...$input, 'retry_key' => (string) Str::uuid()]);
         $this->assertSame(2, DB::table('inventory_governed_cases')->where('inventory_sku_id', $f['sku']->id)->count());
         $row = collect($this->page($counter)['cycle']['rows'])->firstWhere('skuPublicId', $f['sku']->public_id);

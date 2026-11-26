@@ -89,7 +89,7 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
 
         // STK-40b: a count that differs is recorded at once, with no reason, so nothing says "differs" before it is saved.
         $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '8'))
-            ->assertSessionHasNoErrors()->assertSessionHas('success', 'Check recorded.');
+            ->assertSessionHasNoErrors()->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Check recorded.']);
 
         // Their check is in: now blocked as the previous checker, so every figure comes back with the expected balance and the difference.
         $after = $this->page($checker, $sku);

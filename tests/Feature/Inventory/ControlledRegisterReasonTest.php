@@ -78,7 +78,7 @@ final class ControlledRegisterReasonTest extends VisitTestCase
 
         // A retry with the same key returns the same reason; a second reason is refused.
         $key = (string) Str::uuid();
-        $this->actingAs($checker)->post($url, $this->reason(['reason' => 'other', 'note' => 'Box found in the second cabinet'], $key))->assertSessionHasNoErrors()->assertSessionHas('success', 'Reason added.');
+        $this->actingAs($checker)->post($url, $this->reason(['reason' => 'other', 'note' => 'Box found in the second cabinet'], $key))->assertSessionHasNoErrors()->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Reason added.']);
         $this->actingAs($checker)->post($url, $this->reason(['reason' => 'other', 'note' => 'Box found in the second cabinet'], $key))->assertSessionHasNoErrors();
         $this->assertSame(1, DB::table('inventory_controlled_register_check_reasons')->count());
         $this->actingAs($checker)->post($url, $this->reason(['reason' => 'investigate']))->assertSessionHasErrors(['reason' => 'A reason was already added to this check.']);

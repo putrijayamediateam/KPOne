@@ -842,6 +842,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.prices.propose.organisation,panel.prices.approve.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('panel-price-changes', [PanelPriceChangesController::class, 'index'])->name('panel-price-changes.index');
         Route::post('panel-price-changes', [PanelPriceChangesController::class, 'store'])->middleware('throttle:20,1')->name('panel-price-changes.store');
+        Route::post('panel-price-changes/approve-selected', [PanelPriceChangesController::class, 'approveSelected'])->middleware(['throttle:6,1', 'approvals.forget'])->name('panel-price-changes.approve-selected');
         Route::post('panel-price-changes/{proposal}/approve', [PanelPriceChangesController::class, 'approve'])->whereUuid('proposal')->middleware(['throttle:20,1', 'approvals.forget'])->name('panel-price-changes.approve');
         Route::post('panel-price-changes/{proposal}/reject', [PanelPriceChangesController::class, 'reject'])->whereUuid('proposal')->middleware(['throttle:20,1', 'approvals.forget'])->name('panel-price-changes.reject');
         Route::post('panel-price-changes/{proposal}/withdraw', [PanelPriceChangesController::class, 'withdraw'])->whereUuid('proposal')->middleware('throttle:20,1')->name('panel-price-changes.withdraw');
@@ -1499,6 +1500,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::get('visits/{visit}/queue/details', [QueueController::class, 'details'])
+            ->middleware(['permission:visits.triage.record.branch,queue.view.own', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.details');
+        Route::get('queue/red-zone-alerts', [QueueController::class, 'redZoneAlerts'])
+            ->middleware(['permission:queue.call.own,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.red-zone-alerts');
+        Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
+            ->middleware(['permission:queue.call.own', 'throttle:30,1'])
+            ->name('queue.take-red-zone');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.call-next.block');
