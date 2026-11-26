@@ -5,7 +5,9 @@ import test from 'node:test';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const squash = (value) => value.replace(/\s+/g, ' ');
-const board = squash(read('resources/js/components/patient-board/PatientBoard.vue'));
+const board = squash(
+    read('resources/js/components/patient-board/PatientBoard.vue'),
+);
 const registration = squash(read('resources/js/pages/Registration/Index.vue'));
 const show = squash(read('resources/js/pages/Dispensary/Show.vue'));
 const routes = read('routes/web.php');
@@ -16,7 +18,10 @@ test('an OTC row on the Registration board offers Dispense and posts to the disp
     assert.match(board, /\$emit\('dispense', row\)/);
     assert.match(board, />Dispense</);
     assert.match(registration, /@dispense="dispenseOtc"/);
-    assert.match(registration, /\/visits\/\$\{encodeURIComponent\(row\.visitNumber\)\}\/dispense/);
+    assert.match(
+        registration,
+        /\/visits\/\$\{encodeURIComponent\(row\.visitNumber\)\}\/dispense/,
+    );
 });
 
 test('the OTC Dispensary page records the patient allergy statement before Complete', () => {
@@ -30,12 +35,21 @@ test('the OTC Dispensary page records the patient allergy statement before Compl
 });
 
 test('the OTC page hides the doctor-only services panel', () => {
-    assert.match(show, /v-if="!isOtc"\s+class="rounded-xl border bg-card shadow-card"\s+data-testid="dispensary-services"/);
+    assert.match(
+        show,
+        /v-if="!isOtc"\s+class="rounded-xl border bg-card shadow-card"\s+data-testid="dispensary-services"/,
+    );
 });
 
 test('the OTC routes are permission-gated', () => {
-    assert.match(routes, /Route::post\('visits\/\{visit\}\/dispense'[\s\S]*?permission:dispensary\.otc\.create\.branch/);
-    assert.match(routes, /Route::post\('dispensary\/\{dispensaryCase\}\/otc-allergy'[\s\S]*?permission:dispensary\.update\.branch/);
+    assert.match(
+        routes,
+        /Route::post\('visits\/\{visit\}\/dispense'[\s\S]*?permission:dispensary\.otc\.create\.branch/,
+    );
+    assert.match(
+        routes,
+        /Route::post\('dispensary\/\{dispensaryCase\}\/otc-allergy'[\s\S]*?permission:dispensary\.update\.branch/,
+    );
 });
 
 test('an OTC row on the Registration board can be called to the dispensary on the TV', () => {

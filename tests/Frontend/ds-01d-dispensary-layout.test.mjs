@@ -12,7 +12,11 @@ const THREE_COLUMNS =
 
 test('Dispensary retains three regions and uses three columns from xl while Invoices keeps lg', () => {
     assert.ok(invoices.includes(THREE_COLUMNS));
-    assert.ok(page.includes('xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]'));
+    assert.ok(
+        page.includes(
+            'xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]',
+        ),
+    );
 
     for (const id of [
         'dispensary-left',
