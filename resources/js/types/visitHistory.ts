@@ -124,5 +124,7 @@ export type VisitHistoryPage = {
         backLabel: string;
         billing: string | null;
         consultation: string | null;
+        // BIL-37: the Resident Doctor's read-only bill of their own patient.
+        billView?: string | null;
     };
 };
