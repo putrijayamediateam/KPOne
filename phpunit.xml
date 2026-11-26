@@ -39,6 +39,7 @@
             <exclude>tests/Feature/HR/PostgresInterviewContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresDifferenceReportTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresPackConversionTest.php</exclude>
@@ -70,6 +71,7 @@
             <exclude>tests/Feature/PostgresVisitRegistrationRegressionTest.php</exclude>
             <exclude>tests/Feature/Queue/CallReadinessConcurrencyTest.php</exclude>
             <exclude>tests/Feature/Queue/PostgresVisitEditRaceTest.php</exclude>
+            <exclude>tests/Feature/Queue/PostgresRedZoneRaceTest.php</exclude>
             <exclude>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</exclude>
             <exclude>tests/Feature/Website/WebsiteOutputPlanTest.php</exclude>
             <exclude>tests/Feature/Website/WebsiteReleaseTest.php</exclude>
@@ -108,6 +110,7 @@
             <file>tests/Feature/HR/PostgresInterviewContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
+            <file>tests/Feature/Inventory/PostgresDifferenceReportTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
             <file>tests/Feature/Inventory/PostgresPackConversionTest.php</file>
@@ -139,6 +142,7 @@
             <file>tests/Feature/PostgresVisitRegistrationRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Queue/PostgresVisitEditRaceTest.php</file>
+            <file>tests/Feature/Queue/PostgresRedZoneRaceTest.php</file>
             <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
@@ -162,6 +166,7 @@
             <file>tests/Feature/HR/PostgresRecordsContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
+            <file>tests/Feature/Inventory/PostgresDifferenceReportTest.php</file>
             <file>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</file>
             <file>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</file>
             <file>tests/Feature/PostgresBillingRegressionTest.php</file>
@@ -213,6 +218,7 @@
             <file>tests/Feature/PostgresVisitReasonRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Queue/PostgresVisitEditRaceTest.php</file>
+            <file>tests/Feature/Queue/PostgresRedZoneRaceTest.php</file>
             <file>tests/Feature/Queue/PostgresAutoAssignRaceTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
             <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>

@@ -1,11 +1,12 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
+import type { FreeTimesProps } from '@/composables/hr/useFreeTimes';
 
 /**
  * The Open shifts page's state and actions (HR-15b) for `pages/HR/OpenShifts.vue`: every request, lock version and
  * idempotency key.
  */
-export type Tab = 'available' | 'mine' | 'open' | 'closed';
+export type Tab = 'available' | 'mine' | 'open' | 'free' | 'closed';
 export type Option = { value: string; label: string };
 export type Shift = {
     id: string;
@@ -56,6 +57,8 @@ export type OpenShiftsPageProps = {
         maxDaysAhead: number;
         today: string;
     };
+    // HR-22f: only on the Free times tab.
+    freeTimes?: FreeTimesProps | null;
 };
 
 export function useOpenShiftsPage(props: OpenShiftsPageProps) {
@@ -70,6 +73,7 @@ export function useOpenShiftsPage(props: OpenShiftsPageProps) {
         available: 'Open shifts',
         mine: 'My asks',
         open: 'Open',
+        free: 'Free times',
         closed: 'Filled and withdrawn',
     };
     const tabs = computed(() =>

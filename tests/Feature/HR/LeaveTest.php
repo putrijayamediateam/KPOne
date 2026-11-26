@@ -224,6 +224,23 @@ class LeaveTest extends VisitTestCase
         $this->assertSame(20, (int) DB::table('hr_leave_ledger')->sum('halves'));
     }
 
+    public function test_hr_still_decides_leave_a_locum_doctor_asked_for_before_hr_22b2(): void
+    {
+        // HR-22b2 (owner, 25 Nov 2026): a locum doctor no longer applies for or cancels leave, but HR still decides what
+        // they asked for earlier, with HR's own permission (Suresh, m3).
+        $hr = $this->actor('hr_manager');
+        $doctor = $this->actor('resident_doctor');
+        $type = $this->ready($hr, $doctor, 10);
+        $this->apply($doctor, ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08'])->assertSessionHasNoErrors();
+        $request = LeaveRequest::query()->sole();
+
+        $doctor->assignRole(PermissionCatalogue::LOCUM_ROLE);
+        $this->cancel($doctor->refresh(), $request)->assertForbidden();
+        $this->assertSame('pending', $request->refresh()->status);
+        $this->decide($hr, $request, 'approve')->assertSessionHasNoErrors();
+        $this->assertSame('approved', $request->refresh()->status);
+    }
+
     public function test_stale_versions_retries_and_reused_keys(): void
     {
         $hr = $this->actor('hr_manager');

@@ -29,7 +29,9 @@ class DiagnosisPresetSettingsController extends Controller
             throw $e->redirectTo(route('diagnosis-presets.index', $filters));
         }
 
-        return to_route('diagnosis-presets.index', $filters)->with('success', 'Diagnoses added.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Diagnoses added.']);
+
+        return to_route('diagnosis-presets.index', $filters);
     }
 
     public function rename(Request $request, int $preset, DiagnosisPresetSettingsService $service): RedirectResponse
