@@ -16,6 +16,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -43,8 +44,9 @@ final class ProcurementService
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
         $lines = $this->validateLines($attributes['lines'] ?? null);
+        $metadata = $this->deliveryMetadata($attributes);
 
-        return DB::transaction(function () use ($actor, $attributes, $branch, $lines): PurchaseOrder {
+        return DB::transaction(function () use ($actor, $attributes, $branch, $lines, $metadata): PurchaseOrder {
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
             [$supplier, $destination] = $this->lockSupplierAndLocation($lockedActor, (string) ($attributes['supplier_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertLocationAuthority($lockedActor, $branch, $destination);
@@ -55,9 +57,10 @@ final class ProcurementService
                 'supplier_id' => $supplier->id, 'destination_location_id' => $destination->id,
                 'order_number' => 'PO-'.now()->utc()->format('Ym').'-'.Str::upper(Str::random(8)),
                 'status' => PurchaseOrder::STATUS_DRAFT, 'lock_version' => 1, 'created_by_user_id' => $lockedActor->id,
+                ...$metadata,
             ])->save();
             $this->replaceDraftLines($order, $lines, $skus);
-            $this->audit->record('inventory.purchase_order.created', $order, ['order_number' => $order->order_number, 'line_count' => count($lines)], $lockedActor, $branch);
+            $this->audit->record('inventory.purchase_order.created', $order, ['order_number' => $order->order_number, 'line_count' => count($lines), 'delivery_metadata_fields' => array_keys($metadata)], $lockedActor, $branch);
 
             return $order->load('lines');
         }, 3);
@@ -68,21 +71,44 @@ final class ProcurementService
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
         $lines = $this->validateLines($attributes['lines'] ?? null);
+        $metadata = $this->deliveryMetadata($attributes);
 
-        return DB::transaction(function () use ($actor, $order, $attributes, $branch, $lines): PurchaseOrder {
+        return DB::transaction(function () use ($actor, $order, $attributes, $branch, $lines, $metadata): PurchaseOrder {
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
             $locked = $this->lockOrder($lockedActor, $order, $attributes);
             $this->requireStatus($locked, [PurchaseOrder::STATUS_DRAFT]);
             [$supplier, $destination] = $this->lockSupplierAndLocation($lockedActor, (string) ($attributes['supplier_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertLocationAuthority($lockedActor, $branch, $destination);
             $skus = $this->lockSkus($lockedActor, array_column($lines, 'sku_public_id'));
-            $locked->forceFill(['supplier_id' => $supplier->id, 'destination_location_id' => $destination->id, 'lock_version' => $locked->lock_version + 1])->save();
+            $locked->forceFill(['supplier_id' => $supplier->id, 'destination_location_id' => $destination->id, 'lock_version' => $locked->lock_version + 1, ...$metadata])->save();
             DB::table('inventory_purchase_order_lines')->where('purchase_order_id', $locked->id)->delete();
             $this->replaceDraftLines($locked, $lines, $skus);
-            $this->audit->record('inventory.purchase_order.draft_updated', $locked, ['line_count' => count($lines)], $lockedActor, $branch);
+            $this->audit->record('inventory.purchase_order.draft_updated', $locked, ['line_count' => count($lines), 'delivery_metadata_fields' => array_keys($metadata)], $lockedActor, $branch);
 
             return $locked->refresh()->load('lines');
         }, 3);
+    }
+
+    /** Optional draft metadata: omitted keys preserve old-client updates; explicit blank clears.
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, string|null>
+     */
+    private function deliveryMetadata(array $attributes): array
+    {
+        $input = array_intersect_key($attributes, array_flip(['expected_delivery_date', 'supplier_reference']));
+        // Validate scalar shape before trimming, including direct domain callers.
+        Validator::make($input, [
+            'expected_delivery_date' => ['sometimes', 'nullable', 'string'],
+            'supplier_reference' => ['sometimes', 'nullable', 'string'],
+        ])->validate();
+        foreach ($input as $key => $value) {
+            $input[$key] = $value === null || trim($value) === '' ? null : trim($value);
+        }
+
+        return Validator::make($input, [
+            'expected_delivery_date' => ['sometimes', 'nullable', 'date', 'date_format:Y-m-d'],
+            'supplier_reference' => ['sometimes', 'nullable', 'string', 'max:120', 'regex:/^[^\p{C}]+$/u'],
+        ])->validate();
     }
 
     /** @param array<string, mixed> $attributes */

@@ -48,7 +48,7 @@ final class PurchaseOrderPrintService
                 ->where('po.organisation_id', $locked->organisation_id)->where('po.public_id', $publicId)
                 // Warehouse orders (no branch) print for holders of the warehouse permission, as the Inventory panel lists them.
                 ->where(fn ($where) => $where->where('l.branch_id', $branch->id)->when($locked->can(ProcurementService::WAREHOUSE_PERMISSION), fn ($w) => $w->orWhereNull('l.branch_id')))
-                ->first(['po.id', 'po.public_id', 'po.order_number', 'po.status', 'po.created_at', 'po.approved_at', 'po.created_by_user_id', 'po.approved_by_user_id', 'po.supplier_id',
+                ->first(['po.id', 'po.public_id', 'po.order_number', 'po.status', 'po.created_at', 'po.approved_at', 'po.created_by_user_id', 'po.approved_by_user_id', 'po.supplier_id', 'po.expected_delivery_date', 'po.supplier_reference',
                     'l.name as location', 'l.branch_id as location_branch_id', 'sup.name as supplier', 'sup.contact_name', 'sup.business_phone', 'sup.business_email']);
             abort_unless($order !== null, 404);
             $cost = $locked->can(SupplierTermsService::COST_PERMISSION);
@@ -98,6 +98,7 @@ final class PurchaseOrderPrintService
                 'letterhead' => $letterhead,
                 'order' => [
                     'publicId' => $order->public_id, 'number' => $order->order_number, 'status' => $order->status, 'isOrder' => $isOrder,
+                    'expectedDeliveryDate' => $order->expected_delivery_date, 'supplierReference' => $order->supplier_reference,
                     'orderDate' => $local((string) $order->created_at, 'd/m/Y'), 'approvedAt' => $local($order->approved_at, 'd/m/Y'),
                     'preparedBy' => $names->get((int) $order->created_by_user_id, 'Staff member'), 'approvedBy' => $order->approved_by_user_id === null ? null : $names->get((int) $order->approved_by_user_id, 'Staff member'),
                     'supplier' => ['name' => $order->supplier, 'contact' => $order->contact_name, 'phone' => PrintedPhone::format($order->business_phone), 'email' => $order->business_email],

@@ -59,7 +59,7 @@ class InventoryOperationsController extends Controller
     public function createPurchaseOrder(Request $request, ProcurementService $service): RedirectResponse
     {
         try {
-            $service->create($request->user(), $request->only(['expected_branch_id', 'supplier_public_id', 'destination_location_public_id', 'lines']));
+            $service->create($request->user(), $request->only(['expected_branch_id', 'supplier_public_id', 'destination_location_public_id', 'lines', 'expected_delivery_date', 'supplier_reference']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }
@@ -70,7 +70,7 @@ class InventoryOperationsController extends Controller
     public function updatePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, ProcurementService $service): RedirectResponse
     {
         try {
-            $service->updateDraft($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'supplier_public_id', 'destination_location_public_id', 'lines']));
+            $service->updateDraft($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'supplier_public_id', 'destination_location_public_id', 'lines', 'expected_delivery_date', 'supplier_reference']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }

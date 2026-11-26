@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/presentation';
 import { trimQuantity } from '@/lib/supplier-terms';
 import type { PrintLetterhead } from '@/types/letterhead';
 
@@ -25,6 +26,8 @@ const props = defineProps<{
         number: string;
         status: string;
         isOrder: boolean;
+        expectedDeliveryDate?: string | null;
+        supplierReference?: string | null;
         orderDate: string | null;
         approvedAt: string | null;
         preparedBy: string | null;
@@ -198,6 +201,22 @@ const print = () => window.print();
                     <div>
                         <dt>Date</dt>
                         <dd>{{ order.orderDate }}</dd>
+                    </div>
+                    <div>
+                        <dt>Expected delivery date</dt>
+                        <dd>
+                            {{
+                                order.expectedDeliveryDate
+                                    ? formatDate(order.expectedDeliveryDate)
+                                    : 'Not specified'
+                            }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Supplier reference</dt>
+                        <dd class="break-words">
+                            {{ order.supplierReference ?? 'Not specified' }}
+                        </dd>
                     </div>
                     <div>
                         <dt>Status</dt>
