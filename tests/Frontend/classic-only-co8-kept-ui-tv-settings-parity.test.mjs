@@ -26,6 +26,7 @@ test('Classic TV settings calls exactly the queue display settings endpoints', (
         urls,
         [
             '/queue-display-settings',
+            '/queue-display-settings',
             '/queue-display-settings/branches/${props.branch.id}',
             '/queue-display-settings/branches/${props.branch.id}/posters',
             '/queue-display-settings/branches/${props.branch.id}/posters/${posterId}/remove',

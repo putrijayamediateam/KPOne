@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import QueueCallsToday from '@/components/queue/QueueCallsToday.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
+import type { QueueCallStats } from '@/lib/queue-call-stats';
 import type { DisplaySettings } from '@/lib/queue-display';
 
 type RoomKind = 'consultation' | 'dispensary' | 'treatment';
@@ -23,6 +25,7 @@ const props = defineProps<{
     branch: { id: number; name: string };
     rooms: RoomRow[];
     settings: DisplaySettings;
+    callsToday: QueueCallStats;
     youtubeUrl: string | null;
     maxPosters: number;
     screenUrl: string;
@@ -34,7 +37,77 @@ const kindLabels: Record<RoomKind, string> = {
     treatment: 'Treatment room',
 };
 
+const callsBusy = ref(false);
+const callsError = ref('');
+let callsGeneration = 0;
+let callsDisposed = false;
+let cancelCalls: (() => void) | undefined;
+const cancelCallsPage = () => {
+    callsGeneration++;
+    cancelCalls?.();
+    cancelCalls = undefined;
+    callsBusy.value = false;
+    callsError.value = '';
+};
+const loadCallsPage = (page: number) => {
+    if (
+        callsDisposed ||
+        callsBusy.value ||
+        roomForm.processing ||
+        editForm.processing ||
+        settingsForm.processing ||
+        posterForm.processing
+    ) {
+        return;
+    }
+
+    const generation = ++callsGeneration;
+    callsBusy.value = true;
+    callsError.value = '';
+    const failed = () => {
+        if (generation === callsGeneration) {
+            callsError.value =
+                'Calls today could not be refreshed. The last loaded counts remain visible. Try the page again.';
+        }
+
+        return false;
+    };
+    router.get(
+        '/queue-display-settings',
+        { branch: props.branch.id, rooms_page: page },
+        {
+            only: ['callsToday'],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onCancelToken: (token) => {
+                if (callsDisposed || generation !== callsGeneration) {
+                    token.cancel();
+                } else {
+                    cancelCalls = () => token.cancel();
+                }
+            },
+            onError: failed,
+            onNetworkError: failed,
+            onHttpException: failed,
+            onCancel: failed,
+            onFinish: () => {
+                if (generation === callsGeneration) {
+                    callsBusy.value = false;
+                    cancelCalls = undefined;
+                }
+            },
+        },
+    );
+};
+watch(() => props.branch.id, cancelCallsPage);
+onBeforeUnmount(() => {
+    callsDisposed = true;
+    cancelCallsPage();
+});
+
 const selectBranch = (event: Event) => {
+    cancelCallsPage();
     router.get(
         '/queue-display-settings',
         { branch: (event.target as HTMLSelectElement).value },
@@ -202,6 +275,21 @@ const removePoster = (posterId: string) => {
                 >
             </div>
         </section>
+
+        <QueueCallsToday
+            :key="branch.id"
+            :branch-name="branch.name"
+            :stats="callsToday"
+            :busy="
+                callsBusy ||
+                roomForm.processing ||
+                editForm.processing ||
+                settingsForm.processing ||
+                posterForm.processing
+            "
+            :error="callsError"
+            @page="loadCallsPage"
+        />
 
         <section class="rounded-xl border bg-card p-4">
             <h2 class="text-sm font-semibold">Rooms</h2>
