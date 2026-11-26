@@ -132,6 +132,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
 | DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
 | STK-46 service/schema | Owner-approved hand-cost evidence/grants, immutable history guards, encrypted note, two-person decision, actor-bound retries and fail-closed audit. Same-DB rebuild twice,52 focused tests/1206assertions and3 real-process races / 58 assertions pass. WAC/report/UI follow; no existing assertions changed. | Local continuation,26 Nov |
+| STK-46 entry/check UI | Dedicated permission-gated cost-evidence page, exact RM/per-unit entry, independent accept/reject, immutable replacement history and original-basis labels. Owner approved only the three exact navigation assertion updates. Focused backend and full frontend checks plus synthetic browser flows pass; coordinator integration remains separate. | Local continuation,26 Nov |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -370,6 +371,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     both with no-op downs preserving history, guards and grants. The owner subsequently approved the exact one-line
     `CREATE FUNCTION` → `CREATE OR REPLACE FUNCTION guard_inventory_hand_cost()` rebuild fix. No existing assertion
     changes are approved or made for this service/schema slice. Replay/report/UI integration follows independent review.
+
+54. STK-46 UI (owner, 26 Nov 2026, relayed by B.E.R.N.I.S.S): approved exactly the two DD12 existing assertion changes: Costs to fill in immediately before Stock value in both grouped menus, and the Reports and checks count adds the canFillCosts-gated link. No permission or schema change. The owner subsequently approved the exact Classic common-link exclusion for /inventory/hand-costs=Costs to fill in, keeping 16 common links, with a new positive permission-guard assertion. No other existing assertion changes.
 
 ## 7. Open items and known limits
 

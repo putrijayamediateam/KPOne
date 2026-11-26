@@ -19,6 +19,7 @@ not any stored figure.
     using the lot's actual total when one is entered (STK-10B), otherwise unit cost × quantity;
   - a cost taken from a purchase order's estimate is used but marked "(estimate)" until that stock is gone;
   - opening stock enters at its entered unit cost;
+  - STK-46 (owner-approved 26 Nov): a missing or estimated receipt or opening cost may be replaced by a hand-typed total, checked by a second person; historical figures replay from the original entry and show Changed on provenance;
   - dispensing, treatment use and waste, write-offs, supplier returns, counts and adjustments out leave at the average;
   - a transfer leaves the sending branch at its average and arrives at that same cost;
   - stock that comes back without a purchase (patient returns, count gains, adjustments in) enters at the branch's

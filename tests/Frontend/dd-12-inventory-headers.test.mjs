@@ -26,6 +26,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
     // DD-75: the same 16 links, grouped, once for lg and once for the phone disclosures, in the same order; Stock value
     // (Director only) closes Reports and checks in both, as in the new layout (owner decision 2026-11-19).
     // STK-44 (owner-approved assertion change): Medicine sales (Director and Finance Officer) follows Stock value.
+    // STK-46 (owner-approved 26 Nov): Costs to fill in precedes Stock value in both layouts.
     const grouped = [
         '/inventory/counts',
         '/inventory/writeoffs',
@@ -43,6 +44,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/stock-review',
         '/inventory/stock-health',
         '/inventory/readiness',
+        '/inventory/hand-costs',
         '/inventory/stock-value',
         '/inventory/medicine-sales',
     ];
@@ -68,10 +70,10 @@ test('DD-75: both link layouts show the controlled register only to its viewers,
     );
     assert.match(page, /Orders and suppliers · 7/);
     assert.match(page, /Reports and checks ·\s+\{\{ reportsCount \}\}/);
-    // STK-44 (owner-approved assertion change): the count adds the Medicine sales link for its holders.
+    // STK-44: Medicine sales; STK-46 (owner-approved 26 Nov): add Costs to fill in only for its holders.
     assert.match(
         read('resources/js/pages/Inventory/Index.vue'),
-        /const reportsCount = computed\(\s*\(\) =>\s*3 \+\s*\(props\.referenceData\.canViewStockValue \? 1 : 0\) \+\s*\(props\.referenceData\.canViewMedicineSales \? 1 : 0\),\s*\);/,
+        /const reportsCount = computed\(\s*\(\) =>\s*3 \+\s*\(props\.referenceData\.canViewStockValue \? 1 : 0\) \+\s*\(props\.referenceData\.canFillCosts \? 1 : 0\) \+\s*\(props\.referenceData\.canViewMedicineSales \? 1 : 0\),\s*\);/,
     );
     assert.equal(
         [
