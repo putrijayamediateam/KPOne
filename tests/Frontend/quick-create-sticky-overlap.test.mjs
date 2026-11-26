@@ -14,14 +14,15 @@ test('small-screen sticky action occupies its own row before visit fields; deskt
         assert.ok(form.includes(token), `small-screen normal-flow row: ${token}`);
     }
 
-    const card = template.match(/<div\s+class="sticky bottom-3 z-10[^"]*"/);
-    assert.ok(card, 'desktop retains the existing sticky bottom card');
+    const card = template.match(/<div\s+class="sticky z-10[^"]*"\s+:class="([\s\S]*?)"/);
+    assert.ok(card, 'shared sticky card retains explicit fullpage and dialog placement');
+    assert.match(card[1], /presentation === 'dialog'\s*\? 'bottom-0'\s*: 'bottom-3/);
 
     for (const token of ['max-lg:order-first', 'max-lg:top-16', 'max-lg:bottom-auto']) {
         assert.ok(card[0].includes(token), `small-screen action row: ${token}`);
     }
 
     assert.match(form, /@submit\.prevent="submit"/);
-    assert.match(template, /class="sticky bottom-3 z-10[^"\n]*p-3[^"\n]*"/);
+    assert.match(template, /class="sticky z-10[^"\n]*p-3[^"\n]*"/);
     assert.match(template, /type="submit"\s+size="lg"/);
 });

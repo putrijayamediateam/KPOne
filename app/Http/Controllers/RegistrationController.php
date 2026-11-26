@@ -42,16 +42,22 @@ class RegistrationController extends Controller
         return response()->json($directory->search($request->user(), $request->validated()));
     }
 
-    public function create(Request $request, VisitDirectoryService $directory): Response
+    public function create(Request $request, VisitDirectoryService $directory): Response|JsonResponse
     {
         $this->authorize('create', Visit::class);
 
-        return Inertia::render('Registration/Create', [
+        $props = [
             'guardianToday' => app(PatientGuardianService::class)->today($request->user()),
             'options' => $directory->formOptions($request->user()),
             'requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id),
             'recentPatients' => $directory->recentPatients($request->user()),
-        ]);
+        ];
+
+        if ($request->wantsJson() && ! $request->header('X-Inertia')) {
+            return response()->json($props)->header('Cache-Control', 'private, no-store');
+        }
+
+        return Inertia::render('Registration/Create', $props);
     }
 
     /**
