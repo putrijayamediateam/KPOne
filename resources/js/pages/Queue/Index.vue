@@ -18,7 +18,6 @@ import VisitCancellationDialog from '@/components/patient-board/VisitCancellatio
 import CallNextControl from '@/components/queue/CallNextControl.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
-import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
@@ -746,15 +745,6 @@ onBeforeUnmount(() => {
                 ><Link href="/treatment-room">Treatment room</Link></Button
             >
         </div>
-        <RedZoneAlertBanner
-            v-if="
-                page.props.auth.permissions.includes('queue.call.own') ||
-                page.props.auth.permissions.includes(
-                    'visits.triage.record.branch',
-                )
-            "
-            :branch-id="live.branch.id"
-        />
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"

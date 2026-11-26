@@ -16,6 +16,7 @@ const CLASSIC_CLINIC =
             :class="focusMode ? '' : 'lg:pl-[var(--shell-offset,72px)]'"
             :role="role"
         >
+            <EmergencyAlertHost />
             <slot />
         </div>`);
 const CLASSIC_ADMIN = squash(`<WorkspaceRail context="admin" />
@@ -25,6 +26,7 @@ const CLASSIC_ADMIN = squash(`<WorkspaceRail context="admin" />
             class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col lg:pl-[var(--shell-offset,72px)]"
             :role="role"
         >
+            <EmergencyAlertHost />
             <slot />
         </div>`);
 

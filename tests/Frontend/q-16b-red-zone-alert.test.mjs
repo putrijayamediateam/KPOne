@@ -2,56 +2,63 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const banner = readFileSync(
-    'resources/js/components/queue/RedZoneAlertBanner.vue',
-    'utf8',
-);
-const queue = readFileSync('resources/js/pages/Queue/Index.vue', 'utf8');
-const clinical = readFileSync('resources/js/pages/Clinical/Show.vue', 'utf8');
+const read = (path) => readFileSync(path, 'utf8');
+const banner = read('resources/js/components/queue/RedZoneAlertBanner.vue');
+const controller = read('resources/js/composables/useEmergencyAlerts.ts');
+const host = read('resources/js/components/queue/EmergencyAlertHost.vue');
+const queue = read('resources/js/pages/Queue/Index.vue');
+const clinical = read('resources/js/pages/Clinical/Show.vue');
+const layouts = [
+    'ClinicLayout.vue',
+    'AdminLayout.vue',
+    'app/AppSidebarLayout.vue',
+    'app/AppHeaderLayout.vue',
+].map((path) => read(`resources/js/layouts/${path}`));
 
-test('the red-zone banner polls its own endpoint, shows only number and minutes, and never calls the patient (Q-16b)', () => {
-    assert.match(banner, /\/queue\/red-zone-alerts\?expected_branch_id=/);
+test('the shared emergency alert retains narrow endpoints, number-only privacy and never calls the patient (Q-16b/TRI2)', () => {
+    assert.match(controller, /\/queue\/red-zone-alerts\?expected_branch_id=/);
     assert.match(
-        banner,
-        /\/visits\/\$\{alert\.visitNumber\}\/queue\/take-red-zone/,
+        controller,
+        /\/visits\/\$\{[^}]*visitNumber[^}]*\}\/queue\/take-red-zone/,
     );
-    assert.match(banner, /document\.visibilityState === 'hidden'/);
-    assert.match(banner, /10_000/);
-    assert.match(banner, /I'll take it/);
-    // Nothing identifying is read or drawn.
-    assert.doesNotMatch(banner, /patientName|fullName|reason|zone:/i);
-    assert.doesNotMatch(banner, /queue\/call|call-next/);
-    // Minimise and Show alert are browser state only.
-    assert.match(banner, /Minimise/);
-    assert.match(banner, /Show alert/);
+    assert.match(controller, /document\.visibilityState === 'hidden'/);
+    assert.match(controller, /5_000/);
+    assert.match(banner, /I'll see this patient/);
+    assert.doesNotMatch(
+        banner + controller,
+        /patientName|fullName|reason|zone:/i,
+    );
+    assert.doesNotMatch(banner + controller, /queue\/call|call-next/);
 });
 
-test('the banner sits on the Queue board and the consultation page, the latter only for who may take or record', () => {
-    assert.match(queue, /<RedZoneAlertBanner/);
-    assert.match(queue, /:branch-id="live\.branch\.id"/);
-    assert.match(clinical, /<RedZoneAlertBanner/);
-    assert.match(clinical, /queue\.call\.own/);
-    assert.match(clinical, /visits\.triage\.record\.branch/);
+test('one shared host covers main and focus layouts with emergency authority or narrow recorder read access', () => {
+    for (const layout of layouts) {
+        assert.equal((layout.match(/<EmergencyAlertHost/g) ?? []).length, 1);
+    }
+
+    assert.doesNotMatch(queue + clinical, /<RedZoneAlertBanner/);
+    assert.match(host, /branchContext/);
+    assert.match(host, /queue\.emergency\.respond\.branch/);
+    assert.match(host, /visits\.triage\.record\.branch/);
+    assert.match(host, /<RedZoneAlertBanner/);
 });
 
-test('a failed take shows its reason, a take from a consultation stays there, and the board gates the poll (Q-16b review)', () => {
-    assert.match(banner, /onError:[\s\S]{0,120}toast\.error/);
-    assert.match(banner, /from: 'consultation', from_visit: props\.fromVisit/);
+test('failed takes remain visible and retain the validated original consultation return (Q-16b review)', () => {
+    assert.match(controller, /onError:/);
     assert.match(banner, /role="status"/);
-    assert.match(
-        banner,
-        /aria-label="`I'll take \$\{alert\.queueNumber\}`"|:aria-label="`I'll take/,
-    );
-    assert.match(clinical, /:from-visit="clinical\.visit\.visitNumber"/);
-    assert.match(
-        queue,
-        /RedZoneAlertBanner[\s\S]{0,260}queue\.call\.own[\s\S]{0,160}visits\.triage\.record\.branch/,
-    );
+    assert.match(banner, /role="alert"/);
+    assert.match(banner, /aria-label=.*I'll see/);
+    assert.match(controller, /from: 'consultation', from_visit:/);
+    assert.match(clinical, /useEmergencyHoldBridge/);
+    assert.match(banner, /Live alerts paused/);
 });
 
-test('a minimised red alert stays as one line until all are taken and reopens for a new red case (Daniel)', () => {
-    assert.match(banner, /const known = new Set<string>\(\)/);
-    assert.match(banner, /minimised\.value = false/);
-    assert.match(banner, /minimised\.value && open\.value\.length === 0/);
-    assert.match(banner, /Red zone waiting: \{\{ open\.length \}\} not taken/);
+test('emergency state is restored by polling, with separate sound clock and bounded device mute', () => {
+    assert.match(controller, /10_000/);
+    assert.match(controller, /120_000/);
+    assert.match(controller, /localStorage/);
+    assert.match(controller, /AbortController/);
+    assert.match(banner, /Seen, not taking/);
+    assert.match(banner, /Sound is off on this device/);
+    assert.doesNotMatch(banner, /Minimise|Show alert/);
 });
