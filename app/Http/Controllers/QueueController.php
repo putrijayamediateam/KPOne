@@ -181,7 +181,7 @@ class QueueController extends Controller
     {
         $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1'], 'from' => ['sometimes', 'string', 'max:20'], 'from_visit' => ['sometimes', 'string', 'max:40']]);
         try {
-            $alerts->take($request->user(), $visit, (int) $validated['expected_branch_id']);
+            $alerts->take($request->user(), $visit, (int) $validated['expected_branch_id'], $request->only(['episode_id', 'lock_version', 'idempotency_key']));
         } catch (ValidationException $exception) {
             // A doctor who took it from an open consultation stays on that consultation (never lose unsaved work).
             throw $exception->redirectTo($this->callNextRefusalTarget($request));

@@ -10,6 +10,7 @@ use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Emergency\EmergencyAlertService;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\OtcQueueService;
@@ -209,6 +210,7 @@ class VisitAdministrationService
                     'updated_by_user_id' => $actor->id,
                     'lock_version' => $queueEntry->lock_version + 1,
                 ])->save();
+                app(EmergencyAlertService::class)->closeLocked($queueEntry, 'visit_cancelled');
                 $this->audit->record('queue.removed', $queueEntry, [
                     'from_state' => QueueEntry::STATUS_WAITING,
                     'to_state' => QueueEntry::STATUS_REMOVED,

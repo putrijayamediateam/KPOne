@@ -7,6 +7,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Services\ConsultationLocks;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Emergency\EmergencyAlertService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitAdministrationService;
@@ -154,6 +155,8 @@ class TriageService
                 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash,
             ])->save();
+
+            app(EmergencyAlertService::class)->triageLocked($actor, $lockedVisit, $queue, $row);
 
             $raised = false;
             if (in_array($chosen, ['yellow', 'red'], true) && $lockedVisit->priority !== 'urgent' && $queue->status === QueueEntry::STATUS_WAITING) {

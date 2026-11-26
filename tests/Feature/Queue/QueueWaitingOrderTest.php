@@ -99,13 +99,13 @@ class QueueWaitingOrderTest extends TriageTestCase
         $this->assertSame($urgent->visit_number, $this->next($doctor));
     }
 
-    public function test_a_red_carry_over_still_waits_behind_todays_patients_and_the_board_agrees(): void
+    public function test_emergency_red_carry_over_precedes_todays_non_red_patients(): void
     {
         [$ca, $doctor] = $this->people();
         $carry = $this->waiting($ca, $doctor, '2026-08-24 01:00:00 UTC', [], 'red');
         $today = $this->waiting($ca, $doctor, '2026-08-25 01:00:00 UTC', [], 'green');
 
-        $this->assertSame($today->visit_number, $this->next($doctor));
+        $this->assertSame($carry->visit_number, $this->next($doctor));
         $today->queueEntry->forceFill(['status' => QueueEntry::STATUS_REMOVED, 'removed_at' => now()->utc(), 'removal_reason' => 'cancelled'])->save();
         $this->assertSame($carry->visit_number, $this->next($doctor));
     }
@@ -113,7 +113,7 @@ class QueueWaitingOrderTest extends TriageTestCase
     public function test_a_flagged_red_is_still_skipped_by_call_next(): void
     {
         [$ca, $doctor] = $this->people();
-        $red = $this->waiting($ca, $doctor, '2026-08-25 01:00:00 UTC', [], 'red');
+        $red = $this->waiting($ca, $doctor, '2026-08-25 01:00:00 UTC', [], 'green');
         $green = $this->waiting($ca, $doctor, '2026-08-25 01:01:00 UTC', [], 'green');
         $this->selectBranch($ca);
         $this->actingAs($ca)->post(route('queue.readiness.set', $red->visit_number), [
@@ -122,6 +122,8 @@ class QueueWaitingOrderTest extends TriageTestCase
             'reason_code' => 'other_administrative',
             'idempotency_key' => (string) Str::uuid(),
         ])->assertRedirect();
+
+        $this->triage($ca, $red->refresh(), ['chosen_zone' => 'red']);
 
         $this->assertSame($green->visit_number, $this->next($doctor));
         $this->assertSame(CallNextService::STATE_READY, $this->actingAs($doctor)->postJson(route('queue.search'), [])->json('callNext.state'));

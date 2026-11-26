@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
  * Q-16a: the one order in which Waiting consultation patients are listed and called.
  *
  * Owner decision (25 Nov 2026): red zone first, then yellow, then everyone else (green, no triage, or no guideline); inside
- * each zone Urgent first, then arrival. A patient from an earlier day still waits behind today's patients (the Call next
+ * each zone Urgent first, then arrival. Red emergencies precede non-red patients across operational dates (the Call next
  * rule), and carry-over keeps its operational date before arrival.
  *
  * The zone is the latest triage assessment of the visit. It decides ORDER only: no zone ever reaches a viewer through this
@@ -30,6 +30,10 @@ final class QueueWaitingOrder
      */
     public static function apply(Builder $query, string $today, bool $todayFirst = false, bool $byDate = false): Builder
     {
+        // TRI-2: emergency carry-over precedes today's non-red entries; public projections do not use this helper.
+        $query->orderByRaw('CASE WHEN ('.self::ZONE_RANK.') = 0 THEN 0 ELSE 1 END');
+        $query->orderByRaw('CASE WHEN ('.self::ZONE_RANK.') = 0 THEN CASE WHEN EXISTS (SELECT 1 FROM queue_emergency_alerts a WHERE a.queue_entry_id=queue_entries.id AND a.closed_at IS NULL) THEN 1 ELSE 0 END ELSE 2 END');
+        $query->orderByRaw('CASE WHEN ('.self::ZONE_RANK.') = 0 THEN COALESCE((SELECT a.raised_at FROM queue_emergency_alerts a WHERE a.queue_entry_id=queue_entries.id AND a.closed_at IS NULL), queue_entries.queued_at) END');
         if ($todayFirst) {
             $query->orderByRaw('CASE WHEN queue_entries.operational_date = ? THEN 0 ELSE 1 END', [$today]);
         }
