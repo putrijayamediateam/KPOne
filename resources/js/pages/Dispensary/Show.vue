@@ -12,6 +12,7 @@ import {
     ScanLine,
     Trash2,
     TriangleAlert,
+    UserRound,
 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
@@ -1475,27 +1476,61 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-patient"
                 >
-                    <p class="text-[13px] font-medium text-muted-foreground">
-                        Patient
-                    </p>
-                    <h2 class="text-base font-semibold break-words">
-                        {{ dispensary.patient.name }}
-                    </h2>
-                    <dl
-                        class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs"
-                    >
-                        <dt class="text-muted-foreground">KP number</dt>
-                        <dd>{{ dispensary.patient.patientNumber }}</dd>
-                        <dt class="text-muted-foreground">Visit</dt>
-                        <dd>{{ dispensary.visit.visitNumber }}</dd>
-                        <dt class="text-muted-foreground">Doctor</dt>
-                        <dd>
-                            {{
-                                isOtc
-                                    ? 'OTC · no doctor'
-                                    : (dispensary.doctor ?? 'No doctor')
-                            }}
-                        </dd>
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex size-11 shrink-0 items-center justify-center rounded-full bg-card-quiet text-muted-foreground"
+                            aria-hidden="true"
+                        >
+                            <UserRound class="size-5" />
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Patient
+                            </p>
+                            <h2 class="text-base font-semibold break-words">
+                                {{ dispensary.patient.name }}
+                            </h2>
+                            <dl class="mt-1 text-[13px]">
+                                <dt class="sr-only">KP number</dt>
+                                <dd
+                                    class="font-mono break-words text-muted-foreground"
+                                >
+                                    {{ dispensary.patient.patientNumber }}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <dl class="mt-3 divide-y text-[13px]">
+                        <div
+                            class="flex min-h-9 items-start justify-between gap-3 py-2"
+                        >
+                            <dt class="shrink-0 text-muted-foreground">
+                                Visit
+                            </dt>
+                            <dd
+                                class="min-w-0 text-right font-medium break-words"
+                            >
+                                {{ dispensary.visit.visitNumber }}
+                            </dd>
+                        </div>
+                        <div
+                            class="flex min-h-9 items-start justify-between gap-3 py-2"
+                        >
+                            <dt class="shrink-0 text-muted-foreground">
+                                Doctor
+                            </dt>
+                            <dd
+                                class="min-w-0 text-right font-medium break-words"
+                            >
+                                {{
+                                    isOtc
+                                        ? 'OTC · no doctor'
+                                        : (dispensary.doctor ?? 'No doctor')
+                                }}
+                            </dd>
+                        </div>
                     </dl>
                 </section>
                 <div
@@ -2924,10 +2959,10 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-summary"
                 >
-                    <h2 class="mb-3 text-[15px] font-medium">
-                        This dispensary
-                    </h2>
-                    <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
+                    <h2 class="mb-1 text-[15px] font-medium">Summary</h2>
+                    <dl
+                        class="case-summary grid grid-cols-[minmax(0,1fr)_auto] text-[13px]"
+                    >
                         <dt class="text-muted-foreground">Medicines</dt>
                         <dd>{{ visibleItems.length }}</dd>
                         <template v-if="!isOtc">
@@ -3105,3 +3140,30 @@ const exceptionStatusLabels: Record<string, string> = {
         </div>
     </main>
 </template>
+
+<style scoped>
+.case-summary > dt,
+.case-summary > dd {
+    display: flex;
+    min-height: 2.5rem;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-block: 0.5rem;
+}
+
+.case-summary > dt {
+    padding-right: 0.75rem;
+}
+
+.case-summary > dd {
+    justify-content: flex-end;
+    text-align: right;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.case-summary > dt:last-of-type,
+.case-summary > dd:last-of-type {
+    border-bottom: 0;
+}
+</style>
