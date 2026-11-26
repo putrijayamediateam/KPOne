@@ -10,7 +10,7 @@ const classic = read('resources/js/pages/Billing/Invoice.vue');
 test('Classic invoice page takes the invoice prop', () => {
     assert.match(
         classic,
-        /defineProps<\{ invoice: CompletedInvoicePage \}>\(\)/,
+        /defineProps<\{\s*invoice: CompletedInvoicePage;\s*treatmentRoomUrl\?: string \| null;\s*\}>\(\)/,
     );
 });
 

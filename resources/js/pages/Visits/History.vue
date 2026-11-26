@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
@@ -13,7 +14,10 @@ defineOptions({
     layout: { breadcrumbs: [{ title: 'Registration', href: '/registration' }] },
 });
 
-const props = defineProps<{ history: VisitHistoryPage }>();
+const props = defineProps<{
+    history: VisitHistoryPage;
+    treatmentRoomUrl?: string | null;
+}>();
 
 const page = usePage();
 const tab = ref('all');
@@ -553,6 +557,11 @@ const totals = computed(() => {
                         </li>
                     </ul>
                 </div>
+
+                <TreatmentRoomReadPanel
+                    v-if="treatmentRoomUrl && show('services')"
+                    :url="treatmentRoomUrl"
+                />
 
                 <div v-if="show('documents')" data-testid="history-documents">
                     <h2 class="mb-2 text-sm font-semibold">Documents</h2>

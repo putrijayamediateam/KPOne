@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Search } from '@lucide/vue';
 import {
     computed,
@@ -734,6 +734,18 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Consultation queue</h1>
+        <div
+            v-if="
+                page.props.auth.permissions.includes(
+                    'treatment_room.view.branch',
+                )
+            "
+            class="flex justify-end"
+        >
+            <Button variant="outline" class="h-9 max-lg:h-11" as-child
+                ><Link href="/treatment-room">Treatment room</Link></Button
+            >
+        </div>
         <RedZoneAlertBanner
             v-if="
                 page.props.auth.permissions.includes('queue.call.own') ||
