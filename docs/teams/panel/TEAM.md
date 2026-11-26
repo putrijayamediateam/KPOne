@@ -337,3 +337,7 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
 17. **PNL-18 Statement near matches. (Built 2026-11-06, PR #363.)** Suggest only; never a digit typo.
 15. **PNL-19 Second clinic phone on the claim pack. (Built 2026-11-06, PR #367.)** "Tel: A / B" on both letterheads, through `PrintedPhone`.
 18. **PNL-20 Near-match cut note and pack type tidy. (Built 2026-11-10, PR #421.)** One quiet line when only the oldest 500 open claims were compared; the local letterhead widening is gone.
+
+### Continuation 26 November 2026: dedicated Queried read view
+
+Under the owner's delegated technical continuation authority, Billing/Panel adds a dedicated Queried filter to the existing branch claims directory after independent Staff Design plan review. It selects the existing `queried` state, with current search/date filters and full matching count before pagination. Submitted retains its prepared/submitted/queried umbrella; Rejected is not renamed. Existing amounts, summaries, claim history/actions, permissions and financial transitions are unchanged. Directory dates remain claim-created dates, not payment dates. The demo's Paid and Waiting-payment projections and all-branch totals remain separate unresolved mapping work; no whole-demo parity claim. Follow-up excludes Prepared claims with no submission history under the complete existing predicate, superseding any earlier OPEN-only reading of the historical notes. Validation evidence is recorded in the continuation packet after gates; no production activation.
