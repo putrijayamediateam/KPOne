@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardList, Stethoscope } from '@lucide/vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { formatDateTime } from '@/lib/presentation';
 import type { ClinicalHistoryDetailPage } from '@/types';
@@ -10,7 +11,9 @@ defineOptions({
 });
 
 const { historical } = defineProps<{
-    historical: ClinicalHistoryDetailPage;
+    historical: ClinicalHistoryDetailPage & {
+        treatmentRoomUrl?: string | null;
+    };
 }>();
 
 const display = (value: number | string | null, suffix = '') =>
@@ -217,5 +220,9 @@ const display = (value: number | string | null, suffix = '') =>
                 No diagnosis recorded for this Encounter.
             </p>
         </section>
+        <TreatmentRoomReadPanel
+            v-if="historical.treatmentRoomUrl"
+            :url="historical.treatmentRoomUrl"
+        />
     </main>
 </template>

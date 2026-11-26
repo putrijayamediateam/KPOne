@@ -248,6 +248,7 @@ class QueueDirectoryTest extends QueueTestCase
         $assignmentQueries = collect(DB::getQueryLog())
             ->filter(fn (array $query): bool => str_contains(strtolower($query['query']), 'staff_branch_assignments'));
 
-        $this->assertLessThanOrEqual(2, $assignmentQueries->count());
+        // TRI-2b adds one independent emergency-lane branch authority check, never one per row.
+        $this->assertLessThanOrEqual(3, $assignmentQueries->count());
     }
 }

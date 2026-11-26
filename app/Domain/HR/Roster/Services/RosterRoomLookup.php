@@ -83,6 +83,55 @@ final class RosterRoomLookup
         return $room === null ? null : ['roomId' => (int) $room, 'shiftStartedAt' => $shift->starts_at->utc()];
     }
 
+    /**
+     * Batch equivalent of roomFor for a bounded Queue doctor page. Same shift/leave/tie rules.
+     *
+     * @param  list<int>  $doctorIds
+     * @return array<int, array{roomId: int, shiftStartedAt: CarbonImmutable}>
+     */
+    public function roomsFor(array $doctorIds, Branch $branch, CarbonInterface $at): array
+    {
+        if ($doctorIds === []) {
+            return [];
+        }
+        $at = CarbonImmutable::instance($at)->utc();
+        $dayStart = $at->setTimezone($branch->timezone)->startOfDay()->utc();
+        $dayEnd = $at->setTimezone($branch->timezone)->startOfDay()->addDay()->utc();
+        $shifts = RosterShift::query()
+            ->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('staff_user_id', $doctorIds)
+            ->whereIn('roster_version_id', RosterVersion::query()->select('id')
+                ->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->where('status', 'approved'))
+            ->where('starts_at', '<', $dayEnd)->where('ends_at', '>', $dayStart)
+            ->where('session_type', '<>', RosterRules::ON_CALL)
+            ->orderBy('starts_at')->orderBy('id')
+            ->get(['id', 'staff_user_id', 'starts_at', 'ends_at', 'branch_room_id']);
+        if ($shifts->isEmpty()) {
+            return [];
+        }
+        $leave = $this->leave->overlapping($doctorIds, CarbonImmutable::instance($shifts->min('starts_at'))->utc(), CarbonImmutable::instance($shifts->max('ends_at'))->utc());
+        $zones = Branch::query()->whereIn('id', $leave->pluck('branch_id')->unique())->pluck('timezone', 'id');
+        $slots = $leave->groupBy('user_id')->map(fn ($requests) => $requests->map(fn ($request) => $this->leave->utcSlots($request, (string) ($zones[$request->branch_id] ?? 'UTC'))));
+        $validRooms = BranchRoom::query()->whereIn('id', $shifts->pluck('branch_room_id')->filter()->unique())
+            ->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->where('kind', BranchRoom::KIND_CONSULTATION)->where('is_active', true)->pluck('id')->flip();
+        $result = [];
+        foreach ($shifts->groupBy('staff_user_id') as $doctorId => $doctorShifts) {
+            $doctorSlots = $slots->get($doctorId, collect());
+            $available = $doctorShifts->reject(fn (RosterShift $shift): bool => $doctorSlots->contains(fn (array $slot): bool => $slot[0]->lessThan($shift->ends_at) && $slot[1]->greaterThan($shift->starts_at)))->values();
+            $covering = $available->filter(fn (RosterShift $shift): bool => $shift->starts_at->lessThanOrEqualTo($at) && $shift->ends_at->greaterThan($at))->last();
+            $shift = $covering ?? $available->sortBy([
+                fn (RosterShift $a, RosterShift $b): int => $this->distance($a, $at) <=> $this->distance($b, $at),
+                fn (RosterShift $a, RosterShift $b): int => $b->starts_at->getTimestamp() <=> $a->starts_at->getTimestamp(),
+            ])->first();
+            if ($shift !== null && $shift->branch_room_id !== null && $validRooms->has($shift->branch_room_id)) {
+                $result[(int) $doctorId] = ['roomId' => (int) $shift->branch_room_id, 'shiftStartedAt' => $shift->starts_at->utc()];
+            }
+        }
+
+        return $result;
+    }
+
     private function distance(RosterShift $s, CarbonImmutable $at): int
     {
         return min(abs($s->starts_at->getTimestamp() - $at->getTimestamp()), abs($s->ends_at->getTimestamp() - $at->getTimestamp()));

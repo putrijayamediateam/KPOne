@@ -20,6 +20,7 @@ export type TriageZoneSummary = {
 
 export type PatientBoardRow = {
     key: string;
+    emergency?: { alertLabel: string; takenLabel: string };
     canWhatsapp: boolean;
     callHold?: CallReadiness | null;
     /** Q-13: the doctor's own row whose dispensary case waits for the doctor's check. */
@@ -39,6 +40,11 @@ export type PatientBoardRow = {
     arrivedTime: string;
     visitNotes: string | null;
     doctorName: string | null;
+    /** AUTO-1c: a neutral warning for a waiting consultation whose doctor is off roster, on leave, without a room, or busy while another doctor is free. Only for a viewer who may edit the visit. */
+    doctorWarning?: {
+        code: 'off_roster' | 'on_leave' | 'no_room' | 'another_free';
+        label: string;
+    } | null;
     coverageLabel: string;
     panelNote?: string | null;
     durationLabel: string;
@@ -71,7 +77,13 @@ export type PatientBoardRow = {
 };
 
 // Q-2 treatment progress on a Serving consultation. Board and consultation page only; never the TV.
+export type TreatmentRoomOutcomeSummary = {
+    procedureLabel: string;
+    outcomeLabel: string;
+    reasonLabel: string | null;
+};
 export type TreatmentProgress = {
+    outcome?: TreatmentRoomOutcomeSummary;
     id: number | null;
     code: string | null;
     label: string | null;
@@ -81,5 +93,9 @@ export type TreatmentProgress = {
     lockVersion: number | null;
     canManage: boolean;
     /** Q-2c: other finished steps still waiting for the doctor, oldest first; absent when there are none. */
-    waiting?: Array<{ label: string; doneAt: string | null }>;
+    waiting?: Array<{
+        label: string;
+        doneAt: string | null;
+        outcome?: TreatmentRoomOutcomeSummary;
+    }>;
 };

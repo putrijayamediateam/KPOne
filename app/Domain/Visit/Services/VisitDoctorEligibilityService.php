@@ -7,6 +7,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -18,6 +19,17 @@ class VisitDoctorEligibilityService
         return $this->eligibleQuery($branch, $effectiveDate)
             ->orderBy('name')
             ->get(['users.id', 'users.name']);
+    }
+
+    /** @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, User> */
+    public function eligibleDoctorsPage(Branch $branch, string $effectiveDate, int $page): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = $this->eligibleQuery($branch, $effectiveDate);
+        $total = (clone $query)->count();
+        $page = min(max(1, $page), max(1, (int) ceil($total / 25)));
+        $rows = $query->orderBy('name')->orderBy('id')->forPage($page, 25)->get(['users.id', 'users.name']);
+
+        return new LengthAwarePaginator($rows, $total, 25, $page);
     }
 
     /** @return list<int> */

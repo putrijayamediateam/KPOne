@@ -179,7 +179,8 @@ const ButtonStub = defineComponent({
 });
 const InputErrorStub = defineComponent({
     props: { message: String },
-    setup: (props) => () => h('p', { 'data-testid': 'input-error' }, props.message),
+    setup: (props) => () =>
+        h('p', { 'data-testid': 'input-error' }, props.message),
 });
 const PatientBoardStub = defineComponent({
     inheritAttrs: false,
@@ -239,8 +240,12 @@ const requireMap = {
         SlidersHorizontal: NullStub,
         X: NullStub,
     },
+    '@/components/queue/EmergencyLane.vue': { default: NullStub },
+    '@/lib/emergency-lane': { emergencyBoardMetadata: () => ({}) },
     '@/components/InputError.vue': { default: InputErrorStub },
-    '@/components/patient-board/PatientBoard.vue': { default: PatientBoardStub },
+    '@/components/patient-board/PatientBoard.vue': {
+        default: PatientBoardStub,
+    },
     '@/components/patient-board/VisitCancellationDialog.vue': {
         default: NullStub,
     },
@@ -248,7 +253,9 @@ const requireMap = {
     '@/components/ui/button': { Button: ButtonStub },
     '@/components/ui/date-field': { DateField: NullStub },
     '@/components/ui/select': { OperationalSelect: NullStub },
-    '@/components/ui/tabs/OperationalTabs.vue': { default: OperationalTabsStub },
+    '@/components/ui/tabs/OperationalTabs.vue': {
+        default: OperationalTabsStub,
+    },
     '@/lib/presentation': { formatDate: presentationExports.formatDate },
     '@/lib/r1c2-presentation': {
         queuePresentationLabel: () => 'Removed',
@@ -324,7 +331,10 @@ test('each row shows its own registration date, spanning a multi-day filter resu
     const rows = boardRows(mounted.root);
     assert.equal(rows.length, 2);
     const byKey = Object.fromEntries(
-        rows.map((row) => [row.props['data-key'], row.props['data-arrived-date']]),
+        rows.map((row) => [
+            row.props['data-key'],
+            row.props['data-arrived-date'],
+        ]),
     );
     assert.equal(
         byKey['DAY1-VISIT'],
@@ -365,10 +375,7 @@ test('the filter range label is rendered once, in the results/filter area, not d
     // The regression: arrivedDate used to be assigned
     // `registrationDateLabel.value` inside the boardRows mapping. It must
     // now come from the visit's own date instead.
-    assert.doesNotMatch(
-        source,
-        /arrivedDate:\s*registrationDateLabel\.value/,
-    );
+    assert.doesNotMatch(source, /arrivedDate:\s*registrationDateLabel\.value/);
     assert.match(
         source,
         /arrivedDate:\s*formatDate\(\s*visit\.registeredAtDate/,
@@ -376,10 +383,7 @@ test('the filter range label is rendered once, in the results/filter area, not d
     // The label itself must still be rendered somewhere, once, outside the
     // per-row mapping (i.e. in the template, not inside boardRows).
     const boardRowsStart = source.indexOf('const boardRows = computed');
-    const boardRowsEnd = source.indexOf(
-        ');',
-        source.indexOf('rows.value.map'),
-    );
+    const boardRowsEnd = source.indexOf(');', source.indexOf('rows.value.map'));
     const templateStart = source.indexOf('<template>');
     assert.ok(boardRowsStart > -1 && templateStart > boardRowsEnd);
     assert.doesNotMatch(
@@ -393,10 +397,15 @@ test('the filter range label is rendered once, in the results/filter area, not d
 });
 
 test('the Arrived cell truncates instead of overflowing into Visit Notes', () => {
-    const source = read('resources/js/components/patient-board/PatientBoard.vue');
+    const source = read(
+        'resources/js/components/patient-board/PatientBoard.vue',
+    );
     assert.doesNotMatch(
         source,
         /row\.arrivedDate[\s\S]{0,10}whitespace-nowrap/,
     );
-    assert.match(source, /class="block truncate"[^>]*>\{\{\s*\n?\s*row\.arrivedDate/);
+    assert.match(
+        source,
+        /class="block truncate"[^>]*>\{\{\s*\n?\s*row\.arrivedDate/,
+    );
 });

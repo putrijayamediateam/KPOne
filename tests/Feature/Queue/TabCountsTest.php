@@ -77,7 +77,8 @@ class TabCountsTest extends ClinicalTestCase
         $this->send($ca, $this->consultationVisit($ca, $this->doctor()));
         $this->selectBranch($ca);
         $response = $this->postJson(route('registration.search'))->assertOk();
-        $this->assertSame(['data', 'tabCounts', 'total', 'currentPage', 'lastPage'], array_keys($response->json()));
+        $this->assertSame(['emergency', 'data', 'tabCounts', 'total', 'currentPage', 'lastPage'], array_keys($response->json()));
+        $this->assertSame(['data' => [], 'total' => 0, 'currentPage' => 1, 'lastPage' => 1, 'perPage' => 25, 'hasMore' => false], $response->json('emergency'));
         $this->assertSame(['all' => 1, 'waiting' => 1, 'serving' => 0, 'completed' => 0, 'cancelled' => 0, 'billing' => 0, 'triage' => 1, 'dispensary' => 0], $response->json('tabCounts'));
         foreach ($response->json('tabCounts') as $count) {
             $this->assertIsInt($count);
@@ -199,8 +200,9 @@ class TabCountsTest extends ClinicalTestCase
         foreach ($small as $source => $queries) {
             $this->assertLessThanOrEqual($queries, $large[$source], $source);
         }
-        $this->assertLessThanOrEqual(18, $large['registration']);
-        $this->assertLessThanOrEqual(16, $large['queue']);
+        // TRI-2b adds one bounded lane count and one effective-branch check per board read.
+        $this->assertLessThanOrEqual(20, $large['registration']);
+        $this->assertLessThanOrEqual(18, $large['queue']);
         $this->assertSame(400, app(VisitDirectoryService::class)->search($ca, [])['tabCounts']['all']);
         $this->assertSame(400, app(QueueDirectoryService::class)->poll($ca)['tabCounts']['waiting']);
         foreach ($before as $table => $rows) {

@@ -39,7 +39,8 @@ class PilotCompletedQueueScaleTest extends ClinicalTestCase
         $snapshot = app(QueueDirectoryService::class)->snapshot($doctor, ['status' => 'removed']);
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
-        $this->assertLessThanOrEqual(30, count($queries));
+        // TRI-2b adds one bounded lane count and one effective-branch check.
+        $this->assertLessThanOrEqual(32, count($queries));
         $this->assertCount(25, $snapshot['removed']);
         foreach ($snapshot['removed'] as $row) {
             $this->assertTrue($row['canOpenEncounter']);

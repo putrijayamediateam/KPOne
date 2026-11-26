@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Search } from '@lucide/vue';
 import {
     computed,
@@ -16,15 +16,20 @@ import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import CallNextControl from '@/components/queue/CallNextControl.vue';
+import EmergencyLane from '@/components/queue/EmergencyLane.vue';
+import QueueAverageWaitSummary from '@/components/queue/QueueAverageWaitSummary.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
+import QueueRoomsToday from '@/components/queue/QueueRoomsToday.vue';
 import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
-import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
+import { useQueueAverageWait } from '@/composables/useQueueAverageWait';
+import { useRoomsToday } from '@/composables/useRoomsToday';
 import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
 import { completedShownLine, servingShownLine } from '@/lib/completed-tab';
+import { emergencyBoardMetadata } from '@/lib/emergency-lane';
 import { formatDate } from '@/lib/presentation';
 import {
     applyQueueFilters,
@@ -134,6 +139,8 @@ const tabs = computed<
 ]);
 const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
+const roomsToday = useRoomsToday();
+const averageWait = useQueueAverageWait();
 // Q-2: the attending doctor (own queue) is told when a treatment step is done.
 const treatmentAlerts = useTreatmentDoneAlerts(true);
 const page = usePage();
@@ -183,8 +190,16 @@ const clockNow = ref(Date.now());
 watch(
     () => props.snapshot,
     (snapshot) => {
+        if (
+            live.value.branch.id !== snapshot.branch.id ||
+            snapshot.scope !== 'branch'
+        ) {
+            roomsToday.reset();
+        }
+
         if (live.value.branch.id !== snapshot.branch.id) {
             readyAlerts.reset();
+            averageWait.reset();
             treatmentAlerts.reset();
         }
 
@@ -255,72 +270,82 @@ const compactTime = (value: string) => {
         .format(new Date(Date.UTC(2000, 0, 1, hour, minute)))
         .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase());
 };
+const toBoardRow = (row: QueueRow): PatientBoardRow => ({
+    key: `${row.operationalDate}-${row.queueNumber}`,
+    canWhatsapp: row.canWhatsapp,
+    callHold: row.callHold,
+    triage: row.triage,
+    triageViewUrl: row.triageViewUrl ?? null,
+    treatmentProgress: row.treatmentProgress ?? null,
+    treatmentMinutes: treatmentMinutes(row.treatmentProgress, effectiveNowMs()),
+    patientName: row.patientName,
+    patientNumber: row.patientNumber,
+    visitNumber: row.visitNumber,
+    queueNumber: row.queueNumber,
+    arrivedDate: formatDate(row.operationalDate),
+    arrivedTime: compactTime(row.queuedTime),
+    visitNotes: row.visitReasonExcerpt,
+    doctorName: row.doctorName,
+    doctorWarning: row.doctorWarning,
+    coverageLabel: row.coverageLabel,
+    panelNote: row.panelNote,
+    durationLabel: row.isHeld
+        ? `Held ${row.heldMinutes} min`
+        : row.status === 'serving'
+          ? servingDurationLabel(elapsedMinutes(row))
+          : row.status === 'waiting'
+            ? waitingDurationLabel(elapsedMinutes(row))
+            : '—',
+    waitingMinutes:
+        !row.isHeld && row.status === 'waiting' ? elapsedMinutes(row) : null,
+    priority: row.priority,
+    returnedFromDispensary: row.returnedFromDispensary,
+    dispensaryCheckWaiting: row.dispensaryCheckWaiting,
+    statusLabel: row.isHeld
+        ? row.isHeldTooLong
+            ? 'On Hold · 30+ min'
+            : 'On Hold'
+        : row.status === 'waiting' &&
+            row.operationalDate !== live.value.operationalDate
+          ? 'Waiting · carry-over'
+          : queuePresentationLabel(row),
+    statusTone: row.isHeld
+        ? 'held'
+        : row.status === 'serving'
+          ? 'serving'
+          : row.status === 'waiting'
+            ? 'waiting'
+            : 'removed',
+    can: {
+        viewPatient: row.can.viewPatient,
+        update: row.can.update,
+        cancel: row.can.cancel,
+        sendToWaiting: false,
+        call: row.canCall && row.status === 'waiting',
+        recall: row.canCall && row.status === 'serving' && !row.isHeld,
+        callTreatment:
+            row.canCallTreatment && (props.treatmentRooms?.length ?? 0) > 0,
+        openConsultation: row.canOpenEncounter,
+    },
+    source: row,
+});
 const boardRows = computed<PatientBoardRow[]>(() =>
-    sourceRows.value.map((row) => ({
-        key: `${row.operationalDate}-${row.queueNumber}`,
-        canWhatsapp: row.canWhatsapp,
-        callHold: row.callHold,
-        triage: row.triage,
-        triageViewUrl: row.triageViewUrl ?? null,
-        treatmentProgress: row.treatmentProgress ?? null,
-        treatmentMinutes: treatmentMinutes(
-            row.treatmentProgress,
-            effectiveNowMs(),
-        ),
-        patientName: row.patientName,
-        patientNumber: row.patientNumber,
-        visitNumber: row.visitNumber,
-        queueNumber: row.queueNumber,
-        arrivedDate: formatDate(row.operationalDate),
-        arrivedTime: compactTime(row.queuedTime),
-        visitNotes: row.visitReasonExcerpt,
-        doctorName: row.doctorName,
-        coverageLabel: row.coverageLabel,
-        panelNote: row.panelNote,
-        durationLabel: row.isHeld
-            ? `Held ${row.heldMinutes} min`
-            : row.status === 'serving'
-              ? servingDurationLabel(elapsedMinutes(row))
-              : row.status === 'waiting'
-                ? waitingDurationLabel(elapsedMinutes(row))
-                : '—',
-        waitingMinutes:
-            !row.isHeld && row.status === 'waiting'
-                ? elapsedMinutes(row)
-                : null,
-        priority: row.priority,
-        returnedFromDispensary: row.returnedFromDispensary,
-        dispensaryCheckWaiting: row.dispensaryCheckWaiting,
-        statusLabel: row.isHeld
-            ? row.isHeldTooLong
-                ? 'On Hold · 30+ min'
-                : 'On Hold'
-            : row.status === 'waiting' &&
-                row.operationalDate !== live.value.operationalDate
-              ? 'Waiting · carry-over'
-              : queuePresentationLabel(row),
-        statusTone: row.isHeld
-            ? 'held'
-            : row.status === 'serving'
-              ? 'serving'
-              : row.status === 'waiting'
-                ? 'waiting'
-                : 'removed',
-        can: {
-            viewPatient: row.can.viewPatient,
-            update: row.can.update,
-            cancel: row.can.cancel,
-            sendToWaiting: false,
-            call: row.canCall && row.status === 'waiting',
-            recall: row.canCall && row.status === 'serving' && !row.isHeld,
-            callTreatment:
-                row.canCall &&
-                row.status === 'serving' &&
-                !row.isHeld &&
-                (props.treatmentRooms?.length ?? 0) > 0,
-            openConsultation: row.canOpenEncounter,
-        },
-        source: row,
+    sourceRows.value.map(toBoardRow),
+);
+const emergencyFocusTarget = ref<HTMLElement | null>(null);
+const requestEmergencyPage = (page: number) => {
+    emergencyFocusTarget.value?.focus({ preventScroll: true });
+    void refresh(
+        live.value.waiting.currentPage,
+        live.value.carryOver.currentPage,
+        true,
+        page,
+    );
+};
+const emergencyRows = computed<PatientBoardRow[]>(() =>
+    (live.value.emergency?.data ?? []).map((entry) => ({
+        ...toBoardRow(entry.boardRow),
+        emergency: emergencyBoardMetadata(entry, live.value.branch.timezone),
     })),
 );
 
@@ -350,7 +375,12 @@ const schedule = () => {
         failures ? Math.min(30_000, 3_000 * 2 ** Math.min(failures, 3)) : 3_000,
     );
 };
-const refresh = (page = 1, carryPage = 1, reschedule = true) => {
+const refresh = (
+    page = 1,
+    carryPage = 1,
+    reschedule = true,
+    emergencyPage = live.value.emergency?.currentPage ?? 1,
+) => {
     if (!pollingLifecycle.canRun()) {
         return Promise.resolve();
     }
@@ -380,9 +410,10 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
                     'X-CSRF-TOKEN': csrf(),
                 },
                 signal: request.signal,
-                body: JSON.stringify(
-                    queuePollPayload(appliedFilters, page, carryPage),
-                ),
+                body: JSON.stringify({
+                    ...queuePollPayload(appliedFilters, page, carryPage),
+                    emergency_page: emergencyPage,
+                }),
             });
             const payload = await response.json();
 
@@ -406,6 +437,16 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
             );
             receivedAt.value = Date.now();
             failures = 0;
+            void roomsToday.poll(
+                live.value.branch.id,
+                live.value.scope,
+                request.signal,
+                () => pollingLifecycle.accepts(requestGeneration),
+            );
+            void averageWait.poll(live.value.branch.id, request.signal, () =>
+                pollingLifecycle.accepts(requestGeneration),
+            );
+
             await readyAlerts
                 .poll(live.value.branch.id, request.signal)
                 .catch(() => undefined);
@@ -588,8 +629,9 @@ const detailsVisit = ref<string | null>(null);
 // Reuse the already-authorised board label; the details endpoint still returns no patient name.
 const detailsPatientLabel = computed(
     () =>
-        boardRows.value.find((row) => row.visitNumber === detailsVisit.value)
-            ?.patientName,
+        [...boardRows.value, ...emergencyRows.value].find(
+            (row) => row.visitNumber === detailsVisit.value,
+        )?.patientName,
 );
 const treatmentRow = ref<PatientBoardRow | null>(null);
 const treatmentRoomId = ref<string | number>('');
@@ -684,6 +726,8 @@ const handleVisibility = () => {
 
     if (document.hidden) {
         pollingLifecycle.invalidate();
+        roomsToday.reset();
+        averageWait.reset();
 
         if (pollTimer) {
             clearTimeout(pollTimer);
@@ -716,6 +760,8 @@ onBeforeUnmount(() => {
     tabNav()?.removeEventListener('scroll', updateTabFade);
     tabResizeObserver?.disconnect();
     pollingLifecycle.dispose();
+    roomsToday.reset();
+    averageWait.reset();
     document.removeEventListener('visibilitychange', handleVisibility);
 
     if (pollTimer) {
@@ -737,15 +783,18 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Consultation queue</h1>
-        <RedZoneAlertBanner
+        <div
             v-if="
-                page.props.auth.permissions.includes('queue.call.own') ||
                 page.props.auth.permissions.includes(
-                    'visits.triage.record.branch',
+                    'treatment_room.view.branch',
                 )
             "
-            :branch-id="live.branch.id"
-        />
+            class="flex justify-end"
+        >
+            <Button variant="outline" class="h-9 max-lg:h-11" as-child
+                ><Link href="/treatment-room">Treatment room</Link></Button
+            >
+        </div>
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
@@ -810,6 +859,25 @@ onBeforeUnmount(() => {
             >
         </div>
 
+        <QueueRoomsToday
+            v-if="live.scope === 'branch'"
+            :key="live.branch.id"
+            :stats="roomsToday.stats.value"
+            :unavailable="roomsToday.unavailable.value"
+            @page="
+                (page) => {
+                    roomsToday.setPage(page);
+                    void refresh();
+                }
+            "
+        />
+
+        <QueueAverageWaitSummary
+            :stats="averageWait.stats.value"
+            :unavailable="averageWait.unavailable.value"
+            :scope="live.scope"
+        />
+
         <form
             class="grid gap-2 border-b pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
             @submit.prevent="applyFilters"
@@ -851,7 +919,11 @@ onBeforeUnmount(() => {
                 @click="clearFilters"
                 >Reset</Button
             >
-            <InputError class="md:col-span-2 xl:col-span-5" :message="error" />
+            <InputError
+                id="queue-board-error"
+                class="md:col-span-2 xl:col-span-5"
+                :message="error"
+            />
         </form>
 
         <section class="overflow-hidden border-y bg-background">
@@ -884,6 +956,35 @@ onBeforeUnmount(() => {
                 >Notification sound:
                 {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
             >
+            <div
+                ref="emergencyFocusTarget"
+                tabindex="-1"
+                role="region"
+                aria-label="Emergency lane results"
+                :aria-describedby="error ? 'queue-board-error' : undefined"
+            >
+                <EmergencyLane
+                    v-if="emergencyRows.length"
+                    :total="live.emergency?.total ?? emergencyRows.length"
+                    :current-page="live.emergency?.currentPage ?? 1"
+                    :last-page="live.emergency?.lastPage ?? 1"
+                    :busy="isRefreshing || busyKey !== null"
+                    @page="requestEmergencyPage"
+                >
+                    <PatientBoard
+                        :branch-id="live.branch.id"
+                        from="queue"
+                        :rows="emergencyRows"
+                        :busy-key="busyKey"
+                        @call="requestCall"
+                        @recall="recall"
+                        @show-details="detailsVisit = $event.visitNumber"
+                        @call-treatment="openTreatmentCall"
+                        @open-consultation="openConsultation"
+                        @cancel="requestCancellation"
+                    />
+                </EmergencyLane>
+            </div>
             <PatientBoard
                 :branch-id="live.branch.id"
                 from="queue"
@@ -1021,6 +1122,7 @@ onBeforeUnmount(() => {
                     <OperationalSelect
                         v-model="treatmentRoomId"
                         label="Treatment room"
+                        trigger-class="min-h-9 max-lg:min-h-11"
                         placeholder="Choose room"
                         :options="
                             (treatmentRooms ?? []).map((room) => ({
@@ -1034,12 +1136,14 @@ onBeforeUnmount(() => {
                 <div class="mt-4 flex justify-end gap-2">
                     <Button
                         size="sm"
+                        class="h-9 max-lg:h-11"
                         variant="outline"
                         @click="treatmentRow = null"
                         >Cancel</Button
                     >
                     <Button
                         size="sm"
+                        class="h-9 max-lg:h-11"
                         :disabled="busyKey !== null"
                         @click="submitTreatmentCall"
                         >Call to room</Button

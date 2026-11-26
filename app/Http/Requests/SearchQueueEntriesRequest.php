@@ -26,6 +26,7 @@ class SearchQueueEntriesRequest extends FormRequest
             'doctor_id' => ['nullable', 'integer'],
             'priority' => ['nullable', 'in:normal,urgent'],
             'status' => ['nullable', 'in:waiting,serving,removed'],
+            'emergency_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'page' => ['nullable', 'integer', 'min:1'],
             'carry_page' => ['nullable', 'integer', 'min:1'],
         ];

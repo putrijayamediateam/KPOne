@@ -53,6 +53,21 @@ const lines = computed(() =>
         now.value,
     ),
 );
+const outcomes = computed(() =>
+    [
+        props.progress?.outcome,
+        ...(props.progress?.waiting?.map((step) => step.outcome) ?? []),
+    ].filter((outcome) => outcome !== undefined),
+);
+const outcomeLines = computed(() =>
+    outcomes.value.map(
+        (outcome) =>
+            `${outcome.procedureLabel}: ${outcome.outcomeLabel}${outcome.reasonLabel ? `: ${outcome.reasonLabel}` : ''}`,
+    ),
+);
+const unsuccessful = computed(() =>
+    outcomes.value.some((outcome) => outcome.outcomeLabel === 'Not successful'),
+);
 const label = computed(
     () =>
         treatmentWaitingAriaLabel(
@@ -72,11 +87,13 @@ const tone = computed(() =>
     <span
         v-if="text"
         role="status"
-        :aria-label="label ?? undefined"
+        :aria-label="
+            [label, ...outcomeLines].filter(Boolean).join('; ') || undefined
+        "
         :data-treatment-state="progress?.state"
         data-testid="treatment-progress-badge"
         class="flex w-full flex-col gap-1 rounded-md border p-2 text-xs break-words"
-        :class="statusToneClasses[tone]"
+        :class="statusToneClasses[unsuccessful ? 'warning' : tone]"
     >
         <span class="flex items-start gap-1.5">
             <CheckCircle2
@@ -100,5 +117,13 @@ const tone = computed(() =>
             <CheckCircle2 class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
             <span aria-hidden="true">{{ line }}</span>
         </span>
+        <span
+            v-for="(outcomeLine, index) in outcomeLines"
+            :key="`outcome-${index}`"
+            class="border-t border-current/20 pt-1 font-medium"
+            aria-hidden="true"
+            data-testid="treatment-record-outcome"
+            >{{ outcomeLine }}</span
+        >
     </span>
 </template>

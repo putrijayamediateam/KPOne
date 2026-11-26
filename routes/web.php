@@ -47,6 +47,7 @@ use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\DispensaryDoctorCheckController;
 use App\Http\Controllers\DispensaryReviewController;
 use App\Http\Controllers\DispensarySettingsController;
+use App\Http\Controllers\EmergencyAlertController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
@@ -99,6 +100,7 @@ use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientFamilyLinkController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientSearchController;
@@ -139,6 +141,7 @@ use App\Http\Controllers\SupplierTermsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\TreatmentProgressController;
+use App\Http\Controllers\TreatmentRoomController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\TriageController;
 use App\Http\Controllers\TriageGuidelineController;
@@ -219,6 +222,24 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // MA treatment evidence is an explicitly authorized clinical read, never a generic queue payload.
+    Route::middleware(['sensitive.no-store'])->group(function (): void {
+        Route::get('visits/{historicalVisit}/treatment-room-history', [TreatmentRoomController::class, 'historyRecords'])
+            ->middleware('throttle:60,1')->name('treatment-room.history');
+        Route::get('visits/{visit}/treatment-room-records', [TreatmentRoomController::class, 'records'])
+            ->middleware('throttle:60,1')->name('treatment-room.records');
+        Route::middleware('permission:treatment_room.view.branch')->group(function (): void {
+            Route::get('treatment-room', [TreatmentRoomController::class, 'index'])->name('treatment-room.index');
+            Route::get('treatment-room/{visit}', [TreatmentRoomController::class, 'show'])->name('treatment-room.show');
+        });
+        Route::middleware(['permission:treatment_room.record.branch', 'throttle:30,1'])->group(function (): void {
+            Route::post('treatment-room/{visit}/start', [TreatmentRoomController::class, 'start'])->name('treatment-room.start');
+            Route::post('treatment-room/{visit}/outcomes', [TreatmentRoomController::class, 'record'])->name('treatment-room.record');
+            Route::post('treatment-room/{visit}/corrections', [TreatmentRoomController::class, 'correct'])->name('treatment-room.correct');
+            Route::post('treatment-room/{visit}/voids', [TreatmentRoomController::class, 'void'])->name('treatment-room.void');
+        });
+    });
+
     Route::get('patient-contact/{context}/{key}/whatsapp', PatientWhatsAppController::class)->whereIn('context', ['patient', 'claim', 'visit'])->middleware(['sensitive.no-store:no-referrer', 'throttle:patient-whatsapp'])->name('patients.whatsapp');
 
     Route::get('workspace', WorkspaceController::class)->name('workspace');
@@ -1510,12 +1531,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{visit}/queue/details', [QueueController::class, 'details'])
             ->middleware(['permission:visits.triage.record.branch,queue.view.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.details');
+        Route::post('visits/{visit}/queue/emergency-seen', [EmergencyAlertController::class, 'seen'])
+            ->middleware(['permission:queue.emergency.respond.branch', 'sensitive.no-store', 'throttle:120,1'])->name('queue.emergency-seen');
         Route::get('queue/red-zone-alerts', [QueueController::class, 'redZoneAlerts'])
-            ->middleware(['permission:queue.call.own,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->middleware(['permission:queue.emergency.respond.branch,visits.triage.record.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.red-zone-alerts');
         Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
-            ->middleware(['permission:queue.call.own', 'throttle:30,1'])
+            ->middleware(['permission:queue.emergency.respond.branch', 'throttle:30,1'])
             ->name('queue.take-red-zone');
+        Route::get('queue/rooms-today', [QueueController::class, 'roomsToday'])
+            ->middleware(['permission:queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.rooms-today');
+        Route::get('queue/average-wait', [QueueController::class, 'averageWait'])
+            ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.average-wait');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.call-next.block');
@@ -1525,7 +1554,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/otc-queue/call', [RoomCallController::class, 'otcDispensary'])
             ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('otc-queue.call');
         Route::patch('visits/{visit}/queue/treatment-call', [RoomCallController::class, 'treatment'])
-            ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
+            ->middleware(['permission:queue.call.own,queue.call.branch,queue.treatment_call.branch', 'throttle:30,1'])
             ->name('queue.treatment-call');
         Route::patch('visits/{visit}/queue/recall', [QueueController::class, 'recall'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
@@ -1593,6 +1622,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        Route::get('patients/{patient}/family-links', [PatientFamilyLinkController::class, 'show'])
+            ->middleware(['permission:patients.view.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('patients.family-links.show');
+        Route::post('patients/{patient}/family-links/commands', [PatientFamilyLinkController::class, 'store'])
+            ->middleware(['permission:patients.update.organisation', 'sensitive.no-store', 'throttle:30,1'])
+            ->name('patients.family-links.store');
         // REG-4: patient change history (field names only).
         Route::get('patients/{patient}/history', [PatientController::class, 'history'])
             ->middleware(['permission:patients.history.view.organisation', 'sensitive.no-store', 'throttle:60,1'])

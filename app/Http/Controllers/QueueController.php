@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\RoomCallService;
+use App\Domain\Queue\Emergency\EmergencyDoctorPresence;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
@@ -15,7 +17,9 @@ use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Queue\Services\QueueRowDetailsService;
 use App\Domain\Queue\Services\QueueWaitingCountService;
+use App\Domain\Queue\Services\QueueWaitStatsService;
 use App\Domain\Queue\Services\RedZoneAlertService;
+use App\Domain\Queue\Services\RoomsTodayService;
 use App\Domain\Visit\Billing\Services\SalesTargetService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\CallQueueEntryRequest;
@@ -48,7 +52,8 @@ class QueueController extends Controller
     ): Response {
         $this->authorize('viewAny', QueueEntry::class);
         $branch = $branches->activeBranch($request->user());
-        $canCall = $request->user()->can('queue.call.own') || $request->user()->can('queue.call.branch');
+        $canCall = $request->user()->can('queue.call.own') || $request->user()->can('queue.call.branch')
+            || $request->user()->can(TreatmentRoomPermissions::TREATMENT_CALL_BRANCH);
 
         return Inertia::render('Queue/Index', [
             'snapshot' => $directory->snapshot($request->user()),
@@ -171,7 +176,10 @@ class QueueController extends Controller
     {
         $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
 
-        return response()->json(['alerts' => $alerts->alerts($request->user(), (int) $validated['expected_branch_id'])]);
+        return response()->json([
+            'alerts' => $alerts->alerts($request->user(), (int) $validated['expected_branch_id']),
+            'presence' => app(EmergencyDoctorPresence::class)->poll($request->user(), (int) $validated['expected_branch_id']),
+        ]);
     }
 
     /** Q-16b: "I'll take it". Assigns the red-zone patient to the taking doctor; never calls the patient. */
@@ -179,7 +187,7 @@ class QueueController extends Controller
     {
         $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1'], 'from' => ['sometimes', 'string', 'max:20'], 'from_visit' => ['sometimes', 'string', 'max:40']]);
         try {
-            $alerts->take($request->user(), $visit, (int) $validated['expected_branch_id']);
+            $alerts->take($request->user(), $visit, (int) $validated['expected_branch_id'], $request->only(['episode_id', 'lock_version', 'idempotency_key']));
         } catch (ValidationException $exception) {
             // A doctor who took it from an open consultation stays on that consultation (never lose unsaved work).
             throw $exception->redirectTo($this->callNextRefusalTarget($request));
@@ -187,6 +195,22 @@ class QueueController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('You took this patient. Call them in when ready.')]);
 
         return redirect()->to($this->callNextRefusalTarget($request));
+    }
+
+    /** Q-16d: read-only structural rooms view for branch-board holders. */
+    public function roomsToday(Request $request, RoomsTodayService $rooms): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1'], 'page' => ['sometimes', 'integer', 'min:1']]);
+
+        return response()->json($rooms->forActiveBranch($request->user(), (int) $validated['expected_branch_id'], (int) ($validated['page'] ?? 1)));
+    }
+
+    /** Q-16e: today's average queued-to-called minutes for the board's summary. Read only, no patient data. */
+    public function averageWait(Request $request, QueueWaitStatsService $stats): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+
+        return response()->json($stats->forActiveBranch($request->user(), (int) $validated['expected_branch_id']));
     }
 
     /** Q-4b: the doctor's own Call next block, for the held consultation page. Read only. */

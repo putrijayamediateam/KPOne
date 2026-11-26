@@ -132,8 +132,18 @@ test('(5) "Hold without saving" discards edits (this form and the treatment plan
     assert.match(treatmentPlanPanel, /discardDraft:\s*\(\)\s*=>\s*\{/);
 });
 
-test('(6) closing the dialog (Cancel) only changes the open flag', () => {
-    assert.match(show, /@update:open="unsavedWorkOpen = \$event"/);
+test('(6) Cancel closes the dialog and cancels pending emergency continuation without discarding edits', () => {
+    assert.match(show, /@update:open="updateUnsavedWorkOpen"/);
+    const handler = show.match(
+        /const updateUnsavedWorkOpen = \(open: boolean\) => \{([\s\S]*?)\n\};/,
+    );
+    assert.ok(handler, 'updateUnsavedWorkOpen() was not found.');
+    assert.match(handler[1], /unsavedWorkOpen\.value = open/);
+    assert.match(handler[1], /emergencyHoldContinuation = null/);
+    assert.doesNotMatch(
+        handler[1],
+        /form\.reset|discardDraft|router\.(post|put|patch|delete)|axios\.|fetch\(/,
+    );
 });
 
 test("OperationalConfirmDialog's new secondary action stays backward compatible for existing single-choice dialogs", () => {

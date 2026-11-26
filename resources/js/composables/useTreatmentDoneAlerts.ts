@@ -1,6 +1,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { requestJson } from '@/lib/json-client';
+import type { TreatmentRoomOutcomeSummary } from '@/types/patientBoard';
 
 // Q-2: tells the attending doctor that a treatment step is done. Shares the
 // not-ready sound switch (one preference) and plays a distinct two-beep tone.
@@ -12,6 +13,7 @@ export type TreatmentUpdate = {
     ready: boolean;
     doneCount: number;
     numbers?: string[];
+    outcomes?: Array<TreatmentRoomOutcomeSummary & { number: string }>;
 };
 export function useTreatmentDoneAlerts(details: boolean) {
     let cursor: number | null = null;
@@ -98,11 +100,23 @@ export function useTreatmentDoneAlerts(details: boolean) {
             return;
         }
 
-        toast.success(
+        const message =
             details && update.numbers?.length
                 ? `Treatment done: ${update.numbers.join(', ')}. Ready to resume.`
-                : "A held patient's treatment is done. Ready to resume.",
-        );
+                : "A held patient's treatment is done. Ready to resume.";
+        const outcomes = details ? (update.outcomes ?? []) : [];
+        const summary = outcomes
+            .map(
+                (outcome) =>
+                    `${outcome.number} ${outcome.procedureLabel}: ${outcome.outcomeLabel}${outcome.reasonLabel ? `: ${outcome.reasonLabel}` : ''}`,
+            )
+            .join('; ');
+        const announceToast = outcomes.some(
+            (outcome) => outcome.outcomeLabel === 'Not successful',
+        )
+            ? toast.warning
+            : toast.success;
+        announceToast(summary ? `${message} ${summary}` : message);
 
         if (!chimeOn() || !audio || audio.state !== 'running') {
             return;

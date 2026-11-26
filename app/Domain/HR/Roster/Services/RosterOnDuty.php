@@ -56,6 +56,42 @@ final class RosterOnDuty
             ->exists();
     }
 
+    /**
+     * AUTO-1c: distinguish an ended/not-started shift from approved leave, before the day lookup removes full-day leave.
+     * Read only, batched, and no leave reason or balance leaves HR. Boundaries are start-inclusive/end-exclusive.
+     *
+     * @param  list<int>  $userIds
+     * @return array<int, array{scheduledToday: bool, scheduledNow: bool, onLeave: bool}>
+     */
+    public function availabilityForWarnings(Branch $branch, CarbonInterface $at, array $userIds): array
+    {
+        $ids = array_values(array_unique($userIds));
+        if ($ids === []) {
+            return [];
+        }
+        $moment = CarbonImmutable::instance($at)->utc();
+        $localDay = $this->localDay($branch, $at);
+        $shifts = $this->shifts($branch, $localDay->utc(), $localDay->addDay()->utc(), onCall: false, userId: null);
+        $away = $this->leave->overlapping($ids, $moment, $moment->addMicrosecond())
+            ->where('organisation_id', $branch->organisation_id)->pluck('user_id')->flip();
+        $out = [];
+        foreach ($ids as $id) {
+            $out[$id] = ['scheduledToday' => false, 'scheduledNow' => false, 'onLeave' => $away->has($id)];
+        }
+        foreach ($shifts as $shift) {
+            $id = (int) $shift->staff_user_id;
+            if (! isset($out[$id])) {
+                continue;
+            }
+            $out[$id]['scheduledToday'] = true;
+            if ($shift->starts_at->lessThanOrEqualTo($moment) && $shift->ends_at->greaterThan($moment)) {
+                $out[$id]['scheduledNow'] = true;
+            }
+        }
+
+        return $out;
+    }
+
     /** @return list<OnDutyShift> Shifts covering `$at`, in start order. */
     public function onDutyNow(Branch $branch, CarbonInterface $at): array
     {

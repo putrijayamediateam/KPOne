@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryAuthorityService;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\OtcQueueEntry;
@@ -115,8 +116,9 @@ class RoomCallService
                 ->firstOrFail();
             $ownsPatient = $lockedActor->can('queue.call.own')
                 && $lockedVisit->assigned_doctor_user_id === $lockedActor->id;
+            $treatmentAuthority = $lockedActor->can(TreatmentRoomPermissions::TREATMENT_CALL_BRANCH);
             if (! $lockedActor->is_active
-                || (! $lockedActor->can('queue.call.branch') && ! $ownsPatient)
+                || (! $treatmentAuthority && ! $lockedActor->can('queue.call.branch') && ! $ownsPatient)
                 || ! $this->branches->canSelect($lockedActor, $branch)) {
                 throw new AuthorizationException('You may not call this Patient to a treatment room.');
             }
@@ -128,7 +130,7 @@ class RoomCallService
                 ]);
             }
             $held = $lockedVisit->clinicalEncounter()->whereHas('activeHold')->exists();
-            if ($lockedVisit->status !== Visit::STATUS_REGISTERED || $entry->status !== QueueEntry::STATUS_SERVING || $held) {
+            if ($lockedVisit->status !== Visit::STATUS_REGISTERED || $entry->status !== QueueEntry::STATUS_SERVING || ($held && ! $treatmentAuthority)) {
                 throw ValidationException::withMessages([
                     'queue' => 'Only a patient being served now can be called to a treatment room. Reload the Queue.',
                 ]);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\EncounterDiagnosisPresetDirectoryService;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPolicy;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
@@ -53,6 +54,7 @@ class ClinicalEncounterController extends Controller
 
         return Inertia::render('Clinical/Show', [
             'clinical' => $clinical,
+            'treatmentRoomUrl' => app(TreatmentRoomPolicy::class)->view($request->user(), $visit) ? route('treatment-room.records', $visit) : null,
             'treatmentRooms' => $calls->rooms($visit->branch, BranchRoom::KIND_TREATMENT),
             'treatmentProgress' => $entry ? ($treatmentProjection->rows($request->user(), [$entry])[$entry->id] ?? null) : null,
             // BIL-37: the doctor's read-only bill of this visit, once a non-draft invoice exists.
@@ -67,6 +69,7 @@ class ClinicalEncounterController extends Controller
         ClinicalEncounterDirectoryService $directory,
     ): Response|JsonResponse {
         $historical = $directory->historicalDetail($request->user(), $historicalVisit);
+        $historical['treatmentRoomUrl'] = app(TreatmentRoomPolicy::class)->view($request->user(), $historicalVisit, true) ? route('treatment-room.history', $historicalVisit) : null;
 
         if ($request->expectsJson()) {
             return response()->json($historical);

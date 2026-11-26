@@ -13,17 +13,18 @@ import {
     UserRound,
     Trash2,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
+import FamilyWaitingCard from '@/components/clinical/FamilyWaitingCard.vue';
 import UnsavedClinicalWorkContinueDialog from '@/components/clinical/UnsavedClinicalWorkContinueDialog.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
-import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +35,7 @@ import {
 import { OperationalSelect } from '@/components/ui/select';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
+import { useEmergencyHoldBridge } from '@/composables/useEmergencyHoldBridge';
 import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
@@ -65,6 +67,7 @@ const props = defineProps<{
     treatmentProgress?: TreatmentProgress | null;
     // BIL-37: the doctor's read-only bill of this visit (only once a finalised invoice exists).
     billViewUrl?: string | null;
+    treatmentRoomUrl?: string | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -676,6 +679,10 @@ const save = () => {
         },
     );
 };
+let emergencyHoldContinuation: {
+    success: () => void;
+    failure: (message: string) => void;
+} | null = null;
 const changeHoldState = (action: 'hold' | 'resume') => {
     holdProcessing.value = true;
     holdError.value = '';
@@ -694,15 +701,102 @@ const changeHoldState = (action: 'hold' | 'resume') => {
         {
             preserveScroll: true,
             preserveState: true,
+            onSuccess: async () => {
+                await nextTick();
+
+                if (action === 'hold' && props.clinical.hold.isHeld) {
+                    const continuation = emergencyHoldContinuation;
+                    emergencyHoldContinuation = null;
+                    continuation?.success();
+                }
+            },
             onError: (errors) => {
                 holdError.value =
                     Object.values(errors)[0] ??
                     'The consultation state could not be changed.';
+                emergencyHoldContinuation?.failure(holdError.value);
+                emergencyHoldContinuation = null;
+            },
+            onCancel: () => {
+                emergencyHoldContinuation?.failure(
+                    'The Hold result is not confirmed. Reload this consultation before taking the emergency.',
+                );
+                emergencyHoldContinuation = null;
+            },
+            onNetworkError: () => {
+                emergencyHoldContinuation?.failure(
+                    'The Hold result is not confirmed. Reload this consultation before taking the emergency.',
+                );
+                emergencyHoldContinuation = null;
+
+                return false;
+            },
+            onHttpException: () => {
+                emergencyHoldContinuation?.failure(
+                    'The Hold result is not confirmed. Reload this consultation before taking the emergency.',
+                );
+                emergencyHoldContinuation = null;
+
+                return false;
             },
             onFinish: () => (holdProcessing.value = false),
         },
     );
 };
+
+useEmergencyHoldBridge({
+    get visitNumber() {
+        return props.clinical.visit.visitNumber;
+    },
+    get branchId() {
+        return props.clinical.branch.id;
+    },
+    canHold: () =>
+        props.clinical.hold.canHold &&
+        !holdProcessing.value &&
+        !callNextProcessing.value,
+    isHeld: () => props.clinical.hold.isHeld,
+    request: (success, failure) => {
+        if (
+            !props.clinical.hold.canHold ||
+            holdProcessing.value ||
+            callNextProcessing.value
+        ) {
+            failure(
+                'The current consultation cannot be held. Review its latest state.',
+            );
+
+            return;
+        }
+
+        emergencyHoldContinuation = { success, failure };
+        requestHold();
+    },
+    cancel: () => {
+        emergencyHoldContinuation = null;
+    },
+});
+const updateUnsavedWorkOpen = (open: boolean) => {
+    unsavedWorkOpen.value = open;
+
+    if (
+        !open &&
+        !holdProcessing.value &&
+        !unsavedWorkProcessing.value &&
+        emergencyHoldContinuation
+    ) {
+        emergencyHoldContinuation.failure(
+            'Hold was cancelled. The emergency was not taken.',
+        );
+        emergencyHoldContinuation = null;
+    }
+};
+watch(
+    [() => props.clinical.visit.visitNumber, () => props.clinical.branch.id],
+    () => {
+        emergencyHoldContinuation = null;
+    },
+);
 </script>
 
 <template>
@@ -710,16 +804,6 @@ const changeHoldState = (action: 'hold' | 'resume') => {
     <main
         class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 bg-neutral-100 px-3 py-3 md:px-5 dark:bg-background"
     >
-        <RedZoneAlertBanner
-            v-if="
-                page.props.auth.permissions.includes('queue.call.own') ||
-                page.props.auth.permissions.includes(
-                    'visits.triage.record.branch',
-                )
-            "
-            :branch-id="clinical.branch.id"
-            :from-visit="clinical.visit.visitNumber"
-        />
         <header
             class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"
         >
@@ -1150,6 +1234,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         />
                     </div>
                 </section>
+
+                <TreatmentRoomReadPanel
+                    v-if="treatmentRoomUrl"
+                    :url="treatmentRoomUrl"
+                />
+
+                <FamilyWaitingCard
+                    v-if="clinical.familyWaiting"
+                    :family="clinical.familyWaiting"
+                />
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
@@ -1851,7 +1945,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             :processing="unsavedWorkProcessing"
             :processing-action="unsavedWorkAction"
             :error="unsavedWorkError"
-            @update:open="unsavedWorkOpen = $event"
+            @update:open="updateUnsavedWorkOpen"
             @save-and-hold="saveAndHold"
             @hold-without-saving="holdWithoutSaving"
         />

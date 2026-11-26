@@ -117,6 +117,34 @@ class DoctorRoomService
     }
 
     /**
+     * @param  list<int>  $doctorIds
+     * @return array<int, array{room: BranchRoom|null, source: 'chosen'|'roster'|null}>
+     */
+    public function resolveMany(array $doctorIds, Branch $branch, string $operationalDate): array
+    {
+        $assignments = DoctorRoomAssignment::query()->with('room')->where('branch_id', $branch->id)
+            ->whereIn('doctor_user_id', $doctorIds)->whereDate('operational_date', $operationalDate)->get()->keyBy('doctor_user_id');
+        $shifts = $operationalDate === $this->operationalDate($branch) && $this->rosterExists()
+            ? $this->roster->roomsFor($doctorIds, $branch, now()->toImmutable()->utc()) : [];
+        $rosteredRooms = BranchRoom::query()->whereIn('id', array_column($shifts, 'roomId'))
+            ->where('branch_id', $branch->id)->where('kind', BranchRoom::KIND_CONSULTATION)->where('is_active', true)->get()->keyBy('id');
+        $result = [];
+        foreach ($doctorIds as $doctorId) {
+            $assignment = $assignments->get($doctorId);
+            $chosen = $assignment?->room;
+            $chosen = $chosen && $chosen->is_active && $chosen->kind === BranchRoom::KIND_CONSULTATION ? $chosen : null;
+            $shift = $shifts[$doctorId] ?? null;
+            $rostered = $shift === null ? null : $rosteredRooms->get($shift['roomId']);
+            $useChosen = $rostered === null || ($chosen !== null && $assignment->updated_at->greaterThanOrEqualTo($shift['shiftStartedAt']));
+            $result[$doctorId] = $useChosen
+                ? ['room' => $chosen, 'source' => $chosen ? 'chosen' : null]
+                : ['room' => $rostered, 'source' => 'roster'];
+        }
+
+        return $result;
+    }
+
+    /**
      * HR's roster tables come with HR's own migrations. Every deployment migrates before it serves, so this is only ever false
      * in a test that rolls the schema back to a point before them (the dispensary regression does): there a Call In must keep
      * working on the hand-chosen room, as it did before the roster, instead of failing on a table that does not exist yet.

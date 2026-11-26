@@ -6,15 +6,19 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\Clinical\Triage\TriageZoneProjection;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
+use App\Domain\Queue\Emergency\EmergencyLaneProjection;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\QueueWaitingOrder;
 use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Queue\Treatment\TreatmentStepProjection;
+use App\Domain\Visit\Assignment\DoctorWarningProjection;
+use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -22,6 +26,7 @@ use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -72,6 +77,11 @@ class QueueDirectoryService
             ? array_values($eligibleDoctors->pluck('id')->map(fn ($id) => (int) $id)->all())
             : $this->doctors->eligibleDoctorIds($branch, $today);
         $base = $this->baseQuery($actor, $branch, $criteria);
+        $lane = app(EmergencyLaneProjection::class);
+        $emergencyRead = $lane->read($actor, $branch, (int) ($criteria['emergency_page'] ?? 1));
+        $emergencyEntries = $emergencyRead['entries'];
+        $emergency = Arr::except($emergencyRead, ['entries', 'exclusionQuery']);
+        $base->whereNotIn('visits.id', $emergencyRead['exclusionQuery']);
         $counts = $this->tabCounts($base, $today);
         $status = (string) ($criteria['status'] ?? '');
         $page = (int) ($criteria['page'] ?? 1);
@@ -138,6 +148,7 @@ class QueueDirectoryService
         }
 
         $entries = new EloquentCollection([
+            ...$emergencyEntries->all(),
             ...$waitingEntries->all(),
             ...$carryOverEntries->all(),
             ...$servingEntries->all(),
@@ -186,7 +197,14 @@ class QueueDirectoryService
             $entry->setRelation('triageZone', $triageZones[$entry->visit_id] ?? null);
         }
 
+        $emergencyBoardRows = $this->rows($actor, $emergencyEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints)->keyBy('visitNumber');
+        foreach ($emergency['data'] as &$emergencyRow) {
+            $emergencyRow['boardRow'] = $emergencyBoardRows->get($emergencyRow['visitNumber']);
+        }
+        unset($emergencyRow);
+
         $dynamic = [
+            'emergency' => $emergency,
             'tabCounts' => $counts['tabs'],
             // Q-15: every dispensary case waiting for this doctor's check (0 for anyone else); a top-level key, so tabCounts keeps its shape.
             'checksWaiting' => $checksWaiting,
@@ -237,6 +255,13 @@ class QueueDirectoryService
         array $removedHints = [],
         array $checkWaiting = [],
     ): Collection {
+        // AUTO-1c: read the warning once for every waiting consultation doctor on this tab.
+        $waiting = $entries->filter(fn (QueueEntry $entry): bool => $entry->status === QueueEntry::STATUS_WAITING && $entry->visit->visit_type === 'consultation');
+        $warnings = $waiting->isEmpty() ? [] : app(DoctorWarningProjection::class)->forDoctors($actor, $branch, $waiting->map(fn (QueueEntry $entry): ?int => $entry->visit->assigned_doctor_user_id)->values()->all());
+        foreach ($waiting as $entry) {
+            $entry->visit->setRelation('doctorWarning', $warnings[$entry->visit->assigned_doctor_user_id] ?? null);
+        }
+
         return $entries
             ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints, $removedHints, $checkWaiting): array {
                 return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints[$entry->visit_id] ?? false, $checkWaiting[$entry->visit_id] ?? false);
@@ -384,6 +409,8 @@ class QueueDirectoryService
             'visitNumber' => $visit->visit_number,
             'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
+            // Only a viewer authorized to edit this visit receives its reassignment warning.
+            'doctorWarning' => $actions['update'] && $visit->relationLoaded('doctorWarning') ? $visit->getRelation('doctorWarning') : null,
             'doctorEligible' => $doctorEligible,
             'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null,
             'coverageLabel' => $visit->coverage_type === 'panel'
@@ -411,6 +438,12 @@ class QueueDirectoryService
             // service re-authorize Call In; avoid a branch-assignment query
             // for every row in the three-second polling projection.
             'canCall' => $doctorEligible && $canCall,
+            // Announcement authority is independent of calling a patient to the doctor.
+            'canCallTreatment' => $actor->is_active
+                && $visit->status === Visit::STATUS_REGISTERED
+                && $entry->status === QueueEntry::STATUS_SERVING
+                && ($actor->can(TreatmentRoomPermissions::TREATMENT_CALL_BRANCH)
+                    || ($doctorEligible && $canCall && $activeHold === null)),
             // Clinical permissions are independent of Queue authority. This
             // remains a UI hint; Encounter start re-authorizes under lock.
             'canOpenEncounter' => $canOpenEncounter,

@@ -235,6 +235,8 @@ const requireMap = {
         SlidersHorizontal: NullStub,
         X: NullStub,
     },
+    '@/components/queue/EmergencyLane.vue': { default: NullStub },
+    '@/lib/emergency-lane': { emergencyBoardMetadata: () => ({}) },
     '@/components/InputError.vue': { default: InputErrorStub },
     '@/components/patient-board/PatientBoard.vue': {
         default: PatientBoardStub,
@@ -401,8 +403,8 @@ test.beforeEach(() => {
             const next = [...timers].sort((a, b) => a[1].at - b[1].at)[0];
 
             if (!next || next[1].at > until) {
-break;
-}
+                break;
+            }
 
             time = next[1].at;
             timers.delete(next[0]);
@@ -435,8 +437,8 @@ break;
         addEventListener: (name, callback) => listeners.set(name, callback),
         removeEventListener: (name, callback) => {
             if (listeners.get(name) === callback) {
-listeners.delete(name);
-}
+                listeners.delete(name);
+            }
         },
     };
     globalThis.window = {
@@ -447,8 +449,8 @@ listeners.delete(name);
 });
 test.afterEach(() => {
     for (const app of mountedApps.splice(0)) {
-app.unmount();
-}
+        app.unmount();
+    }
 
     Object.assign(globalThis, {
         document: saved.document,
@@ -559,7 +561,7 @@ test('REG-LIVE-1 does not request or replace rows while a menu, dialog or editin
 
 test('REG-LIVE-1 checks protection again when an in-flight success or failure arrives', async () => {
     for (const kind of ['menu', 'dialog', 'field']) {
-for (const status of [200, 500]) {
+        for (const status of [200, 500]) {
             const pending = deferred();
             environment.respond = async () => pending.promise;
             const mounted = mount();
@@ -586,7 +588,7 @@ for (const status of [200, 500]) {
             mounted.app.unmount();
             mountedApps.pop();
         }
-}
+    }
 });
 
 test('REG-LIVE-1 stale automatic success and failure cannot overwrite the latest manual response', async () => {
@@ -632,11 +634,11 @@ test('REG-LIVE-1 errors back off for twenty then forty seconds, stop at three, a
     await environment.advance(1);
     assert.equal(environment.requests.length, 3);
     assert.equal(environment.timers.size, 0);
+    assert.equal(board(mounted.root).props['data-empty-message'], '');
     assert.equal(
-        board(mounted.root).props['data-empty-message'],
-        '',
+        liveNotice(mounted.root),
+        pausedNotice + ' Press Search to try again.',
     );
-    assert.equal(liveNotice(mounted.root), pausedNotice + ' Press Search to try again.');
     document.hidden = true;
     environment.listeners.get('visibilitychange')();
     document.hidden = false;
@@ -708,7 +710,9 @@ test('REG-LIVE-1 a slow request cannot overlap a scheduled poll', async () => {
 
 const pausedNotice = 'Live refresh paused. Showing last successful results.';
 const liveNotice = (root) => {
-    const notice = descendants(root, 'p').find((node) => node.props.role === 'status');
+    const notice = descendants(root, 'p').find(
+        (node) => node.props.role === 'status',
+    );
 
     return notice ? content(notice).trim() : '';
 };
@@ -762,11 +766,14 @@ test('REG-LIVE-1 an in-flight response cannot replace rows or show a failure not
         const before = environment.requests.length;
         assert.ok(before > 0);
         searchField(mounted.root).props['onUpdate:modelValue']('Draft');
-        pending.resolve(status === 200 ? response('IGNORED') : jsonResponse(500, {}));
+        pending.resolve(
+            status === 200 ? response('IGNORED') : jsonResponse(500, {}),
+        );
         await flush();
         assert.deepEqual(boardRowKeys(mounted.root), ['ORIGINAL']);
         assert.equal(liveNotice(mounted.root), '');
-        mounted.app.unmount();mountedApps.pop();
+        mounted.app.unmount();
+        mountedApps.pop();
     }
 });
 
@@ -802,12 +809,12 @@ test('REG-LIVE-1 automatic HTTP and network failures retain rows total and both 
     for (const mode of ['http', 'network']) {
         environment.respond = async () => {
             if (mode === 'network') {
-throw new Error('Synthetic connection failure');
-}
+                throw new Error('Synthetic connection failure');
+            }
 
             return jsonResponse(500, {});
         };
-        const mounted = mount({page: 2, lastPage: 3});
+        const mounted = mount({ page: 2, lastPage: 3 });
         await environment.advance(10000);
         assert.deepEqual(boardRowKeys(mounted.root), ['ORIGINAL']);
         assert.match(content(mounted.root), /1 Visit/);
@@ -822,7 +829,8 @@ throw new Error('Synthetic connection failure');
         assert.equal(environment.requests.at(-1).body.page, 3);
         assert.equal(button(mounted.root, 'Next').props.disabled, true);
         assert.equal(liveNotice(mounted.root), '');
-        mounted.app.unmount();mountedApps.pop();
+        mounted.app.unmount();
+        mountedApps.pop();
     }
 });
 
@@ -846,24 +854,28 @@ test('REG-LIVE-1 starting a manual search clears the pause notice and manual net
     assert.equal(liveNotice(mounted.root), pausedNotice);
     const pending = deferred();
     environment.respond = async () => {
- await pending.promise;
+        await pending.promise;
 
- throw new Error('Synthetic manual failure');
-};
+        throw new Error('Synthetic manual failure');
+    };
     submit(mounted.root);
     await flush();
     assert.equal(liveNotice(mounted.root), '');
     pending.resolve();
     await flush();
     assert.deepEqual(boardRowKeys(mounted.root), []);
-    assert.equal(board(mounted.root).props['data-empty-message'], 'Registration search could not be completed.');
+    assert.equal(
+        board(mounted.root).props['data-empty-message'],
+        'Registration search could not be completed.',
+    );
     assert.equal(liveNotice(mounted.root), '');
 });
 
 test('REG-LIVE-1 a stale automatic failure cannot restore a notice after a newer manual success', async () => {
     const pending = deferred();
     let calls = 0;
-    environment.respond = async () => ++calls === 1 ? pending.promise : response('LATEST');
+    environment.respond = async () =>
+        ++calls === 1 ? pending.promise : response('LATEST');
     const mounted = mount();
     await environment.advance(10000);
     submit(mounted.root);

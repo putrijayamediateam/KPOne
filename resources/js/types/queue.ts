@@ -19,6 +19,11 @@ export type QueueRow = {
     visitNumber: string;
     visitReasonExcerpt: string | null;
     doctorName: string | null;
+    /** AUTO-1c: a neutral warning, only for a viewer who may edit the visit (see PatientBoardRow). */
+    doctorWarning?: {
+        code: 'off_roster' | 'on_leave' | 'no_room' | 'another_free';
+        label: string;
+    } | null;
     doctorEligible: boolean;
     coverageLabel: string;
     panelNote?: string | null;
@@ -41,6 +46,7 @@ export type QueueRow = {
     visitLockVersion: number;
     queueLockVersion: number;
     canCall: boolean;
+    canCallTreatment: boolean;
     canOpenEncounter: boolean;
     can: {
         viewPatient: boolean;
@@ -49,7 +55,31 @@ export type QueueRow = {
     };
 };
 
+export type EmergencyLaneEntry<Row> = {
+    visitNumber: string;
+    queueNumber: string;
+    patientName: string;
+    assignedDoctorName: string | null;
+    waitingMinutes: number;
+    operationalDate: string;
+    episodeId: number | null;
+    alertStartedAt: string | null;
+    alertOrigin: 'clinical' | 'activation' | null;
+    takenBy: string | null;
+    takenAt: string | null;
+    boardRow: Row;
+};
+export type EmergencyLaneSnapshot<Row> = {
+    data: EmergencyLaneEntry<Row>[];
+    total: number;
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    hasMore: boolean;
+};
+
 export type QueuePollSnapshot = {
+    emergency?: EmergencyLaneSnapshot<QueueRow>;
     tabCounts?: {
         all: number;
         waiting: number;

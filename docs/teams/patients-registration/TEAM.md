@@ -329,3 +329,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
   stays the one filled button (one filled button per view). The owner approved, in this team session, changing
   the one existing assertion that pinned the TRI-1b rule (`tests/Frontend/tri-1b-triage-zone.test.mjs`, the
   Apply variant line). Frontend only.
+
+
+## Family links F1–F3 — 26 November 2026
+
+Owner authorised the direct five-label, single-active-pair design; retained/suppressed merged links with no automatic transfer and original active relationship returning on unmerge unless unlinked; and the exact two-table non-destructive migration. Existing patient-view/update policies apply to both endpoints. No shared-phone suggestion, transitive family inference, legal guardian authority or clinical access is granted. Consultation shows only authorised direct relatives waiting today and Patient links, with no clinical conditions. See [FAMILY-LINK-DESIGN.md](FAMILY-LINK-DESIGN.md). Implementation and validation remain local pending coordinator integration; no existing assertion edits.
