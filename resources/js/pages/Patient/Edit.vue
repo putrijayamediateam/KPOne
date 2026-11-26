@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { usePage, Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Save } from '@lucide/vue';
+import { computed, nextTick, ref } from 'vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
 import { knownMinor } from '@/lib/guardian-contact';
+import { patientEditChangedLabels } from '@/lib/patient-edit-summary';
 import { phoneError, focusInvalidField } from '@/lib/patient-registration';
 import type { PatientDetail, PatientFormValues } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
@@ -45,6 +47,38 @@ const form = useForm<PatientFormValues & { lock_version: number }>({
     country_code: props.patient.address.countryCode ?? '',
     lock_version: props.patient.administrative.lockVersion,
 });
+// A successful save redirects to the patient page. Validation keeps this loaded
+// snapshot and its lock versions; Undo must not silently reload a newer record.
+const loadedValues = JSON.parse(
+    JSON.stringify(form.data()),
+) as PatientFormValues;
+const editForm = ref<HTMLFormElement | null>(null);
+const changedLabels = computed(() =>
+    patientEditChangedLabels(form, loadedValues),
+);
+const errorMessages = computed(() => [
+    ...new Set(
+        Object.values(form.errors).filter(
+            (message): message is string =>
+                typeof message === 'string' && message.length > 0,
+        ),
+    ),
+]);
+const undoChanges = async () => {
+    if (form.processing) {
+        return;
+    }
+
+    const existingErrors = { ...form.errors };
+    form.reset();
+    form.setError(existingErrors);
+    await nextTick();
+    editForm.value
+        ?.querySelector<HTMLInputElement>(
+            '[aria-describedby="patient-name-error"]',
+        )
+        ?.focus();
+};
 const submit = () => {
     form.clearErrors();
 
@@ -88,7 +122,67 @@ const submit = () => {
                 {{ patient.patientNumber }} · identifiers are managed separately
             </p>
         </div>
-        <form class="space-y-5" @submit.prevent="submit">
+        <form ref="editForm" class="space-y-5" @submit.prevent="submit">
+            <section
+                aria-label="Unsaved changes"
+                class="rounded-lg border bg-card p-4 shadow-card"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="font-semibold">Changes not saved</h2>
+                        <p
+                            role="status"
+                            class="mt-1 text-sm text-muted-foreground"
+                        >
+                            {{
+                                changedLabels.length
+                                    ? `${changedLabels.length} changed field${changedLabels.length === 1 ? '' : 's'}`
+                                    : 'No changes yet.'
+                            }}
+                        </p>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        :disabled="
+                            form.processing || changedLabels.length === 0
+                        "
+                        @click="undoChanges"
+                        >Undo all unsaved changes</Button
+                    >
+                </div>
+                <ul
+                    v-if="changedLabels.length"
+                    class="mt-3 flex flex-wrap gap-2 text-sm"
+                    aria-label="Changed fields"
+                >
+                    <li
+                        v-for="label in changedLabels"
+                        :key="label"
+                        class="rounded-md bg-muted px-2 py-1"
+                    >
+                        {{ label }}
+                    </li>
+                </ul>
+                <p class="mt-3 text-xs text-muted-foreground">
+                    Undo restores this form's loaded values. It does not reload
+                    the patient record or resolve server errors.
+                </p>
+                <div
+                    v-if="errorMessages.length"
+                    role="alert"
+                    class="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm"
+                >
+                    <p class="font-medium text-destructive">
+                        Review these errors before saving
+                    </p>
+                    <ul class="mt-1 list-disc space-y-1 pl-5 text-destructive">
+                        <li v-for="message in errorMessages" :key="message">
+                            {{ message }}
+                        </li>
+                    </ul>
+                </div>
+            </section>
             <PatientFormFields
                 :model="form"
                 :guardian-today="guardianToday"
