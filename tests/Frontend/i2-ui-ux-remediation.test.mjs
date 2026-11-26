@@ -47,20 +47,21 @@ test('Inventory directory keeps readable, separate semantic Quantity and Status 
     const labels = headerLabels(inventory);
 
     assert.ok(labels.includes('Quantity'));
-    assert.ok(labels.includes('Status'));
-    assert.equal(labels.includes('QuantityStatus'), false);
+    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
+    assert.match(rows, />On hand<\/span\s*>/);
+    assert.match(rows, />Status<\/span\s*>/);
+    assert.doesNotMatch(rows, /QuantityStatus/);
     assert.match(inventory, /\[&_thead_th\]:px-4/);
     assert.match(inventory, /\[&_thead_th\]:text-sm/);
     assert.match(inventory, /\[&_thead_th\]:font-semibold/);
     assert.match(inventory, /min-w-28 text-right/);
-    assert.match(
-        inventory,
-        /<th[^>]*class="[^"]*min-w-32[^"]*"[^>]*>\s*Status\s*<\/th>/,
-    );
+    assert.match(rows, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
+    assert.match(rows, /<StatusBadge[\s\S]*:label="statusLabel\(row\)"/);
+    assert.match(rows, /<\/button>\s*<div v-if="canReport"/);
     assert.match(inventory, /break-words/);
     assert.match(inventory, /whitespace-normal/);
     assert.match(inventory, /row\.quantity/);
-    assert.match(inventory, /row\.availabilityStatus/);
+    assert.match(rows, /row\.availabilityStatus/);
 });
 
 test('Visit Type remains a compact accessible two-option control with unchanged values', () => {

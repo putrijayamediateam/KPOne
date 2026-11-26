@@ -90,9 +90,12 @@ test('STK-45: My reports is a closed disclosure with its count, an empty line an
 test('STK-45: Inventory shows the menu, the Count open chip and My reports only for P10 holders', () => {
     const ui = read('resources/js/pages/Inventory/Index.vue');
     assert.match(ui, /<MyDifferenceReports\s+v-if="\s*canReport/);
-    assert.match(ui, /<th v-if="canReport"/);
-    assert.match(ui, /<DifferenceRowMenu\s+v-if="row\.difference"/);
-    assert.match(ui, /label="Count open"/);
+    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
+    assert.match(ui, /:can-report="canReport"/);
+    assert.match(ui, /@report="openReport"/);
+    assert.match(rows, /<div v-if="canReport"/);
+    assert.match(rows, /<DifferenceRowMenu\s+v-if="row\.difference"/);
+    assert.match(rows, /label="Count open"/);
     assert.match(ui, /return-to="inventory"/);
     assert.match(ui, /reportTrigger\?\.focus\(\)/);
     // The Inventory page still makes no direct writes (i1b): the sheet posts on its own.

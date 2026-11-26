@@ -84,7 +84,14 @@ test('Classic Inventory home keeps its route, query keys, tab and filter navigat
     );
     assert.ok(home.includes('const applyFilters = () => visit({ page: 1 });'));
     assert.equal(
-        (home.match(/formatInventoryHoldLabel\(/g) ?? []).length >= 2,
+        (
+            [
+                home,
+                read('resources/js/components/inventory/StockOnHandList.vue'),
+            ]
+                .join('\n')
+                .match(/formatInventoryHoldLabel\(/g) ?? []
+        ).length >= 2,
         true,
     );
 });

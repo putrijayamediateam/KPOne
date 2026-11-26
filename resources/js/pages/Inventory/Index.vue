@@ -2,7 +2,6 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ChevronDown } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
-import DifferenceRowMenu from '@/components/inventory/DifferenceRowMenu.vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
@@ -13,6 +12,7 @@ import type {
     DifferenceState,
     DifferenceTarget,
 } from '@/components/inventory/ReportDifferenceSheet.vue';
+import StockOnHandList from '@/components/inventory/StockOnHandList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -159,6 +159,24 @@ const dateFrom = ref(props.inventory.filters.dateFrom);
 const dateTo = ref(props.inventory.filters.dateTo);
 const batch = ref(props.inventory.filters.batch);
 const loading = ref(false);
+const workspace = ref('inventory');
+const showHelpfulInfo = ref(true);
+const workspaceTabs = computed(() => [
+    { value: 'inventory', label: 'Inventory' },
+    { value: 'tasks', label: 'Tasks' },
+    { value: 'operations', label: 'Stock operations' },
+    ...(props.referenceData.canManage
+        ? [{ value: 'reference', label: 'Reference data' }]
+        : []),
+]);
+watch(
+    () => props.referenceData.canManage,
+    (allowed) => {
+        if (!allowed && workspace.value === 'reference') {
+            workspace.value = 'inventory';
+        }
+    },
+);
 // STK-44: the phone "Reports and checks" count includes the two links only their holders see.
 const reportsCount = computed(
     () =>
@@ -182,7 +200,7 @@ watch(
 );
 
 const tabs = [
-    { value: 'stock', label: 'Stock Overview' },
+    { value: 'stock', label: 'On hand' },
     { value: 'batches', label: 'Batch & Expiry' },
     { value: 'movements', label: 'Movements' },
 ];
@@ -271,749 +289,922 @@ const clearFilters = () => {
 <template>
     <Head title="Inventory" />
     <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
-        <PageHeader
-            title="Inventory"
-            :description="`Stock, batches and movement history for ${inventory.branch}.`"
-        />
-
-        <nav aria-label="Inventory tasks" class="kp-control-group">
-            <!-- DD-75 (Daniel): from lg each group is an always-visible heading with its links; below lg the same
+        <PageHeader title="Inventory" description="My branch">
+            <template #actions>
+                <Button variant="outline" @click="workspace = 'operations'"
+                    >Stock operations</Button
+                >
+            </template>
+        </PageHeader>
+        <div class="w-fit max-w-full rounded-full bg-muted p-1">
+            <OperationalTabs
+                :model-value="workspace"
+                :tabs="workspaceTabs"
+                label="Stock workspace"
+                @update:model-value="(value) => (workspace = value)"
+            />
+        </div>
+        <div
+            v-show="workspace === 'tasks'"
+            class="rounded-2xl border bg-card p-4"
+        >
+            <h2 class="mb-4 text-sm font-semibold">Inventory tasks</h2>
+            <nav aria-label="Inventory tasks" class="kp-control-group">
+                <!-- DD-75 (Daniel): from lg each group is an always-visible heading with its links; below lg the same
                  links sit in three closed disclosures (no script). Keep the two copies in the same order: a test
                  checks they match. -->
-            <div class="hidden w-full gap-6 lg:grid lg:grid-cols-3">
-                <section
-                    aria-labelledby="inventory-tasks-count-and-adjust"
-                    class="space-y-2"
-                >
-                    <h2
-                        id="inventory-tasks-count-and-adjust"
-                        class="text-sm font-semibold"
+                <div class="hidden w-full gap-6 lg:grid lg:grid-cols-3">
+                    <section
+                        aria-labelledby="inventory-tasks-count-and-adjust"
+                        class="space-y-2"
                     >
-                        Count and adjust
-                    </h2>
-                    <div class="flex flex-wrap gap-2">
-                        <ActionLink
-                            href="/inventory/counts"
-                            variant="outline"
-                            class="min-h-9"
-                            >Stock count (governed)</ActionLink
+                        <h2
+                            id="inventory-tasks-count-and-adjust"
+                            class="text-sm font-semibold"
                         >
-                        <ActionLink
-                            href="/inventory/writeoffs"
-                            variant="outline"
-                            class="min-h-9"
-                            >Write-off (governed)</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/treatment-usage"
-                            variant="outline"
-                            class="min-h-9"
-                            >Treatment room usage</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/batch-holds"
-                            variant="outline"
-                            class="min-h-9"
-                            >Batch safety holds</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/recalls"
-                            variant="outline"
-                            class="min-h-9"
-                            >Recalls</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/controlled-register"
-                            variant="outline"
-                            v-if="canViewControlledRegister"
-                            class="min-h-9"
-                            >Controlled register</ActionLink
-                        >
-                    </div>
-                </section>
-                <section
-                    aria-labelledby="inventory-tasks-orders-and-suppliers"
-                    class="space-y-2"
-                >
-                    <h2
-                        id="inventory-tasks-orders-and-suppliers"
-                        class="text-sm font-semibold"
+                            Count and adjust
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <ActionLink
+                                href="/inventory/counts"
+                                variant="outline"
+                                class="min-h-9"
+                                >Stock count (governed)</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/writeoffs"
+                                variant="outline"
+                                class="min-h-9"
+                                >Write-off (governed)</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/treatment-usage"
+                                variant="outline"
+                                class="min-h-9"
+                                >Treatment room usage</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/batch-holds"
+                                variant="outline"
+                                class="min-h-9"
+                                >Batch safety holds</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/recalls"
+                                variant="outline"
+                                class="min-h-9"
+                                >Recalls</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/controlled-register"
+                                variant="outline"
+                                v-if="canViewControlledRegister"
+                                class="min-h-9"
+                                >Controlled register</ActionLink
+                            >
+                        </div>
+                    </section>
+                    <section
+                        aria-labelledby="inventory-tasks-orders-and-suppliers"
+                        class="space-y-2"
                     >
-                        Orders and suppliers
-                    </h2>
-                    <div class="flex flex-wrap gap-2">
-                        <ActionLink
-                            href="/inventory/purchase-requests"
-                            variant="outline"
-                            class="min-h-9"
-                            >Purchase requests</ActionLink
+                        <h2
+                            id="inventory-tasks-orders-and-suppliers"
+                            class="text-sm font-semibold"
                         >
-                        <ActionLink
-                            href="/inventory/reorder-suggestions"
-                            variant="outline"
-                            class="min-h-9"
-                            >Reorder suggestions</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/branch-replenishment"
-                            variant="outline"
-                            class="min-h-9"
-                            >Stock other branches need</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/supplier-invoices"
-                            variant="outline"
-                            class="min-h-9"
-                            >Supplier invoices</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/supplier-returns"
-                            variant="outline"
-                            class="min-h-9"
-                            >Supplier returns</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/supplier-terms"
-                            variant="outline"
-                            class="min-h-9"
-                            >Supplier price list</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/skus"
-                            variant="outline"
-                            class="min-h-9"
-                            >SKUs</ActionLink
-                        >
-                    </div>
-                </section>
-                <section
-                    aria-labelledby="inventory-tasks-reports-and-checks"
-                    class="space-y-2"
-                >
-                    <h2
-                        id="inventory-tasks-reports-and-checks"
-                        class="text-sm font-semibold"
+                            Orders and suppliers
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <ActionLink
+                                href="/inventory/purchase-requests"
+                                variant="outline"
+                                class="min-h-9"
+                                >Purchase requests</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/reorder-suggestions"
+                                variant="outline"
+                                class="min-h-9"
+                                >Reorder suggestions</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/branch-replenishment"
+                                variant="outline"
+                                class="min-h-9"
+                                >Stock other branches need</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/supplier-invoices"
+                                variant="outline"
+                                class="min-h-9"
+                                >Supplier invoices</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/supplier-returns"
+                                variant="outline"
+                                class="min-h-9"
+                                >Supplier returns</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/supplier-terms"
+                                variant="outline"
+                                class="min-h-9"
+                                >Supplier price list</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/skus"
+                                variant="outline"
+                                class="min-h-9"
+                                >SKUs</ActionLink
+                            >
+                        </div>
+                    </section>
+                    <section
+                        aria-labelledby="inventory-tasks-reports-and-checks"
+                        class="space-y-2"
                     >
-                        Reports and checks
-                    </h2>
-                    <div class="flex flex-wrap gap-2">
-                        <ActionLink
-                            href="/inventory/stock-review"
-                            variant="outline"
-                            class="min-h-9"
-                            >Stock review</ActionLink
+                        <h2
+                            id="inventory-tasks-reports-and-checks"
+                            class="text-sm font-semibold"
                         >
-                        <ActionLink
-                            href="/inventory/stock-health"
-                            variant="outline"
-                            class="min-h-9"
-                            >Stock health</ActionLink
+                            Reports and checks
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <ActionLink
+                                href="/inventory/stock-review"
+                                variant="outline"
+                                class="min-h-9"
+                                >Stock review</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/stock-health"
+                                variant="outline"
+                                class="min-h-9"
+                                >Stock health</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/readiness"
+                                variant="outline"
+                                class="min-h-9"
+                                >Pilot readiness</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/stock-value"
+                                variant="outline"
+                                v-if="referenceData.canViewStockValue"
+                                class="min-h-9"
+                                >Stock value and cost</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/medicine-sales"
+                                variant="outline"
+                                v-if="referenceData.canViewMedicineSales"
+                                class="min-h-9"
+                                >Medicine sales</ActionLink
+                            >
+                        </div>
+                    </section>
+                </div>
+                <div class="w-full space-y-2 lg:hidden">
+                    <details class="group rounded-lg border bg-card">
+                        <summary
+                            class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                         >
-                        <ActionLink
-                            href="/inventory/readiness"
-                            variant="outline"
-                            class="min-h-9"
-                            >Pilot readiness</ActionLink
+                            Count and adjust ·
+                            {{ canViewControlledRegister ? 6 : 5 }}
+                            <ChevronDown
+                                class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                                aria-hidden="true"
+                            />
+                        </summary>
+                        <div class="flex flex-wrap gap-2 px-3 pb-3">
+                            <ActionLink
+                                href="/inventory/counts"
+                                variant="outline"
+                                class="min-h-11"
+                                >Stock count (governed)</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/writeoffs"
+                                variant="outline"
+                                class="min-h-11"
+                                >Write-off (governed)</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/treatment-usage"
+                                variant="outline"
+                                class="min-h-11"
+                                >Treatment room usage</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/batch-holds"
+                                variant="outline"
+                                class="min-h-11"
+                                >Batch safety holds</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/recalls"
+                                variant="outline"
+                                class="min-h-11"
+                                >Recalls</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/controlled-register"
+                                variant="outline"
+                                v-if="canViewControlledRegister"
+                                class="min-h-11"
+                                >Controlled register</ActionLink
+                            >
+                        </div>
+                    </details>
+                    <details class="group rounded-lg border bg-card">
+                        <summary
+                            class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                         >
-                        <ActionLink
-                            href="/inventory/stock-value"
-                            variant="outline"
-                            v-if="referenceData.canViewStockValue"
-                            class="min-h-9"
-                            >Stock value and cost</ActionLink
+                            Orders and suppliers · 7
+                            <ChevronDown
+                                class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                                aria-hidden="true"
+                            />
+                        </summary>
+                        <div class="flex flex-wrap gap-2 px-3 pb-3">
+                            <ActionLink
+                                href="/inventory/purchase-requests"
+                                variant="outline"
+                                class="min-h-11"
+                                >Purchase requests</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/reorder-suggestions"
+                                variant="outline"
+                                class="min-h-11"
+                                >Reorder suggestions</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/branch-replenishment"
+                                variant="outline"
+                                class="min-h-11"
+                                >Stock other branches need</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/supplier-invoices"
+                                variant="outline"
+                                class="min-h-11"
+                                >Supplier invoices</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/supplier-returns"
+                                variant="outline"
+                                class="min-h-11"
+                                >Supplier returns</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/supplier-terms"
+                                variant="outline"
+                                class="min-h-11"
+                                >Supplier price list</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/skus"
+                                variant="outline"
+                                class="min-h-11"
+                                >SKUs</ActionLink
+                            >
+                        </div>
+                    </details>
+                    <details class="group rounded-lg border bg-card">
+                        <summary
+                            class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                         >
-                        <ActionLink
-                            href="/inventory/medicine-sales"
-                            variant="outline"
-                            v-if="referenceData.canViewMedicineSales"
-                            class="min-h-9"
-                            >Medicine sales</ActionLink
-                        >
-                    </div>
-                </section>
-            </div>
-            <div class="w-full space-y-2 lg:hidden">
-                <details class="group rounded-lg border bg-card">
-                    <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
-                    >
-                        Count and adjust ·
-                        {{ canViewControlledRegister ? 6 : 5 }}
-                        <ChevronDown
-                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
-                            aria-hidden="true"
-                        />
-                    </summary>
-                    <div class="flex flex-wrap gap-2 px-3 pb-3">
-                        <ActionLink
-                            href="/inventory/counts"
-                            variant="outline"
-                            class="min-h-11"
-                            >Stock count (governed)</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/writeoffs"
-                            variant="outline"
-                            class="min-h-11"
-                            >Write-off (governed)</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/treatment-usage"
-                            variant="outline"
-                            class="min-h-11"
-                            >Treatment room usage</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/batch-holds"
-                            variant="outline"
-                            class="min-h-11"
-                            >Batch safety holds</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/recalls"
-                            variant="outline"
-                            class="min-h-11"
-                            >Recalls</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/controlled-register"
-                            variant="outline"
-                            v-if="canViewControlledRegister"
-                            class="min-h-11"
-                            >Controlled register</ActionLink
-                        >
-                    </div>
-                </details>
-                <details class="group rounded-lg border bg-card">
-                    <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
-                    >
-                        Orders and suppliers · 7
-                        <ChevronDown
-                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
-                            aria-hidden="true"
-                        />
-                    </summary>
-                    <div class="flex flex-wrap gap-2 px-3 pb-3">
-                        <ActionLink
-                            href="/inventory/purchase-requests"
-                            variant="outline"
-                            class="min-h-11"
-                            >Purchase requests</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/reorder-suggestions"
-                            variant="outline"
-                            class="min-h-11"
-                            >Reorder suggestions</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/branch-replenishment"
-                            variant="outline"
-                            class="min-h-11"
-                            >Stock other branches need</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/supplier-invoices"
-                            variant="outline"
-                            class="min-h-11"
-                            >Supplier invoices</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/supplier-returns"
-                            variant="outline"
-                            class="min-h-11"
-                            >Supplier returns</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/supplier-terms"
-                            variant="outline"
-                            class="min-h-11"
-                            >Supplier price list</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/skus"
-                            variant="outline"
-                            class="min-h-11"
-                            >SKUs</ActionLink
-                        >
-                    </div>
-                </details>
-                <details class="group rounded-lg border bg-card">
-                    <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
-                    >
-                        Reports and checks ·
-                        {{ reportsCount }}
-                        <ChevronDown
-                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
-                            aria-hidden="true"
-                        />
-                    </summary>
-                    <div class="flex flex-wrap gap-2 px-3 pb-3">
-                        <ActionLink
-                            href="/inventory/stock-review"
-                            variant="outline"
-                            class="min-h-11"
-                            >Stock review</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/stock-health"
-                            variant="outline"
-                            class="min-h-11"
-                            >Stock health</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/readiness"
-                            variant="outline"
-                            class="min-h-11"
-                            >Pilot readiness</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/stock-value"
-                            variant="outline"
-                            v-if="referenceData.canViewStockValue"
-                            class="min-h-11"
-                            >Stock value and cost</ActionLink
-                        >
-                        <ActionLink
-                            href="/inventory/medicine-sales"
-                            variant="outline"
-                            v-if="referenceData.canViewMedicineSales"
-                            class="min-h-11"
-                            >Medicine sales</ActionLink
-                        >
-                    </div>
-                </details>
-            </div>
-        </nav>
-
-        <section
-            class="grid grid-cols-3 gap-2 sm:gap-3"
-            aria-label="Inventory summary"
-        >
-            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
-                <p class="text-xs break-words text-muted-foreground">
-                    SKUs with stock
-                </p>
-                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                    {{ inventory.summary.skusWithStock }}
-                </p>
-            </div>
-            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
-                <p class="text-xs break-words text-muted-foreground">
-                    Total batches
-                </p>
-                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                    {{ inventory.summary.totalBatches }}
-                </p>
-            </div>
-            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
-                <p class="text-xs break-words text-muted-foreground">
-                    Expired batches
-                </p>
-                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                    {{ inventory.summary.expiredBatches }}
-                </p>
-            </div>
-        </section>
-
-        <section class="space-y-4 rounded-xl border bg-card p-4">
+                            Reports and checks ·
+                            {{ reportsCount }}
+                            <ChevronDown
+                                class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                                aria-hidden="true"
+                            />
+                        </summary>
+                        <div class="flex flex-wrap gap-2 px-3 pb-3">
+                            <ActionLink
+                                href="/inventory/stock-review"
+                                variant="outline"
+                                class="min-h-11"
+                                >Stock review</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/stock-health"
+                                variant="outline"
+                                class="min-h-11"
+                                >Stock health</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/readiness"
+                                variant="outline"
+                                class="min-h-11"
+                                >Pilot readiness</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/stock-value"
+                                variant="outline"
+                                v-if="referenceData.canViewStockValue"
+                                class="min-h-11"
+                                >Stock value and cost</ActionLink
+                            >
+                            <ActionLink
+                                href="/inventory/medicine-sales"
+                                variant="outline"
+                                v-if="referenceData.canViewMedicineSales"
+                                class="min-h-11"
+                                >Medicine sales</ActionLink
+                            >
+                        </div>
+                    </details>
+                </div>
+            </nav>
+        </div>
+        <div v-show="workspace === 'inventory'" class="space-y-4">
             <OperationalTabs
                 :model-value="inventory.tab"
                 :tabs="tabs"
                 label="Inventory views"
+                class="border-b [&_button]:rounded-none [&_button[aria-selected=true]]:border-b-2 [&_button[aria-selected=true]]:border-primary [&_button[aria-selected=true]]:bg-transparent"
                 @update:model-value="changeTab"
             />
-
-            <form
-                class="grid gap-3 md:grid-cols-2"
+            <div
+                class="grid items-start gap-5"
                 :class="
-                    inventory.tab === 'movements'
-                        ? 'xl:grid-cols-7'
-                        : 'xl:grid-cols-5'
+                    showHelpfulInfo ? 'xl:grid-cols-[minmax(0,1fr)_260px]' : ''
                 "
-                aria-label="Inventory filters"
-                @submit.prevent="applyFilters"
             >
-                <div class="space-y-1">
-                    <label for="inventory-search" class="text-xs font-medium">
-                        Search
-                    </label>
-                    <Input
-                        id="inventory-search"
-                        v-model="search"
-                        maxlength="100"
-                        placeholder="SKU, item or medicine"
+                <div class="min-w-0 space-y-4">
+                    <section
+                        class="grid grid-cols-3 gap-2 sm:gap-3"
+                        aria-label="Inventory summary"
+                    >
+                        <div
+                            class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3"
+                        >
+                            <p
+                                class="text-xs break-words text-muted-foreground"
+                            >
+                                SKUs with stock
+                            </p>
+                            <p
+                                class="mt-1 text-lg font-semibold tabular-nums sm:text-xl"
+                            >
+                                {{ inventory.summary.skusWithStock }}
+                            </p>
+                        </div>
+                        <div
+                            class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3"
+                        >
+                            <p
+                                class="text-xs break-words text-muted-foreground"
+                            >
+                                Total batches
+                            </p>
+                            <p
+                                class="mt-1 text-lg font-semibold tabular-nums sm:text-xl"
+                            >
+                                {{ inventory.summary.totalBatches }}
+                            </p>
+                        </div>
+                        <div
+                            class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3"
+                        >
+                            <p
+                                class="text-xs break-words text-muted-foreground"
+                            >
+                                Expired batches
+                            </p>
+                            <p
+                                class="mt-1 text-lg font-semibold tabular-nums sm:text-xl"
+                            >
+                                {{ inventory.summary.expiredBatches }}
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="space-y-3">
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
+                            <div>
+                                <h2 class="text-sm font-semibold">
+                                    {{
+                                        inventory.tab === 'stock'
+                                            ? 'On hand'
+                                            : inventory.tab === 'batches'
+                                              ? 'Batch & expiry'
+                                              : 'Movements'
+                                    }}
+                                </h2>
+                                <p class="mt-1 text-xs text-muted-foreground">
+                                    {{
+                                        inventory.tab === 'stock'
+                                            ? 'Open a row for its batch and location details.'
+                                            : 'Filter the branch records below.'
+                                    }}
+                                </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                :aria-expanded="showHelpfulInfo"
+                                aria-controls="inventory-helpful-info"
+                                class="min-h-11 lg:min-h-9"
+                                @click="showHelpfulInfo = !showHelpfulInfo"
+                                >{{
+                                    showHelpfulInfo
+                                        ? 'Hide helpful info'
+                                        : 'Show helpful info'
+                                }}</Button
+                            >
+                        </div>
+                        <form
+                            class="grid gap-3 md:grid-cols-2"
+                            :class="
+                                inventory.tab === 'movements'
+                                    ? 'xl:grid-cols-7'
+                                    : 'xl:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1.4fr)_auto]'
+                            "
+                            aria-label="Inventory filters"
+                            @submit.prevent="applyFilters"
+                        >
+                            <div class="space-y-1">
+                                <label
+                                    for="inventory-search"
+                                    class="text-xs font-medium"
+                                >
+                                    Search
+                                </label>
+                                <Input
+                                    id="inventory-search"
+                                    v-model="search"
+                                    maxlength="100"
+                                    placeholder="SKU, item or medicine"
+                                />
+                            </div>
+                            <details
+                                class="min-w-0 rounded-xl border bg-card p-3"
+                            >
+                                <summary
+                                    class="min-h-11 cursor-pointer text-sm font-medium lg:min-h-9"
+                                >
+                                    Location ·
+                                    {{
+                                        locationOptions.find(
+                                            (option) =>
+                                                option.value === location,
+                                        )?.label ?? 'Choose location'
+                                    }}
+                                </summary>
+                                <div class="mt-3 space-y-2">
+                                    <label
+                                        for="inventory-location"
+                                        class="text-xs font-medium"
+                                    >
+                                        Location
+                                    </label>
+                                    <InventorySearchSelect
+                                        id="inventory-location"
+                                        v-model="location"
+                                        label="Inventory location"
+                                        :options="locationOptions"
+                                        kind="locations"
+                                        context="directory"
+                                        :expected-branch-id="
+                                            operations.expectedBranchId
+                                        "
+                                    />
+                                </div>
+                            </details>
+                            <div
+                                v-if="inventory.tab !== 'movements'"
+                                class="space-y-1"
+                            >
+                                <label
+                                    for="inventory-status"
+                                    class="text-xs font-medium"
+                                >
+                                    Status
+                                </label>
+                                <OperationalSelect
+                                    id="inventory-status"
+                                    trigger-class="min-h-11 lg:min-h-9"
+                                    v-model="status"
+                                    label="Inventory status"
+                                    :options="statusOptions"
+                                />
+                            </div>
+                            <div v-else class="space-y-1">
+                                <label
+                                    for="movement-type"
+                                    class="text-xs font-medium"
+                                >
+                                    Movement type
+                                </label>
+                                <OperationalSelect
+                                    id="movement-type"
+                                    trigger-class="min-h-11 lg:min-h-9"
+                                    v-model="movementType"
+                                    label="Movement type"
+                                    :options="movementOptions"
+                                />
+                            </div>
+                            <div
+                                v-if="inventory.tab === 'movements'"
+                                class="space-y-1"
+                            >
+                                <label
+                                    for="movement-date-from"
+                                    class="text-xs font-medium"
+                                >
+                                    Date from
+                                </label>
+                                <DateField
+                                    id="movement-date-from"
+                                    v-model="dateFrom"
+                                    :max="dateTo || undefined"
+                                    :echo="false"
+                                />
+                            </div>
+                            <div
+                                v-if="inventory.tab === 'movements'"
+                                class="space-y-1"
+                            >
+                                <label
+                                    for="movement-date-to"
+                                    class="text-xs font-medium"
+                                >
+                                    Date to
+                                </label>
+                                <DateField
+                                    id="movement-date-to"
+                                    v-model="dateTo"
+                                    :min="dateFrom || undefined"
+                                    :echo="false"
+                                />
+                            </div>
+                            <div
+                                v-if="inventory.tab !== 'stock'"
+                                class="space-y-1"
+                            >
+                                <label
+                                    for="batch-search"
+                                    class="text-xs font-medium"
+                                >
+                                    Batch
+                                </label>
+                                <Input
+                                    id="batch-search"
+                                    v-model="batch"
+                                    maxlength="100"
+                                    placeholder="Batch number"
+                                />
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <Button type="submit" :disabled="loading"
+                                    >Apply</Button
+                                >
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    :disabled="loading"
+                                    @click="clearFilters"
+                                >
+                                    Clear
+                                </Button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <ErrorState
+                        v-if="filterError"
+                        title="Inventory filters need attention"
+                        :message="filterError"
                     />
-                </div>
-                <div class="space-y-1">
-                    <label for="inventory-location" class="text-xs font-medium">
-                        Location
-                    </label>
-                    <InventorySearchSelect
-                        id="inventory-location"
-                        v-model="location"
-                        label="Inventory location"
-                        :options="locationOptions"
-                        kind="locations"
-                        context="directory"
-                        :expected-branch-id="operations.expectedBranchId"
+                    <p
+                        v-if="loading"
+                        class="text-sm text-muted-foreground"
+                        role="status"
+                    >
+                        Updating inventory…
+                    </p>
+
+                    <MyDifferenceReports
+                        v-if="
+                            canReport &&
+                            inventory.tab === 'stock' &&
+                            differences?.myReports
+                        "
+                        :reports="differences.myReports"
                     />
-                </div>
-                <div v-if="inventory.tab !== 'movements'" class="space-y-1">
-                    <label for="inventory-status" class="text-xs font-medium">
-                        Status
-                    </label>
-                    <OperationalSelect
-                        id="inventory-status"
-                        v-model="status"
-                        label="Inventory status"
-                        :options="statusOptions"
+
+                    <EmptyState
+                        v-if="!loading && inventory.data.length === 0"
+                        title="No inventory records"
+                        :description="`No ${inventory.tab === 'movements' ? 'movement' : 'stock'} records are available for ${inventory.branch} with these filters.`"
                     />
-                </div>
-                <div v-else class="space-y-1">
-                    <label for="movement-type" class="text-xs font-medium">
-                        Movement type
-                    </label>
-                    <OperationalSelect
-                        id="movement-type"
-                        v-model="movementType"
-                        label="Movement type"
-                        :options="movementOptions"
+
+                    <StockOnHandList
+                        v-else-if="inventory.tab === 'stock'"
+                        :rows="inventory.data"
+                        :can-report="canReport"
+                        :loading="loading"
+                        @report="openReport"
                     />
-                </div>
-                <div v-if="inventory.tab === 'movements'" class="space-y-1">
-                    <label for="movement-date-from" class="text-xs font-medium">
-                        Date from
-                    </label>
-                    <DateField
-                        id="movement-date-from"
-                        v-model="dateFrom"
-                        :max="dateTo || undefined"
-                        :echo="false"
-                    />
-                </div>
-                <div v-if="inventory.tab === 'movements'" class="space-y-1">
-                    <label for="movement-date-to" class="text-xs font-medium">
-                        Date to
-                    </label>
-                    <DateField
-                        id="movement-date-to"
-                        v-model="dateTo"
-                        :min="dateFrom || undefined"
-                        :echo="false"
-                    />
-                </div>
-                <div v-if="inventory.tab !== 'stock'" class="space-y-1">
-                    <label for="batch-search" class="text-xs font-medium">
-                        Batch
-                    </label>
-                    <Input
-                        id="batch-search"
-                        v-model="batch"
-                        maxlength="100"
-                        placeholder="Batch number"
-                    />
-                </div>
-                <div class="flex items-end gap-2">
-                    <Button type="submit" :disabled="loading">Apply</Button>
-                    <Button
-                        type="button"
-                        variant="secondary"
+
+                    <OperationalTable
+                        v-else-if="inventory.tab === 'batches'"
+                        label="Batch & Expiry"
+                        :columns="9"
+                        min-width="1120px"
+                        :loading="loading"
+                        class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
+                    >
+                        <template #head
+                            ><tr>
+                                <th scope="col">SKU / Item</th>
+                                <th scope="col">Medicine</th>
+                                <th scope="col">Batch</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Received</th>
+                                <th scope="col">Expiry</th>
+                                <th scope="col">Expiry status</th>
+                                <th scope="col">Batch status</th>
+                                <th scope="col" class="min-w-28 text-right">
+                                    Quantity
+                                </th>
+                            </tr></template
+                        >
+                        <template #body>
+                            <tr
+                                v-for="(row, index) in inventory.data"
+                                :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
+                            >
+                                <td
+                                    class="max-w-56 min-w-44 break-words whitespace-normal"
+                                >
+                                    <span
+                                        class="block font-mono text-xs"
+                                        :title="String(row.skuCode)"
+                                        >{{ row.skuCode }}</span
+                                    ><span class="block font-medium">{{
+                                        row.itemName
+                                    }}</span>
+                                </td>
+                                <td
+                                    class="max-w-64 min-w-44 break-words whitespace-normal"
+                                >
+                                    {{
+                                        row.medicineName ??
+                                        'Not mapped to Medicine'
+                                    }}
+                                </td>
+                                <td
+                                    class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
+                                    :title="String(row.batchNumber)"
+                                >
+                                    {{ row.batchNumber }}
+                                </td>
+                                <td
+                                    class="max-w-56 min-w-44 break-words whitespace-normal"
+                                    :title="String(row.location)"
+                                >
+                                    {{ row.location }}
+                                </td>
+                                <td class="whitespace-nowrap">
+                                    {{ row.receivedDate ?? '—' }}
+                                </td>
+                                <td class="whitespace-nowrap">
+                                    {{ row.expiryDate }}
+                                </td>
+                                <td>
+                                    <StatusBadge
+                                        :status="
+                                            String(
+                                                row.expiryStatus,
+                                            ).toLowerCase()
+                                        "
+                                        :label="String(row.expiryStatus)"
+                                        :tone="
+                                            row.expiryStatus === 'Expired'
+                                                ? 'danger'
+                                                : 'success'
+                                        "
+                                    />
+                                </td>
+                                <td>
+                                    <StatusBadge
+                                        :status="
+                                            String(
+                                                row.batchStatus,
+                                            ).toLowerCase()
+                                        "
+                                        :label="
+                                            row.holdReason ||
+                                            row.held === true ||
+                                            String(
+                                                row.batchStatus,
+                                            ).toLowerCase() === 'held'
+                                                ? formatInventoryHoldLabel(
+                                                      formatInventoryReason(
+                                                          row.holdReason,
+                                                      ),
+                                                  )
+                                                : String(row.batchStatus)
+                                        "
+                                    />
+                                </td>
+                                <td
+                                    class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
+                                >
+                                    {{ row.quantity }} {{ row.stockUnit }}
+                                </td>
+                            </tr>
+                        </template>
+                    </OperationalTable>
+
+                    <OperationalTable
+                        v-else
+                        label="Stock Movements"
+                        :columns="8"
+                        min-width="1120px"
+                        :loading="loading"
+                        class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
+                    >
+                        <template #head
+                            ><tr>
+                                <th scope="col">Date / Time</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">SKU / Item</th>
+                                <th scope="col">Medicine</th>
+                                <th scope="col">Batch</th>
+                                <th scope="col">Direction</th>
+                                <th scope="col" class="min-w-28 text-right">
+                                    Quantity
+                                </th>
+                                <th scope="col">Reference</th>
+                            </tr></template
+                        >
+                        <template #body>
+                            <tr
+                                v-for="(row, index) in inventory.data"
+                                :key="`${row.occurredAt}-${row.skuCode}-${row.batchNumber}-${index}`"
+                            >
+                                <td class="whitespace-nowrap">
+                                    {{ row.occurredAt }}
+                                </td>
+                                <td>
+                                    <StatusBadge
+                                        :status="String(row.type)"
+                                        :label="String(row.typeLabel)"
+                                    />
+                                </td>
+                                <td
+                                    class="max-w-56 min-w-44 break-words whitespace-normal"
+                                >
+                                    <span
+                                        class="block font-mono text-xs"
+                                        :title="String(row.skuCode)"
+                                        >{{ row.skuCode }}</span
+                                    ><span class="block font-medium">{{
+                                        row.itemName
+                                    }}</span>
+                                </td>
+                                <td
+                                    class="max-w-64 min-w-44 break-words whitespace-normal"
+                                >
+                                    {{
+                                        row.medicineName ??
+                                        'Not mapped to Medicine'
+                                    }}
+                                </td>
+                                <td
+                                    class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
+                                    :title="String(row.batchNumber)"
+                                >
+                                    {{ row.batchNumber }}
+                                </td>
+                                <td>{{ row.direction }}</td>
+                                <td
+                                    class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
+                                >
+                                    {{ row.quantityDisplay }}
+                                    {{ row.stockUnit }}
+                                </td>
+                                <td
+                                    class="max-w-56 min-w-40 break-words whitespace-normal"
+                                >
+                                    {{ row.reference }}
+                                </td>
+                            </tr>
+                        </template>
+                    </OperationalTable>
+
+                    <CompactPagination
+                        v-if="inventory.total > 0"
+                        :current-page="inventory.currentPage"
+                        :last-page="inventory.lastPage"
+                        :total="inventory.total"
                         :disabled="loading"
-                        @click="clearFilters"
-                    >
-                        Clear
-                    </Button>
+                        @change="(page) => visit({ page })"
+                    />
+
+                    <p class="text-xs text-muted-foreground">
+                        Dates and times use {{ inventory.branchTimezone }}.
+                        Movement records are read-only.
+                    </p>
                 </div>
-            </form>
-        </section>
-
-        <ErrorState
-            v-if="filterError"
-            title="Inventory filters need attention"
-            :message="filterError"
-        />
-        <p v-if="loading" class="text-sm text-muted-foreground" role="status">
-            Updating inventory…
-        </p>
-
-        <MyDifferenceReports
-            v-if="
-                canReport && inventory.tab === 'stock' && differences?.myReports
-            "
-            :reports="differences.myReports"
-        />
-
-        <EmptyState
-            v-if="!loading && inventory.data.length === 0"
-            title="No inventory records"
-            :description="`No ${inventory.tab === 'movements' ? 'movement' : 'stock'} records are available for ${inventory.branch} with these filters.`"
-        />
-
-        <OperationalTable
-            v-else-if="inventory.tab === 'stock'"
-            label="Stock Overview"
-            :columns="canReport ? 9 : 8"
-            min-width="1040px"
-            :loading="loading"
-            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
-        >
-            <template #head
-                ><tr>
-                    <th scope="col">SKU / Item</th>
-                    <th scope="col">Medicine</th>
-                    <th scope="col">Location</th>
-                    <th scope="col">Branch</th>
-                    <th scope="col">Batch</th>
-                    <th scope="col">Expiry</th>
-                    <th scope="col" class="min-w-28 text-right">Quantity</th>
-                    <th scope="col" class="min-w-32">Status</th>
-                    <th v-if="canReport" scope="col" class="relative w-14">
-                        <span class="sr-only">Actions</span>
-                    </th>
-                </tr></template
-            >
-            <template #body>
-                <tr
-                    v-for="(row, index) in inventory.data"
-                    :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
+                <aside
+                    v-show="showHelpfulInfo"
+                    id="inventory-helpful-info"
+                    aria-label="Helpful inventory information"
+                    class="space-y-3"
                 >
-                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
-                        <span
-                            class="block font-mono text-xs"
-                            :title="String(row.skuCode)"
-                            >{{ row.skuCode }}</span
-                        ><span class="block font-medium">{{
-                            row.itemName
-                        }}</span>
-                    </td>
-                    <td class="max-w-64 min-w-44 break-words whitespace-normal">
-                        {{ row.medicineName ?? 'Not mapped to Medicine' }}
-                    </td>
-                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
-                        <span class="block" :title="String(row.location)">{{
-                            row.location
-                        }}</span
-                        ><span class="text-xs text-muted-foreground">{{
-                            row.locationType
-                        }}</span>
-                    </td>
-                    <td class="min-w-32 break-words whitespace-normal">
-                        {{ row.branch }}
-                    </td>
-                    <td
-                        class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
-                        :title="String(row.batchNumber)"
-                    >
-                        {{ row.batchNumber }}
-                    </td>
-                    <td class="whitespace-nowrap">{{ row.expiryDate }}</td>
-                    <td
-                        class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
-                    >
-                        {{ row.quantity }} {{ row.stockUnit }}
-                    </td>
-                    <td class="min-w-32">
-                        <StatusBadge
-                            :status="row.available ? 'available' : 'inactive'"
-                            :label="
-                                row.holdReason ||
-                                row.held === true ||
-                                String(row.availabilityStatus).toLowerCase() ===
-                                    'held'
-                                    ? formatInventoryHoldLabel(
-                                          formatInventoryReason(row.holdReason),
-                                      )
-                                    : String(row.availabilityStatus)
-                            "
-                        />
-                        <StatusBadge
-                            v-if="row.difference?.openCount"
-                            class="mt-1"
-                            status="count_open"
-                            label="Count open"
-                            tone="neutral"
-                            dot
-                        />
-                    </td>
-                    <td v-if="canReport" class="w-14 text-right">
-                        <DifferenceRowMenu
-                            v-if="row.difference"
-                            :difference="row.difference"
-                            :label="String(row.medicineName ?? row.itemName)"
-                            @report="(trigger) => openReport(row, trigger)"
-                        />
-                    </td>
-                </tr>
-            </template>
-        </OperationalTable>
-
-        <OperationalTable
-            v-else-if="inventory.tab === 'batches'"
-            label="Batch & Expiry"
-            :columns="9"
-            min-width="1120px"
-            :loading="loading"
-            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
-        >
-            <template #head
-                ><tr>
-                    <th scope="col">SKU / Item</th>
-                    <th scope="col">Medicine</th>
-                    <th scope="col">Batch</th>
-                    <th scope="col">Location</th>
-                    <th scope="col">Received</th>
-                    <th scope="col">Expiry</th>
-                    <th scope="col">Expiry status</th>
-                    <th scope="col">Batch status</th>
-                    <th scope="col" class="min-w-28 text-right">Quantity</th>
-                </tr></template
-            >
-            <template #body>
-                <tr
-                    v-for="(row, index) in inventory.data"
-                    :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
-                >
-                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
-                        <span
-                            class="block font-mono text-xs"
-                            :title="String(row.skuCode)"
-                            >{{ row.skuCode }}</span
-                        ><span class="block font-medium">{{
-                            row.itemName
-                        }}</span>
-                    </td>
-                    <td class="max-w-64 min-w-44 break-words whitespace-normal">
-                        {{ row.medicineName ?? 'Not mapped to Medicine' }}
-                    </td>
-                    <td
-                        class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
-                        :title="String(row.batchNumber)"
-                    >
-                        {{ row.batchNumber }}
-                    </td>
-                    <td
-                        class="max-w-56 min-w-44 break-words whitespace-normal"
-                        :title="String(row.location)"
-                    >
-                        {{ row.location }}
-                    </td>
-                    <td class="whitespace-nowrap">
-                        {{ row.receivedDate ?? '—' }}
-                    </td>
-                    <td class="whitespace-nowrap">{{ row.expiryDate }}</td>
-                    <td>
-                        <StatusBadge
-                            :status="String(row.expiryStatus).toLowerCase()"
-                            :label="String(row.expiryStatus)"
-                            :tone="
-                                row.expiryStatus === 'Expired'
-                                    ? 'danger'
-                                    : 'success'
-                            "
-                        />
-                    </td>
-                    <td>
-                        <StatusBadge
-                            :status="String(row.batchStatus).toLowerCase()"
-                            :label="
-                                row.holdReason ||
-                                row.held === true ||
-                                String(row.batchStatus).toLowerCase() === 'held'
-                                    ? formatInventoryHoldLabel(
-                                          formatInventoryReason(row.holdReason),
-                                      )
-                                    : String(row.batchStatus)
-                            "
-                        />
-                    </td>
-                    <td
-                        class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
-                    >
-                        {{ row.quantity }} {{ row.stockUnit }}
-                    </td>
-                </tr>
-            </template>
-        </OperationalTable>
-
-        <OperationalTable
-            v-else
-            label="Stock Movements"
-            :columns="8"
-            min-width="1120px"
-            :loading="loading"
-            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
-        >
-            <template #head
-                ><tr>
-                    <th scope="col">Date / Time</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">SKU / Item</th>
-                    <th scope="col">Medicine</th>
-                    <th scope="col">Batch</th>
-                    <th scope="col">Direction</th>
-                    <th scope="col" class="min-w-28 text-right">Quantity</th>
-                    <th scope="col">Reference</th>
-                </tr></template
-            >
-            <template #body>
-                <tr
-                    v-for="(row, index) in inventory.data"
-                    :key="`${row.occurredAt}-${row.skuCode}-${row.batchNumber}-${index}`"
-                >
-                    <td class="whitespace-nowrap">{{ row.occurredAt }}</td>
-                    <td>
-                        <StatusBadge
-                            :status="String(row.type)"
-                            :label="String(row.typeLabel)"
-                        />
-                    </td>
-                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
-                        <span
-                            class="block font-mono text-xs"
-                            :title="String(row.skuCode)"
-                            >{{ row.skuCode }}</span
-                        ><span class="block font-medium">{{
-                            row.itemName
-                        }}</span>
-                    </td>
-                    <td class="max-w-64 min-w-44 break-words whitespace-normal">
-                        {{ row.medicineName ?? 'Not mapped to Medicine' }}
-                    </td>
-                    <td
-                        class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
-                        :title="String(row.batchNumber)"
-                    >
-                        {{ row.batchNumber }}
-                    </td>
-                    <td>{{ row.direction }}</td>
-                    <td
-                        class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
-                    >
-                        {{ row.quantityDisplay }} {{ row.stockUnit }}
-                    </td>
-                    <td class="max-w-56 min-w-40 break-words whitespace-normal">
-                        {{ row.reference }}
-                    </td>
-                </tr>
-            </template>
-        </OperationalTable>
-
-        <CompactPagination
-            v-if="inventory.total > 0"
-            :current-page="inventory.currentPage"
-            :last-page="inventory.lastPage"
-            :total="inventory.total"
-            :disabled="loading"
-            @change="(page) => visit({ page })"
-        />
-
-        <p class="text-xs text-muted-foreground">
-            Dates and times use {{ inventory.branchTimezone }}. Movement records
-            are read-only.
-        </p>
+                    <details open class="rounded-2xl border bg-card p-4">
+                        <summary
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
+                        >
+                            About this view
+                        </summary>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        >
+                            {{
+                                inventory.tab === 'stock'
+                                    ? 'On hand shows each batch and location balance, including held or unavailable stock. Open a row for its details.'
+                                    : inventory.tab === 'batches'
+                                      ? 'Check the received date, expiry and status of each batch at this branch.'
+                                      : 'Movement history records changes to stock. These records are read-only.'
+                            }}
+                        </p>
+                    </details>
+                    <details open class="rounded-2xl border bg-card p-4">
+                        <summary
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
+                        >
+                            Branch at a glance
+                        </summary>
+                        <p class="mt-2 text-xs text-muted-foreground">
+                            {{ inventory.branch }} · All stock, before directory
+                            filters
+                        </p>
+                        <dl class="mt-3 divide-y text-sm">
+                            <div class="flex justify-between gap-2 py-2">
+                                <dt>SKUs with stock</dt>
+                                <dd class="tabular-nums">
+                                    {{ inventory.summary.skusWithStock }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-2 py-2">
+                                <dt>Total batches</dt>
+                                <dd class="tabular-nums">
+                                    {{ inventory.summary.totalBatches }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-2 py-2">
+                                <dt>Expired batches</dt>
+                                <dd class="tabular-nums">
+                                    {{ inventory.summary.expiredBatches }}
+                                </dd>
+                            </div>
+                        </dl>
+                    </details>
+                    <details class="rounded-2xl border bg-card p-4">
+                        <summary
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
+                        >
+                            Related pages
+                        </summary>
+                        <p class="mt-2 text-sm text-muted-foreground">
+                            Find counts, holds, purchasing and reports in
+                            Inventory tasks.
+                        </p>
+                        <Button
+                            class="mt-2"
+                            variant="outline"
+                            @click="workspace = 'tasks'"
+                            >Open tasks</Button
+                        >
+                    </details>
+                    <details class="rounded-2xl border bg-card p-4">
+                        <summary
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
+                        >
+                            Good to know
+                        </summary>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        >
+                            Quantities keep their recorded stock units. Held and
+                            expired stock may be on hand but unavailable for
+                            use. Dates use {{ inventory.branchTimezone }}.
+                        </p>
+                    </details>
+                </aside>
+            </div>
+        </div>
 
         <ReportDifferenceSheet
             v-if="canReport && differences?.expectedBranchId"
@@ -1024,11 +1215,15 @@ const clearFilters = () => {
             @closed="closeReport"
         />
 
-        <InventoryReferenceDataPanel :reference-data="referenceData" />
+        <div v-show="workspace === 'reference'">
+            <InventoryReferenceDataPanel :reference-data="referenceData" />
+        </div>
 
-        <InventoryOperationsPanel
-            :operations="operations"
-            :receipt-memory-context="receiptMemoryContext"
-        />
+        <div v-show="workspace === 'operations'">
+            <InventoryOperationsPanel
+                :operations="operations"
+                :receipt-memory-context="receiptMemoryContext"
+            />
+        </div>
     </main>
 </template>

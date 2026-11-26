@@ -108,6 +108,8 @@ test('held inventory with no reason reads Held without changing known reason lab
         'resources/js/lib/inventory-picker.ts',
     );
     const index = read('resources/js/pages/Inventory/Index.vue');
+    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
+    const both = `${index}\n${rows}`;
 
     assert.equal(formatInventoryHoldLabel(''), 'Held');
     assert.equal(
@@ -131,11 +133,12 @@ test('held inventory with no reason reads Held without changing known reason lab
     }
 
     assert.equal(
-        (index.match(/formatInventoryReason\(row\.holdReason\)/g) ?? []).length,
+        (both.match(/formatInventoryReason\(\s*row\.holdReason,?\s*\)/g) ?? [])
+            .length,
         2,
     );
-    assert.doesNotMatch(index, /String\(row\.holdReason\)/);
-    assert.match(index, /availabilityStatus[\s\S]*?===\s*'held'/i);
+    assert.doesNotMatch(both, /String\(row\.holdReason\)/);
+    assert.match(rows, /availabilityStatus[\s\S]*?===\s*'held'/i);
     assert.match(index, /batchStatus[\s\S]*?===\s*'held'/i);
 });
 
