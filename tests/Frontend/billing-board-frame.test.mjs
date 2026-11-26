@@ -56,6 +56,7 @@ async function render(permissions, active = 'collect') {
                     }
                   : require(name),
     });
+
     return renderToString(
         createSSRApp({
             render: () =>
