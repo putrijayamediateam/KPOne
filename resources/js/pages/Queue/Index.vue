@@ -17,6 +17,7 @@ import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import CallNextControl from '@/components/queue/CallNextControl.vue';
 import EmergencyLane from '@/components/queue/EmergencyLane.vue';
+import QueueAverageWaitSummary from '@/components/queue/QueueAverageWaitSummary.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import QueueRoomsToday from '@/components/queue/QueueRoomsToday.vue';
 import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
@@ -25,6 +26,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
 import { useRoomsToday } from '@/composables/useRoomsToday';
+import { useQueueAverageWait } from '@/composables/useQueueAverageWait';
 import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
 import { completedShownLine, servingShownLine } from '@/lib/completed-tab';
 import { emergencyBoardMetadata } from '@/lib/emergency-lane';
@@ -138,6 +140,7 @@ const tabs = computed<
 const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
 const roomsToday = useRoomsToday();
+const averageWait = useQueueAverageWait();
 // Q-2: the attending doctor (own queue) is told when a treatment step is done.
 const treatmentAlerts = useTreatmentDoneAlerts(true);
 const page = usePage();
@@ -196,6 +199,7 @@ watch(
 
         if (live.value.branch.id !== snapshot.branch.id) {
             readyAlerts.reset();
+            averageWait.reset();
             treatmentAlerts.reset();
         }
 
@@ -439,6 +443,10 @@ const refresh = (
                 request.signal,
                 () => pollingLifecycle.accepts(requestGeneration),
             );
+            void averageWait.poll(live.value.branch.id, request.signal, () =>
+                pollingLifecycle.accepts(requestGeneration),
+            );
+
             await readyAlerts
                 .poll(live.value.branch.id, request.signal)
                 .catch(() => undefined);
@@ -719,6 +727,7 @@ const handleVisibility = () => {
     if (document.hidden) {
         pollingLifecycle.invalidate();
         roomsToday.reset();
+        averageWait.reset();
 
         if (pollTimer) {
             clearTimeout(pollTimer);
@@ -752,6 +761,7 @@ onBeforeUnmount(() => {
     tabResizeObserver?.disconnect();
     pollingLifecycle.dispose();
     roomsToday.reset();
+    averageWait.reset();
     document.removeEventListener('visibilitychange', handleVisibility);
 
     if (pollTimer) {
@@ -860,6 +870,12 @@ onBeforeUnmount(() => {
                     void refresh();
                 }
             "
+        />
+
+        <QueueAverageWaitSummary
+            :stats="averageWait.stats.value"
+            :unavailable="averageWait.unavailable.value"
+            :scope="live.scope"
         />
 
         <form
