@@ -53,7 +53,16 @@ final class WeightedAverageCostService
             ->select(['id', 'movement_type', 'inventory_sku_id', 'source_location_id', 'destination_location_id', 'quantity', 'unit_cost_sen', 'cost_total_sen', 'cost_source', 'reference_public_id', 'occurred_at'])
             ->cursor();
 
-        return $this->replayRows($rows, $branchOf);
+        // Acceptance restates the original movement, including historical periods before acceptance.
+        // Do not exclude a subsequently reversed receipt: reversal leaves at the prevailing average.
+        $accepted = DB::table('inventory_hand_costs')->where('organisation_id', $organisationId)
+            ->where('status', 'accepted')->orderByDesc('decided_at')->orderByDesc('id')
+            ->get(['id', 'stock_movement_id', 'cost_total_sen', 'decided_at'])->unique('stock_movement_id')
+            ->mapWithKeys(fn ($h): array => [(int) $h->stock_movement_id => [
+                'id' => (int) $h->id, 'cost_total_sen' => (int) $h->cost_total_sen, 'accepted_at' => (string) $h->decided_at,
+            ]])->all();
+
+        return $this->replayRows($rows, $branchOf, $accepted);
     }
 
     /**
@@ -61,14 +70,15 @@ final class WeightedAverageCostService
      *
      * @param  iterable<\stdClass>  $rows  each with id, movement_type, inventory_sku_id, source_location_id, destination_location_id,
      *                                     quantity (a decimal string), unit_cost_sen, cost_total_sen, cost_source, reference_public_id
+     * @param  array<int, array{id:int, cost_total_sen:int, accepted_at:string}>  $accepted  latest accepted cost per movement
      * @param  array<int, int>  $branchOf  location id => branch id (0 for the organisation store)
      * @return array{positions: list<array<string, mixed>>, movements: array<int, array<string, mixed>>, inTransit: list<array<string, mixed>>}
      */
-    public function replayRows(iterable $rows, array $branchOf): array
+    public function replayRows(iterable $rows, array $branchOf, array $accepted = []): array
     {
-        /** @var array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool}> $positions */
+        /** @var array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}> $positions */
         $positions = [];
-        /** @var array<string, array{sku:int, reference:string, qty:int, value:int, uncosted:int, estimate:bool}> $transit */
+        /** @var array<string, array{sku:int, reference:string, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}> $transit */
         $transit = [];
         $movements = [];
 
@@ -86,6 +96,7 @@ final class WeightedAverageCostService
                 $result['value_milli_sen'] = $taken['value'];
                 $result['uncosted_quantity'] = $taken['uncosted'];
                 $result['estimate'] = $taken['estimate'];
+                $result += $this->provenance($taken['hand_costs'] ?? []);
             }
             if ($row->movement_type === StockMovement::TYPE_TRANSFER_DISPATCH && $taken !== null) {
                 // Into the in-transit pool of this stock request, at the cost it left at.
@@ -95,6 +106,7 @@ final class WeightedAverageCostService
                 $pool['value'] += $taken['value'];
                 $pool['uncosted'] += $taken['uncosted'];
                 $pool['estimate'] = $pool['estimate'] || $taken['estimate'];
+                $pool['hand_costs'] = ($pool['hand_costs'] ?? []) + ($taken['hand_costs'] ?? []);
                 $transit[$key] = $pool;
                 $result['basis'] = 'average';
             }
@@ -103,21 +115,23 @@ final class WeightedAverageCostService
             if ($in !== null && $in !== $out) {
                 if ($taken !== null) {
                     // A direct transfer between branches: arrives at the cost it left at.
-                    $this->give($positions, $sku, $in, $quantity - $taken['uncosted'], $taken['value'], $taken['uncosted'], $taken['estimate']);
+                    $this->give($positions, $sku, $in, $quantity - $taken['uncosted'], $taken['value'], $taken['uncosted'], $taken['estimate'], $taken['hand_costs'] ?? []);
                     $result['basis'] = 'transfer';
                 } elseif ($row->movement_type === StockMovement::TYPE_TRANSFER_RECEIPT) {
                     $result = [...$result, ...$this->arrive($positions, $transit, $sku, $in, $quantity, (string) $row->reference_public_id)];
-                } elseif (in_array($row->movement_type, self::COSTED_IN, true) && ($cost = $this->ownCost($row, $quantity)) !== null) {
-                    $this->give($positions, $sku, $in, $quantity, $cost['value'], 0, $cost['estimate']);
+                } elseif (in_array($row->movement_type, self::COSTED_IN, true) && ($cost = $this->ownCost($row, $quantity, $accepted[(int) $row->id] ?? null)) !== null) {
+                    $this->give($positions, $sku, $in, $quantity, $cost['value'], 0, $cost['estimate'], $cost['hand_costs'] ?? []);
                     $result['value_milli_sen'] = $cost['value'];
                     $result['estimate'] = $cost['estimate'];
-                    $result['basis'] = $cost['estimate'] ? 'estimate' : ($row->movement_type === StockMovement::TYPE_OPENING ? 'opening' : 'receipt');
+                    $result += $this->provenance($cost['hand_costs'] ?? []);
+                    $result['basis'] = isset($cost['hand_costs']) ? 'hand' : ($cost['estimate'] ? 'estimate' : ($row->movement_type === StockMovement::TYPE_OPENING ? 'opening' : 'receipt'));
                 } else {
                     // No cost of its own: at the current average, or "no cost" when there is none yet.
                     $at = $this->atAverage($positions, $sku, $in, $quantity);
                     $result['value_milli_sen'] = $at['value'];
                     $result['uncosted_quantity'] = $at['uncosted'];
                     $result['basis'] = $at['uncosted'] > 0 ? 'no_cost' : 'average';
+                    $result += $this->provenance($at['hand_costs'] ?? []);
                 }
             }
 
@@ -128,11 +142,13 @@ final class WeightedAverageCostService
             'positions' => array_values(array_map(fn (array $p): array => [
                 'sku_id' => $p['sku'], 'branch_key' => $p['branch'], 'quantity' => $p['qty'] + $p['uncosted'], 'costed_quantity' => $p['qty'],
                 'value_milli_sen' => $p['value'], 'uncosted_quantity' => $p['uncosted'], 'includes_estimate' => $p['estimate'] && $p['qty'] > 0,
+                ...$this->provenance($p['hand_costs'] ?? []),
             ], $positions)),
             'movements' => $movements,
             'inTransit' => array_values(array_filter(array_map(fn (array $t): array => [
                 'sku_id' => $t['sku'], 'reference' => $t['reference'], 'quantity' => $t['qty'] + $t['uncosted'], 'value_milli_sen' => $t['value'],
                 'uncosted_quantity' => $t['uncosted'], 'includes_estimate' => $t['estimate'],
+                ...$this->provenance($t['hand_costs'] ?? []),
             ], $transit), fn (array $t): bool => $t['quantity'] > 0)),
         ];
     }
@@ -163,9 +179,18 @@ final class WeightedAverageCostService
         return intdiv($value, $whole) * $part + intdiv(2 * ($value % $whole) * $part + $whole, 2 * $whole);
     }
 
-    /** @return array{value:int, estimate:bool}|null the movement's own cost, or null when it has none */
-    private function ownCost(\stdClass $row, int $quantity): ?array
+    /**
+     * @param  array{id:int, cost_total_sen:int, accepted_at:string}|null  $accepted
+     * @return array{value:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}|null the movement's own cost, or null when it has none
+     */
+    private function ownCost(\stdClass $row, int $quantity, ?array $accepted): ?array
     {
+        $eligible = $row->cost_total_sen === null && ($row->movement_type === StockMovement::TYPE_OPENING
+            ? $row->unit_cost_sen === null : in_array($row->cost_source, [null, 'estimate'], true));
+        if ($accepted !== null && $eligible) {
+            return ['value' => $accepted['cost_total_sen'] * 1000, 'estimate' => false,
+                'hand_costs' => [$accepted['id'] => [...$accepted, 'sku_id' => (int) $row->inventory_sku_id, 'movement_id' => (int) $row->id]]];
+        }
         if ($row->cost_total_sen !== null) {
             return ['value' => (int) $row->cost_total_sen * 1000, 'estimate' => false];
         }
@@ -178,8 +203,8 @@ final class WeightedAverageCostService
     }
 
     /**
-     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool}>  $positions
-     * @return array{value:int, uncosted:int, estimate:bool}
+     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}>  $positions
+     * @return array{value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}
      */
     private function take(array &$positions, int $sku, int $branch, int $quantity): array
     {
@@ -187,6 +212,7 @@ final class WeightedAverageCostService
         $fromCosted = min($quantity, $p['qty']);
         $value = $fromCosted > 0 ? self::share($p['value'], $fromCosted, $p['qty']) : 0;
         $estimate = $p['estimate'] && $fromCosted > 0;
+        $handCosts = $fromCosted > 0 ? ($p['hand_costs'] ?? []) : [];
         $p['qty'] -= $fromCosted;
         $p['value'] -= $value;
         // The rest comes from stock with no cost (never valued at zero; the movement says how much had none).
@@ -195,26 +221,33 @@ final class WeightedAverageCostService
         if ($p['qty'] === 0) {
             $p['value'] = 0;
             $p['estimate'] = false;
+            $p['hand_costs'] = [];
         }
         $positions[$sku.'|'.$branch] = $p;
 
-        return ['value' => $value, 'uncosted' => $uncosted, 'estimate' => $estimate];
+        return ['value' => $value, 'uncosted' => $uncosted, 'estimate' => $estimate, ...$this->provenance($handCosts)];
     }
 
-    /** @param array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool}> $positions */
-    private function give(array &$positions, int $sku, int $branch, int $costedQuantity, int $value, int $uncosted, bool $estimate): void
+    /**
+     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}>  $positions
+     * @param  array<int, array<string, mixed>>  $handCosts
+     */
+    private function give(array &$positions, int $sku, int $branch, int $costedQuantity, int $value, int $uncosted, bool $estimate, array $handCosts = []): void
     {
         $p = $positions[$sku.'|'.$branch] ?? ['sku' => $sku, 'branch' => $branch, 'qty' => 0, 'value' => 0, 'uncosted' => 0, 'estimate' => false];
         $p['qty'] += $costedQuantity;
         $p['value'] += $value;
         $p['uncosted'] += $uncosted;
         $p['estimate'] = $p['estimate'] || ($estimate && $costedQuantity > 0);
+        if ($costedQuantity > 0) {
+            $p['hand_costs'] = ($p['hand_costs'] ?? []) + $handCosts;
+        }
         $positions[$sku.'|'.$branch] = $p;
     }
 
     /**
-     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool}>  $positions
-     * @return array{value:int, uncosted:int}
+     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}>  $positions
+     * @return array{value:int, uncosted:int, hand_costs?:array<int, array<string, mixed>>}
      */
     private function atAverage(array &$positions, int $sku, int $branch, int $quantity): array
     {
@@ -227,15 +260,15 @@ final class WeightedAverageCostService
         $value = self::share($p['value'], $quantity, $p['qty']);
         $this->give($positions, $sku, $branch, $quantity, $value, 0, false);
 
-        return ['value' => $value, 'uncosted' => 0];
+        return ['value' => $value, 'uncosted' => 0, ...$this->provenance($p['hand_costs'] ?? [])];
     }
 
     /**
      * A two-stage transfer arriving: at the cost it left at, taken from its in-transit pool.
      *
-     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool}>  $positions
-     * @param  array<string, array{sku:int, reference:string, qty:int, value:int, uncosted:int, estimate:bool}>  $transit
-     * @return array{value_milli_sen:int, uncosted_quantity:int, basis:string, estimate:bool}
+     * @param  array<string, array{sku:int, branch:int, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}>  $positions
+     * @param  array<string, array{sku:int, reference:string, qty:int, value:int, uncosted:int, estimate:bool, hand_costs?:array<int, array<string, mixed>>}>  $transit
+     * @return array{value_milli_sen:int, uncosted_quantity:int, basis:string, estimate:bool, hand_costs?:array<int, array<string, mixed>>}
      */
     private function arrive(array &$positions, array &$transit, int $sku, int $branch, int $quantity, string $reference): array
     {
@@ -245,24 +278,40 @@ final class WeightedAverageCostService
             // Nothing recorded in transit (for example stock that arrived later than its pool was emptied): rule (c).
             $at = $this->atAverage($positions, $sku, $branch, $quantity);
 
-            return ['value_milli_sen' => $at['value'], 'uncosted_quantity' => $at['uncosted'], 'basis' => $at['uncosted'] > 0 ? 'no_cost' : 'average', 'estimate' => false];
+            return ['value_milli_sen' => $at['value'], 'uncosted_quantity' => $at['uncosted'], 'basis' => $at['uncosted'] > 0 ? 'no_cost' : 'average', 'estimate' => false, ...$this->provenance($at['hand_costs'] ?? [])];
         }
         $fromCosted = min($quantity, $pool['qty']);
         $value = $fromCosted > 0 ? self::share($pool['value'], $fromCosted, $pool['qty']) : 0;
         $uncosted = min($quantity - $fromCosted, $pool['uncosted']);
         $extra = $quantity - $fromCosted - $uncosted;
+        $handCosts = $fromCosted > 0 ? ($pool['hand_costs'] ?? []) : [];
         $pool['qty'] -= $fromCosted;
         $pool['value'] -= $value;
         $pool['uncosted'] -= $uncosted;
         $transit[$key] = $pool;
-        $this->give($positions, $sku, $branch, $fromCosted, $value, $uncosted, $pool['estimate']);
+        if ($pool['qty'] === 0) {
+            $transit[$key]['hand_costs'] = [];
+        }
+        $this->give($positions, $sku, $branch, $fromCosted, $value, $uncosted, $pool['estimate'], $handCosts);
         // More arrived than was sent (STK-6 extra stock never enters by transfer, but stay safe): at the average.
         if ($extra > 0) {
             $at = $this->atAverage($positions, $sku, $branch, $extra);
             $value += $at['value'];
             $uncosted += $at['uncosted'];
+            $handCosts += $at['hand_costs'] ?? [];
         }
 
-        return ['value_milli_sen' => $value, 'uncosted_quantity' => $uncosted, 'basis' => 'transfer', 'estimate' => $pool['estimate'] && $fromCosted > 0];
+        return ['value_milli_sen' => $value, 'uncosted_quantity' => $uncosted, 'basis' => 'transfer', 'estimate' => $pool['estimate'] && $fromCosted > 0, ...$this->provenance($handCosts)];
+    }
+
+    /**
+     * Omit provenance when absent to retain the existing calculator result contract.
+     *
+     * @param  array<int, array<string, mixed>>  $costs
+     * @return array{hand_costs?:array<int, array<string, mixed>>}
+     */
+    private function provenance(array $costs): array
+    {
+        return $costs === [] ? [] : ['hand_costs' => $costs];
     }
 }
