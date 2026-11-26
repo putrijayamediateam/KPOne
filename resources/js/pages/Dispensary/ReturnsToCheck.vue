@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { computed, nextTick, onMounted } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
@@ -7,7 +8,9 @@ import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import {
+    refuseReasonLabels,
     returnConditionLabels,
     returnReasonLabels,
 } from '@/lib/dispensary-returns';
@@ -30,11 +33,21 @@ type Row = {
     recordedBy: string;
     recordedByMe: boolean;
     caseUrl: string;
+    // DSP-28: set only on the checked list.
+    outcome?: 'dispose' | 'quarantine' | 'refuse' | null;
+    refuseReason?: string | null;
+    checkedBy?: string | null;
+    checkedByMe?: boolean;
+    checkedAt?: string | null;
 };
 
 const props = defineProps<{
     returns: {
         branchName: string;
+        view?: 'waiting' | 'checked';
+        controlled?: 'all' | 'yes' | 'no';
+        monthLabel?: string;
+        counts?: { waiting: number; checked: number };
         rows: Row[];
         page: number;
         lastPage: number;
@@ -47,29 +60,123 @@ const reason = (row: Row) => returnReasonLabels[row.reason] ?? row.reason;
 const condition = (row: Row) =>
     returnConditionLabels[row.condition] ?? row.condition;
 const by = (row: Row) => (row.recordedByMe ? 'You' : row.recordedBy);
-const visit = (page: number) =>
+// DSP-28 (owner, 25 Nov 2026, Clean Look gap list B3 and B5): a second tab for the returns checked this month, and a
+// controlled-medicine filter on both. Still read only: paging, the tab and the filter are plain GETs.
+const view = computed(() => props.returns.view ?? 'waiting');
+const controlled = computed(() => props.returns.controlled ?? 'all');
+const checked = computed(() => view.value === 'checked');
+const go = (params: { page?: number; view?: string; controlled?: string }) =>
     router.get(
         '/dispensary/returns-to-check',
-        { page },
+        {
+            page: params.page ?? 1,
+            view:
+                (params.view ?? view.value) === 'checked'
+                    ? 'checked'
+                    : undefined,
+            controlled:
+                (params.controlled ?? controlled.value) === 'all'
+                    ? undefined
+                    : (params.controlled ?? controlled.value),
+        },
         { preserveScroll: false },
     );
+const visit = (page: number) => go({ page });
+const tabs = computed(() => [
+    {
+        value: 'waiting',
+        label: 'Waiting for a check',
+        count: props.returns.counts?.waiting,
+    },
+    {
+        value: 'checked',
+        label: 'Checked this month',
+        count: props.returns.counts?.checked,
+    },
+]);
+const filters = [
+    { value: 'all', label: 'All medicines' },
+    { value: 'yes', label: 'Controlled only' },
+    { value: 'no', label: 'Not controlled' },
+] as const;
+// Daniel: the outcome as a dot-plus-word chip; Quarantined is the info tone, the rest neutral.
+const outcomeClass = (row: Row) =>
+    row.outcome === 'quarantine'
+        ? 'border-border bg-info-wash text-info'
+        : 'border-border text-foreground';
+onMounted(() =>
+    // DD-30: a tab chosen from the address is scrolled into view, with its count, on a phone.
+    nextTick(() =>
+        document
+            .querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+            ?.scrollIntoView?.({ block: 'nearest', inline: 'end' }),
+    ),
+);
+const outcome = (row: Row) =>
+    row.outcome === 'dispose'
+        ? 'Disposed'
+        : row.outcome === 'quarantine'
+          ? 'Quarantined'
+          : row.outcome === 'refuse'
+            ? `Refused: ${refuseReasonLabels[row.refuseReason ?? ''] ?? 'Other'}`
+            : '';
 const ownNote = 'You recorded this. Another CA Supervisor must check it.';
-const help = `${props.returns.branchName} · Medicine returns waiting for a check, oldest first`;
+const help = computed(() =>
+    checked.value
+        ? `${props.returns.branchName} · Medicine returns checked in ${props.returns.monthLabel ?? 'this month'}, newest first`
+        : `${props.returns.branchName} · Medicine returns waiting for a check, oldest first`,
+);
 </script>
 
 <template>
     <Head title="Returns to check" />
     <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6 lg:[&_a[href]]:min-h-9 lg:[&_button]:min-h-9"
     >
         <PageHeader title="Returns to check" :description="help" />
-        <p class="text-xs text-muted-foreground">
+        <OperationalTabs
+            :model-value="view"
+            label="Medicine returns"
+            :tabs="tabs"
+            @update:model-value="(value: string) => go({ view: value })"
+        />
+        <div
+            class="grid w-full grid-cols-3 gap-1 rounded-full bg-muted p-1 sm:inline-grid sm:w-fit"
+            role="group"
+            aria-label="Which medicines"
+        >
+            <button
+                v-for="option in filters"
+                :key="option.value"
+                type="button"
+                class="rounded-full px-2 text-center text-sm leading-tight transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:min-h-11 sm:px-3 lg:h-9"
+                :class="
+                    controlled === option.value
+                        ? 'bg-background font-medium text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                "
+                :aria-pressed="controlled === option.value"
+                data-testid="returns-controlled-filter"
+                @click="go({ controlled: option.value })"
+            >
+                {{ option.label }}
+            </button>
+        </div>
+        <p v-if="checked" class="text-xs text-muted-foreground">
+            Returns checked this month. Opening a case shows what was decided.
+        </p>
+        <p v-else class="text-xs text-muted-foreground">
             Open the case to dispose, quarantine or refuse a return. This list
             does not check anything. You cannot check a return you recorded.
         </p>
 
         <EmptyState
-            v-if="returns.rows.length === 0"
+            v-if="returns.rows.length === 0 && checked"
+            title="No returns checked"
+            :description="`No medicine return in ${returns.branchName} was checked in ${returns.monthLabel ?? 'this month'}.`"
+        />
+        <EmptyState
+            v-else-if="returns.rows.length === 0"
             title="No returns waiting"
             :description="`No medicine return in ${returns.branchName} is waiting for a check.`"
         />
@@ -134,9 +241,32 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                             <td>{{ by(row) }}</td>
                             <td class="text-right">
                                 <div class="flex flex-col items-end gap-1">
-                                    <StatusBadge status="waiting_check" />
+                                    <template v-if="checked">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
+                                            :class="outcomeClass(row)"
+                                            data-testid="return-outcome"
+                                            ><span
+                                                class="size-1.5 rounded-full bg-current"
+                                                aria-hidden="true"
+                                            ></span
+                                            >{{ outcome(row) }}</span
+                                        >
+                                        <span
+                                            class="text-xs text-muted-foreground"
+                                            >{{ row.checkedAt }} · by
+                                            {{
+                                                row.checkedByMe
+                                                    ? 'you'
+                                                    : row.checkedBy
+                                            }}</span
+                                        >
+                                    </template>
+                                    <template v-else>
+                                        <StatusBadge status="waiting_check" />
+                                    </template>
                                     <span
-                                        v-if="row.recordedByMe"
+                                        v-if="row.recordedByMe && !checked"
                                         class="text-xs text-muted-foreground"
                                         >{{ ownNote }}</span
                                     >
@@ -174,8 +304,25 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                                 >Controlled</Badge
                             >
                         </h2>
-                        <StatusBadge status="waiting_check" />
+                        <span
+                            v-if="checked"
+                            class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
+                            :class="outcomeClass(row)"
+                            data-testid="return-outcome-card"
+                            ><span
+                                class="size-1.5 rounded-full bg-current"
+                                aria-hidden="true"
+                            ></span
+                            >{{ outcome(row) }}</span
+                        >
+                        <template v-else>
+                            <StatusBadge status="waiting_check" />
+                        </template>
                     </div>
+                    <p v-if="checked" class="text-xs text-muted-foreground">
+                        Checked {{ row.checkedAt }} · by
+                        {{ row.checkedByMe ? 'you' : row.checkedBy }}
+                    </p>
                     <p class="tabular-nums">
                         Qty returned {{ row.quantity }} {{ row.unit }} ·
                         {{ reason(row) }}
@@ -192,7 +339,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                         {{ condition(row) }}
                     </p>
                     <p
-                        v-if="row.recordedByMe"
+                        v-if="row.recordedByMe && !checked"
                         class="text-xs text-muted-foreground"
                     >
                         {{ ownNote }}
