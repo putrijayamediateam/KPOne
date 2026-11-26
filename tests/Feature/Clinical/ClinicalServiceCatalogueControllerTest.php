@@ -225,9 +225,37 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
             ->where('consultationTariff.panelOverrides.0.amountRm', '18.00'));
     }
 
+    public function test_director_can_publish_consultation_tariff_with_ordinary_role_permissions(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->actingAs($director);
+
+        $this->post(route('clinical-services.consultation-tariffs.store'), [
+            'code' => 'CONSULTATION',
+            'display_name' => 'Consultation fee',
+            'expected_branch_id' => $this->branch->id,
+            'prices' => ['self_pay_sen' => 2500, 'panel_default_sen' => null, 'panel_overrides' => []],
+            'expected_versions' => ['self_pay' => 0, 'panel_default' => 0, 'panel_overrides' => []],
+        ])->assertRedirect(route('clinical-services.index'))->assertSessionHasNoErrors();
+
+        $charge = ChargeDefinition::query()->where('organisation_id', $director->organisation_id)
+            ->where('source_key', 'consultation')->sole();
+        $book = PriceBook::query()->where('organisation_id', $director->organisation_id)
+            ->where('scope_key', 'organisation')->where('price_tier', 'self_pay')->sole();
+        $this->assertDatabaseHas('price_entries', [
+            'charge_definition_id' => $charge->id,
+            'price_book_id' => $book->id,
+            'unit_price_sen' => 2500,
+            'version' => 1,
+        ]);
+        $this->assertSame(1, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
+    }
+
     public function test_consultation_tariff_publication_remains_separate_from_reference_management(): void
     {
         $director = $this->actor('director');
+        $director->roles()->firstOrFail()->revokePermissionTo('prices.publish.organisation');
         $this->selectBranch($director);
 
         $this->post(route('clinical-services.consultation-tariffs.store'), [
