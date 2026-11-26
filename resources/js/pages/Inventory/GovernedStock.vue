@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import StockCountsDueList from '@/components/inventory/StockCountsDueList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
@@ -368,39 +369,39 @@ const caseKindLabel = (kind: string) =>
             <h2 id="counts-due-heading" class="text-xl font-semibold">
                 Counts due ({{ stock.cycle.total }})
             </h2>
-            <p class="text-sm text-muted-foreground">
-                Class A is counted every {{ stock.cycle.intervals.A }} days, B
-                every {{ stock.cycle.intervals.B }} and C every
-                {{ stock.cycle.intervals.C }}. A class comes from how often the
-                item was dispensed here in the last
-                {{ stock.cycle.lookBackDays }} days; controlled medicines are
-                always A.
-            </p>
-            <p
-                v-if="stock.cycle.rows.length"
-                class="text-sm text-muted-foreground"
-                data-testid="counts-due-legend"
+            <div
+                class="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_17rem]"
             >
-                Amber: due or up to 29 days overdue. Red: 30 days or more.
-            </p>
-            <p
-                v-if="!stock.cycle.rows.length"
-                class="text-sm text-muted-foreground"
-            >
-                Nothing is due for counting.
-            </p>
-            <ul v-else class="space-y-2" aria-label="Counts due">
-                <li
-                    v-for="row in visibleCycleRows"
-                    :key="`${row.skuPublicId}:${row.locationPublicId}`"
-                    class="flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
+                <aside
+                    class="space-y-3 rounded-2xl border border-border bg-muted/30 p-4 xl:order-2"
+                    aria-label="Count schedule and status guide"
                 >
-                    <div class="min-w-0 flex-1 space-y-1">
-                        <p class="font-medium break-words">{{ row.item }}</p>
-                        <p class="text-sm break-words text-muted-foreground">
-                            {{ row.skuCode }} · {{ row.location }}
-                        </p>
-                        <p class="flex flex-wrap items-center gap-2 text-sm">
+                    <h3 class="text-sm font-medium">About these counts</h3>
+                    <p class="text-sm text-muted-foreground">
+                        Class A is counted every
+                        {{ stock.cycle.intervals.A }} days, B every
+                        {{ stock.cycle.intervals.B }} and C every
+                        {{ stock.cycle.intervals.C }}. A class comes from how
+                        often the item was dispensed here in the last
+                        {{ stock.cycle.lookBackDays }} days; controlled
+                        medicines are always A.
+                    </p>
+                    <p
+                        v-if="stock.cycle.rows.length"
+                        class="text-sm text-muted-foreground"
+                        data-testid="counts-due-legend"
+                    >
+                        Amber: due or up to 29 days overdue. Red: 30 days or
+                        more.
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        Each row is one item at one location. System quantities
+                        stay hidden while counting.
+                    </p>
+                </aside>
+                <div class="min-w-0 space-y-3">
+                    <StockCountsDueList :rows="visibleCycleRows">
+                        <template #status="{ row }">
                             <StatusBadge
                                 :status="`class-${row.class}`"
                                 :label="`Class ${row.class}`"
@@ -411,83 +412,80 @@ const caseKindLabel = (kind: string) =>
                                 data-testid="due-label"
                                 >{{ dueLabel(row) }}</span
                             >
-                            <span class="text-muted-foreground">{{
-                                row.lastCounted
-                                    ? `Last counted ${row.lastCounted}`
-                                    : 'No completed count'
-                            }}</span>
-                        </p>
-                    </div>
+                        </template>
+                        <template #action="{ row }">
+                            <p
+                                v-if="row.open"
+                                class="text-sm text-muted-foreground sm:text-right"
+                            >
+                                Counts open below
+                            </p>
+                            <button
+                                v-else-if="stock.canPropose"
+                                type="button"
+                                class="min-h-11 w-full rounded border px-3 disabled:opacity-40 sm:w-auto lg:min-h-9"
+                                :disabled="starting !== null"
+                                :aria-busy="
+                                    starting ===
+                                    `${row.skuPublicId}:${row.locationPublicId}`
+                                "
+                                :aria-label="`Start count for ${row.skuCode} at ${row.location}`"
+                                @click="startCount(row)"
+                            >
+                                Start count
+                            </button>
+                        </template>
+                    </StockCountsDueList>
                     <p
-                        v-if="row.open"
-                        class="text-sm text-muted-foreground sm:text-right"
+                        v-if="!showAllDue && stock.cycle.total > dueCap"
+                        class="text-sm"
+                        data-testid="due-cap"
                     >
-                        Counts open below
+                        Showing {{ visibleCycleRows.length }} of
+                        {{ stock.cycle.total }} ·
+                        <button
+                            type="button"
+                            class="min-h-11 px-1 underline lg:min-h-9"
+                            @click="showAllDue = true"
+                        >
+                            See all
+                        </button>
                     </p>
-                    <button
-                        v-else-if="stock.canPropose"
-                        type="button"
-                        class="min-h-11 w-full rounded border px-3 disabled:opacity-40 sm:w-auto lg:min-h-9"
-                        :disabled="starting !== null"
-                        :aria-busy="
-                            starting ===
-                            `${row.skuPublicId}:${row.locationPublicId}`
-                        "
-                        :aria-label="`Start count for ${row.skuCode} at ${row.location}`"
-                        @click="startCount(row)"
+                    <div
+                        v-if="showAllDue && stock.cycle.lastPage > 1"
+                        class="flex justify-between gap-2"
                     >
-                        Start count
-                    </button>
-                </li>
-            </ul>
-            <p
-                v-if="!showAllDue && stock.cycle.total > dueCap"
-                class="text-sm"
-                data-testid="due-cap"
-            >
-                Showing {{ visibleCycleRows.length }} of
-                {{ stock.cycle.total }} ·
-                <button
-                    type="button"
-                    class="min-h-11 px-1 underline lg:min-h-9"
-                    @click="showAllDue = true"
-                >
-                    See all
-                </button>
-            </p>
-            <div
-                v-if="showAllDue && stock.cycle.lastPage > 1"
-                class="flex justify-between gap-2"
-            >
-                <button
-                    type="button"
-                    class="min-h-11 rounded border px-4 disabled:opacity-40"
-                    :disabled="stock.cycle.page <= 1"
-                    @click="
-                        search(
-                            stock.cases.page,
-                            stock.targets.page,
-                            stock.cycle.page - 1,
-                        )
-                    "
-                >
-                    Previous counts due</button
-                ><button
-                    type="button"
-                    class="min-h-11 rounded border px-4 disabled:opacity-40"
-                    :disabled="stock.cycle.page >= stock.cycle.lastPage"
-                    @click="
-                        search(
-                            stock.cases.page,
-                            stock.targets.page,
-                            stock.cycle.page + 1,
-                        )
-                    "
-                >
-                    Next counts due
-                </button>
+                        <button
+                            type="button"
+                            class="min-h-11 rounded border px-4 disabled:opacity-40"
+                            :disabled="stock.cycle.page <= 1"
+                            @click="
+                                search(
+                                    stock.cases.page,
+                                    stock.targets.page,
+                                    stock.cycle.page - 1,
+                                )
+                            "
+                        >
+                            Previous counts due</button
+                        ><button
+                            type="button"
+                            class="min-h-11 rounded border px-4 disabled:opacity-40"
+                            :disabled="stock.cycle.page >= stock.cycle.lastPage"
+                            @click="
+                                search(
+                                    stock.cases.page,
+                                    stock.targets.page,
+                                    stock.cycle.page + 1,
+                                )
+                            "
+                        >
+                            Next counts due
+                        </button>
+                    </div>
+                    <InputError :message="cycleError" />
+                </div>
             </div>
-            <InputError :message="cycleError" />
         </section>
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
             <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
