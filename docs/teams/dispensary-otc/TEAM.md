@@ -444,3 +444,7 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Checked-return outcome filter — 26 November 2026 (in review)
+
+Owner-authorized exact-demo F11 read-contract gap adds All/Quarantined/Disposed/Refused filtering to the existing checked-this-month list. Existing branch/org/month/controlled scope and25-row paging remain; checked counts reflect matching rows and waiting counts ignore outcome. Query count does not grow. Waiting clears the filter; invalid/array values safely normalize; filtered empty copy remains actionable. No new grants, mutation, migration or inline return checking. Existing assertions retained.

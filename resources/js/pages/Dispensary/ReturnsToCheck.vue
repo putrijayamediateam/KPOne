@@ -46,6 +46,7 @@ const props = defineProps<{
         branchName: string;
         view?: 'waiting' | 'checked';
         controlled?: 'all' | 'yes' | 'no';
+        outcome?: 'all' | 'dispose' | 'quarantine' | 'refuse';
         monthLabel?: string;
         counts?: { waiting: number; checked: number };
         rows: Row[];
@@ -65,7 +66,20 @@ const by = (row: Row) => (row.recordedByMe ? 'You' : row.recordedBy);
 const view = computed(() => props.returns.view ?? 'waiting');
 const controlled = computed(() => props.returns.controlled ?? 'all');
 const checked = computed(() => view.value === 'checked');
-const go = (params: { page?: number; view?: string; controlled?: string }) =>
+const selectedOutcome = computed(() =>
+    checked.value ? (props.returns.outcome ?? 'all') : 'all',
+);
+const filteredChecked = computed(
+    () =>
+        checked.value &&
+        (selectedOutcome.value !== 'all' || controlled.value !== 'all'),
+);
+const go = (params: {
+    page?: number;
+    view?: string;
+    controlled?: string;
+    outcome?: string;
+}) =>
     router.get(
         '/dispensary/returns-to-check',
         {
@@ -78,6 +92,11 @@ const go = (params: { page?: number; view?: string; controlled?: string }) =>
                 (params.controlled ?? controlled.value) === 'all'
                     ? undefined
                     : (params.controlled ?? controlled.value),
+            outcome:
+                (params.view ?? view.value) === 'checked' &&
+                (params.outcome ?? selectedOutcome.value) !== 'all'
+                    ? (params.outcome ?? selectedOutcome.value)
+                    : undefined,
         },
         { preserveScroll: false },
     );
@@ -98,6 +117,12 @@ const filters = [
     { value: 'all', label: 'All medicines' },
     { value: 'yes', label: 'Controlled only' },
     { value: 'no', label: 'Not controlled' },
+] as const;
+const outcomeOptions = [
+    { value: 'all', label: 'All outcomes' },
+    { value: 'quarantine', label: 'Quarantined' },
+    { value: 'dispose', label: 'Disposed' },
+    { value: 'refuse', label: 'Refused' },
 ] as const;
 // Daniel: the outcome as a dot-plus-word chip; Quarantined is the info tone, the rest neutral.
 const outcomeClass = (row: Row) =>
@@ -162,6 +187,35 @@ const help = computed(() =>
                 {{ option.label }}
             </button>
         </div>
+        <div v-if="checked" class="flex flex-wrap items-center gap-2">
+            <label for="returns-outcome" class="text-sm font-medium"
+                >Outcome</label
+            >
+            <select
+                id="returns-outcome"
+                :value="selectedOutcome"
+                class="min-h-11 max-w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:min-h-9"
+                data-testid="returns-outcome-filter"
+                @change="
+                    go({ outcome: ($event.target as HTMLSelectElement).value })
+                "
+            >
+                <option
+                    v-for="option in outcomeOptions"
+                    :key="option.value"
+                    :value="option.value"
+                >
+                    {{ option.label }}
+                </option>
+            </select>
+            <span
+                class="text-sm text-muted-foreground"
+                data-testid="returns-matching-count"
+                >{{ returns.total }}
+                {{ filteredChecked ? 'matching checked' : 'checked' }}
+                {{ returns.total === 1 ? 'return' : 'returns' }}</span
+            >
+        </div>
         <p v-if="checked" class="text-xs text-muted-foreground">
             Returns checked this month. Opening a case shows what was decided.
         </p>
@@ -172,8 +226,16 @@ const help = computed(() =>
 
         <EmptyState
             v-if="returns.rows.length === 0 && checked"
-            title="No returns checked"
-            :description="`No medicine return in ${returns.branchName} was checked in ${returns.monthLabel ?? 'this month'}.`"
+            :title="
+                filteredChecked
+                    ? 'No matching checked returns'
+                    : 'No returns checked'
+            "
+            :description="
+                filteredChecked
+                    ? `No checked medicine return in ${returns.branchName} matches these filters in ${returns.monthLabel ?? 'this month'}. Choose All outcomes or All medicines to broaden the list.`
+                    : `No medicine return in ${returns.branchName} was checked in ${returns.monthLabel ?? 'this month'}.`
+            "
         />
         <EmptyState
             v-else-if="returns.rows.length === 0"
