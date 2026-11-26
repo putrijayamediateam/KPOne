@@ -264,11 +264,11 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
             <article
                 v-for="(medicine, index) in review.medicines"
                 :key="index"
-                class="grid gap-3 rounded-md border p-4 text-sm dark:border-foreground/20"
+                class="grid min-w-0 gap-4 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
                 data-testid="review-medicine"
             >
                 <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="font-medium">
+                    <h3 class="min-w-0 font-medium break-words">
                         {{ medicine.name
                         }}<span
                             v-if="medicine.strength"
@@ -280,7 +280,7 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                         v-if="
                             changeLabel(medicine.source, medicine.changeState)
                         "
-                        class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs dark:border-foreground/30"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted px-2 py-1 text-xs"
                         ><span
                             class="size-1.5 rounded-full bg-foreground/60"
                             aria-hidden="true"
@@ -289,24 +289,24 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                         }}</span
                     >
                 </div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <p class="text-xs font-medium text-muted-foreground">
+                <dl class="grid gap-3 sm:grid-cols-2">
+                    <div class="min-w-0">
+                        <dt class="text-xs font-medium text-muted-foreground">
                             Doctor ordered
-                        </p>
-                        <p>
+                        </dt>
+                        <dd class="mt-1 break-words">
                             {{
                                 medicine.source === 'ca'
                                     ? 'Not ordered by the doctor'
                                     : `${qty(medicine.ordered.quantity)} ${medicine.unit ?? ''} · ${directions(medicine.ordered)}`
                             }}
-                        </p>
+                        </dd>
                     </div>
-                    <div>
-                        <p class="text-xs font-medium text-muted-foreground">
+                    <div class="min-w-0">
+                        <dt class="text-xs font-medium text-muted-foreground">
                             Dispensed
-                        </p>
-                        <p>
+                        </dt>
+                        <dd class="mt-1 break-words">
                             <template v-if="medicine.dispensed.packText"
                                 >{{ medicine.dispensed.packText }} ·</template
                             >
@@ -315,12 +315,12 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                                 {{ medicine.unit ?? '' }} ·</template
                             >
                             {{ directions(medicine.dispensed) }}
-                        </p>
+                        </dd>
                     </div>
-                </div>
+                </dl>
                 <ul
                     v-if="medicine.batches.length"
-                    class="grid gap-1 text-muted-foreground"
+                    class="grid gap-1 border-t border-border pt-3 break-words text-muted-foreground"
                 >
                     <li
                         v-for="(batch, batchIndex) in medicine.batches"
@@ -343,9 +343,11 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
             <article
                 v-for="(service, index) in review.services"
                 :key="index"
-                class="flex flex-wrap items-center justify-between gap-2 rounded-md border p-4 text-sm dark:border-foreground/20"
+                class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
             >
-                <span class="font-medium">{{ service.name }}</span>
+                <span class="min-w-0 font-medium break-words">{{
+                    service.name
+                }}</span>
                 <span class="text-muted-foreground"
                     >Ordered {{ qty(service.quantityOrdered) }} · Performed
                     {{ qty(service.quantityPerformed) }}</span
@@ -362,14 +364,14 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
             <article
                 v-for="(item, index) in review.returns"
                 :key="index"
-                class="grid gap-1 rounded-md border p-4 text-sm dark:border-foreground/20"
+                class="grid min-w-0 gap-3 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
             >
-                <p class="font-medium">
+                <p class="font-medium break-words">
                     {{ item.medicine ?? 'Medicine' }} · {{ qty(item.quantity) }}
                     {{ item.unit ?? '' }}
                 </p>
                 <p
-                    class="flex items-center gap-2"
+                    class="flex items-center gap-2 break-words"
                     data-testid="review-return-outcome"
                 >
                     <span
@@ -382,7 +384,7 @@ const visitUrl = `/visits/${props.review.visit.visitNumber}`;
                             : 'Waiting for a check'
                     }}
                 </p>
-                <p class="text-muted-foreground">
+                <p class="break-words text-muted-foreground">
                     {{ reasonLabel[item.reason] ?? item.reason }}
                     <template v-if="item.recordedAt">
                         · {{ item.recordedAt }}</template
