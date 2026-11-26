@@ -2,7 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     title: string;
     description?: string;
     eyebrow?: string;
@@ -12,6 +12,10 @@ defineProps<{
 const page = usePage();
 const branchName = computed(
     () => page.props.branchContext?.active?.name ?? null,
+);
+// The branch already has its own marked subline; keep other plain descriptions.
+const description = computed(() =>
+    props.description === branchName.value ? undefined : props.description,
 );
 </script>
 

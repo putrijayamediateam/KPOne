@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     Building2,
     ChartColumn,
@@ -16,7 +16,14 @@ import {
     Users,
     X,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -67,11 +74,29 @@ const ICONS: Record<string, unknown> = {
 };
 
 const path = computed(() => page.url.split('?')[0]);
-const linkActive = (href: string) =>
-    path.value === href || path.value.startsWith(`${href}/`);
-// The current area is the one holding the longest link that matches this page; otherwise Today.
+const linkActive = (href: string) => {
+    const [linkPath, query] = href.split('?', 2);
+
+    if (path.value !== linkPath && !path.value.startsWith(`${linkPath}/`)) {
+        return false;
+    }
+
+    const currentQuery = new URLSearchParams(page.url.split('?', 2)[1] ?? '');
+
+    return [...new URLSearchParams(query)].every(
+        ([key, value]) => currentQuery.get(key) === value,
+    );
+};
+// Use the longest matching menu link; visit billing also belongs to the visible Billing area.
 const currentKey = computed(() => {
-    let best = { key: 'today', length: 0 };
+    const visitBilling = /^\/visits\/[^/]+\/billing(?:\/|$)/.test(path.value);
+    let best = {
+        key:
+            visitBilling && areas.value.some((area) => area.key === 'billing')
+                ? 'billing'
+                : 'today',
+        length: 0,
+    };
 
     for (const area of areas.value) {
         for (const section of area.sections) {
@@ -87,36 +112,43 @@ const currentKey = computed(() => {
 });
 
 // ---- panel: hover or focus opens it after 120 ms and closes it 300 ms after leaving; click opens it; pin keeps it open ----
-const PIN_KEY = 'kpone.shell.pinned';
+const pinKey = computed(() => `kpone.shell.pinned:${user.value.id}`);
 const pinned = ref(false);
 const open = ref(false);
 const shownKey = ref<string>('today');
 let openTimer: ReturnType<typeof setTimeout> | undefined;
 let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-onMounted(() => {
+const loadPin = () => {
     try {
-        pinned.value = window.localStorage.getItem(PIN_KEY) === '1';
+        pinned.value = window.localStorage.getItem(pinKey.value) === '1';
     } catch {
         pinned.value = false;
     }
 
+    emitOffset();
+};
+onMounted(() => {
+    loadPin();
     shownKey.value = currentKey.value;
 });
+watch(pinKey, loadPin);
 watch(currentKey, (key) => {
     if (!open.value) {
         shownKey.value = key;
     }
 });
-watch(pinned, (value) => {
+const togglePin = () => {
+    pinned.value = !pinned.value;
+
     try {
-        window.localStorage.setItem(PIN_KEY, value ? '1' : '0');
+        window.localStorage.setItem(pinKey.value, pinned.value ? '1' : '0');
     } catch {
         // the choice just is not remembered
     }
 
     emitOffset();
-});
+};
 
 const panelVisible = computed(() => pinned.value || open.value);
 const shownArea = computed(
@@ -143,20 +175,54 @@ const scheduleOpen = (key: string) => {
         open.value = true;
     }, 120);
 };
+const ownsFocus = (target: EventTarget | null) =>
+    target instanceof Element &&
+    !!target.closest(
+        '[data-test="shell-rail"], [data-test="shell-panel"], [data-shell-overlay="desktop"]',
+    );
 const scheduleClose = () => {
     clearTimeout(openTimer);
     clearTimeout(closeTimer);
     closeTimer = setTimeout(() => {
+        if (ownsFocus(document.activeElement)) {
+            return;
+        }
+
         open.value = false;
         shownKey.value = currentKey.value;
     }, 300);
 };
+const onFocusIn = (event: FocusEvent) => {
+    if (ownsFocus(event.target)) {
+        cancelClose();
+    } else {
+        scheduleClose();
+    }
+};
+const onFocusOut = () => scheduleClose();
 const choose = (key: string) => {
     clearTimers();
     shownKey.value = key;
     open.value = true;
 };
+// The rail precedes every panel in DOM order. Move keyboard activation into the
+// chosen panel so tabbing across other rail icons cannot replace it first.
+const focusPanel = async (key: string) => {
+    choose(key);
+    await nextTick();
+    document
+        .querySelector<HTMLElement>('[data-test="shell-panel"] a[href]')
+        ?.focus();
+};
 const onKeydown = (event: KeyboardEvent) => {
+    // Portalled controls handle their own Escape before the shell does.
+    if (
+        event.target instanceof Element &&
+        event.target.closest('[data-shell-overlay="desktop"]')
+    ) {
+        return;
+    }
+
     if (event.key === 'Escape' && open.value && !pinned.value) {
         open.value = false;
         clearTimers();
@@ -169,9 +235,15 @@ const onKeydown = (event: KeyboardEvent) => {
         }, 0);
     }
 };
-onMounted(() => window.addEventListener('keydown', onKeydown));
+onMounted(() => {
+    window.addEventListener('keydown', onKeydown);
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+});
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', onKeydown);
+    document.removeEventListener('focusin', onFocusIn);
+    document.removeEventListener('focusout', onFocusOut);
     clearTimers();
 });
 
@@ -246,10 +318,16 @@ const closeDrawer = () => {
                                 currentKey === area.key ? 'page' : undefined
                             "
                             :data-area="area.key"
+                            :aria-expanded="
+                                panelVisible && shownArea?.key === area.key
+                            "
+                            aria-controls="workspace-area-panel"
                             @mouseenter="scheduleOpen(area.key)"
                             @focus="onRailFocus(area.key)"
                             @click.prevent="choose(area.key)"
-                            @keydown.enter.prevent="router.visit(area.href)"
+                            @keydown.enter.prevent="focusPanel(area.key)"
+                            @keydown.space.prevent="focusPanel(area.key)"
+                            @keydown.right.prevent="focusPanel(area.key)"
                         >
                             <component
                                 :is="ICONS[area.icon] ?? Settings"
@@ -315,6 +393,7 @@ const closeDrawer = () => {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
+                    data-shell-overlay="desktop"
                     align="start"
                     side="right"
                     class="w-60 p-1.5"
@@ -328,6 +407,7 @@ const closeDrawer = () => {
     <!-- Desktop panel -->
     <aside
         v-if="panelVisible && shownArea"
+        id="workspace-area-panel"
         class="fixed inset-y-0 left-[72px] z-30 hidden w-[248px] flex-col border-r bg-sidebar lg:flex"
         :aria-label="`${shownArea.title} menu`"
         data-test="shell-panel"
@@ -343,7 +423,7 @@ const closeDrawer = () => {
                 size="icon-sm"
                 :aria-label="pinned ? 'Unpin the menu' : 'Pin the menu open'"
                 :aria-pressed="pinned"
-                @click="pinned = !pinned"
+                @click="togglePin"
             >
                 <component :is="pinned ? PinOff : Pin" class="size-4" />
             </Button>
@@ -392,7 +472,7 @@ const closeDrawer = () => {
             >
                 <Link :href="workspace.defaultUrl">Return to workspace</Link>
             </Button>
-            <WorkspaceBranchSwitcher />
+            <WorkspaceBranchSwitcher overlay-owner="desktop" />
         </div>
     </aside>
 
@@ -454,13 +534,16 @@ const closeDrawer = () => {
         :open="drawerOpen"
         @update:open="(v: boolean) => (v ? (drawerOpen = true) : closeDrawer())"
     >
-        <SheetContent side="left" class="w-80 max-w-full p-5">
+        <SheetContent side="left" class="w-80 max-w-full overflow-hidden p-5">
             <SheetHeader>
                 <SheetTitle>{{
                     drawerArea ? drawerArea.title : 'KPOne navigation'
                 }}</SheetTitle>
             </SheetHeader>
-            <nav class="mt-4 grid gap-1" aria-label="Mobile navigation">
+            <nav
+                class="mt-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto"
+                aria-label="Mobile navigation"
+            >
                 <template v-if="!drawerArea">
                     <button
                         v-for="area in areas"
