@@ -1,11 +1,14 @@
 # KPOne connector: trial-server checklist
 
 For the person who manages the trial server environment. Do these in order. Nothing here touches a server with real patient
-data: **the connector stays off there until the owner says so in writing after the PDPA review.**
+data: **the connector stays off there until the owner gives a separate written OK at switch-on, naming the server and the date.** (The PDPA and lawyer review itself is approved, owner-confirmed, verbal, 25 Nov 2026.)
 
 ## Before switching on
 
-1. The server holds **fictional data only** (the owner has confirmed this for this server).
+**kpjaya.com** (Puchong test from 30 Nov 2026: the clinic's real inventory and prices, fictional patients): the connector stays
+**off** (owner decision, 25 Nov 2026). The switch-off steps for 29 Nov were sent to the coordinator.
+
+1. Either the server holds **fictional data only**, or the owner has given the **separate written OK** for this server (naming the server and the date).
 2. `php artisan migrate` has run (adds the permission and the OAuth tables).
 3. The OAuth signing keys exist: `php artisan passport:keys`, or `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY` set in the
    environment (never in a file that is committed). The key files must not be readable by other users (mode 0600).
@@ -39,5 +42,5 @@ data: **the connector stays off there until the owner says so in writing after t
 
 ## Record
 
-15. Write down: who switched it on, the date, which server, and that the data is fictional. The team needs a name to
+15. Write down: who switched it on, the date, which server, and either that the data is fictional or the reference to the owner's written OK. The team needs a name to
     record, not a login.
