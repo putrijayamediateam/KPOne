@@ -1505,6 +1505,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/queue/take-red-zone', [QueueController::class, 'takeRedZone'])
             ->middleware(['permission:queue.call.own', 'throttle:30,1'])
             ->name('queue.take-red-zone');
+        Route::get('queue/average-wait', [QueueController::class, 'averageWait'])
+            ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.average-wait');
         Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
             ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.call-next.block');
