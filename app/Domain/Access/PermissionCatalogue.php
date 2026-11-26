@@ -212,6 +212,8 @@ final class PermissionCatalogue
             'inventory.recalls.manage.organisation',
             'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
+            'inventory.cost.enter.organisation',
+            'inventory.cost.check.organisation',
             'inventory.valuation.view.organisation',
             'inventory.pack_conversions.verify.organisation',
             'inventory.medicine_sales.view.organisation',
@@ -612,6 +614,14 @@ final class PermissionCatalogue
         // STK-13 (owner decision 2026-11-11, "agree all"): only a Director or Finance Officer sees inventory cost.
         foreach (['director', 'finance_officer'] as $holder) {
             $roles[$holder][] = 'inventory.cost.view.organisation';
+        }
+
+        // STK-46: owner-approved 26 Nov 2026; entering and checking a hand cost are separate permissions.
+        foreach (['finance_officer', 'store_admin'] as $holder) {
+            $roles[$holder][] = 'inventory.cost.enter.organisation';
+        }
+        foreach (['finance_officer', 'store_admin', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.cost.check.organisation';
         }
 
         // STK-19 (owner decision 2026-11-11, "agree all"): a Finance Officer approves purchase orders as well as the
