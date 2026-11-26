@@ -64,14 +64,18 @@ defineProps<{
                 :server-now="today.time?.serverNow ?? null"
                 :timezone="today.time?.timezone ?? null"
             />
-            <section v-else class="space-card" aria-labelledby="day-today">
+            <section
+                v-else
+                class="space-card shadow-card"
+                aria-labelledby="day-today"
+            >
                 <h2 id="day-today">Today</h2>
                 <p class="space-muted">Nothing is planned for you today.</p>
             </section>
 
             <section
                 v-if="waiting"
-                class="space-card"
+                class="space-card shadow-card"
                 aria-labelledby="day-waiting"
                 data-test="my-day-waiting"
             >
@@ -116,7 +120,7 @@ defineProps<{
 
             <section
                 v-if="today.credentials?.rows.length"
-                class="space-card"
+                class="space-card shadow-card"
                 aria-labelledby="day-cred"
             >
                 <h2 id="day-cred">Credentials due</h2>
@@ -144,7 +148,7 @@ defineProps<{
 
             <section
                 v-if="shortcuts.length"
-                class="space-card"
+                class="space-card shadow-card"
                 aria-labelledby="day-shortcuts"
             >
                 <h2 id="day-shortcuts">Shortcuts</h2>
