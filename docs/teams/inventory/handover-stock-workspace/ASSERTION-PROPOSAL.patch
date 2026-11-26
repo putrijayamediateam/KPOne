@@ -1,0 +1,86 @@
+--- a/tests/Frontend/classic-only-co6-kept-direct.test.mjs
++++ b/tests/Frontend/classic-only-co6-kept-direct.test.mjs
+@@ -87 +87,8 @@
+-        (home.match(/formatInventoryHoldLabel\(/g) ?? []).length >= 2,
++        (
++            [
++                home,
++                read('resources/js/components/inventory/StockOnHandList.vue'),
++            ]
++                .join('\n')
++                .match(/formatInventoryHoldLabel\(/g) ?? []
++        ).length >= 2,
+--- a/tests/Frontend/i1b-inventory-demo-workspace.test.mjs
++++ b/tests/Frontend/i1b-inventory-demo-workspace.test.mjs
+@@ -53 +53 @@
+-        'Stock Overview',
++        'On hand',
+@@ -80 +80,16 @@
+-    assert.match(page, /min-width="1040px"/);
++    assert.match(page, /<StockOnHandList/);
++    assert.match(page, /:rows="inventory\.data"/);
++    assert.match(page, /:can-report="canReport"/);
++    assert.match(page, /@report="openReport"/);
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    for (const label of [
++        'Item / batch',
++        'On hand',
++        'Batch expiry',
++        'Location',
++        'Status',
++    ]) {
++        assert.ok(rows.includes(label), label);
++    }
++    assert.match(rows, /:aria-expanded=/);
++    assert.match(rows, /:aria-controls=/);
+--- a/tests/Frontend/i2-session2-directory-remediation.test.mjs
++++ b/tests/Frontend/i2-session2-directory-remediation.test.mjs
+@@ -31 +31 @@
+-        assert.match(page, new RegExp(`<label for="${id}"`));
++        assert.match(page, new RegExp(`<label\\s+for="${id}"`));
+--- a/tests/Frontend/i2-ui-ux-remediation.test.mjs
++++ b/tests/Frontend/i2-ui-ux-remediation.test.mjs
+@@ -50,2 +50,4 @@
+-    assert.ok(labels.includes('Status'));
+-    assert.equal(labels.includes('QuantityStatus'), false);
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    assert.match(rows, />On hand<\/span\s*>/);
++    assert.match(rows, />Status<\/span\s*>/);
++    assert.doesNotMatch(rows, /QuantityStatus/);
+@@ -56,4 +58,3 @@
+-    assert.match(
+-        inventory,
+-        /<th[^>]*class="[^"]*min-w-32[^"]*"[^>]*>\s*Status\s*<\/th>/,
+-    );
++    assert.match(rows, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
++    assert.match(rows, /<StatusBadge[\s\S]*:label="statusLabel\(row\)"/);
++    assert.match(rows, /<\/button>\s*<div v-if="canReport"/);
+@@ -63 +64 @@
+-    assert.match(inventory, /row\.availabilityStatus/);
++    assert.match(rows, /row\.availabilityStatus/);
+--- a/tests/Frontend/stk45-report-difference.test.mjs
++++ b/tests/Frontend/stk45-report-difference.test.mjs
+@@ -93,3 +93,6 @@
+-    assert.match(ui, /<th v-if="canReport"/);
+-    assert.match(ui, /<DifferenceRowMenu\s+v-if="row\.difference"/);
+-    assert.match(ui, /label="Count open"/);
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    assert.match(ui, /:can-report="canReport"/);
++    assert.match(ui, /@report="openReport"/);
++    assert.match(rows, /<div v-if="canReport"/);
++    assert.match(rows, /<DifferenceRowMenu\s+v-if="row\.difference"/);
++    assert.match(rows, /label="Count open"/);
+--- a/tests/Frontend/ui-leftovers-1.test.mjs
++++ b/tests/Frontend/ui-leftovers-1.test.mjs
+@@ -110,0 +111,2 @@
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    const both = `${index}\n${rows}`;
+@@ -134 +136,2 @@
+-        (index.match(/formatInventoryReason\(row\.holdReason\)/g) ?? []).length,
++        (both.match(/formatInventoryReason\(\s*row\.holdReason,?\s*\)/g) ?? [])
++            .length,
+@@ -137,2 +140,2 @@
+-    assert.doesNotMatch(index, /String\(row\.holdReason\)/);
+-    assert.match(index, /availabilityStatus[\s\S]*?===\s*'held'/i);
++    assert.doesNotMatch(both, /String\(row\.holdReason\)/);
++    assert.match(rows, /availabilityStatus[\s\S]*?===\s*'held'/i);
