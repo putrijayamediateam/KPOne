@@ -43,7 +43,13 @@ class DocumentLetterheadTest extends BillingTestCase
             ->where('billing.invoice.state.total', 4000)->missing('letterhead.path')->missing('billing.clinicalNote'));
         $this->get(route('business-details.logo', ['branch' => $this->branch->id, 'asset' => $asset->public_id]))->assertForbidden();
         $this->get(route('billing.letterhead-logo', [$visit, $invoice, (string) Str::uuid()]))->assertNotFound();
-        foreach (['director', 'administrator', 'finance_officer', 'panel_officer', 'resident_doctor', 'technical_admin'] as $role) {
+        // BIL-36 (owner approved 2026-11-24): the Director and the Finance Officer now print, so they reach both.
+        foreach (['director', 'finance_officer'] as $role) {
+            $this->selectBranch($this->actor($role));
+            $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
+            $this->get($logoUrl)->assertOk();
+        }
+        foreach (['administrator', 'panel_officer', 'resident_doctor', 'technical_admin'] as $role) {
             $this->selectBranch($this->actor($role));
             $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden();
             $this->get($logoUrl)->assertForbidden();

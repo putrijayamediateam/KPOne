@@ -26,7 +26,8 @@ class IssuedBillingDocumentTest extends BillingTestCase
 {
     public static function roles(): array
     {
-        return [['ca', 302], ['ca_supervisor', 302], ['finance_officer', 403], ['director', 403], ['resident_doctor', 403], ['panel_officer', 403], ['administrator', 403]];
+        return [['ca', 302], ['ca_supervisor', 302], ['finance_officer', 302], ['director', 302], // BIL-36: owner approved 2026-11-24.
+            ['resident_doctor', 403], ['panel_officer', 403], ['administrator', 403]];
     }
 
     #[DataProvider('roles')]
@@ -92,13 +93,14 @@ class IssuedBillingDocumentTest extends BillingTestCase
             ->where('issued.label', 'copy')->where('issued.version', 1)->where('billing.invoice.state.due_now', 4000)
             ->where('issued.notes', ['A later version of this invoice exists (version 2). This paper is not the current one.']));
 
-        // The Billing page lists both versions for those who can print, and nothing for Finance.
+        // The Billing page lists both versions for those who can print; since BIL-36 (owner approved 2026-11-24) that
+        // includes the Finance Officer.
         $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page
             ->has('billing.issuedCopies', 2)->where('billing.issuedCopies.0.prints', 2)->where('billing.issuedCopies.1.latest', true)
             ->where('billing.issuedCopies.1.firstPrintedAs', 'revised'));
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);
-        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.issuedCopies', null));
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->has('billing.issuedCopies', 2));
     }
 
     public function test_a_receipt_reversed_after_printing_prints_as_revised_and_its_original_copy_says_so(): void
