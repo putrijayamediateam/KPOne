@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
+import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -151,23 +152,37 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
 
 <template>
     <Head title="Daily cash closing" />
-    <main class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6">
-        <PageHeader
-            title="Daily cash closing"
-            :description="`${day.branch} · Count the day's cash takings, then someone else approves the closing`"
-        >
-            <template #actions>
-                <ActionLink href="/payment-reconciliations" variant="secondary">
-                    Terminal Reconciliation
-                </ActionLink>
-                <ActionLink
-                    :href="`/cash-closings/month?month=${day.businessDate.slice(0, 7)}`"
-                    variant="secondary"
-                >
-                    Month view
-                </ActionLink>
-            </template>
-        </PageHeader>
+    <BillingBoardFrame
+        active="close"
+        about="Count the day's cash takings, then another authorised person reviews the count. The expected amount comes from the recorded cash receipts."
+        guidance="Counting does not change any receipt. Check the selected business date and explain any difference. Someone else must approve the count. Check the day’s status before collecting: payments can be paused while a count is waiting."
+    >
+        <template #header>
+            <PageHeader
+                title="Billing"
+                description="Count the day's cash takings, then someone else approves the closing"
+            >
+                <template #actions>
+                    <ActionLink
+                        v-if="
+                            page.props.auth.permissions.includes(
+                                'payments.reconcile.branch',
+                            )
+                        "
+                        href="/payment-reconciliations"
+                        variant="secondary"
+                    >
+                        Terminal Reconciliation
+                    </ActionLink>
+                    <ActionLink
+                        :href="`/cash-closings/month?month=${day.businessDate.slice(0, 7)}`"
+                        variant="secondary"
+                    >
+                        Month view
+                    </ActionLink>
+                </template>
+            </PageHeader>
+        </template>
 
         <section
             class="flex flex-wrap items-end justify-between gap-4 rounded-xl border bg-card p-4"
@@ -465,5 +480,29 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 </p>
             </article>
         </section>
-    </main>
+        <template #context>
+            <dl class="space-y-3 text-sm">
+                <div>
+                    <dt class="text-muted-foreground">Branch</dt>
+                    <dd class="font-medium">{{ day.branch }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Business date</dt>
+                    <dd>{{ formatDate(day.businessDate) }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Cash receipts</dt>
+                    <dd class="tabular-nums">
+                        {{ day.expected.receiptCount }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Expected cash</dt>
+                    <dd class="font-semibold tabular-nums">
+                        {{ myr(day.expected.cashSen) }}
+                    </dd>
+                </div>
+            </dl>
+        </template>
+    </BillingBoardFrame>
 </template>
