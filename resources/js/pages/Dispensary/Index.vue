@@ -263,7 +263,7 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                             id="dispensary-search"
                             v-model="search"
                             type="search"
-                            placeholder="Name, KP or visit no."
+                            placeholder="Name, KP, visit or queue no."
                             class="max-lg:min-h-11"
                         />
                         <Button

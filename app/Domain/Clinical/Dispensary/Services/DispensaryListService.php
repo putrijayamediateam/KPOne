@@ -138,6 +138,16 @@ final class DispensaryListService
 
             return;
         }
+        if (preg_match('/\A([AB])-(\d{3,19})\z/i', $term, $matches) === 1) {
+            $number = filter_var(ltrim($matches[2], '0'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($number !== false) {
+                $consultation = strtoupper($matches[1]) === QueueNumberFormat::CONSULTATION;
+                $query->where('case_type', $consultation ? DispensaryCase::TYPE_CONSULTATION : DispensaryCase::TYPE_OTC)
+                    ->whereHas($consultation ? 'visit.queueEntry' : 'visit.otcQueueEntry', fn ($q) => $q->where('queue_number', $number));
+
+                return;
+            }
+        }
         $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], Str::lower($term)).'%';
         $query->whereHas('visit.patient', fn ($q) => $q->whereRaw("search_name LIKE ? ESCAPE '\\'", [$like]));
     }
