@@ -127,7 +127,7 @@ request has its own approval, dispatch and receiving steps.
   `config/ai_chat.php`. A second check fails if any code outside the chatbox's own controller, middleware, command, binding and routes
   uses the chat classes (so no clinical, patient, billing or inventory code can call the AI).
 - **The key.** The provider key is `AI_CHAT_API_KEY` in the server's environment secrets only, never in code, `.env.example` values, a commit or
-  chat. The chatbox is off (`AGENTS_CHAT_ENABLED=false`) until the owner turns it on, only on a server with fictional data until the PDPA review.
+  chat. The chatbox is off (`AGENTS_CHAT_ENABLED=false`) until the owner turns it on. The PDPA and lawyer review is approved (owner-confirmed, verbal, 25 Nov 2026; the owner keeps the written copy), so it no longer limits the chatbox to fictional data; the owner still decides when and where to turn it on.
 - The KPOne connector (section 16) is a door that the owner's AI app calls; KPOne still calls nothing for it and holds no key for it.
 - Any further AI feature (consultation, files, voice, images) needs its own owner decision and a contract change.
 
@@ -255,9 +255,9 @@ screen permissions and audit.
 other way, explain answers in plain English with the numbers taken from query output, and say when data is
 synthetic.
 
-**Privacy.** Query results are sent to Anthropic as part of the owner's Claude use. All data is synthetic
-today; **before real patient data is in KPOne, this path needs the PDPA and legal review** recorded in the
-production gate.
+**Privacy.** Query results are sent to Anthropic as part of the owner's Claude use. The PDPA and legal review of
+Ask KPOne is approved (owner-confirmed, verbal, 25 Nov 2026); the owner keeps the written copy and the coordinator records its date and
+reference in `docs/BASELINE.md`. The masked `ai_read` schema stays, and small counts can still point at a person.
 
 | Slice | Migration prefix | Owns |
 |---|---|---|
@@ -400,7 +400,7 @@ the Director's AI app can use as a custom connector. **Claude calls KPOne; KPOne
   `ai_connector.tokens_revoked`, scope `one_app`). Nobody sees another person's connections.
 - **Operating:** [CONNECTOR-OWNER-GUIDE.md](CONNECTOR-OWNER-GUIDE.md) (what the owner does in the Claude app) and
   [CONNECTOR-TRIAL-CHECKLIST.md](CONNECTOR-TRIAL-CHECKLIST.md) (switching it on and off on the trial server).
-- **Data rule:** fictional data only until the PDPA review (design note section 8).
+- **Data rule:** the PDPA and lawyer review is approved (owner-confirmed, verbal, 25 Nov 2026), but the connector keeps its own switch: it stays off on a server with real patient data until the owner gives a separate written OK at switch-on, naming the server and the date (REL-AG.md, design note section 8).
 
 ## 17. The AI chatbox (CHAT-1, owner decision 2026-11-24)
 
