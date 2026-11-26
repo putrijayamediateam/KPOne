@@ -1,5 +1,19 @@
 # Coordinator checkpoint — 27 November 2026 MYT
 
+## Current verified status
+
+The latest merged release is HR documentation PR1118 at main `d783621e38b3de57c11620526e7a8e5f1a68548d`. PR1117 is the next serial release: exact head `2ef4b5807fd5228a0f066c57ec5bdbc68621be6f` has successful attest/static checks; backend shards remain queued/running. A bounded read-only monitor records changes in `sug1b-publication/ci-monitor.json`; it cannot merge. Coordinator rechecks fresh main and the complete six-check set before any expected-head merge.
+
+Foundation refreshes published: Registration1132 (`ecadc1125`), Triage1134 (`6eeec08a`), Homes1135 (`e3b14e164`), Consultation1136 (`f3f7fdd55`) and Inventory1137 (`c8409375`). Each has fresh local verification and independent review; none is claimed merged here. Inventory's full run passed2,207 tests; Consultation and the other listed frontend foundations passed2,205 each. Browser proof scopes and historical-only evidence are explicitly distinguished in their PR descriptions.
+
+New reviewed drafts1184–1189 cover Settings explanation, TRI2 lane, Registration review summary, monthly closing filters, batched presence and Count case composition. PR1188 at `0475a77df` preserves existing authority/date semantics while replacing per-doctor branch checks with bounded batch reads (builder20 tests/135 assertions, independent six-file review). PR1189 at `0e9349b70cd158d67b0c66e4d111a04c1f39c59e` is stacked on1183: builder2,239 frontend and30 backend tests/548 assertions, full types/lint/format/build and independently reviewed final five-file artifact. Three distinct synthetic actors demonstrate original-counter and recounter denial, one-unit approved loss and preserved version history. No new permission, migration or old assertion change.
+
+Latest live inventory confirmed all six actual session agents running. Active follow-ons: Registration single-form extraction with explicit test-path relocation; Panel price-review context; truthful Dispensary Last changed metadata; TRI2 shared-alert UI/Hold bridge; next Inventory gap assessment; independent reviews. Two heavy frontend pipelines run at most; queued builders continue source/fixture/review preparation. Root1138/1139 normal-main refreshes are source-reviewed and waiting their fresh heavy-check slots. No indefinite execution or usage reset is promised.
+
+The complete demo makeover is unfinished. Draft publication, local tests and bounded visual reviews do not imply complete demo parity, deployment or production activation. Earlier sections below are chronological historical checkpoints; current status above supersedes their pending/next statements.
+
+## Earlier checkpoints (historical)
+
 At the initial checkpoint, all six subagents had reported usage-limit errors and were not running. No usage-reset operation was found in the active tool inventory despite the owner's explicit permission. The coordinator continued with available repository tools. All six later resumed successfully as recorded below; no usage reset was performed.
 
 ## Completed in this continuation
