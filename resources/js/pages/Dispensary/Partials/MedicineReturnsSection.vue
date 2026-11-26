@@ -345,7 +345,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="w-full sm:w-fit"
+                            class="min-h-11 w-full sm:w-fit lg:min-h-9"
                             :aria-controls="`return-${line.publicId}-form`"
                             aria-expanded="false"
                             data-action="open-return-form"

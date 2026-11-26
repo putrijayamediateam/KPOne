@@ -442,3 +442,7 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Return disclosure target — 26 November 2026
+
+Owner-authorized bounded follow-up: Record a return disclosure now has a44px minimum below1024 and36px desktop, matching existing form controls. Script, predicates, aria/control IDs and handlers unchanged; no return submission or workflow changes. Existing assertions retained; scoped tests, responsive keyboard/readonly evidence and independent review accompany the publication packet.
