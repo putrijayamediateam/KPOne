@@ -53,7 +53,7 @@ final class DispensaryListService
 
         $query = $this->tabQuery($actor, $branch, $tab, $from, $to, $caseType);
         $this->search($query, $search);
-        $query->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'handoffs' => fn ($q) => $q->orderByDesc('attempt_number')->withCount(['items as given_count' => fn ($i) => $i->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)])]);
+        $query->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'handoffs' => fn ($q) => $q->reorder('attempt_number', 'desc')->withCount(['items as given_count' => fn ($i) => $i->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)])]);
         $tab === self::TAB_DONE ? $query->orderByDesc('completed_at')->orderByDesc('id') : $query->orderBy('received_at')->orderBy('id');
         // A refresh can move cases between tabs; a page past the end falls back to the last page.
         $lastPage = max(1, (int) ceil((clone $query)->count() / self::PER_PAGE));
