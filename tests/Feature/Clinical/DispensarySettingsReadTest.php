@@ -149,4 +149,24 @@ class DispensarySettingsReadTest extends VisitTestCase
         $this->assertCount(count($baseline), $after);
         $this->assertCount(1, array_filter($after, fn (array $query): bool => str_contains($query['query'], 'from "branch_dispensary_settings"')));
     }
+
+    public function test_waiting_link_reuses_actual_directory_authority_and_check_tab(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $data = app(DispensarySettingsReader::class)->snapshot($supervisor, $this->branch);
+        $this->assertFalse($data['settings']['doctorCheckRequired'], 'Existing waiting cases remain navigable even while the switch is off.');
+        $this->assertSame('/dispensary?tab=check', $data['waitingCasesUrl']);
+        $this->actingAs($supervisor)->get($data['waitingCasesUrl'])->assertOk()->assertInertia(fn (Assert $page) => $page->component('Dispensary/Index')->where('list.tab', 'check'));
+    }
+
+    public function test_settings_only_director_gets_no_waiting_link_and_destination_stays_denied(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $data = app(DispensarySettingsReader::class)->snapshot($director, $this->branch);
+        $this->assertNull($data['waitingCasesUrl']);
+        $this->actingAs($director)->get(route('dispensary-settings.show'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('waitingCasesUrl', null));
+        $this->get('/dispensary?tab=check')->assertForbidden();
+    }
 }

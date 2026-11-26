@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { PageHeader } from '@/components/ui/page-header';
@@ -13,6 +13,7 @@ const props = defineProps<{
     branch: { id: number; name: string };
     settings: { doctorCheckRequired: boolean; lockVersion: number };
     settingsChange?: { changedAt: string; changedBy: string } | null;
+    waitingCasesUrl?: string | null;
 }>();
 
 const busy = ref(false);
@@ -128,5 +129,13 @@ const toggle = () => {
                 if this setting is turned off.
             </p>
         </section>
+        <Link
+            v-if="waitingCasesUrl"
+            :href="waitingCasesUrl"
+            class="inline-flex min-h-11 w-fit max-w-full items-center rounded-full border border-border bg-card px-4 py-2 text-left text-sm font-medium text-foreground outline-offset-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring lg:min-h-9"
+            data-testid="settings-waiting-cases"
+        >
+            See cases waiting for the doctor's check
+        </Link>
     </main>
 </template>

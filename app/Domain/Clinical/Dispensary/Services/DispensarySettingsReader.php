@@ -17,7 +17,7 @@ final class DispensarySettingsReader
     /**
      * One settings-row snapshot keeps the displayed switch and its attribution together.
      *
-     * @return array{branch: array{id: int, name: string}, settings: array{doctorCheckRequired: bool, lockVersion: int}, settingsChange: array{changedAt: string, changedBy: string}|null}
+     * @return array{branch: array{id: int, name: string}, settings: array{doctorCheckRequired: bool, lockVersion: int}, settingsChange: array{changedAt: string, changedBy: string}|null, waitingCasesUrl: string|null}
      */
     public function snapshot(User $actor, Branch $expectedBranch): array
     {
@@ -48,6 +48,9 @@ final class DispensarySettingsReader
             'branch' => ['id' => $branch->id, 'name' => $branch->name],
             'settings' => ['doctorCheckRequired' => (bool) $row?->doctor_check_required, 'lockVersion' => $row ? $row->lock_version : 1],
             'settingsChange' => $change,
+            'waitingCasesUrl' => DispensaryDirectoryService::canView($fresh)
+                ? route('dispensary.index', ['tab' => DispensaryListService::TAB_CHECK], absolute: false)
+                : null,
         ];
     }
 }
