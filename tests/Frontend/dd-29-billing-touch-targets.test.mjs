@@ -15,6 +15,6 @@ test('DD-29: below 1024 px every Billing button is 44 px, as on the Dispensary p
         workspace,
         /@media \(max-width: 1023\.98px\) \{\s*\.billing-entry :deep\(button\),\s*\.billing-workspace :deep\(button\),\s*\.billing-workspace :deep\(a\[data-slot='button'\]\) \{\s*height: auto;\s*min-height: 44px;/,
     );
-    // The compact height stays for wide screens.
-    assert.match(workspace, /min-height: 28px;\s*height: 30px;/);
+    // Owner approved 26 Nov 2026: Clean Look 36px desktop height; 44px touch rule remains.
+    assert.match(workspace, /min-height: 36px;\s*height: 36px;/);
 });

@@ -337,12 +337,10 @@ const reverse = (receipt: Receipt) =>
     </main>
     <main
         v-else
-        class="billing-workspace flex w-full flex-1 flex-col bg-muted/40 text-[13px]"
+        class="billing-workspace flex w-full flex-1 flex-col bg-background text-[13px]"
         data-testid="active-billing"
     >
-        <header
-            class="flex flex-wrap items-center gap-2 border-b bg-card px-4 py-3"
-        >
+        <header class="flex flex-wrap items-center gap-3 px-4 py-5 lg:px-6">
             <ActionLink v-if="manage" :href="base" variant="outline"
                 ><ArrowLeft class="size-3.5" />Billing</ActionLink
             >
@@ -353,7 +351,7 @@ const reverse = (receipt: Receipt) =>
             >
                 <ArrowLeft class="size-3.5" />{{ billing.backLink.label }}
             </ActionLink>
-            <h1 class="text-base font-semibold">
+            <h1 class="text-[26px] font-semibold tracking-tight">
                 {{
                     manage
                         ? 'Payments'
@@ -398,10 +396,10 @@ const reverse = (receipt: Receipt) =>
         <!-- BIL-32 (Daniel): the day-close state sits at the top, above the columns, so nobody hunts for a missing button. -->
         <div
             v-if="billing.dayClose"
-            class="mx-3 mt-3 flex items-start gap-2 rounded-xl border p-3 text-sm"
+            class="mx-4 mb-4 flex items-start gap-2 rounded-xl border p-3 text-sm"
             :class="
                 billing.dayClose.paused
-                    ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+                    ? 'border-warning/30 bg-warning-wash text-warning'
                     : 'border-border bg-muted/40'
             "
             role="status"
@@ -420,7 +418,7 @@ const reverse = (receipt: Receipt) =>
             :class="
                 manage
                     ? 'mx-auto grid w-full max-w-[1440px] gap-3 p-4'
-                    : 'grid min-w-0 items-start gap-3 p-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.3fr)_minmax(0,.8fr)]'
+                    : 'grid min-w-0 items-start gap-4 px-4 pb-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.3fr)_minmax(0,.8fr)]'
             "
             data-testid="billing-columns"
         >
@@ -1243,7 +1241,7 @@ const reverse = (receipt: Receipt) =>
                     v-if="billing.panelShortfall"
                     role="note"
                     data-testid="panel-shortfall"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                    class="rounded-xl border border-warning/30 bg-warning-wash p-4 text-xs text-warning"
                 >
                     <p class="font-semibold">
                         Panel shortfall:
@@ -1412,6 +1410,7 @@ const reverse = (receipt: Receipt) =>
                             >Payment method</label
                         >
                         <OperationalSelect
+                            trigger-class="min-h-11 lg:min-h-9"
                             id="payment-method"
                             labelledby="payment-method-label"
                             v-model="form.method"
@@ -1426,7 +1425,7 @@ const reverse = (receipt: Receipt) =>
                                 maxlength="100"
                                 autocomplete="off" /></label
                         ><Button
-                            size="sm"
+                            class="min-h-11 lg:min-h-9"
                             :variant="
                                 !isCompleted && billing.can.complete
                                     ? 'secondary'
@@ -1560,6 +1559,7 @@ const reverse = (receipt: Receipt) =>
                                 >Verified Panel</label
                             >
                             <OperationalSelect
+                                trigger-class="min-h-11 lg:min-h-9"
                                 id="verified-panel"
                                 labelledby="verified-panel-label"
                                 v-model="form.panel_id"
@@ -1690,10 +1690,10 @@ const reverse = (receipt: Receipt) =>
 .billing-entry :deep(button),
 .billing-workspace :deep(button),
 .billing-workspace :deep(a[data-slot='button']) {
-    min-height: 28px;
-    height: 30px;
-    padding-inline: 10px;
-    font-size: 12px;
+    min-height: 36px;
+    height: 36px;
+    padding-inline: 14px;
+    font-size: 14px;
 }
 /* Phone touch targets (GUIDE: 44 px): buttons marked data-touch-target escape the compact height above. */
 @media (max-width: 639.98px) {
@@ -1704,7 +1704,7 @@ const reverse = (receipt: Receipt) =>
     }
 }
 /* DD-29 (owner's design clean-up): below 1024 px every Billing button reaches 44 px, as on the Dispensary pages
-   (DD-24). The compact 30 px height stays on wide screens. */
+   (DD-24). The Clean Look 36 px height stays on wide screens. */
 @media (max-width: 1023.98px) {
     .billing-entry :deep(button),
     .billing-workspace :deep(button),
@@ -1724,11 +1724,16 @@ const reverse = (receipt: Receipt) =>
     width: 100%;
     margin-block: 0.25rem 0.5rem;
     padding: 0.4rem 0.5rem;
-    min-height: 30px;
+    min-height: 36px;
     border: 1px solid var(--input);
-    border-radius: 6px;
-    background: var(--card);
+    border-radius: var(--radius-md);
+    background: var(--field-fill);
     font: inherit;
+}
+@media (max-width: 1023.98px) {
+    .billing-input {
+        min-height: 44px;
+    }
 }
 .billing-input:hover:not(:disabled) {
     border-color: color-mix(in oklab, var(--foreground) 30%, var(--input));
@@ -1743,7 +1748,7 @@ const reverse = (receipt: Receipt) =>
     min-height: 5rem;
 }
 .billing-input:focus-visible {
-    border-color: var(--brand);
+    border-color: var(--ring);
     outline: 2px solid var(--ring);
     outline-offset: 2px;
 }
