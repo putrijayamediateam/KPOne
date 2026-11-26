@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\RoomCallService;
+use App\Domain\Queue\Emergency\EmergencyDoctorPresence;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
@@ -173,7 +174,10 @@ class QueueController extends Controller
     {
         $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
 
-        return response()->json(['alerts' => $alerts->alerts($request->user(), (int) $validated['expected_branch_id'])]);
+        return response()->json([
+            'alerts' => $alerts->alerts($request->user(), (int) $validated['expected_branch_id']),
+            'presence' => app(EmergencyDoctorPresence::class)->poll($request->user(), (int) $validated['expected_branch_id']),
+        ]);
     }
 
     /** Q-16b: "I'll take it". Assigns the red-zone patient to the taking doctor; never calls the patient. */

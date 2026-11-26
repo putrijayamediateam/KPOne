@@ -2,8 +2,10 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -41,6 +43,27 @@ class BranchAccessService
 
         return $user->can('branch_context.switch.organisation')
             || ($user->can('branch_context.switch.branch') && $this->hasEffectiveAssignment($user, $branch));
+    }
+
+    /** Batched equivalent of canSelect; it does not add active-user or role rules.
+     * @param  EloquentCollection<int,User>  $users
+     * @return list<int>
+     */
+    public function selectableUserIds(EloquentCollection $users, Branch $branch): array
+    {
+        if (! $branch->is_active || $users->isEmpty()) {
+            return [];
+        }
+        $users->loadMissing(['roles.permissions', 'permissions', 'staffProfile']);
+        $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
+        $assigned = StaffBranchAssignment::query()->where('branch_id', $branch->id)
+            ->whereIn('staff_profile_id', $users->pluck('staffProfile.id')->filter()->all())
+            ->effectiveAt($effectiveDate)->pluck('staff_profile_id')->flip();
+
+        return array_values($users->filter(fn (User $user): bool => $user->organisation_id === $branch->organisation_id
+            && ($user->can('branch_context.switch.organisation')
+                || ($user->can('branch_context.switch.branch') && $user->staffProfile !== null && $assigned->has($user->staffProfile->id))))
+            ->pluck('id')->map(fn ($id): int => (int) $id)->all());
     }
 
     /** @return Collection<int, Branch> */
