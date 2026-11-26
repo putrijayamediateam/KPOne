@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\OpenShifts\Services;
 
+use App\Domain\HR\Availability\Services\LocumAvailabilityPageService;
 use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\Records\Services\LocumSignIns;
 use App\Domain\HR\Roster\Models\RosterVersion;
@@ -32,7 +33,10 @@ final class OpenShiftsPageService
     {
         $canManage = $actor->can(OpenShiftPermissions::MANAGE);
         $canAsk = $actor->can(OpenShiftPermissions::REQUEST_OWN);
-        $tabs = array_values(array_filter([$canAsk ? 'available' : null, $canAsk ? 'mine' : null, $canManage ? 'open' : null, $canManage ? 'closed' : null]));
+        // HR-22f: free times, for a locum who proposes them and for a roster planner who answers them.
+        $free = LocumAvailabilityPageService::canPropose($actor) || ($canManage && LocumAvailabilityPageService::canDecide($actor));
+        $tabs = array_values(array_filter([$canAsk ? 'available' : null, $canAsk ? 'mine' : null, $canManage ? 'open' : null, $free ? 'free' : null,
+            $canManage ? 'closed' : null]));
         $tab = is_string($query['tab'] ?? null) && in_array($query['tab'], $tabs, true) ? $query['tab'] : ($tabs[0] ?? 'available');
         $branches = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->get();
         $names = $branches->pluck('name', 'id');

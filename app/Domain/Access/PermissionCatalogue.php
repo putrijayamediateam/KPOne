@@ -12,6 +12,7 @@ use App\Domain\Clinical\Triage\TriagePermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
 use App\Domain\HR\Attendance\ClockPermissions;
+use App\Domain\HR\Availability\AvailabilityPermissions;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Discipline\DisciplinePermissions;
@@ -113,6 +114,7 @@ final class PermissionCatalogue
             ...array_keys(DisciplinePermissions::grants()),
             ...array_keys(IncidentPermissions::grants()),
             ...array_keys(OpenShiftPermissions::grants()),
+            ...array_keys(AvailabilityPermissions::grants()),
             ...array_keys(LocumPayPermissions::grants()),
             ...array_keys(LabourCostPermissions::grants()),
             ...array_keys(ClaimPermissions::grants()),
@@ -213,6 +215,7 @@ final class PermissionCatalogue
             'inventory.valuation.view.organisation',
             'inventory.pack_conversions.verify.organisation',
             'inventory.medicine_sales.view.organisation',
+            'inventory.differences.report.branch',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -661,6 +664,12 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.medicine_sales.view.organisation';
         }
 
+        // STK-45 (owner, P10, 25 Nov 2026: "Lulus nota + kebenaran"): report a difference on a stock line, which opens or
+        // joins a governed count; it never moves stock. The Medical Assistant gets it through the CA rule below.
+        foreach (['ca', 'ca_supervisor', 'store_admin', 'branch_manager'] as $holder) {
+            $roles[$holder][] = 'inventory.differences.report.branch';
+        }
+
         // DSP-23 (owner answers 21 Nov 2026: P3, 12 = A, 13 = B): the attending doctor checks the prepared medicine; a
         // CA Supervisor may check instead with a reason; the Director and CA Supervisor turn the branch switch on or off.
         $roles['resident_doctor'][] = 'dispensary.doctor_check.own';
@@ -690,7 +699,7 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...LocumPayPermissions::grants(), ...LabourCostPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...AvailabilityPermissions::grants(), ...LocumPayPermissions::grants(), ...LabourCostPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }

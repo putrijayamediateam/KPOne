@@ -23,7 +23,7 @@ use RuntimeException;
 final class ReadOnlyReviewAudit
 {
     /** @var list<string> */
-    public const EVENTS = ['dispensary.case_reviewed', 'consultation.reviewed', 'triage.viewed', 'billing.reviewed'];
+    public const EVENTS = ['dispensary.case_reviewed', 'consultation.reviewed', 'triage.viewed', 'billing.reviewed', 'queue.details_viewed'];
 
     /** @var list<string> */
     public const ID_KEYS = ['case', 'visit', 'patient', 'encounter', 'invoice'];

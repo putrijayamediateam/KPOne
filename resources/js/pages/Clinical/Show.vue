@@ -21,6 +21,7 @@ import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.v
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
+import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -709,6 +710,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
     <main
         class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 bg-neutral-100 px-3 py-3 md:px-5 dark:bg-background"
     >
+        <RedZoneAlertBanner
+            v-if="
+                page.props.auth.permissions.includes('queue.call.own') ||
+                page.props.auth.permissions.includes(
+                    'visits.triage.record.branch',
+                )
+            "
+            :branch-id="clinical.branch.id"
+            :from-visit="clinical.visit.visitNumber"
+        />
         <header
             class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"
         >
@@ -822,7 +833,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     v-if="billViewUrl"
                     variant="outline"
                     size="sm"
-                    class="max-sm:h-11"
+                    class="h-9 text-[14px] max-lg:h-11"
                     as-child
                 >
                     <Link

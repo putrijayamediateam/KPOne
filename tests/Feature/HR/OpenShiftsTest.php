@@ -49,7 +49,7 @@ class OpenShiftsTest extends VisitTestCase
         $unlinked = $this->actor(PermissionCatalogue::LOCUM_ROLE);
         $this->selectBranch($unlinked);
         $this->get(route('hr.open-shifts.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('HR/OpenShifts')
-            ->where('openShifts.tabs', ['available', 'mine'])->where('openShifts.linked', false)->where('openShifts.available', []));
+            ->where('openShifts.tabs', ['available', 'mine', 'free']) /* HR-22f adds Free times (owner-approved, 25 Nov 2026) */ ->where('openShifts.linked', false)->where('openShifts.available', []));
         $shift = $this->post_($this->hr);
         $this->selectBranch($unlinked);
         $this->post(route('hr.open-shifts.ask', $shift), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('open_shift');
