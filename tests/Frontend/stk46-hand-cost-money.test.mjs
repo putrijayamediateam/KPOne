@@ -14,5 +14,7 @@ test('hand cost per-unit echo uses exact half-up arithmetic including free and f
     assert.equal(handCostPerUnit(999999999999, 1), '9999999999990.0000');
 });
 test('an invalid or zero quantity cannot display a misleading per-unit cost', () => {
-    for(const [sen, quantity] of [[1,0],[1,-1],[1,1.5],[-1,1000],[0.5,1000],[Number.MAX_SAFE_INTEGER+1,1000]]) assert.equal(handCostPerUnit(sen,quantity), null);
+    for(const [sen, quantity] of [[1,0],[1,-1],[1,1.5],[-1,1000],[0.5,1000],[Number.MAX_SAFE_INTEGER+1,1000]]) {
+        assert.equal(handCostPerUnit(sen,quantity), null);
+    }
 });
