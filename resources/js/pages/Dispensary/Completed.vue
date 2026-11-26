@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, Eye } from '@lucide/vue';
+import { ref } from 'vue';
 import SupervisorCheckNote from '@/components/dispensary/SupervisorCheckNote.vue';
 import ReadOnlyBanner from '@/components/ReadOnlyBanner.vue';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import type { DispensaryReturnsPanel } from '@/lib/dispensary-returns';
 import type { DispensarySupervisorCheck } from '@/types';
 import MedicineReturnsSection from './Partials/MedicineReturnsSection.vue';
+
+const showHelpfulInfo = ref(false);
 
 defineProps<{
     dispensary: {
@@ -39,6 +42,21 @@ defineProps<{
             :description="`${dispensary.patient.name} · ${dispensary.patient.patientNumber} · ${dispensary.visit.visitNumber}`"
         >
             <template #actions>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="min-h-11 lg:min-h-9"
+                    :aria-expanded="showHelpfulInfo"
+                    aria-controls="completed-helpful-info"
+                    @click="showHelpfulInfo = !showHelpfulInfo"
+                >
+                    {{
+                        showHelpfulInfo
+                            ? 'Hide helpful info'
+                            : 'Show helpful info'
+                    }}
+                </Button>
                 <Button
                     v-if="dispensary.labelUrl"
                     as-child
@@ -126,5 +144,51 @@ defineProps<{
             :returns="returns"
             :view-only="dispensary.viewOnly"
         />
+        <section
+            v-show="showHelpfulInfo"
+            id="completed-helpful-info"
+            aria-label="Helpful info"
+            class="mt-5 space-y-3"
+        >
+            <details class="rounded-2xl border border-border bg-card" open>
+                <summary
+                    class="min-h-11 cursor-pointer px-5 py-3 text-sm font-semibold lg:min-h-9"
+                >
+                    About this page
+                </summary>
+                <p class="px-5 pb-5 text-sm leading-6 text-muted-foreground">
+                    A finished dispensary case with its medicine return records.
+                    <template v-if="dispensary.viewOnly">
+                        You can review the information here. Changes and
+                        printing are handled by authorized staff.
+                    </template>
+                    <template v-else>
+                        Use the available actions for current labels and the
+                        visit's billing page.
+                    </template>
+                </p>
+            </details>
+            <details class="rounded-2xl border border-border bg-card">
+                <summary
+                    class="min-h-11 cursor-pointer px-5 py-3 text-sm font-semibold lg:min-h-9"
+                >
+                    Good to know
+                </summary>
+                <ul
+                    class="list-disc space-y-2 px-5 pb-5 pl-10 text-sm leading-6 text-muted-foreground"
+                >
+                    <li>This case cannot be returned to the doctor.</li>
+                    <li>
+                        Recording a medicine return does not issue a refund.
+                        Refunds follow the separate billing approval process.
+                    </li>
+                    <li>
+                        An authorized checker who did not record the return
+                        checks it separately. Controlled medicines cannot be
+                        quarantined.
+                    </li>
+                </ul>
+            </details>
+        </section>
     </main>
 </template>

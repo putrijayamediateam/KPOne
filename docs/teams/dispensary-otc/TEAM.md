@@ -446,3 +446,7 @@ Team rules for this backlog: run the PHPStan stopgap before each push; migration
 ### Completed case context — 26 November 2026 (in review)
 
 Owner-authorized bounded F21 presentation continuation: existing completion timestamp/explanation grouped in a context card, existing header actions44/36 and long patient context wrapping. Script, actor-specific URLs, readonly and returns child guards unchanged. No new return behavior, clinical facts, follow-up link or completion state. Exact focused/runtime/browser evidence will accompany the scoped publication packet.
+
+### Completed optional guidance — 26 November 2026 (in review)
+
+Owner-authorized F21 content continuation: optional About/Good to know disclosures after operational returns, with a44/36 header toggle. Role-aware copy describes existing completion, refund separation and controlled-medicine restriction; no duplicate Related links. Critical completion/readonly/return warnings stay outside the toggle. Only local presentation ref/import added; existing commands/authority/return child unchanged.
