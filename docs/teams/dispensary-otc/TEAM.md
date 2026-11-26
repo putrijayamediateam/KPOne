@@ -450,3 +450,7 @@ Owner-authorized F24 content slice adds source-backed access, recorded-change an
 ### Settings last changed reader — 26 November 2026 (in review)
 
 Owner-authorized F24 existing-data reader returns current switch and metadata from one row snapshot after fresh actor/active branch/permission checks. Only attributable successful changes have localized time; updater names use existing staff visibility with Staff member fallback. Default/legacy missing attribution displays Not available. Separate settingsChange prop preserves original settings DTO. No migration/grant/write/current() change or waiting link. Exact faithful prior no-label assertion adaptation recorded in the review packet.
+
+### Settings waiting-case link — 26 November 2026 (in review)
+
+Owner-authorized F24 navigation gap: separate nullable URL derives from actual DispensaryDirectoryService viewer authority on the freshly authorized settings actor, targeting the real check tab. Settings permission alone does not expose the link; destination guards remain unchanged. No new queries, grants, counts or workflow. Existing toggle and last-change contracts preserved; positive Supervisor and negative settings-only Director checks accompany publication.

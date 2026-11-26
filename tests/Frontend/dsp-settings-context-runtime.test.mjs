@@ -31,6 +31,7 @@ async function render(overrides = {}) {
         setup: () => ({
             branch: { id: 1, name: 'Synthetic Branch' },
             settingsChange: null,
+            waitingCasesUrl: null,
             on: true,
             busy: false,
             errors: {},
@@ -45,6 +46,13 @@ async function render(overrides = {}) {
         props: ['title', 'description'],
         setup: (props) => () =>
             vue.h('header', [props.title, props.description]),
+    });
+    // eslint-disable-next-line vue/no-reserved-component-names -- Actual application component name in isolated renderer.
+    app.component('Link', {
+        setup:
+            (_, { attrs, slots }) =>
+            () =>
+                vue.h('a', attrs, slots.default?.()),
     });
     app.component('InputError', {
         props: ['message'],
@@ -105,4 +113,14 @@ test('attributed change renders only provided safe text, including a generic hid
         },
     });
     assert.match(hidden, /Synthetic time by Staff member/);
+});
+
+test('waiting navigation appears only for a server-authorized URL', async () => {
+    const allowed = await render({ waitingCasesUrl: '/dispensary?tab=check' });
+    assert.match(allowed, /href="\/dispensary\?tab=check"/);
+    assert.match(allowed, /See cases waiting for the doctor&#39;s check/);
+    for (const waitingCasesUrl of [null, undefined]) {
+        const denied = await render({ waitingCasesUrl });
+        assert.doesNotMatch(denied, /data-testid="settings-waiting-cases"|<a /);
+    }
 });
