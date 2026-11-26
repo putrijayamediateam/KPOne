@@ -212,8 +212,8 @@ test('only already displayed saved values are bound; correction drafts and new p
     assert.match(claim, /:route-key="claim\.publicId"/);
 
     const directory = read('resources/js/pages/Patient/Index.vue');
-    assert.match(directory, /:can-whatsapp="patient\.canWhatsapp"/);
-    assert.match(directory, /:route-key="patient\.patientNumber"/);
+    assert.match(directory, /:can-whatsapp="\s*patient\.canWhatsapp\s*"/);
+    assert.match(directory, /:route-key="\s*patient\.patientNumber\s*"/);
     assert.match(directory, /grid-cols-\[minmax\(0,1fr\)_auto\] md:table-row/);
 
     for (const path of [

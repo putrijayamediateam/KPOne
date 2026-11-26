@@ -278,7 +278,11 @@ test('Classic Patient directory keeps its search request and search types', () =
         'issuing_country_code',
         "'Search could not be completed.'",
         'meta[name="csrf-token"]',
-        'OperationalSelect',
+        '<fieldset',
+        '<legend',
+        'name="patient-search-type"',
+        'type="radio"',
+        'v-model="form.search_type"',
     ]) {
         assert.ok(page.includes(piece), `Classic lacks ${piece}`);
     }
