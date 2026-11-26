@@ -29,7 +29,6 @@ const text = (node) =>
 // SMOKE-1 S1-009 to S1-014: every staff page has exactly one h1, and a board may hide it
 // visually with sr-only (design guide sections 4 and 12).
 for (const [path, heading] of [
-    ['resources/js/pages/Registration/Index.vue', 'Registration'],
     ['resources/js/pages/Queue/Index.vue', 'Consultation queue'],
     ['resources/js/pages/QueueDisplay/Screen.vue', 'Queue display'],
 ]) {
@@ -51,6 +50,26 @@ for (const [path, heading] of [
         );
     });
 }
+
+test('UX-3: Registration has one visible shared page heading as the first main child', () => {
+    const nodes = elements(template('resources/js/pages/Registration/Index.vue'));
+    const headers = nodes.filter((node) => node.tag === 'PageHeader');
+    assert.equal(headers.length, 1);
+    assert.equal(attr(headers[0], 'title'), 'Registration');
+    assert.equal(nodes.filter((node) => node.tag === 'h1').length, 0);
+    const main = nodes.find((node) => node.tag === 'main');
+    assert.ok(main, 'the page keeps its main landmark');
+    assert.equal(main.children.find((child) => child.type === 1), headers[0]);
+    const shared = elements(template('resources/js/components/ui/page-header/PageHeader.vue'));
+    const headings = shared.filter((node) => node.tag === 'h1');
+    assert.equal(headings.length, 2, 'shared heading has mutually exclusive title-extra and default branches');
+
+    for (const heading of headings) {
+        assert.ok(!attr(heading, 'class')?.split(/\s+/).includes('sr-only'));
+        assert.match(attr(heading, 'class'), /text-foreground/);
+        assert.equal(heading.children.find((child) => child.type === 5)?.content.content, 'title');
+    }
+});
 
 // Icon-only search boxes: the label held only a magnifier icon, so the box had no name.
 for (const [path, name, placeholder] of [

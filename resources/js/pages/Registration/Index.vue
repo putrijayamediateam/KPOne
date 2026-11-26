@@ -20,9 +20,11 @@ import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
+import RegistrationHelpfulInfo from '@/components/registration/RegistrationHelpfulInfo.vue';
 import RegistrationWorkspaceNav from '@/components/registration/RegistrationWorkspaceNav.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { formatDate } from '@/lib/presentation';
@@ -163,6 +165,7 @@ const liveRefreshNotice = ref('');
 const searchComposing = ref(false);
 const busyKey = ref<string | null>(null);
 const showMoreFilters = ref(false);
+const showHelpfulInfo = ref(true);
 const cancellationRow = ref<PatientBoardRow | null>(null);
 const cancelOpen = ref(false);
 const today = new Intl.DateTimeFormat('en-CA', {
@@ -701,15 +704,23 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Registration" />
     <main
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
     >
-        <h1 class="sr-only">Registration</h1>
+        <PageHeader title="Registration" :description="options.branch.name">
+            <template #actions>
+                <Button v-if="canCreate" as-child>
+                    <Link href="/registration/create"
+                        ><Plus class="size-4" /> Register Visit</Link
+                    >
+                </Button>
+            </template>
+        </PageHeader>
         <RegistrationWorkspaceNav
             :active="isQrIntake ? 'qr' : 'today'"
             :qr-available="!!qrIntakes"
             :qr-pending-count="qrIntakes?.pendingCount"
         />
-        <div class="flex items-center gap-2 border-b">
+        <div class="flex items-center gap-2">
             <OperationalTabs
                 v-if="!isQrIntake"
                 class="min-w-0 flex-1"
@@ -718,315 +729,393 @@ onBeforeUnmount(() => {
                 :tabs="tabs.filter((tab) => tab.value !== 'qr-intake')"
                 @update:model-value="selectOperationalTab"
             />
-            <Button v-if="canCreate" as-child size="sm" class="shrink-0"
-                ><Link href="/registration/create"
-                    ><Plus class="size-4" /> Register Visit</Link
-                ></Button
+            <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                class="ml-auto min-h-11 shrink-0 lg:min-h-9"
+                :aria-expanded="showHelpfulInfo"
+                aria-controls="registration-helpful-info"
+                @click="showHelpfulInfo = !showHelpfulInfo"
+                >{{
+                    showHelpfulInfo ? 'Hide helpful info' : 'Show helpful info'
+                }}</Button
             >
         </div>
 
-        <QrIntakeTable
-            v-if="isQrIntake && qrIntakes"
-            :branch="qrIntakes.branch"
-            :items="qrIntakes.items"
-            :history="qrIntakes.history"
-            @history-page-change="changeQrHistoryPage"
-        />
-
-        <div v-else-if="plannedTab" class="border-y px-4 py-12 text-center">
-            <h2 class="font-semibold">
-                {{
-                    activeTab === 'dispensary'
-                        ? 'Dispensary'
-                        : 'Completed Visits'
-                }}
-            </h2>
-            <p class="mt-1 text-sm text-muted-foreground">
-                Planned workflow — not available yet. No Patient records are
-                represented in this state.
-            </p>
-        </div>
-
-        <template v-else>
-            <form class="border-b pb-3" @submit.prevent="search(1)">
-                <div
-                    class="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.6fr)_minmax(150px,0.8fr)_140px_140px_auto_auto]"
+        <div
+            class="grid min-w-0 items-start gap-4"
+            :class="showHelpfulInfo ? 'xl:grid-cols-[minmax(0,1fr)_280px]' : ''"
+        >
+            <div class="min-w-0 space-y-4">
+                <p
+                    id="registration-table-scroll-hint"
+                    class="hidden text-xs text-muted-foreground md:block"
                 >
-                    <label class="relative md:col-span-2 xl:col-span-1">
-                        <span class="sr-only">Search patients</span>
-                        <Search
-                            class="absolute top-2.5 left-3 size-4 text-muted-foreground"
-                        />
-                        <input
-                            id="registration-board-search"
-                            v-model="form.patient_query"
-                            autocomplete="off"
-                            @compositionstart="searchComposing = true"
-                            @compositionend="searchComposing = false"
-                            class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-                            placeholder="Patient name or exact Patient No."
-                        />
-                    </label>
-                    <OperationalSelect
-                        v-model="form.doctor_id"
-                        label="Doctor"
-                        :options="doctorOptions"
-                    />
-                    <OperationalSelect
-                        v-model="form.coverage_type"
-                        label="Coverage"
-                        :options="coverageOptions"
-                    />
-                    <OperationalSelect
-                        v-model="form.priority"
-                        label="Urgency"
-                        :options="urgencyOptions"
-                    />
-                    <Button
-                        size="sm"
-                        type="submit"
-                        variant="outline"
-                        :disabled="loading"
-                        ><LoaderCircle
-                            v-if="loading"
-                            class="size-4 animate-spin"
-                        />{{ loading ? 'Applying…' : 'Apply' }}</Button
-                    >
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        @click="showMoreFilters = !showMoreFilters"
-                    >
-                        <SlidersHorizontal class="size-4" /> More
-                        <span v-if="advancedFilterCount" class="text-xs">{{
-                            advancedFilterCount
-                        }}</span
-                        ><ChevronDown
-                            class="size-3.5"
-                            :class="showMoreFilters ? 'rotate-180' : ''"
-                        />
-                    </Button>
-                </div>
-                <div
-                    v-if="showMoreFilters"
-                    class="mt-3 flex flex-wrap items-end gap-2 border-t pt-3"
-                >
-                    <label
-                        class="grid min-w-40 gap-1 text-xs"
-                        for="registration-visit-type"
-                        >Visit type
-                        <OperationalSelect
-                            id="registration-visit-type"
-                            v-model="form.visit_type"
-                            label="Visit type"
-                            :options="visitTypeOptions"
-                        />
-                    </label>
-                    <label class="grid gap-1 text-xs"
-                        >From<DateField v-model="form.date_from" :echo="false"
-                    /></label>
-                    <label class="grid gap-1 text-xs"
-                        >To<DateField v-model="form.date_to" :echo="false"
-                    /></label>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        @click="resetFilters"
-                        ><X class="size-4" /> Reset</Button
-                    >
-                </div>
-                <InputError class="mt-2" :message="error" />
-            </form>
+                    If columns or actions are off-screen, scroll the table
+                    horizontally. You can also hide helpful info for more space.
+                </p>
+                <QrIntakeTable
+                    class="rounded-lg shadow-card"
+                    v-if="isQrIntake && qrIntakes"
+                    :branch="qrIntakes.branch"
+                    :items="qrIntakes.items"
+                    :history="qrIntakes.history"
+                    @history-page-change="changeQrHistoryPage"
+                />
 
-            <p
-                v-if="liveRefreshNotice"
-                role="status"
-                class="text-xs text-muted-foreground"
-            >
-                {{ liveRefreshNotice }}
-            </p>
-
-            <section class="overflow-hidden border-y bg-background">
                 <div
-                    class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
+                    v-else-if="plannedTab"
+                    class="border-y px-4 py-12 text-center"
                 >
-                    <span
-                        >{{ total }} Visit{{ total === 1 ? '' : 's' }}
-                        <span
-                            v-if="isCustomDateFilter"
-                            class="text-foreground/70"
-                            >· {{ registrationDateLabel }}</span
-                        ></span
-                    ><span>25 per page</span>
-                </div>
-                <!-- TRI-1b: consultations waiting with no triage yet, longest wait first. No zone or reading here. -->
-                <div v-if="activeTab === 'triage'">
-                    <p
-                        v-if="triageRows.length === 0"
-                        class="px-4 py-10 text-center text-sm text-muted-foreground"
-                    >
+                    <h2 class="font-semibold">
                         {{
-                            boardEmptyMessage ??
-                            'Every waiting consultation has a triage.'
+                            activeTab === 'dispensary'
+                                ? 'Dispensary'
+                                : 'Completed Visits'
                         }}
+                    </h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Planned workflow — not available yet. No Patient records
+                        are represented in this state.
                     </p>
-                    <table v-else class="hidden w-full text-sm md:table">
-                        <caption class="sr-only">
-                            Consultations waiting for triage, longest wait first
-                        </caption>
-                        <thead
-                            class="border-y bg-muted/40 text-left text-xs text-muted-foreground"
+                </div>
+
+                <template v-else>
+                    <form class="border-b pb-3" @submit.prevent="search(1)">
+                        <div
+                            class="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.6fr)_minmax(140px,0.8fr)_120px_120px_auto_auto]"
                         >
-                            <tr>
-                                <th scope="col" class="px-3 py-2 font-medium">
-                                    Queue
-                                </th>
-                                <th scope="col" class="px-3 py-2 font-medium">
-                                    Patient
-                                </th>
-                                <th scope="col" class="px-3 py-2 font-medium">
-                                    Arrived
-                                </th>
-                                <th scope="col" class="px-3 py-2 font-medium">
-                                    Waiting
-                                </th>
-                                <th scope="col" class="px-3 py-2 font-medium">
-                                    Doctor
-                                </th>
-                                <th scope="col" class="px-3 py-2 font-medium">
-                                    <span class="sr-only">Action</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="row in triageRows"
-                                :key="row.key"
-                                class="border-b last:border-b-0"
+                            <label class="relative md:col-span-2 xl:col-span-1">
+                                <span class="sr-only">Search patients</span>
+                                <Search
+                                    class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                />
+                                <input
+                                    id="registration-board-search"
+                                    v-model="form.patient_query"
+                                    autocomplete="off"
+                                    @compositionstart="searchComposing = true"
+                                    @compositionend="searchComposing = false"
+                                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25 max-lg:min-h-11"
+                                    placeholder="Patient name or exact Patient No."
+                                />
+                            </label>
+                            <OperationalSelect
+                                v-model="form.doctor_id"
+                                label="Doctor"
+                                trigger-class="h-9 max-lg:min-h-11"
+                                :options="doctorOptions"
+                            />
+                            <OperationalSelect
+                                v-model="form.coverage_type"
+                                label="Coverage"
+                                trigger-class="h-9 max-lg:min-h-11"
+                                :options="coverageOptions"
+                            />
+                            <OperationalSelect
+                                v-model="form.priority"
+                                label="Urgency"
+                                trigger-class="h-9 max-lg:min-h-11"
+                                :options="urgencyOptions"
+                            />
+                            <Button
+                                size="sm"
+                                type="submit"
+                                variant="outline"
+                                :disabled="loading"
+                                ><LoaderCircle
+                                    v-if="loading"
+                                    class="size-4 animate-spin"
+                                />{{ loading ? 'Applying…' : 'Apply' }}</Button
                             >
-                                <td
-                                    class="px-3 py-2 font-semibold tabular-nums"
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                @click="showMoreFilters = !showMoreFilters"
+                            >
+                                <SlidersHorizontal class="size-4" /> More
+                                <span
+                                    v-if="advancedFilterCount"
+                                    class="text-xs"
+                                    >{{ advancedFilterCount }}</span
+                                ><ChevronDown
+                                    class="size-3.5"
+                                    :class="showMoreFilters ? 'rotate-180' : ''"
+                                />
+                            </Button>
+                        </div>
+                        <div
+                            v-if="showMoreFilters"
+                            class="mt-3 flex flex-wrap items-end gap-2 border-t pt-3"
+                        >
+                            <label
+                                class="grid min-w-40 gap-1 text-xs"
+                                for="registration-visit-type"
+                                >Visit type
+                                <OperationalSelect
+                                    id="registration-visit-type"
+                                    v-model="form.visit_type"
+                                    label="Visit type"
+                                    :options="visitTypeOptions"
+                                />
+                            </label>
+                            <label class="grid gap-1 text-xs"
+                                >From<DateField
+                                    v-model="form.date_from"
+                                    :echo="false"
+                            /></label>
+                            <label class="grid gap-1 text-xs"
+                                >To<DateField
+                                    v-model="form.date_to"
+                                    :echo="false"
+                            /></label>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                @click="resetFilters"
+                                ><X class="size-4" /> Reset</Button
+                            >
+                        </div>
+                        <InputError class="mt-2" :message="error" />
+                    </form>
+
+                    <p
+                        v-if="liveRefreshNotice"
+                        role="status"
+                        class="text-xs text-muted-foreground"
+                    >
+                        {{ liveRefreshNotice }}
+                    </p>
+
+                    <section class="overflow-hidden border-y bg-background">
+                        <div
+                            class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
+                        >
+                            <span
+                                >{{ total }} Visit{{ total === 1 ? '' : 's' }}
+                                <span
+                                    v-if="isCustomDateFilter"
+                                    class="text-foreground/70"
+                                    >· {{ registrationDateLabel }}</span
+                                ></span
+                            ><span>25 per page</span>
+                        </div>
+                        <!-- TRI-1b: consultations waiting with no triage yet, longest wait first. No zone or reading here. -->
+                        <div v-if="activeTab === 'triage'">
+                            <p
+                                v-if="triageRows.length === 0"
+                                class="px-4 py-10 text-center text-sm text-muted-foreground"
+                            >
+                                {{
+                                    boardEmptyMessage ??
+                                    'Every waiting consultation has a triage.'
+                                }}
+                            </p>
+                            <table
+                                v-else
+                                class="hidden w-full text-sm md:table"
+                            >
+                                <caption class="sr-only">
+                                    Consultations waiting for triage, longest
+                                    wait first
+                                </caption>
+                                <thead
+                                    class="border-y bg-muted/40 text-left text-xs text-muted-foreground"
                                 >
-                                    {{ row.queueNumber ?? '—' }}
-                                </td>
-                                <td class="px-3 py-2">
-                                    <span class="font-medium">{{
-                                        row.patientName
-                                    }}</span>
-                                    <span
-                                        class="ml-2 text-xs text-muted-foreground"
-                                        >{{ row.patientNumber }}</span
+                                    <tr>
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-2 font-medium"
+                                        >
+                                            Queue
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-2 font-medium"
+                                        >
+                                            Patient
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-2 font-medium"
+                                        >
+                                            Arrived
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-2 font-medium"
+                                        >
+                                            Waiting
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-2 font-medium"
+                                        >
+                                            Doctor
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-2 font-medium"
+                                        >
+                                            <span class="sr-only">Action</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="row in triageRows"
+                                        :key="row.key"
+                                        class="border-b last:border-b-0"
                                     >
+                                        <td
+                                            class="px-3 py-2 font-semibold tabular-nums"
+                                        >
+                                            {{ row.queueNumber ?? '—' }}
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <span class="font-medium">{{
+                                                row.patientName
+                                            }}</span>
+                                            <span
+                                                class="ml-2 text-xs text-muted-foreground"
+                                                >{{ row.patientNumber }}</span
+                                            >
+                                            <span
+                                                v-if="row.priority === 'urgent'"
+                                                class="ml-2 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
+                                                >Urgent</span
+                                            >
+                                        </td>
+                                        <td class="px-3 py-2 tabular-nums">
+                                            {{ row.arrivedTime }}
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            {{ row.waitingLabel }}
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            {{ row.doctorName ?? '—' }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right">
+                                            <Button
+                                                v-if="row.triageUrl"
+                                                as-child
+                                                size="sm"
+                                                variant="outline"
+                                                class="max-lg:h-11"
+                                                ><Link
+                                                    :href="row.triageUrl"
+                                                    :aria-label="`Triage ${row.patientName}`"
+                                                    >Triage</Link
+                                                ></Button
+                                            >
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <ul
+                                v-if="triageRows.length"
+                                class="divide-y md:hidden"
+                                aria-label="Consultations waiting for triage"
+                            >
+                                <li
+                                    v-for="row in triageRows"
+                                    :key="row.key"
+                                    class="flex items-center gap-3 px-3 py-3"
+                                >
                                     <span
-                                        v-if="row.priority === 'urgent'"
-                                        class="ml-2 rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
-                                        >Urgent</span
+                                        class="w-14 shrink-0 font-semibold tabular-nums"
+                                        >{{ row.queueNumber ?? '—' }}</span
                                     >
-                                </td>
-                                <td class="px-3 py-2 tabular-nums">
-                                    {{ row.arrivedTime }}
-                                </td>
-                                <td class="px-3 py-2">
-                                    {{ row.waitingLabel }}
-                                </td>
-                                <td class="px-3 py-2">
-                                    {{ row.doctorName ?? '—' }}
-                                </td>
-                                <td class="px-3 py-2 text-right">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate font-medium">
+                                            {{ row.patientName }}
+                                        </p>
+                                        <p
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            {{ row.patientNumber }} ·
+                                            {{ row.waitingLabel
+                                            }}<span
+                                                v-if="row.priority === 'urgent'"
+                                            >
+                                                · Urgent</span
+                                            >
+                                        </p>
+                                    </div>
                                     <Button
                                         v-if="row.triageUrl"
                                         as-child
-                                        size="sm"
                                         variant="outline"
-                                        class="max-lg:h-11"
+                                        class="h-11 shrink-0"
                                         ><Link
                                             :href="row.triageUrl"
                                             :aria-label="`Triage ${row.patientName}`"
                                             >Triage</Link
                                         ></Button
                                     >
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <ul
-                        v-if="triageRows.length"
-                        class="divide-y md:hidden"
-                        aria-label="Consultations waiting for triage"
-                    >
-                        <li
-                            v-for="row in triageRows"
-                            :key="row.key"
-                            class="flex items-center gap-3 px-3 py-3"
+                                </li>
+                            </ul>
+                        </div>
+                        <template v-else>
+                            <PatientBoard
+                                class="focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                                tabindex="0"
+                                role="region"
+                                aria-label="Registration visits"
+                                aria-describedby="registration-table-scroll-hint"
+                                :branch-id="options.branch.id"
+                                from="registration"
+                                :rows="boardRows"
+                                :busy-key="busyKey"
+                                :empty-message="boardEmptyMessage"
+                                @send-to-waiting="sendToWaiting"
+                                @readiness-changed="refreshAppliedBoard"
+                                @call="callIn"
+                                @open-consultation="openConsultation"
+                                @dispense="dispenseOtc"
+                                @call-dispensary="callOtcToDispensary"
+                                @cancel="requestCancellation"
+                            />
+                        </template>
+                        <div
+                            v-if="lastPage > 1"
+                            class="flex justify-end gap-2 border-t p-3"
                         >
-                            <span
-                                class="w-14 shrink-0 font-semibold tabular-nums"
-                                >{{ row.queueNumber ?? '—' }}</span
-                            >
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate font-medium">
-                                    {{ row.patientName }}
-                                </p>
-                                <p class="text-xs text-muted-foreground">
-                                    {{ row.patientNumber }} ·
-                                    {{ row.waitingLabel
-                                    }}<span v-if="row.priority === 'urgent'">
-                                        · Urgent</span
-                                    >
-                                </p>
-                            </div>
                             <Button
-                                v-if="row.triageUrl"
-                                as-child
+                                size="sm"
                                 variant="outline"
-                                class="h-11 shrink-0"
-                                ><Link
-                                    :href="row.triageUrl"
-                                    :aria-label="`Triage ${row.patientName}`"
-                                    >Triage</Link
-                                ></Button
+                                :disabled="currentPage === 1"
+                                @click="search(currentPage - 1)"
+                                >Previous</Button
                             >
-                        </li>
-                    </ul>
-                </div>
-                <PatientBoard
-                    v-else
-                    :branch-id="options.branch.id"
-                    from="registration"
-                    :rows="boardRows"
-                    :busy-key="busyKey"
-                    :empty-message="boardEmptyMessage"
-                    @send-to-waiting="sendToWaiting"
-                    @readiness-changed="refreshAppliedBoard"
-                    @call="callIn"
-                    @open-consultation="openConsultation"
-                    @dispense="dispenseOtc"
-                    @call-dispensary="callOtcToDispensary"
-                    @cancel="requestCancellation"
-                />
-                <div
-                    v-if="lastPage > 1"
-                    class="flex justify-end gap-2 border-t p-3"
-                >
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        :disabled="currentPage === 1"
-                        @click="search(currentPage - 1)"
-                        >Previous</Button
-                    >
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        :disabled="currentPage === lastPage"
-                        @click="search(currentPage + 1)"
-                        >Next</Button
-                    >
-                </div>
-            </section>
-        </template>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                :disabled="currentPage === lastPage"
+                                @click="search(currentPage + 1)"
+                                >Next</Button
+                            >
+                        </div>
+                    </section>
+                </template>
+            </div>
+            <RegistrationHelpfulInfo
+                v-show="showHelpfulInfo"
+                :branch-id="options.branch.id"
+                :branch-name="options.branch.name"
+                :view-label="
+                    isQrIntake
+                        ? 'QR check-ins'
+                        : (tabs.find((tab) => tab.value === activeTab)?.label ??
+                          'Visits')
+                "
+                :is-qr="isQrIntake"
+                :qr-available="!!qrIntakes"
+            />
+        </div>
 
         <VisitCancellationDialog
             v-model:open="cancelOpen"
