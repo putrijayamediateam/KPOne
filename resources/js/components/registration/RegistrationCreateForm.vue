@@ -1287,6 +1287,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
         </p>
         <RegistrationReviewSummary
             heading="4. Check and register"
+            :unconfirmed="!!submissionNotice"
             :patient-name="
                 selectedPatient?.fullName ||
                 (quickMode ? quick.full_name.trim() : '')

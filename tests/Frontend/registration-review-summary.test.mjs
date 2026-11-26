@@ -114,3 +114,14 @@ test('coverage changes cannot display a stale hidden member reference', async ()
     assert.match(html, /MEMBER-TEST/);
     assert.match(await render({ coverage: 'panel' }), /No panel selected/);
 });
+
+test('unconfirmed summary describes the retained original command without implying that nothing was saved', async () => {
+    const html = await render({ unconfirmed: true });
+    assert.match(html, /original details retained for unchanged retry/);
+    assert.match(html, /registration result is unconfirmed/);
+    assert.doesNotMatch(html, /Nothing is saved/);
+    assert.match(html, /Synthetic Patient/);
+    assert.match(html, /KP-TEST-1/);
+    assert.doesNotMatch(html, /<button|<input|<form/);
+    assert.match(await render(), /Nothing is saved until you register the/);
+});
