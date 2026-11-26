@@ -48,14 +48,17 @@ const toggle = () => {
             :description="`${branch.name} · These settings apply to this branch only.`"
         />
         <section
-            class="flex flex-col gap-3 rounded-xl border bg-card p-4 text-sm sm:flex-row sm:items-start sm:justify-between"
+            class="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-sm shadow-sm sm:flex-row sm:items-start sm:justify-between"
             data-testid="doctor-check-setting"
         >
             <div class="min-w-0">
-                <h2 id="doctor-check-label" class="font-medium">
+                <h2 id="doctor-check-label" class="text-base font-semibold">
                     Doctor checks prepared medicine before payment
                 </h2>
-                <p id="doctor-check-help" class="text-muted-foreground">
+                <p
+                    id="doctor-check-help"
+                    class="mt-2 leading-6 text-muted-foreground"
+                >
                     When on, the CA sends each consultation case to the
                     attending doctor, who verifies it before the visit goes to
                     billing. Stock is taken out when the doctor verifies. OTC
@@ -91,6 +94,22 @@ const toggle = () => {
                     on ? 'On' : 'Off'
                 }}</span>
             </div>
+        </section>
+        <section
+            aria-labelledby="settings-access-heading"
+            class="rounded-2xl border border-border bg-muted/30 p-5 text-sm"
+        >
+            <h2 id="settings-access-heading" class="font-semibold">
+                About this setting
+            </h2>
+            <p class="mt-2 leading-6 text-muted-foreground">
+                Only staff authorized to manage this branch's Dispensary
+                settings can change it. Changes are recorded.
+            </p>
+            <p class="mt-2 leading-6 text-muted-foreground">
+                Cases already waiting for the doctor's verification stay waiting
+                if this setting is turned off.
+            </p>
         </section>
     </main>
 </template>

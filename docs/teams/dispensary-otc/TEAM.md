@@ -442,3 +442,7 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Dispensary settings context — 26 November 2026 (in review)
+
+Owner-authorized F24 content slice adds source-backed access, recorded-change and frozen-waiting-case explanation around the existing branch switch. Script, payload/locks/retry behavior, switch aria/44px target and original Verify-completes/OTC explanation unchanged. No invented last-change actor/time, new waiting link, confirmation, authority or workflow.
