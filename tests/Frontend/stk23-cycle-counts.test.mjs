@@ -13,7 +13,7 @@ const page = readFileSync(
 test('the count page lists counts due by class and starts a count', () => {
     assert.match(page, /data-testid="counts-due"/);
     assert.match(page, /Counts due \(\{\{ stock\.cycle\.total \}\}\)/);
-    assert.match(page, /controlled medicines are\s+always A\./);
+    assert.match(page, /controlled\s+medicines\s+are\s+always A\./);
     assert.match(page, /'\/inventory\/counts\/cycle'/);
     assert.match(page, /retry_key: crypto\.randomUUID\(\)/);
     assert.match(page, /'Never counted'/);
@@ -43,7 +43,7 @@ test('design round 2: ten rows, phone row pattern, overdue tones in words', () =
 test('STK-23: never counted is amber, red only from 30 days overdue, with a legend', () => {
     assert.match(page, /row\.overdueDays !== null && row\.overdueDays >= 30/);
     assert.match(
-        page,
+        page.replace(/\s+/g, ' '),
         /Amber: due or up to 29 days overdue\. Red: 30 days or more\./,
     );
 });
