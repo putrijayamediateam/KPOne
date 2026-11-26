@@ -79,6 +79,25 @@ const render = (path, props, password = false) => {
                 };
             }
 
+            if (name === '@/components/inventory/StockBatchHoldList.vue') {
+                const child = { exports: {} };
+                const childPath =
+                    'resources/js/components/inventory/StockBatchHoldList.vue';
+                const childCode = compileScript(
+                    parse(read(childPath)).descriptor,
+                    {
+                        id: childPath,
+                        inlineTemplate: true,
+                    },
+                ).content;
+                runInNewContext(transpile(childCode), {
+                    exports: child.exports,
+                    require,
+                });
+
+                return child.exports;
+            }
+
             if (name === '@lucide/vue' || name.startsWith('@/components/')) {
                 return ui;
             }
