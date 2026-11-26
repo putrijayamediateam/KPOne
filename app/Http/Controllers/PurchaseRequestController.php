@@ -29,7 +29,9 @@ final class PurchaseRequestController extends Controller
             throw $e->redirectTo($back);
         }
 
-        return redirect($back)->with('success', 'Request sent for review.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Request sent for review.']);
+
+        return redirect($back);
     }
 
     public function act(Request $request, string $purchaseRequest, string $action, PurchaseRequestService $service): RedirectResponse
@@ -39,12 +41,16 @@ final class PurchaseRequestController extends Controller
             if ($action === 'convert') {
                 $service->convert($request->user(), $purchaseRequest, $request->only(['expected_branch_id', 'lock_version', 'supplier_public_id', 'lines']));
 
-                return redirect(route('inventory.purchase-requests', ['tab' => 'converted']))->with('success', 'Draft purchase order created. Submit it from Inventory > Operations.');
+                Inertia::flash('toast', ['type' => 'success', 'message' => 'Draft purchase order created. Submit it from Inventory > Operations.']);
+
+                return redirect(route('inventory.purchase-requests', ['tab' => 'converted']));
             }
             if ($action === 'reject') {
                 $service->reject($request->user(), $purchaseRequest, $request->only(['expected_branch_id', 'lock_version', 'reason']));
 
-                return redirect($back)->with('success', 'Request rejected.');
+                Inertia::flash('toast', ['type' => 'success', 'message' => 'Request rejected.']);
+
+                return redirect($back);
             }
             $service->withdraw($request->user(), $purchaseRequest, $request->only(['expected_branch_id', 'lock_version']));
         } catch (ValidationException $e) {
@@ -54,7 +60,9 @@ final class PurchaseRequestController extends Controller
             throw ValidationException::withMessages(['request' => $e->getMessage()])->redirectTo($back);
         }
 
-        return redirect($back)->with('success', 'Request withdrawn.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Request withdrawn.']);
+
+        return redirect($back);
     }
 
     private function branch(Request $request, BranchAccessService $branches): Branch
