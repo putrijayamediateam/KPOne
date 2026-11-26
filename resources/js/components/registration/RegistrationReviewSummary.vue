@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 const props = defineProps<{
     heading?: string;
+    unconfirmed?: boolean;
     patientName: string;
     patientNumber?: string;
     newPatient: boolean;
@@ -50,7 +51,11 @@ const rows = computed(() => [
         <h2 id="registration-review-heading" class="text-base font-semibold">
             {{ heading ?? 'Check and register' }}
         </h2>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <p v-if="unconfirmed" class="mt-1 text-sm text-muted-foreground">
+            Review the original details retained for unchanged retry. The
+            registration result is unconfirmed.
+        </p>
+        <p v-else class="mt-1 text-sm text-muted-foreground">
             Review your current choices. Nothing is saved until you register the
             visit.
         </p>
