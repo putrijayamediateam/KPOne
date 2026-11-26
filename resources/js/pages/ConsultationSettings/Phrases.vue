@@ -235,7 +235,7 @@ const emptyTitle = computed(() =>
                         type="search"
                         maxlength="200"
                         placeholder="English or Bahasa Melayu"
-                        class="h-11 min-w-0 rounded-md border bg-background px-3 font-normal md:h-9"
+                        class="h-11 min-w-0 rounded-md border bg-background px-3 font-normal lg:h-9"
                 /></label>
                 <Button type="submit" variant="outline" class="max-sm:min-h-11"
                     >Search</Button
@@ -285,7 +285,7 @@ const emptyTitle = computed(() =>
                         <Button
                             variant="outline"
                             size="sm"
-                            class="max-sm:min-h-11"
+                            class="min-h-9 max-lg:min-h-11"
                             :disabled="busy !== null"
                             :aria-label="`Edit ${phrase.labelEn}`"
                             @click="openEdit(phrase)"
@@ -297,22 +297,27 @@ const emptyTitle = computed(() =>
                             :aria-checked="phrase.active"
                             :aria-label="`${phrase.active ? 'Archive' : 'Restore'} ${phrase.labelEn}`"
                             :disabled="busy !== null"
-                            :class="[
-                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
-                                phrase.active
-                                    ? 'bg-success'
-                                    : 'bg-muted-foreground/40',
-                            ]"
+                            class="inline-flex min-h-11 w-11 shrink-0 items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 lg:min-h-9"
                             @click="toggle(phrase)"
                         >
                             <span
+                                aria-hidden="true"
                                 :class="[
-                                    'size-5 rounded-full bg-white shadow-sm transition-transform',
+                                    'pointer-events-none relative inline-flex h-6.5 w-11 items-center rounded-full ring-1 ring-border transition-colors motion-reduce:transition-none',
                                     phrase.active
-                                        ? 'translate-x-6'
-                                        : 'translate-x-1',
+                                        ? 'bg-success'
+                                        : 'bg-muted-foreground/40',
                                 ]"
-                            />
+                            >
+                                <span
+                                    :class="[
+                                        'size-5.5 rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none',
+                                        phrase.active
+                                            ? 'translate-x-5'
+                                            : 'translate-x-0.5',
+                                    ]"
+                                />
+                            </span>
                         </button>
                         <span class="w-16 text-sm" data-testid="status-word">{{
                             phrase.active ? 'Active' : 'Archived'
@@ -320,7 +325,7 @@ const emptyTitle = computed(() =>
                     </div>
                 </li>
             </ul>
-            <div class="mt-4">
+            <div class="mt-4 [&_button]:min-h-9 max-lg:[&_button]:min-h-11">
                 <CompactPagination
                     :current-page="pagination.currentPage"
                     :last-page="pagination.lastPage"
@@ -351,7 +356,7 @@ const emptyTitle = computed(() =>
                         v-model="addForm.kind"
                         label="Kind"
                         :options="kinds"
-                        trigger-class="h-11"
+                        trigger-class="min-h-11"
                     />
                     <InputError :message="addForm.errors.kind" />
                 </div>
