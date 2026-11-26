@@ -47,7 +47,7 @@ const toggle = () => {
     >
         <PageHeader
             title="Dispensary settings"
-            :description="`${branch.name} · These settings apply to this branch only.`"
+            description="These settings apply to this branch only."
         />
         <section
             class="rounded-2xl border border-border bg-card p-5 text-sm shadow-sm"
@@ -84,16 +84,25 @@ const toggle = () => {
                         aria-labelledby="doctor-check-label"
                         aria-describedby="doctor-check-help"
                         :disabled="busy"
-                        class="relative inline-flex h-11 w-[4.5rem] shrink-0 items-center rounded-full border-2 border-transparent p-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
-                        :class="on ? 'bg-brand' : 'bg-muted-foreground/40'"
+                        class="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
                         data-testid="doctor-check-switch"
                         @click="toggle"
                     >
                         <span
-                            class="block size-7 rounded-full bg-background shadow transition-transform"
-                            :class="on ? 'translate-x-7' : 'translate-x-0'"
+                            class="inline-flex h-[26px] w-11 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none"
+                            :class="
+                                on ? 'bg-success' : 'bg-muted-foreground/40'
+                            "
                             aria-hidden="true"
-                        />
+                            data-testid="doctor-check-track"
+                        >
+                            <span
+                                class="block size-[22px] rounded-full bg-white shadow transition-transform motion-reduce:transition-none"
+                                :class="
+                                    on ? 'translate-x-[18px]' : 'translate-x-0'
+                                "
+                            />
+                        </span>
                     </button>
                     <span class="w-7 font-medium" aria-hidden="true">{{
                         on ? 'On' : 'Off'
