@@ -38,18 +38,10 @@ test('no line on the other tabs, or while the Completed rows are still loading o
     assert.equal(completedShownLine('removed', 0, 40), null);
 });
 
-test('the board uses the helper with the live rows and the server count', () => {
-    assert.match(
-        page,
-        /completedShownLine\(\s*activeTab\.value,\s*live\.value\.removed\.length,\s*live\.value\.tabCounts\?\.removed,?\s*\)/,
-    );
-    const line = page.match(/<p\s+v-if="completedLine"([\s\S]*?)<\/p>/);
-    assert.ok(line);
-    assert.match(line[1], /data-testid="completed-shown-count"/);
-    assert.match(line[1], /text-xs text-muted-foreground/);
-    // The tab count itself stays the server count of every completed entry.
-    assert.match(
-        page,
-        /label: 'Consultation Completed',\s*count: live\.value\.tabCounts\?\.removed,/,
-    );
+test('Done today uses the independent full day count and bounded page metadata', () => {
+    assert.match(page, /label: 'Done today',\s*count: counts\?\.completed/);
+    assert.match(page, /workload\.page\.value\.total/);
+    assert.match(page, /workload\.page\.value\.currentPage/);
+    assert.match(page, /workload\.page\.value\.lastPage/);
+    assert.doesNotMatch(page, /completedShownLine\(/);
 });

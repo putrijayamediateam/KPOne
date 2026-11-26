@@ -30,7 +30,7 @@ const text = (node) =>
 // visually with sr-only (design guide sections 4 and 12).
 for (const [path, heading] of [
     ['resources/js/pages/Registration/Index.vue', 'Registration'],
-    ['resources/js/pages/Queue/Index.vue', 'Consultation queue'],
+    ['resources/js/pages/Queue/Index.vue', 'My patients / Queue'],
     ['resources/js/pages/QueueDisplay/Screen.vue', 'Queue display'],
 ]) {
     test(`UX-3: ${path.split('pages/')[1]} has one h1 "${heading}" for screen readers`, () => {
@@ -38,11 +38,26 @@ for (const [path, heading] of [
         const h1s = nodes.filter((node) => node.tag === 'h1');
 
         assert.equal(h1s.length, 1);
-        assert.equal(text(h1s[0]), heading);
+
+        if (path.endsWith('Queue/Index.vue')) {
+            const expression = h1s[0].children.find((child) => child.type === 5)
+                ?.content.content;
+            assert.ok(
+                expression,
+                'Queue heading derives from the authorized scope',
+            );
+            const renderHeading = new Function('live', `return ${expression}`);
+            assert.equal(renderHeading({ scope: 'own' }), 'My patients');
+            assert.equal(renderHeading({ scope: 'branch' }), 'Queue');
+        } else {
+            assert.equal(text(h1s[0]), heading);
+        }
 
         if (path.endsWith('Registration/Index.vue')) {
             assert.ok(!attr(h1s[0], 'class')?.split(/\s+/).includes('sr-only'));
             assert.match(attr(h1s[0], 'class'), /text-foreground/);
+        } else if (path.endsWith('Queue/Index.vue')) {
+            assert.ok(!attr(h1s[0], 'class')?.split(/\s+/).includes('sr-only'));
         } else {
             assert.equal(attr(h1s[0], 'class'), 'sr-only');
         }
@@ -52,7 +67,10 @@ for (const [path, heading] of [
         assert.ok(main, 'the page keeps its main landmark');
         const first = main.children.find((child) => child.type === 1);
 
-        if (path.endsWith('Registration/Index.vue')) {
+        if (
+            path.endsWith('Registration/Index.vue') ||
+            path.endsWith('Queue/Index.vue')
+        ) {
             assert.equal(first.tag, 'header');
             assert.equal(
                 elements(first).find((node) => node.tag === 'h1'),

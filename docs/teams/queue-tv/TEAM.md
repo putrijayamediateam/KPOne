@@ -4,6 +4,16 @@ Status: **set up with the owner on 2026-11-05.** This folder is the team's memor
 the owner decided, the rules, and what to build next. The team reads it before every task and updates it in
 the same PR as the code.
 
+## 26 November 2026 — Queue demo and workload draft checkpoint
+
+The owner requested preservation PRs, then resumed the existing Queue workload slice under delegated technical decisions. Drafts #1145 (demo workspace), #1151 (bounded backend lists) and #1153 (guarded fetch client) stack on archive-only #1142; none is a standalone main merge candidate, and the archive must not be merged wholesale.
+
+The next reviewed integration uses real full counts and pages of at most 25 for On hold, Treatment updates, Medicine checks, Seeing now and Done today. Seeing now excludes active holds. Done today means consultation checkout to Dispensary/Billing within the branch-local calendar day, not payment settlement. Treatment updates means unacknowledged completed Q2 steps, including not-successful outcomes; it does not assert physical return or resume/acknowledge care. Existing row actions, versions, emergency behavior and clinical outcome privacy remain. No new grant or migration.
+
+Validation: related PostgreSQL 27 tests / 285 assertions, full frontend 2,283 tests, scoped static analysis, types, build, lint and formatting passed. Real synthetic browser evidence covers own/branch roles, mobile/desktop and light/dark, reset/failure recovery, actual unsuccessful treatment display and unchanged clinical state. Real 26-row own and 28-row branch lists prove bounded nonoverlapping pages and filters. Independent source and bounded visual review found no remaining blocker. Exact UI assertion replacements were recorded under the owner's delegated decision while retaining accessibility and backend authority contracts.
+
+TV makeover and broader demo parity remain unfinished. Production activation, deployment and merging are outside this checkpoint. Final dependency extraction and exact-head CI are required before any merge.
+
 ## 1. Team
 
 | Role | Name | Job |

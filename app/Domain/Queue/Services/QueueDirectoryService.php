@@ -61,22 +61,28 @@ class QueueDirectoryService
     }
 
     /** Independent bounded lists: never derive workload from the ordinary latest-25 board rows.
+     * @param  array<string, mixed>  $criteria
      * @return array<string, mixed>
      */
-    public function workload(User $actor, int $expectedBranchId, string $section, int $page = 1): array
+    public function workload(User $actor, int $expectedBranchId, string $section, int $page = 1, array $criteria = []): array
     {
         abort_unless($actor->is_active, 403);
         Gate::forUser($actor)->authorize('viewAny', QueueEntry::class);
         $branch = $this->activeBranch($actor);
         abort_unless($branch->id === $expectedBranchId && $this->branches->canSelect($actor, $branch)
             && $this->branches->hasEffectiveAssignment($actor, $branch), 403);
-        abort_unless(in_array($section, ['held', 'treatment', 'checks'], true), 422);
+        abort_unless(in_array($section, ['held', 'treatment', 'checks', 'seeing', 'completed', 'summary'], true), 422);
         $now = now()->utc();
-        $query = app(QueueWorkloadQuery::class)->apply($this->baseQuery($actor, $branch, []), $actor, $branch, $section);
-        $total = (clone $query)->count();
+        $queries = [];
+        $counts = [];
+        foreach (['held', 'treatment', 'checks', 'seeing', 'completed'] as $name) {
+            $queries[$name] = app(QueueWorkloadQuery::class)->apply($this->baseQuery($actor, $branch, $criteria), $actor, $branch, $name);
+            $counts[$name] = (clone $queries[$name])->count();
+        }
+        $total = $counts[$section] ?? 0;
         $lastPage = max(1, (int) ceil($total / 25));
         $page = min(max(1, $page), $lastPage);
-        $entries = $query->orderBy('queue_entries.id')->forPage($page, 25)->get();
+        $entries = $section === 'summary' ? new EloquentCollection : $queries[$section]->orderBy('queue_entries.id')->forPage($page, 25)->get();
         $entries->load(['visit.patient', 'visit.assignedDoctor', 'visit.reasonAssignments.reason', 'visit.clinicalEncounter.holds']);
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($entries->modelKeys()));
         $treatment = app(TreatmentStepProjection::class)->rows($actor, $entries);
@@ -87,15 +93,19 @@ class QueueDirectoryService
             $entry->setRelation('treatmentProgress', $treatment[$entry->id] ?? null);
             $entry->setRelation('triageZone', $triage[$entry->visit_id] ?? null);
         }
-        $checks = $section === 'checks'
+        $checks = in_array($section, ['checks', 'completed'], true)
             ? $this->dispensaryAttention->checksForVisits($actor, $entries->map(fn (QueueEntry $entry) => $entry->visit)) : [];
+        $removedHints = $section === 'completed'
+            ? $this->dispensaryAttention->pendingForVisits($actor, $entries->map(fn (QueueEntry $entry) => $entry->visit))
+                + app(CheckoutReopenEligibility::class)->forVisits($actor, $entries->map(fn (QueueEntry $entry) => $entry->visit)) + $checks
+            : $checks;
         $eligibleDoctorIds = $this->doctors->eligibleDoctorIds($branch, $now->setTimezone($branch->timezone)->toDateString());
         $hints = [];
 
         return [
             'branchId' => $branch->id, 'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
-            'section' => $section, 'serverNow' => $now->toIso8601String(),
-            'data' => $this->rows($actor, $entries, $branch, $now, $eligibleDoctorIds, $hints, $checks, $checks),
+            'section' => $section, 'counts' => $counts, 'serverNow' => $now->toIso8601String(),
+            'data' => $this->rows($actor, $entries, $branch, $now, $eligibleDoctorIds, $hints, $removedHints, $checks),
             'total' => $total, 'currentPage' => $page, 'lastPage' => $lastPage, 'perPage' => 25,
         ];
     }

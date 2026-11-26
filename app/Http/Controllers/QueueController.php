@@ -29,6 +29,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -110,11 +111,14 @@ class QueueController extends Controller
     {
         $data = $request->validate([
             'expected_branch_id' => ['required', 'integer', 'min:1'],
-            'section' => ['required', 'in:held,treatment,checks'],
+            'section' => ['required', 'in:held,treatment,checks,seeing,completed,summary'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'],
+            'query' => ['nullable', 'string', 'max:255', Rule::when(trim((string) $request->input('query', '')) !== '' && preg_match('/\\A\\d+\\z/', trim((string) $request->input('query', ''))) !== 1, ['min:3'])],
+            'doctor_id' => ['nullable', 'integer'],
+            'priority' => ['nullable', 'in:normal,urgent'],
         ]);
 
-        return response()->json($directory->workload($request->user(), (int) $data['expected_branch_id'], $data['section'], (int) ($data['page'] ?? 1)));
+        return response()->json($directory->workload($request->user(), (int) $data['expected_branch_id'], $data['section'], (int) ($data['page'] ?? 1), $data));
     }
 
     public function search(SearchQueueEntriesRequest $request, QueueDirectoryService $directory): JsonResponse

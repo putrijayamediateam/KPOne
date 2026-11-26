@@ -171,10 +171,16 @@ test('changing branch or losing branch-wide view leaves the Doctors section', as
     )[0];
     const live = Vue.ref({ branch: { id: 1 }, scope: 'branch' });
     const workspaceSection = Vue.ref('doctors');
+    const activeTab = Vue.ref('held');
+    const workloadPage = Vue.ref(3);
+    let resets = 0;
     const stop = runInNewContext(callback.replace(/;$/, ''), {
         watch: Vue.watch,
         live,
         workspaceSection,
+        activeTab,
+        workloadPage,
+        workload: { reset: () => resets++ },
     });
     live.value.scope = 'own';
     await Vue.nextTick();
@@ -185,6 +191,9 @@ test('changing branch or losing branch-wide view leaves the Doctors section', as
     live.value.branch.id = 2;
     await Vue.nextTick();
     assert.equal(workspaceSection.value, 'queue');
+    assert.equal(activeTab.value, 'waiting');
+    assert.equal(workloadPage.value, 1);
+    assert.equal(resets, 3);
     stop();
 });
 
