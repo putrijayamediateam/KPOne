@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPolicy;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitHistoryService;
@@ -17,6 +18,7 @@ class VisitHistoryController extends Controller
     {
         return Inertia::render('Billing/Invoice', [
             'invoice' => $history->invoiceDetail($request->user(), $visit),
+            'treatmentRoomUrl' => app(TreatmentRoomPolicy::class)->view($request->user(), $visit, true) ? route('treatment-room.history', $visit) : null,
         ]);
     }
 
@@ -47,6 +49,7 @@ class VisitHistoryController extends Controller
 
         return Inertia::render('Visits/History', [
             'history' => $history->detail($actor, $visit, $consultationReturnVisit),
+            'treatmentRoomUrl' => app(TreatmentRoomPolicy::class)->view($actor, $visit, true) ? route('treatment-room.history', $visit) : null,
         ]);
     }
 }

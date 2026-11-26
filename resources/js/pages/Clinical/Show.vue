@@ -24,6 +24,7 @@ import HeldCallNext from '@/components/queue/HeldCallNext.vue';
 import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,6 +66,7 @@ const props = defineProps<{
     treatmentProgress?: TreatmentProgress | null;
     // BIL-37: the doctor's read-only bill of this visit (only once a finalised invoice exists).
     billViewUrl?: string | null;
+    treatmentRoomUrl?: string | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -1150,6 +1152,11 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         />
                     </div>
                 </section>
+
+                <TreatmentRoomReadPanel
+                    v-if="treatmentRoomUrl"
+                    :url="treatmentRoomUrl"
+                />
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"

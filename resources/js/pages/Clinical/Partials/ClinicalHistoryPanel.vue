@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft, LoaderCircle } from '@lucide/vue';
 import { onBeforeUnmount, ref } from 'vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatDateTime } from '@/lib/presentation';
@@ -10,7 +11,10 @@ import type {
 } from '@/types';
 
 defineProps<{ history: ClinicalHistorySummary[]; timeZone: string }>();
-const selected = ref<ClinicalHistoryDetailPage | null>(null);
+type TreatmentHistoryDetail = ClinicalHistoryDetailPage & {
+    treatmentRoomUrl?: string | null;
+};
+const selected = ref<TreatmentHistoryDetail | null>(null);
 const selectedInvoiceUrl = ref<string | null>(null);
 const loadingUrl = ref<string | null>(null);
 const error = ref('');
@@ -38,7 +42,7 @@ const load = async (item: ClinicalHistorySummary) => {
             throw new Error('Historical Encounter unavailable.');
         }
 
-        selected.value = (await response.json()) as ClinicalHistoryDetailPage;
+        selected.value = (await response.json()) as TreatmentHistoryDetail;
         selectedInvoiceUrl.value = item.invoiceUrl ?? null;
     } catch (caught) {
         if (!(caught instanceof DOMException && caught.name === 'AbortError')) {
@@ -295,6 +299,10 @@ onBeforeUnmount(() => controller?.abort());
                         No diagnosis recorded.
                     </p>
                 </section>
+                <TreatmentRoomReadPanel
+                    v-if="selected.treatmentRoomUrl"
+                    :url="selected.treatmentRoomUrl"
+                />
             </article>
         </div>
     </div>

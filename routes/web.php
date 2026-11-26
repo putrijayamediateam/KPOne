@@ -138,6 +138,7 @@ use App\Http\Controllers\SupplierTermsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\TreatmentProgressController;
+use App\Http\Controllers\TreatmentRoomController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\TriageController;
 use App\Http\Controllers\TriageGuidelineController;
@@ -218,6 +219,24 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // MA treatment evidence is an explicitly authorized clinical read, never a generic queue payload.
+    Route::middleware(['sensitive.no-store'])->group(function (): void {
+        Route::get('visits/{historicalVisit}/treatment-room-history', [TreatmentRoomController::class, 'historyRecords'])
+            ->middleware('throttle:60,1')->name('treatment-room.history');
+        Route::get('visits/{visit}/treatment-room-records', [TreatmentRoomController::class, 'records'])
+            ->middleware('throttle:60,1')->name('treatment-room.records');
+        Route::middleware('permission:treatment_room.view.branch')->group(function (): void {
+            Route::get('treatment-room', [TreatmentRoomController::class, 'index'])->name('treatment-room.index');
+            Route::get('treatment-room/{visit}', [TreatmentRoomController::class, 'show'])->name('treatment-room.show');
+        });
+        Route::middleware(['permission:treatment_room.record.branch', 'throttle:30,1'])->group(function (): void {
+            Route::post('treatment-room/{visit}/start', [TreatmentRoomController::class, 'start'])->name('treatment-room.start');
+            Route::post('treatment-room/{visit}/outcomes', [TreatmentRoomController::class, 'record'])->name('treatment-room.record');
+            Route::post('treatment-room/{visit}/corrections', [TreatmentRoomController::class, 'correct'])->name('treatment-room.correct');
+            Route::post('treatment-room/{visit}/voids', [TreatmentRoomController::class, 'void'])->name('treatment-room.void');
+        });
+    });
+
     Route::get('patient-contact/{context}/{key}/whatsapp', PatientWhatsAppController::class)->whereIn('context', ['patient', 'claim', 'visit'])->middleware(['sensitive.no-store:no-referrer', 'throttle:patient-whatsapp'])->name('patients.whatsapp');
 
     Route::get('workspace', WorkspaceController::class)->name('workspace');

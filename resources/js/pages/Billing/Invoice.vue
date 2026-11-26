@@ -8,13 +8,17 @@ import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import TreatmentRoomReadPanel from '@/components/treatment-room/TreatmentRoomReadPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { myr } from '@/types/billing';
 import type { CompletedInvoicePage } from '@/types/completedInvoice';
 
-const props = defineProps<{ invoice: CompletedInvoicePage }>();
+const props = defineProps<{
+    invoice: CompletedInvoicePage;
+    treatmentRoomUrl?: string | null;
+}>();
 const tab = ref('all');
 // BIL-5: billing prints are recorded; the old print address only redirects to Issued copies (BIL-14).
 const billingPrint = /\/billing\/[^/]+\/(?:receipts\/[^/]+\/)?print$/;
@@ -482,6 +486,10 @@ const totals = computed(() => {
                 >
             </aside>
         </div>
+        <TreatmentRoomReadPanel
+            v-if="treatmentRoomUrl && (tab === 'all' || tab === 'services')"
+            :url="treatmentRoomUrl"
+        />
     </main>
 </template>
 

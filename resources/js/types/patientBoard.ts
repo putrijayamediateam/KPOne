@@ -71,7 +71,13 @@ export type PatientBoardRow = {
 };
 
 // Q-2 treatment progress on a Serving consultation. Board and consultation page only; never the TV.
+export type TreatmentRoomOutcomeSummary = {
+    procedureLabel: string;
+    outcomeLabel: string;
+    reasonLabel: string | null;
+};
 export type TreatmentProgress = {
+    outcome?: TreatmentRoomOutcomeSummary;
     id: number | null;
     code: string | null;
     label: string | null;
@@ -81,5 +87,9 @@ export type TreatmentProgress = {
     lockVersion: number | null;
     canManage: boolean;
     /** Q-2c: other finished steps still waiting for the doctor, oldest first; absent when there are none. */
-    waiting?: Array<{ label: string; doneAt: string | null }>;
+    waiting?: Array<{
+        label: string;
+        doneAt: string | null;
+        outcome?: TreatmentRoomOutcomeSummary;
+    }>;
 };
