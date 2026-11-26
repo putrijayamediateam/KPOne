@@ -107,9 +107,9 @@ test('held inventory with no reason reads Held without changing known reason lab
     const { formatInventoryHoldLabel, inventoryPickerOptions } = load(
         'resources/js/lib/inventory-picker.ts',
     );
-    const index = read('resources/js/pages/Inventory/Index.vue');
+    const batches = read('resources/js/components/inventory/StockBatchList.vue');
     const rows = read('resources/js/components/inventory/StockOnHandList.vue');
-    const both = `${index}\n${rows}`;
+    const both = `${batches}\n${rows}`;
 
     assert.equal(formatInventoryHoldLabel(''), 'Held');
     assert.equal(
@@ -139,7 +139,7 @@ test('held inventory with no reason reads Held without changing known reason lab
     );
     assert.doesNotMatch(both, /String\(row\.holdReason\)/);
     assert.match(rows, /availabilityStatus[\s\S]*?===\s*'held'/i);
-    assert.match(index, /batchStatus[\s\S]*?===\s*'held'/i);
+    assert.match(batches, /batchStatus[\s\S]*?===\s*'held'/i);
 });
 
 test('invoice and receipt print headings keep visual classes and use ordered levels', () => {

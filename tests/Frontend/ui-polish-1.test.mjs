@@ -231,7 +231,8 @@ test('D010 all hold, receiving and correction reason codes have readable labels 
     assert.equal(formatInventoryReason('future_reason'), 'Future reason');
 
     for (const path of [
-        'resources/js/pages/Inventory/Index.vue',
+        'resources/js/components/inventory/StockOnHandList.vue',
+        'resources/js/components/inventory/StockBatchList.vue',
         'resources/js/components/inventory/InventoryReferenceDataPanel.vue',
         'resources/js/pages/Dispensary/Show.vue',
     ]) {
