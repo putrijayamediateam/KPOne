@@ -103,10 +103,19 @@ const blankLine = () => ({
     estimatedUnitCostRm: '',
 });
 const purchaseOrder = reactive({
+    expectedDeliveryDate: '',
+    supplierReference: '',
     supplier: '',
     destination: '',
     lines: [blankLine()],
 });
+watch(
+    () => props.operations.expectedBranchId,
+    () => {
+        purchaseOrder.expectedDeliveryDate = '';
+        purchaseOrder.supplierReference = '';
+    },
+);
 const receipt = reactive<
     Record<
         string,
@@ -173,6 +182,10 @@ const purchaseOrderEdits = reactive<
         {
             supplier: string;
             destination: string;
+            expectedDeliveryDate?: string;
+            supplierReference?: string;
+            metadataVersion: number;
+            metadataBranchId: number;
             quantities: Record<string, string>;
         }
     >
@@ -423,6 +436,16 @@ watchEffect(() => {
 
     for (const row of props.operations.purchaseOrders) {
         purchaseOrderEdits[row.publicId] ??= {
+            expectedDeliveryDate:
+                row.expectedDeliveryDate === undefined
+                    ? undefined
+                    : (row.expectedDeliveryDate ?? ''),
+            supplierReference:
+                row.supplierReference === undefined
+                    ? undefined
+                    : (row.supplierReference ?? ''),
+            metadataVersion: row.lockVersion,
+            metadataBranchId: props.operations.expectedBranchId,
             supplier: row.supplierPublicId ?? '',
             destination: row.destinationPublicId ?? '',
             quantities: Object.fromEntries(
@@ -432,6 +455,24 @@ watchEffect(() => {
                 ]),
             ),
         };
+
+        const edit = purchaseOrderEdits[row.publicId];
+
+        if (
+            edit.metadataVersion !== row.lockVersion ||
+            edit.metadataBranchId !== props.operations.expectedBranchId
+        ) {
+            edit.expectedDeliveryDate =
+                row.expectedDeliveryDate === undefined
+                    ? undefined
+                    : (row.expectedDeliveryDate ?? '');
+            edit.supplierReference =
+                row.supplierReference === undefined
+                    ? undefined
+                    : (row.supplierReference ?? '');
+            edit.metadataVersion = row.lockVersion;
+            edit.metadataBranchId = props.operations.expectedBranchId;
+        }
 
         for (const line of row.lines) {
             receipt[line.publicId] ??= {
@@ -552,6 +593,8 @@ const createPurchaseOrder = () =>
             expected_branch_id: props.operations.expectedBranchId,
             supplier_public_id: purchaseOrder.supplier,
             destination_location_public_id: purchaseOrder.destination,
+            expected_delivery_date: purchaseOrder.expectedDeliveryDate,
+            supplier_reference: purchaseOrder.supplierReference,
             lines: purchaseOrder.lines.map((line) => ({
                 sku_public_id: line.sku,
                 quantity: line.quantity,
@@ -561,6 +604,8 @@ const createPurchaseOrder = () =>
         () => {
             purchaseOrder.supplier = '';
             purchaseOrder.destination = '';
+            purchaseOrder.expectedDeliveryDate = '';
+            purchaseOrder.supplierReference = '';
             purchaseOrder.lines.splice(
                 0,
                 purchaseOrder.lines.length,
@@ -580,6 +625,12 @@ const updatePurchaseOrder = (row: DocumentRow) => {
         ...version(row),
         supplier_public_id: edit.supplier,
         destination_location_public_id: edit.destination,
+        ...(edit.expectedDeliveryDate !== undefined
+            ? { expected_delivery_date: edit.expectedDeliveryDate }
+            : {}),
+        ...(edit.supplierReference !== undefined
+            ? { supplier_reference: edit.supplierReference }
+            : {}),
         lines: row.lines.map((line) => ({
             sku_public_id: line.skuPublicId,
             quantity: edit.quantities[line.publicId],
@@ -943,6 +994,23 @@ const saveReorder = () =>
                         context="operations"
                         :expected-branch-id="operations.expectedBranchId"
                     />
+                    <label class="grid gap-1 text-sm">
+                        <span>Expected delivery date (optional)</span>
+                        <DateField
+                            v-model="purchaseOrder.expectedDeliveryDate"
+                            aria-label="Expected delivery date (optional)"
+                            class="[&_button]:min-h-11 lg:[&_button]:min-h-9 [&_input]:min-h-11 lg:[&_input]:min-h-9"
+                        />
+                    </label>
+                    <label class="grid gap-1 text-sm">
+                        <span>Supplier reference (optional)</span>
+                        <Input
+                            v-model="purchaseOrder.supplierReference"
+                            aria-label="Supplier reference (optional)"
+                            maxlength="120"
+                            class="min-h-11 lg:min-h-9"
+                        />
+                    </label>
                     <p
                         id="po-estimate-help"
                         class="text-xs text-muted-foreground sm:col-span-2"
@@ -1018,6 +1086,31 @@ const saveReorder = () =>
                     <p class="text-sm">
                         {{ row.supplier }} → {{ row.destination }}
                     </p>
+                    <dl
+                        class="grid gap-2 text-sm sm:grid-cols-2"
+                        data-testid="po-delivery-metadata"
+                    >
+                        <div>
+                            <dt class="text-muted-foreground">
+                                Expected delivery date
+                            </dt>
+                            <dd>
+                                {{
+                                    row.expectedDeliveryDate
+                                        ? formatDate(row.expectedDeliveryDate)
+                                        : 'Not specified'
+                                }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">
+                                Supplier reference
+                            </dt>
+                            <dd class="break-words">
+                                {{ row.supplierReference ?? 'Not specified' }}
+                            </dd>
+                        </div>
+                    </dl>
                     <p
                         v-if="row.fromRequest"
                         class="text-sm text-muted-foreground"
@@ -1080,6 +1173,29 @@ const saveReorder = () =>
                             context="operations"
                             :expected-branch-id="operations.expectedBranchId"
                         />
+                        <label class="grid gap-1 text-sm">
+                            <span>Expected delivery date (optional)</span>
+                            <DateField
+                                v-model="
+                                    purchaseOrderEdits[row.publicId]
+                                        .expectedDeliveryDate
+                                "
+                                :aria-label="`Expected delivery date for ${row.number} (optional)`"
+                                class="[&_button]:min-h-11 lg:[&_button]:min-h-9 [&_input]:min-h-11 lg:[&_input]:min-h-9"
+                            />
+                        </label>
+                        <label class="grid gap-1 text-sm">
+                            <span>Supplier reference (optional)</span>
+                            <Input
+                                v-model="
+                                    purchaseOrderEdits[row.publicId]
+                                        .supplierReference
+                                "
+                                :aria-label="`Supplier reference for ${row.number} (optional)`"
+                                maxlength="120"
+                                class="min-h-11 lg:min-h-9"
+                            />
+                        </label>
                         <label
                             v-for="line in row.lines"
                             :key="`edit-${line.publicId}`"

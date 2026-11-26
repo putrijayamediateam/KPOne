@@ -53,6 +53,8 @@ export type InventoryDocument = {
     number: string;
     status: string;
     lockVersion: number;
+    expectedDeliveryDate?: string | null;
+    supplierReference?: string | null;
     supplierPublicId?: string;
     supplier?: string;
     source?: string;

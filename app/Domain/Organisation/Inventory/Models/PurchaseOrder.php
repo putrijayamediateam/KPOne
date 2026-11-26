@@ -39,7 +39,7 @@ class PurchaseOrder extends Model
 
     protected function casts(): array
     {
-        return ['submitted_at' => 'immutable_datetime', 'approved_at' => 'immutable_datetime', 'closed_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime'];
+        return ['expected_delivery_date' => 'immutable_date', 'submitted_at' => 'immutable_datetime', 'approved_at' => 'immutable_datetime', 'closed_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime'];
     }
 
     public function getRouteKeyName(): string
