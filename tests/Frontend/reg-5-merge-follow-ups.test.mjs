@@ -7,7 +7,7 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const note = read('resources/js/components/patient/MergedFromNote.vue');
 const index = read('resources/js/pages/Patient/Index.vue');
-const picker = read('resources/js/pages/Registration/Create.vue');
+const picker = read('resources/js/components/registration/RegistrationCreateForm.vue');
 const show = read('resources/js/pages/Patient/Show.vue');
 const problems = read(
     'resources/js/pages/Clinical/Partials/AllergyProblemPanel.vue',

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { parse } from '@vue/compiler-sfc';
 
-const source = readFileSync(new URL('../../resources/js/pages/Registration/Create.vue', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../resources/js/components/registration/RegistrationCreateForm.vue', import.meta.url), 'utf8');
 const template = parse(source).descriptor.template.content;
 
 test('small-screen sticky action occupies its own row before visit fields; desktop keeps its bottom bar', () => {

@@ -143,7 +143,7 @@ test('D001 every Staff Create label owns a control, including passwords and repe
 });
 
 test('D003 search-first instruction is visible beside the unchanged duplicate-guarded Quick create conditions', () => {
-    const source = read('resources/js/pages/Registration/Create.vue').replace(
+    const source = read('resources/js/components/registration/RegistrationCreateForm.vue').replace(
         /\s+/g,
         ' ',
     );

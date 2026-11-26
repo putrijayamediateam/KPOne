@@ -64,7 +64,7 @@ test('Inventory directory keeps readable, separate semantic Quantity and Status 
 });
 
 test('Visit Type remains a compact accessible two-option control with unchanged values', () => {
-    const create = read('resources/js/pages/Registration/Create.vue');
+    const create = read('resources/js/components/registration/RegistrationCreateForm.vue');
     const optionLabels = [
         ...create.matchAll(/@click="form\.visit_type = '([^']+)'"/g),
     ].map(([, value]) => value);
@@ -79,7 +79,7 @@ test('Visit Type remains a compact accessible two-option control with unchanged 
 
 test('Visit forms contain no standalone arrow text and retain labelled Panel references', () => {
     for (const path of [
-        'resources/js/pages/Registration/Create.vue',
+        'resources/js/components/registration/RegistrationCreateForm.vue',
         'resources/js/pages/Registration/Edit.vue',
     ]) {
         const { source, ast } = templateAst(path);
@@ -102,7 +102,7 @@ test('Visit forms contain no standalone arrow text and retain labelled Panel ref
 });
 
 test('Presentation changes retain the registration submission payload contract', () => {
-    const create = read('resources/js/pages/Registration/Create.vue');
+    const create = read('resources/js/components/registration/RegistrationCreateForm.vue');
 
     for (const field of [
         'visit_type',

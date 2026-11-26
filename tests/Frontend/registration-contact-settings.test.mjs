@@ -41,7 +41,7 @@ test('all new contact fields compile with labels, limits, required indicators an
 assert.ok(s.includes(field));
 }
 
-    const quick=read('resources/js/pages/Registration/Create.vue');
+    const quick=read('resources/js/components/registration/RegistrationCreateForm.vue');
     assert.match(quick, /:require-email="requirements.requireEmail"/);
     assert.match(quick, /:require-address="requirements.requireAddress"/);
     const patient=read('resources/js/components/patient/PatientFormFields.vue');
@@ -63,8 +63,8 @@ test('public collection is session-bound, old forms omit new fields and both con
 
 
 test('country is a real MY default and legacy QR submissions omit contact defaults', () => {
-    for (const path of ['Registration/Create.vue', 'PublicCheckIn/Show.vue']) {
-        assert.match(read(`resources/js/pages/${path}`), /country_code: 'MY'/);
+    for (const path of ['components/registration/RegistrationCreateForm.vue', 'pages/PublicCheckIn/Show.vue']) {
+        assert.match(read(`resources/js/${path}`), /country_code: 'MY'/);
     }
 
     assert.equal(intakeSubmission(form,true).country_code,'MY');

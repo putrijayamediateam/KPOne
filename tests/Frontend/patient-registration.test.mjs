@@ -149,7 +149,7 @@ test('control-only and Unicode line separators are never treated as empty valid 
 test('Registration recognizes formatted phone searches without changing IC priority', () => {
     const page = readFileSync(
         new URL(
-            '../../resources/js/pages/Registration/Create.vue',
+            '../../resources/js/components/registration/RegistrationCreateForm.vue',
             import.meta.url,
         ),
         'utf8',
@@ -247,7 +247,7 @@ test('phone component retains typed input, uses tel semantics and linked inline 
 test('visible Gender labels keep released sex API field', () => {
     for (const file of [
         'components/patient/PatientFormFields.vue',
-        'pages/Registration/Create.vue',
+        'components/registration/RegistrationCreateForm.vue',
         'pages/Patient/Show.vue',
     ]) {
         const page = readFileSync(

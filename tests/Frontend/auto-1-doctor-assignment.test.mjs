@@ -7,7 +7,7 @@ const read = (path) =>
 const squash = (text) => text.replace(/\s+/g, ' ');
 
 test('AUTO-1: Register Visit offers Auto only when the server says it is available', () => {
-    const page = squash(read('resources/js/pages/Registration/Create.vue'));
+    const page = squash(read('resources/js/components/registration/RegistrationCreateForm.vue'));
     assert.match(
         page,
         /const autoAssign = computed\(\(\) => props\.options\.autoAssign\?\.available === true\)/,
@@ -32,7 +32,7 @@ test('AUTO-1: Register Visit offers Auto only when the server says it is availab
 });
 
 test('AUTO-1: choosing a doctor by hand asks for a fixed reason, sent as doctor_override_reason', () => {
-    const page = squash(read('resources/js/pages/Registration/Create.vue'));
+    const page = squash(read('resources/js/components/registration/RegistrationCreateForm.vue'));
 
     for (const code of [
         'patient_requested',
@@ -49,7 +49,7 @@ test('AUTO-1: choosing a doctor by hand asks for a fixed reason, sent as doctor_
 });
 
 test('AUTO-1: the reason is asked only for a doctor other than the one Auto would pick, in the Doctor column', () => {
-    const page = squash(read('resources/js/pages/Registration/Create.vue'));
+    const page = squash(read('resources/js/components/registration/RegistrationCreateForm.vue'));
     assert.match(page, /\/registration\/recommended-doctor\?patient_number=/);
     assert.match(
         page,

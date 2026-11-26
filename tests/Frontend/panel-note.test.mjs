@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const create = read('resources/js/pages/Registration/Create.vue');
+const create = read('resources/js/components/registration/RegistrationCreateForm.vue');
 const edit = read('resources/js/pages/Registration/Edit.vue');
 const show = read('resources/js/pages/Clinical/Show.vue');
 

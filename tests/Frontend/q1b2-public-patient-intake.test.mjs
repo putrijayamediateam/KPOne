@@ -211,7 +211,7 @@ test('branch link management renders QR locally and reports expiry', () => {
 test('registration navigation and visit controls remain operationally compact', () => {
     const sidebar = read('resources/js/components/AppSidebar.vue');
     const registrationCreate = read(
-        'resources/js/pages/Registration/Create.vue',
+        'resources/js/components/registration/RegistrationCreateForm.vue',
     );
     const registrationEdit = read('resources/js/pages/Registration/Edit.vue');
     const operationalSelect = read(

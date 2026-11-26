@@ -589,7 +589,7 @@ test('Classic Not ready and Ready actions keep their reasons and request; the QR
 
 // From v2-registration-board.test.mjs.
 test('Classic Register visit keeps its payload, search, rules, shared fields, phone checks and reason picker', () => {
-    const create = read('resources/js/pages/Registration/Create.vue');
+    const create = read('resources/js/components/registration/RegistrationCreateForm.vue');
 
     for (const shared of [
         "'/patients/search'",
@@ -695,7 +695,7 @@ test('Classic Visit page and Edit visit keep their routes, payload keys, permiss
 // From v2-registration-board.test.mjs: Classic Registration files never import V2 code.
 test('Classic Registration files import no V2 code', () => {
     const board = read('resources/js/pages/Registration/Index.vue');
-    const create = read('resources/js/pages/Registration/Create.vue');
+    const create = read('resources/js/pages/Registration/Create.vue') + read('resources/js/components/registration/RegistrationCreateForm.vue');
 
     assert.ok(
         !board.includes('registration-v2') && !board.includes('components/v2'),

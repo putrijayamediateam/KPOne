@@ -5,7 +5,7 @@ import test from 'node:test';
 // REG-10: the Coverage and Urgency toggles on Register Visit are 44 px tall below 1024 px (36 px on desktop).
 const source = readFileSync(
     new URL(
-        '../../resources/js/pages/Registration/Create.vue',
+        '../../resources/js/components/registration/RegistrationCreateForm.vue',
         import.meta.url,
     ),
     'utf8',

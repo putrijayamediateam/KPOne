@@ -29,8 +29,8 @@ assert.ok(source.includes(label));
 });
 
 test('Nationality is editable and errors visible in all creation paths and QR correction; existing edits stay optional', () => {
-    for (const path of ['Registration/Create.vue', 'PublicCheckIn/Show.vue', 'RegistrationReview/Show.vue']) {
-        const source = read(`resources/js/pages/${path}`);
+    for (const path of ['components/registration/RegistrationCreateForm.vue', 'pages/PublicCheckIn/Show.vue', 'pages/RegistrationReview/Show.vue']) {
+        const source = read(`resources/js/${path}`);
         assert.match(source, /v-model="(?:quick|form|correction).nationality_code"/);
         assert.match(source, /(?:errorFor\('(?:quick_patient\.)?nationality_code'\)|correction.errors.nationality_code)/);
         assert.deepEqual(compileTemplate({ id: path, source: parse(source).descriptor.template.content, filename: path }).errors, []);

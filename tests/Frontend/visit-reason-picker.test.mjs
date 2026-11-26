@@ -10,7 +10,7 @@ const picker = readFileSync(
     'utf8',
 );
 const registration = readFileSync(
-    new URL('../../resources/js/pages/Registration/Create.vue', import.meta.url),
+    new URL('../../resources/js/components/registration/RegistrationCreateForm.vue', import.meta.url),
     'utf8',
 );
 const jsonClient = readFileSync(
