@@ -145,14 +145,15 @@ final class DiagnosisPresetSettingsService
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch !== null, 404);
             $actor = $this->authority->lock($actor, $branch, SuggestionPermissions::APPROVE);
-            $drafts = DiagnosisPreset::query()->where('organisation_id', $actor->organisation_id)
-                ->where('status', 'draft')->where('is_active', true)->orderBy('name')->orderBy('id')->limit(100)->get();
+            $waiting = DiagnosisPreset::query()->where('organisation_id', $actor->organisation_id)->where('status', 'draft')->where('is_active', true);
+            $total = (clone $waiting)->count();
+            $drafts = $waiting->orderBy('name')->orderBy('id')->limit(100)->get();
 
             // Who and when: names follow the staff-directory visibility rule (others read "Staff member").
             $people = $drafts->map(fn (DiagnosisPreset $preset): int => (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id))->unique()->all();
             $names = $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
 
-            return ['branchId' => $branch->id, 'drafts' => $drafts->map(function (DiagnosisPreset $preset) use ($actor, $names, $branch): array {
+            return ['branchId' => $branch->id, 'draftTotal' => $total, 'drafts' => $drafts->map(function (DiagnosisPreset $preset) use ($actor, $names, $branch): array {
                 $changed = $preset->edited_by_user_id !== null;
                 $by = (int) ($preset->edited_by_user_id ?? $preset->created_by_user_id);
                 $at = $changed ? ($preset->edited_at ?? $preset->updated_at) : $preset->created_at;
