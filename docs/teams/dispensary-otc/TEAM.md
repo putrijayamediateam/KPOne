@@ -452,3 +452,7 @@ Scope: Show.vue, one new runtime regression file and this entry. Existing 150 fo
 ### Case context composition — 26 November 2026 (in review)
 
 Owner-authorized next bounded Clean Look continuation after PR1158. The patient card groups the existing name/KP identity with a neutral decorative icon and separate wrapping Visit/Doctor facts. Summary uses divided rows with40px minimum height. Existing medicines/services/unsaved/scan expressions and readonly/OTC conditions remain unchanged. No age, payer, queue, call timestamp or actor-attributed count is inferred. This covers only existing-data composition portions of auditF13/F19; clinical scripts differ only by the icon import. Focused regression, responsive synthetic proof and independent review are recorded in the scoped review packet before publication.
+
+### Optional case helpful info — 26 November 2026 (in review)
+
+Owner-authorized continuation after the context slice. Header Show/Hide helpful info controls optional About/Good to know disclosures after operational actions. Existing label-preview/print predicates remain on their own buttons; readonly wording describes viewing only and OTC wording retains the existing allergy confirmation. Native details stay mounted when hidden. Mandatory scanner/allergy/dirty/error content remains outside the optional panel; no Related links, grants, inferred data or Ready state is introduced. Source/runtime/browser evidence and independent review are recorded in the scoped packet before publication.
