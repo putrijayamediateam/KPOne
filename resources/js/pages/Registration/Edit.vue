@@ -124,6 +124,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     <label class="grid gap-1" for="visit-type"
                         ><span class="text-sm font-medium">Visit type</span
                         ><OperationalSelect
+                            trigger-class="max-lg:min-h-11"
                             id="visit-type"
                             v-model="form.visit_type"
                             label="Visit type"
@@ -132,6 +133,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     <label class="grid gap-1" for="assigned-doctor"
                         ><span class="text-sm font-medium">Doctor</span
                         ><OperationalSelect
+                            trigger-class="max-lg:min-h-11"
                             id="assigned-doctor"
                             v-model="form.assigned_doctor_user_id"
                             label="Doctor"
@@ -164,6 +166,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     <label class="grid gap-1" for="coverage-type"
                         ><span class="text-sm font-medium">Coverage</span
                         ><OperationalSelect
+                            trigger-class="max-lg:min-h-11"
                             id="coverage-type"
                             v-model="form.coverage_type"
                             label="Coverage"
@@ -172,6 +175,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     <label class="grid gap-1" for="visit-priority"
                         ><span class="text-sm font-medium">Priority</span
                         ><OperationalSelect
+                            trigger-class="max-lg:min-h-11"
                             id="visit-priority"
                             v-model="form.priority"
                             label="Priority"
@@ -190,7 +194,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 v-model="form.panel_id"
                                 label="Panel"
                                 :options="panelOptions"
-                                trigger-class="h-10" /><InputError
+                                trigger-class="h-10 max-lg:min-h-11" /><InputError
                                 :message="errorFor('panel_id')"
                         /></label>
                         <label

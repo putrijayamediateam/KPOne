@@ -59,6 +59,6 @@ test('the Quick create identity row stacks below sm and joins from sm up', () =>
     );
     assert.match(
         quick,
-        /class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1 sm:rounded-l-none sm:border-l-0"/,
+        /class="h-9 w-full min-w-0 rounded-\[10px\] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"/,
     );
 });

@@ -141,7 +141,16 @@ const activeTab = ref<BoardTab>(
         : initialTab === 'triage' &&
             props.visits.tabCounts?.triage !== undefined
           ? 'triage'
-          : 'all',
+          : [
+                  'waiting',
+                  'serving',
+                  'dispensary',
+                  'billing',
+                  'completed',
+                  'cancelled',
+              ].includes(initialTab ?? '')
+            ? (initialTab as BoardTab)
+            : 'all',
 );
 const rows = ref(props.visits.data);
 const total = ref(props.visits.total);
@@ -665,6 +674,11 @@ onMounted(() => {
         return;
     }
 
+    // Clean Look rail links open a board tab (?tab=dispensary, ?tab=billing): load that tab's rows at once.
+    if (activeTab.value !== 'all' && activeTab.value !== 'qr-intake') {
+        void search(1, true);
+    }
+
     pollingEnabled = true;
     document.addEventListener('visibilitychange', handleVisibility);
     schedulePoll();
@@ -763,16 +777,19 @@ onBeforeUnmount(() => {
                         />
                     </label>
                     <OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         v-model="form.doctor_id"
                         label="Doctor"
                         :options="doctorOptions"
                     />
                     <OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         v-model="form.coverage_type"
                         label="Coverage"
                         :options="coverageOptions"
                     />
                     <OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         v-model="form.priority"
                         label="Urgency"
                         :options="urgencyOptions"
@@ -812,6 +829,7 @@ onBeforeUnmount(() => {
                         for="registration-visit-type"
                         >Visit type
                         <OperationalSelect
+                            trigger-class="max-lg:min-h-11"
                             id="registration-visit-type"
                             v-model="form.visit_type"
                             label="Visit type"

@@ -858,6 +858,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 <label class="grid gap-1" for="quick-gender"
                     ><span class="text-sm font-medium">Gender</span
                     ><OperationalSelect
+                        trigger-class="max-lg:min-h-11"
                         id="quick-gender"
                         v-model="quick.sex"
                         label="Gender"
@@ -960,6 +961,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     >(optional)</span
                                 ></span
                             ><OperationalSelect
+                                trigger-class="max-lg:min-h-11"
                                 id="assigned-doctor"
                                 v-model="form.assigned_doctor_user_id"
                                 label="Doctor"
@@ -1004,6 +1006,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 Pick a reason to continue.
                             </p>
                             <OperationalSelect
+                                trigger-class="max-lg:min-h-11"
                                 id="doctor-override-reason"
                                 v-model="form.doctor_override_reason"
                                 label="Why not Auto?"
@@ -1116,7 +1119,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 label="Panel"
                                 :invalid="!!form.errors.panel_id"
                                 :options="panelOptions"
-                                trigger-class="h-10" /><InputError
+                                trigger-class="h-10 max-lg:min-h-11" /><InputError
                                 :message="errorFor('panel_id')"
                         /></label>
                         <label

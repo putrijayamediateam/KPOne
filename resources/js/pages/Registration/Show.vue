@@ -159,7 +159,10 @@ const dispensaryStatusLabel: Record<string, string> = {
                     ><Link :href="`/visits/${visit.visitNumber}/triage`"
                         >Triage</Link
                     ></Button
-                ><Button v-if="visit.can.update" as-child
+                ><Button
+                    v-if="visit.can.update"
+                    :variant="visit.can.sendToWaiting ? 'outline' : 'default'"
+                    as-child
                     ><Link :href="`/visits/${visit.visitNumber}/edit`"
                         ><Pencil class="size-4" /> Edit</Link
                     ></Button
