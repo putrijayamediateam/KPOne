@@ -1061,7 +1061,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 <Link
                                     v-if="clinical.visit.triageViewUrl"
                                     :href="clinical.visit.triageViewUrl"
-                                    class="inline-flex min-h-11 items-center px-1 text-xs font-medium text-link underline underline-offset-4 lg:min-h-0"
+                                    class="inline-flex min-h-11 items-center rounded-md px-1 text-xs font-medium text-link underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
                                     data-testid="consultation-view-triage"
                                     >View triage</Link
                                 >
