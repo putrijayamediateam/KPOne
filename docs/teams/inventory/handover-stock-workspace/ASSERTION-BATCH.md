@@ -1,3 +1,5 @@
+> Current status: superseded by RESUMED-DECISION.md. Owner resumed this existing slice and delegated technical decisions; the six proposed groups are now applied after independent review. Full frontend now passes2208/2208. Desktop target correction is implemented; final measured validation is recorded in the PR. The text below is the historical preservation record.
+
 # Stock workspace — exact existing assertion batch, awaiting owner
 
 No existing test file edited. Full frontend scan: 2203 tests,2196pass,7fail. Six failures are source pins affected by this slice; seventh nav-02 needs PHP PATH (environment only, rerun separately). Proposed edits preserve behavior, shift checks to actual extracted renderer, and add four passing real Vue runtime tests. No backend assertions, grants or migrations.

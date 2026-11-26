@@ -711,6 +711,7 @@ const clearFilters = () => {
                                 size="sm"
                                 :aria-expanded="showHelpfulInfo"
                                 aria-controls="inventory-helpful-info"
+                                class="min-h-11 lg:min-h-9"
                                 @click="showHelpfulInfo = !showHelpfulInfo"
                                 >{{
                                     showHelpfulInfo
@@ -747,7 +748,7 @@ const clearFilters = () => {
                                 class="min-w-0 rounded-xl border bg-card p-3"
                             >
                                 <summary
-                                    class="min-h-11 cursor-pointer text-sm font-medium lg:min-h-6"
+                                    class="min-h-11 cursor-pointer text-sm font-medium lg:min-h-9"
                                 >
                                     Location ·
                                     {{
@@ -1123,7 +1124,7 @@ const clearFilters = () => {
                 >
                     <details open class="rounded-2xl border bg-card p-4">
                         <summary
-                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-7"
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
                         >
                             About this view
                         </summary>
@@ -1141,7 +1142,7 @@ const clearFilters = () => {
                     </details>
                     <details open class="rounded-2xl border bg-card p-4">
                         <summary
-                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-7"
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
                         >
                             Branch at a glance
                         </summary>
@@ -1172,7 +1173,7 @@ const clearFilters = () => {
                     </details>
                     <details class="rounded-2xl border bg-card p-4">
                         <summary
-                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-7"
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
                         >
                             Related pages
                         </summary>
@@ -1189,7 +1190,7 @@ const clearFilters = () => {
                     </details>
                     <details class="rounded-2xl border bg-card p-4">
                         <summary
-                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-7"
+                            class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
                         >
                             Good to know
                         </summary>

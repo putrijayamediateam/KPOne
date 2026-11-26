@@ -1,3 +1,5 @@
+> Current status: superseded by RESUMED-DECISION.md. Owner resumed this existing slice and delegated technical decisions; the six proposed groups are now applied after independent review. Full frontend now passes2208/2208. Desktop target correction is implemented; final measured validation is recorded in the PR. The text below is the historical preservation record.
+
 # Stock workspace / On-hand — first implementation review
 
 26 November 2026. Candidate /workspace/KPOne-stock-workspace, branch feature/stock-workspace-demo, base c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5. Uncommitted, unpublished. No migrations, grants, backend, shared primitives or dependency changes. Existing assertions untouched pending exact owner batch.

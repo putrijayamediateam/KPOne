@@ -50,7 +50,7 @@ test('Inventory workspace exposes three read-only operational views and filters'
     const page = read('resources/js/pages/Inventory/Index.vue');
 
     for (const label of [
-        'Stock Overview',
+        'On hand',
         'Batch & Expiry',
         'Movements',
         'SKU / Item',
@@ -77,7 +77,24 @@ test('Inventory workspace exposes three read-only operational views and filters'
     assert.match(page, /All branch locations/);
     assert.match(page, /No inventory records/);
     assert.match(page, /<CompactPagination/);
-    assert.match(page, /min-width="1040px"/);
+    assert.match(page, /<StockOnHandList/);
+    assert.match(page, /:rows="inventory\.data"/);
+    assert.match(page, /:can-report="canReport"/);
+    assert.match(page, /@report="openReport"/);
+    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
+
+    for (const label of [
+        'Item / batch',
+        'On hand',
+        'Batch expiry',
+        'Location',
+        'Status',
+    ]) {
+        assert.ok(rows.includes(label), label);
+    }
+
+    assert.match(rows, /:aria-expanded=/);
+    assert.match(rows, /:aria-controls=/);
     assert.match(page, /Movement records\s+are read-only/);
 });
 

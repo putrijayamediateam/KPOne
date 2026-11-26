@@ -28,7 +28,7 @@ test('movement filters retain accessible inclusive date controls and query state
         ['movement-date-from', 'dateFrom'],
         ['movement-date-to', 'dateTo'],
     ]) {
-        assert.match(page, new RegExp(`<label for="${id}"`));
+        assert.match(page, new RegExp(`<label\\s+for="${id}"`));
         assert.match(page, new RegExp(`id="${id}"[\\s\\S]*v-model="${model}"`));
     }
 

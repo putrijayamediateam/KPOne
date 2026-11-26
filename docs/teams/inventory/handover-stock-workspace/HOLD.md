@@ -1,3 +1,5 @@
+> Current status: superseded by RESUMED-DECISION.md. Owner resumed this existing slice and delegated technical decisions; the six proposed groups are now applied after independent review. Full frontend now passes2208/2208. Desktop target correction is implemented; final measured validation is recorded in the PR. The text below is the historical preservation record.
+
 # Owner hold and draft publication — 26 November 2026
 
 Owner requested all existing work be committed and published as scoped draft PRs before handover. No new implementation, merges or unapproved assertion changes.
