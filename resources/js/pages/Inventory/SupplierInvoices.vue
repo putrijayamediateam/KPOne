@@ -372,9 +372,9 @@ const decisionError = computed(() =>
         <p class="text-sm text-muted-foreground">
             Record the supplier's invoice against its purchase order. KPOne
             compares each line with what was received and what it cost, and any
-            difference waits for a Finance Officer or Director who did not
-            record it. KPOne pays nothing: a matched or accepted invoice is
-            ready to pay outside KPOne.
+            difference waits for a Finance Officer who did not record it to
+            decide. KPOne pays nothing: a matched or accepted invoice is ready
+            to pay outside KPOne.
         </p>
 
         <p
@@ -383,7 +383,7 @@ const decisionError = computed(() =>
             data-testid="no-invoice-access"
         >
             Supplier invoices are recorded by a CA Supervisor or Finance Officer
-            and approved by a Finance Officer or Director.
+            and approved by a Finance Officer.
         </p>
 
         <template v-else>
@@ -767,7 +767,7 @@ const decisionError = computed(() =>
                         </template>
                         <p v-else class="text-sm text-muted-foreground">
                             You recorded this invoice, so a different Finance
-                            Officer or Director must decide it.
+                            Officer must decide it.
                         </p>
                     </div>
                 </li>
