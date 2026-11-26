@@ -21,7 +21,7 @@ const code = ts.transpileModule(
         },
     },
 ).outputText;
-function mount(permissions = ['dispensary.view.branch']) {
+function mount(canViewReturns = true) {
     const calls = [];
     const stub = (tag = 'div') => ({
         setup:
@@ -45,7 +45,6 @@ function mount(permissions = ['dispensary.view.branch']) {
                 return {
                     Head: stub(),
                     Link: stub('a'),
-                    usePage: () => ({ props: { auth: { permissions } } }),
                     router: { get: (...args) => calls.push(args) },
                 };
             }
@@ -120,7 +119,10 @@ function mount(permissions = ['dispensary.view.branch']) {
     });
     const root = node('root');
     renderer
-        .createApp({ render: () => vue.h(module.exports.default, { list }) })
+        .createApp({
+            render: () =>
+                vue.h(module.exports.default, { list, canViewReturns }),
+        })
         .mount(root);
     const all = () => {
         const out = [];
@@ -160,9 +162,9 @@ test('workspace cards use fresh server counts and existing tab GET preserving se
     assert.equal(updated.props['aria-pressed'], true);
 });
 
-test('readonly branch viewer receives no Returns navigation; branch viewer uses existing protected route', () => {
+test('server-denied viewer receives no Returns navigation; authorized supervisor uses existing protected route', () => {
     assert.equal(
-        mount([])
+        mount(false)
             .all()
             .some((n) => n.props.href === '/dispensary/returns-to-check'),
         false,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Eye, Info, Printer, Search } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -38,6 +38,7 @@ type Row = {
 };
 
 const props = defineProps<{
+    canViewReturns: boolean;
     list: {
         branchName: string;
         tab: Tab;
@@ -61,10 +62,6 @@ const tabs = computed(() => [
     { value: 'done', label: 'Done today', count: props.list.counts.done },
 ]);
 const search = ref(props.list.search);
-const page = usePage();
-const canViewReturns = computed(() =>
-    page.props.auth.permissions.includes('dispensary.view.branch'),
-);
 const showHelpfulInfo = ref(true);
 const currentTab = computed(() =>
     tabs.value.find((tab) => tab.value === props.list.tab),
