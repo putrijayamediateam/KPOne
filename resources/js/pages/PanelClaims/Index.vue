@@ -43,6 +43,12 @@ type Props = {
             Figure
         >;
         tabs: Record<string, number>;
+        waitingPayment?: {
+            count: number;
+            acceptedSen: number;
+            receivedSen: number;
+            outstandingSen: number;
+        } | null;
         panels: string[];
         filters: {
             tab: string;
@@ -95,6 +101,11 @@ type Props = {
             panelName: string;
             panelId: number;
             claimAmountSen: number;
+            paymentBalance?: {
+                acceptedSen: number;
+                receivedSen: number;
+                outstandingSen: number;
+            };
             status: string;
             overdue: boolean;
             createdAt: string | null;
@@ -126,6 +137,7 @@ const tabLabels: [string, string][] = [
     ['overdue', 'Overdue'],
     ['submitted', 'Submitted'],
     ['approved', 'Approved'],
+    ['waiting_payment', 'Waiting for payment'],
     ['queried', 'Queried'],
     ['rejected', 'Rejected'],
     ['received', 'Received'],
@@ -809,6 +821,55 @@ const visitTypeLabel = (value: string) =>
                 Claims with a recorded Panel query. Open a claim to review its
                 recorded history and update it.
             </p>
+
+            <section
+                v-if="work.waitingPayment"
+                class="space-y-3 rounded-xl border bg-card p-4"
+                aria-label="Matching claims waiting for payment"
+            >
+                <h2 class="font-semibold">
+                    Waiting for payment ·
+                    {{
+                        work.waitingPayment.count +
+                        ' matching ' +
+                        (work.waitingPayment.count === 1 ? 'claim' : 'claims')
+                    }}
+                </h2>
+                <p class="text-sm text-muted-foreground">
+                    Totals cover all matching claims at this branch, across
+                    every page. The date range uses the claim's creation date.
+                    Received is the cumulative payment recorded against these
+                    claims, excluding reversed payments; it is not receipts
+                    during the selected period. The Amount filter uses the
+                    claimed amount.
+                </p>
+                <dl class="grid gap-3 sm:grid-cols-3">
+                    <div>
+                        <dt class="text-sm text-muted-foreground">Accepted</dt>
+                        <dd
+                            class="font-semibold whitespace-nowrap tabular-nums"
+                        >
+                            {{ myr(work.waitingPayment.acceptedSen) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-muted-foreground">Received</dt>
+                        <dd
+                            class="font-semibold whitespace-nowrap tabular-nums"
+                        >
+                            {{ myr(work.waitingPayment.receivedSen) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-muted-foreground">Unpaid</dt>
+                        <dd
+                            class="font-semibold whitespace-nowrap tabular-nums"
+                        >
+                            {{ myr(work.waitingPayment.outstandingSen) }}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
 
             <section
                 v-if="work.filters.tab === 'pending' && work.waiting > 0"
@@ -1534,7 +1595,11 @@ const visitTypeLabel = (value: string) =>
                             ? 'No overdue claims'
                             : 'No claims match'
                     "
-                    description="Create a claim from the Pending tab, or change the tab, date range or filters."
+                    :description="
+                        work.filters.tab === 'waiting_payment'
+                            ? 'No accepted claims with an unpaid balance match these filters.'
+                            : 'Create a claim from the Pending tab, or change the tab, date range or filters.'
+                    "
                 />
                 <div
                     v-if="work.claims.data.length > 0"
@@ -1641,6 +1706,36 @@ const visitTypeLabel = (value: string) =>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
+                            <dl
+                                v-if="row.paymentBalance"
+                                class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm"
+                                aria-label="Claim payment balance"
+                            >
+                                <dt class="text-muted-foreground">Claimed</dt>
+                                <dd
+                                    class="text-right whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(row.claimAmountSen) }}
+                                </dd>
+                                <dt class="text-muted-foreground">Accepted</dt>
+                                <dd
+                                    class="text-right whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(row.paymentBalance.acceptedSen) }}
+                                </dd>
+                                <dt class="text-muted-foreground">Received</dt>
+                                <dd
+                                    class="text-right whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(row.paymentBalance.receivedSen) }}
+                                </dd>
+                                <dt class="text-muted-foreground">Unpaid</dt>
+                                <dd
+                                    class="text-right font-medium whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(row.paymentBalance.outstandingSen) }}
+                                </dd>
+                            </dl>
                             <div class="flex">
                                 <StatusBadge
                                     v-if="row.overdue"
@@ -1786,7 +1881,39 @@ const visitTypeLabel = (value: string) =>
                                 v-if="visibleColumns.amount"
                                 class="whitespace-nowrap tabular-nums"
                             >
+                                <span
+                                    v-if="row.paymentBalance"
+                                    class="block text-xs text-muted-foreground"
+                                    >Claimed</span
+                                >
                                 {{ myr(row.claimAmountSen) }}
+                                <dl
+                                    v-if="row.paymentBalance"
+                                    class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs"
+                                    aria-label="Claim payment balance"
+                                >
+                                    <dt>Accepted</dt>
+                                    <dd class="text-right">
+                                        {{
+                                            myr(row.paymentBalance.acceptedSen)
+                                        }}
+                                    </dd>
+                                    <dt>Received</dt>
+                                    <dd class="text-right">
+                                        {{
+                                            myr(row.paymentBalance.receivedSen)
+                                        }}
+                                    </dd>
+                                    <dt>Unpaid</dt>
+                                    <dd class="text-right font-medium">
+                                        {{
+                                            myr(
+                                                row.paymentBalance
+                                                    .outstandingSen,
+                                            )
+                                        }}
+                                    </dd>
+                                </dl>
                             </td>
                             <td
                                 v-if="visibleColumns.claimNo"
