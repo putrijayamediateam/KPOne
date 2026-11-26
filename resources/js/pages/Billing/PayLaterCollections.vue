@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { reactive, watch } from 'vue';
 import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
 import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import { ActionLink } from '@/components/ui/action-link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { myr } from '@/types/billing';
+
+type CollectionFilters = {
+    query: string;
+    age: 'all' | 'over60' | '31to60' | '1to30' | 'not_overdue';
+};
 
 type Totals = {
     count: number;
@@ -22,6 +30,7 @@ const props = defineProps<{
         branch: string;
         today: string;
         overdueOnly: boolean;
+        filters?: CollectionFilters;
         all: Totals;
         shown: Totals;
         currentPage: number;
@@ -60,11 +69,41 @@ const needsReview = (row: { visitNumber: string }) =>
 const daysSinceVisit = (days: number) =>
     `${days} ${days === 1 ? 'day' : 'days'} since visit`;
 
-const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
+const filters = reactive<CollectionFilters>({
+    query: props.collections.filters?.query ?? '',
+    age: props.collections.filters?.age ?? 'all',
+});
+watch(
+    () => props.collections.filters,
+    (applied) => {
+        filters.query = applied?.query ?? '';
+        filters.age = applied?.age ?? 'all';
+    },
+);
+
+const visit = (
+    page: number,
+    overdueOnly = props.collections.overdueOnly,
+    criteria = props.collections.filters,
+) => {
+    const age =
+        overdueOnly && criteria?.age === 'not_overdue' ? 'all' : criteria?.age;
     router.get(
         '/pay-later-collections',
-        overdueOnly ? { page, overdue: 1 } : { page },
+        {
+            page,
+            ...(overdueOnly ? { overdue: 1 } : {}),
+            ...(criteria?.query ? { query: criteria.query } : {}),
+            ...(age && age !== 'all' ? { age } : {}),
+        },
         { preserveScroll: true },
+    );
+};
+const applyFilters = () =>
+    visit(
+        1,
+        filters.age === 'not_overdue' ? false : props.collections.overdueOnly,
+        filters,
     );
 </script>
 
@@ -116,6 +155,44 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             </div>
         </section>
 
+        <section
+            aria-label="Find bills"
+            class="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end"
+        >
+            <label for="collection-query" class="grid gap-1 text-sm">
+                Search bills
+                <Input
+                    id="collection-query"
+                    v-model="filters.query"
+                    type="search"
+                    maxlength="100"
+                    placeholder="Search name, KP number or invoice"
+                    class="min-h-11 lg:min-h-9"
+                    @keydown.enter.prevent="applyFilters()"
+                />
+            </label>
+            <label for="collection-age" class="grid gap-1 text-sm">
+                Due date
+                <select
+                    id="collection-age"
+                    v-model="filters.age"
+                    class="min-h-11 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
+                >
+                    <option value="all">All</option>
+                    <option value="over60">Over 60 days late</option>
+                    <option value="31to60">31 to 60 days late</option>
+                    <option value="1to30">Up to 30 days late</option>
+                    <option value="not_overdue">Due today or later</option>
+                </select>
+            </label>
+            <Button
+                type="button"
+                class="min-h-11 lg:min-h-9"
+                @click="applyFilters()"
+                >Apply filters</Button
+            >
+        </section>
+
         <div class="flex flex-wrap items-center justify-between gap-2">
             <label class="flex min-h-11 items-center gap-2 text-sm">
                 <input
@@ -143,11 +220,19 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
 
         <EmptyState
             v-if="collections.data.length === 0"
-            title="Nothing to collect"
+            :title="
+                collections.filters?.query ||
+                (collections.filters?.age && collections.filters.age !== 'all')
+                    ? 'No matching bills'
+                    : 'Nothing to collect'
+            "
             :description="
-                collections.overdueOnly
-                    ? `No bill in ${collections.branch} is past due.`
-                    : `No patient owes money in ${collections.branch}.`
+                collections.filters?.query ||
+                (collections.filters?.age && collections.filters.age !== 'all')
+                    ? 'No bill matches these filters. Change the search or due date filter to see other bills.'
+                    : collections.overdueOnly
+                      ? `No bill in ${collections.branch} is past due.`
+                      : `No patient owes money in ${collections.branch}.`
             "
         />
 
