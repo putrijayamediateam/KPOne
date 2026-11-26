@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, TriangleAlert } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
 import CashClosingStartDate from '@/components/billing/CashClosingStartDate.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -65,7 +65,42 @@ const props = defineProps<{
     };
 }>();
 
+const page = usePage();
 const view = computed(() => props.cashClosingMonth);
+type StatusFilter =
+    'all' | 'approved' | 'waiting' | 'returned' | 'not_counted' | 'today';
+const statusFilter = ref<StatusFilter>('all');
+const flagFilter = ref<'all' | Flag>('all');
+const clearFilters = () => {
+    statusFilter.value = 'all';
+    flagFilter.value = 'all';
+};
+watch(
+    () =>
+        JSON.stringify([
+            page.props.branchContext?.active?.id,
+            view.value.branch,
+            view.value.month,
+        ]),
+    clearFilters,
+);
+const filteredRows = computed(() =>
+    view.value.rows.filter((row) => {
+        const matchesStatus =
+            statusFilter.value === 'all' ||
+            (statusFilter.value === 'today'
+                ? row.date === view.value.today
+                : row.status === statusFilter.value);
+
+        return (
+            matchesStatus &&
+            (flagFilter.value === 'all' || row.flags.includes(flagFilter.value))
+        );
+    }),
+);
+const filtersActive = computed(
+    () => statusFilter.value !== 'all' || flagFilter.value !== 'all',
+);
 const loading = ref(false);
 const failed = ref(false);
 const lastTried = ref<string | null>(null);
@@ -415,11 +450,80 @@ const goTo = (month: string | null) => {
             No cash counts in {{ monthTitle }}.
         </p>
 
+        <section
+            v-if="view.rows.length > 0 && !view.beforeStart"
+            aria-label="Filter days in this month"
+            class="space-y-3 rounded-xl border bg-card p-4"
+        >
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="min-w-40 flex-1 space-y-1 text-sm">
+                    <label for="month-status-filter" class="block font-medium"
+                        >Status</label
+                    >
+                    <select
+                        id="month-status-filter"
+                        v-model="statusFilter"
+                        class="min-h-11 w-full rounded-md border bg-field-fill px-3 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
+                        :disabled="loading"
+                    >
+                        <option value="all">All statuses</option>
+                        <option value="approved">Approved</option>
+                        <option value="waiting">Waiting for approval</option>
+                        <option value="returned">Returned</option>
+                        <option value="not_counted">Not counted</option>
+                        <option value="today">Today</option>
+                    </select>
+                </div>
+                <div class="min-w-40 flex-1 space-y-1 text-sm">
+                    <label for="month-flag-filter" class="block font-medium"
+                        >Flag</label
+                    >
+                    <select
+                        id="month-flag-filter"
+                        v-model="flagFilter"
+                        class="min-h-11 w-full rounded-md border bg-field-fill px-3 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
+                        :disabled="loading"
+                    >
+                        <option value="all">All flags</option>
+                        <option value="no_count">No count</option>
+                        <option value="not_approved">Not approved</option>
+                        <option value="changed_after_approval">
+                            Changed after approval
+                        </option>
+                    </select>
+                </div>
+                <button
+                    type="button"
+                    class="min-h-11 rounded-md border px-3 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 lg:min-h-9"
+                    :disabled="!filtersActive || loading"
+                    @click="clearFilters"
+                >
+                    Clear filters
+                </button>
+            </div>
+            <p
+                class="text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
+            >
+                Showing {{ filteredRows.length }} of
+                {{ view.rows.length }} loaded days in {{ monthTitle }}. Month
+                summary and money totals above remain unchanged by these
+                filters.
+            </p>
+            <p v-if="filteredRows.length === 0" class="text-sm font-medium">
+                No days match these filters. Clear the filters to see the loaded
+                month.
+            </p>
+        </section>
+
         <div v-if="!view.beforeStart" class="hidden lg:block">
             <OperationalTable
                 :label="`Cash closings, ${monthTitle}`"
                 :columns="9"
                 :loading="loading"
+                :empty="filteredRows.length === 0"
+                empty-message="No days match these filters."
                 min-width="0"
             >
                 <template #head>
@@ -439,7 +543,7 @@ const goTo = (month: string | null) => {
                 </template>
                 <template #body>
                     <tr
-                        v-for="row in view.rows"
+                        v-for="row in filteredRows"
                         :key="row.date"
                         :data-testid="`month-row-${row.date}`"
                     >
@@ -522,7 +626,7 @@ const goTo = (month: string | null) => {
             :aria-busy="loading"
             :aria-label="`Cash closings, ${monthTitle}`"
         >
-            <li v-for="row in view.rows" :key="row.date">
+            <li v-for="row in filteredRows" :key="row.date">
                 <Link
                     :href="dayHref(row)"
                     class="block min-h-11 rounded-xl border bg-card p-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
