@@ -43,6 +43,7 @@ const props = defineProps<{
         branchName: string;
         tab: Tab;
         search: string;
+        caseType?: 'all' | 'consultation' | 'otc';
         counts: Record<Tab, number>;
         canPrintLabels: boolean;
         rows: Row[];
@@ -62,6 +63,14 @@ const tabs = computed(() => [
     { value: 'done', label: 'Done today', count: props.list.counts.done },
 ]);
 const search = ref(props.list.search);
+const selectedType = computed(() =>
+    props.list.tab === 'prepare' ? (props.list.caseType ?? 'all') : 'all',
+);
+const typeOptions = [
+    { value: 'all', label: 'All cases' },
+    { value: 'consultation', label: 'Consultation' },
+    { value: 'otc', label: 'Medicine only' },
+] as const;
 const showHelpfulInfo = ref(true);
 const currentTab = computed(() =>
     tabs.value.find((tab) => tab.value === props.list.tab),
@@ -76,13 +85,23 @@ const tabHelp = computed(
         })[props.list.tab],
 );
 
-const visit = (params: { tab?: Tab; page?: number; search?: string }) =>
+const visit = (params: {
+    tab?: Tab;
+    page?: number;
+    search?: string;
+    caseType?: string;
+}) =>
     router.get(
         '/dispensary',
         {
             tab: params.tab ?? props.list.tab,
             page: params.page ?? 1,
             search: (params.search ?? props.list.search) || undefined,
+            case_type:
+                (params.tab ?? props.list.tab) === 'prepare' &&
+                (params.caseType ?? selectedType.value) !== 'all'
+                    ? (params.caseType ?? selectedType.value)
+                    : undefined,
         },
         { preserveScroll: params.page === undefined, preserveState: true },
     );
@@ -270,13 +289,56 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                     >
                 </div>
 
+                <div
+                    v-if="list.tab === 'prepare'"
+                    class="flex flex-wrap items-center gap-2"
+                >
+                    <label
+                        for="dispensary-case-type"
+                        class="text-sm font-medium"
+                        >Type</label
+                    >
+                    <select
+                        id="dispensary-case-type"
+                        :value="selectedType"
+                        class="min-h-11 max-w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:min-h-9"
+                        data-testid="dispensary-type-filter"
+                        @change="
+                            visit({
+                                caseType: ($event.target as HTMLSelectElement)
+                                    .value,
+                            })
+                        "
+                    >
+                        <option
+                            v-for="option in typeOptions"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </option>
+                    </select>
+                    <p class="text-xs text-muted-foreground">
+                        Search narrows the list; the To prepare count includes
+                        all cases of the selected type.
+                    </p>
+                </div>
+
                 <EmptyState
                     v-if="list.rows.length === 0"
-                    :title="list.search ? 'No match' : 'Nothing here'"
+                    :title="
+                        list.search || selectedType !== 'all'
+                            ? 'No match'
+                            : 'Nothing here'
+                    "
                     :description="
-                        list.search
-                            ? `No case matches “${list.search}” in this tab.`
-                            : emptyText
+                        selectedType !== 'all'
+                            ? list.search
+                                ? `No case of the selected type matches “${list.search}” in To prepare. Choose All cases or change the search.`
+                                : 'No cases of the selected type are waiting to prepare. Choose All cases to broaden the list.'
+                            : list.search
+                              ? `No case matches “${list.search}” in this tab.`
+                              : emptyText
                     "
                 />
 

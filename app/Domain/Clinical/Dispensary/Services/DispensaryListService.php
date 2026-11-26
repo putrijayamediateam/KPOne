@@ -37,20 +37,21 @@ final class DispensaryListService
     public function __construct(private BranchAccessService $branches) {}
 
     /** @return array<string, mixed> */
-    public function page(User $actor, string $tab, int $page, string $search): array
+    public function page(User $actor, string $tab, int $page, string $search, string $caseType = 'all'): array
     {
         $branch = $this->branches->activeBranch($actor);
         abort_unless($branch !== null && DispensaryDirectoryService::canView($actor), 404);
         $tab = in_array($tab, self::TABS, true) ? $tab : self::TAB_PREPARE;
+        $caseType = $tab === self::TAB_PREPARE && in_array($caseType, [DispensaryCase::TYPE_CONSULTATION, DispensaryCase::TYPE_OTC], true) ? $caseType : 'all';
         $search = Str::limit(trim($search), 80, '');
         [$from, $to] = $this->today($branch);
 
         $counts = [];
         foreach (self::TABS as $name) {
-            $counts[$name] = $this->tabQuery($actor, $branch, $name, $from, $to)->count();
+            $counts[$name] = $this->tabQuery($actor, $branch, $name, $from, $to, $caseType)->count();
         }
 
-        $query = $this->tabQuery($actor, $branch, $tab, $from, $to);
+        $query = $this->tabQuery($actor, $branch, $tab, $from, $to, $caseType);
         $this->search($query, $search);
         $query->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'handoffs' => fn ($q) => $q->orderByDesc('attempt_number')->withCount(['items as given_count' => fn ($i) => $i->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)])]);
         $tab === self::TAB_DONE ? $query->orderByDesc('completed_at')->orderByDesc('id') : $query->orderBy('received_at')->orderBy('id');
@@ -68,6 +69,7 @@ final class DispensaryListService
             'branchName' => $branch->name,
             'tab' => $tab,
             'search' => $search,
+            'caseType' => $caseType,
             'counts' => $counts,
             'canPrintLabels' => $mayPrint,
             'rows' => $cases->map(function (DispensaryCase $case) use ($numbers, $branch, $mayPrint, $mayPreview, $now): array {
@@ -102,9 +104,12 @@ final class DispensaryListService
     }
 
     /** @return Builder<DispensaryCase> */
-    private function tabQuery(User $actor, Branch $branch, string $tab, CarbonImmutable $from, CarbonImmutable $to): Builder
+    private function tabQuery(User $actor, Branch $branch, string $tab, CarbonImmutable $from, CarbonImmutable $to, string $caseType = 'all'): Builder
     {
         $query = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id);
+        if ($tab === self::TAB_PREPARE && $caseType !== 'all') {
+            $query->where('case_type', $caseType);
+        }
 
         return match ($tab) {
             self::TAB_CHECK => $query->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK),
