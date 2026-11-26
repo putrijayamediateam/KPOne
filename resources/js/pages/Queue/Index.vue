@@ -17,12 +17,14 @@ import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import CallNextControl from '@/components/queue/CallNextControl.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
+import QueueRoomsToday from '@/components/queue/QueueRoomsToday.vue';
 import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
 import RedZoneAlertBanner from '@/components/queue/RedZoneAlertBanner.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
+import { useRoomsToday } from '@/composables/useRoomsToday';
 import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
 import { completedShownLine, servingShownLine } from '@/lib/completed-tab';
 import { formatDate } from '@/lib/presentation';
@@ -134,6 +136,7 @@ const tabs = computed<
 ]);
 const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
+const roomsToday = useRoomsToday();
 // Q-2: the attending doctor (own queue) is told when a treatment step is done.
 const treatmentAlerts = useTreatmentDoneAlerts(true);
 const page = usePage();
@@ -183,6 +186,13 @@ const clockNow = ref(Date.now());
 watch(
     () => props.snapshot,
     (snapshot) => {
+        if (
+            live.value.branch.id !== snapshot.branch.id ||
+            snapshot.scope !== 'branch'
+        ) {
+            roomsToday.reset();
+        }
+
         if (live.value.branch.id !== snapshot.branch.id) {
             readyAlerts.reset();
             treatmentAlerts.reset();
@@ -407,6 +417,12 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
             );
             receivedAt.value = Date.now();
             failures = 0;
+            void roomsToday.poll(
+                live.value.branch.id,
+                live.value.scope,
+                request.signal,
+                () => pollingLifecycle.accepts(requestGeneration),
+            );
             await readyAlerts
                 .poll(live.value.branch.id, request.signal)
                 .catch(() => undefined);
@@ -685,6 +701,7 @@ const handleVisibility = () => {
 
     if (document.hidden) {
         pollingLifecycle.invalidate();
+        roomsToday.reset();
 
         if (pollTimer) {
             clearTimeout(pollTimer);
@@ -717,6 +734,7 @@ onBeforeUnmount(() => {
     tabNav()?.removeEventListener('scroll', updateTabFade);
     tabResizeObserver?.disconnect();
     pollingLifecycle.dispose();
+    roomsToday.reset();
     document.removeEventListener('visibilitychange', handleVisibility);
 
     if (pollTimer) {
@@ -810,6 +828,19 @@ onBeforeUnmount(() => {
                 }}</span
             >
         </div>
+
+        <QueueRoomsToday
+            v-if="live.scope === 'branch'"
+            :key="live.branch.id"
+            :stats="roomsToday.stats.value"
+            :unavailable="roomsToday.unavailable.value"
+            @page="
+                (page) => {
+                    roomsToday.setPage(page);
+                    void refresh();
+                }
+            "
+        />
 
         <form
             class="grid gap-2 border-b pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
