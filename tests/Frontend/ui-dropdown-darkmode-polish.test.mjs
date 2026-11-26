@@ -13,10 +13,10 @@ const patientCreate = read('resources/js/pages/Patient/Create.vue');
 const staffDirectory = read('resources/js/pages/Staff/Index.vue');
 const registerVisit = read('resources/js/pages/Registration/Create.vue');
 
-test('approved Patient controls use OperationalSelect without changing submitted values', () => {
+test('Patient search radio pills and other custom selects keep submitted values', () => {
     assert.match(
         patientDirectory,
-        /<OperationalSelect[\s\S]*v-model="form\.search_type"/,
+        /<input[\s\S]*?v-model="form\.search_type"[\s\S]*?type="radio"[\s\S]*?name="patient-search-type"/,
     );
     assert.doesNotMatch(patientDirectory, /<select\b/);
 
@@ -51,9 +51,9 @@ test('approved Patient controls use OperationalSelect without changing submitted
     assert.doesNotMatch(patientCreate, /<select\b/);
 });
 
-test('Patient custom selects retain explicit and unique accessible labels', () => {
-    assert.match(patientDirectory, /id="patient-search-type"/);
-    assert.match(patientDirectory, /label="Search type"/);
+test('Patient search radios and custom selects retain accessible labels', () => {
+    assert.match(patientDirectory, /<fieldset[\s\S]*?<legend[^>]*>\s*Search type\s*<\/legend>/);
+    assert.match(patientDirectory, /<label[\s\S]*?v-for="option in searchTypeOptions"[\s\S]*?name="patient-search-type"[\s\S]*?\{\{ option.label \}\}/);
     assert.match(patientFields, /id="patient-gender"/);
     assert.match(patientFields, /id="patient-gender-label"/);
     assert.match(patientCreate, /'patient-identifier-type-' \+ index/);
