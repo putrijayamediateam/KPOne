@@ -172,10 +172,11 @@ const PatientBoardStub = defineComponent({
         busyKey: String,
         emptyMessage: String,
     },
-    setup: (props) => () =>
+    setup: (props, {attrs}) => () =>
         h(
             'div',
             {
+                ...attrs,
                 'data-testid': 'patient-board',
                 'data-empty-message': props.emptyMessage ?? '',
             },
@@ -243,6 +244,12 @@ const requireMap = {
         default: NullStub,
     },
     '@/components/registration/QrIntakeTable.vue': { default: NullStub },
+    '@/components/registration/RegistrationCreateDialog.vue': {
+        default: defineComponent({
+            inheritAttrs: false,
+            setup: (_, { attrs }) => () => h('div', { ...attrs, 'data-testid': 'registration-dialog' }),
+        }),
+    },
     '@/components/ui/button': { Button: ButtonStub },
     '@/components/ui/date-field': { DateField: NullStub },
     '@/components/ui/select': { OperationalSelect: OperationalSelectStub },
@@ -871,5 +878,103 @@ test('REG-LIVE-1 a stale automatic failure cannot restore a notice after a newer
     pending.resolve(jsonResponse(500, {}));
     await flush();
     assert.deepEqual(boardRowKeys(mounted.root), ['LATEST']);
+    assert.equal(liveNotice(mounted.root), '');
+});
+
+
+test('Registration dialog native anchor preserves modified activation and pauses polling until filtered refresh after dismissal', async () => {
+    const mounted = mount({page: 2, lastPage: 3});
+    const anchor = descendants(mounted.root, 'a').find((node) => node.props.href === '/registration/create');
+    assert.ok(anchor);
+    let intercepted = 0;
+    const event = {button: 0, currentTarget: anchor, preventDefault: () => intercepted++};
+    anchor.props.onClick({...event, ctrlKey: true});
+    anchor.props.onClick({...event, metaKey: true});
+    anchor.props.onClick({...event, button: 1});
+    assert.equal(intercepted, 0);
+    anchor.props.onClick(event);
+    await flush();
+    assert.equal(intercepted, 1);
+    const dialog = descendants(mounted.root, 'div').find((node) => node.props['data-testid'] === 'registration-dialog');
+    assert.equal(dialog.props.open, true);
+    await environment.advance(30000);
+    assert.equal(environment.requests.length, 0);
+    // Closing animation remains present, but the explicit filtered refresh must still finish.
+    environment.overlay = 'dialog';
+    dialog.props.onRegistered();
+    await flush();
+    assert.equal(dialog.props.open, false);
+    assert.equal(environment.requests.length, 0);
+    environment.overlay = null;
+    await environment.advance(250);
+    assert.equal(environment.requests.length, 1);
+    assert.equal(environment.requests[0].body.page, 2);
+    assert.equal(environment.requests[0].body.board_status, 'all');
+    assert.deepEqual(boardRowKeys(mounted.root), ['ARRIVAL']);
+});
+
+
+test('generic readiness refresh retains typing and menu protection', async () => {
+    const mounted = mount();
+    environment.overlay = 'menu';
+    board(mounted.root).props.onReadinessChanged();
+    await flush();
+    assert.equal(environment.requests.length, 0);
+    environment.overlay = null;
+    document.activeElement = { matches: () => true };
+    board(mounted.root).props.onReadinessChanged();
+    await flush();
+    assert.equal(environment.requests.length, 0);
+    document.activeElement = null;
+    await environment.advance(10000);
+    assert.equal(environment.requests.length, 1);
+});
+
+test('closing Registration on QR reloads only the existing QR projection and never searches an invalid visit status', async () => {
+    const previousPage = requireMap['@inertiajs/vue3'].usePage;
+    const previousReload = requireMap['@inertiajs/vue3'].router.reload;
+    const reloads = [];
+    requireMap['@inertiajs/vue3'].usePage = () => ({url: '/registration?tab=qr-intake'});
+    requireMap['@inertiajs/vue3'].router.reload = (options) => reloads.push(options);
+
+    try {
+        const mounted = mount({qrIntakes: {branch: {id: 1, name: 'Synthetic'}, pendingCount: 0, items: [], history: {currentPage: 2, total: 1, lastPage: 2}}});
+        const anchor = descendants(mounted.root, 'a').find((node) => node.props.href === '/registration/create');
+        anchor.props.onClick({button: 0, currentTarget: anchor, preventDefault() {}});
+        await flush();
+        const dialog = descendants(mounted.root, 'div').find((node) => node.props['data-testid'] === 'registration-dialog');
+        dialog.props['onUpdate:open'](false);
+        await flush();
+        assert.equal(environment.requests.length, 0);
+        assert.deepEqual(reloads, [{only: ['qrIntakes'], data: {qr_history_page: 2}}]);
+    } finally {
+        requireMap['@inertiajs/vue3'].usePage = previousPage;
+        requireMap['@inertiajs/vue3'].router.reload = previousReload;
+    }
+});
+
+
+test('successful registration retries a paused board with menu guards, while cancellation preserves its paused state', async () => {
+    const mounted = mount();
+    environment.respond = async () => jsonResponse(500, {});
+    await environment.advance(70000);
+    assert.equal(environment.requests.length, 3);
+    const anchor = descendants(mounted.root, 'a').find((node) => node.props.href === '/registration/create');
+    const open = async () => {
+ anchor.props.onClick({button: 0, currentTarget: anchor, preventDefault() {}}); await flush();
+};
+    const dialog = descendants(mounted.root, 'div').find((node) => node.props['data-testid'] === 'registration-dialog');
+    await open(); dialog.props['onUpdate:open'](false); await flush();
+    await environment.advance(30000);
+    assert.equal(environment.requests.length, 3);
+    await open(); environment.overlay = 'menu';
+    environment.respond = async () => response('AFTER-SUCCESS');
+    dialog.props.onRegistered(); await flush();
+    await environment.advance(1000);
+    assert.equal(environment.requests.length, 3);
+    environment.overlay = null;
+    await environment.advance(250);
+    assert.equal(environment.requests.length, 4);
+    assert.deepEqual(boardRowKeys(mounted.root), ['AFTER-SUCCESS']);
     assert.equal(liveNotice(mounted.root), '');
 });

@@ -20,6 +20,7 @@ import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
+import RegistrationCreateDialog from '@/components/registration/RegistrationCreateDialog.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
@@ -72,6 +73,8 @@ const props = defineProps<{
     } | null;
 }>();
 const page = usePage();
+const registrationDialogOpen = ref(false);
+const registrationOpener = ref<HTMLElement | null>(null);
 
 type BoardTab =
     | 'all'
@@ -370,6 +373,7 @@ const schedulePoll = () => {
         disposed ||
         document.hidden ||
         pollingStopped ||
+        registrationDialogOpen.value ||
         isQrIntake.value
     ) {
         return;
@@ -405,6 +409,7 @@ const search = async (page = 1, automatic = false) => {
         (!pollingEnabled ||
             document.hidden ||
             pollingStopped ||
+            registrationDialogOpen.value ||
             isQrIntake.value ||
             requestController ||
             pollProtected())
@@ -532,6 +537,74 @@ const selectTab = (tab: BoardTab) => {
     void search(1);
 };
 const selectOperationalTab = (value: string) => selectTab(value as BoardTab);
+const openRegistration = (event: MouseEvent) => {
+    if (
+        !props.canCreate ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+    ) {
+        return;
+    }
+
+    event.preventDefault();
+    registrationOpener.value = event.currentTarget as HTMLElement;
+    ++searchGeneration;
+    clearPollTimer();
+    requestController?.abort();
+    requestController = undefined;
+    loading.value = false;
+    registrationDialogOpen.value = true;
+};
+let registrationRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+const refreshAfterRegistration = () => {
+    registrationRefreshTimer = undefined;
+
+    if (
+        disposed ||
+        registrationDialogOpen.value ||
+        !pollingEnabled ||
+        pollingStopped
+    ) {
+        return;
+    }
+
+    // Wait for dialog transitions and existing editing/menu/request protections.
+    if (document.hidden || pollProtected() || requestController) {
+        registrationRefreshTimer = setTimeout(refreshAfterRegistration, 250);
+
+        return;
+    }
+
+    if (isQrIntake.value) {
+        changeQrHistoryPage(props.qrIntakes?.history.currentPage ?? 1);
+
+        return;
+    }
+
+    void search(currentPage.value, true);
+};
+const closeRegistration = (open: boolean) => {
+    registrationDialogOpen.value = open;
+
+    if (registrationRefreshTimer) {
+        clearTimeout(registrationRefreshTimer);
+    }
+
+    if (!open) {
+        // Keep applied filters and never replace an unsubmitted filter draft.
+        void nextTick(refreshAfterRegistration);
+    }
+};
+const registrationCompleted = () => {
+    // A confirmed write warrants one guarded retry even after earlier poll failures.
+    pollFailures = 0;
+    pollingStopped = false;
+    closeRegistration(false);
+};
+
 const advancedFilterCount = computed(
     () =>
         [form.priority, form.visit_type].filter(Boolean).length +
@@ -685,6 +758,11 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
     disposed = true;
+
+    if (registrationRefreshTimer) {
+        clearTimeout(registrationRefreshTimer);
+    }
+
     pollingEnabled = false;
     ++searchGeneration;
     clearPollTimer();
@@ -715,8 +793,8 @@ onBeforeUnmount(() => {
                 </p>
             </div>
             <Button v-if="canCreate" as-child class="shrink-0"
-                ><Link href="/registration/create"
-                    ><Plus class="size-4" /> Register Visit</Link
+                ><a href="/registration/create" @click="openRegistration"
+                    ><Plus class="size-4" /> Register Visit</a
                 ></Button
             >
         </header>
@@ -1043,6 +1121,14 @@ onBeforeUnmount(() => {
             </section>
         </template>
 
+        <RegistrationCreateDialog
+            :open="registrationDialogOpen"
+            :branch-id="options.branch.id"
+            :can-create="canCreate"
+            :opener="registrationOpener"
+            @update:open="closeRegistration"
+            @registered="registrationCompleted"
+        />
         <VisitCancellationDialog
             v-model:open="cancelOpen"
             :row="cancellationRow"

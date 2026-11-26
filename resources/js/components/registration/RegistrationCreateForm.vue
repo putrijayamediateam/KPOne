@@ -38,7 +38,11 @@ const props = defineProps<{
     recentPatients: PatientRegistrationSummary[];
     requirements: RegistrationRequirements;
     guardianToday?: string;
+    presentation?: 'page' | 'dialog';
+    blocked?: boolean;
 }>();
+const emit = defineEmits<{ registered: [] }>();
+const submissionNotice = ref('');
 const identityTypeOptions = [
     { value: 'nric', label: 'Malaysian IC' },
     { value: 'passport', label: 'Passport' },
@@ -252,6 +256,11 @@ const quick = ref({
     phone_country: 'MY',
     duplicate_override: false,
 });
+const draftLocked = computed(
+    () =>
+        props.presentation === 'dialog' &&
+        (form.processing || submissionNotice.value !== ''),
+);
 const contactErrors = computed(() =>
     Object.fromEntries(
         Object.entries(form.errors)
@@ -368,6 +377,10 @@ watch(patientQuery, (query) => {
 watch(
     () => form.panel_id,
     (panelId) => {
+        if (draftLocked.value) {
+            return;
+        }
+
         form.coverage_panel_note = '';
         form.panel_note_panel_id = panelId;
     },
@@ -375,6 +388,10 @@ watch(
 watch(
     () => form.coverage_type,
     (coverage) => {
+        if (draftLocked.value) {
+            return;
+        }
+
         if (coverage === 'self_pay') {
             form.panel_id = '';
             form.coverage_member_reference = '';
@@ -448,7 +465,69 @@ const patientSummaryName = computed(
         quick.value.full_name.trim() ||
         'New Patient',
 );
+const initialQuickDraft = JSON.stringify(quick.value);
+const hasDraft = computed(
+    () =>
+        form.isDirty ||
+        quickMode.value ||
+        selectedPatient.value !== null ||
+        patientQuery.value.trim() !== '' ||
+        quickIdentifierValue.value.trim() !== '' ||
+        quickIdentifierType.value !== 'nric' ||
+        JSON.stringify(quick.value) !== initialQuickDraft ||
+        submissionNotice.value !== '',
+);
+defineExpose({
+    hasDraft,
+    processing: computed(() => form.processing),
+    commandKey: computed(() => form.idempotency_key),
+    unconfirmed: computed(() => submissionNotice.value !== ''),
+});
+const copyDraft = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+let submittedDraft: {
+    data: ReturnType<typeof form.data>;
+    quick: typeof quick.value;
+    selectedPatient: typeof selectedPatient.value;
+    selectedVisitReasons: typeof selectedVisitReasons.value;
+    quickMode: boolean;
+    identifierType: typeof quickIdentifierType.value;
+    identifierValue: string;
+    issuer: string;
+} | null = null;
+const restoreSubmittedDraft = () => {
+    if (!submittedDraft) {
+        return;
+    }
+
+    Object.assign(form, copyDraft(submittedDraft.data));
+    quick.value = copyDraft(submittedDraft.quick);
+    selectedPatient.value = copyDraft(submittedDraft.selectedPatient);
+    selectedVisitReasons.value = copyDraft(submittedDraft.selectedVisitReasons);
+    quickMode.value = submittedDraft.quickMode;
+    quickIdentifierType.value = submittedDraft.identifierType;
+    quickIdentifierValue.value = submittedDraft.identifierValue;
+    quickIssuer.value = submittedDraft.issuer;
+};
+const markUnconfirmed = () => {
+    submissionNotice.value =
+        'The registration result is unconfirmed. Editing is paused. Retry sends the original details and command unchanged. Discarding this draft does not undo a registration that may already have been saved.';
+    restoreSubmittedDraft();
+
+    return false;
+};
 const submit = () => {
+    if (props.presentation === 'dialog' && (props.blocked || form.processing)) {
+        return;
+    }
+
+    if (
+        submissionNotice.value &&
+        submittedDraft &&
+        props.presentation === 'dialog'
+    ) {
+        restoreSubmittedDraft();
+    }
+
     form.clearErrors();
 
     if (quickMode.value) {
@@ -502,9 +581,42 @@ const submit = () => {
         form.patient_number = '';
     }
 
+    if (props.presentation === 'dialog') {
+        if (!submissionNotice.value) {
+            submittedDraft = {
+                data: copyDraft(form.data()),
+                quick: copyDraft(quick.value),
+                selectedPatient: copyDraft(selectedPatient.value),
+                selectedVisitReasons: copyDraft(selectedVisitReasons.value),
+                quickMode: quickMode.value,
+                identifierType: quickIdentifierType.value,
+                identifierValue: quickIdentifierValue.value,
+                issuer: quickIssuer.value,
+            };
+        }
+
+        const command = copyDraft(submittedDraft!.data);
+        form.transform(() => copyDraft(command));
+    }
+
     form.post('/registration', {
         preserveState: true,
         onError: focusInvalidField,
+        ...(props.presentation === 'dialog'
+            ? {
+                  onSuccess: (page: { component: string }) => {
+                      if (
+                          ['Registration/Index', 'Registration/Show'].includes(
+                              page.component,
+                          )
+                      ) {
+                          emit('registered');
+                      }
+                  },
+                  onNetworkError: markUnconfirmed,
+                  onHttpException: markUnconfirmed,
+              }
+            : {}),
     });
 };
 const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
@@ -512,328 +624,351 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 
 <template>
     <section class="overflow-hidden rounded-lg border bg-card shadow-card">
-        <div class="flex items-center justify-between px-4 pt-4 pb-2">
-            <div>
-                <h2 class="font-semibold">1. Patient</h2>
-                <p class="text-xs text-muted-foreground">
-                    Select an existing Patient or create a new one quickly.
-                </p>
-            </div>
-            <Button
-                v-if="visitReady"
-                type="button"
-                size="sm"
-                variant="ghost"
-                @click="changePatient"
-                >Change patient</Button
-            >
-        </div>
-        <div
-            v-if="selectedPatient"
-            class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-success/25 bg-success-wash px-3 py-3"
-        >
-            <div class="rounded-full bg-card p-2 text-success">
-                <Check class="size-4" />
-            </div>
-            <div class="min-w-0">
-                <div class="font-medium text-foreground">
-                    {{ selectedPatient.fullName }}
+        <fieldset :disabled="draftLocked" class="contents">
+            <div class="flex items-center justify-between px-4 pt-4 pb-2">
+                <div>
+                    <h2 class="font-semibold">1. Patient</h2>
+                    <p class="text-xs text-muted-foreground">
+                        Select an existing Patient or create a new one quickly.
+                    </p>
                 </div>
-                <div class="font-mono text-xs text-muted-foreground">
-                    {{ selectedPatient.patientNumber }} ·
-                    {{
-                        selectedPatient.dateOfBirth
-                            ? formatDate(selectedPatient.dateOfBirth)
-                            : 'DOB not recorded'
-                    }}
-                </div>
-                <div class="mt-0.5 text-xs text-muted-foreground">
-                    {{
-                        selectedPatient.identifier?.maskedValue ??
-                        selectedPatient.maskedPhone ??
-                        'No identifier recorded'
-                    }}
-                    <WhatsAppLink
-                        v-if="!selectedPatient.identifier"
-                        :can-whatsapp="selectedPatient.canWhatsapp"
-                        :route-key="selectedPatient.patientNumber"
-                    />
-                </div>
-            </div>
-        </div>
-        <div v-else-if="!quickMode" class="space-y-3 px-4 pb-4">
-            <p id="patient-search-help" class="text-sm text-muted-foreground">
-                Search for the patient first. Quick create appears when no match
-                is found.
-            </p>
-            <form class="relative" @submit.prevent="searchPatients">
-                <label class="relative block"
-                    ><Search
-                        class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
-                        id="patient-search"
-                        aria-describedby="patient-search-help"
-                        v-model="patientQuery"
-                        autofocus
-                        autocomplete="off"
-                        aria-controls="patient-results"
-                        aria-label="Search Patient"
-                        class="h-9 w-full rounded-[10px] border border-input bg-field-fill pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11"
-                        placeholder="Name / NRIC / Phone / Patient No."
-                        @keydown="handlePatientSearchKeydown" /></label
-                ><LoaderCircle
-                    v-if="searching"
-                    class="absolute top-3 right-3 size-4 animate-spin text-muted-foreground"
-                />
-            </form>
-            <InputError
-                :message="patientSearchError || errorFor('patient_number')"
-            />
-            <div class="flex items-center justify-between pt-1">
-                <p
-                    id="patient-results-heading"
-                    class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-                >
-                    {{ showingRecent ? 'Recent patients' : 'Search results' }}
-                </p>
-                <span class="text-xs text-muted-foreground">
-                    {{ patientResults.length }} shown
-                </span>
-            </div>
-            <div
-                id="patient-results"
-                v-if="patientResults.length"
-                role="listbox"
-                aria-labelledby="patient-results-heading"
-            >
-                <div
-                    v-for="(patient, index) in patientResults"
-                    :key="patient.patientNumber"
-                    class="flex items-center"
-                >
-                    <button
-                        type="button"
-                        role="option"
-                        :aria-selected="activeResultIndex === index"
-                        :class="
-                            activeResultIndex === index
-                                ? 'bg-primary/8 dark:bg-primary/16'
-                                : 'hover:bg-muted/35'
-                        "
-                        class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"
-                        @mouseenter="activeResultIndex = index"
-                        @click="selectPatient(patient)"
-                    >
-                        <span class="min-w-0">
-                            <span class="block truncate font-medium">{{
-                                patient.fullName
-                            }}</span>
-                            <span
-                                class="font-mono text-xs text-muted-foreground"
-                                >{{ patient.patientNumber }}</span
-                            >
-                            <MergedFromNote
-                                :numbers="patient.mergedFrom ?? []"
-                            />
-                        </span>
-                        <span
-                            class="shrink-0 text-right text-xs text-muted-foreground"
-                        >
-                            <span class="block">{{
-                                patient.dateOfBirth
-                                    ? formatDate(patient.dateOfBirth)
-                                    : 'DOB unknown'
-                            }}</span>
-                            <span>{{
-                                patient.identifier?.maskedValue ??
-                                patient.maskedPhone ??
-                                'No identifier'
-                            }}</span>
-                        </span>
-                    </button>
-                    <WhatsAppLink
-                        v-if="!patient.identifier"
-                        :can-whatsapp="patient.canWhatsapp"
-                        :route-key="patient.patientNumber"
-                    />
-                </div>
-            </div>
-            <div
-                v-if="
-                    !searching &&
-                    patientResults.length === 0 &&
-                    patientQuery.trim().length > 0
-                "
-                class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
-            >
-                <span>{{
-                    patientQuery.trim().length < 3
-                        ? 'Enter at least 3 characters.'
-                        : 'No matching Patient found.'
-                }}</span
-                ><Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    @click="startQuickCreate"
-                    ><UserPlus class="size-4" /> Quick create</Button
-                >
-            </div>
-            <div
-                v-else-if="showingRecent && !patientResults.length"
-                class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
-            >
-                <span>No Patients yet.</span>
                 <Button
+                    v-if="visitReady"
                     type="button"
                     size="sm"
-                    variant="outline"
-                    @click="startQuickCreate"
+                    variant="ghost"
+                    @click="changePatient"
+                    >Change patient</Button
                 >
-                    <UserPlus class="size-4" /> Quick create
-                </Button>
             </div>
-        </div>
-        <div v-else class="grid gap-3 p-4 md:grid-cols-2">
-            <label class="grid gap-1 md:col-span-2"
-                ><span class="text-sm font-medium">Name</span
-                ><input
-                    id="quick-patient-name"
-                    :aria-invalid="!!errorFor('quick_patient.full_name')"
-                    aria-describedby="quick-name-error"
-                    v-model="quick.full_name"
-                    autocomplete="off"
-                    class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11" /><InputError
-                    id="quick-name-error"
-                    :message="errorFor('quick_patient.full_name')"
-            /></label>
-            <label class="grid gap-1"
-                ><span class="text-sm font-medium">Identity document *</span>
-                <div class="flex flex-col gap-2 sm:flex-row sm:gap-0">
-                    <OperationalSelect
-                        v-model="quickIdentifierType"
-                        label="Identification type"
-                        :options="identityTypeOptions"
-                        trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"
-                    /><input
-                        v-model="quickIdentifierValue"
-                        aria-label="IC or Passport number"
+            <div
+                v-if="selectedPatient"
+                class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-success/25 bg-success-wash px-3 py-3"
+            >
+                <div class="rounded-full bg-card p-2 text-success">
+                    <Check class="size-4" />
+                </div>
+                <div class="min-w-0">
+                    <div class="font-medium text-foreground">
+                        {{ selectedPatient.fullName }}
+                    </div>
+                    <div class="font-mono text-xs text-muted-foreground">
+                        {{ selectedPatient.patientNumber }} ·
+                        {{
+                            selectedPatient.dateOfBirth
+                                ? formatDate(selectedPatient.dateOfBirth)
+                                : 'DOB not recorded'
+                        }}
+                    </div>
+                    <div class="mt-0.5 text-xs text-muted-foreground">
+                        {{
+                            selectedPatient.identifier?.maskedValue ??
+                            selectedPatient.maskedPhone ??
+                            'No identifier recorded'
+                        }}
+                        <WhatsAppLink
+                            v-if="!selectedPatient.identifier"
+                            :can-whatsapp="selectedPatient.canWhatsapp"
+                            :route-key="selectedPatient.patientNumber"
+                        />
+                    </div>
+                </div>
+            </div>
+            <div v-else-if="!quickMode" class="space-y-3 px-4 pb-4">
+                <p
+                    id="patient-search-help"
+                    class="text-sm text-muted-foreground"
+                >
+                    Search for the patient first. Quick create appears when no
+                    match is found.
+                </p>
+                <form class="relative" @submit.prevent="searchPatients">
+                    <label class="relative block"
+                        ><Search
+                            class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
+                            id="patient-search"
+                            aria-describedby="patient-search-help"
+                            v-model="patientQuery"
+                            autofocus
+                            autocomplete="off"
+                            aria-controls="patient-results"
+                            aria-label="Search Patient"
+                            class="h-9 w-full rounded-[10px] border border-input bg-field-fill pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11"
+                            placeholder="Name / NRIC / Phone / Patient No."
+                            @keydown="handlePatientSearchKeydown" /></label
+                    ><LoaderCircle
+                        v-if="searching"
+                        class="absolute top-3 right-3 size-4 animate-spin text-muted-foreground"
+                    />
+                </form>
+                <InputError
+                    :message="patientSearchError || errorFor('patient_number')"
+                />
+                <div class="flex items-center justify-between pt-1">
+                    <p
+                        id="patient-results-heading"
+                        class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        {{
+                            showingRecent ? 'Recent patients' : 'Search results'
+                        }}
+                    </p>
+                    <span class="text-xs text-muted-foreground">
+                        {{ patientResults.length }} shown
+                    </span>
+                </div>
+                <div
+                    id="patient-results"
+                    v-if="patientResults.length"
+                    role="listbox"
+                    aria-labelledby="patient-results-heading"
+                >
+                    <div
+                        v-for="(patient, index) in patientResults"
+                        :key="patient.patientNumber"
+                        class="flex items-center"
+                    >
+                        <button
+                            type="button"
+                            role="option"
+                            :aria-selected="activeResultIndex === index"
+                            :class="
+                                activeResultIndex === index
+                                    ? 'bg-primary/8 dark:bg-primary/16'
+                                    : 'hover:bg-muted/35'
+                            "
+                            class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"
+                            @mouseenter="activeResultIndex = index"
+                            @click="selectPatient(patient)"
+                        >
+                            <span class="min-w-0">
+                                <span class="block truncate font-medium">{{
+                                    patient.fullName
+                                }}</span>
+                                <span
+                                    class="font-mono text-xs text-muted-foreground"
+                                    >{{ patient.patientNumber }}</span
+                                >
+                                <MergedFromNote
+                                    :numbers="patient.mergedFrom ?? []"
+                                />
+                            </span>
+                            <span
+                                class="shrink-0 text-right text-xs text-muted-foreground"
+                            >
+                                <span class="block">{{
+                                    patient.dateOfBirth
+                                        ? formatDate(patient.dateOfBirth)
+                                        : 'DOB unknown'
+                                }}</span>
+                                <span>{{
+                                    patient.identifier?.maskedValue ??
+                                    patient.maskedPhone ??
+                                    'No identifier'
+                                }}</span>
+                            </span>
+                        </button>
+                        <WhatsAppLink
+                            v-if="!patient.identifier"
+                            :can-whatsapp="patient.canWhatsapp"
+                            :route-key="patient.patientNumber"
+                        />
+                    </div>
+                </div>
+                <div
+                    v-if="
+                        !searching &&
+                        patientResults.length === 0 &&
+                        patientQuery.trim().length > 0
+                    "
+                    class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
+                >
+                    <span>{{
+                        patientQuery.trim().length < 3
+                            ? 'Enter at least 3 characters.'
+                            : 'No matching Patient found.'
+                    }}</span
+                    ><Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        @click="startQuickCreate"
+                        ><UserPlus class="size-4" /> Quick create</Button
+                    >
+                </div>
+                <div
+                    v-else-if="showingRecent && !patientResults.length"
+                    class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
+                >
+                    <span>No Patients yet.</span>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        @click="startQuickCreate"
+                    >
+                        <UserPlus class="size-4" /> Quick create
+                    </Button>
+                </div>
+            </div>
+            <div v-else class="grid gap-3 p-4 md:grid-cols-2">
+                <label class="grid gap-1 md:col-span-2"
+                    ><span class="text-sm font-medium">Name</span
+                    ><input
+                        id="quick-patient-name"
+                        :aria-invalid="!!errorFor('quick_patient.full_name')"
+                        aria-describedby="quick-name-error"
+                        v-model="quick.full_name"
+                        autocomplete="off"
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11" /><InputError
+                        id="quick-name-error"
+                        :message="errorFor('quick_patient.full_name')"
+                /></label>
+                <label class="grid gap-1"
+                    ><span class="text-sm font-medium"
+                        >Identity document *</span
+                    >
+                    <div class="flex flex-col gap-2 sm:flex-row sm:gap-0">
+                        <OperationalSelect
+                            v-model="quickIdentifierType"
+                            label="Identification type"
+                            :options="identityTypeOptions"
+                            trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"
+                        /><input
+                            v-model="quickIdentifierValue"
+                            aria-label="IC or Passport number"
+                            :aria-invalid="
+                                !!(
+                                    errorFor('quick_patient.identifiers') ||
+                                    errorFor(
+                                        'quick_patient.identifiers.0.value',
+                                    )
+                                )
+                            "
+                            aria-describedby="quick-identity-error"
+                            autocomplete="off"
+                            class="h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"
+                        />
+                    </div>
+                    <InputError
+                        id="quick-identity-error"
+                        :message="
+                            errorFor('quick_patient.identifiers') ||
+                            errorFor('quick_patient.identifiers.0.value') ||
+                            errorFor(
+                                'quick_patient.identifiers.0.issuing_country_code',
+                            )
+                        "
+                /></label>
+                <label
+                    v-if="quickIdentifierType === 'passport'"
+                    class="grid gap-1"
+                    ><span class="text-sm font-medium">Passport issuer *</span
+                    ><input
+                        v-model="quickIssuer"
                         :aria-invalid="
-                            !!(
-                                errorFor('quick_patient.identifiers') ||
-                                errorFor('quick_patient.identifiers.0.value')
+                            !!errorFor(
+                                'quick_patient.identifiers.0.issuing_country_code',
                             )
                         "
                         aria-describedby="quick-identity-error"
-                        autocomplete="off"
-                        class="h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"
-                    />
-                </div>
-                <InputError
-                    id="quick-identity-error"
-                    :message="
-                        errorFor('quick_patient.identifiers') ||
-                        errorFor('quick_patient.identifiers.0.value') ||
-                        errorFor(
-                            'quick_patient.identifiers.0.issuing_country_code',
-                        )
+                        maxlength="2"
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /></label
+                ><span v-else />
+                <PhoneInput
+                    id="quick-phone"
+                    v-model="quick.mobile_phone"
+                    v-model:country="quick.phone_country"
+                    :required="!knownMinor(quick.date_of_birth, guardianToday)"
+                    :error="
+                        errorFor('quick_patient.mobile_phone') ||
+                        errorFor('quick_patient.phone_country')
                     "
-            /></label>
-            <label v-if="quickIdentifierType === 'passport'" class="grid gap-1"
-                ><span class="text-sm font-medium">Passport issuer *</span
-                ><input
-                    v-model="quickIssuer"
-                    :aria-invalid="
-                        !!errorFor(
-                            'quick_patient.identifiers.0.issuing_country_code',
-                        )
-                    "
-                    aria-describedby="quick-identity-error"
-                    maxlength="2"
-                    class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /></label
-            ><span v-else />
-            <PhoneInput
-                id="quick-phone"
-                v-model="quick.mobile_phone"
-                v-model:country="quick.phone_country"
-                :required="!knownMinor(quick.date_of_birth, guardianToday)"
-                :error="
-                    errorFor('quick_patient.mobile_phone') ||
-                    errorFor('quick_patient.phone_country')
-                "
-            />
-            <label class="grid gap-1"
-                ><span class="text-sm font-medium">{{
-                    requirements.requireDateOfBirth ? 'DOB *' : 'DOB (optional)'
-                }}</span
-                ><DateField
-                    v-model="quick.date_of_birth"
-                    :required="requirements.requireDateOfBirth"
-                    :aria-invalid="
-                        !!errorFor('quick_patient.date_of_birth')
-                    " /><InputError
-                    :message="errorFor('quick_patient.date_of_birth')"
-            /></label>
-            <AdultConfirmation
-                v-if="!quick.date_of_birth && !requirements.requireDateOfBirth"
-                v-model="quick.adult_confirmed"
-                :error="
-                    errorFor('quick_patient.adult_confirmed') ||
-                    errorFor('quick_patient.adult_confirmation_key')
-                "
-            />
-            <label class="grid gap-1" for="quick-nationality"
-                ><span class="text-sm font-medium"
-                    >Nationality country code{{
-                        requirements.requireNationality ? ' *' : ' (optional)'
+                />
+                <label class="grid gap-1"
+                    ><span class="text-sm font-medium">{{
+                        requirements.requireDateOfBirth
+                            ? 'DOB *'
+                            : 'DOB (optional)'
                     }}</span
-                ><input
-                    id="quick-nationality"
-                    v-model="quick.nationality_code"
-                    :required="requirements.requireNationality"
-                    :aria-invalid="!!errorFor('quick_patient.nationality_code')"
-                    maxlength="2"
-                    placeholder="MY"
-                    class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /><InputError
-                    :message="errorFor('quick_patient.nationality_code')"
-            /></label>
-            <label class="grid gap-1" for="quick-gender"
-                ><span class="text-sm font-medium">Gender</span
-                ><OperationalSelect
-                    trigger-class="max-lg:min-h-11"
-                    id="quick-gender"
-                    v-model="quick.sex"
-                    label="Gender"
-                    :invalid="!!errorFor('quick_patient.sex')"
-                    :options="genderOptions"
-            /></label>
-            <GuardianFields
-                v-model="quick.guardian"
-                :dob="quick.date_of_birth"
-                :today="guardianToday"
-                new-patient
-                :errors="contactErrors"
-            />
-            <RegistrationContactFields
-                class="md:col-span-2"
-                :model="quick"
-                :require-email="requirements.requireEmail"
-                :require-address="requirements.requireAddress"
-                :errors="contactErrors"
-                id-prefix="quick-contact"
-            />
-            <label
-                v-if="errorFor('quick_patient.duplicate_override')"
-                class="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
-                ><input
-                    v-model="quick.duplicate_override"
-                    type="checkbox"
-                    class="mt-1"
-                /><span
-                    >{{ errorFor('quick_patient.duplicate_override') }} Confirm
-                    only after review.</span
-                ></label
-            >
-        </div>
+                    ><DateField
+                        v-model="quick.date_of_birth"
+                        :required="requirements.requireDateOfBirth"
+                        :aria-invalid="
+                            !!errorFor('quick_patient.date_of_birth')
+                        " /><InputError
+                        :message="errorFor('quick_patient.date_of_birth')"
+                /></label>
+                <AdultConfirmation
+                    v-if="
+                        !quick.date_of_birth && !requirements.requireDateOfBirth
+                    "
+                    v-model="quick.adult_confirmed"
+                    :error="
+                        errorFor('quick_patient.adult_confirmed') ||
+                        errorFor('quick_patient.adult_confirmation_key')
+                    "
+                />
+                <label class="grid gap-1" for="quick-nationality"
+                    ><span class="text-sm font-medium"
+                        >Nationality country code{{
+                            requirements.requireNationality
+                                ? ' *'
+                                : ' (optional)'
+                        }}</span
+                    ><input
+                        id="quick-nationality"
+                        v-model="quick.nationality_code"
+                        :required="requirements.requireNationality"
+                        :aria-invalid="
+                            !!errorFor('quick_patient.nationality_code')
+                        "
+                        maxlength="2"
+                        placeholder="MY"
+                        class="h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm uppercase max-lg:h-11" /><InputError
+                        :message="errorFor('quick_patient.nationality_code')"
+                /></label>
+                <label class="grid gap-1" for="quick-gender"
+                    ><span class="text-sm font-medium">Gender</span
+                    ><OperationalSelect
+                        trigger-class="max-lg:min-h-11"
+                        id="quick-gender"
+                        v-model="quick.sex"
+                        label="Gender"
+                        :invalid="!!errorFor('quick_patient.sex')"
+                        :options="genderOptions"
+                /></label>
+                <GuardianFields
+                    v-model="quick.guardian"
+                    :dob="quick.date_of_birth"
+                    :today="guardianToday"
+                    new-patient
+                    :errors="contactErrors"
+                />
+                <RegistrationContactFields
+                    class="md:col-span-2"
+                    :model="quick"
+                    :require-email="requirements.requireEmail"
+                    :require-address="requirements.requireAddress"
+                    :errors="contactErrors"
+                    id-prefix="quick-contact"
+                />
+                <label
+                    v-if="errorFor('quick_patient.duplicate_override')"
+                    class="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
+                    ><input
+                        v-model="quick.duplicate_override"
+                        type="checkbox"
+                        class="mt-1"
+                    /><span
+                        >{{
+                            errorFor('quick_patient.duplicate_override')
+                        }}
+                        Confirm only after review.</span
+                    ></label
+                >
+            </div>
+        </fieldset>
     </section>
 
     <!-- Small screens reserve a row above the fields for the sticky action. -->
@@ -843,262 +978,283 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
         @submit.prevent="submit"
     >
         <section class="rounded-lg border bg-card shadow-card">
-            <div class="px-4 pt-4 pb-2">
-                <h2 class="font-semibold">Visit details</h2>
-                <p class="text-xs text-muted-foreground">
-                    Consultation / OTC · Doctor · Reason · Coverage · Urgency
-                </p>
-            </div>
-            <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
-                <fieldset
-                    class="grid content-start gap-1 md:justify-self-start"
-                >
-                    <legend class="mb-1 text-sm font-medium">
-                        2. Visit type
-                    </legend>
-                    <div
-                        class="grid w-full grid-cols-2 gap-1 rounded-md bg-muted/70 p-1 sm:w-72"
+            <fieldset :disabled="draftLocked" class="contents">
+                <div class="px-4 pt-4 pb-2">
+                    <h2 class="font-semibold">Visit details</h2>
+                    <p class="text-xs text-muted-foreground">
+                        Consultation / OTC · Doctor · Reason · Coverage ·
+                        Urgency
+                    </p>
+                </div>
+                <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
+                    <fieldset
+                        class="grid content-start gap-1 md:justify-self-start"
                     >
-                        <button
-                            type="button"
-                            :aria-pressed="form.visit_type === 'consultation'"
-                            :class="
-                                form.visit_type === 'consultation'
-                                    ? 'bg-background text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            "
-                            class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
-                            @click="form.visit_type = 'consultation'"
+                        <legend class="mb-1 text-sm font-medium">
+                            2. Visit type
+                        </legend>
+                        <div
+                            class="grid w-full grid-cols-2 gap-1 rounded-md bg-muted/70 p-1 sm:w-72"
                         >
-                            Consultation
-                        </button>
-                        <button
-                            type="button"
-                            :aria-pressed="form.visit_type === 'otc'"
-                            :class="
-                                form.visit_type === 'otc'
-                                    ? 'bg-background text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
+                            <button
+                                type="button"
+                                :aria-pressed="
+                                    form.visit_type === 'consultation'
+                                "
+                                :class="
+                                    form.visit_type === 'consultation'
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                "
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
+                                @click="form.visit_type = 'consultation'"
+                            >
+                                Consultation
+                            </button>
+                            <button
+                                type="button"
+                                :aria-pressed="form.visit_type === 'otc'"
+                                :class="
+                                    form.visit_type === 'otc'
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                "
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
+                                @click="form.visit_type = 'otc'"
+                            >
+                                OTC
+                            </button>
+                        </div>
+                    </fieldset>
+                    <div class="grid content-start gap-3">
+                        <label class="grid gap-1" for="assigned-doctor"
+                            ><span class="text-sm font-medium"
+                                >3. Doctor
+                                <span
+                                    v-if="form.visit_type === 'otc'"
+                                    class="font-normal text-muted-foreground"
+                                    >(optional)</span
+                                ></span
+                            ><OperationalSelect
+                                trigger-class="max-lg:min-h-11"
+                                id="assigned-doctor"
+                                v-model="form.assigned_doctor_user_id"
+                                label="Doctor"
+                                :invalid="!!form.errors.assigned_doctor_user_id"
+                                :options="doctorOptions" /><InputError
+                                :message="errorFor('assigned_doctor_user_id')"
+                        /></label>
+                        <p
+                            v-if="
+                                autoNotice && form.visit_type === 'consultation'
                             "
-                            class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
-                            @click="form.visit_type = 'otc'"
+                            class="text-xs text-muted-foreground"
                         >
-                            OTC
-                        </button>
+                            {{ autoNotice }}
+                        </p>
+                        <p
+                            v-if="selectedDoctorHasNoRoom"
+                            class="text-xs text-muted-foreground"
+                        >
+                            This doctor has no room today, so they cannot call
+                            the patient until they choose one.
+                        </p>
+                        <div
+                            v-if="showReason"
+                            class="grid gap-1"
+                            role="group"
+                            aria-labelledby="doctor-override-label"
+                        >
+                            <span
+                                id="doctor-override-label"
+                                class="text-sm font-medium"
+                                >Why not Auto?</span
+                            >
+                            <p
+                                v-if="!form.errors.doctor_override_reason"
+                                id="doctor-override-help"
+                                class="text-xs text-muted-foreground"
+                            >
+                                <template v-if="recommended"
+                                    >Auto would pick {{ recommended.name }}.
+                                </template>
+                                Pick a reason to continue.
+                            </p>
+                            <OperationalSelect
+                                trigger-class="max-lg:min-h-11"
+                                id="doctor-override-reason"
+                                v-model="form.doctor_override_reason"
+                                label="Why not Auto?"
+                                :invalid="!!form.errors.doctor_override_reason"
+                                :options="overrideReasonOptions"
+                            />
+                            <InputError
+                                :message="errorFor('doctor_override_reason')"
+                            />
+                        </div>
                     </div>
-                </fieldset>
-                <div class="grid content-start gap-3">
-                    <label class="grid gap-1" for="assigned-doctor"
-                        ><span class="text-sm font-medium"
-                            >3. Doctor
+                    <div class="grid gap-1 md:col-span-2">
+                        <span class="text-sm font-medium"
+                            >4. Visit Reason
                             <span
                                 v-if="form.visit_type === 'otc'"
                                 class="font-normal text-muted-foreground"
                                 >(optional)</span
                             ></span
-                        ><OperationalSelect
-                            trigger-class="max-lg:min-h-11"
-                            id="assigned-doctor"
-                            v-model="form.assigned_doctor_user_id"
-                            label="Doctor"
-                            :invalid="!!form.errors.assigned_doctor_user_id"
-                            :options="doctorOptions" /><InputError
-                            :message="errorFor('assigned_doctor_user_id')"
-                    /></label>
-                    <p
-                        v-if="autoNotice && form.visit_type === 'consultation'"
-                        class="text-xs text-muted-foreground"
-                    >
-                        {{ autoNotice }}
-                    </p>
-                    <p
-                        v-if="selectedDoctorHasNoRoom"
-                        class="text-xs text-muted-foreground"
-                    >
-                        This doctor has no room today, so they cannot call the
-                        patient until they choose one.
-                    </p>
-                    <div
-                        v-if="showReason"
-                        class="grid gap-1"
-                        role="group"
-                        aria-labelledby="doctor-override-label"
-                    >
-                        <span
-                            id="doctor-override-label"
-                            class="text-sm font-medium"
-                            >Why not Auto?</span
                         >
-                        <p
-                            v-if="!form.errors.doctor_override_reason"
-                            id="doctor-override-help"
-                            class="text-xs text-muted-foreground"
-                        >
-                            <template v-if="recommended"
-                                >Auto would pick {{ recommended.name }}.
-                            </template>
-                            Pick a reason to continue.
-                        </p>
-                        <OperationalSelect
-                            trigger-class="max-lg:min-h-11"
-                            id="doctor-override-reason"
-                            v-model="form.doctor_override_reason"
-                            label="Why not Auto?"
-                            :invalid="!!form.errors.doctor_override_reason"
-                            :options="overrideReasonOptions"
-                        />
-                        <InputError
-                            :message="errorFor('doctor_override_reason')"
+                        <VisitReasonPicker
+                            v-model="form.visit_reason_public_ids"
+                            v-model:selected="selectedVisitReasons"
+                            :error="errorFor('visit_reason_public_ids')"
                         />
                     </div>
-                </div>
-                <div class="grid gap-1 md:col-span-2">
-                    <span class="text-sm font-medium"
-                        >4. Visit Reason
-                        <span
-                            v-if="form.visit_type === 'otc'"
-                            class="font-normal text-muted-foreground"
-                            >(optional)</span
-                        ></span
-                    >
-                    <VisitReasonPicker
-                        v-model="form.visit_reason_public_ids"
-                        v-model:selected="selectedVisitReasons"
-                        :error="errorFor('visit_reason_public_ids')"
-                    />
-                </div>
-                <fieldset class="grid gap-1">
-                    <legend class="mb-1 text-sm font-medium">
-                        5. Coverage
-                    </legend>
+                    <fieldset class="grid gap-1">
+                        <legend class="mb-1 text-sm font-medium">
+                            5. Coverage
+                        </legend>
+                        <div
+                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                        >
+                            <button
+                                type="button"
+                                :aria-pressed="
+                                    form.coverage_type === 'self_pay'
+                                "
+                                :class="
+                                    form.coverage_type === 'self_pay'
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                "
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                @click="form.coverage_type = 'self_pay'"
+                            >
+                                Self-pay
+                            </button>
+                            <button
+                                type="button"
+                                :aria-pressed="form.coverage_type === 'panel'"
+                                :class="
+                                    form.coverage_type === 'panel'
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                "
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                @click="form.coverage_type = 'panel'"
+                            >
+                                Panel
+                            </button>
+                        </div>
+                    </fieldset>
+                    <fieldset class="grid gap-1">
+                        <legend class="mb-1 text-sm font-medium">
+                            6. Urgency
+                        </legend>
+                        <div
+                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                        >
+                            <button
+                                type="button"
+                                :aria-pressed="form.priority === 'normal'"
+                                :class="
+                                    form.priority === 'normal'
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                "
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                @click="form.priority = 'normal'"
+                            >
+                                Normal
+                            </button>
+                            <button
+                                type="button"
+                                :aria-pressed="form.priority === 'urgent'"
+                                :class="
+                                    form.priority === 'urgent'
+                                        ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
+                                        : 'text-muted-foreground hover:text-warning-strong'
+                                "
+                                class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors max-lg:h-11"
+                                @click="form.priority = 'urgent'"
+                            >
+                                Urgent
+                            </button>
+                        </div>
+                    </fieldset>
                     <div
-                        class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                        v-if="form.coverage_type === 'panel'"
+                        class="grid gap-4 md:col-span-2 md:grid-cols-2 md:items-start"
                     >
-                        <button
-                            type="button"
-                            :aria-pressed="form.coverage_type === 'self_pay'"
-                            :class="
-                                form.coverage_type === 'self_pay'
-                                    ? 'bg-background text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            "
-                            class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
-                            @click="form.coverage_type = 'self_pay'"
+                        <label
+                            class="grid min-w-0 content-start gap-1"
+                            for="panel-id"
+                            ><span class="text-sm font-medium">Panel</span
+                            ><OperationalSelect
+                                id="panel-id"
+                                v-model="form.panel_id"
+                                label="Panel"
+                                :invalid="!!form.errors.panel_id"
+                                :options="panelOptions"
+                                trigger-class="h-10 max-lg:min-h-11" /><InputError
+                                :message="errorFor('panel_id')"
+                        /></label>
+                        <label
+                            class="grid min-w-0 content-start gap-1"
+                            for="coverage-member-reference"
+                            ><span class="text-sm font-medium"
+                                >Member/staff reference (optional)</span
+                            ><input
+                                id="coverage-member-reference"
+                                v-model="form.coverage_member_reference"
+                                :aria-invalid="
+                                    !!form.errors.coverage_member_reference
+                                "
+                                autocomplete="off"
+                                class="h-9 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11" /><InputError
+                                :message="
+                                    errorFor('coverage_member_reference')
+                                "
+                        /></label>
+                        <label
+                            class="grid gap-1 md:col-span-2"
+                            for="coverage-panel-note"
                         >
-                            Self-pay
-                        </button>
-                        <button
-                            type="button"
-                            :aria-pressed="form.coverage_type === 'panel'"
-                            :class="
-                                form.coverage_type === 'panel'
-                                    ? 'bg-background text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            "
-                            class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
-                            @click="form.coverage_type = 'panel'"
-                        >
-                            Panel
-                        </button>
+                            <span class="text-sm font-medium"
+                                >Panel note (optional)</span
+                            >
+                            <textarea
+                                id="coverage-panel-note"
+                                aria-label="Panel note (optional)"
+                                aria-describedby="coverage-panel-note-count"
+                                v-model="form.coverage_panel_note"
+                                rows="2"
+                                maxlength="500"
+                                class="w-full resize-y rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                data-testid="registration-panel-note"
+                            />
+                            <span
+                                id="coverage-panel-note-count"
+                                class="text-xs text-muted-foreground"
+                                >{{ form.coverage_panel_note.length }} /
+                                500</span
+                            >
+                            <InputError
+                                :message="
+                                    errorFor('coverage_panel_note') ||
+                                    errorFor('panel_note_idempotency_key')
+                                "
+                            />
+                        </label>
                     </div>
-                </fieldset>
-                <fieldset class="grid gap-1">
-                    <legend class="mb-1 text-sm font-medium">6. Urgency</legend>
-                    <div
-                        class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
-                    >
-                        <button
-                            type="button"
-                            :aria-pressed="form.priority === 'normal'"
-                            :class="
-                                form.priority === 'normal'
-                                    ? 'bg-background text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            "
-                            class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
-                            @click="form.priority = 'normal'"
-                        >
-                            Normal
-                        </button>
-                        <button
-                            type="button"
-                            :aria-pressed="form.priority === 'urgent'"
-                            :class="
-                                form.priority === 'urgent'
-                                    ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
-                                    : 'text-muted-foreground hover:text-warning-strong'
-                            "
-                            class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors max-lg:h-11"
-                            @click="form.priority = 'urgent'"
-                        >
-                            Urgent
-                        </button>
-                    </div>
-                </fieldset>
-                <div
-                    v-if="form.coverage_type === 'panel'"
-                    class="grid gap-4 md:col-span-2 md:grid-cols-2 md:items-start"
-                >
-                    <label
-                        class="grid min-w-0 content-start gap-1"
-                        for="panel-id"
-                        ><span class="text-sm font-medium">Panel</span
-                        ><OperationalSelect
-                            id="panel-id"
-                            v-model="form.panel_id"
-                            label="Panel"
-                            :invalid="!!form.errors.panel_id"
-                            :options="panelOptions"
-                            trigger-class="h-10 max-lg:min-h-11" /><InputError
-                            :message="errorFor('panel_id')"
-                    /></label>
-                    <label
-                        class="grid min-w-0 content-start gap-1"
-                        for="coverage-member-reference"
-                        ><span class="text-sm font-medium"
-                            >Member/staff reference (optional)</span
-                        ><input
-                            id="coverage-member-reference"
-                            v-model="form.coverage_member_reference"
-                            :aria-invalid="
-                                !!form.errors.coverage_member_reference
-                            "
-                            autocomplete="off"
-                            class="h-9 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11" /><InputError
-                            :message="errorFor('coverage_member_reference')"
-                    /></label>
-                    <label
-                        class="grid gap-1 md:col-span-2"
-                        for="coverage-panel-note"
-                    >
-                        <span class="text-sm font-medium"
-                            >Panel note (optional)</span
-                        >
-                        <textarea
-                            id="coverage-panel-note"
-                            aria-label="Panel note (optional)"
-                            aria-describedby="coverage-panel-note-count"
-                            v-model="form.coverage_panel_note"
-                            rows="2"
-                            maxlength="500"
-                            class="w-full resize-y rounded-[10px] border border-input bg-field-fill px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            data-testid="registration-panel-note"
-                        />
-                        <span
-                            id="coverage-panel-note-count"
-                            class="text-xs text-muted-foreground"
-                            >{{ form.coverage_panel_note.length }} / 500</span
-                        >
-                        <InputError
-                            :message="
-                                errorFor('coverage_panel_note') ||
-                                errorFor('panel_note_idempotency_key')
-                            "
-                        />
-                    </label>
                 </div>
-            </div>
+            </fieldset>
         </section>
+        <p
+            v-if="submissionNotice"
+            role="alert"
+            class="rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
+        >
+            {{ submissionNotice }}
+        </p>
         <RegistrationReviewSummary
             :patient-name="
                 selectedPatient?.fullName ||
@@ -1137,6 +1293,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             class="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
             ><input
                 v-model="form.confirm_repeat"
+                :disabled="draftLocked"
                 type="checkbox"
                 class="mt-1"
             /><span
@@ -1150,7 +1307,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             "
         />
         <div
-            class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-lg border bg-card p-3 shadow-pop max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
+            class="sticky z-10 flex items-center justify-between gap-4 rounded-lg border bg-card p-3 shadow-pop"
+            :class="
+                presentation === 'dialog'
+                    ? 'bottom-0'
+                    : 'bottom-3 max-lg:top-16 max-lg:bottom-auto max-lg:order-first'
+            "
         >
             <div class="hidden min-w-0 sm:block">
                 <p class="truncate text-sm font-medium">
@@ -1169,13 +1331,21 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 type="submit"
                 size="lg"
                 class="ml-auto min-w-40"
-                :disabled="form.processing"
+                :disabled="
+                    form.processing || (presentation === 'dialog' && blocked)
+                "
             >
                 <LoaderCircle
                     v-if="form.processing"
                     class="size-4 animate-spin"
                 />
-                {{ form.processing ? 'Registering…' : 'Register Visit' }}
+                {{
+                    form.processing
+                        ? 'Registering…'
+                        : submissionNotice
+                          ? 'Retry original registration'
+                          : 'Register Visit'
+                }}
             </Button>
         </div>
     </form>
