@@ -145,7 +145,12 @@ test('scanning is placed on the four Inventory screens and only finds', () => {
     assert.match(receiving, /line\.skuPublicId === sku\.public_id/);
     assert.match(receiving, />Scanned</);
     // A scan never moves the cursor into a receiving field, so the next scan's Enter cannot submit the receipt.
-    assert.doesNotMatch(receiving, /\.focus\(\)/);
+    const scanHandler = receiving.slice(
+        receiving.indexOf('async function highlight'),
+        receiving.indexOf('watch('),
+    );
+    assert.match(scanHandler, /scannedLine\.value = line\.publicId/);
+    assert.doesNotMatch(scanHandler, /\.focus\(|focusLot\(/);
 });
 
 test('the Pilot readiness page lists shared barcodes', () => {

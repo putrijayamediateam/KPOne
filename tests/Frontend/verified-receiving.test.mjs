@@ -9,7 +9,7 @@ test('verified receiving exposes bounded split lots and the required delivery an
 assert.ok(ui.includes(text),text);
 }
 
-    assert.match(ui,/props.branchId, props.row.lockVersion/);assert.match(ui,/form.reset\(\)/);assert.doesNotMatch(ui,/v-html|localStorage|sessionStorage/);
+    assert.match(ui,/\[\s*\(\) => props\.branchId,\s*\(\) => props\.row\.publicId,\s*\(\) => props\.row\.lockVersion,?\s*\]/);assert.match(ui,/form.reset\(\)/);assert.doesNotMatch(ui,/v-html|localStorage|sessionStorage/);
 });
 test('review controls are permission filtered, branch scoped and paged with visible limits',()=>{
     const ui=read('resources/js/components/inventory/ReceivingReviews.vue');

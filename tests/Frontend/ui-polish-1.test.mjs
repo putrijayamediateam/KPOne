@@ -303,7 +303,7 @@ test('D010 all hold, receiving and correction reason codes have readable labels 
         read('resources/js/components/inventory/VerifiedReceivingForm.vue'),
         read('resources/js/pages/Inventory/BatchHolds.vue'),
     ]) {
-        assert.match(source, /formatInventoryReason\(reason\)/);
+        assert.match(source, /formatInventoryReason\(\s*reason,?\s*\)/);
         assert.match(source, /:value="reason"/);
     }
 });
