@@ -442,3 +442,9 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Case disclosure presentation — 26 November 2026 (in review)
+
+Owner-authorized continuation of the Clean Look case page: compact persisted medicine summaries with explicit details, and mounted add-medicine/service search disclosures. Pending and allergy-unconfirmed medicine lines start open; dirty markers remain visible when closed. Scanning opens its batch details before scrolling while retaining scanner focus. Save errors and Save all validation reopen the affected line. Clinical payloads, sequential save callbacks, dirty-refresh protection, permissions and Verify-completes lifecycle are unchanged. The disclosure is an adaptation for real clinical fields absent from the reference demo, not a new dispensing state.
+
+Scope: Show.vue, one new runtime regression file and this entry. Existing 150 focused frontend assertions passed unchanged; new actual-SFC runtime checks cover draft retention, stale refresh, scan, save error/callback and allergy validation. Six new runtime checks, full frontend types/build and scoped lint/format pass. Actual synthetic browser proof covers24 light/dark captures at390/1440, dirty draft retention, scanner focus, real validation refusal and readonly doctor controls; no overflow or page errors. Independent Design source/visual review found no scoped blocker and independently reran all6 runtime checks. Final focused suite156/156 passes; no merge or production claim.
