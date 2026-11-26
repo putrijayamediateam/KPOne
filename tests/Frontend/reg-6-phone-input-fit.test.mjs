@@ -55,7 +55,7 @@ test('the Quick create identity row stacks below sm and joins from sm up', () =>
     );
     assert.match(
         quick,
-        /trigger-class="h-10 w-full sm:w-40 sm:rounded-r-none"/,
+        /trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"/,
     );
     assert.match(
         quick,

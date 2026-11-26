@@ -206,7 +206,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 id="coverage-member-reference"
                                 v-model="form.coverage_member_reference"
                                 autocomplete="off"
-                                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" /><InputError
+                                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:h-11" /><InputError
                                 :message="
                                     errorFor('coverage_member_reference')
                                 "

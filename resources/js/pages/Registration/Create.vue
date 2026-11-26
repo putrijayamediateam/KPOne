@@ -760,7 +760,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             v-model="quickIdentifierType"
                             label="Identification type"
                             :options="identityTypeOptions"
-                            trigger-class="h-10 w-full sm:w-40 sm:rounded-r-none"
+                            trigger-class="h-10 w-full max-lg:min-h-11 sm:w-40 sm:rounded-r-none"
                         /><input
                             v-model="quickIdentifierValue"
                             aria-label="IC or Passport number"
@@ -931,7 +931,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
                                 @click="form.visit_type = 'consultation'"
                             >
                                 Consultation
@@ -944,7 +944,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
                                 @click="form.visit_type = 'otc'"
                             >
                                 OTC
