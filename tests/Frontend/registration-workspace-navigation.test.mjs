@@ -34,6 +34,7 @@ const render = async (permissions, active, branch = true, qrAvailable, qrPending
             }
             : require(name),
     });
+
     return renderToString(createSSRApp({ render: () => h(module.exports.default, { active, ...(qrAvailable === undefined ? {} : { qrAvailable }), ...(qrPendingCount === undefined ? {} : { qrPendingCount }) }) }));
 };
 const all = ['visits.view.branch', 'patients.search.organisation', 'public_intakes.review.branch'];
@@ -56,6 +57,7 @@ test('QR requires both visit and review authority and available server projectio
     for (const permissions of [['visits.view.branch'], ['public_intakes.review.branch']]) {
         assert.doesNotMatch(await render(permissions, 'today'), /QR check-ins/);
     }
+
     assert.doesNotMatch(await render(all, 'today', true, false), /QR check-ins/);
 });
 test('no active branch removes branch links while organisation search stays accessible', async () => {
@@ -69,5 +71,6 @@ test('QR badge uses only supplied actual pending counts including zero', async (
     for (const count of [0, 7]) {
         assert.match(await render(all, 'today', true, true, count), new RegExp(`aria-label="${count} pending check-ins"`));
     }
+
     assert.doesNotMatch(await render(all, 'patients'), /pending check-ins/);
 });
