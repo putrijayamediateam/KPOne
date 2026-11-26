@@ -177,6 +177,56 @@ class RosterRoomLookupTest extends VisitTestCase
         return $found === null ? null : [$found['roomId'], $found['shiftStartedAt']->setTimezone($this->branch->timezone)->format('H:i')];
     }
 
+    public function test_batch_roster_lookup_has_constant_queries_for_one_and_twenty_six_doctors(): void
+    {
+        $doctors = [$this->doctor];
+        for ($i = 0; $i < 25; $i++) {
+            $doctors[] = $this->actor('resident_doctor');
+        }
+        $this->approvedWeek(function (RosterVersion $version) use ($doctors): void {
+            foreach ($doctors as $doctor) {
+                $this->addShift($version, $doctor, 0, '08:00', '12:00', $this->room('consultation'));
+            }
+        });
+        $lookup = app(RosterRoomLookup::class);
+        $at = $this->at('0 09:00');
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $one = $lookup->roomsFor([$this->doctor->id], $this->branch, $at);
+        $oneCount = count(DB::getQueryLog());
+        DB::flushQueryLog();
+        $all = $lookup->roomsFor(array_map(fn (User $doctor): int => $doctor->id, $doctors), $this->branch, $at);
+        $allCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        $this->assertCount(26, $all);
+        $this->assertSame($oneCount, $allCount);
+        $this->assertLessThanOrEqual(5, $allCount);
+        $this->assertEquals($one[$this->doctor->id], $all[$this->doctor->id]);
+        foreach ($doctors as $doctor) {
+            $this->assertEquals($lookup->roomFor($doctor->id, $this->branch, $at), $all[$doctor->id]);
+        }
+    }
+
+    public function test_batch_roster_lookup_preserves_overnight_and_leave_selection(): void
+    {
+        $this->approvedWeek(function (RosterVersion $version): void {
+            $this->addShift($version, $this->doctor, 0, '08:00', '12:00', $this->room('consultation'));
+            $this->addShift($version, $this->doctor, 0, '14:00', '18:00', $this->room('consultation'));
+            $this->addShift($version, $this->doctor, 1, '22:00', '06:00', $this->room('consultation'));
+        });
+        $lookup = app(RosterRoomLookup::class);
+        $check = function () use ($lookup): void {
+            foreach (['0 09:00', '0 13:00', '0 14:00', '2 01:00', '2 06:00'] as $time) {
+                $at = $this->at($time);
+                $this->assertEquals($lookup->roomFor($this->doctor->id, $this->branch, $at), $lookup->roomsFor([$this->doctor->id], $this->branch, $at)[$this->doctor->id] ?? null);
+            }
+        };
+        $check();
+        $this->leave($this->week->toDateString(), 'am', '00:00', $this->week->toDateString().' 12:00:00');
+        $this->leave($this->week->addDay()->toDateString(), 'full', '00:00', $this->week->addDays(2)->toDateString().' 00:00:00');
+        $check();
+    }
+
     /** "<day offset> <HH:MM>" in the branch time zone. */
     private function at(string $when): CarbonImmutable
     {
