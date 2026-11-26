@@ -147,10 +147,10 @@ class TreatmentStepProjection
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('treatment_room_record_voids')->whereColumn('target_record_id', 'treatment_room_records.id'))->get();
         $result = [];
         $visits = Visit::query()->where('organisation_id', $actor->organisation_id)->whereIn('id', $records->pluck('visit_id'))->with(['clinicalEncounter', 'queueEntry'])->get()->keyBy('id');
-        $policy = app(TreatmentRoomPolicy::class);
+        $visibleVisits = array_fill_keys(app(TreatmentRoomPolicy::class)->viewableCurrentVisitIds($actor, $visits), true);
         foreach ($records as $record) {
             $visit = $visits->get($record->visit_id);
-            if (! $visit || ! $policy->view($actor, $visit)) {
+            if (! $visit || ! isset($visibleVisits[$visit->id])) {
                 continue;
             }
             if ($record->treatment_step_id === null) {

@@ -29,6 +29,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -104,6 +105,22 @@ class QueueController extends Controller
             : __('Room cleared for today.')]);
 
         return to_route('queue.index');
+    }
+
+    public function workload(Request $request, QueueDirectoryService $directory): JsonResponse
+    {
+        $query = $request->input('query');
+        $queryText = is_string($query) ? trim($query) : '';
+        $data = $request->validate([
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'section' => ['required', 'in:held,treatment,checks,seeing,completed,summary'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'],
+            'query' => ['nullable', 'string', 'max:255', Rule::when($queryText !== '' && preg_match('/\\A\\d+\\z/', $queryText) !== 1, ['min:3'])],
+            'doctor_id' => ['nullable', 'integer'],
+            'priority' => ['nullable', 'in:normal,urgent'],
+        ]);
+
+        return response()->json($directory->workload($request->user(), (int) $data['expected_branch_id'], $data['section'], (int) ($data['page'] ?? 1), $data));
     }
 
     public function search(SearchQueueEntriesRequest $request, QueueDirectoryService $directory): JsonResponse
