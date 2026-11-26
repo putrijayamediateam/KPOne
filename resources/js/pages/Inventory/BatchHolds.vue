@@ -3,6 +3,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import StockBatchHoldList from '@/components/inventory/StockBatchHoldList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
@@ -36,6 +37,7 @@ const props = defineProps<{
         total: number;
     };
 }>();
+const holdsList = ref<{ restoreFocus: (event: Event) => void } | null>(null);
 const query = ref(props.holds.q);
 const open = ref(false);
 const selected = ref<Row | null>(null);
@@ -112,86 +114,126 @@ watch(
             title="Batch safety holds"
             :description="`${holds.branchName} · A hold applies to this batch at this branch only. Multi-branch recalls need one hold per branch.`"
         />
-        <p class="text-sm text-muted-foreground">
-            Held stock cannot be allocated or dispensed. Placing or releasing a
-            hold changes no quantity and creates no movement. A different
-            authorised person must release the hold. No disposal, patient
-            tracing or notifications.
-        </p>
-        <form class="flex flex-wrap gap-2" @submit.prevent="search()">
-            <label class="min-w-0 flex-1"
+        <form
+            class="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-card p-4"
+            @submit.prevent="search()"
+        >
+            <label class="min-w-[min(100%,16rem)] flex-1"
                 >Search SKU or batch<input
                     v-model="query"
                     maxlength="100"
                     class="mt-1 h-11 w-full rounded-md border bg-background px-3"
             /></label>
-            <button class="mt-7 min-h-11 rounded-md border px-4">Search</button>
+            <button class="min-h-11 rounded-md border px-4 lg:min-h-9">
+                Search
+            </button>
         </form>
         <p class="text-sm text-muted-foreground">
             {{ holds.total }} batches · 25 per page. Search includes batches
             beyond this page.
         </p>
-        <div class="grid gap-4 md:grid-cols-2">
-            <article
-                v-for="row in holds.rows"
-                :key="row.public_id"
-                class="min-w-0 space-y-3 rounded-lg border bg-card p-4"
+        <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_17rem]">
+            <div class="min-w-0 space-y-4">
+                <StockBatchHoldList
+                    ref="holdsList"
+                    :rows="holds.rows"
+                    :branch-id="holds.branchId"
+                    :active-batch-id="selected?.public_id ?? null"
+                    :busy="form.processing"
+                >
+                    <template #expiry="{ row }"
+                        ><span class="whitespace-nowrap">{{
+                            formatDate(row.expiry_date)
+                        }}</span></template
+                    >
+                    <template #status="{ row }">
+                        <div>
+                            <p class="text-xs text-muted-foreground">
+                                Batch status
+                            </p>
+                            <p class="mt-1 text-sm">{{ label(row.status) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted-foreground">
+                                Branch hold
+                            </p>
+                            <p
+                                v-if="row.reason"
+                                class="mt-1 text-sm font-medium text-warning-strong"
+                            >
+                                Held: {{ formatInventoryReason(row.reason) }}
+                            </p>
+                            <p v-else class="mt-1 text-sm">
+                                No active branch hold
+                            </p>
+                        </div>
+                    </template>
+                    <template #actions="{ row }">
+                        <button
+                            v-if="row.canPlace"
+                            class="min-h-11 rounded-md border px-4"
+                            @click="show(row, 'place')"
+                        >
+                            Place safety hold
+                        </button>
+                        <button
+                            v-if="row.canRelease"
+                            class="min-h-11 rounded-md border px-4"
+                            @click="show(row, 'release')"
+                        >
+                            Release hold
+                        </button>
+                        <p
+                            v-else-if="row.reason"
+                            class="text-sm text-muted-foreground"
+                        >
+                            A different authorised checker is required for
+                            release.
+                        </p>
+                    </template>
+                </StockBatchHoldList>
+                <nav
+                    aria-label="Batch hold pages"
+                    class="flex items-center gap-3"
+                >
+                    <button
+                        class="min-h-11 rounded-md border px-4"
+                        :disabled="holds.page <= 1"
+                        @click="search(holds.page - 1)"
+                    >
+                        Previous</button
+                    ><span>{{ holds.page }} / {{ holds.lastPage }}</span
+                    ><button
+                        class="min-h-11 rounded-md border px-4"
+                        :disabled="holds.page >= holds.lastPage"
+                        @click="search(holds.page + 1)"
+                    >
+                        Next
+                    </button>
+                </nav>
+            </div>
+            <aside
+                class="space-y-3 rounded-2xl border border-border bg-muted/30 p-4"
+                aria-label="About batch safety holds"
             >
-                <h2 class="font-semibold wrap-anywhere">
-                    {{ row.sku_code }} · {{ row.batch_number }}
-                </h2>
-                <p>
-                    Expiry:
-                    <span class="whitespace-nowrap">{{
-                        formatDate(row.expiry_date)
-                    }}</span>
-                    · Status:
-                    {{ label(row.status) }}
+                <h2 class="text-sm font-medium">About these holds</h2>
+                <p class="text-sm">Current branch: {{ holds.branchName }}</p>
+                <p class="text-sm text-muted-foreground">
+                    Held stock cannot be allocated or dispensed. Placing or
+                    releasing a hold changes no quantity and creates no
+                    movement. A different authorised person must release the
+                    hold. No disposal, patient tracing or notifications.
                 </p>
-                <p
-                    v-if="row.reason"
-                    class="font-semibold text-amber-800 dark:text-amber-300"
-                >
-                    Held: {{ formatInventoryReason(row.reason) }}
+                <p class="text-xs text-muted-foreground">
+                    Batch status and a hold at this branch are separate records.
+                    This list does not show quantities or change stock levels.
                 </p>
-                <p v-else>No active branch hold</p>
-                <button
-                    v-if="row.canPlace"
-                    class="min-h-11 rounded-md border px-4"
-                    @click="show(row, 'place')"
-                >
-                    Place safety hold
-                </button>
-                <button
-                    v-if="row.canRelease"
-                    class="min-h-11 rounded-md border px-4"
-                    @click="show(row, 'release')"
-                >
-                    Release hold
-                </button>
-                <p v-else-if="row.reason" class="text-sm text-muted-foreground">
-                    A different authorised checker is required for release.
-                </p>
-            </article>
+            </aside>
         </div>
-        <nav aria-label="Batch hold pages" class="flex items-center gap-3">
-            <button
-                class="min-h-11 rounded-md border px-4"
-                :disabled="holds.page <= 1"
-                @click="search(holds.page - 1)"
-            >
-                Previous</button
-            ><span>{{ holds.page }} / {{ holds.lastPage }}</span
-            ><button
-                class="min-h-11 rounded-md border px-4"
-                :disabled="holds.page >= holds.lastPage"
-                @click="search(holds.page + 1)"
-            >
-                Next
-            </button>
-        </nav>
         <Dialog v-model:open="open"
-            ><DialogContent class="max-h-[90dvh] overflow-y-auto"
+            ><DialogContent
+                class="max-h-[90dvh] overflow-y-auto"
+                @close-auto-focus="holdsList?.restoreFocus($event)"
                 ><DialogHeader
                     ><DialogTitle>{{
                         action === 'place'

@@ -519,3 +519,9 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
      period shown."; and the memo amounts (opening, closing, check) in their own "Memo (RM)" column or block rather
      than in the Note column.
    - Parked until there is real usage history: STK-32 (seasonal usage forecast).
+
+### Batch safety holds composition — 26 November 2026
+
+Scoped follow-on to Count case worklist: responsive real branch batch worklist, separate global Batch status and Branch hold, unchanged authorized Place/Release slots, server search/page projection and safety context. No invented location/quantity/held total. Existing mutation/reason/version/retry handlers are unchanged; dialog close returns to the original surviving action/row/list without crossing branch or stealing outside focus. Six new runtime cases cover row semantics and focus. D010 harness now renders the extracted real child; all existing assertions remain unchanged, independently reviewed under delegated technical authority.
+
+Validation: 2,245 frontend tests, types/lint/format/build, and 19 backend tests /203 assertions passed. Actual synthetic three-actor UI proved Place, independent Release, stale-version rejection with dialog retained, and successful focus return to row/action. Four viewport/theme captures have no overflow/errors and owned controls meet44px mobile/36px desktop. Stock movements and all balance quantities were identical before/after. Final independent source/visual review and scoped draft publication recorded in the review artifact; no production action or merge.
