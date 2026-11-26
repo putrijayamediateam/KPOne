@@ -100,6 +100,7 @@ final class StockValuationReportService
 
         return [
             'banner' => self::BANNER,
+            'handCostChanges' => HandCostRestatement::notices($organisationId, [$replay], $keys, $scope === 'all', [...array_values($period->pluck('id')->map(fn ($id): int => (int) $id)->all()), ...HandCostRestatement::creditMovementIds($organisationId, $keys, $start, $end)], $zone),
             'filters' => ['branch' => $scope === 'all' ? 'all' : (string) $scope, 'from' => $from, 'to' => $to, 'today' => $today, 'maxDays' => self::MAX_DAYS],
             'branches' => $branches->map(fn (Branch $b): array => ['id' => (string) $b->id, 'name' => $b->name])->values()->all(),
             'scopeLabel' => $scopeBranch === null ? 'All branches' : (string) $scopeBranch->name,

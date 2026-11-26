@@ -143,6 +143,7 @@ final class StockJournalSummaryService
             'scope' => $all ? 'all' : (string) (int) $scope, 'scopeLabel' => $all ? 'All branches' : (string) $branches->firstWhere('id', (int) $scope)?->name,
             'month' => (string) $data['month'], 'monthEnd' => $first->endOfMonth()->toDateString(), 'zone' => $zone,
             'lines' => $lines, 'creditDifference' => $credit,
+            'handCostChanges' => HandCostRestatement::notices($organisationId, [$opening, $closing], $keys, $all, [...array_values($period->pluck('id')->map(fn ($id): int => (int) $id)->all()), ...HandCostRestatement::creditMovementIds($organisationId, $keys, $start, $end)], $zone),
             'openingMilliSen' => $openingValue, 'closingMilliSen' => $closingValue, 'debitsMilliSen' => $debits, 'creditsMilliSen' => $credits,
             // Exactly zero by construction; the test proves it.
             'checkMilliSen' => $openingValue + $debits - $credits - $closingValue,
@@ -212,6 +213,9 @@ final class StockJournalSummaryService
             ['No real accounting system receives this file.'],
             ['Scope', $s['scopeLabel']], ['Month', $s['month'].($s['toDate'] ? ' (month to date, up to '.$s['upTo'].')' : ' (full month)')], ['Generated', CarbonImmutable::now($s['zone'])->format('j M Y, g:i A').' ('.$s['zone'].')'],
         ];
+        foreach ($s['handCostChanges'] as $change) {
+            $metadata[] = [$change['message']];
+        }
         $csv = ReportCsv::encode(['Line', 'Date', 'Description', 'Account', 'Debit (RM)', 'Credit (RM)', 'Note'], $rows, $metadata);
         abort_if($this->audit->record('inventory.valuation.journal_exported', null, ['scope' => $s['scope'] === 'all' ? 'all' : 'branch',
             'branch_id' => $s['scope'] === 'all' ? null : (int) $s['scope'], 'month' => $s['month'], 'rows' => count($rows)], $actor, $active) === null, 503, 'The download could not be recorded, so it was not sent.');

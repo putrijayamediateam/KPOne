@@ -48,6 +48,7 @@ type LossRow = {
 };
 type Report = {
     banner: string;
+    handCostChanges?: { id: number; message: string }[];
     filters: {
         branch: string;
         from: string;
@@ -396,6 +397,26 @@ const lossHelp: Record<string, string> = {
             />
             <span>{{ report.banner }}</span>
         </p>
+
+        <section
+            v-if="report.handCostChanges?.length"
+            aria-labelledby="hand-cost-changes-title"
+            class="rounded-lg border border-border bg-info-wash p-3 text-sm text-foreground"
+            data-testid="hand-cost-changes"
+        >
+            <h2 id="hand-cost-changes-title" class="font-medium">
+                Historical figures updated
+            </h2>
+            <ul class="mt-2 grid gap-2">
+                <li
+                    v-for="change in report.handCostChanges"
+                    :key="change.id"
+                    class="break-words"
+                >
+                    {{ change.message }}
+                </li>
+            </ul>
+        </section>
 
         <p
             v-if="refused.length"
