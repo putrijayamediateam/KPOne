@@ -290,6 +290,16 @@ const isDirty = (item: Item): boolean => {
         ).some((key) => form[key] !== saved[key])
     );
 };
+// Presentation state only: collapsing details never resets a clinical draft.
+const lineDetailsOpen = reactive<Record<string, boolean>>({});
+const detailsOpen = (item: Item): boolean =>
+    lineDetailsOpen[item.publicId] ??
+    (item.status === 'pending' ||
+        isDirty(item) ||
+        item.allergyUnconfirmed === true);
+const addMedicineOpen = ref(false);
+const addServiceOpen = ref(false);
+
 // Adopt the server's version of a line when it changes, but never overwrite what the CA is typing.
 watch(
     () =>
@@ -603,6 +613,7 @@ const boxHint = (target: string): BoxBatchHint =>
 const matchesBox = (target: string, index: number): boolean =>
     batchHint.value === target && boxHint(target).matches.includes(index);
 const pointAtBatch = async (publicId: string) => {
+    lineDetailsOpen[publicId] = true;
     batchHint.value = publicId;
     await nextTick();
     const select = document.querySelector<HTMLSelectElement>(
@@ -785,6 +796,8 @@ const linePayload = (form: LineForm) => ({
     precaution: form.precaution || null,
 });
 const saveItem = (item: Item, done?: () => void) => {
+    // Keep the editor mounted and open through a pending line becoming saved.
+    lineDetailsOpen[item.publicId] = true;
     const form = forms[item.publicId];
     busy.value = true;
     actionError.value = null;
@@ -809,7 +822,10 @@ const saveItem = (item: Item, done?: () => void) => {
         },
         {
             preserveScroll: true,
-            onError: showActionError,
+            onError: (errors) => {
+                lineDetailsOpen[item.publicId] = true;
+                showActionError(errors);
+            },
             onSuccess: () => {
                 allergyChecks[checkKey(item)] = false;
                 clearBatchHint(item.publicId);
@@ -823,6 +839,7 @@ const saveAll = () => {
     const unticked = unsaved.value.find((item) => needsAllergyCheck(item));
 
     if (unticked) {
+        lineDetailsOpen[unticked.publicId] = true;
         actionError.value = `${unticked.name} may match a recorded allergy. Tick "I have checked with the patient/doctor" on that line first.`;
 
         return;
@@ -834,6 +851,7 @@ const saveAll = () => {
     );
 
     if (badPacks) {
+        lineDetailsOpen[badPacks.publicId] = true;
         const packs = packChoiceLabel(
             badPacks.packConversion?.packUnit ?? 'pack',
         ).toLowerCase();
@@ -1718,7 +1736,12 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="grid gap-4 p-4 xl:grid-cols-[minmax(180px,1fr)_minmax(0,3fr)]"
                         :data-testid="`line-${item.publicId}`"
                     >
-                        <div>
+                        <div
+                            :class="{
+                                'xl:col-span-full':
+                                    dispensary.can.update && !detailsOpen(item),
+                            }"
+                        >
                             <h2 class="text-sm font-medium">{{ item.name }}</h2>
                             <p class="text-xs text-muted-foreground">
                                 {{
@@ -1826,9 +1849,103 @@ const exceptionStatusLabels: Record<string, string> = {
                                     >
                                 </a>
                             </Button>
+                            <div
+                                v-if="dispensary.can.update"
+                                class="mt-3 space-y-2"
+                            >
+                                <p
+                                    class="text-[13px]"
+                                    :data-testid="`line-summary-${item.publicId}`"
+                                >
+                                    <span class="font-medium"
+                                        >{{
+                                            item.status === 'pending'
+                                                ? 'Ordered'
+                                                : 'Saved'
+                                        }}:</span
+                                    >
+                                    {{
+                                        item.packText ||
+                                        `${item.quantityDispensed ?? item.quantityOrdered} ${item.unit}`
+                                    }}
+                                    ·
+                                    {{
+                                        [
+                                            item.dosage,
+                                            item.frequency,
+                                            item.duration,
+                                            item.route,
+                                            item.instruction,
+                                            item.precaution,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')
+                                    }}
+                                </p>
+                                <p
+                                    v-if="item.allocations?.length"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Saved batch:
+                                    {{
+                                        item.allocations
+                                            .map((allocation) =>
+                                                [
+                                                    allocation.batchNumber ??
+                                                        'Not recorded',
+                                                    allocation.expiryDate
+                                                        ? `exp ${allocation.expiryDate}`
+                                                        : null,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' · '),
+                                            )
+                                            .join('; ')
+                                    }}
+                                </p>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span
+                                        v-if="
+                                            item.status === 'pending' ||
+                                            isDirty(item)
+                                        "
+                                        class="rounded-md bg-warning-wash px-2 py-1 text-xs font-medium text-warning-strong"
+                                        :data-testid="`line-dirty-${item.publicId}`"
+                                        >Not saved</span
+                                    >
+                                    <span
+                                        v-if="item.allergyUnconfirmed"
+                                        class="text-xs font-medium text-warning-strong"
+                                        >Allergy confirmation required</span
+                                    >
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="min-h-11 lg:min-h-9"
+                                        :disabled="busy"
+                                        :aria-expanded="detailsOpen(item)"
+                                        :aria-controls="`line-details-${item.publicId}`"
+                                        :data-testid="`line-toggle-${item.publicId}`"
+                                        @click="
+                                            lineDetailsOpen[item.publicId] =
+                                                !detailsOpen(item)
+                                        "
+                                        >{{
+                                            detailsOpen(item)
+                                                ? 'Close details'
+                                                : 'Edit details'
+                                        }}<span class="sr-only">
+                                            for {{ item.name }}</span
+                                        ></Button
+                                    >
+                                </div>
+                            </div>
                         </div>
                         <div
                             v-if="dispensary.can.update && forms[item.publicId]"
+                            v-show="detailsOpen(item)"
+                            :id="`line-details-${item.publicId}`"
                             class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
                         >
                             <p class="text-muted-foreground sm:col-span-full">
@@ -2174,335 +2291,362 @@ const exceptionStatusLabels: Record<string, string> = {
                     class="rounded-xl border bg-card p-4 text-sm shadow-card"
                     data-testid="add-medicine"
                 >
-                    <h2 class="mb-3 text-[15px] font-medium">Add a medicine</h2>
-                    <div class="flex flex-wrap gap-2">
-                        <input
-                            v-model="searchTerm"
-                            class="h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-sm"
-                            placeholder="Search medicine name or code"
-                            aria-label="Search medicine"
-                            data-field="medicine-search"
-                            @keydown.enter.prevent="searchMedicines"
-                        />
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h2 class="text-[15px] font-medium">Add a medicine</h2>
                         <Button
+                            type="button"
                             size="sm"
                             variant="outline"
-                            :disabled="searching || busy"
-                            class="flex-1 sm:flex-none"
-                            @click="searchMedicines"
-                            ><Plus class="size-4" />Search</Button
-                        >
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            class="flex-1 sm:flex-none"
-                            :disabled="busy"
-                            :aria-expanded="scanAddOpen"
-                            :aria-controls="
-                                scanAddOpen ? 'scan-add-panel' : undefined
-                            "
-                            data-action="scan-to-add"
-                            @click="openScanAdd"
-                            ><ScanLine class="size-4" />Scan to add</Button
+                            class="min-h-11 lg:min-h-9"
+                            :disabled="busy || searching || scanAddOpen"
+                            :aria-expanded="addMedicineOpen"
+                            aria-controls="add-medicine-details"
+                            data-testid="add-medicine-toggle"
+                            @click="addMedicineOpen = !addMedicineOpen"
+                            >{{
+                                addMedicineOpen
+                                    ? 'Close search'
+                                    : 'Find medicine'
+                            }}</Button
                         >
                     </div>
-                    <div
-                        v-if="scanAddOpen"
-                        id="scan-add-panel"
-                        class="mt-2 grid gap-1"
-                        @keydown.esc="closeScanAdd"
-                    >
-                        <ScanInput
-                            context="dispensary-add"
-                            refocus-key="dispensary-add"
-                            :describe="() => ''"
-                            data-testid="dispensary-scan-add"
-                            @found="scanToAdd"
-                        />
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            class="justify-self-start"
-                            data-action="close-scan-add"
-                            @click="closeScanAdd"
-                            >Close scan</Button
-                        >
-                    </div>
-                    <p
-                        v-if="scanAddAllergy"
-                        role="alert"
-                        class="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium text-destructive"
-                        data-testid="scan-add-allergy"
-                    >
-                        <TriangleAlert
-                            class="mt-0.5 size-4 shrink-0"
-                            aria-hidden="true"
-                        /><span>{{ scanAddMessage }}</span>
-                    </p>
-                    <p
-                        v-else-if="scanAddMessage"
-                        role="status"
-                        aria-live="polite"
-                        class="mt-2 text-xs text-muted-foreground"
-                        data-testid="scan-add-status"
-                    >
-                        {{ scanAddMessage }}
-                    </p>
-                    <ul
-                        v-if="!chosen && results.length"
-                        class="mt-2 divide-y rounded-md border"
-                    >
-                        <li
-                            v-for="medicine in results"
-                            :key="medicine.publicId"
-                            class="flex items-center justify-between gap-2 px-2 py-1.5"
-                        >
-                            <span
-                                >{{ medicine.name }}
-                                <span class="text-xs text-muted-foreground">{{
-                                    [medicine.strength, medicine.code]
-                                        .filter(Boolean)
-                                        .join(' · ')
-                                }}</span>
-                                <span
-                                    v-if="matchesFor(medicine).length"
-                                    class="ml-1 inline-block rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
-                                    data-testid="allergy-match-badge"
-                                    >Possible allergy match</span
-                                ></span
+                    <div id="add-medicine-details" v-show="addMedicineOpen">
+                        <div class="flex flex-wrap gap-2">
+                            <input
+                                v-model="searchTerm"
+                                class="h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-sm"
+                                placeholder="Search medicine name or code"
+                                aria-label="Search medicine"
+                                data-field="medicine-search"
+                                @keydown.enter.prevent="searchMedicines"
+                            />
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                :disabled="searching || busy"
+                                class="flex-1 sm:flex-none"
+                                @click="searchMedicines"
+                                ><Plus class="size-4" />Search</Button
                             >
                             <Button
                                 size="sm"
                                 variant="outline"
-                                :disabled="!medicine.availability.length"
-                                data-action="choose-medicine"
-                                @click="pickMedicine(medicine)"
-                                >{{
-                                    medicine.availability.length
-                                        ? 'Choose'
-                                        : 'No stock'
-                                }}</Button
-                            >
-                        </li>
-                    </ul>
-                    <p
-                        v-else-if="
-                            !chosen &&
-                            !scanAddMessage &&
-                            searchTerm.trim().length >= 2 &&
-                            !searching &&
-                            !results.length
-                        "
-                        class="mt-2 text-xs text-muted-foreground"
-                    >
-                        No matching medicine with a stock mapping.
-                    </p>
-                    <div
-                        v-if="chosen"
-                        class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
-                    >
-                        <p class="text-sm font-medium sm:col-span-full">
-                            {{ chosen.name }}
-                        </p>
-                        <PackQuantityField
-                            v-model:quantity="addForm.quantity"
-                            v-model:packs="addForm.packs"
-                            v-model:mode="addForm.packMode"
-                            :unit="chosen.unit"
-                            :conversion="chosen.packConversion"
-                            :input-class="inputClass"
-                            data-field="add-quantity"
-                        />
-                        <label
-                            >Dosage (label max
-                            {{ dispensary.labelLimits?.dosage }}
-                            characters)<input
-                                v-model="addForm.dosage"
-                                :class="inputClass"
-                                maxlength="500"
-                                data-field="add-dosage"
-                        /></label>
-                        <label
-                            >Frequency (label max
-                            {{ dispensary.labelLimits?.frequency }}
-                            characters)<input
-                                v-model="addForm.frequency"
-                                :class="inputClass"
-                                maxlength="500"
-                                data-field="add-frequency"
-                        /></label>
-                        <label
-                            >Duration (label max
-                            {{ dispensary.labelLimits?.duration }}
-                            characters)<input
-                                v-model="addForm.duration"
-                                :class="inputClass"
-                                maxlength="500"
-                        /></label>
-                        <label
-                            >Route (not printed on the label)<input
-                                v-model="addForm.route"
-                                :class="inputClass"
-                                maxlength="500"
-                        /></label>
-                        <label class="sm:col-span-2"
-                            >Instruction (label max
-                            {{ dispensary.labelLimits?.instruction }}
-                            characters)<input
-                                v-model="addForm.instruction"
-                                :class="inputClass"
-                                maxlength="2000"
-                        /></label>
-                        <label class="sm:col-span-2"
-                            >Precaution (label max
-                            {{ dispensary.labelLimits?.precaution }}
-                            characters)<input
-                                v-model="addForm.precaution"
-                                :class="inputClass"
-                                maxlength="2000"
-                        /></label>
-                        <label class="sm:col-span-2"
-                            >Batch<select
-                                v-model.number="addForm.availabilityIndex"
-                                :class="[
-                                    inputClass,
-                                    batchHint === 'add' && batchHintClass,
-                                ]"
-                                aria-describedby="batch-selected-add"
-                                data-batch-select="add"
-                                @change="clearBatchHint('add')"
-                            >
-                                <option
-                                    v-for="(
-                                        stock, index
-                                    ) in chosen.availability"
-                                    :key="stock.batchPublicId"
-                                    :value="index"
-                                    :disabled="stock.held"
-                                >
-                                    {{
-                                        matchesBox('add', index)
-                                            ? 'Matches the box · '
-                                            : ''
-                                    }}{{
-                                        batchOptionText(
-                                            stock,
-                                            chosen.sku?.unit ?? chosen.unit,
-                                            usablePackConversion(
-                                                chosen.packConversion,
-                                                chosen.sku?.unit ?? chosen.unit,
-                                            ),
-                                        )
-                                    }}
-                                </option>
-                            </select></label
-                        >
-                        <p
-                            id="batch-selected-add"
-                            class="text-xs text-muted-foreground sm:col-span-full"
-                            data-testid="batch-selected"
-                        >
-                            <span
-                                role="status"
-                                class="block font-medium text-primary empty:hidden"
-                                ><span
-                                    v-if="batchHint === 'add'"
-                                    class="inline-flex items-start gap-1"
-                                    :class="
-                                        boxHint('add').warn &&
-                                        'text-warning-strong'
-                                    "
-                                    data-testid="batch-pick-hint"
-                                    ><ScanLine
-                                        class="mt-px size-3.5 shrink-0"
-                                        aria-hidden="true"
-                                    />{{ boxHint('add').message }}</span
-                                ></span
-                            >
-                            {{
-                                selectedBatchText(
-                                    chosen.availability[
-                                        addForm.availabilityIndex
-                                    ],
-                                    chosen.sku?.unit ?? chosen.unit,
-                                    usablePackConversion(
-                                        chosen.packConversion,
-                                        chosen.sku?.unit ?? chosen.unit,
-                                    ),
-                                )
-                            }}
-                        </p>
-                        <label class="grid gap-2 sm:col-span-full"
-                            >FEFO exception reason (later batch only)<select
-                                v-model="addForm.fefoReason"
-                                :class="inputClass"
-                            >
-                                <option value="">No exception</option>
-                                <option value="earlier_batch_damaged">
-                                    Earlier batch damaged
-                                </option>
-                                <option value="earlier_batch_insufficient">
-                                    Earlier batch insufficient
-                                </option>
-                                <option value="earlier_batch_held">
-                                    Earlier batch held
-                                </option>
-                                <option value="other_approved">
-                                    Other approved
-                                </option>
-                            </select></label
-                        >
-                        <p
-                            class="text-xs text-muted-foreground sm:col-span-full"
-                        >
-                            Up to 100 batches shown. Held batches cannot be
-                            selected. A later batch needs a controlled reason
-                            when an eligible earlier-expiry batch exists.
-                        </p>
-                        <p
-                            class="text-xs text-muted-foreground sm:col-span-full"
-                        >
-                            Label limits: dosage
-                            {{ dispensary.labelLimits?.dosage }}, frequency
-                            {{ dispensary.labelLimits?.frequency }}, duration
-                            {{ dispensary.labelLimits?.duration }}, instruction
-                            {{ dispensary.labelLimits?.instruction }},
-                            precaution {{ dispensary.labelLimits?.precaution }},
-                            quantity
-                            {{ dispensary.labelLimits?.quantity }} characters.
-                            Dosage, frequency and instruction share 3 printed
-                            rows. Route is not printed. Printing does not
-                            truncate saved text.
-                        </p>
-                        <AllergyMatchWarning
-                            v-if="matchesFor(chosen).length"
-                            v-model="addAllergyCheck"
-                            :matches="matchesFor(chosen)"
-                            field-id="allergy-check-add"
-                            class="sm:col-span-full"
-                        />
-                        <div class="flex gap-2 sm:col-span-full">
-                            <Button
-                                size="sm"
-                                :disabled="
-                                    busy ||
-                                    (matchesFor(chosen).length > 0 &&
-                                        !addAllergyCheck) ||
-                                    !addForm.dosage.trim() ||
-                                    !addForm.frequency.trim() ||
-                                    packsInvalid(addForm)
-                                "
-                                data-action="add-medicine"
-                                @click="addMedicine"
-                                >Add to list</Button
-                            >
-                            <Button
-                                size="sm"
-                                variant="outline"
+                                class="flex-1 sm:flex-none"
                                 :disabled="busy"
-                                @click="chosen = null"
-                                >Cancel</Button
+                                :aria-expanded="scanAddOpen"
+                                :aria-controls="
+                                    scanAddOpen ? 'scan-add-panel' : undefined
+                                "
+                                data-action="scan-to-add"
+                                @click="openScanAdd"
+                                ><ScanLine class="size-4" />Scan to add</Button
                             >
+                        </div>
+                        <div
+                            v-if="scanAddOpen"
+                            id="scan-add-panel"
+                            class="mt-2 grid gap-1"
+                            @keydown.esc="closeScanAdd"
+                        >
+                            <ScanInput
+                                context="dispensary-add"
+                                refocus-key="dispensary-add"
+                                :describe="() => ''"
+                                data-testid="dispensary-scan-add"
+                                @found="scanToAdd"
+                            />
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                class="justify-self-start"
+                                data-action="close-scan-add"
+                                @click="closeScanAdd"
+                                >Close scan</Button
+                            >
+                        </div>
+                        <p
+                            v-if="scanAddAllergy"
+                            role="alert"
+                            class="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium text-destructive"
+                            data-testid="scan-add-allergy"
+                        >
+                            <TriangleAlert
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            /><span>{{ scanAddMessage }}</span>
+                        </p>
+                        <p
+                            v-else-if="scanAddMessage"
+                            role="status"
+                            aria-live="polite"
+                            class="mt-2 text-xs text-muted-foreground"
+                            data-testid="scan-add-status"
+                        >
+                            {{ scanAddMessage }}
+                        </p>
+                        <ul
+                            v-if="!chosen && results.length"
+                            class="mt-2 divide-y rounded-md border"
+                        >
+                            <li
+                                v-for="medicine in results"
+                                :key="medicine.publicId"
+                                class="flex items-center justify-between gap-2 px-2 py-1.5"
+                            >
+                                <span
+                                    >{{ medicine.name }}
+                                    <span
+                                        class="text-xs text-muted-foreground"
+                                        >{{
+                                            [medicine.strength, medicine.code]
+                                                .filter(Boolean)
+                                                .join(' · ')
+                                        }}</span
+                                    >
+                                    <span
+                                        v-if="matchesFor(medicine).length"
+                                        class="ml-1 inline-block rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
+                                        data-testid="allergy-match-badge"
+                                        >Possible allergy match</span
+                                    ></span
+                                >
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="!medicine.availability.length"
+                                    data-action="choose-medicine"
+                                    @click="pickMedicine(medicine)"
+                                    >{{
+                                        medicine.availability.length
+                                            ? 'Choose'
+                                            : 'No stock'
+                                    }}</Button
+                                >
+                            </li>
+                        </ul>
+                        <p
+                            v-else-if="
+                                !chosen &&
+                                !scanAddMessage &&
+                                searchTerm.trim().length >= 2 &&
+                                !searching &&
+                                !results.length
+                            "
+                            class="mt-2 text-xs text-muted-foreground"
+                        >
+                            No matching medicine with a stock mapping.
+                        </p>
+                        <div
+                            v-if="chosen"
+                            class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                        >
+                            <p class="text-sm font-medium sm:col-span-full">
+                                {{ chosen.name }}
+                            </p>
+                            <PackQuantityField
+                                v-model:quantity="addForm.quantity"
+                                v-model:packs="addForm.packs"
+                                v-model:mode="addForm.packMode"
+                                :unit="chosen.unit"
+                                :conversion="chosen.packConversion"
+                                :input-class="inputClass"
+                                data-field="add-quantity"
+                            />
+                            <label
+                                >Dosage (label max
+                                {{ dispensary.labelLimits?.dosage }}
+                                characters)<input
+                                    v-model="addForm.dosage"
+                                    :class="inputClass"
+                                    maxlength="500"
+                                    data-field="add-dosage"
+                            /></label>
+                            <label
+                                >Frequency (label max
+                                {{ dispensary.labelLimits?.frequency }}
+                                characters)<input
+                                    v-model="addForm.frequency"
+                                    :class="inputClass"
+                                    maxlength="500"
+                                    data-field="add-frequency"
+                            /></label>
+                            <label
+                                >Duration (label max
+                                {{ dispensary.labelLimits?.duration }}
+                                characters)<input
+                                    v-model="addForm.duration"
+                                    :class="inputClass"
+                                    maxlength="500"
+                            /></label>
+                            <label
+                                >Route (not printed on the label)<input
+                                    v-model="addForm.route"
+                                    :class="inputClass"
+                                    maxlength="500"
+                            /></label>
+                            <label class="sm:col-span-2"
+                                >Instruction (label max
+                                {{ dispensary.labelLimits?.instruction }}
+                                characters)<input
+                                    v-model="addForm.instruction"
+                                    :class="inputClass"
+                                    maxlength="2000"
+                            /></label>
+                            <label class="sm:col-span-2"
+                                >Precaution (label max
+                                {{ dispensary.labelLimits?.precaution }}
+                                characters)<input
+                                    v-model="addForm.precaution"
+                                    :class="inputClass"
+                                    maxlength="2000"
+                            /></label>
+                            <label class="sm:col-span-2"
+                                >Batch<select
+                                    v-model.number="addForm.availabilityIndex"
+                                    :class="[
+                                        inputClass,
+                                        batchHint === 'add' && batchHintClass,
+                                    ]"
+                                    aria-describedby="batch-selected-add"
+                                    data-batch-select="add"
+                                    @change="clearBatchHint('add')"
+                                >
+                                    <option
+                                        v-for="(
+                                            stock, index
+                                        ) in chosen.availability"
+                                        :key="stock.batchPublicId"
+                                        :value="index"
+                                        :disabled="stock.held"
+                                    >
+                                        {{
+                                            matchesBox('add', index)
+                                                ? 'Matches the box · '
+                                                : ''
+                                        }}{{
+                                            batchOptionText(
+                                                stock,
+                                                chosen.sku?.unit ?? chosen.unit,
+                                                usablePackConversion(
+                                                    chosen.packConversion,
+                                                    chosen.sku?.unit ??
+                                                        chosen.unit,
+                                                ),
+                                            )
+                                        }}
+                                    </option>
+                                </select></label
+                            >
+                            <p
+                                id="batch-selected-add"
+                                class="text-xs text-muted-foreground sm:col-span-full"
+                                data-testid="batch-selected"
+                            >
+                                <span
+                                    role="status"
+                                    class="block font-medium text-primary empty:hidden"
+                                    ><span
+                                        v-if="batchHint === 'add'"
+                                        class="inline-flex items-start gap-1"
+                                        :class="
+                                            boxHint('add').warn &&
+                                            'text-warning-strong'
+                                        "
+                                        data-testid="batch-pick-hint"
+                                        ><ScanLine
+                                            class="mt-px size-3.5 shrink-0"
+                                            aria-hidden="true"
+                                        />{{ boxHint('add').message }}</span
+                                    ></span
+                                >
+                                {{
+                                    selectedBatchText(
+                                        chosen.availability[
+                                            addForm.availabilityIndex
+                                        ],
+                                        chosen.sku?.unit ?? chosen.unit,
+                                        usablePackConversion(
+                                            chosen.packConversion,
+                                            chosen.sku?.unit ?? chosen.unit,
+                                        ),
+                                    )
+                                }}
+                            </p>
+                            <label class="grid gap-2 sm:col-span-full"
+                                >FEFO exception reason (later batch only)<select
+                                    v-model="addForm.fefoReason"
+                                    :class="inputClass"
+                                >
+                                    <option value="">No exception</option>
+                                    <option value="earlier_batch_damaged">
+                                        Earlier batch damaged
+                                    </option>
+                                    <option value="earlier_batch_insufficient">
+                                        Earlier batch insufficient
+                                    </option>
+                                    <option value="earlier_batch_held">
+                                        Earlier batch held
+                                    </option>
+                                    <option value="other_approved">
+                                        Other approved
+                                    </option>
+                                </select></label
+                            >
+                            <p
+                                class="text-xs text-muted-foreground sm:col-span-full"
+                            >
+                                Up to 100 batches shown. Held batches cannot be
+                                selected. A later batch needs a controlled
+                                reason when an eligible earlier-expiry batch
+                                exists.
+                            </p>
+                            <p
+                                class="text-xs text-muted-foreground sm:col-span-full"
+                            >
+                                Label limits: dosage
+                                {{ dispensary.labelLimits?.dosage }}, frequency
+                                {{ dispensary.labelLimits?.frequency }},
+                                duration {{ dispensary.labelLimits?.duration }},
+                                instruction
+                                {{ dispensary.labelLimits?.instruction }},
+                                precaution
+                                {{ dispensary.labelLimits?.precaution }},
+                                quantity
+                                {{ dispensary.labelLimits?.quantity }}
+                                characters. Dosage, frequency and instruction
+                                share 3 printed rows. Route is not printed.
+                                Printing does not truncate saved text.
+                            </p>
+                            <AllergyMatchWarning
+                                v-if="matchesFor(chosen).length"
+                                v-model="addAllergyCheck"
+                                :matches="matchesFor(chosen)"
+                                field-id="allergy-check-add"
+                                class="sm:col-span-full"
+                            />
+                            <div class="flex gap-2 sm:col-span-full">
+                                <Button
+                                    size="sm"
+                                    :disabled="
+                                        busy ||
+                                        (matchesFor(chosen).length > 0 &&
+                                            !addAllergyCheck) ||
+                                        !addForm.dosage.trim() ||
+                                        !addForm.frequency.trim() ||
+                                        packsInvalid(addForm)
+                                    "
+                                    data-action="add-medicine"
+                                    @click="addMedicine"
+                                    >Add to list</Button
+                                >
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="busy"
+                                    @click="chosen = null"
+                                    >Cancel</Button
+                                >
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -2668,86 +2812,108 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="border-t p-3 text-sm"
                         data-testid="add-service"
                     >
-                        <h3 class="mb-3 text-[15px] font-medium">
-                            Add a service
-                        </h3>
-                        <div class="flex gap-2">
-                            <input
-                                v-model="serviceTerm"
-                                class="h-9 w-full max-w-sm rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                placeholder="Search service name or code"
-                                aria-label="Search service"
-                                data-field="service-search"
-                                @keydown.enter.prevent="searchServices"
-                            />
+                        <div
+                            class="mb-3 flex items-center justify-between gap-3"
+                        >
+                            <h3 class="text-[15px] font-medium">
+                                Add a service
+                            </h3>
                             <Button
+                                type="button"
                                 size="sm"
                                 variant="outline"
-                                :disabled="serviceSearching || busy"
-                                @click="searchServices"
-                                ><Plus class="size-4" />Search</Button
+                                class="min-h-11 lg:min-h-9"
+                                :disabled="busy || serviceSearching"
+                                :aria-expanded="addServiceOpen"
+                                aria-controls="add-service-details"
+                                data-testid="add-service-toggle"
+                                @click="addServiceOpen = !addServiceOpen"
+                                >{{
+                                    addServiceOpen
+                                        ? 'Close search'
+                                        : 'Find service'
+                                }}</Button
                             >
                         </div>
-                        <ul
-                            v-if="!chosenService && serviceResults.length"
-                            class="mt-2 divide-y rounded-md border"
-                        >
-                            <li
-                                v-for="service in serviceResults"
-                                :key="service.publicId"
-                                class="flex items-center justify-between gap-2 px-2 py-1.5"
+                        <div id="add-service-details" v-show="addServiceOpen">
+                            <div class="flex gap-2">
+                                <input
+                                    v-model="serviceTerm"
+                                    class="h-9 w-full max-w-sm rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    placeholder="Search service name or code"
+                                    aria-label="Search service"
+                                    data-field="service-search"
+                                    @keydown.enter.prevent="searchServices"
+                                />
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="serviceSearching || busy"
+                                    @click="searchServices"
+                                    ><Plus class="size-4" />Search</Button
+                                >
+                            </div>
+                            <ul
+                                v-if="!chosenService && serviceResults.length"
+                                class="mt-2 divide-y rounded-md border"
                             >
-                                <span
-                                    >{{ service.name }}
+                                <li
+                                    v-for="service in serviceResults"
+                                    :key="service.publicId"
+                                    class="flex items-center justify-between gap-2 px-2 py-1.5"
+                                >
                                     <span
-                                        class="text-xs text-muted-foreground"
-                                        >{{ service.code }}</span
-                                    ></span
-                                >
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    data-action="choose-service"
-                                    @click="chosenService = service"
-                                    >Choose</Button
-                                >
-                            </li>
-                        </ul>
-                        <div
-                            v-if="chosenService"
-                            class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
-                        >
-                            <p class="text-sm font-medium sm:col-span-full">
-                                {{ chosenService.name }}
-                            </p>
-                            <label
-                                >Performed ({{ chosenService.unit }})<input
-                                    v-model="serviceAdd.quantity"
-                                    :class="inputClass"
-                                    inputmode="decimal"
-                                    data-field="add-service-quantity"
-                            /></label>
-                            <label class="sm:col-span-2 lg:col-span-3"
-                                >Instruction<input
-                                    v-model="serviceAdd.instruction"
-                                    :class="inputClass"
-                                    maxlength="2000"
-                            /></label>
-                            <div class="flex gap-2 sm:col-span-full">
-                                <Button
-                                    size="sm"
-                                    :disabled="busy"
-                                    data-action="add-service"
-                                    @click="addService"
-                                    >Add to list</Button
-                                >
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    :disabled="busy"
-                                    @click="chosenService = null"
-                                    >Cancel</Button
-                                >
+                                        >{{ service.name }}
+                                        <span
+                                            class="text-xs text-muted-foreground"
+                                            >{{ service.code }}</span
+                                        ></span
+                                    >
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        data-action="choose-service"
+                                        @click="chosenService = service"
+                                        >Choose</Button
+                                    >
+                                </li>
+                            </ul>
+                            <div
+                                v-if="chosenService"
+                                class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                            >
+                                <p class="text-sm font-medium sm:col-span-full">
+                                    {{ chosenService.name }}
+                                </p>
+                                <label
+                                    >Performed ({{ chosenService.unit }})<input
+                                        v-model="serviceAdd.quantity"
+                                        :class="inputClass"
+                                        inputmode="decimal"
+                                        data-field="add-service-quantity"
+                                /></label>
+                                <label class="sm:col-span-2 lg:col-span-3"
+                                    >Instruction<input
+                                        v-model="serviceAdd.instruction"
+                                        :class="inputClass"
+                                        maxlength="2000"
+                                /></label>
+                                <div class="flex gap-2 sm:col-span-full">
+                                    <Button
+                                        size="sm"
+                                        :disabled="busy"
+                                        data-action="add-service"
+                                        @click="addService"
+                                        >Add to list</Button
+                                    >
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        :disabled="busy"
+                                        @click="chosenService = null"
+                                        >Cancel</Button
+                                    >
+                                </div>
                             </div>
                         </div>
                     </div>
