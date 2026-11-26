@@ -136,6 +136,35 @@ const printLabels = async () => {
     >
         <header class="print-toolbar">
             <h1>Medicine label preview</h1>
+            <p
+                v-if="!changed && !retired"
+                class="label-context"
+                data-testid="label-screen-context"
+            >
+                {{ labels.patient.name }} · {{ labels.branch }}
+            </p>
+            <dl
+                v-if="!changed && !retired"
+                class="label-status"
+                aria-label="Label status"
+            >
+                <div>
+                    <dt>Prepared labels</dt>
+                    <dd>{{ labels.items.length }}</dd>
+                </div>
+                <div>
+                    <dt>Blocked lines</dt>
+                    <dd>{{ labels.blocked.length }}</dd>
+                </div>
+                <div>
+                    <dt>Excluded lines</dt>
+                    <dd>{{ labels.excludedCount }}</dd>
+                </div>
+                <div v-if="canPrint">
+                    <dt>Previously printed labels</dt>
+                    <dd>{{ reprintCount }}</dd>
+                </div>
+            </dl>
             <p v-if="!canPrint" data-testid="label-view-only">
                 View only. Printing is done by the CA.
             </p>
@@ -415,6 +444,84 @@ const printLabels = async () => {
     }
     .medicine-label:last-child {
         break-after: auto;
+    }
+}
+
+/* Screen toolbar composition only; the approved label and print rules above remain unchanged. */
+@media screen {
+    .label-preview {
+        background: var(--background);
+        color: var(--foreground);
+    }
+    .print-toolbar {
+        max-width: 920px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--card);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+    }
+    .print-toolbar h1 {
+        font-size: 24px;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+    }
+    .print-toolbar p {
+        line-height: 1.5;
+    }
+    .print-toolbar .label-context {
+        color: var(--muted-foreground);
+        overflow-wrap: anywhere;
+    }
+    .label-status {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 8px;
+        margin-block: 16px;
+    }
+    .label-status > div {
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--background);
+    }
+    .label-status dt {
+        color: var(--muted-foreground);
+        font-size: 13px;
+    }
+    .label-status dd {
+        margin-top: 4px;
+        font-size: 22px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    .print-toolbar[role='alert'],
+    .print-toolbar p[role='alert'] {
+        color: var(--destructive);
+    }
+    .print-toolbar[role='alert'] {
+        border-color: color-mix(in srgb, var(--destructive) 25%, transparent);
+        background: color-mix(in srgb, var(--destructive) 5%, var(--card));
+    }
+    .print-toolbar ul {
+        padding-left: 1.25rem;
+        list-style: disc;
+    }
+    .print-toolbar li + li {
+        margin-top: 6px;
+    }
+    .print-toolbar a {
+        color: var(--link);
+        text-underline-offset: 3px;
+    }
+}
+@media screen and (min-width: 1024px) {
+    .print-toolbar :deep(button),
+    .print-toolbar :deep(a) {
+        display: inline-flex;
+        min-height: 36px;
+        align-items: center;
     }
 }
 </style>

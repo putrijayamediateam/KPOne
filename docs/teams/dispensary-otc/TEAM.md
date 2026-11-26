@@ -442,3 +442,7 @@ order, each its own PR:
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
+
+### Label preview screen composition — 26 November 2026 (in review)
+
+Owner-authorized existing-data Clean Look continuation. Screen-only toolbar adds guarded patient/branch context and separate prepared, blocked, excluded and previously printed label counts. New identity/counts disappear when the existing branch/stale guard retires the preview; the additional print-history count keeps the existing canPrint condition. Original script, @page generation, printed medicine section and original physical CSS remain byte-identical; only screen toolbar markup and appended screen-only styles change. No selection, partial-print, audit, authority or physical label policy changes. Runtime/source/print-media/browser evidence and independent review are recorded in the scoped packet before publication.
