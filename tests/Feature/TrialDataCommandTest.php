@@ -413,6 +413,9 @@ class TrialDataCommandTest extends TestCase
 
     public function test_phase_five_fills_kpone_hr_once_with_fictional_payroll_tables(): void
     {
+        // This success case needs an earlier session today; the command deliberately refuses before 00:03.
+        $at = CarbonImmutable::now($this->cheras->timezone)->startOfDay()->addHours(12);
+        $this->travelTo($at->isFuture() ? $at->subDay() : $at);
         Storage::fake('local');
         $this->runPhaseOne()->assertExitCode(Command::SUCCESS);
 
