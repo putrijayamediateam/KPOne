@@ -518,3 +518,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 11. **BIL-10 Refunds after completion and partial refunds.** *(Built 2026-11-06/07; owner "start with 1", "ship it for
    BIL-10 for farah", relayed.)* A refund of part or all of a posted receipt after the visit is completed, with an
    invoice credit of the same amount, approved by a second person. Design note `BIL-10-DESIGN.md`.
+
+## BIL-38 continuation (26 Nov 2026, Codex)
+
+Owner clarified Director price publication with staff-account administration unchanged. The three original existing-test changes and the additional IMP-1 fixture change were approved individually in this chat. See [BIL-38-DESIGN.md](BIL-38-DESIGN.md). Local implementation adds the existing publish permission to Director and an additive migration; no other role or authority definition changes. Focused PostgreSQL 18.1 validation: 39 tests, 1,087 assertions, all passed, including StaffAuthorityBoundaryTest. Full gate and independent review remain release requirements; no commit, push or PR yet. Sunday's importer remains a named Administrator.
