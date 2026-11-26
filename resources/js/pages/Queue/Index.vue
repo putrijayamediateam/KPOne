@@ -583,6 +583,12 @@ const recall = (row: PatientBoardRow) => {
 };
 // Calls a serving patient to a treatment room on the TV; the consultation stays with the doctor.
 const detailsVisit = ref<string | null>(null);
+// Reuse the already-authorised board label; the details endpoint still returns no patient name.
+const detailsPatientLabel = computed(
+    () =>
+        boardRows.value.find((row) => row.visitNumber === detailsVisit.value)
+            ?.patientName,
+);
 const treatmentRow = ref<PatientBoardRow | null>(null);
 const treatmentRoomId = ref<string | number>('');
 const treatmentError = ref('');
@@ -1032,6 +1038,7 @@ onBeforeUnmount(() => {
         </div>
         <QueueRowDetailsDialog
             :visit-number="detailsVisit"
+            :patient-label="detailsPatientLabel"
             @close="detailsVisit = null"
         />
     </main>

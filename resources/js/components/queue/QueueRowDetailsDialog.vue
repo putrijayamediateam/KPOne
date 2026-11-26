@@ -10,6 +10,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { StatusBadge } from '@/components/ui/status';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 
 // Q-16c (owner decisions 25 Nov 2026): the details of one board row, as a right-hand side panel from 1280 px and a full-screen sheet below. Read only. It is offered only where the board already shows
@@ -33,41 +34,51 @@ type Details = {
     } | null;
 };
 
-const props = defineProps<{ visitNumber: string | null }>();
+const props = defineProps<{
+    visitNumber: string | null;
+    patientLabel?: string;
+}>();
 const emit = defineEmits<{ close: [] }>();
 const details = ref<Details | null>(null);
 let lastVisit: string | null = null;
 const loading = ref(false);
 const error = ref('');
+let requestSequence = 0;
 
 watch(
     () => props.visitNumber,
     async (visitNumber) => {
+        const sequence = ++requestSequence;
         details.value = null;
         error.value = '';
+        loading.value = visitNumber !== null;
         lastVisit = visitNumber ?? lastVisit;
 
         if (!visitNumber) {
             return;
         }
 
-        loading.value = true;
-
         try {
             const body = await requestJson<{ details: Details }>(
                 `/visits/${encodeURIComponent(visitNumber)}/queue/details`,
             );
 
-            if (props.visitNumber === visitNumber) {
+            if (sequence === requestSequence) {
                 details.value = body.details;
             }
         } catch (e) {
+            if (sequence !== requestSequence) {
+                return;
+            }
+
             error.value =
                 e instanceof JsonRequestError && e.status === 403
                     ? 'You may not open the details of this patient.'
                     : 'The details could not be loaded. Try again.';
         } finally {
-            loading.value = false;
+            if (sequence === requestSequence) {
+                loading.value = false;
+            }
         }
     },
     { immediate: true },
@@ -103,7 +114,7 @@ const reading = (d: Details, key: string) => d.triage?.readings[key] ?? '–';
             class="w-full gap-3 p-4 sm:max-w-none xl:w-[28rem] xl:max-w-[28rem]"
         >
             <SheetHeader>
-                <SheetTitle>Patient details</SheetTitle>
+                <SheetTitle>{{ patientLabel || 'Patient details' }}</SheetTitle>
                 <SheetDescription>
                     Read only. Opening this is recorded.
                 </SheetDescription>
@@ -137,13 +148,22 @@ const reading = (d: Details, key: string) => d.triage?.readings[key] ?? '–';
                 </dd>
                 <dt class="text-muted-foreground">Allergies</dt>
                 <dd data-testid="details-allergies">
-                    {{ allergyText(details) }}
+                    <StatusBadge
+                        v-if="
+                            details.allergies.length === 0 &&
+                            details.allergyStatus !== 'no_known_allergies'
+                        "
+                        status="unknown"
+                        tone="warning"
+                        :label="allergyText(details)"
+                    />
+                    <template v-else>{{ allergyText(details) }}</template>
                 </dd>
                 <dt class="text-muted-foreground">Last BP</dt>
                 <dd>
                     {{
                         details.lastBp
-                            ? `${details.lastBp.systolic}/${details.lastBp.diastolic} on ${details.lastBp.on}`
+                            ? `${details.lastBp.systolic}/${details.lastBp.diastolic} mmHg on ${details.lastBp.on}`
                             : 'None recorded'
                     }}
                 </dd>
@@ -169,9 +189,9 @@ const reading = (d: Details, key: string) => d.triage?.readings[key] ?? '–';
                     BP {{ reading(details, 'systolic_bp') }}/{{
                         reading(details, 'diastolic_bp')
                     }}
-                    · pulse {{ reading(details, 'pulse_bpm') }} · temp
-                    {{ reading(details, 'temperature_celsius') }} · SpO₂
-                    {{ reading(details, 'spo2_percent') }}
+                    mmHg · pulse {{ reading(details, 'pulse_bpm') }} bpm · temp
+                    {{ reading(details, 'temperature_celsius') }} °C · SpO₂
+                    {{ reading(details, 'spo2_percent') }}%
                     <span class="block text-xs text-muted-foreground">
                         Recorded {{ details.triage.recordedAt }}
                     </span>

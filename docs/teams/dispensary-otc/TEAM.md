@@ -109,7 +109,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
 | DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
 | DSP-26 | The Resident Doctor sees the Dispensary pages at their active branch, view only: the Registration board's Dispensary tab and "Open Dispensary" row action, a case in any status, the Completed page with its returns read only, and the label preview of a completed or waiting case (no print token, no row locks, no print row). A muted "View only. You cannot change this case." banner; every action removed, not disabled; "View in Dispensary" on the doctor's check panel with "Back to consultation" for the attending doctor. A separate read gate (`DispensaryDirectoryService::canView`), so every write path and the print log keep their checks. New permission `dispensary.view_readonly.branch` (Resident Doctor), migration `2026_11_06_200900` | #1086 (merged `477a252`) |
-| REL-DSP | The drug label size 100 × 62 mm is confirmed and the pharmacist review recorded as "owner-confirmed, verbal, 25 Nov 2026" (no names). "(provisional). Confirm printer and sticker stock." comes off the label preview line; the pilot pack, the Malay CA and CA Supervisor guides and the layout comment drop "provisional" and the pharmacist checks. No behaviour change. Note: [REL-DSP.md](REL-DSP.md) | (PR to come) |
+| REL-DSP | The drug label size 100 × 62 mm is confirmed and the pharmacist review recorded as "owner-confirmed, verbal, 25 Nov 2026" (no names). "(provisional). Confirm printer and sticker stock." comes off the label preview line; the pilot pack, the Malay CA and CA Supervisor guides and the layout comment drop "provisional" and the pharmacist checks. No behaviour change. Note: [REL-DSP.md](REL-DSP.md) | #1102 (merged `f0d55e9`) |
+| DSP-27 | The branch's Dispensary list at `/dispensary` (Clean Look gap list B1 and B2): three status tabs with counts (To prepare: pending and dispensing; Waiting for doctor's check; Done today since branch-local midnight), search by name, KP or visit number, 25 a page, oldest first (Done today newest first), "Open case" per row and "Reprint labels" (or the doctor's "View labels") on Done today; refreshes every 15 s while visible. Read only, the case page's read gate (`DispensaryDirectoryService::canView`), no migration or permission | (PR to come) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -288,6 +289,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     100 × 62 mm and the pharmacist review (verbal), then "Lulus semua" on the REL-DSP note: the note is approved, the
     review means the label is accepted as it is, and it also covers the drug group and controlled medicine lists line
     in the CA Supervisor guide. Recorded as "owner-confirmed, verbal, 25 Nov 2026", with no names.
+43. Clean Look Dispensary list (2026-11-25, owner via B.E.R.N.I.S.S): build gap list B1 and B2 for Monday's Puchong test,
+    then B3, B5, B6, B7, B9 and B4 (the button opens the case page), then B8 and B10. C1 to C4: keep main's flow (the
+    doctor's Verify completes the case), no "Ready to hand over" tab, the doctor's check stays on the consultation page,
+    no approvals-inbox change, no follow-up link.
 
 ## 7. Open items and known limits
 
