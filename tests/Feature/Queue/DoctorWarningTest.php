@@ -3,7 +3,10 @@
 namespace Tests\Feature\Queue;
 
 use App\Domain\HR\Roster\Models\RosterVersion;
+use App\Domain\Queue\Display\DoctorRoomService;
+use App\Domain\Queue\Display\QueueDisplayAdministrationService;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Assignment\DoctorWarningProjection;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -201,5 +204,52 @@ class DoctorWarningTest extends QueueTestCase
 
         $this->assertGreaterThan(0, $few);
         $this->assertSame($few, $many, 'nine waiting rows read the roster and rooms exactly as often as three');
+    }
+
+    public function test_a_free_alternative_without_a_room_cannot_trigger_the_warning(): void
+    {
+        $a = $this->doctor();
+        $b = $this->doctor();
+        $room = app(QueueDisplayAdministrationService::class)->createRoom($this->director, $this->branch, ['kind' => 'consultation', 'name' => 'Synthetic Warning First Room', 'sort_order' => 1]);
+        $this->publish([$a, $b], [$a->id => $room->id]);
+        $this->serve($a);
+        $waiting = $this->waiting($a);
+        $this->assertNull($this->registrationWarnings()[$waiting->visit_number]);
+        $this->selectBranch($b);
+        app(DoctorRoomService::class)->select($b, $room->id, $this->branch->id);
+        $this->assertSame('another_free', $this->registrationWarnings()[$waiting->visit_number]['code']);
+    }
+
+    public function test_populated_warning_queries_do_not_grow_from_one_to_twenty_six_distinct_doctors(): void
+    {
+        $doctors = [];
+        $room = app(QueueDisplayAdministrationService::class)->createRoom($this->director, $this->branch, ['kind' => 'consultation', 'name' => 'Synthetic Shared Warning Room', 'sort_order' => 1]);
+        for ($i = 0; $i < 26; $i++) {
+            $doctor = $this->doctor();
+            $doctors[] = $doctor;
+        }
+        $this->publish($doctors);
+        foreach ($doctors as $doctor) {
+            $this->selectBranch($doctor);
+            app(DoctorRoomService::class)->select($doctor, $room->id, $this->branch->id);
+        }
+        $this->serve($doctors[0]);
+        $projection = app(DoctorWarningProjection::class);
+        $projection->forDoctors($this->ca, $this->branch, [$doctors[0]->id]);
+        $before = DB::table('audit_logs')->count();
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $one = $projection->forDoctors($this->ca, $this->branch, [$doctors[0]->id]);
+        $oneQueries = count(DB::getQueryLog());
+        DB::flushQueryLog();
+        $all = $projection->forDoctors($this->ca, $this->branch, array_map(fn (User $doctor): int => $doctor->id, $doctors));
+        $allQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        $this->assertCount(26, $all);
+        $this->assertSame('another_free', $one[$doctors[0]->id]['code']);
+        $this->assertSame($one[$doctors[0]->id], $all[$doctors[0]->id]);
+        $this->assertSame($oneQueries, $allQueries);
+        $this->assertLessThanOrEqual(40, $allQueries);
+        $this->assertSame($before, DB::table('audit_logs')->count());
     }
 }
