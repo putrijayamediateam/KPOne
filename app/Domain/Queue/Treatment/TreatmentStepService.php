@@ -6,6 +6,8 @@ use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Audit\Models\SystemEvent;
 use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomVocabulary;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -174,11 +176,7 @@ class TreatmentStepService
                 if ($open->contains('state', TreatmentStep::STATE_STARTED)) {
                     $this->refuse('This patient already has an open treatment step. Mark it done or cancel it first.');
                 }
-                $now = now()->utc();
-                $step = new TreatmentStep;
-                $step->forceFill(['organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'queue_entry_id' => $entry->id, 'step_code' => $data['step_code'], 'state' => TreatmentStep::STATE_STARTED, 'started_by_user_id' => $actor->id, 'started_at' => $now, 'lock_version' => 1])->save();
-                $this->event($step, 'started', $actor->id, null, null);
-                $this->audit($step, 'started', $actor);
+                $step = $this->createStepLocked($actor, $entry, $data['step_code']);
             } else {
                 $step = $open->firstWhere('id', (int) $data['treatment_step_id']);
                 if (! $step || $step->lock_version !== (int) $data['lock_version']) {
@@ -200,6 +198,81 @@ class TreatmentStepService
 
             return $result;
         }, 3);
+    }
+
+    public static function label(string $code): string
+    {
+        return self::STEPS[$code] ?? TreatmentRoomVocabulary::SAMPLES[$code] ?? $code;
+    }
+
+    /** Internal adapter: TreatmentRoomService already holds users, authority, visit, queue and encounter locks.
+     * No earlier locks are acquired here. Ordinary Q2 start validation/menu remains the eight STEPS.
+     *
+     * @param  array<string,mixed>  $payload
+     * @return array{id:int,state:string,lockVersion:int}
+     */
+    public function startTreatmentRoomLocked(User $actor, QueueEntry $entry, string $code, string $key, array $payload): array
+    {
+        $this->assertTreatmentRoomLocked($actor, $entry, false);
+        if (! array_key_exists($code, TreatmentRoomVocabulary::PROCEDURES)) {
+            $this->refuse('Choose an approved procedure or sample.');
+        }
+        if ($retry = $this->retry($actor, $key, ['operation' => 'treatment_room_start', ...$payload])) {
+            if (! is_int($retry['id'] ?? null) || ! is_string($retry['state'] ?? null) || ! is_int($retry['lockVersion'] ?? null)) {
+                abort(503, 'The retry record is invalid.');
+            }
+
+            return ['id' => $retry['id'], 'state' => $retry['state'], 'lockVersion' => $retry['lockVersion']];
+        }
+        $this->assertTreatmentRoomLocked($actor, $entry);
+        if ($entry->visit->lock_version !== (int) ($payload['visit_lock_version'] ?? 0)
+            || $entry->lock_version !== (int) ($payload['queue_lock_version'] ?? 0)) {
+            $this->refuse('The visit or queue changed. Reload before starting treatment.');
+        }
+        if (TreatmentStep::query()->where('queue_entry_id', $entry->id)->where('state', TreatmentStep::STATE_STARTED)->lockForUpdate()->exists()) {
+            $this->refuse('This patient already has an open treatment step. Mark it done or cancel it first.');
+        }
+        $step = $this->createStepLocked($actor, $entry, $code);
+        $result = ['id' => $step->id, 'state' => $step->state, 'lockVersion' => $step->lock_version];
+        $this->remember($actor, $key, ['operation' => 'treatment_room_start', ...$payload], $result);
+
+        return $result;
+    }
+
+    /** Internal adapter, same lock precondition as startTreatmentRoomLocked. */
+    public function finishTreatmentRoomLocked(User $actor, QueueEntry $entry, TreatmentStep $step): TreatmentStep
+    {
+        $this->assertTreatmentRoomLocked($actor, $entry);
+        if ($step->queue_entry_id !== $entry->id) {
+            $this->refuse('Treatment step does not belong to this queue entry.');
+        }
+        if ($step->state === TreatmentStep::STATE_STARTED) {
+            $doctorId = $entry->visit->assigned_doctor_user_id;
+            $this->transition($step, 'done', $actor, null, $doctorId !== $actor->id ? $doctorId : null);
+        } elseif (! in_array($step->state, [TreatmentStep::STATE_DONE, 'acknowledged'], true)) {
+            $this->refuse('The treatment step changed. Reload and review it.');
+        }
+
+        return $step->refresh();
+    }
+
+    private function assertTreatmentRoomLocked(User $actor, QueueEntry $entry, bool $requireServing = true): void
+    {
+        if (DB::transactionLevel() < 1 || ! $actor->is_active || ! $actor->can(TreatmentRoomPermissions::RECORD_BRANCH)
+            || $actor->organisation_id !== $entry->organisation_id
+            || ($requireServing && ($entry->status !== QueueEntry::STATUS_SERVING || $entry->visit->status !== Visit::STATUS_REGISTERED || $entry->visit->visit_type !== 'consultation'))) {
+            throw new AuthorizationException('Treatment-room progress requires locked, authorized Serving context.');
+        }
+    }
+
+    private function createStepLocked(User $actor, QueueEntry $entry, string $code): TreatmentStep
+    {
+        $step = new TreatmentStep;
+        $step->forceFill(['organisation_id' => $actor->organisation_id, 'branch_id' => $entry->branch_id, 'queue_entry_id' => $entry->id, 'step_code' => $code, 'state' => TreatmentStep::STATE_STARTED, 'started_by_user_id' => $actor->id, 'started_at' => now()->utc(), 'lock_version' => 1])->save();
+        $this->event($step, 'started', $actor->id, null, null);
+        $this->audit($step, 'started', $actor);
+
+        return $step;
     }
 
     private function transition(TreatmentStep $step, string $state, User $actor, ?string $reason, ?int $doctorId = null): void

@@ -3,8 +3,13 @@
 namespace App\Domain\Queue\Treatment;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\TreatmentRoom\Models\TreatmentRoomRecord;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPermissions;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomPolicy;
+use App\Domain\Clinical\TreatmentRoom\TreatmentRoomVocabulary;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -34,6 +39,7 @@ class TreatmentStepProjection
             ->whereIn('queue_entry_id', array_keys($serving))->whereNull('closed_at')->orderBy('id')->get()->groupBy('queue_entry_id');
         $branchWide = $actor->is_active && $actor->can(TreatmentStepPermissions::SET_BRANCH);
         $own = $actor->is_active && $actor->can(TreatmentStepPermissions::SET_OWN);
+        $outcomes = $this->outcomes($actor, array_values($steps->flatten()->map(fn (TreatmentStep $step): int => $step->id)->all()));
         $result = [];
         foreach ($serving as $id => $doctorId) {
             $open = $steps->get($id, collect());
@@ -45,7 +51,7 @@ class TreatmentStepProjection
             $result[$id] = [
                 'id' => $step?->id,
                 'code' => $step?->step_code,
-                'label' => $step ? TreatmentStepService::STEPS[$step->step_code] : null,
+                'label' => $step ? TreatmentStepService::label($step->step_code) : null,
                 'state' => $step?->state,
                 'startedAt' => $step?->started_at->toIso8601String(),
                 'doneAt' => $step?->done_at?->toIso8601String(),
@@ -53,10 +59,14 @@ class TreatmentStepProjection
                 // UI hint only; the service re-authorises under lock.
                 'canManage' => $branchWide || ($own && $doctorId === $actor->id),
             ];
+            if ($step && isset($outcomes[$step->id])) {
+                $result[$id]['outcome'] = $outcomes[$step->id];
+            }
             if ($waiting->isNotEmpty()) {
                 // Q-2c: other finished steps still waiting for the doctor, oldest first. Only sent when there are any.
                 $result[$id]['waiting'] = $waiting->map(fn (TreatmentStep $s): array => [
-                    'label' => TreatmentStepService::STEPS[$s->step_code],
+                    ...(isset($outcomes[$s->id]) ? ['outcome' => $outcomes[$s->id]] : []),
+                    'label' => TreatmentStepService::label($s->step_code),
                     'doneAt' => $s->done_at?->toIso8601String(),
                 ])->all();
             }
@@ -68,7 +78,7 @@ class TreatmentStepProjection
     /** Doctor-only "done" signal for the attending doctor: a cursor, whether a new done event arrived, and the
      * count of their patients whose treatment is done and not yet resumed. Queue numbers only with details.
      *
-     * @return array{cursor:int,ready:bool,doneCount:int,numbers?:list<string>}
+     * @return array{cursor:int,ready:bool,doneCount:int,numbers?:list<string>,outcomes?:list<array<string,string|null>>}
      */
     public function updates(User $actor, int $expectedBranchId, ?int $cursor, bool $details): array
     {
@@ -98,8 +108,59 @@ class TreatmentStepProjection
         // Q-2c: one patient can have several finished steps waiting; the count is of patients.
         $result = ['cursor' => $ceiling, 'ready' => $ready, 'doneCount' => $openDone()->distinct()->count('s.queue_entry_id')];
         if ($details) {
-            $result['numbers'] = $ready ? array_values($visible->orderBy('e.id')->limit(25)->get(['q.queue_number', 's.step_code'])
-                ->map(fn ($row): string => QueueNumberFormat::format((int) $row->queue_number).' '.TreatmentStepService::STEPS[$row->step_code])->unique()->all()) : [];
+            $visibleRows = $ready ? $visible->orderBy('e.id')->limit(25)->get(['q.queue_number', 's.step_code', 's.id']) : collect();
+            $result['numbers'] = array_values($visibleRows->map(fn ($row): string => QueueNumberFormat::format((int) $row->queue_number).' '.TreatmentStepService::label($row->step_code))->unique()->all());
+            $outcomes = $this->outcomes($actor, array_values($visibleRows->map(fn ($row): int => $row->id)->all()));
+            if ($outcomes !== []) {
+                $result['outcomes'] = array_values($visibleRows->filter(fn ($row): bool => isset($outcomes[$row->id]))
+                    ->map(fn ($row): array => ['number' => QueueNumberFormat::format((int) $row->queue_number), ...$outcomes[$row->id]])->values()->all());
+            }
+        }
+
+        return $result;
+    }
+
+    /** Current immutable outcomes for an already scoped step set; no records enter public feeds.
+     * @param  list<int>  $stepIds
+     * @return array<int,array{procedureLabel:string,outcomeLabel:string,reasonLabel:?string}>
+     */
+    private function outcomes(User $actor, array $stepIds): array
+    {
+        if ($stepIds === [] || ! $actor->is_active) {
+            return [];
+        }
+        $branches = app(BranchAccessService::class);
+        $branch = $branches->activeBranch($actor);
+        if (! $branch || ! $branches->canSelect($actor, $branch)) {
+            return [];
+        }
+        $branchView = $actor->can(TreatmentRoomPermissions::VIEW_BRANCH);
+        if (! $branchView && ! $actor->can('encounters.view.own')) {
+            return [];
+        }
+        $records = TreatmentRoomRecord::query()->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $branch->id)->whereIn('treatment_step_id', $stepIds)
+            ->when(! $branchView, fn ($q) => $q->whereExists(fn ($care) => $care->selectRaw('1')->from('clinical_encounters')
+                ->whereColumn('clinical_encounters.visit_id', 'treatment_room_records.visit_id')
+                ->where('attending_clinician_user_id', $actor->id)))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('treatment_room_records as successor')->whereColumn('successor.supersedes_record_id', 'treatment_room_records.id'))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('treatment_room_record_voids')->whereColumn('target_record_id', 'treatment_room_records.id'))->get();
+        $result = [];
+        $visits = Visit::query()->where('organisation_id', $actor->organisation_id)->whereIn('id', $records->pluck('visit_id'))->with(['clinicalEncounter', 'queueEntry'])->get()->keyBy('id');
+        $policy = app(TreatmentRoomPolicy::class);
+        foreach ($records as $record) {
+            $visit = $visits->get($record->visit_id);
+            if (! $visit || ! $policy->view($actor, $visit)) {
+                continue;
+            }
+            if ($record->treatment_step_id === null) {
+                continue;
+            }
+            $result[$record->treatment_step_id] = [
+                'procedureLabel' => TreatmentRoomVocabulary::PROCEDURES[$record->procedure_code],
+                'outcomeLabel' => $record->outcome_code === 'done' ? 'Done' : 'Not successful',
+                'reasonLabel' => $record->reason_code ? TreatmentRoomVocabulary::REASONS[$record->reason_code] : null,
+            ];
         }
 
         return $result;
