@@ -97,6 +97,7 @@ const props = defineProps<{
         }>;
         branches: Array<{ id: number; name: string }>;
         canViewStockValue?: boolean;
+        canFillCosts?: boolean;
         canViewMedicineSales?: boolean;
     };
     // STK-45: Report a difference and "My reports", for P10 holders only.
@@ -164,6 +165,7 @@ const reportsCount = computed(
     () =>
         3 +
         (props.referenceData.canViewStockValue ? 1 : 0) +
+        (props.referenceData.canFillCosts ? 1 : 0) +
         (props.referenceData.canViewMedicineSales ? 1 : 0),
 );
 const filterError = computed(() => inventoryFilterError(props.errors ?? {}));
@@ -416,6 +418,13 @@ const clearFilters = () => {
                             >Pilot readiness</ActionLink
                         >
                         <ActionLink
+                            href="/inventory/hand-costs"
+                            variant="outline"
+                            v-if="referenceData.canFillCosts"
+                            class="min-h-11"
+                            >Costs to fill in</ActionLink
+                        >
+                        <ActionLink
                             href="/inventory/stock-value"
                             variant="outline"
                             v-if="referenceData.canViewStockValue"
@@ -568,6 +577,13 @@ const clearFilters = () => {
                             variant="outline"
                             class="min-h-11"
                             >Pilot readiness</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/hand-costs"
+                            variant="outline"
+                            v-if="referenceData.canFillCosts"
+                            class="min-h-11"
+                            >Costs to fill in</ActionLink
                         >
                         <ActionLink
                             href="/inventory/stock-value"

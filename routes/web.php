@@ -47,6 +47,7 @@ use App\Http\Controllers\DispensaryDoctorCheckController;
 use App\Http\Controllers\DispensaryReviewController;
 use App\Http\Controllers\DispensarySettingsController;
 use App\Http\Controllers\GovernedStockController;
+use App\Http\Controllers\HandCostController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
@@ -1030,6 +1031,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'recordPrint'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print.record');
         Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
         Route::post('inventory/controlled-register/{sku}/checks/{check}/reason', [ControlledRegisterController::class, 'addReason'])->whereUuid('sku')->whereUuid('check')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.reason');
+        Route::get('inventory/hand-costs', [HandCostController::class, 'index'])->middleware(['permission:inventory.cost.view.organisation', 'throttle:60,1'])->name('inventory.hand-costs.index');
+        Route::post('inventory/hand-costs', [HandCostController::class, 'store'])->middleware(['permission:inventory.cost.enter.organisation', 'throttle:30,1'])->name('inventory.hand-costs.store');
+        Route::post('inventory/hand-costs/{handCost}/decision', [HandCostController::class, 'decide'])->whereUuid('handCost')->middleware(['permission:inventory.cost.check.organisation', 'throttle:30,1'])->name('inventory.hand-costs.decide');
         Route::get('inventory/stock-value/journal', [StockValuationController::class, 'journal'])->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:10,1'])->name('inventory.stock-value.journal');
         Route::get('inventory/stock-value', StockValuationController::class)->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.stock-value');
         Route::get('inventory/medicine-sales', MedicineSalesController::class)->middleware(['permission:inventory.medicine_sales.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.medicine-sales');
