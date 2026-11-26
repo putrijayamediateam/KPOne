@@ -95,3 +95,22 @@ Registration foundation PR1132 local candidate is `ecadc1125c6b6603828cf6951a06e
 [TR-UI PR1180](https://github.com/putrijayamediateam/KPOne/pull/1180) was published at `fcfe5f30287cefdd613873aab7c64650ecfed1e2`, stacked on Treatment-record backend1172. Builder reports22 actual browser checks and nine database invariants covering lost-response retry, correction/void history and unchanged Serving/hold/versions. Independent reviewer verified all25 hashes and15 tests. Full2,221 frontend tests passed before a small retained-props baseline repair; final focused regressions, types/build and browser proof passed afterward. This chronology is explicit, and no extra full-suite claim is made.
 
 Trial fixture PR1163 refreshed to `dff6e2039957bb4f260d7161524338c339f2e881`; original three-line patch unchanged, independent parity clear and all five PostgreSQL cases/76 assertions pass with a clean exit. Fresh CI is required again. All substantive PR1118 checks have passed; its final CI aggregator remains queued at this checkpoint, so no merge is claimed yet.
+
+
+## HR release and verified Registration publication
+
+PR1118 merged as `d783621e38b3de57c11620526e7a8e5f1a68548d` after the coordinator verified all six successful checks at exact head `9fa641e7eae0681a8a255cb269b6cfe5f2fb9e51`, independent review, and current main ancestry. The expected-head merge succeeded; no production operation occurred. PR1117 then received a normal refresh to `2ef4b5807fd5228a0f066c57ec5bdbc68621be6f`. Independent comparison found only the two upstream HR documents changed, so earlier application verification remains applicable; fresh exact-head CI is still required.
+
+Registration PR1132 was published at `ecadc1125c6b6603828cf6951a06e6d4e547e3b6`. Independent actual-browser proof verified 24 control measurements and 12 captures at 390/768/1440 widths in both themes: all four targeted controls are 44px on phone/tablet and at least 36px on desktop. Focus, hit testing, document overflow and JavaScript-error checks passed, with no patient/visit writes. Edit correctly rejected a Serving visit before an authorized synthetic Director used a Waiting visit. This is a bounded foundation-control review, not whole-page demo parity. Local 2,205 frontend tests, types/build and scoped static checks passed; fresh CI remains a merge gate.
+
+New drafts published and attached:
+
+| PR | Exact head | Scope and evidence |
+|---|---|---|
+| [1181](https://github.com/putrijayamediateam/KPOne/pull/1181) | `98f8482702c09179da68d6939a86707c885d5c54` | Completed Dispensary help, stacked on1175. Builder reports44 focused tests, types/build/static,16 captures and8 focus/disclosure checks. Independent review verifies required warnings remain visible with help hidden. |
+| [1182](https://github.com/putrijayamediateam/KPOne/pull/1182) | `8e640c0b43188e550d1faa20d67d98eea6884070` | TRI2 lifecycle backend, stacked on1180. Builder reports55 tests/386 assertions plus15 tests/255 assertions. Independent reviewer verified25 files and exact approved migration parity. Family/client prerequisites and the deferred original lane assertion are explicitly preserved; no alert activation authorized or performed. |
+| [1183](https://github.com/putrijayamediateam/KPOne/pull/1183) | `29dd6f1501e28b93377893b0cd3ff81c35e55f03` | Counts-due directory, stacked on1176. Builder reports2,230 frontend tests, types/lint/format/build and8 backend tests/65 assertions. Independent reviewer verified six hashes and13 tests; browser evidence covers blind quantities, independent recount, See all and recovered focus. |
+
+The saved CI checkpoint flagged an attest failure on PR1178; the Billing builder has been asked to diagnose the exact job without weakening the gate. No green-CI claim or merge is made for that PR. Older failed archive/dependency branches remain preserved until their scoped recovery is proven.
+
+Active next slices are TRI2 lane backend, Registration pre-submit summary, monthly cash-closing filters, Dispensary Settings explanation, and the count-mode case worklist. Staff independently reviews frozen artifacts. Builders continue follow-ons within the active session; this is not a promise of execution after platform termination or a usage-reset claim.
