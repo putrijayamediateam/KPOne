@@ -236,7 +236,8 @@ test('registration navigation and visit controls remain operationally compact', 
     // R1-06: below md, the horizontally-scrolling table is replaced by a
     // stacked card list so the tab, Status and Verify stay reachable without
     // horizontal scroll; the table stays for md and up.
-    assert.match(qrTable, /class="hidden overflow-x-auto md:block"/);
+    assert.match(qrTable, /class="hidden overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring md:block"/);
+    assert.match(qrTable, /tabindex="0"[\s\S]*?role="region"[\s\S]*?aria-label="QR check-ins table"/);
     assert.match(qrTable, /class="divide-y md:hidden"/);
 
     for (const source of [registrationCreate, registrationEdit]) {

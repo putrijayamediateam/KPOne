@@ -91,7 +91,13 @@ const historyItems = computed(() =>
         </div>
 
         <!-- Desktop: table -->
-        <div class="hidden overflow-x-auto md:block">
+        <div
+            class="hidden overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring md:block"
+            tabindex="0"
+            role="region"
+            aria-label="QR check-ins table"
+            aria-describedby="registration-table-scroll-hint"
+        >
             <table
                 class="w-full min-w-[820px] table-fixed text-left text-[13px] leading-5"
             >
