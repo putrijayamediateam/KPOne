@@ -263,7 +263,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                             </span>
                             <Link
                                 :href="editHref(row.visitNumber)"
-                                class="inline-flex items-center text-xs font-medium underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none max-lg:min-h-11"
+                                class="inline-flex min-h-9 items-center text-xs font-medium underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none max-lg:min-h-11"
                                 :aria-label="`Reassign visit ${row.visitNumber}: ${row.doctorWarning.label}`"
                                 >Reassign</Link
                             >
