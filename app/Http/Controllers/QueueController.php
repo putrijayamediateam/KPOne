@@ -13,6 +13,7 @@ use App\Domain\Queue\Services\CallNextService;
 use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Queue\Services\QueueRowDetailsService;
 use App\Domain\Queue\Services\QueueWaitingCountService;
 use App\Domain\Queue\Services\RedZoneAlertService;
 use App\Domain\Visit\Billing\Services\SalesTargetService;
@@ -152,6 +153,17 @@ class QueueController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient called in.')]);
 
         return to_route('queue.index');
+    }
+
+    /**
+     * Q-16c: the details panel of a board row. Read only; opened and audited by QueueRowDetailsService, never inside a transaction.
+     * HEAD records nothing: Laravel would route it here, so it is refused.
+     */
+    public function details(Request $request, Visit $visit, QueueRowDetailsService $details): JsonResponse
+    {
+        abort_if($request->isMethod('HEAD'), 405);
+
+        return response()->json(['details' => $details->open($request->user(), $visit)]);
     }
 
     /** Q-16b: the red-zone alerts for resident doctors and triage recorders. Read only, no patient data. */
