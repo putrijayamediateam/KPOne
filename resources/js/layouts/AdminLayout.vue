@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue';
 import ClockPhotoDialog from '@/components/hr/attendance/ClockPhotoDialog.vue';
+import WorkspaceRail from '@/components/shell/WorkspaceRail.vue';
 import { Toaster } from '@/components/ui/sonner';
-import WorkspaceHeader from '@/components/workspace/WorkspaceHeader.vue';
 import { useMainLandmark } from '@/composables/useMainLandmark';
 import { STAFF_TOAST_PLACEMENT } from '@/lib/toastPlacement';
 
@@ -11,11 +11,11 @@ const { content, role } = useMainLandmark();
 
 <template>
     <AppShell variant="header">
-        <WorkspaceHeader context="admin" />
+        <WorkspaceRail context="admin" />
         <div
             ref="content"
             id="main-content"
-            class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col"
+            class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col lg:pl-[var(--shell-offset,72px)]"
             :role="role"
         >
             <slot />
