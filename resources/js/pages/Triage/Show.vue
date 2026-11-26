@@ -4,6 +4,7 @@ import { Check, TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
 import {
@@ -288,353 +289,370 @@ const submit = () => {
 
 <template>
     <Head title="Triage" />
-    <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 p-4 pb-28 md:px-8 md:pt-6"
-    >
-        <PageHeader
-            title="Triage"
-            :description="`${visit.patientName} · ${visit.patientNumber}${visit.queueNumber ? ` · ${visit.queueNumber}` : ''}`"
-        >
-            <template #actions>
-                <Button as-child variant="outline" size="sm">
-                    <Link href="/registration?tab=triage"
-                        >Back to Triage tab</Link
-                    >
-                </Button>
-            </template>
-        </PageHeader>
-
-        <p
-            v-if="readOnly"
-            role="status"
-            class="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-strong"
-        >
-            {{ readOnly }}
-        </p>
-
-        <section
-            v-if="latest"
-            aria-labelledby="latest-triage"
-            class="rounded-lg border bg-card px-4 py-3 text-sm"
-        >
-            <h2 id="latest-triage" class="font-medium">
-                Latest triage (save {{ latest.sequence }})
-            </h2>
-            <p class="mt-1 text-xs text-muted-foreground">
-                {{ latest.recordedAt
-                }}<span v-if="latest.recordedBy">
-                    · {{ latest.recordedBy }}</span
-                >
-            </p>
-            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <StatusBadge
-                    v-if="latest.chosenZone"
-                    status="zone"
-                    :tone="zoneTone(latest.chosenZone)"
-                    :label="`${zoneLabel(latest.chosenZone)} zone`"
-                />
-                <span
-                    v-for="f in fields.filter((f) => latest?.readings[f.key])"
-                    :key="f.key"
-                    class="tabular-nums"
-                    >{{ f.label }} {{ latest.readings[f.key] }}
-                    {{ f.unit }}</span
-                >
-            </div>
-        </section>
-
-        <form
-            v-if="!readOnly"
-            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"
-            novalidate
-            @submit.prevent="submit"
-        >
-            <div class="space-y-4">
-                <p
-                    v-if="!guideline"
-                    class="rounded-lg border px-3 py-2 text-sm text-muted-foreground"
-                >
-                    No triage guideline is approved yet, so triage records the
-                    readings only and suggests no zone.
-                </p>
-                <fieldset class="rounded-lg border bg-card p-4">
-                    <legend class="px-1 text-sm font-medium">Readings</legend>
-                    <p class="mb-3 text-xs text-muted-foreground">
-                        No reading is required. A blank reading never counts as
-                        normal.
-                    </p>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div
-                            v-for="f in fields"
-                            :key="f.key"
-                            class="grid gap-1"
+    <main class="min-w-0 flex-1">
+        <PageFrame class="pb-28 sm:px-6">
+            <PageHeader
+                title="Triage"
+                :description="`${visit.patientName} · ${visit.patientNumber}${visit.queueNumber ? ` · ${visit.queueNumber}` : ''}`"
+            >
+                <template #actions>
+                    <Button as-child variant="outline" size="sm">
+                        <Link href="/registration?tab=triage"
+                            >Back to Triage tab</Link
                         >
-                            <label :for="`triage-${f.key}`" class="text-sm"
-                                >{{ f.label }}
-                                <span class="text-xs text-muted-foreground"
-                                    >({{ f.unit }})</span
-                                ></label
-                            >
-                            <input
-                                :id="`triage-${f.key}`"
-                                v-model="form[f.key]"
-                                :inputmode="f.decimal ? 'decimal' : 'numeric'"
-                                autocomplete="off"
-                                class="h-11 rounded-md border bg-background px-3 text-sm tabular-nums outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 lg:h-9"
-                                :class="
-                                    crossedZone(f.key) === 'red'
-                                        ? 'border-2 border-destructive font-semibold'
-                                        : crossedZone(f.key) === 'yellow'
-                                          ? 'border-2 border-warning font-semibold'
-                                          : ''
-                                "
-                                :aria-invalid="
-                                    errorFor(f.key) ? 'true' : undefined
-                                "
-                                :aria-describedby="`triage-${f.key}-note`"
-                            />
-                            <p
-                                :id="`triage-${f.key}-note`"
-                                class="flex min-h-4 items-center gap-1.5 text-xs"
-                            >
-                                <template v-if="crossedText(f.key)">
-                                    <span
-                                        aria-hidden="true"
-                                        class="size-2.5 shrink-0 rounded-full"
-                                        :class="zoneDot(crossedZone(f.key)!)"
-                                    />
-                                    <span
-                                        class="font-semibold"
-                                        :class="
-                                            crossedZone(f.key) === 'red'
-                                                ? 'text-destructive'
-                                                : 'text-warning-strong'
-                                        "
-                                        >{{ crossedText(f.key) }}</span
-                                    >
-                                </template>
-                                <template
-                                    v-else-if="
-                                        lowering.readingsToRetake.includes(
-                                            f.key,
-                                        )
-                                    "
-                                >
-                                    <span
-                                        aria-hidden="true"
-                                        class="size-2.5 shrink-0 rounded-full bg-warning"
-                                    />
-                                    <span
-                                        class="font-semibold text-warning-strong"
-                                        >Retake: this reading crossed a limit
-                                        earlier</span
-                                    >
-                                </template>
-                            </p>
-                            <InputError :message="errorFor(f.key)" />
-                        </div>
-                    </div>
-                </fieldset>
-
-                <fieldset
-                    v-if="guideline && guideline.redFlags.length"
-                    class="rounded-lg border bg-card p-4"
-                >
-                    <legend class="px-1 text-sm font-medium">Red flags</legend>
-                    <p class="mb-2 text-xs text-muted-foreground">
-                        Any red flag puts the patient in the red zone.
-                    </p>
-                    <label
-                        v-for="sign in guideline.redFlags"
-                        :key="sign.code"
-                        class="flex min-h-11 items-start gap-3 py-1 text-sm lg:min-h-9"
-                        ><input
-                            v-model="form.red_flag_codes"
-                            type="checkbox"
-                            :value="sign.code"
-                            class="mt-0.5 size-4 accent-primary"
-                        /><span>{{ sign.label }}</span></label
-                    >
-                </fieldset>
-                <fieldset
-                    v-if="guideline && guideline.yellowSigns.length"
-                    class="rounded-lg border bg-card p-4"
-                >
-                    <legend class="px-1 text-sm font-medium">
-                        Yellow signs
-                    </legend>
-                    <label
-                        v-for="sign in guideline.yellowSigns"
-                        :key="sign.code"
-                        class="flex min-h-11 items-start gap-3 py-1 text-sm lg:min-h-9"
-                        ><input
-                            v-model="form.yellow_sign_codes"
-                            type="checkbox"
-                            :value="sign.code"
-                            class="mt-0.5 size-4 accent-primary"
-                        /><span>{{ sign.label }}</span></label
-                    >
-                </fieldset>
-            </div>
-
-            <aside class="space-y-4 lg:sticky lg:top-4 lg:self-start">
-                <section
-                    class="rounded-lg border bg-card p-4"
-                    aria-labelledby="triage-zone-heading"
-                >
-                    <h2 id="triage-zone-heading" class="text-sm font-medium">
-                        Zone
-                    </h2>
-                    <template v-if="assessment && form.chosen_zone">
-                        <p
-                            class="mt-2 flex flex-wrap items-center gap-2 text-sm"
-                            aria-live="polite"
-                        >
-                            Suggested:
-                            <StatusBadge
-                                status="zone"
-                                :tone="zoneTone(assessment.zone)"
-                                :label="`${zoneLabel(assessment.zone)} zone`"
-                            />
-                            <span
-                                v-if="heldReason"
-                                class="text-xs text-muted-foreground"
-                                >({{ heldReason }})</span
-                            >
-                        </p>
-                        <div
-                            v-if="offered?.heldBy"
-                            role="status"
-                            class="mt-3 flex gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
-                        >
-                            <TriangleAlert
-                                aria-hidden="true"
-                                class="mt-0.5 size-4 shrink-0"
-                            />
-                            <div>
-                                <p class="font-semibold">
-                                    Held at {{ zoneLabel(offered.zone) }}
-                                </p>
-                                <p class="mt-0.5">{{ offered.heldBy }}</p>
-                            </div>
-                        </div>
-                        <fieldset class="mt-3">
-                            <legend class="text-xs text-muted-foreground">
-                                Zone to save
-                            </legend>
-                            <div class="mt-1 grid grid-cols-3 gap-2">
-                                <button
-                                    v-for="zone in [
-                                        'green',
-                                        'yellow',
-                                        'red',
-                                    ] as TriageZone[]"
-                                    :key="zone"
-                                    type="button"
-                                    class="flex min-h-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm"
-                                    :class="
-                                        form.chosen_zone === zone
-                                            ? 'border-2 border-foreground bg-muted font-semibold text-foreground'
-                                            : 'border text-muted-foreground'
-                                    "
-                                    :aria-pressed="form.chosen_zone === zone"
-                                    @click="choose(zone)"
-                                >
-                                    <Check
-                                        v-if="form.chosen_zone === zone"
-                                        aria-hidden="true"
-                                        class="size-4 shrink-0"
-                                    />
-                                    <span
-                                        aria-hidden="true"
-                                        class="size-2.5 shrink-0 rounded-full"
-                                        :class="zoneDot(zone)"
-                                    />
-                                    {{ zoneLabel(zone) }}
-                                </button>
-                            </div>
-                        </fieldset>
-                        <button
-                            v-if="zoneTouched"
-                            type="button"
-                            class="mt-2 min-h-11 text-xs underline lg:min-h-0"
-                            @click="resetZone"
-                        >
-                            Use the suggested zone
-                        </button>
-                        <div
-                            v-if="reasonOptions.length"
-                            class="mt-3 grid gap-1"
-                        >
-                            <label for="triage-reason" class="text-xs">
-                                {{
-                                    direction < 0
-                                        ? 'Reason for a lower zone (required)'
-                                        : 'Reason for a higher zone (optional)'
-                                }}
-                            </label>
-                            <select
-                                id="triage-reason"
-                                v-model="form.override_reason_code"
-                                :aria-invalid="
-                                    errorFor('override_reason_code')
-                                        ? 'true'
-                                        : undefined
-                                "
-                                aria-describedby="triage-zone-error"
-                                class="h-11 rounded-md border bg-background px-2 text-sm lg:h-9"
-                            >
-                                <option :value="null">Choose a reason</option>
-                                <option
-                                    v-for="o in reasonOptions"
-                                    :key="o.value"
-                                    :value="o.value"
-                                >
-                                    {{ o.label }}
-                                </option>
-                            </select>
-                        </div>
-                        <p
-                            v-if="refusal"
-                            aria-live="polite"
-                            class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-                        >
-                            {{ refusal }}
-                        </p>
-                        <InputError
-                            id="triage-zone-error"
-                            :message="
-                                errorFor('chosen_zone') ||
-                                errorFor('override_reason_code')
-                            "
-                        />
-                    </template>
-                    <p v-else class="mt-2 text-sm text-muted-foreground">
-                        Readings only (no guideline approved).
-                    </p>
-                    <p
-                        v-if="tellDoctor"
-                        role="alert"
-                        class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive"
-                    >
-                        Tell the doctor now
-                    </p>
-                    <p
-                        v-if="missingNames.length"
-                        class="mt-3 text-xs text-muted-foreground"
-                    >
-                        Not entered: {{ missingNames.join(', ') }}
-                    </p>
-                    <InputError class="mt-2" :message="generalError" />
-                    <Button
-                        type="submit"
-                        class="mt-4 h-11 w-full lg:h-9"
-                        :disabled="form.processing || Boolean(refusal)"
-                    >
-                        {{ form.processing ? 'Saving…' : 'Save triage' }}
                     </Button>
-                </section>
-            </aside>
-        </form>
+                </template>
+            </PageHeader>
+
+            <p
+                v-if="readOnly"
+                role="status"
+                class="rounded-lg border border-warning/30 bg-warning-wash px-3 py-2 text-sm text-warning-strong"
+            >
+                {{ readOnly }}
+            </p>
+
+            <section
+                v-if="latest"
+                aria-labelledby="latest-triage"
+                class="rounded-lg border bg-card px-4 py-3 text-sm shadow-card"
+            >
+                <h2 id="latest-triage" class="font-medium">
+                    Latest triage (save {{ latest.sequence }})
+                </h2>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    {{ latest.recordedAt
+                    }}<span v-if="latest.recordedBy">
+                        · {{ latest.recordedBy }}</span
+                    >
+                </p>
+                <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <StatusBadge
+                        v-if="latest.chosenZone"
+                        status="zone"
+                        :tone="zoneTone(latest.chosenZone)"
+                        :label="`${zoneLabel(latest.chosenZone)} zone`"
+                    />
+                    <span
+                        v-for="f in fields.filter(
+                            (f) => latest?.readings[f.key],
+                        )"
+                        :key="f.key"
+                        class="tabular-nums"
+                        >{{ f.label }} {{ latest.readings[f.key] }}
+                        {{ f.unit }}</span
+                    >
+                </div>
+            </section>
+
+            <form
+                v-if="!readOnly"
+                class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"
+                novalidate
+                @submit.prevent="submit"
+            >
+                <div class="space-y-4">
+                    <p
+                        v-if="!guideline"
+                        class="rounded-lg border px-3 py-2 text-sm text-muted-foreground"
+                    >
+                        No triage guideline is approved yet, so triage records
+                        the readings only and suggests no zone.
+                    </p>
+                    <fieldset class="rounded-lg border bg-card p-4 shadow-card">
+                        <legend class="px-1 text-sm font-medium">
+                            Readings
+                        </legend>
+                        <p class="mb-3 text-xs text-muted-foreground">
+                            No reading is required. A blank reading never counts
+                            as normal.
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div
+                                v-for="f in fields"
+                                :key="f.key"
+                                class="grid gap-1"
+                            >
+                                <label :for="`triage-${f.key}`" class="text-sm"
+                                    >{{ f.label }}
+                                    <span class="text-xs text-muted-foreground"
+                                        >({{ f.unit }})</span
+                                    ></label
+                                >
+                                <input
+                                    :id="`triage-${f.key}`"
+                                    v-model="form[f.key]"
+                                    :inputmode="
+                                        f.decimal ? 'decimal' : 'numeric'
+                                    "
+                                    autocomplete="off"
+                                    class="h-11 rounded-md border bg-field-fill px-3 text-sm tabular-nums outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 lg:h-9"
+                                    :class="
+                                        crossedZone(f.key) === 'red'
+                                            ? 'border-2 border-destructive font-semibold'
+                                            : crossedZone(f.key) === 'yellow'
+                                              ? 'border-2 border-warning font-semibold'
+                                              : 'border-input'
+                                    "
+                                    :aria-invalid="
+                                        errorFor(f.key) ? 'true' : undefined
+                                    "
+                                    :aria-describedby="`triage-${f.key}-note`"
+                                />
+                                <p
+                                    :id="`triage-${f.key}-note`"
+                                    class="flex min-h-4 items-center gap-1.5 text-xs"
+                                >
+                                    <template v-if="crossedText(f.key)">
+                                        <span
+                                            aria-hidden="true"
+                                            class="size-2.5 shrink-0 rounded-full"
+                                            :class="
+                                                zoneDot(crossedZone(f.key)!)
+                                            "
+                                        />
+                                        <span
+                                            class="font-semibold"
+                                            :class="
+                                                crossedZone(f.key) === 'red'
+                                                    ? 'text-destructive'
+                                                    : 'text-warning-strong'
+                                            "
+                                            >{{ crossedText(f.key) }}</span
+                                        >
+                                    </template>
+                                    <template
+                                        v-else-if="
+                                            lowering.readingsToRetake.includes(
+                                                f.key,
+                                            )
+                                        "
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            class="size-2.5 shrink-0 rounded-full bg-warning"
+                                        />
+                                        <span
+                                            class="font-semibold text-warning-strong"
+                                            >Retake: this reading crossed a
+                                            limit earlier</span
+                                        >
+                                    </template>
+                                </p>
+                                <InputError :message="errorFor(f.key)" />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset
+                        v-if="guideline && guideline.redFlags.length"
+                        class="rounded-lg border bg-card p-4 shadow-card"
+                    >
+                        <legend class="px-1 text-sm font-medium">
+                            Red flags
+                        </legend>
+                        <p class="mb-2 text-xs text-muted-foreground">
+                            Any red flag puts the patient in the red zone.
+                        </p>
+                        <label
+                            v-for="sign in guideline.redFlags"
+                            :key="sign.code"
+                            class="flex min-h-11 items-start gap-3 py-1 text-sm lg:min-h-9"
+                            ><input
+                                v-model="form.red_flag_codes"
+                                type="checkbox"
+                                :value="sign.code"
+                                class="mt-0.5 size-4 accent-primary"
+                            /><span>{{ sign.label }}</span></label
+                        >
+                    </fieldset>
+                    <fieldset
+                        v-if="guideline && guideline.yellowSigns.length"
+                        class="rounded-lg border bg-card p-4 shadow-card"
+                    >
+                        <legend class="px-1 text-sm font-medium">
+                            Yellow signs
+                        </legend>
+                        <label
+                            v-for="sign in guideline.yellowSigns"
+                            :key="sign.code"
+                            class="flex min-h-11 items-start gap-3 py-1 text-sm lg:min-h-9"
+                            ><input
+                                v-model="form.yellow_sign_codes"
+                                type="checkbox"
+                                :value="sign.code"
+                                class="mt-0.5 size-4 accent-primary"
+                            /><span>{{ sign.label }}</span></label
+                        >
+                    </fieldset>
+                </div>
+
+                <aside class="space-y-4 lg:sticky lg:top-4 lg:self-start">
+                    <section
+                        class="rounded-lg border bg-card p-4 shadow-card"
+                        aria-labelledby="triage-zone-heading"
+                    >
+                        <h2
+                            id="triage-zone-heading"
+                            class="text-sm font-medium"
+                        >
+                            Zone
+                        </h2>
+                        <template v-if="assessment && form.chosen_zone">
+                            <p
+                                class="mt-2 flex flex-wrap items-center gap-2 text-sm"
+                                aria-live="polite"
+                            >
+                                Suggested:
+                                <StatusBadge
+                                    status="zone"
+                                    :tone="zoneTone(assessment.zone)"
+                                    :label="`${zoneLabel(assessment.zone)} zone`"
+                                />
+                                <span
+                                    v-if="heldReason"
+                                    class="text-xs text-muted-foreground"
+                                    >({{ heldReason }})</span
+                                >
+                            </p>
+                            <div
+                                v-if="offered?.heldBy"
+                                role="status"
+                                class="mt-3 flex gap-2 rounded-md border border-warning/40 bg-warning-wash px-3 py-2 text-xs text-warning-strong"
+                            >
+                                <TriangleAlert
+                                    aria-hidden="true"
+                                    class="mt-0.5 size-4 shrink-0"
+                                />
+                                <div>
+                                    <p class="font-semibold">
+                                        Held at {{ zoneLabel(offered.zone) }}
+                                    </p>
+                                    <p class="mt-0.5">{{ offered.heldBy }}</p>
+                                </div>
+                            </div>
+                            <fieldset class="mt-3">
+                                <legend class="text-xs text-muted-foreground">
+                                    Zone to save
+                                </legend>
+                                <div class="mt-1 grid grid-cols-3 gap-2">
+                                    <button
+                                        v-for="zone in [
+                                            'green',
+                                            'yellow',
+                                            'red',
+                                        ] as TriageZone[]"
+                                        :key="zone"
+                                        type="button"
+                                        class="flex min-h-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm"
+                                        :class="
+                                            form.chosen_zone === zone
+                                                ? 'border-2 border-foreground bg-muted font-semibold text-foreground'
+                                                : 'border text-muted-foreground'
+                                        "
+                                        :aria-pressed="
+                                            form.chosen_zone === zone
+                                        "
+                                        @click="choose(zone)"
+                                    >
+                                        <Check
+                                            v-if="form.chosen_zone === zone"
+                                            aria-hidden="true"
+                                            class="size-4 shrink-0"
+                                        />
+                                        <span
+                                            aria-hidden="true"
+                                            class="size-2.5 shrink-0 rounded-full"
+                                            :class="zoneDot(zone)"
+                                        />
+                                        {{ zoneLabel(zone) }}
+                                    </button>
+                                </div>
+                            </fieldset>
+                            <button
+                                v-if="zoneTouched"
+                                type="button"
+                                class="mt-2 min-h-11 text-xs underline lg:min-h-0"
+                                @click="resetZone"
+                            >
+                                Use the suggested zone
+                            </button>
+                            <div
+                                v-if="reasonOptions.length"
+                                class="mt-3 grid gap-1"
+                            >
+                                <label for="triage-reason" class="text-xs">
+                                    {{
+                                        direction < 0
+                                            ? 'Reason for a lower zone (required)'
+                                            : 'Reason for a higher zone (optional)'
+                                    }}
+                                </label>
+                                <select
+                                    id="triage-reason"
+                                    v-model="form.override_reason_code"
+                                    :aria-invalid="
+                                        errorFor('override_reason_code')
+                                            ? 'true'
+                                            : undefined
+                                    "
+                                    aria-describedby="triage-zone-error"
+                                    class="h-11 rounded-md border border-input bg-field-fill px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring lg:h-9"
+                                >
+                                    <option :value="null">
+                                        Choose a reason
+                                    </option>
+                                    <option
+                                        v-for="o in reasonOptions"
+                                        :key="o.value"
+                                        :value="o.value"
+                                    >
+                                        {{ o.label }}
+                                    </option>
+                                </select>
+                            </div>
+                            <p
+                                v-if="refusal"
+                                aria-live="polite"
+                                class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                            >
+                                {{ refusal }}
+                            </p>
+                            <InputError
+                                id="triage-zone-error"
+                                :message="
+                                    errorFor('chosen_zone') ||
+                                    errorFor('override_reason_code')
+                                "
+                            />
+                        </template>
+                        <p v-else class="mt-2 text-sm text-muted-foreground">
+                            Readings only (no guideline approved).
+                        </p>
+                        <p
+                            v-if="tellDoctor"
+                            role="alert"
+                            class="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive"
+                        >
+                            Tell the doctor now
+                        </p>
+                        <p
+                            v-if="missingNames.length"
+                            class="mt-3 text-xs text-muted-foreground"
+                        >
+                            Not entered: {{ missingNames.join(', ') }}
+                        </p>
+                        <InputError class="mt-2" :message="generalError" />
+                        <Button
+                            type="submit"
+                            class="mt-4 h-11 w-full lg:h-9"
+                            :disabled="form.processing || Boolean(refusal)"
+                        >
+                            {{ form.processing ? 'Saving…' : 'Save triage' }}
+                        </Button>
+                    </section>
+                </aside>
+            </form>
+        </PageFrame>
     </main>
 </template>
