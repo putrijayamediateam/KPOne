@@ -22,7 +22,7 @@ test('both receiving forms ask for the total paid, optional, with one help line 
     );
     assert.doesNotMatch(panel, /Optional\. Type the batch total/);
     assert.doesNotMatch(panel, /Actual unit cost \(RM\)/);
-    assert.match(lots, /Total paid for this lot \(RM, optional\)/);
+    assert.match(lots, /Total paid for this lot \(RM,\s+optional\)/);
     assert.match(
         lots,
         /v-if="entry\.outcome !== 'rejected'"\s+class="grid min-w-0 gap-1"\s*>\s*<label class="grid gap-1 text-sm"\s+>Total paid/,

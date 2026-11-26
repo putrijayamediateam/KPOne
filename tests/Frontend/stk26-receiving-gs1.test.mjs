@@ -236,7 +236,7 @@ test('STK-26: the form never fills, adds or saves a lot from a scan', () => {
     assert.match(refuse, /boxRead\.value = null;/);
     // The status line stays mounted while the line is the scanned one, so a change of words is announced.
     assert.match(
-        form,
+        form.replace(/\s+/g, ' '),
         /v-if="scannedLine === line\.line_public_id"\s+class="text-sm wrap-anywhere empty:sr-only"[\s\S]{0,250}role="status"/,
     );
     assert.match(form, /\{\{ boxHint\?\.message \?\? '' \}\}/);
