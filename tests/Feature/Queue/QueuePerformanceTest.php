@@ -66,11 +66,12 @@ class QueuePerformanceTest extends QueueTestCase
             // silently return.
             // 21: one read of the person's Version 2 preference, needed on every full page render now that the switch
             // is offered to every staff account (it was 20 when only the Director was offered it).
-            $this->assertLessThanOrEqual(21, $getCount);
-            $this->assertLessThanOrEqual(19, $pollCount);
+            // TRI-2b adds a lane count and effective-branch check. The approved24 ceiling also accommodates the separate AUTO-1c GET read.
+            $this->assertLessThanOrEqual(24, $getCount);
+            $this->assertLessThanOrEqual(21, $pollCount);
             $this->assertLessThan(26, $getCount);
             $this->assertLessThan(25, $pollCount);
-            $this->assertLessThanOrEqual(19, $filteredPollCount);
+            $this->assertLessThanOrEqual(21, $filteredPollCount);
             $this->assertLessThan(25, $filteredPollCount);
             $this->assertContains('queue/search', config('inertia.devtools.except'));
         } finally {
