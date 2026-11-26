@@ -102,3 +102,19 @@ test('reconciliation access includes terminal and native keyboard-operable discl
     assert.match(html, /Payment is recorded on billing/);
     assert.doesNotMatch(html, /<form|<button|role="tab"/);
 });
+
+test('monthly closing view marks only its own route current without terminal authority', async () => {
+    const html = await render(['payments.cash_closing.view.branch'], 'month');
+    assert.match(html, /href="\/cash-closings\/month" aria-current="page"/);
+    assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
+    assert.doesNotMatch(html, /href="\/payment-reconciliations"/);
+    assert.equal((html.match(/<main\b/g) ?? []).length, 1);
+});
+
+test('terminal reconciliation marks the existing terminal route current', async () => {
+    const html = await render(['payments.reconcile.branch'], 'terminal');
+    assert.match(html, /href="\/payment-reconciliations" aria-current="page"/);
+    assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
+    assert.match(html, /href="\/cash-closings\/month"/);
+    assert.equal((html.match(/<main\b/g) ?? []).length, 1);
+});
