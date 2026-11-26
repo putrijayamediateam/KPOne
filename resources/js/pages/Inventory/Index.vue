@@ -12,6 +12,7 @@ import type {
     DifferenceState,
     DifferenceTarget,
 } from '@/components/inventory/ReportDifferenceSheet.vue';
+import StockBatchList from '@/components/inventory/StockBatchList.vue';
 import StockOnHandList from '@/components/inventory/StockOnHandList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -24,10 +25,6 @@ import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
-import {
-    formatInventoryHoldLabel,
-    formatInventoryReason,
-} from '@/lib/inventory-picker';
 import { inventoryFilterError } from '@/types/inventory-operations';
 import type {
     InventoryOperations,
@@ -702,7 +699,9 @@ const clearFilters = () => {
                                     {{
                                         inventory.tab === 'stock'
                                             ? 'Open a row for its batch and location details.'
-                                            : 'Filter the branch records below.'
+                                            : inventory.tab === 'batches'
+                                              ? 'Each row is one batch at one location. Open it for received date and item details.'
+                                              : 'Filter the branch records below.'
                                     }}
                                 </p>
                             </div>
@@ -767,6 +766,7 @@ const clearFilters = () => {
                                     </label>
                                     <InventorySearchSelect
                                         id="inventory-location"
+                                        class="[&_button]:min-h-11 [&_button]:min-w-11 lg:[&_button]:min-h-9 lg:[&_button]:min-w-9"
                                         v-model="location"
                                         label="Inventory location"
                                         :options="locationOptions"
@@ -914,116 +914,11 @@ const clearFilters = () => {
                         @report="openReport"
                     />
 
-                    <OperationalTable
+                    <StockBatchList
                         v-else-if="inventory.tab === 'batches'"
-                        label="Batch & Expiry"
-                        :columns="9"
-                        min-width="1120px"
+                        :rows="inventory.data"
                         :loading="loading"
-                        class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
-                    >
-                        <template #head
-                            ><tr>
-                                <th scope="col">SKU / Item</th>
-                                <th scope="col">Medicine</th>
-                                <th scope="col">Batch</th>
-                                <th scope="col">Location</th>
-                                <th scope="col">Received</th>
-                                <th scope="col">Expiry</th>
-                                <th scope="col">Expiry status</th>
-                                <th scope="col">Batch status</th>
-                                <th scope="col" class="min-w-28 text-right">
-                                    Quantity
-                                </th>
-                            </tr></template
-                        >
-                        <template #body>
-                            <tr
-                                v-for="(row, index) in inventory.data"
-                                :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
-                            >
-                                <td
-                                    class="max-w-56 min-w-44 break-words whitespace-normal"
-                                >
-                                    <span
-                                        class="block font-mono text-xs"
-                                        :title="String(row.skuCode)"
-                                        >{{ row.skuCode }}</span
-                                    ><span class="block font-medium">{{
-                                        row.itemName
-                                    }}</span>
-                                </td>
-                                <td
-                                    class="max-w-64 min-w-44 break-words whitespace-normal"
-                                >
-                                    {{
-                                        row.medicineName ??
-                                        'Not mapped to Medicine'
-                                    }}
-                                </td>
-                                <td
-                                    class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
-                                    :title="String(row.batchNumber)"
-                                >
-                                    {{ row.batchNumber }}
-                                </td>
-                                <td
-                                    class="max-w-56 min-w-44 break-words whitespace-normal"
-                                    :title="String(row.location)"
-                                >
-                                    {{ row.location }}
-                                </td>
-                                <td class="whitespace-nowrap">
-                                    {{ row.receivedDate ?? '—' }}
-                                </td>
-                                <td class="whitespace-nowrap">
-                                    {{ row.expiryDate }}
-                                </td>
-                                <td>
-                                    <StatusBadge
-                                        :status="
-                                            String(
-                                                row.expiryStatus,
-                                            ).toLowerCase()
-                                        "
-                                        :label="String(row.expiryStatus)"
-                                        :tone="
-                                            row.expiryStatus === 'Expired'
-                                                ? 'danger'
-                                                : 'success'
-                                        "
-                                    />
-                                </td>
-                                <td>
-                                    <StatusBadge
-                                        :status="
-                                            String(
-                                                row.batchStatus,
-                                            ).toLowerCase()
-                                        "
-                                        :label="
-                                            row.holdReason ||
-                                            row.held === true ||
-                                            String(
-                                                row.batchStatus,
-                                            ).toLowerCase() === 'held'
-                                                ? formatInventoryHoldLabel(
-                                                      formatInventoryReason(
-                                                          row.holdReason,
-                                                      ),
-                                                  )
-                                                : String(row.batchStatus)
-                                        "
-                                    />
-                                </td>
-                                <td
-                                    class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
-                                >
-                                    {{ row.quantity }} {{ row.stockUnit }}
-                                </td>
-                            </tr>
-                        </template>
-                    </OperationalTable>
+                    />
 
                     <OperationalTable
                         v-else

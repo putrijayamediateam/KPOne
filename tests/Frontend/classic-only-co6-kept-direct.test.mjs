@@ -88,6 +88,7 @@ test('Classic Inventory home keeps its route, query keys, tab and filter navigat
             [
                 home,
                 read('resources/js/components/inventory/StockOnHandList.vue'),
+                read('resources/js/components/inventory/StockBatchList.vue'),
             ]
                 .join('\n')
                 .match(/formatInventoryHoldLabel\(/g) ?? []

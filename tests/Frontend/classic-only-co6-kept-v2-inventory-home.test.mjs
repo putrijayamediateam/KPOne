@@ -56,5 +56,11 @@ test('Classic Inventory home imports no V2 code', () => {
 });
 
 test('Classic Inventory home shows a quantity with its stock unit', () => {
-    assert.match(classic, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
+    for (const component of ['StockOnHandList', 'StockBatchList']) {
+        assert.match(
+            read(`resources/js/components/inventory/${component}.vue`),
+            /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/,
+        );
+        assert.ok(classic.includes(`<${component}`));
+    }
 });
