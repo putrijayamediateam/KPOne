@@ -14,6 +14,7 @@ import type { Ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
+import StockTransferList from '@/components/inventory/StockTransferList.vue';
 import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
 import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
 import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
@@ -1290,156 +1291,171 @@ const saveReorder = () =>
 
             <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Stock Requests & Transfers</h3>
-                <form
+                <details
                     v-if="operations.permissions.createRequests"
-                    class="grid gap-2 sm:grid-cols-2"
-                    @submit.prevent="createStockRequest"
+                    class="rounded-xl border bg-card p-3 [&_button]:min-h-11 [&_button]:min-w-11 lg:[&_button]:min-h-9 lg:[&_button]:min-w-9 [&_input]:min-h-11 lg:[&_input]:min-h-9"
                 >
-                    <InventorySearchSelect
-                        v-model="stockRequest.source"
-                        label="Source location"
-                        :options="locationOptions"
-                        kind="locations"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    />
-                    <InventorySearchSelect
-                        v-model="stockRequest.destination"
-                        label="Destination location"
-                        :options="locationOptions"
-                        kind="locations"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    />
-                    <fieldset
-                        v-for="(line, index) in stockRequest.lines"
-                        :key="line.key"
-                        class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_auto]"
+                    <summary
+                        :aria-disabled="busy"
+                        class="min-h-11 cursor-pointer py-2 text-sm font-medium lg:min-h-9"
+                        @click="busy && $event.preventDefault()"
                     >
-                        <legend class="px-1 text-xs font-medium">
-                            Request line {{ index + 1 }}
-                        </legend>
+                        Request stock
+                    </summary>
+                    <p class="my-3 text-xs text-muted-foreground">
+                        Choose the source and destination, then enter each
+                        requested quantity in its stock unit.
+                    </p>
+                    <form
+                        class="grid gap-2 sm:grid-cols-2"
+                        @submit.prevent="createStockRequest"
+                    >
                         <InventorySearchSelect
-                            v-model="line.sku"
-                            :label="`Requested SKU ${index + 1}`"
-                            :options="skuOptions"
-                            kind="skus"
+                            v-model="stockRequest.source"
+                            label="Source location"
+                            :options="locationOptions"
+                            kind="locations"
                             context="operations"
                             :expected-branch-id="operations.expectedBranchId"
                         />
-                        <Input
-                            v-model="line.quantity"
-                            :aria-label="`Requested quantity ${index + 1}`"
-                            placeholder="Quantity"
-                            required
+                        <InventorySearchSelect
+                            v-model="stockRequest.destination"
+                            label="Destination location"
+                            :options="locationOptions"
+                            kind="locations"
+                            context="operations"
+                            :expected-branch-id="operations.expectedBranchId"
                         />
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            :disabled="stockRequest.lines.length === 1"
-                            @click="removeStockRequestLine(index)"
-                            >Remove</Button
+                        <fieldset
+                            v-for="(line, index) in stockRequest.lines"
+                            :key="line.key"
+                            class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_auto]"
                         >
-                    </fieldset>
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        :disabled="busy"
-                        @click="addStockRequestLine"
-                        >Add request line</Button
-                    >
-                    <Button type="submit" :disabled="busy" class="sm:col-span-2"
-                        >Submit stock request</Button
-                    >
-                </form>
-                <article
-                    v-for="row in operations.stockRequests"
-                    :key="row.publicId"
-                    class="space-y-2 rounded-lg border p-3"
-                >
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-sm">{{ row.number }}</span
-                        ><StatusBadge :status="row.status" />
-                    </div>
-                    <p class="text-sm">
-                        {{ row.source }} → {{ row.destination }}
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <Button
-                            v-if="canRequest(row, 'decide')"
-                            size="sm"
-                            @click="decideStockRequest(row, 'approve')"
-                            >Approve</Button
-                        >
-                        <Button
-                            v-if="canRequest(row, 'decide')"
-                            size="sm"
-                            variant="secondary"
-                            @click="decideStockRequest(row, 'reject')"
-                            >Reject</Button
-                        >
-                    </div>
-                    <TransferReceiptForm
-                        v-if="canRequest(row, 'receive')"
-                        :row="row"
-                        :busy="busy"
-                        @submit="
-                            (lines, differences, retryKey) =>
-                                confirmStockRequestReceipt(
-                                    row,
-                                    lines,
-                                    differences,
-                                    retryKey,
-                                )
-                        "
-                    />
-                    <TransferDifferences
-                        :differences="row.differences ?? []"
-                        :number="row.number"
-                        :busy="busy"
-                        @resolve="
-                            (difference, outcome, reference, retryKey) =>
-                                confirmTransferDifference(
-                                    row,
-                                    difference,
-                                    outcome,
-                                    reference,
-                                    retryKey,
-                                )
-                        "
-                    />
-                    <form
-                        v-if="canRequest(row, 'dispatch')"
-                        class="space-y-2"
-                        @submit.prevent="confirmStockRequestDispatch(row)"
-                    >
-                        <div
-                            v-for="line in row.lines"
-                            :key="line.publicId"
-                            class="grid items-center gap-2 sm:grid-cols-[1fr_2fr]"
-                        >
-                            <span class="text-xs"
-                                >{{ line.sku }} ·
-                                {{ line.requestedQuantity }}</span
-                            >
+                            <legend class="px-1 text-xs font-medium">
+                                Request line {{ index + 1 }}
+                            </legend>
                             <InventorySearchSelect
-                                v-model="dispatchBatch[line.publicId]"
-                                label="Dispatch batch"
-                                :options="batchOptions(line.skuPublicId)"
-                                kind="batches"
+                                v-model="line.sku"
+                                :label="`Requested SKU ${index + 1}`"
+                                :options="skuOptions"
+                                kind="skus"
                                 context="operations"
                                 :expected-branch-id="
                                     operations.expectedBranchId
                                 "
-                                :sku="line.skuPublicId"
                             />
-                        </div>
-                        <Button type="submit" size="sm" :disabled="busy"
-                            >Dispatch stock</Button
+                            <Input
+                                v-model="line.quantity"
+                                :aria-label="`Requested quantity ${index + 1}`"
+                                placeholder="Quantity"
+                                required
+                            />
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                :disabled="stockRequest.lines.length === 1"
+                                @click="removeStockRequestLine(index)"
+                                >Remove</Button
+                            >
+                        </fieldset>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            :disabled="busy"
+                            @click="addStockRequestLine"
+                            >Add request line</Button
+                        >
+                        <Button
+                            type="submit"
+                            :disabled="busy"
+                            class="sm:col-span-2"
+                            >Submit stock request</Button
                         >
                     </form>
-                </article>
+                </details>
+                <StockTransferList
+                    :rows="operations.stockRequests"
+                    :branch-id="operations.expectedBranchId"
+                    :busy="busy"
+                >
+                    <template #details="{ row }">
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                v-if="canRequest(row, 'decide')"
+                                size="sm"
+                                @click="decideStockRequest(row, 'approve')"
+                                >Approve</Button
+                            >
+                            <Button
+                                v-if="canRequest(row, 'decide')"
+                                size="sm"
+                                variant="secondary"
+                                @click="decideStockRequest(row, 'reject')"
+                                >Reject</Button
+                            >
+                        </div>
+                        <TransferReceiptForm
+                            v-if="canRequest(row, 'receive')"
+                            :row="row"
+                            :busy="busy"
+                            @submit="
+                                (lines, differences, retryKey) =>
+                                    confirmStockRequestReceipt(
+                                        row,
+                                        lines,
+                                        differences,
+                                        retryKey,
+                                    )
+                            "
+                        />
+                        <TransferDifferences
+                            :differences="row.differences ?? []"
+                            :number="row.number"
+                            :busy="busy"
+                            @resolve="
+                                (difference, outcome, reference, retryKey) =>
+                                    confirmTransferDifference(
+                                        row,
+                                        difference,
+                                        outcome,
+                                        reference,
+                                        retryKey,
+                                    )
+                            "
+                        />
+                        <form
+                            v-if="canRequest(row, 'dispatch')"
+                            class="space-y-2"
+                            @submit.prevent="confirmStockRequestDispatch(row)"
+                        >
+                            <div
+                                v-for="line in row.lines"
+                                :key="line.publicId"
+                                class="grid items-center gap-2 sm:grid-cols-[1fr_2fr]"
+                            >
+                                <span class="text-xs"
+                                    >{{ line.sku }} ·
+                                    {{ line.requestedQuantity }}</span
+                                >
+                                <InventorySearchSelect
+                                    v-model="dispatchBatch[line.publicId]"
+                                    label="Dispatch batch"
+                                    :options="batchOptions(line.skuPublicId)"
+                                    kind="batches"
+                                    context="operations"
+                                    :expected-branch-id="
+                                        operations.expectedBranchId
+                                    "
+                                    :sku="line.skuPublicId"
+                                />
+                            </div>
+                            <Button type="submit" size="sm" :disabled="busy"
+                                >Dispatch stock</Button
+                            >
+                        </form>
+                    </template>
+                </StockTransferList>
             </section>
         </div>
 
