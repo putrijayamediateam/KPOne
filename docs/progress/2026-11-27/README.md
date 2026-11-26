@@ -2,7 +2,7 @@
 
 ## Current verified status
 
-Prescribing phrases PR1117 merged as `f8dd19cb83a6129479246db1c62d0af12cd28fb5` after all six checks succeeded at exact head `2ef4b5807fd5228a0f066c57ec5bdbc68621be6f`, independent review and fresh-main ancestry verification. The next release priority is isolated CI fixture PR1194, then the prepared feature/foundation queue. No merge bypasses exact-head CI or current-main containment.
+PR1194 merged as `9764037af1bfcb24ebad3102a124ff3f6cd7acd2` after all six checks succeeded at exact head `92aa0c8eda849fe0777bab6b0209a29011140e57`, independent source review and fresh-main ancestry verification. Its only change makes the triage-view test's synthetic names deterministic; all assertions remain unchanged. Earlier prescribing phrases PR1117 merged as `f8dd19cb83a6129479246db1c62d0af12cd28fb5`. The next prepared release is BIL38, with exact-head CI and current-main containment still mandatory. No production deployment or activation occurred.
 
 Foundation refreshes published: Registration1132 (`ecadc1125`), Triage1134 (`6eeec08a`), Homes1135 (`e3b14e164`), Consultation1136 (`f3f7fdd55`) and Inventory1137 (`c8409375`). Each has fresh local verification and independent review; none is claimed merged here. Inventory's full run passed2,207 tests; Consultation and the other listed frontend foundations passed2,205 each. Browser proof scopes and historical-only evidence are explicitly distinguished in their PR descriptions.
 
@@ -169,3 +169,12 @@ PR1171's shard2 instead exceeded the40-minute job limit after1281/1331 progress,
 [Shared TRI2 UI PR1193](https://github.com/putrijayamediateam/KPOne/pull/1193), `a83e9e8f3e0cd35b027a55f8fe5bb3f10687699a`, is stacked on1188. Builder2,247 frontend tests/types/build pass; independent review closed the host-teardown deferred-Hold callback finding with11 runtime checks. Actual synthetic browser evidence covers Cancel preserving draft without Take, Save/Hold/lost-response retry, separate Seen, Discard and original-encounter return, responsive controls and bounded mute. Evidence stages and database invariants are recorded separately; no production alert activation occurred.
 
 BIL38 is locally refreshed to `74c28354bf79d042615db62952788eebc9ae906d` after released SUG1b. All eleven scoped blobs remain unchanged from reviewed `eff0f716`;73 affected/integration backend checks are running on a new isolated synthetic database before its next publication turn. No new grant or migration scope is added.
+
+
+## Fixture release and next verified drafts
+
+PR1171's unchanged exact head `bd00307b1a82c4d675bd149ba5cc05e2dba5aa8a` now has all six remote checks successful on the authorized retry. Shard2 completed in15m05s including contention and coverage proof; local1,331 tests/25,121 assertions also passed. The original timeout remains unexplained, not a claimed code fix.
+
+[Panel Follow up PR1198](https://github.com/putrijayamediateam/KPOne/pull/1198), `6f941096c861e724d73fbd26561c0a2ffd3193e8`, is a two-file draft on mainf8dd. The complete original page script is unchanged. Builder reports14 focused checks on the refreshed main, prior2,208 frontend tests/types, final corrected build/lint/format and20 synthetic browser captures. Independent final source/visual review and three runtime tests pass. No new backend authority, migration or existing assertion change. Fresh CI remains required. App attachment calls for1196–1198 timed out; GitHub publication succeeded, attachment completion is not claimed.
+
+PR1159's latest attestation failure is proven from job140205493377: synthetic merge parents did not match the authoritative PR base and head. The failed run's log is preserved externally. A normal current-main integration keeps this PR's four documentation files unchanged by upstream integration; no workflow gate is weakened.
