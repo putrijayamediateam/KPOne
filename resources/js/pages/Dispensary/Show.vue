@@ -226,6 +226,7 @@ type LineForm = {
 
 const props = defineProps<{ dispensary: Page }>();
 const busy = ref(false);
+const helpfulInfoOpen = ref(true);
 const actionError = ref<string | null>(null);
 const page = usePage();
 const branchId = () => page.props.branchContext?.active?.id ?? 0;
@@ -1324,11 +1325,28 @@ const exceptionStatusLabels: Record<string, string> = {
             title="Dispensary"
             description="The medicine the CA prepared for this visit."
         >
-            <template
-                v-if="visibleItems.length && dispensary.canPreviewLabels"
-                #actions
-            >
-                <Button as-child variant="outline" size="sm">
+            <template #actions>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    class="min-h-11 lg:min-h-9"
+                    :aria-expanded="helpfulInfoOpen"
+                    aria-controls="dispensary-helpful-info"
+                    data-testid="case-help-toggle"
+                    @click="helpfulInfoOpen = !helpfulInfoOpen"
+                    >{{
+                        helpfulInfoOpen
+                            ? 'Hide helpful info'
+                            : 'Show helpful info'
+                    }}</Button
+                >
+                <Button
+                    v-if="visibleItems.length && dispensary.canPreviewLabels"
+                    as-child
+                    variant="outline"
+                    size="sm"
+                >
                     <a
                         :href="`/dispensary/${dispensary.publicId}/labels`"
                         target="_blank"
@@ -1347,16 +1365,33 @@ const exceptionStatusLabels: Record<string, string> = {
             title="Dispensary"
             description="Check each line, save it, then complete."
         >
-            <template
-                v-if="
-                    visibleItems.length &&
-                    dispensary.canPrintLabels &&
-                    !unsaved.length &&
-                    !unsavedServices.length
-                "
-                #actions
-            >
-                <Button as-child variant="outline" size="sm">
+            <template #actions>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    class="min-h-11 lg:min-h-9"
+                    :aria-expanded="helpfulInfoOpen"
+                    aria-controls="dispensary-helpful-info"
+                    data-testid="case-help-toggle"
+                    @click="helpfulInfoOpen = !helpfulInfoOpen"
+                    >{{
+                        helpfulInfoOpen
+                            ? 'Hide helpful info'
+                            : 'Show helpful info'
+                    }}</Button
+                >
+                <Button
+                    v-if="
+                        visibleItems.length &&
+                        dispensary.canPrintLabels &&
+                        !unsaved.length &&
+                        !unsavedServices.length
+                    "
+                    as-child
+                    variant="outline"
+                    size="sm"
+                >
                     <a
                         :href="`/dispensary/${dispensary.publicId}/labels`"
                         target="_blank"
@@ -3136,6 +3171,61 @@ const exceptionStatusLabels: Record<string, string> = {
                 >
                     You prepared this case, so someone else must check it.
                 </p>
+                <section
+                    id="dispensary-helpful-info"
+                    v-show="helpfulInfoOpen"
+                    aria-label="Helpful info"
+                    class="space-y-3"
+                    data-testid="case-help-panel"
+                >
+                    <details open class="rounded-xl border bg-card shadow-card">
+                        <summary
+                            class="min-h-11 cursor-pointer rounded-xl px-4 py-3 text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                        >
+                            About this page
+                        </summary>
+                        <div
+                            class="px-4 pb-4 text-[13px] text-muted-foreground"
+                            data-testid="case-help-about"
+                        >
+                            <p v-if="dispensary.viewOnly">
+                                The medicine and service details prepared for
+                                this case. This view does not allow changes.
+                            </p>
+                            <p v-else-if="isOtc">
+                                Review the medicines supplied in this OTC case.
+                                Save edited lines and confirm what the patient
+                                reports about allergies before completing.
+                            </p>
+                            <p v-else>
+                                Review the doctor's order beside what is
+                                supplied. Save edited lines before completing
+                                the case.
+                            </p>
+                        </div>
+                    </details>
+                    <details class="rounded-xl border bg-card shadow-card">
+                        <summary
+                            class="min-h-11 cursor-pointer rounded-xl px-4 py-3 text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                        >
+                            Good to know
+                        </summary>
+                        <ul
+                            class="list-disc space-y-2 pr-4 pb-4 pl-8 text-[13px] text-muted-foreground"
+                        >
+                            <li>
+                                Scanning only checks a box against the listed
+                                medicines. It does not save or dispense
+                                anything.
+                            </li>
+                            <li>
+                                The text-based allergy check can miss a match.
+                                Existing allergy warnings and confirmation
+                                requirements still apply.
+                            </li>
+                        </ul>
+                    </details>
+                </section>
             </aside>
         </div>
     </main>
