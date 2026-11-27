@@ -159,7 +159,10 @@ const dispensaryStatusLabel: Record<string, string> = {
                     ><Link :href="`/visits/${visit.visitNumber}/triage`"
                         >Triage</Link
                     ></Button
-                ><Button v-if="visit.can.update" as-child
+                ><Button
+                    v-if="visit.can.update"
+                    :variant="visit.can.sendToWaiting ? 'outline' : 'default'"
+                    as-child
                     ><Link :href="`/visits/${visit.visitNumber}/edit`"
                         ><Pencil class="size-4" /> Edit</Link
                     ></Button
@@ -226,12 +229,10 @@ const dispensaryStatusLabel: Record<string, string> = {
         </section>
         <section
             v-if="visit.queue"
-            class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900 dark:bg-emerald-950/30"
+            class="flex items-center justify-between rounded-lg border border-success/25 bg-success-wash p-4"
         >
             <div class="flex items-center gap-3">
-                <ListOrdered
-                    class="size-5 text-emerald-800 dark:text-emerald-300"
-                />
+                <ListOrdered class="size-5 text-success" />
                 <div>
                     <div
                         class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
@@ -266,7 +267,7 @@ const dispensaryStatusLabel: Record<string, string> = {
                 queueError('queue')
             "
         />
-        <section class="rounded-lg border bg-card p-4">
+        <section class="rounded-lg border bg-card p-4 shadow-card">
             <h2 class="font-semibold">Visit Reason</h2>
             <template v-if="visit.visitReasons.primary">
                 <p class="mt-2 text-sm">
@@ -375,7 +376,7 @@ const dispensaryStatusLabel: Record<string, string> = {
         >
             <button
                 type="button"
-                class="flex w-full items-center justify-between p-4 text-left"
+                class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4 text-left"
                 @click="cancelling = !cancelling"
             >
                 <span
@@ -385,7 +386,7 @@ const dispensaryStatusLabel: Record<string, string> = {
                         >Cancellation is final. A cancelled Visit cannot be
                         edited or reopened.</span
                     ></span
-                ><Ban class="size-4 text-destructive" />
+                ><Ban class="size-4 shrink-0 text-destructive" />
             </button>
             <form
                 v-if="cancelling"

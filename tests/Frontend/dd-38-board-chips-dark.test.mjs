@@ -16,7 +16,7 @@ test('the board status chips use tokens: neutral waiting, warning On Hold, accen
     );
     assert.match(
         board,
-        /serving: 'border-brand\/25 bg-brand\/10 text-brand-strong'/,
+        /serving: 'border-info\/25 bg-info-wash text-info'/,
     );
 
     for (const tone of ['neutral', 'cancelled', 'removed']) {
