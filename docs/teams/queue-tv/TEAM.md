@@ -263,7 +263,7 @@ Not overlapping, left alone: the workload and column PRs #1151, #1153, #1156, #1
 Q-16c gaps found on `main`: the details panel header shows `patientName` only (no queue number), and vitals are returned as a raw string cast so padded decimals can show. Units, the "Not yet reviewed" warning badge and "waiting <1 min" did land.
 
 ### Q-16d/e/f outcome and next slice (27 Nov 2026, Amirul)
-- Q-16d merged as PR #1253 (`1fac2781`), Q-16e as PR #1254 (`29a1d265`). Q-16f is PR #1255, head `201ed5d4` with main `29a1d265` merged in; it merges on the coordinator's call. All three are backend only: no migration, no permission, no changed assertion.
+- Q-16d merged as PR #1253 (`1fac2781`), Q-16e as PR #1254 (`29a1d265`) and Q-16f as PR #1255 (`e3af16c1`). All three are backend only: no migration, no permission, no changed assertion.
 - Mira's reviews are on each PR (same session, not independent). Non-blocking notes to carry:
   - 16d: `HELD_CAP = 3` duplicates `ConsultationHoldService::MAX_HELD_PATIENTS_PER_DOCTOR` (private); per-doctor `resolve()` and `doctorBusy()` queries; no tests for `busy_elsewhere`, `held` or carry-over.
   - 16e: the `visits` join is needed only for the own-doctor filter; the average is computed in PHP; the label should read "average wait today".
