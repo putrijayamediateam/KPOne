@@ -28,6 +28,6 @@ class BillingWorkController extends Controller
     {
         $data = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:10000']]);
 
-        return Inertia::render('FinancialWork/Index', ['work' => $directory->search($request->user(), $panel, (int) ($data['page'] ?? 1))]);
+        return Inertia::render('FinancialWork/Index', ['work' => $directory->search($request->user(), $panel, (int) ($data['page'] ?? 1), $request->query('q'))]);
     }
 }

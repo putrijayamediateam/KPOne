@@ -9,6 +9,7 @@ use App\Domain\Visit\Billing\Models\Invoice;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 final class BillingWorkDirectoryService
 {
@@ -17,9 +18,14 @@ final class BillingWorkDirectoryService
     /** Fixed server modes; browser filters cannot choose authority or branch scope.
      * @return array<string, mixed>
      */
-    public function search(User $actor, bool $panel, int $page): array
+    public function search(User $actor, bool $panel, int $page, mixed $search = null): array
     {
-        return DB::transaction(function () use ($actor, $panel, $page): array {
+        $validated = Validator::make(['q' => is_string($search) ? trim($search) : $search], [
+            'q' => ['nullable', 'string', 'max:120'],
+        ])->validate();
+        $search = (string) ($validated['q'] ?? '');
+
+        return DB::transaction(function () use ($actor, $panel, $page, $search): array {
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 404);
             $actor = $this->authority->lock($actor, $branch, $actor->can('billing.summary.branch') ? 'billing.summary.branch' : 'billing.view.branch');
@@ -39,9 +45,15 @@ final class BillingWorkDirectoryService
                     // PCA-2: an approved share shows its effective amount (confirmed Panel claim adjustments included).
                     ->addSelect([DB::raw("CASE WHEN c.status = 'approved' THEN kpone_panel_effective(invoices.id) ELSE c.amount_sen END as panel_amount"), 'c.status as panel_status', 'c.created_at as requested_at']);
             }
+            if ($search !== '') {
+                $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
+                $query->where(fn ($matches) => $matches->where('p.full_name', 'ilike', $pattern)
+                    ->orWhere('invoices.invoice_number', 'ilike', $pattern)
+                    ->orWhere('v.visit_number', 'ilike', $pattern));
+            }
             $results = $query->orderByDesc('invoices.id')->paginate(25, page: $page);
 
-            return ['mode' => $panel ? 'panel' : 'finance', 'branch' => $branch->name,
+            return ['mode' => $panel ? 'panel' : 'finance', 'branch' => $branch->name, 'branchId' => (int) $branch->id, 'filters' => ['q' => $search],
                 'data' => $results->getCollection()->map(function (Invoice $invoice) use ($panel, $branch): array {
                     $row = ['invoiceNumber' => $invoice->invoice_number, 'visitNumber' => $invoice->getAttribute('visit_number'),
                         'patientName' => $invoice->getAttribute('patient_name'), 'branch' => $branch->name,
