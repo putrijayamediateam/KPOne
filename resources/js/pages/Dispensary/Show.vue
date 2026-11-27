@@ -1706,6 +1706,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     <Button
                         size="sm"
                         variant="outline"
+                        class="dark:border-muted-foreground"
                         :disabled="busy"
                         @click="saveAll"
                         >Save all lines</Button
