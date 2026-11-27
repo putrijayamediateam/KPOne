@@ -51,6 +51,8 @@ const props = defineProps<{
     waiting: Proposal[];
     waitingCount: number;
     decided: Proposal[];
+    decidedStatus?: 'approved' | 'rejected' | 'withdrawn' | null;
+    decidedContext?: boolean;
     decidedPagination: { page: number; lastPage: number; total: number };
     rejectReasons: Record<string, string>;
 }>();
@@ -68,7 +70,9 @@ const errorMessages = computed(() => [
 ]);
 
 type Tab = 'propose' | 'waiting' | 'decided';
-const tab = ref<Tab>(props.canPropose ? 'propose' : 'waiting');
+const tab = ref<Tab>(
+    props.decidedContext ? 'decided' : props.canPropose ? 'propose' : 'waiting',
+);
 const tabs = computed(() => [
     ...(props.canPropose
         ? [{ id: 'propose' as Tab, label: 'Propose a change' }]
@@ -98,7 +102,16 @@ const loadSelection = () => {
 
     router.get(
         '/panel-price-changes',
-        { panel: form.book, charge: form.charge },
+        {
+            panel: form.book,
+            charge: form.charge,
+            ...(props.decidedContext
+                ? {
+                      decided_page: props.decidedPagination.page,
+                      decided_status: props.decidedStatus || undefined,
+                  }
+                : {}),
+        },
         {
             only: ['selection'],
             preserveState: true,
@@ -381,12 +394,24 @@ const statusDot = (status: Proposal['status']) =>
         withdrawn: 'bg-muted-foreground',
     })[status];
 
-const turnPage = (value: number) =>
+const loadDecisions = (value: number, status = props.decidedStatus ?? '') =>
     router.get(
         '/panel-price-changes',
-        value > 1 ? { decided_page: value } : {},
-        { preserveScroll: true, replace: true },
+        {
+            decided_page: value,
+            decided_status: status || undefined,
+            panel: form.book || undefined,
+            charge: form.charge || undefined,
+        },
+        { preserveState: true, preserveScroll: true, replace: true },
     );
+const turnPage = (value: number) => loadDecisions(value);
+const changeDecisionStatus = (event: Event) => {
+    const input = event.target as HTMLSelectElement;
+    const requested = input.value;
+    input.value = props.decidedStatus ?? '';
+    loadDecisions(1, requested);
+};
 </script>
 
 <template>
@@ -631,6 +656,47 @@ const turnPage = (value: number) =>
         </form>
 
         <template v-if="tab === 'waiting' || tab === 'decided'">
+            <section
+                v-if="tab === 'decided'"
+                aria-label="Filter price decisions"
+                class="space-y-2 rounded-xl border bg-card p-4"
+            >
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="space-y-1">
+                        <label
+                            for="decision-status"
+                            class="block text-sm font-medium"
+                            >Decision</label
+                        >
+                        <select
+                            id="decision-status"
+                            :value="decidedStatus ?? ''"
+                            class="min-h-11 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                            @change="changeDecisionStatus"
+                        >
+                            <option value="">All decisions</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="withdrawn">Withdrawn</option>
+                        </select>
+                    </div>
+                    <Button
+                        v-if="decidedStatus"
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        @click="loadDecisions(1, '')"
+                        >Clear decision filter</Button
+                    >
+                </div>
+                <p class="text-sm text-muted-foreground">
+                    Matching decisions across this organisation:
+                    {{ decidedPagination.total }}.
+                    <template v-if="canPropose">
+                        Panel and charge selections belong to the proposal form;
+                        they do not filter this list.
+                    </template>
+                </p>
+            </section>
             <div
                 v-if="tab === 'waiting' && canApprove && selectable.length > 0"
                 class="mb-3 space-y-2 rounded-xl border bg-card p-4 text-sm"
@@ -700,7 +766,9 @@ const turnPage = (value: number) =>
                 :title="
                     tab === 'waiting'
                         ? 'No proposals are waiting.'
-                        : 'Nothing has been decided yet.'
+                        : decidedStatus
+                          ? 'No decisions match this filter.'
+                          : 'Nothing has been decided yet.'
                 "
                 description="Proposed Panel price changes appear here."
             />
