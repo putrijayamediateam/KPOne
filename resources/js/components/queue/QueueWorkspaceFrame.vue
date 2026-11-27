@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 
 type Tab = {
-    value: 'all' | 'waiting' | 'serving' | 'removed';
+    value: 'waiting' | 'serving' | 'removed' | 'held' | 'treatment' | 'checks';
     label: string;
     count?: number;
 };
@@ -18,13 +18,16 @@ const showInfo = ref(true);
 const about = computed(
     () =>
         ({
-            all: 'Your active queue includes waiting and serving patients. Red-zone emergencies remain in their own lane.',
             waiting:
                 'Red-zone emergencies remain in their own lane. Other patients are ordered by urgency, then arrival; today comes before carry-over.',
             serving:
-                'Patients currently in consultation, including held consultations. Open the consultation to continue care or resume a held patient.',
+                'Patients currently in consultation. Held consultations appear separately under On hold.',
             removed:
-                'Completed consultations. The list shows the latest records; the count includes all matching completed entries.',
+                'Consultations sent to Dispensary or Billing today, using this branch’s local date. This does not mean billing is settled.',
+            held: 'Consultations currently on hold. Opening this list does not resume a patient.',
+            treatment:
+                'Finished treatment steps awaiting doctor review, including not-successful outcomes. This does not confirm the patient has returned. Opening this list does not acknowledge or resume care.',
+            checks: 'Your patients whose prepared medicines await your check. Open their consultation to review; viewing this list does not approve medicines.',
         })[props.activeTab],
 );
 </script>
@@ -41,7 +44,7 @@ const about = computed(
                 aria-label="Queue summary"
             >
                 <button
-                    v-for="tab in tabs"
+                    v-for="tab in tabs.slice(0, 4)"
                     :key="tab.value"
                     type="button"
                     :aria-pressed="activeTab === tab.value"
