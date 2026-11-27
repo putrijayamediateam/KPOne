@@ -104,3 +104,11 @@ with "Remove from family bill". The family link itself belongs to Patients & Reg
    - **A (recommended):** yes, each member's receipt as today.
    - **B:** also print one combined family receipt. This would be a new document type and needs the print-wording
      approval.
+
+## 9. Owner answers (27 Nov 2026, in the Billing session)
+
+1. Split order: **A**, oldest invoice first.
+2. Part payment: **A**, yes; the split stops when the money runs out.
+3. Receipts: **A**, one receipt per invoice; no combined family receipt.
+4. Dependency: wait for Nurul's `visits.family_group_id` migration to merge before building; Kumar reviews this note
+   meanwhile.
