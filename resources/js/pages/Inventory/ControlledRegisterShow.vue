@@ -254,7 +254,9 @@ const waitingReason = computed(
 
 <template>
     <Head :title="`Controlled register: ${register.sku.medicine}`" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory/controlled-register"
             variant="ghost"
@@ -271,7 +273,7 @@ const waitingReason = computed(
             "
         />
         <p
-            class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+            class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm font-medium text-warning-strong"
             data-testid="cd-draft-banner"
         >
             Draft register — pending pharmacist review. Not a statutory register
@@ -312,12 +314,12 @@ const waitingReason = computed(
         </form>
 
         <section aria-labelledby="cd-lines-heading" class="space-y-3">
-            <h2 id="cd-lines-heading" class="text-xl font-semibold">
+            <h2 id="cd-lines-heading" class="text-lg font-semibold">
                 Movements ({{ register.lines.total }})
             </h2>
             <p
                 v-if="register.blind"
-                class="rounded-md border p-3 text-sm"
+                class="rounded-xl border bg-card p-4 text-sm"
                 data-testid="cd-blind-note"
             >
                 Quantities are hidden until you record your count, so your check
@@ -345,7 +347,7 @@ const waitingReason = computed(
                     <li
                         v-for="line in register.lines.rows"
                         :key="line.id"
-                        class="space-y-1 rounded-md border p-3 text-sm"
+                        class="space-y-1 rounded-xl border bg-card p-4 text-sm"
                     >
                         <div class="flex flex-wrap justify-between gap-2">
                             <p class="font-medium">{{ line.what }}</p>
@@ -369,12 +371,16 @@ const waitingReason = computed(
                         </p>
                     </li>
                 </ul>
-                <div class="hidden overflow-x-auto rounded-md border lg:block">
+                <div
+                    class="hidden overflow-x-auto rounded-xl border bg-card lg:block"
+                >
                     <table class="w-full text-sm">
                         <caption class="sr-only">
                             Movements with a running balance
                         </caption>
-                        <thead class="bg-muted/50 text-left">
+                        <thead
+                            class="bg-card-quiet text-left text-muted-foreground"
+                        >
                             <tr>
                                 <th scope="col" class="p-3 font-medium">
                                     Date and time
@@ -479,10 +485,10 @@ const waitingReason = computed(
 
         <section
             aria-labelledby="cd-check-heading"
-            class="space-y-3 rounded-md border p-4"
+            class="space-y-3 rounded-xl border bg-card p-4 sm:p-5"
             data-testid="cd-check"
         >
-            <h2 id="cd-check-heading" class="text-xl font-semibold">
+            <h2 id="cd-check-heading" class="text-lg font-semibold">
                 Check this register
             </h2>
             <p class="text-sm text-muted-foreground">
@@ -508,7 +514,7 @@ const waitingReason = computed(
             </p>
             <p
                 v-if="ownReasonNeeded"
-                class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+                class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm font-medium text-warning-strong"
                 data-testid="cd-own-reason-needed"
             >
                 Your count differs from the register. Add the reason under
@@ -517,7 +523,7 @@ const waitingReason = computed(
             </p>
             <p
                 v-if="register.checkBlockedReason"
-                class="rounded-md border border-warning bg-warning/10 p-3 text-sm text-warning-strong"
+                class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm text-warning-strong"
                 data-testid="cd-check-blocked"
             >
                 {{ register.checkBlockedReason }}
@@ -530,7 +536,7 @@ const waitingReason = computed(
             >
                 <p
                     v-if="waitingReason"
-                    class="rounded-md border border-warning bg-warning/10 p-3 text-sm text-warning-strong"
+                    class="rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm text-warning-strong"
                     data-testid="cd-earlier-reason-waiting"
                 >
                     Check {{ waitingReason.sequence }} differs from the register
@@ -574,7 +580,7 @@ const waitingReason = computed(
         </section>
 
         <section aria-labelledby="cd-checks-heading" class="space-y-3">
-            <h2 id="cd-checks-heading" class="text-xl font-semibold">
+            <h2 id="cd-checks-heading" class="text-lg font-semibold">
                 Earlier checks
             </h2>
             <p
@@ -587,7 +593,7 @@ const waitingReason = computed(
                 <li
                     v-for="check in register.checks"
                     :key="check.publicId"
-                    class="space-y-1 rounded-md border p-3 text-sm"
+                    class="space-y-1 rounded-xl border bg-card p-4 text-sm"
                 >
                     <div class="flex flex-wrap items-center gap-2">
                         <StatusBadge
@@ -658,7 +664,7 @@ const waitingReason = computed(
                         <select
                             id="cd-reason"
                             v-model="reasonForm.reason"
-                            class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+                            class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground"
                             :aria-invalid="
                                 reasonErrors.reason ? 'true' : undefined
                             "
