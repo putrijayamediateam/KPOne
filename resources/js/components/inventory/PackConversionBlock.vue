@@ -190,7 +190,7 @@ const withdraw = () =>
         <p
             v-if="!block.waiting && check.errors.checked_base_per_pack"
             role="alert"
-            class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
             data-testid="pack-conversion-refused"
         >
             {{ check.errors.checked_base_per_pack }}
@@ -281,7 +281,7 @@ const withdraw = () =>
         <!-- A change waiting for a check. -->
         <div
             v-if="block.waiting"
-            class="space-y-3 rounded-md border border-warning bg-warning/10 p-3 text-sm"
+            class="space-y-3 rounded-xl border border-warning/25 bg-warning-wash p-3 text-sm"
             data-testid="pack-conversion-waiting"
         >
             <p v-if="block.waiting.canCheck" class="font-medium">

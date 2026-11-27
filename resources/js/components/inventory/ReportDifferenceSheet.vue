@@ -148,7 +148,7 @@ function submit(): void {
                         it.
                     </p>
                     <div
-                        class="mt-auto flex justify-end max-sm:sticky max-sm:bottom-0 max-sm:bg-background max-sm:py-3"
+                        class="mt-auto flex justify-end max-sm:sticky max-sm:bottom-0 max-sm:bg-popover max-sm:py-3"
                     >
                         <Button
                             type="button"
@@ -249,7 +249,7 @@ function submit(): void {
                     />
 
                     <div
-                        class="mt-auto flex flex-col gap-2 max-sm:sticky max-sm:bottom-0 max-sm:bg-background max-sm:py-3"
+                        class="mt-auto flex flex-col gap-2 max-sm:sticky max-sm:bottom-0 max-sm:bg-popover max-sm:py-3"
                     >
                         <p
                             v-if="form.observed === ''"

@@ -172,7 +172,7 @@ watch(
 </script>
 <template>
     <section
-        class="min-w-0 space-y-3 rounded-[10px] bg-card-quiet p-3"
+        class="min-w-0 space-y-3 rounded-xl border bg-card p-4 shadow-card"
         aria-label="Receiving exception reviews"
     >
         <h4 class="font-semibold">Delivery exceptions and corrections</h4>

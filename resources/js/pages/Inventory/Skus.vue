@@ -251,12 +251,12 @@ const errorFor = (field: string) =>
         </p>
 
         <form
-            class="flex flex-wrap items-end gap-2"
+            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             role="search"
             @submit.prevent="visit()"
         >
             <label
-                class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
+                class="grid min-w-0 basis-full gap-2 text-[13px] font-medium sm:flex-1 sm:basis-auto"
                 >Search SKU code, name or barcode
                 <Input v-model="q" maxlength="100" />
             </label>
@@ -276,14 +276,21 @@ const errorFor = (field: string) =>
             >
         </form>
 
-        <p v-if="skus.rows.length === 0" class="text-sm text-muted-foreground">
+        <p
+            v-if="skus.rows.length === 0"
+            class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-card"
+        >
             No SKUs match.
         </p>
-        <ul v-else class="space-y-3" aria-label="SKUs">
+        <ul
+            v-else
+            class="divide-y overflow-hidden rounded-xl border bg-card shadow-card"
+            aria-label="SKUs"
+        >
             <li
                 v-for="sku in skus.rows"
                 :key="sku.publicId"
-                class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
+                class="space-y-3 p-4 sm:p-5"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="min-w-0">
@@ -303,7 +310,7 @@ const errorFor = (field: string) =>
                                 >Barcode also on another SKU. Fix it on
                                 <Link
                                     href="/inventory/readiness"
-                                    class="underline"
+                                    class="text-link underline"
                                     >Pilot readiness</Link
                                 >.</span
                             >

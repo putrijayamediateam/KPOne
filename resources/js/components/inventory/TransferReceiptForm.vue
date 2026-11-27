@@ -79,7 +79,7 @@ const submit = () => {
         <fieldset
             v-for="(receipt, index) in rows"
             :key="receipt.linePublicId"
-            class="space-y-2 rounded-lg border p-2"
+            class="space-y-2 rounded-[10px] border p-3"
         >
             <legend class="px-1 text-xs font-medium">
                 {{ skuFor(index) }}

@@ -501,7 +501,7 @@ watch(
                     <li
                         v-for="line in group.lines"
                         :key="line.id"
-                        class="rounded-lg bg-card-quiet px-2 py-1"
+                        class="rounded-lg bg-card px-2 py-1"
                     >
                         {{ line.quantity }} {{ line.base_unit }} ·
                         {{ line.sku_code }} · batch

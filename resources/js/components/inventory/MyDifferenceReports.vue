@@ -38,7 +38,7 @@ const stateLabels: Record<string, string> = {
 
 <template>
     <details
-        class="group rounded-lg border bg-card"
+        class="group rounded-xl border bg-card shadow-card"
         data-testid="my-difference-reports"
     >
         <summary

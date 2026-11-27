@@ -195,7 +195,7 @@ watch(
                 v-for="(line, index) in form.lines"
                 :id="`receiving-line-${line.line_public_id}`"
                 :key="line.line_public_id"
-                class="min-w-0 space-y-3 rounded-[10px] bg-card-quiet p-3"
+                class="min-w-0 space-y-3 rounded-[10px] border bg-card p-3"
                 :class="{
                     'border-2 border-primary':
                         scannedLine === line.line_public_id,
@@ -250,7 +250,7 @@ watch(
                     <div
                         v-for="(entry, number) in line.lots"
                         :key="number"
-                        class="grid min-w-0 gap-2 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-2"
+                        class="grid min-w-0 gap-2 rounded-[10px] border p-3 sm:grid-cols-2"
                     >
                         <p class="font-medium sm:col-span-2">
                             Lot {{ number + 1 }}

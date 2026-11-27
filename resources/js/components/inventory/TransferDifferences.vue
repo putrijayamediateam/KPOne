@@ -78,7 +78,7 @@ const submit = (difference: InventoryTransferDifference) => {
         <article
             v-for="difference in differences"
             :key="difference.publicId"
-            class="space-y-2 rounded-md border bg-card p-2 text-sm"
+            class="space-y-2 rounded-lg bg-card p-3 text-sm"
         >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <span
