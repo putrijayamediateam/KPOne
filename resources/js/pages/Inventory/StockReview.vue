@@ -218,7 +218,9 @@ watch(
 
 <template>
     <Head title="Stock review" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -245,19 +247,22 @@ watch(
                 >Search SKU, item, batch or location<input
                     v-model="q"
                     maxlength="100"
-                    class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                    class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3"
                     type="search"
             /></label>
-            <button class="min-h-11 rounded border px-4" type="submit">
+            <button
+                class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
+                type="submit"
+            >
                 Search
             </button>
         </form>
         <section
             v-for="k in kinds"
             :key="k"
-            class="min-w-0 space-y-3 rounded-lg border p-3 md:p-5"
+            class="min-w-0 space-y-3 rounded-xl border bg-card p-4 md:p-5"
         >
-            <h2 class="text-xl font-semibold">{{ headings[k] }}</h2>
+            <h2 class="text-lg font-semibold">{{ headings[k] }}</h2>
             <p v-if="k === 'expiring'" class="text-sm">
                 Eligible positive stock expiring after today, within each item's
                 alert days ({{ review.windowDays }} days unless set on the
@@ -280,7 +285,7 @@ watch(
             <article
                 v-for="row in review.lists[k].rows"
                 :key="row.item_id"
-                class="min-w-0 space-y-3 rounded border p-3"
+                class="min-w-0 space-y-3 rounded-xl border bg-card-quiet p-3"
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0 flex-1 break-words">
@@ -299,7 +304,7 @@ watch(
                         <button
                             v-if="review.canManage"
                             type="button"
-                            class="min-h-11 rounded border px-3"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium hover:bg-accent"
                             @click="show(k, row)"
                         >
                             Acknowledge
@@ -359,14 +364,14 @@ watch(
             </article>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <button
-                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
                     type="button"
                     :disabled="review.lists[k].page <= 1"
                     @click="search(k, review.lists[k].page - 1)"
                 >
                     Previous</button
                 ><button
-                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
                     type="button"
                     :disabled="review.lists[k].page >= review.lists[k].lastPage"
                     @click="search(k, review.lists[k].page + 1)"
@@ -376,10 +381,10 @@ watch(
             </div>
         </section>
         <section
-            class="min-w-0 space-y-3 rounded-lg border p-3 md:p-5"
+            class="min-w-0 space-y-3 rounded-xl border bg-card p-4 md:p-5"
             data-testid="at-risk"
         >
-            <h2 class="text-xl font-semibold">At risk in 6 months</h2>
+            <h2 class="text-lg font-semibold">At risk in 6 months</h2>
             <p class="text-sm">
                 Usable stock expiring within {{ atRisk.days }} days of today.
                 Read only: there is nothing to acknowledge here.
@@ -399,7 +404,7 @@ watch(
             </p>
             <p
                 v-if="atRisk.banner"
-                class="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm font-medium text-foreground"
+                class="flex items-start gap-2 rounded-xl border bg-card-quiet p-3 text-sm font-medium text-foreground"
                 data-testid="at-risk-banner"
             >
                 <Info
@@ -431,7 +436,7 @@ watch(
             <article
                 v-for="row in atRisk.rows"
                 :key="row.item_id"
-                class="min-w-0 space-y-1 rounded border p-3"
+                class="min-w-0 space-y-1 rounded-xl border bg-card-quiet p-3"
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0 flex-1 break-words">
@@ -517,14 +522,14 @@ watch(
             </article>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <button
-                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
                     type="button"
                     :disabled="atRisk.page <= 1"
                     @click="search('at_risk', atRisk.page - 1)"
                 >
                     Previous</button
                 ><button
-                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-40"
                     type="button"
                     :disabled="atRisk.page >= atRisk.lastPage"
                     @click="search('at_risk', atRisk.page + 1)"
@@ -558,7 +563,7 @@ watch(
                     <label class="block"
                         >Outcome<select
                             v-model="form.outcome"
-                            class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                            class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2"
                         >
                             <option
                                 v-for="(label, value) in outcomes"
@@ -585,13 +590,13 @@ watch(
                     />
                     <div class="flex flex-wrap gap-2">
                         <button
-                            class="min-h-11 rounded border px-4"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
                             type="button"
                             @click="dialog = false"
                         >
                             Cancel</button
                         ><button
-                            class="min-h-11 rounded bg-primary px-4 text-primary-foreground disabled:opacity-40"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40"
                             type="submit"
                             :disabled="form.processing"
                         >
@@ -636,7 +641,7 @@ watch(
                 </article>
                 <button
                     type="button"
-                    class="min-h-11 rounded border px-4"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent"
                     @click="history = null"
                 >
                     Close history
