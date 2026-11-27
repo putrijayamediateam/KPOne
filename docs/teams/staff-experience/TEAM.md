@@ -4,6 +4,79 @@ Status: **set up with the owner on 2026-11-05.** This folder is the team's memor
 the owner decided, the rules, and what to build next. The team reads it before every task and updates it in
 the same PR as the code.
 
+## 0. Handoff for a fresh session (written 27 Nov 2026, by Kavitha and Aiman)
+
+**Read this first.** The owner moved every team to a fresh session on a new model, one slice per session (B.E.R.N.I.S.S, 27 Nov).
+Sections 1 to 9 below are the older memory; this section is what is true now.
+
+### What the owner decided on 25 Nov (Clean Look replaces Classic)
+- The whole frontend moves to the owner's locked "KPOne Clean Look" canvas (design https://claude.ai/artifact/Jyr8UV231y4roWRyyqxxRJ,
+  clickable demo https://claude.ai/artifact/KUkn7hc8xW9k2REtRUCFbG). **In place**: same shared components, tokens and files; no second
+  version, no switch, no duplicate page. A PR that adds a parallel page or component is refused. The spec is
+  `docs/design/CLEAN-LOOK-SPEC.md` (Daniel). Deadline for the live CA test at Puchong: **Mon 30 Nov 08:30 MYT.**
+- Colours: **blue** for everything interactive: `--primary` `#006ae0` (fills and text, 5.07:1), `--accent-blue` `#007aff` (non-text only: rail
+  icon, selection wash, focus ring), `--link` `#006ae0`; pink stays on the logo mark only. Dark: `#4d94ff` and `#6ba6ff`.
+- Process: Daniel's look and the Reviewer's OK, green CI on the exact head with main contained, then B.E.R.N.I.S.S merges; the owner gives one
+  ship-it per group and approves changed class-string tests as a group. Changed existing assertions are listed in the PR body and to
+  B.E.R.N.I.S.S **first**. Do not refresh main until B.E.R.N.I.S.S calls your turn. A PR opens only after the owner's ship-it. Teams never merge.
+- New rule (owner): a migration that grants a permission to `ca` must also grant it to `medical_assistant`.
+- Owner answers: build everything before Monday; the red-zone alert backend is Amirul's (the homes show his alert, they do not build their own);
+  the CA Supervisor home is built from the CA home pieces.
+
+### Merged since the last section 5 entry (all on `main`)
+APPR-1a approvals inbox (#1062), Branch Manager aggregate reports (#1061), My day DAY-1a, DAY-1b, DAY-1c (#1063, #1064, #1065),
+INS-1 Insights decoupling (#1092), DisclosureText clamp fix (#586), HR-22d roster station on My day (#1100, with `StationLink` and the
+separate `stationHref` prop), **Clean Look tokens, fonts and ui components (#1120)**, **Clean Look shell: icon rail, hover panel, phone drawer,
+server-built `ShellMenu` (#1125)**. Fonts are self-hosted in `public/fonts` (Geist and Inter, OFL licences beside them).
+
+### Open PRs (not built by this session; check their state first)
+- **#1135** "Restyle homes with shared Clean Look components" (branch `feature/clean-look-homes-publication`, head `e3b14e164` on 26 Nov).
+- **#1138** "Fix Queue and Registration filter control sizes" (branch `fix/clean-look-filter-targets`, head `fae04b354` on 26 Nov).
+
+### Unmerged work, pushed (no PR; nothing is only local)
+- `feature/home-next-things` at `6892683e4`: the backend for the role homes. `RoleNextThings` (one list "Your next things", a live strip and the
+  doctor's own sales line, all from the boards' own services and permissions) and `GET /my-day/next` (`my-day.next`), plus
+  `tests/Feature/DepartmentSpace/RoleNextThingsTest.php`. My day already carries it as the `next` prop. **No Vue yet.** Branch from the
+  current `main` and merge or cherry-pick it; do not trust it blindly, it predates the Clean Look merges.
+
+### Next slice for this team (Stage 1 and 2 from the spec, section 11)
+1. Homes and My day for CA, CA Supervisor and Resident Doctor on the Clean Look components, using `RoleNextThings`, the live strip, the doctor's
+   "My sales" card, and Amirul's red-zone alert when it exists. The My day tiles and the pink Clock in come from `space-shell.css` and
+   `space-shell-layout.css` and still carry the old colours: they move to tokens here (do not let page teams fix them one by one).
+2. Stage 2 (by Sun 29 Nov 18:00): Staff, Admin, AccessControl, Branches, ProfileSettings, PasswordPages, SignIn, AuditLog, HqView, and the
+   Director, Finance, Administrator and Office homes (`DirectorHome`, `DirectorOverview`, `HomeFin`, `HomeAdm`, `HomeOffice`). The website
+   boards were assigned here too in the spec, tokens only unless time.
+3. HR step 0 (from earlier): My day "Waiting for me" for people who hold only to-read tasks (`SopsToRead`, `MemosToRead` extraction and
+   APPR-1d slice 1), then TASK-kind approval sources (APPR-1e). Wait for Liyana's branch; the `/approvals` page and the account-button number
+   stay deciders only.
+
+### Aiman's follow-ups on the shell (not blocking, not done)
+1. `HandleInertiaRequests` builds the shell menu twice per request (`hasDestinations` and `ShellMenu`): build it once and reuse it.
+2. The branch switcher is reachable only with the panel open; make it reachable from the closed rail.
+3. `Registration/Index.vue` accepts `?tab=` for every board tab; guard a value the person cannot see so no tab is left unselected.
+Also noted: a keyboard user tabbing across the rail opens the panel on each icon (usable, noisy); `PageHeader` shows the branch subline only
+on pages that use it (Registration and a few pages write their own header, so the rail chip covers them); the Clean Look spec's switch,
+sheet, date-field, avatar, breadcrumb, empty state and disclosure components are **not** restyled yet; about 56 pages still write their own
+all-caps small table headers (page PRs); the old `WorkspaceHeader` and `AppHeader` files are unused and can go in the Stage 2 cleanup; the
+rail has no Waiting count chip (no endpoint). The backend gap for Aisyah: the canvas "Pharmacy" board is a list page and no `/dispensary`
+list route exists (the rail links to the Registration board's Dispensary tab).
+
+### Tests that guard the look
+`clean-look-tokens.test.mjs` (contrast of every text and control pair, light and dark; blue accent; self-hosted fonts),
+`clean-look-shell.test.mjs`, `ShellMenuTest`, and the `classic-only-co*-kept*.test.mjs` structure pins (the shell changed
+`classic-only-co10-kept-layouts`: the layouts now render `WorkspaceRail`). B.E.R.N.I.S.S mentioned a "Classic guard test": this session does
+not know which file that means; ask B.E.R.N.I.S.S. Class-string pins will keep changing as pages move; list each one in the PR body.
+
+### Working notes for a fresh session
+- Never open or write a `.env`. Cloud sessions use `kphp` for PHP 8.4. The Wayfinder routes need PHP 8.4: with the host PHP 8.3 put a `php` shim
+  that runs the Docker PHP first on `PATH` before `npm run build`, and run the frontend tests the same way (two tests read generated routes).
+- GD is missing locally, so image-based PHP tests run in CI only. A PHP test needs the task-owned PostgreSQL container; start Docker and the
+  container first (it stops between turns).
+- Screenshots: run the app against a **task-owned** database with explicit DB env (never plain `php artisan serve`); the `APP_URL` port must match
+  the port you serve on; serve static files from `public` through a router that returns false for existing files.
+- A red `ci` check on an old head is usually a cancelled run from a newer push: check the job conclusions before fixing anything.
+- DisciplineTest line 69 and `PharmacySpaceTest` pinned strings that the shell menu now puts on every page; the shell menu links are shared page props.
+
 ## 1. Team
 
 | Role | Name | Job |
