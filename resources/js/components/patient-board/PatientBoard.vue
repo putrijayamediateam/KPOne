@@ -38,7 +38,8 @@ const props = defineProps<{
     branchId?: number;
     from?: 'registration' | 'queue';
     queueLayout?: 'own' | 'branch';
-    queueTask?: 'waiting' | 'seeing' | 'held' | 'treatment' | 'completed';
+    queueTask?:
+        'waiting' | 'seeing' | 'held' | 'treatment' | 'completed' | 'checks';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
@@ -143,13 +144,15 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th v-if="ownTask" class="w-28 px-3 py-2">Zone</th>
                         <th v-if="queueLayout === 'own'" class="w-40 px-3 py-2">
                             {{
-                                queueTask === 'completed'
-                                    ? 'Seen for'
-                                    : queueTask === 'held'
-                                      ? 'Treatment step'
-                                      : queueTask === 'treatment'
-                                        ? 'Treatment'
-                                        : 'Reason'
+                                queueTask === 'checks'
+                                    ? 'Item lines'
+                                    : queueTask === 'completed'
+                                      ? 'Seen for'
+                                      : queueTask === 'held'
+                                        ? 'Treatment step'
+                                        : queueTask === 'treatment'
+                                          ? 'Treatment'
+                                          : 'Reason'
                             }}
                         </th>
                         <th
@@ -161,15 +164,17 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th class="w-40 px-3 py-2">
                             {{
                                 ownTask
-                                    ? queueTask === 'completed'
-                                        ? 'Completed (consultation)'
-                                        : queueTask === 'treatment'
-                                          ? 'Result'
-                                          : queueTask === 'held'
-                                            ? 'Held'
-                                            : queueTask === 'waiting'
-                                              ? 'Waiting'
-                                              : 'Since'
+                                    ? queueTask === 'checks'
+                                        ? 'Sent by'
+                                        : queueTask === 'completed'
+                                          ? 'Completed (consultation)'
+                                          : queueTask === 'treatment'
+                                            ? 'Result'
+                                            : queueTask === 'held'
+                                              ? 'Held'
+                                              : queueTask === 'waiting'
+                                                ? 'Waiting'
+                                                : 'Since'
                                     : 'Waiting / since'
                             }}
                         </th>
@@ -324,18 +329,28 @@ const triageTextClass = (zone: TriageZone | null) =>
                         v-if="queueLayout !== 'branch'"
                         :data-label="
                             ownTask
-                                ? queueTask === 'completed'
-                                    ? 'Seen for'
-                                    : queueTask === 'held'
-                                      ? 'Treatment step'
-                                      : queueTask === 'treatment'
-                                        ? 'Treatment'
-                                        : 'Reason'
+                                ? queueTask === 'checks'
+                                    ? 'Item lines'
+                                    : queueTask === 'completed'
+                                      ? 'Seen for'
+                                      : queueTask === 'held'
+                                        ? 'Treatment step'
+                                        : queueTask === 'treatment'
+                                          ? 'Treatment'
+                                          : 'Reason'
                                 : 'Visit notes'
                         "
                     >
+                        <span
+                            v-if="ownTask && queueTask === 'checks'"
+                            class="tabular-nums"
+                            >{{
+                                row.medicineCheck?.itemLineCount ??
+                                'Not available'
+                            }}</span
+                        >
                         <template
-                            v-if="
+                            v-else-if="
                                 ownTask &&
                                 (queueTask === 'held' ||
                                     queueTask === 'treatment')
@@ -487,18 +502,27 @@ const triageTextClass = (zone: TriageZone | null) =>
                         class="px-3 py-2.5 align-middle"
                         :data-label="
                             ownTask
-                                ? queueTask === 'completed'
-                                    ? 'Completed (consultation)'
-                                    : queueTask === 'held'
-                                      ? 'Held'
-                                      : queueTask === 'waiting'
-                                        ? 'Waiting'
-                                        : 'Since'
+                                ? queueTask === 'checks'
+                                    ? 'Sent by'
+                                    : queueTask === 'completed'
+                                      ? 'Completed (consultation)'
+                                      : queueTask === 'held'
+                                        ? 'Held'
+                                        : queueTask === 'waiting'
+                                          ? 'Waiting'
+                                          : 'Since'
                                 : 'Duration'
                         "
                     >
                         <span
-                            v-if="ownTask && queueTask === 'completed'"
+                            v-if="ownTask && queueTask === 'checks'"
+                            class="text-xs break-words"
+                            >{{
+                                row.medicineCheck?.sentBy ?? 'Not available'
+                            }}</span
+                        >
+                        <span
+                            v-else-if="ownTask && queueTask === 'completed'"
                             class="text-xs tabular-nums"
                             >{{ row.completionLabel ?? 'Not available' }}</span
                         >

@@ -102,6 +102,14 @@ class QueueDirectoryService
         $eligibleDoctorIds = $this->doctors->eligibleDoctorIds($branch, $now->setTimezone($branch->timezone)->toDateString());
         $hints = [];
         $rows = $this->rows($actor, $entries, $branch, $now, $eligibleDoctorIds, $hints, $removedHints, $checks);
+        if ($section === 'checks') {
+            $metadata = app(QueueMedicineCheckMetadata::class)->forVisits($actor, $entries->map(fn (QueueEntry $entry) => $entry->visit));
+            $rows = $rows->map(function (array $row) use ($metadata): array {
+                $row['medicineCheck'] = $metadata[$row['visitNumber']] ?? null;
+
+                return $row;
+            });
+        }
         if ($section === 'completed') {
             // Same authorized, loaded entry as the row; this is checkout/handoff time, not downstream completion.
             $completionTimes = $entries->mapWithKeys(fn (QueueEntry $entry): array => [

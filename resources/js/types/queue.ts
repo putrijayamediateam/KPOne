@@ -34,6 +34,7 @@ export type QueueRow = {
     calledAt: string | null;
     /** Only completed workload rows: consultation checkout/handoff time in UTC. */
     removedAt?: string | null;
+    medicineCheck?: { itemLineCount: number; sentBy: string | null } | null;
     isHeld: boolean;
     isHeldTooLong: boolean;
     holdStartedAt: string | null;
