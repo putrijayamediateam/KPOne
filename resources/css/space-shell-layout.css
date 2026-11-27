@@ -1006,6 +1006,18 @@
 .space-shell[data-classic-frame] .space-main {
     padding: 0;
 }
+.space-shell[data-classic-frame] .space-greeting {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.space-shell[data-classic-frame] .space-greet {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--space-fg);
+}
 /* Homes are a grid of cards: one column on phone, two from 1024 px (spec section 7). */
 @media (min-width: 1024px) {
     .space-shell[data-classic-frame] .space-main {
@@ -1015,6 +1027,7 @@
     }
     .space-shell[data-classic-frame] .space-main > header,
     .space-shell[data-classic-frame] .space-main > nav,
+    .space-shell[data-classic-frame] .space-main > .space-greeting,
     .space-shell[data-classic-frame] .space-main > .space-asof,
     .space-shell[data-classic-frame] .space-main > .space-recent,
     .space-shell[data-classic-frame]

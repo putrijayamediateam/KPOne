@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import MeHome from '@/components/spaces/MeHome.vue';
@@ -10,6 +10,27 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 import { waitingTone } from '@/lib/waiting-time';
+
+// Clean Look greeting for the department homes, from the signed-in user's own
+// name already shared with every page. No new query; the Me home keeps its own.
+const page = usePage();
+const greetingText = computed(() => {
+    const name = (page.props.auth?.user?.name ?? '').trim().split(/\s+/)[0];
+    const hour = new Date().getHours();
+    const part =
+        hour < 12
+            ? 'Good morning'
+            : hour < 18
+              ? 'Good afternoon'
+              : 'Good evening';
+
+    return name ? `${part}, ${name}` : part;
+});
+const greetingDate = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+}).format(new Date());
 
 type Space = { key: string; title: string };
 
@@ -446,6 +467,10 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                     >{{ s.title }}</Link
                 >
             </nav>
+            <div v-if="!me" class="space-greeting" data-test="space-greeting">
+                <p class="space-greet">{{ greetingText }}</p>
+                <p class="space-muted">{{ greetingDate }}</p>
+            </div>
             <template v-if="pharmacy">
                 <SpaceAsOf
                     v-if="pharmacy.branchName"
