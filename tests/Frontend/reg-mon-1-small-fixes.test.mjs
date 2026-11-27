@@ -19,3 +19,15 @@ test('DD-130: the Cancel Visit icon sits in its own grid column', () => {
     );
     assert.match(show, /<Ban class="size-4 shrink-0 text-destructive" \/>/);
 });
+
+test('DD-124: the Duration chip stays on one line', () => {
+    const board = read(
+        'resources/js/components/patient-board/PatientBoard.vue',
+    );
+    const chip =
+        board.match(
+            /<span\s+class="([^"]*tabular-nums[^"]*)"\s+:class="durationClass/,
+        )?.[1] ?? '';
+    assert.ok(chip.split(/\s+/).includes('whitespace-nowrap'));
+    assert.match(board, /<th class="w-\[15%\] px-3 py-2">Duration<\/th>/);
+});
