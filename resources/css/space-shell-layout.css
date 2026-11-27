@@ -1057,24 +1057,25 @@
     letter-spacing: -0.02em;
     color: var(--space-fg);
 }
-/* Homes are a grid of cards: one column on phone, two from 1024 px (spec section 7). */
+/* Homes are a flow of cards: one column on phone, two balanced columns from 1024 px (spec section 7). Balanced columns
+   keep the right column from ending early; the header, greeting, tiles and recent activity span both columns. */
 @media (min-width: 1024px) {
     .space-shell[data-classic-frame] .space-main {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: start;
+        display: block;
+        column-count: 2;
+        column-gap: 16px;
     }
-    .space-shell[data-classic-frame] .space-main > header,
-    .space-shell[data-classic-frame] .space-main > nav,
-    .space-shell[data-classic-frame] .space-main > .space-greeting,
-    .space-shell[data-classic-frame] .space-main > .space-tiles,
-    .space-shell[data-classic-frame] .space-main > .me-home,
-    .space-shell[data-classic-frame] .space-main > .space-asof,
-    .space-shell[data-classic-frame] .space-main > .space-recent,
-    .space-shell[data-classic-frame]
-        .space-main
-        > .space-card:last-child:nth-child(odd) {
-        grid-column: 1 / -1;
+    .space-shell[data-classic-frame] .space-main > * {
+        column-span: all;
+        margin-bottom: 16px;
+    }
+    .space-shell[data-classic-frame] .space-main .space-card {
+        column-span: none;
+        break-inside: avoid;
+        margin-bottom: 16px;
+    }
+    .space-shell[data-classic-frame] .space-main > .space-recent {
+        column-span: all;
     }
 }
 /* The shared primary foreground also supplies the dark-theme accent label. */
