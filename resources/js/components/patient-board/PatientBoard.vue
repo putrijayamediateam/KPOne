@@ -31,13 +31,14 @@ import { waitingTone, waitingToneDescription } from '@/lib/waiting-time';
 import type { WaitingTone } from '@/lib/waiting-time';
 import type { PatientBoardRow } from '@/types';
 import PatientBoardStatus from './PatientBoardStatus.vue';
+import PatientBoardTreatmentResults from './PatientBoardTreatmentResults.vue';
 
 const props = defineProps<{
     rows: PatientBoardRow[];
     branchId?: number;
     from?: 'registration' | 'queue';
     queueLayout?: 'own' | 'branch';
-    queueTask?: 'waiting' | 'seeing' | 'held';
+    queueTask?: 'waiting' | 'seeing' | 'held' | 'treatment';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
@@ -144,7 +145,9 @@ const triageTextClass = (zone: TriageZone | null) =>
                             {{
                                 queueTask === 'held'
                                     ? 'Treatment step'
-                                    : 'Reason'
+                                    : queueTask === 'treatment'
+                                      ? 'Treatment'
+                                      : 'Reason'
                             }}
                         </th>
                         <th
@@ -156,11 +159,13 @@ const triageTextClass = (zone: TriageZone | null) =>
                         <th class="w-40 px-3 py-2">
                             {{
                                 ownTask
-                                    ? queueTask === 'held'
-                                        ? 'Held'
-                                        : queueTask === 'waiting'
-                                          ? 'Waiting'
-                                          : 'Since'
+                                    ? queueTask === 'treatment'
+                                        ? 'Result'
+                                        : queueTask === 'held'
+                                          ? 'Held'
+                                          : queueTask === 'waiting'
+                                            ? 'Waiting'
+                                            : 'Since'
                                     : 'Waiting / since'
                             }}
                         </th>
@@ -249,7 +254,10 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </div>
                         <PatientBoardStatus
                             v-if="ownTask"
-                            :show-treatment-badge="queueTask !== 'held'"
+                            :show-treatment-badge="
+                                queueTask !== 'held' &&
+                                queueTask !== 'treatment'
+                            "
                             class="mt-2"
                             :row="row"
                             :branch-id="branchId"
@@ -314,11 +322,19 @@ const triageTextClass = (zone: TriageZone | null) =>
                             ownTask
                                 ? queueTask === 'held'
                                     ? 'Treatment step'
-                                    : 'Reason'
+                                    : queueTask === 'treatment'
+                                      ? 'Treatment'
+                                      : 'Reason'
                                 : 'Visit notes'
                         "
                     >
-                        <template v-if="ownTask && queueTask === 'held'">
+                        <template
+                            v-if="
+                                ownTask &&
+                                (queueTask === 'held' ||
+                                    queueTask === 'treatment')
+                            "
+                        >
                             <TreatmentProgressBadge
                                 v-if="
                                     treatmentBadgeText(
@@ -328,6 +344,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 "
                                 :progress="row.treatmentProgress"
                                 :minutes="row.treatmentMinutes"
+                                :show-outcomes="queueTask !== 'treatment'"
                             />
                             <span v-else class="text-xs text-muted-foreground"
                                 >Not available</span
@@ -340,6 +357,15 @@ const triageTextClass = (zone: TriageZone | null) =>
                                 fallback="No reason recorded"
                             />
                         </div>
+                    </td>
+                    <td
+                        v-if="ownTask && queueTask === 'treatment'"
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Result"
+                    >
+                        <PatientBoardTreatmentResults
+                            :progress="row.treatmentProgress"
+                        />
                     </td>
                     <td
                         v-if="queueLayout !== 'own'"
@@ -451,6 +477,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </TooltipProvider>
                     </td>
                     <td
+                        v-if="!(ownTask && queueTask === 'treatment')"
                         class="px-3 py-2.5 align-middle"
                         :data-label="
                             ownTask
@@ -796,6 +823,8 @@ const triageTextClass = (zone: TriageZone | null) =>
     .patient-board td[data-label='Visit notes'],
     .patient-board td[data-label='Reason'],
     .patient-board td[data-label='Treatment step'],
+    .patient-board td[data-label='Treatment'],
+    .patient-board td[data-label='Result'],
     .patient-board td[data-label='Payment'] {
         grid-column: 1 / -1;
     }

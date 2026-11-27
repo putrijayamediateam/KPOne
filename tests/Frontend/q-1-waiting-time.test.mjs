@@ -189,6 +189,30 @@ const renderBoard = async (rows) => {
     requireMap['./PatientBoardStatus.vue'] = {
         default: statusModule.exports.default,
     };
+    const resultsScript = compileScript(
+        parse(
+            read(
+                'resources/js/components/patient-board/PatientBoardTreatmentResults.vue',
+            ),
+        ).descriptor,
+        { id: 'treatment-results', inlineTemplate: true },
+    ).content;
+    const resultsModule = { exports: {} };
+    Function(
+        'require',
+        'module',
+        'exports',
+        ts.transpileModule(resultsScript, {
+            compilerOptions: { module: ts.ModuleKind.CommonJS },
+        }).outputText,
+    )(
+        (specifier) => requireMap[specifier],
+        resultsModule,
+        resultsModule.exports,
+    );
+    requireMap['./PatientBoardTreatmentResults.vue'] = {
+        default: resultsModule.exports.default,
+    };
     const componentModule = { exports: {} };
     Function(
         'require',

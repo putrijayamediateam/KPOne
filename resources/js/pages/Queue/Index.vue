@@ -1127,13 +1127,15 @@ onBeforeUnmount(() => {
                         from="queue"
                         :queue-layout="live.scope"
                         :queue-task="
-                            activeTab === 'held'
-                                ? 'held'
-                                : activeTab === 'waiting'
-                                  ? 'waiting'
-                                  : activeTab === 'serving'
-                                    ? 'seeing'
-                                    : undefined
+                            activeTab === 'treatment'
+                                ? 'treatment'
+                                : activeTab === 'held'
+                                  ? 'held'
+                                  : activeTab === 'waiting'
+                                    ? 'waiting'
+                                    : activeTab === 'serving'
+                                      ? 'seeing'
+                                      : undefined
                         "
                         :rows="boardRows"
                         :busy-key="busyKey"
