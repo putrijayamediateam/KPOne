@@ -12,7 +12,7 @@ test('Reorder suggestions explains its method and writes nothing', () => {
         /Suggested = reorder level − on hand − on order − incoming \+/,
     );
     assert.match(
-        page,
+        page.replace(/\s+/g, ' '),
         /rounded\s+up to whole packs and at least the supplier's minimum order\./,
     );
     assert.match(page, /Nothing is ordered from this page\./);
