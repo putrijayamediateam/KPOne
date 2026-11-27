@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { PageFrame } from '@/components/ui/page-frame';
+import { PageHeader } from '@/components/ui/page-header';
 const props = defineProps<{
     revisions: {
         language: string;
@@ -20,12 +22,15 @@ const selected = computed(() =>
 
 <template>
     <Head title="MC template previews" />
-    <main class="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-6">
-        <Link href="/clinic-management" class="text-sm underline"
-            >Clinic management</Link
+    <PageFrame>
+        <PageHeader
+            title="MC template previews"
+            description="Clinic management · fixed draft wording"
+        />
+        <p
+            class="rounded-[12px] bg-warning-wash p-3 text-sm text-warning"
+            role="status"
         >
-        <h1 class="text-2xl font-semibold">MC template previews</h1>
-        <p class="rounded-lg border p-3 text-sm" role="status">
             Draft wording for review. Not production-approved. No patient data,
             numbering, issuance or printing is available here.
         </p>
@@ -33,14 +38,16 @@ const selected = computed(() =>
             >Language<select
                 id="mc-language"
                 v-model="language"
-                class="min-h-10 rounded border bg-background px-3"
+                class="min-h-11 rounded-[10px] border border-input bg-field-fill px-3 lg:min-h-9"
             >
                 <option value="en">English</option>
                 <option value="bm">Bahasa Melayu</option>
             </select></label
         >
         <div v-if="selected" class="grid gap-5 lg:grid-cols-2">
-            <section class="space-y-4 rounded-lg border bg-card p-4">
+            <section
+                class="space-y-4 rounded-[14px] border bg-card p-4 shadow-card md:p-5"
+            >
                 <h2 class="font-semibold">
                     Fixed template · Revision {{ selected.revision }}
                 </h2>
@@ -56,7 +63,7 @@ const selected = computed(() =>
                     <li
                         v-for="field in selected.mergeFields"
                         :key="field"
-                        class="rounded border px-2 py-1 font-mono text-xs"
+                        class="rounded-lg bg-muted px-2 py-1 font-mono text-xs"
                     >
                         {{ field }}
                     </li>
@@ -68,7 +75,7 @@ const selected = computed(() =>
             </section>
             <section
                 aria-label="MC layout preview"
-                class="space-y-6 rounded-lg border bg-white p-5 text-black sm:p-8"
+                class="space-y-6 rounded-[14px] border bg-white p-5 text-black sm:p-8"
             >
                 <p class="border-b pb-4 text-sm">
                     Issuing branch letterhead and optional logo<br />Preserved
@@ -94,5 +101,5 @@ const selected = computed(() =>
                 </p>
             </section>
         </div>
-    </main>
+    </PageFrame>
 </template>
