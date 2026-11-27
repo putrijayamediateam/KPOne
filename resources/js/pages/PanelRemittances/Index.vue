@@ -280,220 +280,171 @@ const record = () => {
                 claim. The split must add up exactly to the payment. A recorded
                 payment cannot be edited or deleted.
             </p>
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-                <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
-                    Panel
-                    <select
-                        :value="filters.panel"
-                        class="min-h-11 w-full min-w-0 rounded-md border bg-background px-2 text-sm lg:min-h-9"
-                        aria-label="Panel"
-                        @change="
-                            choosePanel(
-                                ($event.target as HTMLSelectElement).value,
-                            )
-                        "
-                    >
-                        <option value="">Select a Panel</option>
-                        <option
-                            v-for="panel in panels"
-                            :key="panel.code"
-                            :value="panel.code"
+            <section
+                aria-labelledby="payment-details-heading"
+                class="space-y-3 border-t pt-4"
+            >
+                <h3 id="payment-details-heading" class="text-sm font-semibold">
+                    1. Payment details
+                </h3>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
+                        Panel
+                        <select
+                            :value="filters.panel"
+                            class="min-h-11 w-full min-w-0 rounded-md border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                            aria-label="Panel"
+                            @change="
+                                choosePanel(
+                                    ($event.target as HTMLSelectElement).value,
+                                )
+                            "
                         >
-                            {{ panel.name }}
-                        </option>
-                    </select>
-                </label>
-                <label class="grid min-w-0 gap-1 text-xs">
-                    Amount received (RM)
-                    <Input
-                        v-model="form.amount"
-                        inputmode="decimal"
-                        placeholder="0.00"
-                        :disabled="filters.panel === ''"
-                    />
-                </label>
-                <label class="grid min-w-0 gap-1 text-xs">
-                    Date received
-                    <DateField
-                        v-model="form.receivedDate"
-                        :max="branch.today"
-                        :disabled="filters.panel === ''"
-                        :echo="false"
-                    />
-                </label>
-                <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
-                    Payment reference (optional)
-                    <Input
-                        v-model="form.reference"
-                        maxlength="100"
-                        :disabled="filters.panel === ''"
-                    />
-                </label>
-            </div>
-
-            <p
-                v-if="filters.panel === ''"
-                class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
-            >
-                Choose a Panel to see its accepted claims that still wait for
-                payment.
-            </p>
-            <p
-                v-else-if="openClaims.length === 0"
-                class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
-                data-testid="no-open-claims"
-            >
-                This Panel has no accepted claims waiting for payment at this
-                branch.
-            </p>
-            <template v-else>
-                <PanelStatementHelper
-                    :branch-id="branch.id"
-                    :panel="filters.panel"
-                    :statement="statement ?? null"
-                    :max-rows="statementLimits?.maxRows ?? 500"
-                    :retention-days="statementLimits?.retentionDays ?? 30"
-                    :error="errors.statement"
-                    @use="useStatement"
-                />
-                <p
-                    v-if="openClaimsTruncated"
-                    class="text-sm text-amber-700 dark:text-amber-300"
-                    role="status"
-                >
-                    Only the 200 oldest claims are listed. Record this payment,
-                    then the next claims will appear.
-                </p>
-                <div class="flex flex-wrap items-center gap-2">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        :disabled="!amountSen"
-                        @click="fillOldestFirst"
-                    >
-                        Fill oldest claims first
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        @click="clearSplit"
-                    >
-                        Clear split
-                    </Button>
+                            <option value="">Select a Panel</option>
+                            <option
+                                v-for="panel in panels"
+                                :key="panel.code"
+                                :value="panel.code"
+                            >
+                                {{ panel.name }}
+                            </option>
+                        </select>
+                    </label>
+                    <label class="grid min-w-0 gap-1 text-xs">
+                        Amount received (RM)
+                        <Input
+                            class="min-h-11 lg:min-h-9"
+                            v-model="form.amount"
+                            inputmode="decimal"
+                            placeholder="0.00"
+                            :disabled="filters.panel === ''"
+                        />
+                    </label>
+                    <label class="grid min-w-0 gap-1 text-xs">
+                        Date received
+                        <DateField
+                            class="[&>div:first-child]:h-11 lg:[&>div:first-child]:h-9"
+                            v-model="form.receivedDate"
+                            :max="branch.today"
+                            :disabled="filters.panel === ''"
+                            :echo="false"
+                        />
+                    </label>
+                    <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
+                        Payment reference (optional)
+                        <Input
+                            class="min-h-11 lg:min-h-9"
+                            v-model="form.reference"
+                            maxlength="100"
+                            :disabled="filters.panel === ''"
+                        />
+                    </label>
                 </div>
-                <!-- Phones and tablets: one card per claim so the amount box is always on screen (PNL-14: at 768 px the table cut the amount box off). -->
-                <ul
-                    class="divide-y rounded-xl border lg:hidden"
-                    aria-label="Accepted claims waiting for payment"
+            </section>
+
+            <section
+                aria-labelledby="payment-split-heading"
+                class="space-y-3 border-t pt-4"
+            >
+                <h3 id="payment-split-heading" class="text-sm font-semibold">
+                    2. Split across accepted claims
+                </h3>
+                <p
+                    v-if="filters.panel === ''"
+                    class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
                 >
-                    <li
-                        v-for="claim in openClaims"
-                        :key="claim.publicId"
-                        class="grid gap-2 p-3 text-sm"
+                    Choose a Panel to see its accepted claims that still wait
+                    for payment.
+                </p>
+                <p
+                    v-else-if="openClaims.length === 0"
+                    class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
+                    data-testid="no-open-claims"
+                >
+                    This Panel has no accepted claims waiting for payment at
+                    this branch.
+                </p>
+                <template v-else>
+                    <PanelStatementHelper
+                        class="[&_button:not([role=checkbox])]:min-h-11 lg:[&_button:not([role=checkbox])]:min-h-9 [&_input[type=file]]:min-h-11 lg:[&_input[type=file]]:min-h-9 [&_select]:min-h-11 lg:[&_select]:min-h-9"
+                        :branch-id="branch.id"
+                        :panel="filters.panel"
+                        :statement="statement ?? null"
+                        :max-rows="statementLimits?.maxRows ?? 500"
+                        :retention-days="statementLimits?.retentionDays ?? 30"
+                        :error="errors.statement"
+                        @use="useStatement"
+                    />
+                    <p
+                        v-if="openClaimsTruncated"
+                        class="text-sm text-warning"
+                        role="status"
                     >
-                        <div class="flex flex-wrap justify-between gap-2">
-                            <span class="font-medium">
-                                Claim {{ claim.claimNo }}
-                            </span>
-                            <span
-                                class="font-mono text-xs text-muted-foreground"
-                            >
-                                {{ claim.invoiceNumber }}
-                            </span>
-                        </div>
-                        <p class="wrap-anywhere">
-                            {{ claim.patientName }} · {{ claim.visitDate }}
-                        </p>
-                        <p class="text-xs text-muted-foreground tabular-nums">
-                            Accepted {{ myr(claim.acceptedSen) }} · Received
-                            {{ myr(claim.receivedSen) }}
-                        </p>
-                        <div
-                            class="flex flex-wrap items-end justify-between gap-2"
+                        Only the 200 oldest claims are listed. Record this
+                        payment, then the next claims will appear.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            class="min-h-11 lg:min-h-9"
+                            :disabled="!amountSen"
+                            @click="fillOldestFirst"
                         >
-                            <span class="font-medium tabular-nums">
-                                Unpaid {{ myr(claim.outstandingSen) }}
-                            </span>
-                            <!-- PNL-14 (Daniel): the box carries the same visible label as the table column. -->
-                            <label
-                                class="grid gap-1 text-xs font-medium text-muted-foreground"
-                                data-testid="split-card-payment-label"
-                            >
-                                This payment (RM)
-                                <input
-                                    v-model="parts[claim.publicId]"
-                                    inputmode="decimal"
-                                    placeholder="0.00"
-                                    :aria-label="`Amount of this payment for claim ${claim.claimNo}`"
-                                    :aria-invalid="invalidParts.includes(claim)"
-                                    :aria-describedby="
-                                        invalidParts.includes(claim)
-                                            ? 'split-amount-error'
-                                            : undefined
-                                    "
-                                    class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums aria-invalid:border-destructive max-lg:h-11"
-                                />
-                            </label>
-                        </div>
-                    </li>
-                </ul>
-                <div
-                    class="relative hidden max-w-full overflow-x-auto rounded-xl border lg:block"
-                    role="region"
-                    aria-label="Accepted claims waiting for payment"
-                    tabindex="0"
-                >
-                    <table class="w-full min-w-[760px] text-left text-sm">
-                        <thead
-                            class="border-b bg-muted/60 text-xs text-muted-foreground"
+                            Fill oldest claims first
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            class="min-h-11 lg:min-h-9"
+                            @click="clearSplit"
                         >
-                            <tr class="[&_th]:px-3 [&_th]:py-2.5">
-                                <th scope="col">Claim</th>
-                                <th scope="col">Patient</th>
-                                <th scope="col">Visit date</th>
-                                <th scope="col" class="text-right">Accepted</th>
-                                <th scope="col" class="text-right">Received</th>
-                                <th scope="col" class="text-right">Unpaid</th>
-                                <th scope="col" class="w-36 text-right">
+                            Clear split
+                        </Button>
+                    </div>
+                    <!-- Phones and tablets: one card per claim so the amount box is always on screen (PNL-14: at 768 px the table cut the amount box off). -->
+                    <ul
+                        class="divide-y rounded-xl border lg:hidden"
+                        aria-label="Accepted claims waiting for payment"
+                    >
+                        <li
+                            v-for="claim in openClaims"
+                            :key="claim.publicId"
+                            class="grid gap-2 p-3 text-sm"
+                        >
+                            <div class="flex flex-wrap justify-between gap-2">
+                                <span class="font-medium">
+                                    Claim {{ claim.claimNo }}
+                                </span>
+                                <span
+                                    class="font-mono text-xs text-muted-foreground"
+                                >
+                                    {{ claim.invoiceNumber }}
+                                </span>
+                            </div>
+                            <p class="wrap-anywhere">
+                                {{ claim.patientName }} · {{ claim.visitDate }}
+                            </p>
+                            <p
+                                class="text-xs text-muted-foreground tabular-nums"
+                            >
+                                Accepted {{ myr(claim.acceptedSen) }} · Received
+                                {{ myr(claim.receivedSen) }}
+                            </p>
+                            <div
+                                class="flex flex-wrap items-end justify-between gap-2"
+                            >
+                                <span class="font-medium tabular-nums">
+                                    Unpaid {{ myr(claim.outstandingSen) }}
+                                </span>
+                                <!-- PNL-14 (Daniel): the box carries the same visible label as the table column. -->
+                                <label
+                                    class="grid gap-1 text-xs font-medium text-muted-foreground"
+                                    data-testid="split-card-payment-label"
+                                >
                                     This payment (RM)
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody
-                            class="[&_td]:px-3 [&_td]:py-2.5 [&_tr]:border-b [&_tr:last-child]:border-0"
-                        >
-                            <tr
-                                v-for="claim in openClaims"
-                                :key="claim.publicId"
-                            >
-                                <td>
-                                    <div class="font-medium">
-                                        Claim {{ claim.claimNo }}
-                                    </div>
-                                    <div
-                                        class="font-mono text-xs text-muted-foreground"
-                                    >
-                                        {{ claim.invoiceNumber }}
-                                    </div>
-                                </td>
-                                <td class="wrap-anywhere">
-                                    {{ claim.patientName }}
-                                </td>
-                                <td class="whitespace-nowrap">
-                                    {{ claim.visitDate }}
-                                </td>
-                                <td class="text-right tabular-nums">
-                                    {{ myr(claim.acceptedSen) }}
-                                </td>
-                                <td class="text-right tabular-nums">
-                                    {{ myr(claim.receivedSen) }}
-                                </td>
-                                <td class="text-right font-medium tabular-nums">
-                                    {{ myr(claim.outstandingSen) }}
-                                </td>
-                                <td class="text-right">
                                     <input
                                         v-model="parts[claim.publicId]"
                                         inputmode="decimal"
@@ -507,82 +458,204 @@ const record = () => {
                                                 ? 'split-amount-error'
                                                 : undefined
                                         "
-                                        class="h-9 w-28 rounded-md border bg-background px-2 text-right text-sm tabular-nums aria-invalid:border-destructive"
+                                        class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums aria-invalid:border-destructive max-lg:h-11"
                                     />
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div
-                    id="split-summary"
-                    tabindex="-1"
-                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-3 text-sm"
-                    data-testid="split-summary"
-                >
-                    <span class="tabular-nums">
-                        Split {{ myr(splitTotalSen) }} of
-                        {{ myr(amountSen ?? 0) }} across
-                        {{ splitRows.length }} claim{{
-                            splitRows.length === 1 ? '' : 's'
-                        }}
-                    </span>
-                    <span
-                        class="font-medium tabular-nums"
-                        :class="
-                            !amountSen
-                                ? 'text-muted-foreground'
-                                : leftSen === 0
-                                  ? 'text-emerald-700 dark:text-emerald-300'
-                                  : 'text-destructive'
-                        "
+                                </label>
+                            </div>
+                        </li>
+                    </ul>
+                    <div
+                        class="relative hidden max-w-full overflow-x-auto rounded-xl border lg:block"
+                        role="region"
+                        aria-label="Accepted claims waiting for payment"
+                        tabindex="0"
                     >
-                        {{
-                            amountSen === null
-                                ? 'Enter RM with up to two decimals'
-                                : !amountSen
-                                  ? 'Enter the amount received'
-                                  : leftSen === 0
-                                    ? 'Fully split'
-                                    : leftSen > 0
-                                      ? `${myr(leftSen)} still to split`
-                                      : `${myr(-leftSen)} over the payment`
-                        }}
-                    </span>
-                </div>
-                <p
-                    v-if="invalidParts.length > 0"
-                    id="split-amount-error"
-                    class="text-sm text-destructive"
-                    role="alert"
-                >
-                    Check the amounts for claim
-                    {{ invalidParts.map((claim) => claim.claimNo).join(', ') }}:
-                    enter RM with up to two decimals, no more than what is still
-                    unpaid.
-                </p>
-                <p
-                    v-if="splitRows.length > maxSplits"
-                    class="text-sm text-destructive"
-                    role="alert"
-                >
-                    Split one payment across at most {{ maxSplits }} claims.
-                </p>
-            </template>
-
-            <p
-                v-for="message in errorMessages"
-                :key="message"
-                role="alert"
-                class="text-sm wrap-anywhere text-destructive"
+                        <table class="w-full min-w-[760px] text-left text-sm">
+                            <thead
+                                class="border-b bg-muted/60 text-xs text-muted-foreground"
+                            >
+                                <tr class="[&_th]:px-3 [&_th]:py-2.5">
+                                    <th scope="col">Claim</th>
+                                    <th scope="col">Patient</th>
+                                    <th scope="col">Visit date</th>
+                                    <th scope="col" class="text-right">
+                                        Accepted
+                                    </th>
+                                    <th scope="col" class="text-right">
+                                        Received
+                                    </th>
+                                    <th scope="col" class="text-right">
+                                        Unpaid
+                                    </th>
+                                    <th scope="col" class="w-36 text-right">
+                                        This payment (RM)
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody
+                                class="[&_td]:px-3 [&_td]:py-2.5 [&_tr]:border-b [&_tr:last-child]:border-0"
+                            >
+                                <tr
+                                    v-for="claim in openClaims"
+                                    :key="claim.publicId"
+                                >
+                                    <td>
+                                        <div class="font-medium">
+                                            Claim {{ claim.claimNo }}
+                                        </div>
+                                        <div
+                                            class="font-mono text-xs text-muted-foreground"
+                                        >
+                                            {{ claim.invoiceNumber }}
+                                        </div>
+                                    </td>
+                                    <td class="wrap-anywhere">
+                                        {{ claim.patientName }}
+                                    </td>
+                                    <td class="whitespace-nowrap">
+                                        {{ claim.visitDate }}
+                                    </td>
+                                    <td class="text-right tabular-nums">
+                                        {{ myr(claim.acceptedSen) }}
+                                    </td>
+                                    <td class="text-right tabular-nums">
+                                        {{ myr(claim.receivedSen) }}
+                                    </td>
+                                    <td
+                                        class="text-right font-medium tabular-nums"
+                                    >
+                                        {{ myr(claim.outstandingSen) }}
+                                    </td>
+                                    <td class="text-right">
+                                        <input
+                                            v-model="parts[claim.publicId]"
+                                            inputmode="decimal"
+                                            placeholder="0.00"
+                                            :aria-label="`Amount of this payment for claim ${claim.claimNo}`"
+                                            :aria-invalid="
+                                                invalidParts.includes(claim)
+                                            "
+                                            :aria-describedby="
+                                                invalidParts.includes(claim)
+                                                    ? 'split-amount-error'
+                                                    : undefined
+                                            "
+                                            class="h-9 w-28 rounded-md border bg-background px-2 text-right text-sm tabular-nums aria-invalid:border-destructive"
+                                        />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+            </section>
+            <section
+                aria-labelledby="payment-review-heading"
+                class="space-y-3 border-t pt-4"
             >
-                {{ message }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-                <Button type="button" :disabled="!canRecord" @click="record">
-                    Record payment
-                </Button>
-            </div>
+                <h3 id="payment-review-heading" class="text-sm font-semibold">
+                    3. Review and record
+                </h3>
+                <template v-if="filters.panel !== '' && openClaims.length > 0">
+                    <div
+                        id="split-summary"
+                        tabindex="-1"
+                        class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-3 text-sm"
+                        data-testid="split-summary"
+                    >
+                        <span class="tabular-nums">
+                            Split {{ myr(splitTotalSen) }} of
+                            {{ myr(amountSen ?? 0) }} across
+                            {{ splitRows.length }} claim{{
+                                splitRows.length === 1 ? '' : 's'
+                            }}
+                        </span>
+                        <span
+                            class="font-medium tabular-nums"
+                            :class="
+                                !amountSen
+                                    ? 'text-muted-foreground'
+                                    : leftSen === 0
+                                      ? 'text-success'
+                                      : 'text-destructive'
+                            "
+                        >
+                            {{
+                                amountSen === null
+                                    ? 'Enter RM with up to two decimals'
+                                    : !amountSen
+                                      ? 'Enter the amount received'
+                                      : leftSen === 0
+                                        ? 'Fully split'
+                                        : leftSen > 0
+                                          ? `${myr(leftSen)} still to split`
+                                          : `${myr(-leftSen)} over the payment`
+                            }}
+                        </span>
+                    </div>
+                    <p
+                        v-if="invalidParts.length > 0"
+                        id="split-amount-error"
+                        class="text-sm text-destructive"
+                        role="alert"
+                    >
+                        Check the amounts for claim
+                        {{
+                            invalidParts
+                                .map((claim) => claim.claimNo)
+                                .join(', ')
+                        }}: enter RM with up to two decimals, no more than what
+                        is still unpaid.
+                    </p>
+                    <p
+                        v-if="splitRows.length > maxSplits"
+                        class="text-sm text-destructive"
+                        role="alert"
+                    >
+                        Split one payment across at most {{ maxSplits }} claims.
+                    </p>
+                </template>
+                <p
+                    v-for="message in errorMessages"
+                    :key="message"
+                    role="alert"
+                    class="text-sm wrap-anywhere text-destructive"
+                >
+                    {{ message }}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        class="min-h-11 lg:min-h-9"
+                        :disabled="!canRecord"
+                        @click="record"
+                    >
+                        Record payment
+                    </Button>
+                </div>
+            </section>
+            <details class="rounded-lg border bg-muted/30 p-3">
+                <summary
+                    class="min-h-11 cursor-pointer rounded-sm text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                >
+                    How this payment is split
+                </summary>
+                <div class="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <p>
+                        The statement file only suggests matches. Review the
+                        split before recording a payment.
+                    </p>
+                    <p>
+                        Fill oldest claims first uses the claims listed here, up
+                        to 200. This list is not a total of everything the Panel
+                        owes.
+                    </p>
+                    <p>
+                        The split must equal the amount received, and no claim
+                        can receive more than its unpaid amount.
+                    </p>
+                </div>
+            </details>
         </section>
 
         <section
@@ -591,7 +664,13 @@ const record = () => {
         >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h2 class="text-base font-semibold">Recorded Panel payments</h2>
-                <Button v-if="canReverse" as-child variant="outline" size="sm">
+                <Button
+                    v-if="canReverse"
+                    as-child
+                    variant="outline"
+                    size="sm"
+                    class="min-h-11 lg:min-h-9"
+                >
                     <Link href="/panel-payment-corrections"
                         >Correct a Panel payment</Link
                     >
@@ -600,7 +679,7 @@ const record = () => {
             <p class="text-xs text-muted-foreground">
                 A payment recorded by mistake cannot be edited. The Finance
                 Officer or the Director reverses it, then the correct payment is
-                recorded again.
+                recorded again. The person who recorded it cannot reverse it.
             </p>
             <p
                 v-if="remittances.data.length === 0"
@@ -662,13 +741,15 @@ const record = () => {
                     </ul>
                 </li>
             </ul>
-            <CompactPagination
-                v-if="remittances.total > 0"
-                :current-page="remittances.currentPage"
-                :last-page="remittances.lastPage"
-                :total="remittances.total"
-                @change="turnPage"
-            />
+            <div class="[&_button]:min-h-11 lg:[&_button]:min-h-9">
+                <CompactPagination
+                    v-if="remittances.total > 0"
+                    :current-page="remittances.currentPage"
+                    :last-page="remittances.lastPage"
+                    :total="remittances.total"
+                    @change="turnPage"
+                />
+            </div>
         </section>
         <OperationalConfirmDialog
             :open="pendingStatementParts !== null"
