@@ -66,6 +66,10 @@ final class RoleNextThings
             }
         }
 
+        // A doctor sees the branch Waiting list and their own queue: show each visit once, as the richer own-queue row.
+        $ownHrefs = array_column(array_filter($things, fn (array $t): bool => in_array($t['kind'], ['consult', 'held'], true)), 'href');
+        $things = array_values(array_filter($things, fn (array $t): bool => $t['kind'] !== 'call' || ! in_array($t['href'], $ownHrefs, true)));
+
         usort($things, fn (array $a, array $b): int => [$b['rank'], $b['minutes']] <=> [$a['rank'], $a['minutes']]);
 
         return [

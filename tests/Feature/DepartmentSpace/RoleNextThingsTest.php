@@ -3,6 +3,7 @@
 namespace Tests\Feature\DepartmentSpace;
 
 use App\Domain\Queue\Services\OtcQueueService;
+use App\Domain\Queue\Services\QueueEntryService;
 use Tests\Feature\Visit\VisitTestCase;
 
 /**
@@ -65,5 +66,18 @@ class RoleNextThingsTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->get(route('my-day'))->assertOk()->assertInertia(fn ($p) => $p->has('next.things')->has('next.thingsTotal')->where('next.sales', null));
+    }
+
+    public function test_a_doctor_sees_each_visit_once_when_it_is_in_the_branch_list_and_their_own_queue(): void
+    {
+        $doctor = $this->actor('resident_doctor');
+        $ca = $this->actor('ca');
+        $visit = $this->register($ca, $this->patient($ca, ['full_name' => 'Tan Mei Ling']), ['visit_type' => 'consultation', 'assigned_doctor_user_id' => $doctor->id, 'visit_reason' => 'Synthetic reason']);
+        app(QueueEntryService::class)->enter($ca, $visit, ['expected_branch_id' => $this->branch->id, 'visit_lock_version' => $visit->lock_version]);
+
+        $this->selectBranch($doctor);
+        $json = $this->getJson(route('my-day.next'))->assertOk()->json();
+        $this->assertSame(1, $json['thingsTotal']);
+        $this->assertSame('consult', $json['things'][0]['kind']);
     }
 }

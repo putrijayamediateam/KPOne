@@ -28,3 +28,7 @@ test('the next things card uses tokens only, with no hard-coded colours', () => 
         /#[0-9a-fA-F]{3,6}\b|bg-pink|text-pink|rose-|brand/,
     );
 });
+
+test('an urgent patient is badged Urgent, not Overdue', () => {
+    assert.match(next, /startsWith\('Urgent'\)/);
+});

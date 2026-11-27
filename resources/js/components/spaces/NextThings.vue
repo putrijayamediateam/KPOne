@@ -151,7 +151,11 @@ onBeforeUnmount(() => {
                             v-else-if="t.tone !== 'plain'"
                             :status="t.tone"
                             :label="
-                                t.tone === 'red' ? 'Overdue' : 'Waiting long'
+                                t.title.startsWith('Urgent')
+                                    ? 'Urgent'
+                                    : t.tone === 'red'
+                                      ? 'Overdue'
+                                      : 'Waiting long'
                             "
                             :tone="t.tone === 'red' ? 'danger' : 'warning'"
                         />
