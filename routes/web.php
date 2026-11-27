@@ -771,6 +771,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // DAY-1a: My day, the person's own first page (the TV account is refused in the controller).
     Route::get('my-day', [MyDayController::class, 'show'])->middleware(['sensitive.no-store', 'throttle:60,1'])->name('my-day');
     // DAY-1b: the person's own routine (no route takes a user id; the TV account is refused in the service).
+    Route::get('my-day/next', [MyDayController::class, 'next'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('my-day.next');
     Route::post('my-day/routine', [MyRoutineController::class, 'store'])->middleware('throttle:30,1')->name('my-day.routine.store');
     Route::post('my-day/routine/reorder', [MyRoutineController::class, 'reorder'])->middleware('throttle:30,1')->name('my-day.routine.reorder');
     Route::patch('my-day/routine/{routineItem}', [MyRoutineController::class, 'rename'])->middleware('throttle:30,1')->name('my-day.routine.rename');
@@ -1507,6 +1508,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::get('queue/average-wait', [QueueController::class, 'averageWait'])
+            ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.average-wait');
+        Route::get('queue/rooms-today', [QueueController::class, 'roomsToday'])
+            ->middleware(['permission:queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.rooms-today');
         Route::get('visits/{visit}/queue/details', [QueueController::class, 'details'])
             ->middleware(['permission:visits.triage.record.branch,queue.view.own', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.details');

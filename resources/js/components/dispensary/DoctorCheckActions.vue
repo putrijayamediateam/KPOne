@@ -134,7 +134,7 @@ const sendBack = () =>
         <div class="flex flex-col gap-2 sm:flex-row">
             <Button
                 variant="outline"
-                class="min-h-11 max-sm:w-full sm:min-h-9"
+                class="min-h-11 max-sm:w-full lg:min-h-9"
                 :disabled="busy"
                 data-testid="doctor-check-verify-open"
                 @click="verifyOpen = true"
@@ -142,7 +142,7 @@ const sendBack = () =>
             >
             <Button
                 variant="outline"
-                class="min-h-11 max-sm:w-full sm:min-h-9"
+                class="min-h-11 max-sm:w-full lg:min-h-9"
                 :disabled="busy"
                 data-testid="doctor-check-send-back-open"
                 @click="sendBackOpen = true"
@@ -179,7 +179,7 @@ const sendBack = () =>
                 <label
                     v-for="option in OVERRIDE_REASONS"
                     :key="option.value"
-                    class="flex min-h-11 items-center gap-2 sm:min-h-9"
+                    class="flex min-h-11 items-center gap-2 lg:min-h-9"
                 >
                     <input
                         v-model="overrideReason"
@@ -198,7 +198,7 @@ const sendBack = () =>
                         v-model="overrideNote"
                         maxlength="200"
                         rows="2"
-                        class="rounded-md border bg-background px-2 py-1"
+                        class="min-h-9 rounded-md border border-input bg-field-fill px-3 py-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
                     />
                     <InputError :message="errors.override_note" />
                 </template>
@@ -229,7 +229,7 @@ const sendBack = () =>
                 <label
                     v-for="option in SEND_BACK_REASONS"
                     :key="option.value"
-                    class="flex min-h-11 items-center gap-2 sm:min-h-9"
+                    class="flex min-h-11 items-center gap-2 lg:min-h-9"
                 >
                     <input
                         v-model="reason"
@@ -247,7 +247,7 @@ const sendBack = () =>
                     v-model="note"
                     maxlength="200"
                     rows="2"
-                    class="rounded-md border bg-background px-2 py-1"
+                    class="min-h-9 rounded-md border border-input bg-field-fill px-3 py-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-lg:min-h-11"
                 />
                 <InputError :message="errors.note" />
             </fieldset>

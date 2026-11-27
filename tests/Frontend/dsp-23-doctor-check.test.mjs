@@ -106,7 +106,7 @@ test('DSP-23: the CA page sends to the doctor, shows the waiting banner and the 
     assert.match(show, /data-testid="doctor-check-call-help"/);
     assert.match(
         show,
-        /border-warning\/40 bg-warning\/10 p-4 text-sm text-warning-strong"\s+role="status"\s+data-testid="doctor-check-sent-back"/,
+        /border-warning\/25 bg-warning-wash p-4 text-sm text-warning-strong"\s+role="status"\s+data-testid="doctor-check-sent-back"/,
     );
     assert.doesNotMatch(
         show,

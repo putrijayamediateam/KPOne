@@ -256,7 +256,8 @@ const restore = (id: string) =>
                 />
                 <Button
                     type="submit"
-                    class="max-lg:min-h-11"
+                    variant="outline"
+                    class="rounded-full max-lg:min-h-11"
                     :disabled="busy || full || newTitle.trim() === ''"
                     >Add</Button
                 >
