@@ -554,7 +554,7 @@ const caseKindLabel = (kind: string) =>
                 </div>
                 <button
                     v-if="stock.canPropose"
-                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
+                    class="inline-flex min-h-11 items-center justify-center self-center rounded-full border border-input px-3 text-sm font-medium whitespace-nowrap hover:bg-accent lg:min-h-9"
                     type="button"
                     @click="showTarget(row)"
                 >
