@@ -173,6 +173,13 @@ const clearFilters = () => {
     });
     applyFilters();
 };
+
+// The paginator sends labels as HTML entities (sometimes escaped twice); show arrows, never the raw entity text.
+const pageLabel = (label: string) =>
+    label
+        .replace(/&amp;/g, '&')
+        .replace('&laquo;', '‹')
+        .replace('&raquo;', '›');
 </script>
 
 <template>
@@ -531,11 +538,7 @@ const clearFilters = () => {
                                     :href="link.url"
                                     preserve-scroll
                                     preserve-state
-                                    >{{
-                                        link.label
-                                            .replace('&laquo;', '‹')
-                                            .replace('&raquo;', '›')
-                                    }}</Link
+                                    >{{ pageLabel(link.label) }}</Link
                                 ></Button
                             >
                             <Button
@@ -543,11 +546,7 @@ const clearFilters = () => {
                                 size="sm"
                                 variant="outline"
                                 disabled
-                                >{{
-                                    link.label
-                                        .replace('&laquo;', '‹')
-                                        .replace('&raquo;', '›')
-                                }}</Button
+                                >{{ pageLabel(link.label) }}</Button
                             >
                         </template>
                     </div>
