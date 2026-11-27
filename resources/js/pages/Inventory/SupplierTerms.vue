@@ -165,7 +165,9 @@ const submitEdit = (row: Row) => {
 
 <template>
     <Head title="Supplier price list" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -188,9 +190,9 @@ const submitEdit = (row: Row) => {
         <section
             v-if="terms.canManage"
             aria-labelledby="add-terms-heading"
-            class="space-y-3 rounded-lg border bg-card p-4"
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
         >
-            <h2 id="add-terms-heading" class="text-lg font-semibold">
+            <h2 id="add-terms-heading" class="text-[15px] font-semibold">
                 Add a price list row
             </h2>
             <form
@@ -310,7 +312,7 @@ const submitEdit = (row: Row) => {
                 >Show
                 <select
                     v-model="status"
-                    class="h-11 rounded-md border bg-background px-3"
+                    class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                 >
                     <option value="active">Active rows</option>
                     <option value="inactive">Inactive rows</option>
@@ -328,7 +330,7 @@ const submitEdit = (row: Row) => {
             <li
                 v-for="row in terms.rows"
                 :key="row.publicId"
-                class="space-y-2 rounded-lg border bg-card p-4"
+                class="space-y-2 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="min-w-0">
@@ -339,12 +341,12 @@ const submitEdit = (row: Row) => {
                             {{ row.supplier }}
                             <span
                                 v-if="row.preferred"
-                                class="ml-1 rounded border px-1.5 py-0.5 text-xs"
+                                class="ml-1 rounded-lg bg-muted px-2 py-0.5 text-xs font-medium"
                                 >Preferred</span
                             >
                             <span
                                 v-if="!row.active"
-                                class="ml-1 rounded border px-1.5 py-0.5 text-xs"
+                                class="ml-1 rounded-lg bg-muted px-2 py-0.5 text-xs font-medium"
                                 >Inactive</span
                             >
                         </p>

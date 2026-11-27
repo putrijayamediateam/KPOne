@@ -437,7 +437,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
 
 <template>
     <Head title="Purchase requests" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -469,7 +471,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
 
         <p
             v-if="!requests.requests.rows.length"
-            class="rounded-md border p-4 text-sm text-muted-foreground"
+            class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-card"
         >
             {{ emptyText[requests.tab] }}
         </p>
@@ -477,7 +479,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
             <li
                 v-for="request in requests.requests.rows"
                 :key="request.publicId"
-                class="space-y-3 rounded-md border p-4"
+                class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
                 data-testid="purchase-request-card"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
@@ -542,7 +544,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         }}
                     </caption>
                     <thead>
-                        <tr class="border-b text-left text-muted-foreground">
+                        <tr
+                            class="border-b text-left text-[13px] text-muted-foreground"
+                        >
                             <th scope="col" class="py-1 pr-2 font-medium">
                                 Item
                             </th>
@@ -718,7 +722,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         <div
                             v-for="(line, index) in send.lines"
                             :key="line.key"
-                            class="min-w-0 space-y-2 rounded-md border p-3"
+                            class="min-w-0 space-y-2 rounded-[10px] bg-card-quiet p-3"
                             data-testid="purchase-request-line"
                         >
                             <div class="flex items-center justify-between">
@@ -890,7 +894,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                     <div
                         v-for="(line, index) in converting.lines"
                         :key="line.id"
-                        class="grid items-end gap-2 rounded-md border p-3 sm:grid-cols-[1fr_10rem]"
+                        class="grid items-end gap-2 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-[1fr_10rem]"
                     >
                         <div class="min-w-0 text-sm">
                             <p class="font-medium break-words">
@@ -930,7 +934,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         </div>
                     </div>
                     <InputError :message="convertErrors.lines" />
-                    <p class="rounded-md border bg-muted p-2 text-sm">
+                    <p class="rounded-[10px] bg-card-quiet p-3 text-sm">
                         {{ lineWord(orderedLines) }} will go on the draft order.
                     </p>
                     <div
@@ -987,7 +991,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         <label
                             v-for="(label, value) in rejectReasons"
                             :key="value"
-                            class="flex min-h-11 items-center gap-3 rounded-md border p-2 text-sm"
+                            class="flex min-h-11 items-center gap-3 rounded-[10px] border border-input p-2 text-sm"
                         >
                             <input
                                 v-model="rejectReason"
