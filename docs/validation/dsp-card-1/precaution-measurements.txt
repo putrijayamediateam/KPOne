@@ -1,0 +1,5 @@
+Paracetamol: precaution 72 chars; card says "Same directions · Precaution: Avoid alcohol. May cause drowsiness; do not drive or use machinery today"
+precaution-1440-light.png: overflow 0px; errors none
+precaution-390-light.png: overflow 0px; errors none
+precaution-1440-dark.png: overflow 0px; errors none
+precaution-390-dark.png: overflow 0px; errors none

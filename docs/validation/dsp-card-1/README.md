@@ -20,3 +20,14 @@ Checks for Daniel:
 - Owner decision (27 Nov): "You give" says "Same directions" when the CA's directions match the doctor's order;
   a changed line shows what is given (Domperidone). A changed precaution or route is always named after it
   ("Same directions · Precaution: ..."; Hakim notes this reads slightly oddly, for Daniel's view). Not in this seed.
+
+## Precaution shots (Daniel, 27 Nov)
+
+`precaution-1440-*` and `precaution-390-*`, light and dark, code head `8df679eb`. Two lines keep the doctor's
+directions and differ only in the precaution, both saved through the real Save line button:
+- Omeprazole, a short precaution (15 characters): "Same directions · Precaution: Take with water".
+- Paracetamol, a precaution at the 72-character label limit: "Same directions · Precaution: Avoid alcohol. May
+  cause drowsiness; do not drive or use machinery today". It wraps onto three lines at 390 px.
+
+Overflow is 0 px with no console errors (precaution-measurements.txt). Noticed while shooting: at 390 px the
+badge column ("Edited by CA") narrows the name and direction line on edited cards, so the direction line wraps early.
