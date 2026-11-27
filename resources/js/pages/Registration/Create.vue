@@ -634,7 +634,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 <div class="flex items-center justify-between pt-1">
                     <p
                         id="patient-results-heading"
-                        class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        class="text-xs font-semibold text-muted-foreground"
                     >
                         {{
                             showingRecent ? 'Recent patients' : 'Search results'

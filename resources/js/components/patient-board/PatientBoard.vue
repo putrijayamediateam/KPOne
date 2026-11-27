@@ -612,7 +612,7 @@ const triageTextClass = (zone: TriageZone | null) =>
                         </div>
                     </td>
                 </tr>
-                <tr v-if="!rows.length">
+                <tr v-if="!rows.length" class="board-empty-row">
                     <td
                         colspan="9"
                         class="px-4 py-12 text-center text-sm text-muted-foreground"
@@ -644,6 +644,13 @@ const triageTextClass = (zone: TriageZone | null) =>
         border: 1px solid var(--border);
         border-radius: 12px;
         padding: 8px;
+    }
+    /* The empty message sits on the board's own surface: no card inside the card. */
+    .patient-board tbody > tr.board-empty-row {
+        display: block;
+        margin-bottom: 0;
+        border: 0;
+        padding: 0;
     }
     .patient-board td {
         display: block;
