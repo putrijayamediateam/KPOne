@@ -786,7 +786,14 @@
 }
 .space-shell .me-week-head h2 {
     margin: 0;
-    font-size: 17px;
+    font-size: 15px;
+    font-weight: 600;
+}
+@media (max-width: 479px) {
+    .space-shell .me-week-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 .space-shell .me-week-summary {
     color: var(--space-me-muted);
@@ -850,21 +857,12 @@
     min-height: 84px;
     height: 100%;
     padding: 14px;
+    border: 1px solid var(--space-line);
     border-radius: var(--space-radius-card);
+    background: var(--space-surface);
+    box-shadow: var(--shadow-card);
     color: var(--space-fg);
     text-decoration: none;
-}
-.space-shell .me-tile.is-leave {
-    background: var(--space-t1);
-}
-.space-shell .me-tile.is-claims {
-    background: var(--space-t2);
-}
-.space-shell .me-tile.is-roster {
-    background: var(--space-t3);
-}
-.space-shell .me-tile.is-attendance {
-    background: var(--space-t4);
 }
 .space-shell .me-tile-icon {
     display: grid;
@@ -873,7 +871,8 @@
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    background: var(--space-surface);
+    background: var(--card-quiet);
+    color: var(--muted-foreground);
 }
 .space-shell .me-tile-icon svg {
     width: 22px;
@@ -977,24 +976,37 @@
 
     --space-bg: var(--background);
     --space-surface: var(--card);
-    --space-surface-2: var(--muted);
+    --space-surface-2: var(--card-quiet);
     --space-side: var(--muted);
     --space-fg: var(--foreground);
     --space-muted: var(--muted-foreground);
     --space-line: var(--border);
     --space-hover: var(--accent);
-    --space-accent: var(--brand-strong);
-    --space-accent-fg: var(--brand-foreground);
-    --space-accent-tint: color-mix(in srgb, var(--brand) 12%, transparent);
+    --space-accent: var(--primary);
+    --space-accent-fg: var(--primary-foreground);
+    --space-accent-tint: color-mix(in srgb, var(--primary) 12%, transparent);
     --space-ok: var(--success);
     --space-warn: var(--warning);
     --space-bad: var(--destructive);
     --space-radius-card: 14px;
+    /* Personal-home surfaces reuse the same semantic tokens in both themes. */
+    --space-g1: var(--info-wash);
+    --space-g2: var(--card-quiet);
+    --space-t1: var(--info-wash);
+    --space-t2: var(--card-quiet);
+    --space-t3: var(--success-wash);
+    --space-t4: var(--warning-wash);
+    --space-me-muted: var(--foreground);
+    --space-brand: var(--primary);
+}
+.space-shell[data-classic-frame] .space-card.shadow-card {
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
 }
 .space-shell[data-classic-frame] .space-main {
     padding: 0;
 }
-/* Dark: the light pink accent needs dark text (white on it measures about 2.5:1; near-black is above 8:1). */
+/* The shared primary foreground also supplies the dark-theme accent label. */
 .space-shell[data-classic-frame]:is(.dark *) {
     --space-accent-fg: var(--primary-foreground);
 }
@@ -1021,7 +1033,7 @@
     color: var(--foreground);
 }
 .space-shell[data-classic-frame] .space-tab.is-on {
-    border-bottom-color: var(--brand);
+    border-bottom-color: var(--primary);
     color: var(--foreground);
 }
 .space-shell[data-classic-frame] .space-tab:focus-visible {
@@ -1060,13 +1072,18 @@
     gap: 8px;
     min-height: 44px;
     padding: 0 24px;
-    border: 2px solid var(--space-brand);
+    border: 2px solid var(--primary);
     border-radius: 999px;
-    background: transparent;
-    color: var(--space-brand);
+    background: var(--primary);
+    color: var(--primary-foreground);
     font: inherit;
     font-weight: 650;
     cursor: pointer;
+}
+/* Clock in is the one filled blue pill; Clock out stays an outline. */
+.space-shell .me-compact-button.is-secondary {
+    background: transparent;
+    color: var(--primary);
 }
 .space-shell .me-compact-button:focus-visible {
     outline: 3px solid var(--space-accent);

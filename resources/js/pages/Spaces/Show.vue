@@ -627,7 +627,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="frontDesk.waiting"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="fd-waiting"
                 >
                     <h2 id="fd-waiting">
@@ -710,7 +710,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="frontDesk.glance"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="fd-glance"
                 >
                     <h2 id="fd-glance">Today at a glance</h2>
@@ -737,7 +737,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="frontDesk.qrPending"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="fd-qr"
                 >
                     <h2 id="fd-qr">
@@ -759,7 +759,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="frontDesk.links.length"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="fd-open"
                 >
                     <h2 id="fd-open">Open</h2>
@@ -781,7 +781,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         !frontDesk.qrPending &&
                         !frontDesk.links.length
                     "
-                    class="space-card"
+                    class="space-card shadow-card"
                 >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
@@ -1013,7 +1013,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 />
                 <section
                     v-if="consultation.waiting"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="cn-waiting"
                 >
                     <h2 id="cn-waiting">
@@ -1115,7 +1115,7 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                 </section>
                 <section
                     v-if="consultation.held"
-                    class="space-card"
+                    class="space-card shadow-card"
                     aria-labelledby="cn-held"
                 >
                     <h2 id="cn-held">
@@ -1160,7 +1160,10 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
                         </li>
                     </ul>
                 </section>
-                <section v-if="!consultation.waiting" class="space-card">
+                <section
+                    v-if="!consultation.waiting"
+                    class="space-card shadow-card"
+                >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
                         screens are unchanged.
