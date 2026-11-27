@@ -9,22 +9,26 @@ import { PageFrame } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
 import { useScrollStrip } from '@/composables/useScrollStrip';
+import { greetingFor, hourFromAsOf } from '@/lib/greeting';
 import { waitingTone } from '@/lib/waiting-time';
 
 // Clean Look greeting for the department homes, from the signed-in user's own
 // name already shared with every page. No new query; the Me home keeps its own.
 const page = usePage();
 const greetingText = computed(() => {
-    const name = (page.props.auth?.user?.name ?? '').trim().split(/\s+/)[0];
-    const hour = new Date().getHours();
-    const part =
-        hour < 12
-            ? 'Good morning'
-            : hour < 18
-              ? 'Good afternoon'
-              : 'Good evening';
+    // The first section's as-of time is written by the server in the branch time zone.
+    const asOf =
+        props.pharmacy?.asOf ??
+        props.frontDesk?.asOf ??
+        props.billing?.asOf ??
+        props.consultation?.asOf ??
+        props.panel?.asOf ??
+        props.stock?.asOf ??
+        props.hr?.asOf ??
+        props.management?.asOf ??
+        null;
 
-    return name ? `${part}, ${name}` : part;
+    return greetingFor(page.props.auth?.user?.name, hourFromAsOf(asOf));
 });
 const greetingDate = new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',
