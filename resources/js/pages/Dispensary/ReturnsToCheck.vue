@@ -47,6 +47,7 @@ const props = defineProps<{
         view?: 'waiting' | 'checked';
         controlled?: 'all' | 'yes' | 'no';
         outcome?: 'all' | 'dispose' | 'quarantine' | 'refuse';
+        waitingAge?: 'all' | 'today' | 'yesterday' | '2days' | '3days';
         monthLabel?: string;
         counts?: { waiting: number; checked: number };
         rows: Row[];
@@ -69,6 +70,21 @@ const checked = computed(() => view.value === 'checked');
 const selectedOutcome = computed(() =>
     checked.value ? (props.returns.outcome ?? 'all') : 'all',
 );
+const selectedWaitingAge = computed(() =>
+    checked.value ? 'all' : (props.returns.waitingAge ?? 'all'),
+);
+const ageOptions = [
+    { value: 'all', label: 'All ages' },
+    { value: '3days', label: '3 days ago' },
+    { value: '2days', label: '2 days ago' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'today', label: 'Today' },
+];
+const filteredWaiting = computed(
+    () =>
+        !checked.value &&
+        (selectedWaitingAge.value !== 'all' || controlled.value !== 'all'),
+);
 const filteredChecked = computed(
     () =>
         checked.value &&
@@ -79,6 +95,7 @@ const go = (params: {
     view?: string;
     controlled?: string;
     outcome?: string;
+    waitingAge?: string;
 }) =>
     router.get(
         '/dispensary/returns-to-check',
@@ -92,6 +109,11 @@ const go = (params: {
                 (params.controlled ?? controlled.value) === 'all'
                     ? undefined
                     : (params.controlled ?? controlled.value),
+            waiting_age:
+                (params.view ?? view.value) !== 'checked' &&
+                (params.waitingAge ?? selectedWaitingAge.value) !== 'all'
+                    ? (params.waitingAge ?? selectedWaitingAge.value)
+                    : undefined,
             outcome:
                 (params.view ?? view.value) === 'checked' &&
                 (params.outcome ?? selectedOutcome.value) !== 'all'
@@ -187,6 +209,40 @@ const help = computed(() =>
                 {{ option.label }}
             </button>
         </div>
+        <div v-if="!checked" class="flex flex-wrap items-center gap-2">
+            <label for="returns-waiting-age" class="text-sm font-medium"
+                >Waiting</label
+            >
+            <select
+                id="returns-waiting-age"
+                :value="selectedWaitingAge"
+                class="min-h-11 max-w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:min-h-9"
+                @change="
+                    go({
+                        waitingAge: ($event.target as HTMLSelectElement).value,
+                    })
+                "
+            >
+                <option
+                    v-for="option in ageOptions"
+                    :key="option.value"
+                    :value="option.value"
+                >
+                    {{ option.label }}
+                </option>
+            </select>
+            <span
+                class="text-sm text-muted-foreground"
+                data-testid="returns-waiting-count"
+                >{{ returns.total }}
+                {{ filteredWaiting ? 'matching waiting' : 'waiting' }}
+                {{ returns.total === 1 ? 'return' : 'returns' }}</span
+            >
+        </div>
+        <p v-if="!checked" class="text-xs text-muted-foreground">
+            Ages use the branch's calendar days. Each choice matches that exact
+            day; All includes older returns.
+        </p>
         <div v-if="checked" class="flex flex-wrap items-center gap-2">
             <label for="returns-outcome" class="text-sm font-medium"
                 >Outcome</label
@@ -236,6 +292,11 @@ const help = computed(() =>
                     ? `No checked medicine return in ${returns.branchName} matches these filters in ${returns.monthLabel ?? 'this month'}. Choose All outcomes or All medicines to broaden the list.`
                     : `No medicine return in ${returns.branchName} was checked in ${returns.monthLabel ?? 'this month'}.`
             "
+        />
+        <EmptyState
+            v-else-if="returns.rows.length === 0 && filteredWaiting"
+            title="No matching waiting returns"
+            :description="`No medicine return in ${returns.branchName} matches these waiting filters. Choose All ages or All medicines to broaden the list.`"
         />
         <EmptyState
             v-else-if="returns.rows.length === 0"
