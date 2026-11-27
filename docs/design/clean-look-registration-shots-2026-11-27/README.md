@@ -1,6 +1,6 @@
 # Clean Look Registration screenshots (PR #1132)
 
-Third pass: all five review items done; PR head 632a42ea.
+Fourth pass: board points a, c, d (partly), e done; PR head d5b06e0e. Minutes are real (counter rewrite off); *-fullpage.png shows the whole phone list.
 Pages: Registration board (/registration), Register Visit (/registration/create), Create patient (/patients/create).
 Sizes: 1440 and 390. Themes: light and dark. Accounts: demo.ca and demo.director (synthetic).
 Taken on a task-owned PostgreSQL 18 database with the demo seeders (KPOnePresentationSeeder, KPOneDemoSetupSeeder),
