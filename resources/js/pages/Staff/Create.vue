@@ -79,7 +79,7 @@ const submit = () => form.post('/staff');
 
 <template>
     <Head title="Create staff" />
-    <PageFrame width="narrow">
+    <PageFrame>
         <PageHeader
             title="Create staff account"
             description="Provision identity, employment and initial access in one controlled transaction."
