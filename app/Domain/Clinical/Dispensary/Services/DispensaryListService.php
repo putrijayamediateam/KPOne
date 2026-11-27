@@ -2,7 +2,6 @@
 
 namespace App\Domain\Clinical\Dispensary\Services;
 
-use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
@@ -34,24 +33,25 @@ final class DispensaryListService
 
     public const PER_PAGE = 25;
 
-    public function __construct(private BranchAccessService $branches) {}
+    public function __construct(private DispensaryDoctorFilter $doctors) {}
 
     /** @return array<string, mixed> */
-    public function page(User $actor, string $tab, int $page, string $search, string $caseType = 'all'): array
+    public function page(User $actor, string $tab, int $page, string $search, string $caseType = 'all', string $doctorFilter = 'all'): array
     {
-        $branch = $this->branches->activeBranch($actor);
-        abort_unless($branch !== null && DispensaryDirectoryService::canView($actor), 404);
+        $doctors = $this->doctors;
+        [$actor, $branch] = $doctors->context($actor);
         $tab = in_array($tab, self::TABS, true) ? $tab : self::TAB_PREPARE;
         $caseType = $tab === self::TAB_PREPARE && in_array($caseType, [DispensaryCase::TYPE_CONSULTATION, DispensaryCase::TYPE_OTC], true) ? $caseType : 'all';
+        $selection = $doctors->selection($actor, $branch, $tab === self::TAB_PREPARE ? $doctorFilter : 'all');
         $search = Str::limit(trim($search), 80, '');
         [$from, $to] = $this->today($branch);
 
         $counts = [];
         foreach (self::TABS as $name) {
-            $counts[$name] = $this->tabQuery($actor, $branch, $name, $from, $to, $caseType)->count();
+            $counts[$name] = $this->tabQuery($actor, $branch, $name, $from, $to, $caseType, $selection['value'], $selection['id'])->count();
         }
 
-        $query = $this->tabQuery($actor, $branch, $tab, $from, $to, $caseType);
+        $query = $this->tabQuery($actor, $branch, $tab, $from, $to, $caseType, $selection['value'], $selection['id']);
         $this->search($query, $search);
         $query->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'handoffs' => fn ($q) => $q->reorder('attempt_number', 'desc')->withCount(['items as given_count' => fn ($i) => $i->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)])]);
         $tab === self::TAB_DONE ? $query->orderByDesc('completed_at')->orderByDesc('id') : $query->orderBy('received_at')->orderBy('id');
@@ -70,6 +70,10 @@ final class DispensaryListService
             'tab' => $tab,
             'search' => $search,
             'caseType' => $caseType,
+            'doctorContext' => hash_hmac('sha256', $actor->organisation_id.':'.$branch->id.':'.$actor->id, (string) config('app.key')),
+            'doctorFilter' => $selection['value'],
+            'doctorLabel' => $selection['label'],
+            'doctorFilterReset' => $selection['reset'],
             'counts' => $counts,
             'canPrintLabels' => $mayPrint,
             'rows' => $cases->map(function (DispensaryCase $case) use ($numbers, $branch, $mayPrint, $mayPreview, $now): array {
@@ -104,11 +108,18 @@ final class DispensaryListService
     }
 
     /** @return Builder<DispensaryCase> */
-    private function tabQuery(User $actor, Branch $branch, string $tab, CarbonImmutable $from, CarbonImmutable $to, string $caseType = 'all'): Builder
+    private function tabQuery(User $actor, Branch $branch, string $tab, CarbonImmutable $from, CarbonImmutable $to, string $caseType = 'all', string $doctorFilter = 'all', ?int $doctorId = null): Builder
     {
         $query = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id);
         if ($tab === self::TAB_PREPARE && $caseType !== 'all') {
             $query->where('case_type', $caseType);
+        }
+
+        if ($tab === self::TAB_PREPARE && $doctorFilter !== 'all') {
+            $query->where('case_type', $doctorFilter === 'otc' ? DispensaryCase::TYPE_OTC : DispensaryCase::TYPE_CONSULTATION);
+            if ($doctorId !== null) {
+                $query->whereHas('visit', fn ($q) => $q->where('assigned_doctor_user_id', $doctorId));
+            }
         }
 
         return match ($tab) {

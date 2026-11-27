@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Eye, Info, Printer, Search } from '@lucide/vue';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -44,6 +51,10 @@ const props = defineProps<{
         tab: Tab;
         search: string;
         caseType?: 'all' | 'consultation' | 'otc';
+        doctorContext?: string;
+        doctorFilter?: string;
+        doctorLabel?: string;
+        doctorFilterReset?: boolean;
         counts: Record<Tab, number>;
         canPrintLabels: boolean;
         rows: Row[];
@@ -90,6 +101,7 @@ const visit = (params: {
     page?: number;
     search?: string;
     caseType?: string;
+    doctor?: string;
 }) =>
     router.get(
         '/dispensary',
@@ -97,6 +109,11 @@ const visit = (params: {
             tab: params.tab ?? props.list.tab,
             page: params.page ?? 1,
             search: (params.search ?? props.list.search) || undefined,
+            doctor:
+                (params.tab ?? props.list.tab) === 'prepare' &&
+                (params.doctor ?? props.list.doctorFilter ?? 'all') !== 'all'
+                    ? (params.doctor ?? props.list.doctorFilter)
+                    : undefined,
             case_type:
                 (params.tab ?? props.list.tab) === 'prepare' &&
                 (params.caseType ?? selectedType.value) !== 'all'
@@ -107,6 +124,126 @@ const visit = (params: {
     );
 const selectTab = (value: string) => visit({ tab: value as Tab });
 const submitSearch = () => visit({ search: search.value.trim() });
+
+type DoctorOption = { value: string; label: string };
+type DoctorOptions = {
+    data: DoctorOption[];
+    page: number;
+    lastPage: number;
+    total: number;
+    search: string;
+    reset: boolean;
+};
+const selectedDoctor = computed(() => props.list.doctorFilter ?? 'all');
+const doctorSearch = ref('');
+const loadedDoctorSearch = ref('');
+const requestedDoctorSearch = ref('');
+const loadedDoctorPage = ref(1);
+const doctorOptions = ref<DoctorOptions | null>(null);
+const doctorLoading = ref(false);
+const doctorError = ref('');
+const doctorRegion = ref<HTMLElement | null>(null);
+let doctorRequest: AbortController | undefined;
+let doctorSequence = 0;
+const visibleDoctors = computed(() =>
+    (doctorOptions.value?.data ?? []).filter(
+        (option) => option.value !== selectedDoctor.value,
+    ),
+);
+const loadDoctors = async (
+    page = 1,
+    searchTerm = loadedDoctorSearch.value,
+    focus = false,
+) => {
+    if (focus) {
+        doctorRegion.value?.focus();
+    }
+
+    requestedDoctorSearch.value = searchTerm;
+    doctorRequest?.abort();
+    const request = new AbortController();
+    doctorRequest = request;
+    const sequence = ++doctorSequence;
+    doctorLoading.value = true;
+    doctorError.value = '';
+    // Old identities must not remain actionable after a failed read or branch change.
+    doctorOptions.value = null;
+
+    try {
+        const query = new URLSearchParams({
+            page: String(page),
+            search: searchTerm,
+            selected: selectedDoctor.value,
+        });
+        const response = await fetch(`/dispensary/doctor-options?${query}`, {
+            signal: request.signal,
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error('Doctor choices could not be loaded.');
+        }
+
+        const data: DoctorOptions = await response.json();
+
+        if (sequence !== doctorSequence || props.list.tab !== 'prepare') {
+            return;
+        }
+
+        doctorOptions.value = data;
+        loadedDoctorSearch.value = data.search;
+        loadedDoctorPage.value = data.page;
+    } catch {
+        if (sequence === doctorSequence && !request.signal.aborted) {
+            doctorError.value =
+                'Doctor choices could not be loaded. Retry the search.';
+        }
+    } finally {
+        if (sequence === doctorSequence) {
+            doctorLoading.value = false;
+        }
+    }
+};
+watch(
+    [
+        () => props.list.doctorContext,
+        () => props.list.tab,
+        () => selectedDoctor.value,
+    ],
+    ([context, tab], [previousContext, previousTab]) => {
+        doctorRequest?.abort();
+        doctorSequence++;
+        doctorOptions.value = null;
+        doctorLoading.value = false;
+
+        if (context !== previousContext || tab !== previousTab) {
+            doctorSearch.value = '';
+            requestedDoctorSearch.value = '';
+            loadedDoctorSearch.value = '';
+            loadedDoctorPage.value = 1;
+        }
+
+        if (props.list.tab === 'prepare') {
+            void loadDoctors(
+                loadedDoctorPage.value,
+                requestedDoctorSearch.value,
+            );
+        }
+    },
+);
+onMounted(() => {
+    if (props.list.tab === 'prepare') {
+        void loadDoctors(loadedDoctorPage.value);
+    }
+});
+onBeforeUnmount(() => {
+    doctorSequence++;
+    doctorRequest?.abort();
+});
 
 const medicines = (n: number) => (n === 1 ? '1 medicine' : `${n} medicines`);
 const from = (row: Row) =>
@@ -325,25 +462,184 @@ onBeforeUnmount(() => timer && clearInterval(timer));
                     </select>
                     <p class="text-xs text-muted-foreground">
                         Search narrows the list; the To prepare count includes
-                        all cases of the selected type.
+                        all cases matching the selected Type and Doctor filters.
                     </p>
                 </div>
+
+                <section
+                    v-if="list.tab === 'prepare'"
+                    ref="doctorRegion"
+                    tabindex="-1"
+                    aria-label="Doctor filter choices"
+                    class="min-w-0 rounded-xl border bg-card p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    :aria-busy="doctorLoading"
+                >
+                    <label
+                        for="dispensary-doctor"
+                        class="block text-sm font-medium"
+                        >Doctor</label
+                    >
+                    <select
+                        id="dispensary-doctor"
+                        :value="selectedDoctor"
+                        class="mt-2 min-h-11 w-full max-w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring lg:min-h-9"
+                        @change="
+                            visit({
+                                doctor: ($event.target as HTMLSelectElement)
+                                    .value,
+                            })
+                        "
+                    >
+                        <option value="all">All doctors</option>
+                        <option value="otc">OTC counter</option>
+                        <option
+                            v-if="!['all', 'otc'].includes(selectedDoctor)"
+                            :value="selectedDoctor"
+                        >
+                            {{ list.doctorLabel }}
+                        </option>
+                        <option
+                            v-for="option in visibleDoctors"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </option>
+                    </select>
+                    <p class="mt-2 text-sm break-words">
+                        Selected: {{ list.doctorLabel ?? 'All doctors' }}
+                    </p>
+                    <p
+                        v-if="list.doctorFilterReset"
+                        role="status"
+                        class="mt-2 text-sm text-warning-strong"
+                    >
+                        The previous Doctor selection is no longer available in
+                        this branch. Showing All doctors.
+                    </p>
+                    <p
+                        v-if="doctorOptions?.reset"
+                        role="status"
+                        class="mt-2 text-sm text-warning-strong"
+                    >
+                        The selected doctor no longer has a case to prepare.
+                        Choose All doctors to refresh the cases.
+                    </p>
+                    <form
+                        class="mt-3 flex flex-wrap items-end gap-2"
+                        @submit.prevent="
+                            loadDoctors(1, doctorSearch.trim(), true)
+                        "
+                    >
+                        <div class="min-w-0 flex-1">
+                            <label
+                                for="dispensary-doctor-search"
+                                class="block text-xs text-muted-foreground"
+                                >Find a doctor with a case to prepare</label
+                            >
+                            <Input
+                                id="dispensary-doctor-search"
+                                v-model="doctorSearch"
+                                type="search"
+                                class="mt-1 min-h-11 lg:min-h-9"
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            class="min-h-11 lg:min-h-9"
+                            >Find doctor</Button
+                        >
+                    </form>
+                    <p
+                        v-if="doctorLoading"
+                        role="status"
+                        class="mt-2 text-sm text-muted-foreground"
+                    >
+                        Loading doctor choices…
+                    </p>
+                    <p
+                        v-if="doctorError"
+                        role="alert"
+                        class="mt-2 text-sm text-destructive"
+                    >
+                        {{ doctorError }}
+                    </p>
+                    <div
+                        v-if="doctorOptions"
+                        class="mt-3 flex flex-wrap items-center gap-2"
+                    >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="min-h-11 lg:min-h-9"
+                            :disabled="doctorOptions.page <= 1"
+                            @click="
+                                loadDoctors(
+                                    doctorOptions.page - 1,
+                                    loadedDoctorSearch,
+                                    true,
+                                )
+                            "
+                            >Previous doctors</Button
+                        >
+                        <span
+                            class="text-xs text-muted-foreground"
+                            aria-live="polite"
+                            >Page {{ doctorOptions.page }} of
+                            {{ doctorOptions.lastPage }} ·
+                            {{ doctorOptions.total }} matching doctors</span
+                        >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="min-h-11 lg:min-h-9"
+                            :disabled="
+                                doctorOptions.page >= doctorOptions.lastPage
+                            "
+                            @click="
+                                loadDoctors(
+                                    doctorOptions.page + 1,
+                                    loadedDoctorSearch,
+                                    true,
+                                )
+                            "
+                            >Next doctors</Button
+                        >
+                        <p
+                            v-if="doctorOptions.total === 0"
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            No doctor choices match this search. Clear the
+                            doctor search to broaden the choices.
+                        </p>
+                    </div>
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        Choices come from this branch’s cases to prepare,
+                        independently of Type and case search. Finding a doctor
+                        does not change the selected filter.
+                    </p>
+                </section>
 
                 <EmptyState
                     v-if="list.rows.length === 0"
                     :title="
-                        list.search || selectedType !== 'all'
+                        list.search ||
+                        selectedType !== 'all' ||
+                        selectedDoctor !== 'all'
                             ? 'No match'
                             : 'Nothing here'
                     "
                     :description="
-                        selectedType !== 'all'
-                            ? list.search
-                                ? `No case of the selected type matches “${list.search}” in To prepare. Choose All cases or change the search.`
-                                : 'No cases of the selected type are waiting to prepare. Choose All cases to broaden the list.'
-                            : list.search
-                              ? `No case matches “${list.search}” in this tab.`
-                              : emptyText
+                        selectedDoctor !== 'all'
+                            ? 'No cases match the selected Doctor, Type and search. Choose All doctors or broaden the other filters.'
+                            : selectedType !== 'all'
+                              ? list.search
+                                  ? `No case of the selected type matches “${list.search}” in To prepare. Choose All cases or change the search.`
+                                  : 'No cases of the selected type are waiting to prepare. Choose All cases to broaden the list.'
+                              : list.search
+                                ? `No case matches “${list.search}” in this tab.`
+                                : emptyText
                     "
                 />
 
