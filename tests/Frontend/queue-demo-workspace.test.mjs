@@ -175,6 +175,9 @@ test('changing branch or losing branch-wide view leaves the Doctors section', as
         watch: Vue.watch,
         live,
         workspaceSection,
+        activeTab: Vue.ref('held'),
+        workloadPage: Vue.ref(2),
+        workload: { reset() {} },
     });
     live.value.scope = 'own';
     await Vue.nextTick();
@@ -212,4 +215,24 @@ test('actual empty-state span matches the rendered Queue or default Registration
         assert.equal(columns, queueLayout ? 6 : 9);
         assert.match(html, new RegExp(`colspan="${columns}"`));
     }
+});
+
+test('own four summary cards retain Treatment while the sidebar retains Done today too', async () => {
+    const tabs = [
+        { value: 'waiting', label: 'Waiting', count: 1 },
+        { value: 'serving', label: 'Seeing now', count: 2 },
+        { value: 'treatment', label: 'Treatment updates', count: 3 },
+        { value: 'held', label: 'On hold', count: 4 },
+        { value: 'removed', label: 'Done today', count: 5 },
+    ];
+    const html = await render({ scope: 'own', activeTab: 'treatment', tabs });
+    const cards = html
+        .split('aria-label="Queue summary"')[1]
+        .split('Live, every 3 seconds')[0];
+    const sidebar = html.split('Queue at a glance')[1];
+    assert.match(cards, /Treatment updates/);
+    assert.doesNotMatch(cards, /Done today/);
+    assert.match(sidebar, /Treatment updates/);
+    assert.match(sidebar, /Done today/);
+    assert.match(html, /does not confirm the patient has returned/);
 });

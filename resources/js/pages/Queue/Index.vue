@@ -27,9 +27,10 @@ import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
 import { useQueueAverageWait } from '@/composables/useQueueAverageWait';
+import { useQueueWorkload } from '@/composables/useQueueWorkload';
+import type { QueueWorkloadSection } from '@/composables/useQueueWorkload';
 import { useRoomsToday } from '@/composables/useRoomsToday';
 import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
-import { completedShownLine, servingShownLine } from '@/lib/completed-tab';
 import { emergencyBoardMetadata } from '@/lib/emergency-lane';
 import { formatDate } from '@/lib/presentation';
 import {
@@ -104,68 +105,77 @@ const chooseRoom = (value: string | number) => {
         },
     );
 };
-type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
-const tabs = computed<
-    Array<{
-        value: QueueTab;
-        label: string;
-        count?: number;
-        badge?: { text: string; srLabel: string };
-    }>
->(() => [
-    { value: 'all', label: 'All active', count: live.value.tabCounts?.all },
-    {
-        value: 'waiting',
-        label: 'Waiting',
-        count: live.value.tabCounts?.waiting,
-    },
-    {
-        value: 'serving',
-        label: 'Serving Now',
-        count: live.value.tabCounts?.serving,
-    },
-    {
-        value: 'removed',
-        label: 'Consultation Completed',
-        count: live.value.tabCounts?.removed,
-        // Q-15: the doctor's own medicine checks waiting (only when above 0; not a second control, the tab is the control).
-        badge:
-            (live.value.checksWaiting ?? 0) > 0
-                ? {
-                      text: `${live.value.checksWaiting} to check`,
-                      srLabel: `${live.value.checksWaiting} medicine ${live.value.checksWaiting === 1 ? 'check' : 'checks'} waiting for you`,
-                  }
-                : undefined,
-    },
-]);
+type QueueTab =
+    'waiting' | 'serving' | 'treatment' | 'held' | 'removed' | 'checks';
+const tabs = computed(() => {
+    const counts = workload.page.value?.counts;
+
+    if (workspaceSection.value === 'needs-me') {
+        return [
+            {
+                value: 'checks' as QueueTab,
+                label: 'Medicine checks',
+                count: counts?.checks,
+            },
+        ];
+    }
+
+    return [
+        {
+            value: 'waiting' as QueueTab,
+            label: 'Waiting',
+            count: live.value.tabCounts?.waiting,
+        },
+        {
+            value: 'serving' as QueueTab,
+            label: live.value.scope === 'own' ? 'Seeing now' : 'Serving now',
+            count: counts?.seeing,
+        },
+        ...(live.value.scope === 'own'
+            ? [
+                  {
+                      value: 'treatment' as QueueTab,
+                      label: 'Treatment updates',
+                      count: counts?.treatment,
+                  },
+              ]
+            : []),
+        { value: 'held' as QueueTab, label: 'On hold', count: counts?.held },
+        {
+            value: 'removed' as QueueTab,
+            label: 'Done today',
+            count: counts?.completed,
+        },
+    ];
+});
 const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
 const roomsToday = useRoomsToday();
 const averageWait = useQueueAverageWait();
+const workload = useQueueWorkload();
+const workloadPage = ref(1);
+const workloadSection = computed<QueueWorkloadSection>(
+    () =>
+        ({
+            waiting: 'summary',
+            serving: 'seeing',
+            treatment: 'treatment',
+            held: 'held',
+            removed: 'completed',
+            checks: 'checks',
+        })[activeTab.value] as QueueWorkloadSection,
+);
 // Q-2: the attending doctor (own queue) is told when a treatment step is done.
 const treatmentAlerts = useTreatmentDoneAlerts(true);
 const page = usePage();
 const activeTab = ref<QueueTab>('waiting');
-const workspaceSection = ref<'queue' | 'doctors'>('queue');
+const workspaceSection = ref<'queue' | 'doctors' | 'needs-me'>('queue');
 watch([() => live.value.branch.id, () => live.value.scope], () => {
     workspaceSection.value = 'queue';
+    activeTab.value = 'waiting';
+    workloadPage.value = 1;
+    workload.reset();
 });
-// Q-5: the Completed tab lists the latest 25 entries; its count is every completed entry at the branch.
-const completedLine = computed(() =>
-    completedShownLine(
-        activeTab.value,
-        live.value.removed.length,
-        live.value.tabCounts?.removed,
-    ),
-);
-// Q-5b: the Serving Now tab lists the latest 25 serving entries; its count is every serving entry.
-const servingLine = computed(() =>
-    servingShownLine(
-        activeTab.value,
-        live.value.serving.length,
-        live.value.tabCounts?.serving,
-    ),
-);
 const isRefreshing = ref(false);
 const isApplyingFilters = ref(false);
 const draftValidationError = ref('');
@@ -240,25 +250,13 @@ const urgencyOptions = [
     { value: 'urgent', label: 'Urgent' },
     { value: 'normal', label: 'Normal' },
 ];
-const sourceRows = computed<QueueRow[]>(() => {
-    if (activeTab.value === 'removed') {
-        return live.value.removed;
-    }
-
-    if (activeTab.value === 'serving') {
-        return live.value.serving;
-    }
-
-    if (activeTab.value === 'waiting') {
-        return [...live.value.carryOver.data, ...live.value.waiting.data];
-    }
-
-    return [
-        ...live.value.carryOver.data,
-        ...live.value.waiting.data,
-        ...live.value.serving,
-    ];
-});
+const sourceRows = computed<QueueRow[]>(() =>
+    activeTab.value === 'waiting'
+        ? [...live.value.carryOver.data, ...live.value.waiting.data]
+        : workload.page.value?.section === workloadSection.value
+          ? workload.page.value.data
+          : [],
+);
 const compactTime = (value: string) => {
     const [hour, minute] = value.split(':').map(Number);
 
@@ -337,6 +335,20 @@ const toBoardRow = (row: QueueRow): PatientBoardRow => ({
 const boardRows = computed<PatientBoardRow[]>(() =>
     sourceRows.value.map(toBoardRow),
 );
+const workloadFocusTarget = ref<HTMLElement | null>(null);
+const requestWorkloadPage = (targetPage: number) => {
+    if (
+        isRefreshing.value ||
+        workload.loading.value ||
+        busyKey.value !== null
+    ) {
+        return;
+    }
+
+    workloadFocusTarget.value?.focus({ preventScroll: true });
+    workloadPage.value = targetPage;
+    refreshBoard();
+};
 const emergencyFocusTarget = ref<HTMLElement | null>(null);
 const requestEmergencyPage = (page: number) => {
     emergencyFocusTarget.value?.focus({ preventScroll: true });
@@ -452,6 +464,24 @@ const refresh = (
                 pollingLifecycle.accepts(requestGeneration),
             );
 
+            void workload
+                .poll(
+                    live.value.branch.id,
+                    workloadSection.value,
+                    workloadPage.value,
+                    request.signal,
+                    () => pollingLifecycle.accepts(requestGeneration),
+                    appliedFilters,
+                )
+                .then(() => {
+                    if (
+                        pollingLifecycle.accepts(requestGeneration) &&
+                        workload.page.value
+                    ) {
+                        workloadPage.value = workload.page.value.currentPage;
+                    }
+                });
+
             await readyAlerts
                 .poll(live.value.branch.id, request.signal)
                 .catch(() => undefined);
@@ -500,6 +530,8 @@ const replaceAppliedRefresh = async (prepare: () => void) => {
     const generation = pollingLifecycle.invalidate();
     const obsoleteRefresh = activeRefresh;
     controller?.abort();
+    workload.reset();
+    workloadPage.value = 1;
     prepare();
     isApplyingFilters.value = true;
 
@@ -538,7 +570,7 @@ const applyFilters = () => {
 };
 const selectTab = (tab: QueueTab) => {
     activeTab.value = tab;
-    const status = tab === 'all' ? '' : tab;
+    const status = 'waiting';
     void replaceAppliedRefresh(() => {
         draftFilters.status = status;
         appliedFilters.status = status;
@@ -585,11 +617,7 @@ const selectOperationalTab = (value: string) => {
 const clearFilters = () => {
     void replaceAppliedRefresh(() => {
         draftValidationError.value = '';
-        clearQueueFilters(
-            draftFilters,
-            appliedFilters,
-            activeTab.value === 'all' ? '' : activeTab.value,
-        );
+        clearQueueFilters(draftFilters, appliedFilters, 'waiting');
     });
 };
 const source = (row: PatientBoardRow) => row.source as QueueRow;
@@ -733,6 +761,7 @@ const handleVisibility = () => {
         pollingLifecycle.invalidate();
         roomsToday.reset();
         averageWait.reset();
+        workload.reset();
 
         if (pollTimer) {
             clearTimeout(pollTimer);
@@ -767,6 +796,7 @@ onBeforeUnmount(() => {
     pollingLifecycle.dispose();
     roomsToday.reset();
     averageWait.reset();
+    workload.reset();
     document.removeEventListener('visibilitychange', handleVisibility);
 
     if (pollTimer) {
@@ -867,12 +897,15 @@ onBeforeUnmount(() => {
         <!-- BIL-30 (Daniel): below the room picker, one calm line. -->
         <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
         <nav
-            v-if="live.scope === 'branch'"
             class="flex self-start rounded-full bg-muted p-1"
             aria-label="Queue sections"
         >
             <button
-                v-for="section in ['queue', 'doctors'] as const"
+                v-for="section in (live.scope === 'branch'
+                    ? ['queue', 'doctors']
+                    : ['queue', 'needs-me']) as Array<
+                    'queue' | 'doctors' | 'needs-me'
+                >"
                 :key="section"
                 type="button"
                 class="min-h-11 rounded-full px-5 text-sm lg:min-h-9"
@@ -882,14 +915,28 @@ onBeforeUnmount(() => {
                         : 'text-muted-foreground'
                 "
                 :aria-pressed="workspaceSection === section"
-                @click="workspaceSection = section"
+                @click="
+                    workspaceSection = section;
+                    section !== 'doctors' &&
+                        selectOperationalTab(
+                            section === 'needs-me' ? 'checks' : 'waiting',
+                        );
+                "
             >
-                {{ section === 'queue' ? 'Queue' : 'Doctors' }}
+                {{
+                    section === 'queue'
+                        ? live.scope === 'own'
+                            ? 'My patients'
+                            : 'Queue'
+                        : section === 'doctors'
+                          ? 'Doctors'
+                          : 'Needs me'
+                }}
             </button>
         </nav>
         <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
         <div
-            v-show="workspaceSection === 'queue'"
+            v-show="workspaceSection !== 'doctors'"
             ref="tabStrip"
             class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
         >
@@ -914,7 +961,7 @@ onBeforeUnmount(() => {
         </div>
 
         <QueueWorkspaceFrame
-            v-show="workspaceSection === 'queue'"
+            v-show="workspaceSection !== 'doctors'"
             :tabs="tabs"
             :active-tab="activeTab"
             :scope="live.scope"
@@ -1050,36 +1097,93 @@ onBeforeUnmount(() => {
                         />
                     </EmergencyLane>
                 </div>
-                <PatientBoard
-                    :branch-id="live.branch.id"
-                    from="queue"
-                    :queue-layout="live.scope"
-                    :rows="boardRows"
-                    :busy-key="busyKey"
-                    @call="requestCall"
-                    @recall="recall"
-                    @show-details="detailsVisit = $event.visitNumber"
-                    @call-treatment="openTreatmentCall"
-                    @open-consultation="openConsultation"
-                    @cancel="requestCancellation"
-                />
-                <p
-                    v-if="completedLine"
-                    class="border-t px-3 py-2 text-xs text-muted-foreground"
-                    data-testid="completed-shown-count"
+                <div
+                    ref="workloadFocusTarget"
+                    tabindex="-1"
+                    role="region"
+                    aria-label="Queue workload results"
+                    :aria-describedby="
+                        workload.unavailable.value
+                            ? 'queue-workload-error'
+                            : undefined
+                    "
                 >
-                    {{ completedLine }}
-                </p>
-                <p
-                    v-if="servingLine"
-                    class="border-t px-3 py-2 text-xs text-muted-foreground"
-                    data-testid="serving-shown-count"
-                >
-                    {{ servingLine }}
-                </p>
+                    <PatientBoard
+                        v-if="activeTab === 'waiting' || workload.page.value"
+                        :branch-id="live.branch.id"
+                        from="queue"
+                        :queue-layout="live.scope"
+                        :rows="boardRows"
+                        :busy-key="busyKey"
+                        @call="requestCall"
+                        @recall="recall"
+                        @show-details="detailsVisit = $event.visitNumber"
+                        @call-treatment="openTreatmentCall"
+                        @open-consultation="openConsultation"
+                        @cancel="requestCancellation"
+                    />
+                    <div
+                        v-if="activeTab !== 'waiting'"
+                        class="flex flex-wrap items-center justify-between gap-3 border-t p-3 text-xs text-muted-foreground"
+                    >
+                        <p
+                            v-if="workload.unavailable.value"
+                            id="queue-workload-error"
+                            role="alert"
+                        >
+                            This list could not be refreshed. Retrying…
+                        </p>
+                        <p
+                            v-else-if="
+                                workload.loading.value && !workload.page.value
+                            "
+                        >
+                            Loading this list…
+                        </p>
+                        <p v-else-if="workload.page.value">
+                            Showing {{ boardRows.length }} of
+                            {{ workload.page.value.total }} · Page
+                            {{ workload.page.value.currentPage }} of
+                            {{ workload.page.value.lastPage }}
+                        </p>
+                        <div
+                            v-if="
+                                workload.page.value &&
+                                workload.page.value.lastPage > 1
+                            "
+                            class="flex gap-2"
+                        >
+                            <Button
+                                variant="outline"
+                                class="min-h-11 lg:min-h-9"
+                                :disabled="
+                                    isRefreshing ||
+                                    busyKey !== null ||
+                                    workload.loading.value ||
+                                    workload.page.value.currentPage <= 1
+                                "
+                                @click="requestWorkloadPage(workloadPage - 1)"
+                                >Previous</Button
+                            >
+                            <Button
+                                variant="outline"
+                                class="min-h-11 lg:min-h-9"
+                                :disabled="
+                                    isRefreshing ||
+                                    busyKey !== null ||
+                                    workload.loading.value ||
+                                    workload.page.value.currentPage >=
+                                        workload.page.value.lastPage
+                                "
+                                @click="requestWorkloadPage(workloadPage + 1)"
+                                >Next</Button
+                            >
+                        </div>
+                    </div>
+                </div>
                 <div
                     v-if="
-                        (activeTab === 'all' || activeTab === 'waiting') &&
+                        activeTab === 'waiting' &&
                         (live.waiting.lastPage > 1 ||
                             live.carryOver.lastPage > 1)
                     "

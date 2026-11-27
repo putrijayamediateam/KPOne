@@ -39,17 +39,16 @@ test('no Serving Now line on other tabs or while its rows are still loading', ()
     assert.equal(completedShownLine('serving', 25, 31), null);
 });
 
-test('the board wires the Serving Now line to the live serving rows and the server count', () => {
+test('Seeing now uses the independent not-held count and paginated workload rows', () => {
     assert.match(
         page,
-        /servingShownLine\(\s*activeTab\.value,\s*live\.value\.serving\.length,\s*live\.value\.tabCounts\?\.serving,?\s*\)/,
+        /live\.value\.scope === 'own' \? 'Seeing now' : 'Serving now'/,
     );
-    const line = page.match(/<p\s+v-if="servingLine"([\s\S]*?)<\/p>/);
-    assert.ok(line);
-    assert.match(line[1], /data-testid="serving-shown-count"/);
-    assert.match(line[1], /text-xs text-muted-foreground/);
+    assert.match(page, /count: counts\?\.seeing/);
     assert.match(
         page,
-        /label: 'Serving Now',\s*count: live\.value\.tabCounts\?\.serving,/,
+        /workload\.page\.value\?\.section === workloadSection\.value/,
     );
+    assert.match(page, /workload\.page\.value\.data/);
+    assert.doesNotMatch(page, /servingShownLine\(/);
 });
