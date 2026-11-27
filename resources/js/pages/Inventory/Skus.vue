@@ -228,7 +228,9 @@ const errorFor = (field: string) =>
 
 <template>
     <Head title="SKUs" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -258,11 +260,11 @@ const errorFor = (field: string) =>
                 >Search SKU code, name or barcode
                 <Input v-model="q" maxlength="100" />
             </label>
-            <label class="grid gap-1 text-sm"
+            <label class="grid gap-2 text-[13px] font-medium"
                 >Show
                 <select
                     v-model="status"
-                    class="h-11 rounded-md border bg-background px-3"
+                    class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                 >
                     <option value="active">Active SKUs</option>
                     <option value="inactive">Inactive SKUs</option>
@@ -281,7 +283,7 @@ const errorFor = (field: string) =>
             <li
                 v-for="sku in skus.rows"
                 :key="sku.publicId"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="min-w-0">
@@ -297,7 +299,7 @@ const errorFor = (field: string) =>
                                 · Barcode {{ sku.barcode }}</span
                             ><span
                                 v-if="sku.barcodeShared"
-                                class="mt-1 block w-fit rounded border border-amber-600 px-1.5 py-0.5 text-xs text-amber-800 sm:mt-0 sm:ml-1 sm:inline dark:border-amber-400 dark:text-amber-200"
+                                class="mt-1 block w-fit rounded-lg bg-warning-wash px-2 py-0.5 text-xs font-medium text-warning-strong sm:mt-0 sm:ml-1 sm:inline"
                                 >Barcode also on another SKU. Fix it on
                                 <Link
                                     href="/inventory/readiness"
@@ -307,7 +309,7 @@ const errorFor = (field: string) =>
                             >
                             <span
                                 v-if="!sku.active"
-                                class="ml-1 rounded border px-1.5 py-0.5 text-xs"
+                                class="ml-1 rounded-lg bg-muted px-2 py-0.5 text-xs font-medium"
                                 >Inactive</span
                             >
                         </p>
@@ -365,7 +367,8 @@ const errorFor = (field: string) =>
                 <form v-else class="space-y-4" @submit.prevent="submit(sku)">
                     <fieldset class="grid gap-3 sm:grid-cols-2">
                         <legend class="mb-2 text-sm font-semibold">Item</legend>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Generic name (required)
                             <Input
                                 class="h-11 lg:h-9"
@@ -375,7 +378,8 @@ const errorFor = (field: string) =>
                             />
                             <InputError :message="errorFor('generic_name')" />
                         </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Brand name (optional)
                             <Input v-model="form.brand_name" maxlength="300" />
                             <InputError :message="errorFor('brand_name')" />
@@ -386,16 +390,18 @@ const errorFor = (field: string) =>
                         <legend class="mb-2 text-sm font-semibold">
                             Barcode and storage
                         </legend>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Barcode (optional)
                             <Input v-model="form.barcode" maxlength="100" />
                             <InputError :message="errorFor('barcode')" />
                         </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Storage
                             <select
                                 v-model="form.storage_type"
-                                class="h-11 rounded-md border bg-background px-3"
+                                class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                             >
                                 <option
                                     v-for="type in storageOptions(
@@ -409,7 +415,8 @@ const errorFor = (field: string) =>
                             </select>
                             <InputError :message="errorFor('storage_type')" />
                         </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Minimum temperature °C (optional)
                             <Input
                                 class="h-11 lg:h-9"
@@ -420,7 +427,8 @@ const errorFor = (field: string) =>
                                 :message="errorFor('minimum_temperature')"
                             />
                         </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Maximum temperature °C (optional)
                             <Input
                                 class="h-11 lg:h-9"
@@ -475,7 +483,8 @@ const errorFor = (field: string) =>
                             records.
                         </p>
                         <template v-if="!sku.unitsLocked">
-                            <label class="grid min-w-0 gap-1 text-sm"
+                            <label
+                                class="grid min-w-0 gap-2 text-[13px] font-medium"
                                 >SKU code (required)
                                 <Input
                                     class="h-11 lg:h-9"
@@ -485,7 +494,8 @@ const errorFor = (field: string) =>
                                 />
                                 <InputError :message="errorFor('sku_code')" />
                             </label>
-                            <label class="grid min-w-0 gap-1 text-sm"
+                            <label
+                                class="grid min-w-0 gap-2 text-[13px] font-medium"
                                 >Stock unit (required)
                                 <Input
                                     class="h-11 lg:h-9"
@@ -495,7 +505,8 @@ const errorFor = (field: string) =>
                                 />
                                 <InputError :message="errorFor('stock_unit')" />
                             </label>
-                            <label class="grid min-w-0 gap-1 text-sm"
+                            <label
+                                class="grid min-w-0 gap-2 text-[13px] font-medium"
                                 >Dispensing unit (required)
                                 <Input
                                     class="h-11 lg:h-9"
@@ -507,7 +518,8 @@ const errorFor = (field: string) =>
                                     :message="errorFor('dispensing_unit')"
                                 />
                             </label>
-                            <label class="grid min-w-0 gap-1 text-sm"
+                            <label
+                                class="grid min-w-0 gap-2 text-[13px] font-medium"
                                 >Unit conversion (required)
                                 <Input
                                     class="h-11 lg:h-9"
@@ -571,7 +583,8 @@ const errorFor = (field: string) =>
                         <legend class="mb-1 text-sm font-semibold">
                             Expiry alert
                         </legend>
-                        <label class="grid min-w-0 gap-1 text-sm"
+                        <label
+                            class="grid min-w-0 gap-2 text-[13px] font-medium"
                             >Alert before expiry (days) (optional)
                             <Input
                                 class="h-11 lg:h-9"
@@ -614,7 +627,8 @@ const errorFor = (field: string) =>
                             Hidden while a pack check is waiting.
                         </p>
                         <template v-else-if="!sku.unitsLocked">
-                            <label class="grid min-w-0 gap-1 text-sm"
+                            <label
+                                class="grid min-w-0 gap-2 text-[13px] font-medium"
                                 >Pack size
                                 <Input
                                     class="h-11 lg:h-9"
@@ -623,7 +637,8 @@ const errorFor = (field: string) =>
                                 />
                                 <InputError :message="errorFor('pack_size')" />
                             </label>
-                            <label class="grid min-w-0 gap-1 text-sm"
+                            <label
+                                class="grid min-w-0 gap-2 text-[13px] font-medium"
                                 >Purchase unit
                                 <Input
                                     class="h-11 lg:h-9"
@@ -677,7 +692,7 @@ const errorFor = (field: string) =>
                             >
                             <p
                                 id="sku-active-help"
-                                class="text-xs text-muted-foreground"
+                                class="text-[12.5px] text-muted-foreground"
                             >
                                 An inactive SKU cannot be ordered, received or
                                 dispensed. Its stock and history stay.
@@ -695,7 +710,7 @@ const errorFor = (field: string) =>
                             >
                             <p
                                 id="item-active-help"
-                                class="text-xs text-muted-foreground"
+                                class="text-[12.5px] text-muted-foreground"
                             >
                                 Item active affects every SKU of this item. Turn
                                 off its SKUs first; an inactive item's SKUs

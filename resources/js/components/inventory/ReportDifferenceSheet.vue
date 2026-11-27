@@ -198,7 +198,7 @@ function submit(): void {
                                 v-model="form.rough_quantity"
                                 inputmode="decimal"
                                 maxlength="20"
-                                class="min-h-11 w-32 rounded-md border bg-background px-3 text-sm lg:min-h-9"
+                                class="min-h-11 w-32 rounded-[10px] border border-input bg-field-fill px-3 text-sm text-foreground lg:min-h-9"
                                 aria-describedby="report-difference-rough-hint"
                             />
                             <span class="text-sm text-muted-foreground">{{
@@ -207,7 +207,7 @@ function submit(): void {
                         </div>
                         <p
                             id="report-difference-rough-hint"
-                            class="text-xs text-muted-foreground"
+                            class="text-[12.5px] text-muted-foreground"
                         >
                             Your rough count, if you have one. The counter won't
                             see it.
@@ -230,7 +230,7 @@ function submit(): void {
                         />
                         <div
                             id="report-difference-note-hint"
-                            class="flex justify-between gap-2 text-xs text-muted-foreground"
+                            class="flex justify-between gap-2 text-[12.5px] text-muted-foreground"
                         >
                             <span>Don't write patient names or details.</span>
                             <span
@@ -253,7 +253,7 @@ function submit(): void {
                     >
                         <p
                             v-if="form.observed === ''"
-                            class="text-xs text-muted-foreground"
+                            class="text-[12.5px] text-muted-foreground"
                             data-testid="report-difference-pick"
                         >
                             Pick what you saw to continue.

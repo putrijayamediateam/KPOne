@@ -166,7 +166,7 @@ watch(
 );
 </script>
 <template>
-    <details class="min-w-0 rounded-lg border p-3">
+    <details class="min-w-0 rounded-[10px] bg-card-quiet p-3">
         <summary class="min-h-11 cursor-pointer py-3 font-medium">
             Split lots and delivery exceptions
         </summary>
@@ -184,18 +184,18 @@ watch(
             @found="highlight"
         />
         <form class="space-y-4" @submit.prevent="submit(false)">
-            <label class="grid gap-1 text-sm"
+            <label class="grid gap-2 text-[13px] font-medium"
                 >Delivery note or supplier invoice reference<input
                     v-model="form.delivery_reference"
                     maxlength="120"
                     required
-                    class="h-11 min-w-0 rounded border bg-background px-3"
+                    class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
             /></label>
             <fieldset
                 v-for="(line, index) in form.lines"
                 :id="`receiving-line-${line.line_public_id}`"
                 :key="line.line_public_id"
-                class="min-w-0 space-y-3 rounded border p-3"
+                class="min-w-0 space-y-3 rounded-[10px] bg-card-quiet p-3"
                 :class="{
                     'border-2 border-primary':
                         scannedLine === line.line_public_id,
@@ -231,14 +231,14 @@ watch(
                     />Include this order line</label
                 >
                 <template v-if="line.included">
-                    <label class="grid gap-1 text-sm"
+                    <label class="grid gap-2 text-[13px] font-medium"
                         >Physical quantity counted ({{
                             row.lines[index].stockUnit
                         }})<input
                             v-model="line.physical_quantity"
                             inputmode="decimal"
                             required
-                            class="h-11 min-w-0 rounded border bg-background px-3"
+                            class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                     /></label>
                     <label class="flex min-h-11 items-center gap-2 text-sm"
                         ><input
@@ -250,29 +250,29 @@ watch(
                     <div
                         v-for="(entry, number) in line.lots"
                         :key="number"
-                        class="grid min-w-0 gap-2 rounded border p-3 sm:grid-cols-2"
+                        class="grid min-w-0 gap-2 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-2"
                     >
                         <p class="font-medium sm:col-span-2">
                             Lot {{ number + 1 }}
                         </p>
-                        <label class="grid gap-1 text-sm"
+                        <label class="grid gap-2 text-[13px] font-medium"
                             >Batch number<input
                                 v-model="entry.batch_number"
                                 maxlength="100"
                                 required
-                                class="h-11 min-w-0 rounded border bg-background px-3"
+                                class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                         /></label>
-                        <label class="grid gap-1 text-sm"
+                        <label class="grid gap-2 text-[13px] font-medium"
                             >Real expiry date<DateField
                                 v-model="entry.expiry_date"
                                 required
                         /></label>
-                        <label class="grid gap-1 text-sm"
+                        <label class="grid gap-2 text-[13px] font-medium"
                             >Lot quantity<input
                                 v-model="entry.quantity"
                                 inputmode="decimal"
                                 required
-                                class="h-11 min-w-0 rounded border bg-background px-3"
+                                class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                         /></label>
                         <div
                             v-if="entry.outcome !== 'rejected'"
@@ -288,20 +288,20 @@ watch(
                                     placeholder="0.00"
                                     :aria-label="`${row.lines[index].sku} lot ${number + 1} total paid RM`"
                                     :aria-describedby="`${row.publicId}-${index}-${number}-lot-cost-help`"
-                                    class="h-11 min-w-0 rounded border bg-background px-3"
+                                    class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                             /></label>
                             <p
                                 :id="`${row.publicId}-${index}-${number}-lot-cost-help`"
-                                class="text-xs text-muted-foreground"
+                                class="text-[12.5px] text-muted-foreground"
                             >
                                 From the supplier invoice. Leave blank to use
                                 the order's estimate.
                             </p>
                         </div>
-                        <label class="grid gap-1 text-sm"
+                        <label class="grid gap-2 text-[13px] font-medium"
                             >Outcome<select
                                 v-model="entry.outcome"
-                                class="h-11 min-w-0 rounded border bg-background px-3"
+                                class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                                 @change="entry.reason = null"
                             >
                                 <option>accepted</option>
@@ -311,11 +311,11 @@ watch(
                         >
                         <label
                             v-if="entry.outcome !== 'accepted'"
-                            class="grid gap-1 text-sm"
+                            class="grid gap-2 text-[13px] font-medium"
                             >Controlled reason<select
                                 v-model="entry.reason"
                                 required
-                                class="h-11 min-w-0 rounded border bg-background px-3"
+                                class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                             >
                                 <option :value="null" disabled>
                                     Choose a reason
@@ -331,7 +331,7 @@ watch(
                         >
                         <button
                             type="button"
-                            class="min-h-11 rounded border px-3"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                             :disabled="line.lots.length === 1"
                             @click="line.lots.splice(number, 1)"
                         >
@@ -340,7 +340,7 @@ watch(
                     </div>
                     <button
                         type="button"
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         :disabled="line.lots.length >= 20"
                         @click="line.lots.push(lot())"
                     >
@@ -361,13 +361,13 @@ watch(
             </p>
             <div class="flex flex-wrap gap-2">
                 <button
-                    class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="form.processing"
                 >
                     Post receipt</button
                 ><button
                     type="button"
-                    class="min-h-11 rounded border px-4"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="form.processing"
                     @click="submit(true)"
                 >

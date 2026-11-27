@@ -415,7 +415,9 @@ watch(
 
 <template>
     <Head title="Supplier returns" />
-    <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm lg:px-8"
+    >
         <ActionLink
             href="/inventory"
             variant="ghost"
@@ -439,17 +441,21 @@ watch(
             refocus-key="supplier-returns"
             @found="scanned"
         />
-        <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
-            <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
+        <form
+            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
+            @submit.prevent="search()"
+        >
+            <label
+                class="min-w-[min(100%,18rem)] flex-1 basis-72 text-[13px] font-medium"
                 >Search SKU, batch, supplier, return or delivery reference<input
                     v-model="q"
                     maxlength="100"
                     type="search"
-                    class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                    class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
             /></label>
             <button
                 type="submit"
-                class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             >
                 Search
             </button>
@@ -457,16 +463,16 @@ watch(
 
         <section
             v-if="returns.groups.total > 0"
-            class="space-y-3"
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             aria-labelledby="groups-heading"
         >
-            <h2 id="groups-heading" class="text-lg font-semibold">
+            <h2 id="groups-heading" class="text-[15px] font-semibold">
                 Multi-lot returns ({{ returns.groups.total }})
             </h2>
             <article
                 v-for="group in returns.groups.rows"
                 :key="group.id"
-                class="space-y-2 rounded-lg border p-3"
+                class="space-y-2 rounded-[10px] bg-card-quiet p-3"
                 :data-testid="`return-group-${group.id}`"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">
@@ -495,7 +501,7 @@ watch(
                     <li
                         v-for="line in group.lines"
                         :key="line.id"
-                        class="rounded border px-2 py-1"
+                        class="rounded-lg bg-card-quiet px-2 py-1"
                     >
                         {{ line.quantity }} {{ line.base_unit }} ·
                         {{ line.sku_code }} · batch
@@ -516,7 +522,7 @@ watch(
                         group.state === 'awaiting_approval' &&
                         group.requestedByYou
                     "
-                    class="text-xs text-muted-foreground"
+                    class="text-[12.5px] text-muted-foreground"
                 >
                     You requested this return, so a Finance Officer or Director
                     must approve it.
@@ -524,41 +530,41 @@ watch(
                 <div class="flex flex-wrap gap-2">
                     <button
                         v-if="group.canDecide"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showGroupAction(group, 'approved')"
                     >
                         Approve all lots
                     </button>
                     <button
                         v-if="group.canDecide"
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showGroupAction(group, 'rejected')"
                     >
                         Reject all lots
                     </button>
                     <button
                         v-if="group.canDispatch"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showGroupAction(group, 'dispatched')"
                     >
                         Dispatch all lots
                     </button>
                     <button
                         v-if="group.canCredit"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showGroupAction(group, 'credit_recorded')"
                     >
                         Record credit note
                     </button>
                     <button
                         v-if="group.canCancel"
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showGroupAction(group, 'cancelled')"
                     >
                         Cancel
                     </button>
                     <button
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="
                             groupHistory =
                                 groupHistory === group.id ? null : group.id
@@ -603,7 +609,7 @@ watch(
                 class="flex flex-wrap gap-2"
             >
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="returns.groups.page <= 1"
                     @click="
                         search(
@@ -620,7 +626,7 @@ watch(
                     {{ returns.groups.lastPage }}</span
                 >
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="returns.groups.page >= returns.groups.lastPage"
                     @click="
                         search(
@@ -635,8 +641,11 @@ watch(
             </div>
         </section>
 
-        <section class="space-y-3" aria-labelledby="returns-heading">
-            <h2 id="returns-heading" class="text-lg font-semibold">
+        <section
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
+            aria-labelledby="returns-heading"
+        >
+            <h2 id="returns-heading" class="text-[15px] font-semibold">
                 Returns ({{ returns.returns.total }})
             </h2>
             <p
@@ -648,7 +657,7 @@ watch(
             <article
                 v-for="row in returns.returns.rows"
                 :key="row.id"
-                class="space-y-2 rounded-lg border p-3"
+                class="space-y-2 rounded-[10px] bg-card-quiet p-3"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="font-mono text-sm">{{
@@ -680,7 +689,7 @@ watch(
                     v-if="
                         row.state === 'awaiting_approval' && row.requestedByYou
                     "
-                    class="text-xs text-muted-foreground"
+                    class="text-[12.5px] text-muted-foreground"
                 >
                     You requested this return, so a Finance Officer or Director
                     must approve it.
@@ -688,41 +697,41 @@ watch(
                 <div class="flex flex-wrap gap-2">
                     <button
                         v-if="row.canDecide"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showAction(row, 'approved')"
                     >
                         Approve
                     </button>
                     <button
                         v-if="row.canDecide"
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showAction(row, 'rejected')"
                     >
                         Reject
                     </button>
                     <button
                         v-if="row.canDispatch"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showAction(row, 'dispatched')"
                     >
                         Dispatch to supplier
                     </button>
                     <button
                         v-if="row.canCredit"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showAction(row, 'credit_recorded')"
                     >
                         Record credit note
                     </button>
                     <button
                         v-if="row.canCancel"
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="showAction(row, 'cancelled')"
                     >
                         Cancel
                     </button>
                     <button
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         @click="history = history?.id === row.id ? null : row"
                     >
                         {{
@@ -765,7 +774,7 @@ watch(
                 class="flex flex-wrap gap-2"
             >
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="returns.returns.page <= 1"
                     @click="search(returns.returns.page - 1, returns.lots.page)"
                 >
@@ -776,7 +785,7 @@ watch(
                     {{ returns.returns.lastPage }}</span
                 >
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="returns.returns.page >= returns.returns.lastPage"
                     @click="search(returns.returns.page + 1, returns.lots.page)"
                 >
@@ -787,10 +796,10 @@ watch(
 
         <section
             v-if="returns.canRequest"
-            class="space-y-3 rounded-lg border p-3"
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             aria-labelledby="multi-heading"
         >
-            <h2 id="multi-heading" class="text-lg font-semibold">
+            <h2 id="multi-heading" class="text-[15px] font-semibold">
                 Return several lots from one delivery
             </h2>
             <p class="text-sm text-muted-foreground">
@@ -803,7 +812,7 @@ watch(
                     class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
                     >Delivery<select
                         v-model="selectedDelivery"
-                        class="min-h-11 w-full rounded border bg-background px-2"
+                        class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2 text-foreground"
                         data-testid="group-delivery"
                     >
                         <option value="">Choose a delivery</option>
@@ -822,7 +831,7 @@ watch(
                 >
                 <button
                     type="button"
-                    class="min-h-11 rounded border px-4"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="selectedDelivery === ''"
                     @click="chooseDelivery"
                 >
@@ -841,7 +850,7 @@ watch(
                 <fieldset
                     v-for="lot in returns.deliveryLots"
                     :key="lot.id"
-                    class="grid items-start gap-2 rounded border p-2 sm:grid-cols-[minmax(0,1fr)_10rem_14rem]"
+                    class="grid items-start gap-2 rounded-[10px] bg-card-quiet p-3 sm:grid-cols-[minmax(0,1fr)_10rem_14rem]"
                 >
                     <legend class="sr-only">
                         {{ lot.sku_code }} batch {{ lot.batch_number }}
@@ -863,7 +872,7 @@ watch(
                             {{ lot.stock_unit }}</span
                         ></label
                     >
-                    <label class="grid gap-1 text-sm"
+                    <label class="grid gap-2 text-[13px] font-medium"
                         >Quantity ({{ lot.stock_unit }})<input
                             v-model="drafts[lot.id].quantity"
                             inputmode="decimal"
@@ -877,17 +886,17 @@ watch(
                                     : undefined
                             "
                             :class="[
-                                'min-h-11 w-full rounded border bg-background px-3 disabled:opacity-50',
+                                'min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground disabled:opacity-50',
                                 lotError(lot.id)
                                     ? 'border-destructive ring-1 ring-destructive'
                                     : '',
                             ]"
                     /></label>
-                    <label class="grid gap-1 text-sm"
+                    <label class="grid gap-2 text-[13px] font-medium"
                         >Reason<select
                             v-model="drafts[lot.id].reason"
                             :disabled="!drafts[lot.id].include"
-                            class="min-h-11 w-full rounded border bg-background px-2 disabled:opacity-50"
+                            class="min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2 text-foreground disabled:opacity-50"
                         >
                             <option
                                 v-for="reason in returns.reasons"
@@ -910,7 +919,7 @@ watch(
                     >Supplier return authorisation (optional)<input
                         v-model="groupForm.supplier_reference"
                         maxlength="100"
-                        class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                        class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                 /></label>
                 <InputError
                     :message="
@@ -922,7 +931,7 @@ watch(
                 />
                 <button
                     type="submit"
-                    class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="
                         groupForm.processing ||
                         chosenCount === 0 ||
@@ -946,10 +955,10 @@ watch(
 
         <section
             v-if="returns.canRequest"
-            class="space-y-3"
+            class="space-y-3 rounded-xl border bg-card p-4 shadow-card sm:p-5"
             aria-labelledby="lots-heading"
         >
-            <h2 id="lots-heading" class="text-lg font-semibold">
+            <h2 id="lots-heading" class="text-[15px] font-semibold">
                 Received stock you can return ({{ returns.lots.total }})
             </h2>
             <p
@@ -961,7 +970,7 @@ watch(
             <div
                 v-for="lot in returns.lots.rows"
                 :key="lot.id"
-                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+                class="flex flex-wrap items-center justify-between gap-2 rounded-[10px] bg-card-quiet p-3 text-sm"
             >
                 <span class="min-w-0 flex-1"
                     >{{ lot.sku_code }} · batch {{ lot.batch_number }} (expires
@@ -978,7 +987,7 @@ watch(
                     {{ lot.returnable }}</span
                 >
                 <button
-                    class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="lot.returnable === '0.000'"
                     @click="showRequest(lot)"
                 >
@@ -987,7 +996,7 @@ watch(
             </div>
             <div v-if="returns.lots.lastPage > 1" class="flex flex-wrap gap-2">
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="returns.lots.page <= 1"
                     @click="search(returns.returns.page, returns.lots.page - 1)"
                 >
@@ -998,7 +1007,7 @@ watch(
                     {{ returns.lots.lastPage }}</span
                 >
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="returns.lots.page >= returns.lots.lastPage"
                     @click="search(returns.returns.page, returns.lots.page + 1)"
                 >
@@ -1022,7 +1031,7 @@ watch(
                 <form class="space-y-3" @submit.prevent="submit">
                     <div
                         v-if="isGroup && activeGroup"
-                        class="space-y-1 rounded border p-2 text-sm"
+                        class="space-y-1 rounded-[10px] bg-card-quiet p-3 text-sm"
                         data-testid="group-confirm-lots"
                     >
                         <p class="font-medium">
@@ -1049,13 +1058,13 @@ watch(
                                 v-model="form.quantity"
                                 inputmode="decimal"
                                 required
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                         /></label>
                         <InputError :message="form.errors.quantity" />
                         <label class="block text-sm"
                             >Reason<select
                                 v-model="form.reason"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2 text-foreground"
                             >
                                 <option
                                     v-for="reason in returns.reasons"
@@ -1074,7 +1083,7 @@ watch(
                             >Supplier return authorisation (optional)<input
                                 v-model="form.supplier_reference"
                                 maxlength="100"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                         /></label>
                         <InputError :message="form.errors.supplier_reference" />
                     </template>
@@ -1082,7 +1091,7 @@ watch(
                         <label class="block text-sm"
                             >Why are you rejecting it?<select
                                 v-model="form.reason_code"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-2 text-foreground"
                                 aria-describedby="reject-reason-hint"
                             >
                                 <option value="" disabled>
@@ -1124,7 +1133,7 @@ watch(
                                 v-model="form.reference"
                                 maxlength="200"
                                 required
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                                class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                         /></label>
                         <InputError :message="form.errors.reference" />
                         <template v-if="operation === 'credit_recorded'">
@@ -1133,7 +1142,7 @@ watch(
                                 only)<input
                                     v-model="form.credit_amount_rm"
                                     inputmode="decimal"
-                                    class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                                    class="mt-1 min-h-11 w-full rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                             /></label>
                             <InputError :message="errors.credit_amount_sen" />
                             <p
@@ -1146,7 +1155,7 @@ watch(
                         </template>
                         <p
                             v-if="operation === 'dispatched'"
-                            class="text-sm text-amber-700 dark:text-amber-300"
+                            class="text-sm text-warning-strong"
                         >
                             This takes the quantity out of this branch's stock
                             now. It can't be undone.
@@ -1166,7 +1175,7 @@ watch(
                     />
                     <button
                         type="submit"
-                        class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         :disabled="
                             form.processing ||
                             (operation === 'rejected' &&

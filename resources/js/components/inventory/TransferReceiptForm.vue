@@ -70,7 +70,7 @@ const submit = () => {
         :aria-label="`Record receipt of ${row.number}`"
         @submit.prevent="submit"
     >
-        <p class="text-xs text-muted-foreground">
+        <p class="text-[12.5px] text-muted-foreground">
             Count what physically arrived. Only the accepted quantity enters
             this branch's stock. Short, damaged and extra quantities stay open
             until a CA Supervisor, Finance Officer or Director who did not
@@ -104,7 +104,7 @@ const submit = () => {
             </div>
             <p
                 v-if="errors[index]"
-                class="text-xs text-red-700 dark:text-red-300"
+                class="text-xs text-destructive"
                 aria-live="polite"
             >
                 {{ errors[index] }}

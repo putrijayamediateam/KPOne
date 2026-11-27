@@ -374,7 +374,7 @@ const withdraw = () =>
             class="grid gap-3 sm:grid-cols-2"
             @submit.prevent="propose"
         >
-            <label class="grid min-w-0 gap-1 text-sm"
+            <label class="grid min-w-0 gap-2 text-[13px] font-medium"
                 >Pack unit
                 <Input
                     v-model="proposal.pack_unit"
@@ -384,7 +384,7 @@ const withdraw = () =>
                 />
                 <InputError :message="proposal.errors.pack_unit" />
             </label>
-            <label class="grid min-w-0 gap-1 text-sm"
+            <label class="grid min-w-0 gap-2 text-[13px] font-medium"
                 >How many {{ unit }} in one {{ packWord }}?
                 <Input
                     v-model="proposal.base_per_pack"
@@ -484,11 +484,11 @@ const withdraw = () =>
             @update:open="(open: boolean) => (refusing = open)"
             @confirm="submitRefusal"
         >
-            <label class="grid gap-1 text-sm"
+            <label class="grid gap-2 text-[13px] font-medium"
                 >Reason
                 <select
                     v-model="refusal.reason"
-                    class="h-11 rounded-md border bg-background px-3"
+                    class="h-11 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                     data-testid="pack-conversion-refuse-reason"
                 >
                     <option value="" disabled>Pick a reason</option>

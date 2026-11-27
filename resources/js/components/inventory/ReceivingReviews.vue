@@ -172,7 +172,7 @@ watch(
 </script>
 <template>
     <section
-        class="min-w-0 space-y-3 rounded-lg border p-3"
+        class="min-w-0 space-y-3 rounded-[10px] bg-card-quiet p-3"
         aria-label="Receiving exception reviews"
     >
         <h4 class="font-semibold">Delivery exceptions and corrections</h4>
@@ -182,7 +182,10 @@ watch(
             Quarantined stock is released separately, as a batch hold release by
             a Finance Officer or Director.
         </p>
-        <button class="min-h-11 rounded border px-3" @click="load()">
+        <button
+            class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+            @click="load()"
+        >
             Load receiving reviews
         </button>
         <p
@@ -205,7 +208,7 @@ watch(
             <article
                 v-for="receipt in reviews.receipts.rows"
                 :key="receipt.public_id"
-                class="min-w-0 space-y-2 rounded border p-3"
+                class="min-w-0 space-y-2 rounded-[10px] bg-card-quiet p-3"
             >
                 <p class="font-medium wrap-anywhere">
                     {{ receipt.order_number }} ·
@@ -222,10 +225,10 @@ watch(
                     }}
                 </p>
                 <template v-if="receipt.canCorrect">
-                    <label class="grid gap-1 text-sm"
+                    <label class="grid gap-2 text-[13px] font-medium"
                         >Correction reason<select
                             v-model="correctionReasons[receipt.public_id]"
-                            class="h-11 min-w-0 rounded border bg-background px-3"
+                            class="h-11 min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-foreground"
                             @change="resetCorrectionKey(receipt.public_id)"
                         >
                             <option value="" disabled>Choose a reason</option>
@@ -244,7 +247,7 @@ watch(
                         </select></label
                     >
                     <button
-                        class="min-h-11 rounded border px-3"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                         :disabled="!correctionReasons[receipt.public_id]"
                         @click="requestCorrection(receipt)"
                     >
@@ -254,7 +257,7 @@ watch(
             </article>
             <div class="flex flex-wrap gap-3">
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="reviews.receipts.page <= 1"
                     @click="
                         router.get(
@@ -273,7 +276,7 @@ watch(
                 >
                     Previous receipts</button
                 ><button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="
                         reviews.receipts.page >= reviews.receipts.lastPage
                     "
@@ -304,7 +307,7 @@ watch(
             <article
                 v-for="row in reviews.rows"
                 :key="row.public_id"
-                class="min-w-0 space-y-2 rounded border p-3"
+                class="min-w-0 space-y-2 rounded-[10px] bg-card-quiet p-3"
             >
                 <h5 class="font-semibold wrap-anywhere">
                     {{ row.order_number }} · {{ reviewKindLabel(row.kind) }}
@@ -346,7 +349,7 @@ watch(
                 </div>
                 <button
                     v-if="row.canApprove"
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="busy"
                     @click="act(row, true)"
                 >
@@ -354,7 +357,7 @@ watch(
                 </button>
                 <button
                     v-if="row.canPost"
-                    class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="busy"
                     @click="act(row, false)"
                 >
@@ -367,13 +370,13 @@ watch(
             </article>
             <div class="flex flex-wrap gap-3">
                 <button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="reviews.page <= 1"
                     @click="load(reviews.page - 1)"
                 >
                     Previous reviews</button
                 ><button
-                    class="min-h-11 rounded border px-3"
+                    class="inline-flex min-h-11 items-center justify-center rounded-full border border-input px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
                     :disabled="reviews.page >= reviews.lastPage"
                     @click="load(reviews.page + 1)"
                 >
