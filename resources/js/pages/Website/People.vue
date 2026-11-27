@@ -168,13 +168,13 @@ const inputClass =
                     class="flex min-w-0 flex-wrap items-end gap-3 rounded-[14px] border bg-card p-4"
                     @submit.prevent="applyFilters"
                 >
-                    <label class="min-w-0 flex-1 text-sm"
+                    <label class="w-full min-w-0 text-sm sm:w-auto sm:flex-1"
                         >Search<input
                             v-model="filters.search"
                             maxlength="150"
                             :class="inputClass"
                     /></label>
-                    <label class="min-w-0 text-sm"
+                    <label class="w-full min-w-0 text-sm sm:w-auto"
                         >Branch<select
                             v-model="filters.branch_id"
                             :class="inputClass"

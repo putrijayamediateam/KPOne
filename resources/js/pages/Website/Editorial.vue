@@ -217,13 +217,13 @@ const inputClass =
                         filters.get(base, { preserveState: false })
                     "
                 >
-                    <label class="min-w-0 flex-1 text-sm"
+                    <label class="w-full min-w-0 text-sm sm:w-auto sm:flex-1"
                         >Search<input
                             v-model="filters.search"
                             maxlength="150"
                             :class="inputClass"
                     /></label>
-                    <label v-if="!faq" class="min-w-0 text-sm"
+                    <label v-if="!faq" class="w-full min-w-0 text-sm sm:w-auto"
                         >Branch<select
                             v-model="filters.branch_id"
                             :class="inputClass"
