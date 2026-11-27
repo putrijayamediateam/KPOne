@@ -18,6 +18,7 @@ import VisitCancellationDialog from '@/components/patient-board/VisitCancellatio
 import CallNextControl from '@/components/queue/CallNextControl.vue';
 import EmergencyLane from '@/components/queue/EmergencyLane.vue';
 import QueueAverageWaitSummary from '@/components/queue/QueueAverageWaitSummary.vue';
+import QueueCallContext from '@/components/queue/QueueCallContext.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import QueueRoomsToday from '@/components/queue/QueueRoomsToday.vue';
 import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
@@ -65,6 +66,7 @@ const props = defineProps<{
     roomChoice?: {
         rooms: Array<{ id: number; name: string }>;
         currentRoomId: number | null;
+        currentRoomSource: 'chosen' | 'roster' | null;
         operationalDate: string;
     } | null;
     mySalesTarget?:
@@ -980,6 +982,12 @@ onBeforeUnmount(() => {
             </template>
             <template #related>
                 <Link
+                    v-if="page.props.workspace?.navigation.queueDisplayScreen"
+                    href="/queue-display"
+                    class="flex min-h-11 items-center border-t text-sm text-primary lg:min-h-9"
+                    >Waiting-room TV</Link
+                >
+                <Link
                     v-if="
                         page.props.auth.permissions.includes(
                             'treatment_room.view.branch',
@@ -1042,6 +1050,11 @@ onBeforeUnmount(() => {
                     :message="error"
                 />
             </form>
+            <QueueCallContext
+                v-if="activeTab === 'waiting'"
+                :block="live.callNext"
+                :room-choice="roomChoice"
+            />
 
             <section
                 class="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm"
