@@ -33,7 +33,7 @@ import type { QueueWorkloadSection } from '@/composables/useQueueWorkload';
 import { useRoomsToday } from '@/composables/useRoomsToday';
 import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
 import { emergencyBoardMetadata } from '@/lib/emergency-lane';
-import { formatDate } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import {
     applyQueueFilters,
     clearQueueFilters,
@@ -283,6 +283,9 @@ const toBoardRow = (row: QueueRow): PatientBoardRow => ({
     triageViewUrl: row.triageViewUrl ?? null,
     treatmentProgress: row.treatmentProgress ?? null,
     treatmentMinutes: treatmentMinutes(row.treatmentProgress, effectiveNowMs()),
+    completionLabel: row.removedAt
+        ? formatDateTime(row.removedAt, live.value.branch.timezone)
+        : null,
     patientName: row.patientName,
     patientNumber: row.patientNumber,
     visitNumber: row.visitNumber,
@@ -1127,15 +1130,17 @@ onBeforeUnmount(() => {
                         from="queue"
                         :queue-layout="live.scope"
                         :queue-task="
-                            activeTab === 'treatment'
-                                ? 'treatment'
-                                : activeTab === 'held'
-                                  ? 'held'
-                                  : activeTab === 'waiting'
-                                    ? 'waiting'
-                                    : activeTab === 'serving'
-                                      ? 'seeing'
-                                      : undefined
+                            activeTab === 'removed'
+                                ? 'completed'
+                                : activeTab === 'treatment'
+                                  ? 'treatment'
+                                  : activeTab === 'held'
+                                    ? 'held'
+                                    : activeTab === 'waiting'
+                                      ? 'waiting'
+                                      : activeTab === 'serving'
+                                        ? 'seeing'
+                                        : undefined
                         "
                         :rows="boardRows"
                         :busy-key="busyKey"

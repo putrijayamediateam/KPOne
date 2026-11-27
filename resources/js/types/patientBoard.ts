@@ -20,6 +20,8 @@ export type TriageZoneSummary = {
 
 export type PatientBoardRow = {
     key: string;
+    /** Branch-local consultation checkout time; separate from Registration completedAt. */
+    completionLabel?: string | null;
     emergency?: { alertLabel: string; takenLabel: string };
     canWhatsapp: boolean;
     callHold?: CallReadiness | null;
