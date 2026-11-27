@@ -5,6 +5,7 @@
 import { Link } from '@inertiajs/vue3';
 import { ClipboardCheck, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
+import AllergyMatchMark from '@/components/dispensary/AllergyMatchMark.vue';
 import DoctorCheckActions from '@/components/dispensary/DoctorCheckActions.vue';
 import type { DoctorDispensaryCheck } from '@/types';
 
@@ -113,6 +114,12 @@ const directions = (line: {
                         />{{ changeLabels[line.changeState] }}
                     </span>
                 </div>
+                <!-- DSP-29: the same possible-allergy-match mark the CA sees, read only, before the quantities. -->
+                <AllergyMatchMark
+                    :allergens="line.allergyMatches ?? []"
+                    :medicine="line.name"
+                    compact
+                />
                 <dl class="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs">
                     <dt class="text-muted-foreground">Ordered</dt>
                     <dd>
