@@ -64,7 +64,7 @@ class DiagnosisReviewTest extends ClinicalTestCase
         $doctor = $this->actor('resident_doctor');
         $this->selectBranch($doctor);
         $this->get(route('suggestion-review.index'))->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private')
-            ->assertInertia(fn (Assert $p) => $p->component('SuggestionReview/Index')->has('drafts', 1)->where('drafts.0.ownEntry', false)
+            ->assertInertia(fn (Assert $p) => $p->component('SuggestionReview/Index')->has('drafts', 1)->where('draftTotal', 1)->where('drafts.0.ownEntry', false)
                 ->where('drafts.0.enteredLabel', fn (string $label): bool => preg_match('/^Entered by .+, \d{1,2} [A-Z][a-z]{2} \d{4}$/', $label) === 1));
         $key = (string) Str::uuid();
         $data = $this->payload(['decision' => 'approve', 'lock_version' => $preset->lock_version, 'idempotency_key' => $key]);

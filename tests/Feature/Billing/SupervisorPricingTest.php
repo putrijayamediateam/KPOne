@@ -47,7 +47,7 @@ class SupervisorPricingTest extends ClinicalTestCase
 
         // ADM-01: the clinic manager's Administrator role also manages and publishes prices.
         $this->assertSame(['administrator', 'ca_supervisor', 'director', 'finance_officer'], $holders(self::REFERENCES));
-        $this->assertSame(['administrator', 'ca_supervisor', 'finance_officer'], $holders(self::PUBLISH));
+        $this->assertSame(['administrator', 'ca_supervisor', 'director', 'finance_officer'], $holders(self::PUBLISH));
     }
 
     public function test_the_grant_does_not_touch_staff_administration(): void
@@ -111,7 +111,7 @@ class SupervisorPricingTest extends ClinicalTestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'price_book.created', 'actor_user_id' => $supervisor->id]);
     }
 
-    public function test_finance_officer_and_director_behave_exactly_as_before(): void
+    public function test_finance_officer_and_director_publish_without_granting_other_roles_access(): void
     {
         $finance = $this->actor('finance_officer');
         $this->assertTrue($finance->can(self::REFERENCES));
@@ -119,7 +119,7 @@ class SupervisorPricingTest extends ClinicalTestCase
 
         $director = $this->actor('director');
         $this->assertTrue($director->can(self::REFERENCES));
-        $this->assertFalse($director->can(self::PUBLISH));
+        $this->assertTrue($director->can(self::PUBLISH));
 
         foreach (['ca', 'resident_doctor', 'panel_officer', 'technical_admin', 'hr_manager', 'marketing', 'business_development'] as $role) {
             $user = $this->actor($role);
