@@ -39,7 +39,8 @@ test('UX-11: Staff assignment badges use the theme tokens', () => {
     const badge = read(
         'resources/js/pages/Staff/Partials/AssignmentStateBadge.vue',
     );
-    assert.match(badge, /border-success\/25 bg-success\/10 text-success/);
-    assert.match(badge, /border-brand\/25 bg-brand\/10 text-brand-strong/);
-    assert.match(badge, /border-border bg-muted text-muted-foreground/);
+    assert.match(badge, /StatusBadge/);
+    assert.match(badge, /'success'/);
+    assert.match(badge, /'accent'/);
+    assert.match(badge, /'neutral'/);
 });
