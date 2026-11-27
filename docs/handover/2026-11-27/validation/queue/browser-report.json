@@ -1,0 +1,127 @@
+{
+  "screens": [
+    {
+      "name": "queue-branch",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "queue-branch",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "queue-branch",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "queue-branch",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "queue-details",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "queue-details",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "queue-details",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "queue-details",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "queue-own",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "queue-own",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "queue-own",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "queue-own",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "tv-settings",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "tv-settings",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "tv-settings",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "tv-settings",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "checks": [
+    "combined board preserves red/yellow/green ordering",
+    "queue-branch 1440 light: no document overflow",
+    "queue-branch 1440 dark: no document overflow",
+    "queue-branch 390 light: no document overflow",
+    "queue-branch 390 dark: no document overflow",
+    "details header reuses authorized board patient label",
+    "details readings include units",
+    "queue-details 1440 light: no document overflow",
+    "queue-details 1440 dark: no document overflow",
+    "queue-details 390 light: no document overflow",
+    "queue-details 390 dark: no document overflow",
+    "hung optional summary requests do not block board polls",
+    "own doctor has no rooms disclosure",
+    "own doctor never requests branch rooms",
+    "queue-own 1440 light: no document overflow",
+    "queue-own 1440 dark: no document overflow",
+    "queue-own 390 light: no document overflow",
+    "queue-own 390 dark: no document overflow",
+    "settings shows recall inclusion",
+    "tv-settings 1440 light: no document overflow",
+    "tv-settings 1440 dark: no document overflow",
+    "tv-settings 390 light: no document overflow",
+    "tv-settings 390 dark: no document overflow",
+    "no browser JavaScript errors"
+  ]
+}

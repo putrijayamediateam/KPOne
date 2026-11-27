@@ -1,0 +1,3 @@
+# Delegated technical decision, 26 November2026
+
+Two existing stk23-cycle-counts source pins require whitespace tolerance after Prettier wraps the unchanged policy text in the new explanation rail. Controlled medicines remains exactly alwaysA; regex now accepts whitespace between controlled/medicines/are/always. The legend assertion normalizes whitespace then retains the exact original words: Amber due/up to29days; Red30days or more. Independent numeric>=30 and nullable-overdue assertions remain unchanged. No denial, authority, field, cap10 or behavior assertion removed. Staff independently reviewed these two changes clear under owner's standing delegated technical approval, not a new owner tickbox approval.

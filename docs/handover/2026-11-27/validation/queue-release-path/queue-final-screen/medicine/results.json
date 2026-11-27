@@ -1,0 +1,36 @@
+[
+  {
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "metadata": {
+      "itemLineCount": 1,
+      "sentBy": "Synthetic CA Smoke ca"
+    },
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "existingActionNotInvoked": true,
+    "clinicalLinesAbsent": true
+  },
+  {
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "metadata": {
+      "itemLineCount": 1,
+      "sentBy": "Synthetic CA Smoke ca"
+    },
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "existingActionNotInvoked": true,
+    "clinicalLinesAbsent": true
+  }
+]

@@ -1,0 +1,9 @@
+# Financial work mobile cards — bounded next content slice
+
+Current FinancialWork/Index.vue renders Finance/Billing and Panel Responsibility through one existing authorised read DTO. On phones it offers only an11/7-column horizontal table. Add responsive cards below1024 that preserve every existing row identity, branch, status, money value and server-provided Review URL. Retain the existing desktop table and pagination. Add concise native help explaining actual scope; finance is all current finalised invoices, not an unpaid-only To pay list. Panel responsibility is separate from claims submission.
+
+Exact files: resources/js/pages/FinancialWork/Index.vue and one new frontend actual-render test. No shared component edits, backend, permissions, migrations or financial algorithms. Preserve panel/finance routing and compound access contract (billing.summary OR billing.view plus the relevant work permission). All data already comes from existing DTO; no additional identity fields. Existing table/read-only tests remain unchanged. Header review links and cards must meet36desktop/44mobile; mobile cards show full breakdown rather than dropping values. Header description may remove duplicate branch prefix as presentation-only text.
+
+Desktop compact-table/sidebar redesign is deferred: inserting a260px sidebar beside the unchanged1320px11-column table would create avoidable scrolling. This slice fixes mobile content/navigation within the existing workflow; no full nine-tab Billing demo parity claim.
+
+Validation: existing r1c3/navigation/Billing contracts, new actual Vue render for both modes/empty and exact money labels/actions/no mutation forms, types/lint/format/build; synthetic Finance/Panel role browser at390/768/1440 lightdark and row Review navigation. Independent Design review. No existing assertion changes anticipated; any actual pin conflict gets exact delegated review before change.

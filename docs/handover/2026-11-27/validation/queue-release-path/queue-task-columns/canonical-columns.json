@@ -1,0 +1,234 @@
+[
+  {
+    "scope": "own",
+    "key": "wait",
+    "label": "Waiting",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "REASON",
+      "WAITING"
+    ],
+    "action": {
+      "label": "Call in",
+      "dark": true,
+      "to": "seeing",
+      "done": "called to Consultation room 2 (demo).",
+      "next": [
+        "Consultation.dc.html",
+        "Consultation"
+      ]
+    },
+    "note": "Urgent first, then by arrival. Today before carry-over. Live, refreshes every 3 seconds."
+  },
+  {
+    "scope": "own",
+    "key": "seeing",
+    "label": "Seeing now",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "REASON",
+      "SINCE"
+    ],
+    "action": {
+      "label": "Open consultation",
+      "dark": true,
+      "done": "opens the consultation (demo).",
+      "next": [
+        "Consultation.dc.html",
+        "Consultation"
+      ]
+    },
+    "note": null
+  },
+  {
+    "scope": "own",
+    "key": "back",
+    "label": "Back from treatment",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "TREATMENT",
+      "RESULT"
+    ],
+    "action": {
+      "label": "Resume",
+      "dark": true,
+      "to": "done",
+      "done": "resumed; completing sends the medicine to Dispensary (demo).",
+      "next": [
+        "Pharmacy.dc.html",
+        "Dispensary"
+      ]
+    },
+    "note": null
+  },
+  {
+    "scope": "own",
+    "key": "check",
+    "label": "Medicine to check",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "ITEMS",
+      "SENT BY"
+    ],
+    "action": {
+      "label": "Check",
+      "dark": false,
+      "to": "done",
+      "done": "medicine checked (demo). The CA can hand it over.",
+      "next": [
+        "Pharmacy.dc.html",
+        "Dispensary"
+      ]
+    },
+    "note": null
+  },
+  {
+    "scope": "own",
+    "key": "done",
+    "label": "Done today",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "SEEN FOR",
+      "COMPLETED"
+    ],
+    "action": {
+      "label": "View",
+      "dark": false,
+      "done": "opens the consultation, read only (demo)."
+    },
+    "note": "When your medicine checks wait, this tab shows a pill such as '1 to check'."
+  },
+  {
+    "scope": "own",
+    "key": "hold",
+    "label": "On hold",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "TREATMENT STEP",
+      "HELD"
+    ],
+    "action": {
+      "label": "Resume",
+      "dark": true,
+      "to": "seeing",
+      "done": "consultation resumed (demo).",
+      "next": [
+        "Consultation.dc.html",
+        "Consultation"
+      ]
+    },
+    "note": "On hold \u00b7 1 of 3. A doctor may hold at most three consultations; a patient held over 30 minutes is flagged."
+  },
+  {
+    "scope": "own",
+    "key": "red",
+    "label": "Red zone alert",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "ZONE",
+      "REASON",
+      "VITALS"
+    ],
+    "action": {
+      "label": "I'll take it",
+      "dark": true,
+      "done": "you took the red zone patient; other doctors' alerts clear (demo).",
+      "next": [
+        "EmergencyAlert.dc.html",
+        "Emergency lane"
+      ]
+    },
+    "note": "Shown on every doctor's screen until one takes it. The CA started first response in the treatment room. Proposal: needs owner approval."
+  },
+  {
+    "scope": "branch",
+    "key": "await",
+    "label": "Waiting",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "DOCTOR",
+      "STATUS",
+      "WAITING"
+    ],
+    "action": {
+      "label": "Call in",
+      "dark": true,
+      "to": "aserving",
+      "done": "called in to Room 2 \u00b7 on the TV now (demo)."
+    },
+    "note": "Urgent first, then by arrival. Today before carry-over. Waiting turns amber from 30 minutes and red from 60. Live, every 3 seconds."
+  },
+  {
+    "scope": "branch",
+    "key": "aserving",
+    "label": "Serving now",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "DOCTOR",
+      "STATUS",
+      "SINCE"
+    ],
+    "action": {
+      "label": "Call Again",
+      "dark": false,
+      "done": "called again (demo). The TV announces it again, labelled 'Panggilan semula', and lists the number once. At most once per 20 seconds."
+    },
+    "note": "Showing the latest 25 of N when more exist."
+  },
+  {
+    "scope": "branch",
+    "key": "ahold",
+    "label": "On hold",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "DOCTOR",
+      "TREATMENT STEP",
+      "HELD"
+    ],
+    "action": null,
+    "note": "A doctor may hold at most three consultations. A patient held for more than 30 minutes is flagged so nobody is forgotten."
+  },
+  {
+    "scope": "branch",
+    "key": "adone",
+    "label": "Completed",
+    "columns": [
+      "NO.",
+      "PATIENT",
+      "DOCTOR",
+      "NOW AT",
+      "COMPLETED"
+    ],
+    "action": null,
+    "note": "Completed today. Showing the latest 25 of N when more exist."
+  },
+  {
+    "scope": "branch",
+    "key": "arooms",
+    "label": "Rooms today",
+    "columns": [
+      "DOCTOR",
+      "ROOM",
+      "NOW",
+      "WAITING FOR THEM"
+    ],
+    "action": null,
+    "note": "From the approved roster. Shown on the waiting-room TV. Once a branch has consultation rooms, Call In needs the doctor's room for the day."
+  }
+]

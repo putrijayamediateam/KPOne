@@ -1,0 +1,50 @@
+[
+  {
+    "path": "routes/web.php",
+    "sha256": "f8f4be3b0dfa799b8cfa98a27fa15df26b45532d68d6134fbe35620204883fe8"
+  },
+  {
+    "path": "app/Http/Controllers/ClinicalEncounterController.php",
+    "sha256": "dab2e020f037bcf106fd7c956856a3331b5b7241f1bb927fc2f7bfd851e75466"
+  },
+  {
+    "path": "app/Http/Controllers/VisitHistoryController.php",
+    "sha256": "293de56ece41c800662cadf72efe1fca737f7fdcb72bda0fabf30c5931c02aeb"
+  },
+  {
+    "path": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "62945f5b98f4869fb837a91b648acd6a0a2ec1a118e22f330bdfc5f40405522f"
+  },
+  {
+    "path": "resources/js/pages/Clinical/HistoryShow.vue",
+    "sha256": "457466034a7c6c02e9b47fa708274b3c9ed77007b339c19b2ec470779839c240"
+  },
+  {
+    "path": "resources/js/pages/Clinical/Partials/ClinicalHistoryPanel.vue",
+    "sha256": "17c2a574f93e829cfb51643279ed5f537fbd650d256cf00c7d51387e5ff108eb"
+  },
+  {
+    "path": "resources/js/pages/Visits/History.vue",
+    "sha256": "c7798f9edb74098a66732ac4ca668fc2d1afb6ebf73feab33cfe6acf8a67437b"
+  },
+  {
+    "path": "resources/js/pages/Billing/Invoice.vue",
+    "sha256": "8e8ef9b7c5b33e7e4129914eb5aecf961caa86dfceff8ee77f4b1daf02622b8d"
+  },
+  {
+    "path": "resources/js/pages/Queue/Index.vue",
+    "sha256": "5d59319cf85e913c7741930ea42618a3d3a38b124c3a8532e107986478b61ec8"
+  },
+  {
+    "path": "resources/js/components/queue/TreatmentProgressBadge.vue",
+    "sha256": "ebfc69b971759d2b51f0823596410f4b4bc59b19ba96265547f47233847bf1c2"
+  },
+  {
+    "path": "resources/js/types/patientBoard.ts",
+    "sha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575"
+  },
+  {
+    "path": "resources/js/composables/useTreatmentDoneAlerts.ts",
+    "sha256": "cb04b10de86723f457f87a7bca16deaccdfa8a7c92a28422a15d09d3513e9be3"
+  }
+]

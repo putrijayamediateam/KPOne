@@ -1,0 +1,9 @@
+# Independent bounded review
+
+Cleared frozen eight-file patch `e81ccbc703bc1fa3d41ba4a4075bc9796d708fdb64e26483e416b3188c263eaf`, base `a4335a6d9706a77d223f8a62027195fc58abff89`. Recomputed patch and all eight manifest hashes successfully.
+
+Prior source review and 15 independently executed actual task tests passed. Final source reread confirms checks-only structural metadata; current assignment, encounter, branch and open handoff eligibility are repeated, counts and sender share one statement, and ambiguous current identity yields unavailable. Item lines includes all review lines, including intentionally not-dispensed lines; it does not claim supplied quantity. Null and zero remain distinct. No medicine names or quantities are added. Existing action/default/Registration/emergency rendering remains outside this opt-in change. Backend semantic review remains the separate domain peer's responsibility.
+
+Inspected final checks-390-dark, actions-390-dark and checks-1440-light images plus browser/results.json. Real single review line and latest sender are readable; the explanation accurately limits the count. The existing action is focusable/hit-tested at 44px below the persistent host and deliberately not invoked because Open Consultation is a POST entry action. Only two populated own-scope browser states are certified here; edge cases are template/backend tests. Initial incorrect tab-navigation timeout remains documented.
+
+Independently compared browser/state-before.json and state-after.json byte-for-byte: identical. Builder reports eight clinical/stock table sets, full 2317 frontend tests, types/build, backend 16/100 and final 15 focused/static gates. No new browser session or broad suite was independently run at this closure. No blocking design finding; no full screen parity or merge claim.

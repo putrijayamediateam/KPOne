@@ -1,0 +1,7 @@
+{
+  "billing": "/visits/KPV-00000002/billing",
+  "dailyclose": "/cash-closings",
+  "visit_id": 2,
+  "paused": "/visits/KPV-00000001/billing",
+  "pausedclose": "/cash-closings?date=2026-11-26"
+}

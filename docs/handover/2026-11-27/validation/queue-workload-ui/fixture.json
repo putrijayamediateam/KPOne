@@ -1,0 +1,42 @@
+{
+    "Completed": {
+        "visitId": 6,
+        "visitNumber": "KPV-00000006",
+        "patientName": "Synthetic Workload Completed",
+        "queueId": 6,
+        "encounterId": 4,
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "status": "removed",
+        "held": false
+    },
+    "Treatment": {
+        "visitId": 7,
+        "visitNumber": "KPV-00000007",
+        "patientName": "Synthetic Workload Treatment",
+        "queueId": 7,
+        "encounterId": 5,
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "status": "serving",
+        "held": true
+    },
+    "Seeing": {
+        "visitId": 8,
+        "visitNumber": "KPV-00000008",
+        "patientName": "Synthetic Workload Seeing",
+        "queueId": 8,
+        "encounterId": 6,
+        "visitVersion": 1,
+        "queueVersion": 2,
+        "status": "serving",
+        "held": false
+    },
+    "counts": {
+        "held": 2,
+        "treatment": 1,
+        "checks": 0,
+        "seeing": 1,
+        "completed": 2
+    }
+}

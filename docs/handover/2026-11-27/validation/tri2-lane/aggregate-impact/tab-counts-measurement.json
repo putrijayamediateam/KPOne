@@ -1,0 +1,13 @@
+{
+    "small": {
+        "registration": 21,
+        "queue": 17
+    },
+    "large": {
+        "registration": 20,
+        "queue": 17
+    },
+    "sourceUnchanged": true,
+    "registrationCount": 400,
+    "queueCount": 400
+}

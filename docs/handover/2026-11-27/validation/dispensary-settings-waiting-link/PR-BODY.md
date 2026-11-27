@@ -1,0 +1,5 @@
+Adds the missing Settings link to cases waiting for the doctor's check, only when the existing Dispensary directory policy allows the current actor to view them. A separate nullable server URL uses the real check tab. The link remains available when the setting is off because already-waiting cases still need checking. Settings access alone does not imply directory access.
+
+Stacked on #1191. No permission grants, counts/queries, write changes or clinical state. Existing metadata/settings DTOs and destination guards remain unchanged; existing assertions retained.
+
+Validation:26 focused PostgreSQL tests/239 assertions,11 frontend checks, full types/build and scoped PHPStan/Pint/lint/format. Eight actual synthetic role/width/theme states prove44/36 targets, positive keyboard navigation while off, and settings-only Director link omission/direct403. Browser readonly; fixture preparation preserves all case states. Independent source and visual reviews clear. Exact evidence: /workspace/kpone-validation/dispensary-settings-waiting-link/. No merge/production.

@@ -1,0 +1,9 @@
+# Treatment-record bounded backend extraction review
+
+Clear for backend draft at16-file TREATMENT-RECORD-ON-CALL-v1.patch SHA256d4205fa7169d51b14daaee0f6c7a830ecc6193a990e75e382a6f6d36e2a50285, stacked on Treatment-call5025cf3e4. All manifest blobs independently verified. Approved migration hash is exactlya39e12e7dc83472307dd2cef01d415938c4a2e9aad2e0d963df81097a949041f. Service and policy byte-identical to prior reviewed treatment-record/integrated source; no new grant/migration design or correction semantics.
+
+Independently reviewed pagination adaptation: authorised directory count/clamp before25-row selection, bounded partitioned nested steps, full-set hasStartedStep, selected visit step paging. Current/history pages use complete successor/void existence, so page boundaries cannot revive superseded or voided predecessors. SuccessorCorrectionCode preserves correction label without searching a partial history list. Policy/audit precede record reads and existing history boolean retains historical-visit access meaning. Empty page clamps to1; ordering is deterministic. No automatic acknowledgment/resume or write from these reads.
+
+Required later UI contract is explicit: validate/forward independent page parameters, provide reachable controls for truncated data, use full-set hasStartedStep, preserve uncertain command/key and drafts across reconciliation, and reset cursors on visit/branch changes. Backend draft clearance is not permission to deploy an old unadapted UI which infers state from the first25 rows.
+
+Builder reports ordinary39/410 across record/paging/existing Q2, real registered race1/44, scoped static/Pint green; these DB checks were not independently rerun. No frontend files changed and no browser/physical clinical workflow claim is made for this backend-only extraction. Coordinator CI/release gates remain separate; no merge performed.

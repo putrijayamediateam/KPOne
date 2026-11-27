@@ -1,0 +1,34 @@
+--- a/tests/Frontend/bil-23-bills-to-collect.test.mjs
++++ b/tests/Frontend/bil-23-bills-to-collect.test.mjs
+@@ -22,16 +22,19 @@
+     );
+ });
+ 
+-test('the table has Pay later, Due now and Still owed columns', () => {
++test('the compact table keeps the balance visible and payment breakdown in bill details', () => {
+     for (const heading of [
+-        '>Pay later</th>',
+-        '>Due now</th>',
++        '>Invoice</th>',
++        '>Due</th>',
+         '>Still owed</th>',
+     ]) {
+         assert.ok(page.includes(heading), heading);
+     }
+ 
+-    assert.ok(page.includes(':columns="9"'));
++    assert.ok(page.includes(':columns="6"'));
++    assert.match(page, />\s*Bill details\s*<\/summary>/);
++    assert.match(page, />\s*Pay later\s*<\/dt>/);
++    assert.match(page, />\s*Due now\s*<\/dt>/);
+     assert.ok(page.includes('{{ myr(owedOf(row)) }}'));
+ });
+ 
+@@ -84,6 +87,6 @@
+             'Owed on bills past due (today is {{ collections.today }})',
+         ),
+     );
+-    assert.match(page, />\s*Approved pay later\s*<\/th>/);
++    assert.match(page, />\s*Approved pay later\s*<\/dt>/);
+     assert.ok(page.includes('v-if="row.approvedSen > 0"'));
+ });

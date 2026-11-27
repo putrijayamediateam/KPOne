@@ -1,0 +1,22 @@
+{
+  "head": "16aeb2c52abc624e5b73a5bcf77f1dfcb7c3e052",
+  "main": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "original": "73490f3d28acca2d8790f1c7df52b9ff1bd537d6",
+  "nineBlobsEqual": true,
+  "mainRelativePaths": [
+    "resources/js/components/dispensary/DoctorCheckActions.vue",
+    "resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue",
+    "resources/js/pages/Dispensary/Show.vue",
+    "tests/Frontend/dark-1.test.mjs",
+    "tests/Frontend/dd-57-dispensary-dark.test.mjs",
+    "tests/Frontend/ds-01b-3-otc-dispense.test.mjs",
+    "tests/Frontend/ds-01d-dispensary-layout.test.mjs",
+    "tests/Frontend/dsp-17-scan-pick-batch.test.mjs",
+    "tests/Frontend/dsp-23-doctor-check.test.mjs"
+  ],
+  "scriptsEqualMain": {
+    "resources/js/components/dispensary/DoctorCheckActions.vue": true,
+    "resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue": true,
+    "resources/js/pages/Dispensary/Show.vue": false
+  }
+}

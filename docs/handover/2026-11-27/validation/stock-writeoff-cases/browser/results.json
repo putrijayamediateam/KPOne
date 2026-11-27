@@ -1,0 +1,75 @@
+{
+  "identity": "1ffd5436-d9b4-4ca2-b0e2-406b3f718f8b",
+  "reversalIdentity": "381522bd-bb10-4119-9eca-fdefdd0aefeb",
+  "selfApprovalAbsent": true,
+  "keyboardExpanded": "true",
+  "staleRefusal": "Independent approval and posting\n\nSaved evidence is append-only. A changed snapshot is refused. Approval posts atomically; the original evidence is never edited.\n\nDEMO-CETI10 · DEMO-B003 · Snapshot 200.000 tablet\n\nThis case changed. Reload before continuing.\n\nCancel\nApprove and post movement",
+  "readonlyActions": {
+    "propose": 0,
+    "approve": 0,
+    "reverse": 0
+  },
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispensary (Demo)Sta",
+          "height": 140
+        },
+        {
+          "label": "Evidence history",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispensary (Demo)Sta",
+          "height": 140
+        },
+        {
+          "label": "Evidence history",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispensary (Demo)Sta",
+          "height": 272
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispensary (Demo)Sta",
+          "height": 272
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

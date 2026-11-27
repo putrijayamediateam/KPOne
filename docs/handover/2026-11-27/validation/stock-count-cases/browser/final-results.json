@@ -1,0 +1,103 @@
+{
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 100
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 100
+        },
+        {
+          "label": "Propose reversal",
+          "height": 44
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 100
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 100
+        },
+        {
+          "label": "Propose reversal",
+          "height": 44
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 224
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 204
+        },
+        {
+          "label": "Propose reversal",
+          "height": 44
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 224
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 204
+        },
+        {
+          "label": "Propose reversal",
+          "height": 44
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "posted": "Stock count\nDEMO-CETI10\nBatch DEMO-B003\nLocation\nCheras Dispensary (Demo)\nStatus\nA different counter must recount\nBlind count · system quantity hidden\nStock count\nDEMO-PARA500\nBatch DEMO-B101\nLocation\nCheras Store (Demo)\nStatus\nPosted: immutable movement recorded\nStock count · DEMO-PARA500 · DEMO-B101\n\nCheras Store (Demo) · Count variance\n\nSnapshot 296.000 tablet\n\nPosted: immutable movement recorded\n\nPropose reversal\nEvidence history",
+  "writeoff": {
+    "newDisclosures": 0,
+    "newRegion": 0,
+    "empty": true
+  },
+  "errors": []
+}

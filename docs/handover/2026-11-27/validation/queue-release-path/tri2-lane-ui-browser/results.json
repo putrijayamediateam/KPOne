@@ -1,0 +1,103 @@
+[
+  {
+    "path": "queue",
+    "twentyFivePlusOne": true,
+    "keyboardFocusRetained": true,
+    "noNewReadinessFlagOnRed": true
+  },
+  {
+    "path": "queue",
+    "ordinaryFilterDoesNotHideEmergency": true
+  },
+  {
+    "path": "queue",
+    "width": 390,
+    "theme": "light",
+    "noOverflow": true
+  },
+  {
+    "path": "queue",
+    "width": 390,
+    "theme": "dark",
+    "noOverflow": true
+  },
+  {
+    "path": "queue",
+    "width": 768,
+    "theme": "light",
+    "noOverflow": true
+  },
+  {
+    "path": "queue",
+    "width": 768,
+    "theme": "dark",
+    "noOverflow": true
+  },
+  {
+    "path": "queue",
+    "width": 1440,
+    "theme": "light",
+    "noOverflow": true
+  },
+  {
+    "path": "queue",
+    "width": 1440,
+    "theme": "dark",
+    "noOverflow": true
+  },
+  {
+    "path": "registration",
+    "twentyFivePlusOne": true,
+    "keyboardFocusRetained": true,
+    "noNewReadinessFlagOnRed": true
+  },
+  {
+    "path": "registration",
+    "ordinaryFilterDoesNotHideEmergency": true
+  },
+  {
+    "path": "registration",
+    "width": 390,
+    "theme": "light",
+    "noOverflow": true
+  },
+  {
+    "path": "registration",
+    "width": 390,
+    "theme": "dark",
+    "noOverflow": true
+  },
+  {
+    "path": "registration",
+    "width": 768,
+    "theme": "light",
+    "noOverflow": true
+  },
+  {
+    "path": "registration",
+    "width": 768,
+    "theme": "dark",
+    "noOverflow": true
+  },
+  {
+    "path": "registration",
+    "width": 1440,
+    "theme": "light",
+    "noOverflow": true
+  },
+  {
+    "path": "registration",
+    "width": 1440,
+    "theme": "dark",
+    "noOverflow": true
+  },
+  {
+    "manualFailureClearsLane": true,
+    "focusAndErrorAssociationSurvive": true,
+    "retryRestoresLane": true
+  },
+  {
+    "ownScopeThreeOnly": true,
+    "noOtherDoctorIdentities": true
+  }
+]

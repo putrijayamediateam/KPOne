@@ -1,0 +1,38 @@
+{
+  "base": "e5e72f69b79e68cbb57f72d2a7ad974f19aaa048",
+  "patchSHA256": "9b208c66ff79e1ba4f683a01183522ab383dd47457166a643c953538eba9896b",
+  "files": [
+    {
+      "path": "app/Domain/Clinical/Dispensary/Services/DispensaryReturnService.php",
+      "sha256": "1eeb6e5b635953668374b7559f4abd16de9ce3b8c82d409d25f4b09bba1aff0f"
+    },
+    {
+      "path": "app/Domain/DepartmentSpace/PharmacySpace.php",
+      "sha256": "e38313fd598d6a1ee6e9150f9f2e6967516be5ed3f08956d5fa415bc036b6a8d"
+    },
+    {
+      "path": "app/Http/Controllers/DispensaryController.php",
+      "sha256": "761009a2f3308ca15bf529592fdafac79480980c9a42085e6bdbf58f84d1ed63"
+    },
+    {
+      "path": "docs/teams/dispensary-otc/TEAM.md",
+      "sha256": "c72be03fd6ab67943fb46711de24d7c126e0b0f34257a14a084a2d8fc48260b1"
+    },
+    {
+      "path": "resources/js/pages/Dispensary/ReturnsToCheck.vue",
+      "sha256": "d2fe12073f42b69333d6eb6780350aaddd2482336648d7f1f53822aa971e1d2f"
+    },
+    {
+      "path": "docs/reviews/DSP-28-RECOVERY-2026-11-26.md",
+      "sha256": "83f96f733723acf1d2d132c7a631a3c4b816296f4ae4035d81d36df36211efe1"
+    },
+    {
+      "path": "docs/teams/dispensary-otc/CLEAN-LOOK-GAPS-2026-11-26.md",
+      "sha256": "f81b7fdd8c64c223bc7d44cd8ee3051a07d7bdcd01a719f3e2e5dfd4923d4008"
+    },
+    {
+      "path": "tests/Feature/Clinical/DispensaryReturnsHistoryTest.php",
+      "sha256": "513590e8359f166c22ac394c14d267cfb37c88115e846eb4614023c66c4cd7ff"
+    }
+  ]
+}

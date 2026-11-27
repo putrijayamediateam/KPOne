@@ -1,0 +1,41 @@
+[
+  {
+    "width": 390,
+    "hitbox": {
+      "x": 321,
+      "y": 304,
+      "width": 44,
+      "height": 44
+    },
+    "icon": 16,
+    "keyboard": true,
+    "corner": true,
+    "hidden": true
+  },
+  {
+    "width": 768,
+    "hitbox": {
+      "x": 587,
+      "y": 339,
+      "width": 44,
+      "height": 44
+    },
+    "icon": 16,
+    "keyboard": true,
+    "corner": true,
+    "hidden": true
+  },
+  {
+    "width": 1440,
+    "hitbox": {
+      "x": 923,
+      "y": 343,
+      "width": 44,
+      "height": 44
+    },
+    "icon": 16,
+    "keyboard": true,
+    "corner": true,
+    "hidden": true
+  }
+]

@@ -1,0 +1,109 @@
+{
+  "captures": [
+    {
+      "name": "long",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "long",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "long",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "long",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "otc",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "otc",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "otc",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "otc",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "activeBranch": "Cheras",
+      "caseBranch": "Cheras"
+    },
+    {
+      "name": "cross-branch",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "activeBranch": "Puchong",
+      "caseBranch": "Puchong"
+    },
+    {
+      "name": "cross-branch",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "activeBranch": "Puchong",
+      "caseBranch": "Puchong"
+    },
+    {
+      "name": "cross-branch",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "activeBranch": "Puchong",
+      "caseBranch": "Puchong"
+    },
+    {
+      "name": "cross-branch",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "activeBranch": "Puchong",
+      "caseBranch": "Puchong"
+    }
+  ],
+  "errors": [],
+  "writes": [
+    "/branch-context",
+    "/branch-context",
+    "/branch-context"
+  ],
+  "crossBranchDenied": true,
+  "readOnlyClinical": true,
+  "initialBranchRestored": true
+}

@@ -1,0 +1,70 @@
+[
+  {
+    "role": "paging_doctor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "longUnbrokenNameWraps": true,
+    "context": "Room selection: Synthetic Paging Room\n\nSelected manually\n\nNext patient: A-055 · SyntheticUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenName\n\nCall destination: Synthetic Paging Room"
+  },
+  {
+    "role": "paging_doctor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "longUnbrokenNameWraps": true,
+    "context": "Room selection: Synthetic Paging Room\n\nSelected manually\n\nNext patient: A-055 · SyntheticUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenName\n\nCall destination: Synthetic Paging Room"
+  },
+  {
+    "role": "paging_doctor",
+    "steadyAction": true,
+    "namedConfirmationCancel": true,
+    "tvAllowed": false,
+    "noPageErrors": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "longUnbrokenNameWraps": true,
+    "context": "Next for Synthetic Workload Paging Doctor: A-055 · SyntheticUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenName\n\nCall destination: Synthetic Paging Room"
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "tvKeyboard": true,
+    "hit": {
+      "height": 36,
+      "top": 411.5,
+      "hostBottom": 400,
+      "hit": true
+    }
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "longUnbrokenNameWraps": true,
+    "context": "Next for Synthetic Workload Paging Doctor: A-055 · SyntheticUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenNameUnbrokenName\n\nCall destination: Synthetic Paging Room"
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "tvKeyboard": true,
+    "hit": {
+      "height": 44,
+      "top": 448,
+      "hostBottom": 256,
+      "hit": true
+    }
+  },
+  {
+    "role": "ca_supervisor",
+    "steadyAction": true,
+    "namedConfirmationCancel": true,
+    "tvAllowed": true,
+    "noPageErrors": true
+  }
+]

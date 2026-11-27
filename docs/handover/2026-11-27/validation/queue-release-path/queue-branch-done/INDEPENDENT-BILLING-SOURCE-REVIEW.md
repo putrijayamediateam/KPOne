@@ -1,0 +1,5 @@
+# Independent Billing branch Done meaning/source review
+
+Bounded lifecycle/source CLEAR at f769795cfb33afe4346985eb8929151f472a9d5d428a1bc7ada68917e6998af3. Exact patch and all four source hashes independently verified. Read actual Queue mapper and PatientBoard diff. Checkout label requires removed row, completed-only timestamp property, active removed tab, authorized own/branch view and recognized historical routing. Raw API status and other consumers remain untouched. Sent to uses only exact Billing/Dispensary routing, unknown unavailable; completed time remains branch-local checkout time. Visible copy explicitly avoids current downstream payment/dispensing progress.
+
+Branch Done moves the existing status/triage renderer into Patient and adds destination/time cells; no new action or financial authority observed. Staff owns layout/control proof. Builder full2322/types/build,20frontend and PHP1/21 attributed, not independently rerun; actual browser still separate final gate. No Now at/full-demo completion claim.

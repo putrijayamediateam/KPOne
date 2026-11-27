@@ -1,0 +1,906 @@
+diff --git a/docs/teams/dispensary-otc/TEAM.md b/docs/teams/dispensary-otc/TEAM.md
+index b79c72934..4dcd669cb 100644
+--- a/docs/teams/dispensary-otc/TEAM.md
++++ b/docs/teams/dispensary-otc/TEAM.md
+@@ -442,3 +442,9 @@ ## 9. Backlog (next pieces, in order)
+ 
+ Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
+ `2026_11_06_200000` up.
++
++## 26 November 2026 — full-demo workspace presentation, first slice
++
++Owner/coordinator authorized the next isolated presentation slice after comparing the full uploaded HTML. The Dispensary list now uses three live server-count cards and a contextual helpful-information panel, with navigation to the existing Returns page only for `dispensary.view.branch`. Cards use the existing tab query; search, pagination, visible-only polling and case/label actions keep their existing handlers. The panel can be hidden and its sections disclosed without navigation. Desktop supports a side panel; narrower screens retain patient cards with help below the list.
++
++This is partial demo parity: the owner-established three states remain, Verify completes the case, return checking remains on the case, and there is no All branches grant, Ready state, follow-up or default return reason. New filters/enriched clinical data are outside this slice. Existing assertions were not changed. Validation/package evidence is recorded by the coordinator in `dispensary-workspace`; publication awaits final review and owner approval.
+diff --git a/resources/js/pages/Dispensary/Index.vue b/resources/js/pages/Dispensary/Index.vue
+index 14f327f6a..6288f71e0 100644
+--- a/resources/js/pages/Dispensary/Index.vue
++++ b/resources/js/pages/Dispensary/Index.vue
+@@ -1,5 +1,5 @@
+ <script setup lang="ts">
+-import { Head, router } from '@inertiajs/vue3';
++import { Head, Link, router, usePage } from '@inertiajs/vue3';
+ import { Eye, Info, Printer, Search } from '@lucide/vue';
+ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+ import { ActionLink } from '@/components/ui/action-link';
+@@ -61,6 +61,23 @@ const tabs = computed(() => [
+     { value: 'done', label: 'Done today', count: props.list.counts.done },
+ ]);
+ const search = ref(props.list.search);
++const page = usePage();
++const canViewReturns = computed(() =>
++    page.props.auth.permissions.includes('dispensary.view.branch'),
++);
++const showHelpfulInfo = ref(true);
++const currentTab = computed(() =>
++    tabs.value.find((tab) => tab.value === props.list.tab),
++);
++const tabHelp = computed(
++    () =>
++        ({
++            prepare:
++                'Open a case to prepare the medicines and services. Labels print from saved lines only.',
++            check: 'The attending doctor checks the prepared medicines on the consultation page. Verification completes the case.',
++            done: 'Completed cases are read-only. Open a case to record or check medicine returns, or view the saved labels.',
++        })[props.list.tab],
++);
+ 
+ const visit = (params: { tab?: Tab; page?: number; search?: string }) =>
+     router.get(
+@@ -139,10 +156,27 @@ onBeforeUnmount(() => timer && clearInterval(timer));
+ <template>
+     <Head title="Dispensary" />
+     <main
+-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
++        class="mx-auto flex w-full max-w-[1500px] min-w-0 flex-col gap-4 px-4 py-6 md:px-6 lg:[&_a[href]]:min-h-9 lg:[&_button]:min-h-9"
+     >
+         <PageHeader title="Dispensary" :description="list.branchName" />
+ 
++        <nav
++            aria-label="Dispensary workspace"
++            class="flex w-fit items-center gap-1 rounded-full bg-muted p-1"
++        >
++            <span
++                aria-current="page"
++                class="inline-flex min-h-11 items-center rounded-full bg-card px-4 text-sm font-semibold shadow-sm lg:min-h-9"
++                >Dispensing</span
++            >
++            <Link
++                v-if="canViewReturns"
++                href="/dispensary/returns-to-check"
++                class="inline-flex min-h-11 items-center rounded-full px-4 text-sm text-muted-foreground outline-none hover:bg-card focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
++                >Returns</Link
++            >
++        </nav>
++
+         <OperationalTabs
+             :model-value="list.tab"
+             label="Dispensary cases by status"
+@@ -150,114 +184,280 @@ onBeforeUnmount(() => timer && clearInterval(timer));
+             @update:model-value="selectTab"
+         />
+ 
+-        <Alert
+-            v-if="list.tab === 'check'"
+-            class="text-sm"
+-            data-testid="dispensary-check-note"
+-        >
+-            <Info aria-hidden="true" />
+-            <AlertDescription class="text-sm text-foreground">
+-                The doctor checks these on the consultation page. Do not hand
+-                over the medicine until the doctor has checked it.
+-            </AlertDescription>
+-        </Alert>
+-
+-        <form
+-            class="flex max-w-md gap-2"
+-            role="search"
+-            @submit.prevent="submitSearch"
++        <div
++            class="grid min-w-0 gap-5"
++            :class="showHelpfulInfo ? 'xl:grid-cols-[minmax(0,1fr)_280px]' : ''"
+         >
+-            <label for="dispensary-search" class="sr-only"
+-                >Search patient name, KP number or visit number</label
++            <section
++                aria-label="Dispensary cases"
++                class="flex min-w-0 flex-col gap-4"
+             >
+-            <Input
+-                id="dispensary-search"
+-                v-model="search"
+-                type="search"
+-                placeholder="Name, KP or visit no."
+-                class="max-lg:min-h-11"
+-            />
+-            <Button type="submit" variant="outline" class="max-lg:min-h-11">
+-                <Search class="size-4" aria-hidden="true" />Search
+-            </Button>
+-        </form>
+-
+-        <EmptyState
+-            v-if="list.rows.length === 0"
+-            :title="list.search ? 'No match' : 'Nothing here'"
+-            :description="
+-                list.search
+-                    ? `No case matches “${list.search}” in this tab.`
+-                    : emptyText
+-            "
+-        />
++                <div
++                    class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3"
++                    aria-label="Case totals"
++                >
++                    <button
++                        v-for="tab in tabs"
++                        :key="tab.value"
++                        type="button"
++                        :aria-pressed="list.tab === tab.value"
++                        :aria-label="`${tab.label}: ${tab.count}`"
++                        class="min-h-24 rounded-[14px] border bg-card p-4 text-left shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
++                        :class="
++                            list.tab === tab.value
++                                ? 'border-primary ring-1 ring-primary'
++                                : 'border-border'
++                        "
++                        @click="selectTab(tab.value)"
++                    >
++                        <span
++                            class="block text-2xl font-semibold tabular-nums"
++                            >{{ tab.count }}</span
++                        >
++                        <span
++                            class="mt-2 block text-sm text-muted-foreground"
++                            >{{ tab.label }}</span
++                        >
++                    </button>
++                </div>
+ 
+-        <template v-else>
+-            <div class="hidden md:block">
+-                <OperationalTable
+-                    label="Dispensary cases"
+-                    :columns="6"
+-                    min-width="820px"
++                <Alert
++                    v-if="list.tab === 'check'"
++                    class="text-sm"
++                    data-testid="dispensary-check-note"
+                 >
+-                    <template #head>
+-                        <tr>
+-                            <th scope="col">No.</th>
+-                            <th scope="col">Patient</th>
+-                            <th scope="col">Items</th>
+-                            <th scope="col">From</th>
+-                            <th scope="col" class="text-right">
+-                                {{
+-                                    list.tab === 'done'
+-                                        ? 'Completed'
+-                                        : 'Received'
+-                                }}
+-                            </th>
+-                            <th scope="col" class="text-right">
+-                                <span class="sr-only">Actions</span>
+-                            </th>
+-                        </tr>
+-                    </template>
+-                    <template #body>
+-                        <tr
++                    <Info aria-hidden="true" />
++                    <AlertDescription class="text-sm text-foreground">
++                        The doctor checks these on the consultation page. Do not
++                        hand over the medicine until the doctor has checked it.
++                    </AlertDescription>
++                </Alert>
++
++                <div class="flex flex-wrap items-center justify-between gap-3">
++                    <form
++                        class="flex max-w-md gap-2"
++                        role="search"
++                        @submit.prevent="submitSearch"
++                    >
++                        <label for="dispensary-search" class="sr-only"
++                            >Search patient name, KP number or visit
++                            number</label
++                        >
++                        <Input
++                            id="dispensary-search"
++                            v-model="search"
++                            type="search"
++                            placeholder="Name, KP or visit no."
++                            class="max-lg:min-h-11"
++                        />
++                        <Button
++                            type="submit"
++                            variant="outline"
++                            class="max-lg:min-h-11"
++                        >
++                            <Search class="size-4" aria-hidden="true" />Search
++                        </Button>
++                    </form>
++                    <Button
++                        type="button"
++                        variant="outline"
++                        class="min-h-11 lg:min-h-9"
++                        :aria-expanded="showHelpfulInfo"
++                        aria-controls="dispensary-help"
++                        @click="showHelpfulInfo = !showHelpfulInfo"
++                        >{{
++                            showHelpfulInfo
++                                ? 'Hide helpful info'
++                                : 'Show helpful info'
++                        }}</Button
++                    >
++                </div>
++
++                <EmptyState
++                    v-if="list.rows.length === 0"
++                    :title="list.search ? 'No match' : 'Nothing here'"
++                    :description="
++                        list.search
++                            ? `No case matches “${list.search}” in this tab.`
++                            : emptyText
++                    "
++                />
++
++                <template v-else>
++                    <div class="hidden xl:block">
++                        <OperationalTable
++                            label="Dispensary cases"
++                            :columns="6"
++                            min-width="820px"
++                        >
++                            <template #head>
++                                <tr>
++                                    <th scope="col">No.</th>
++                                    <th scope="col">Patient</th>
++                                    <th scope="col">Items</th>
++                                    <th scope="col">From</th>
++                                    <th scope="col" class="text-right">
++                                        {{
++                                            list.tab === 'done'
++                                                ? 'Completed'
++                                                : 'Received'
++                                        }}
++                                    </th>
++                                    <th scope="col" class="text-right">
++                                        <span class="sr-only">Actions</span>
++                                    </th>
++                                </tr>
++                            </template>
++                            <template #body>
++                                <tr
++                                    v-for="row in list.rows"
++                                    :key="row.publicId"
++                                    data-testid="dispensary-list-row"
++                                >
++                                    <td class="font-mono whitespace-nowrap">
++                                        {{ row.queueNumber ?? '—' }}
++                                    </td>
++                                    <td>
++                                        <span
++                                            class="block font-medium text-foreground"
++                                            >{{ row.patientName }}</span
++                                        >
++                                        <span
++                                            class="block font-mono text-xs text-muted-foreground"
++                                            >{{ row.patientNumber }} ·
++                                            {{ row.visitNumber }}</span
++                                        >
++                                    </td>
++                                    <td class="whitespace-nowrap">
++                                        {{ medicines(row.medicineCount) }}
++                                    </td>
++                                    <td>{{ from(row) }}</td>
++                                    <td class="text-right whitespace-nowrap">
++                                        <span class="block tabular-nums">{{
++                                            row.completedAt ?? row.receivedAt
++                                        }}</span>
++                                        <span
++                                            v-if="row.waitingMinutes !== null"
++                                            class="inline-flex items-center gap-1.5 text-xs"
++                                            :class="toneClass(tone(row))"
++                                            data-testid="dispensary-waiting"
++                                            ><span
++                                                v-if="tone(row) !== 'normal'"
++                                                class="size-1.5 rounded-full bg-current"
++                                                aria-hidden="true"
++                                            ></span
++                                            >{{ waiting(row)
++                                            }}<span
++                                                v-if="
++                                                    waitingToneDescription(
++                                                        tone(row),
++                                                    )
++                                                "
++                                                class="sr-only"
++                                            >
++                                                ({{
++                                                    waitingToneDescription(
++                                                        tone(row),
++                                                    )
++                                                }})</span
++                                            ></span
++                                        >
++                                    </td>
++                                    <td class="text-right">
++                                        <div class="flex justify-end gap-2">
++                                            <Button
++                                                v-if="row.labelUrl"
++                                                as-child
++                                                variant="outline"
++                                                size="sm"
++                                                class="max-lg:min-h-11"
++                                                ><a
++                                                    :href="row.labelUrl"
++                                                    target="_blank"
++                                                    rel="noopener noreferrer"
++                                                    data-testid="dispensary-list-labels"
++                                                    :aria-label="`${row.labelAction === 'reprint' ? 'Reprint labels' : 'View labels'} for ${row.patientName}, ${row.visitNumber} (opens in a new tab)`"
++                                                >
++                                                    <Printer
++                                                        v-if="
++                                                            row.labelAction ===
++                                                            'reprint'
++                                                        "
++                                                        class="size-4"
++                                                        aria-hidden="true"
++                                                    /><Eye
++                                                        v-else
++                                                        class="size-4"
++                                                        aria-hidden="true"
++                                                    />{{
++                                                        row.labelAction ===
++                                                        'reprint'
++                                                            ? 'Reprint labels'
++                                                            : 'View labels'
++                                                    }}</a
++                                                ></Button
++                                            >
++                                            <ActionLink
++                                                :href="row.caseUrl"
++                                                variant="outline"
++                                                size="sm"
++                                                class="max-lg:min-h-11"
++                                                :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
++                                                >Open case</ActionLink
++                                            >
++                                        </div>
++                                    </td>
++                                </tr>
++                            </template>
++                        </OperationalTable>
++                    </div>
++
++                    <ul
++                        class="flex flex-col gap-3 xl:hidden"
++                        aria-label="Dispensary cases"
++                    >
++                        <li
+                             v-for="row in list.rows"
+                             :key="row.publicId"
+-                            data-testid="dispensary-list-row"
++                            class="rounded-xl border bg-card p-4 text-sm"
++                            data-testid="dispensary-list-card"
+                         >
+-                            <td class="font-mono whitespace-nowrap">
+-                                {{ row.queueNumber ?? '—' }}
+-                            </td>
+-                            <td>
+-                                <span
+-                                    class="block font-medium text-foreground"
+-                                    >{{ row.patientName }}</span
+-                                >
+-                                <span
+-                                    class="block font-mono text-xs text-muted-foreground"
+-                                    >{{ row.patientNumber }} ·
+-                                    {{ row.visitNumber }}</span
+-                                >
+-                            </td>
+-                            <td class="whitespace-nowrap">
+-                                {{ medicines(row.medicineCount) }}
+-                            </td>
+-                            <td>{{ from(row) }}</td>
+-                            <td class="text-right whitespace-nowrap">
+-                                <span class="block tabular-nums">{{
+-                                    row.completedAt ?? row.receivedAt
+-                                }}</span>
++                            <div class="flex items-start justify-between gap-3">
++                                <div class="min-w-0">
++                                    <p class="font-medium text-foreground">
++                                        <span class="mr-2 font-mono">{{
++                                            row.queueNumber ?? '—'
++                                        }}</span
++                                        >{{ row.patientName }}
++                                    </p>
++                                    <p
++                                        class="font-mono text-xs text-muted-foreground"
++                                    >
++                                        {{ row.patientNumber }} ·
++                                        {{ row.visitNumber }}
++                                    </p>
++                                </div>
+                                 <span
+-                                    v-if="row.waitingMinutes !== null"
+-                                    class="inline-flex items-center gap-1.5 text-xs"
+-                                    :class="toneClass(tone(row))"
+-                                    data-testid="dispensary-waiting"
++                                    class="inline-flex shrink-0 items-center gap-1.5 text-xs"
++                                    :class="
++                                        row.completedAt
++                                            ? 'text-muted-foreground'
++                                            : toneClass(tone(row))
++                                    "
+                                     ><span
+-                                        v-if="tone(row) !== 'normal'"
++                                        v-if="
++                                            !row.completedAt &&
++                                            tone(row) !== 'normal'
++                                        "
+                                         class="size-1.5 rounded-full bg-current"
+                                         aria-hidden="true"
+                                     ></span
+-                                    >{{ waiting(row)
++                                    >{{ row.completedAt ?? waiting(row)
+                                     }}<span
+-                                        v-if="waitingToneDescription(tone(row))"
++                                        v-if="
++                                            !row.completedAt &&
++                                            waitingToneDescription(tone(row))
++                                        "
+                                         class="sr-only"
+                                     >
+                                         ({{
+@@ -265,152 +465,115 @@ onBeforeUnmount(() => timer && clearInterval(timer));
+                                         }})</span
+                                     ></span
+                                 >
+-                            </td>
+-                            <td class="text-right">
+-                                <div class="flex justify-end gap-2">
+-                                    <Button
+-                                        v-if="row.labelUrl"
+-                                        as-child
+-                                        variant="outline"
+-                                        size="sm"
+-                                        class="max-lg:min-h-11"
+-                                        ><a
+-                                            :href="row.labelUrl"
+-                                            target="_blank"
+-                                            rel="noopener noreferrer"
+-                                            data-testid="dispensary-list-labels"
+-                                            :aria-label="`${row.labelAction === 'reprint' ? 'Reprint labels' : 'View labels'} for ${row.patientName}, ${row.visitNumber} (opens in a new tab)`"
+-                                        >
+-                                            <Printer
+-                                                v-if="
+-                                                    row.labelAction ===
+-                                                    'reprint'
+-                                                "
+-                                                class="size-4"
+-                                                aria-hidden="true"
+-                                            /><Eye
+-                                                v-else
+-                                                class="size-4"
+-                                                aria-hidden="true"
+-                                            />{{
+-                                                row.labelAction === 'reprint'
+-                                                    ? 'Reprint labels'
+-                                                    : 'View labels'
+-                                            }}</a
+-                                        ></Button
+-                                    >
+-                                    <ActionLink
+-                                        :href="row.caseUrl"
+-                                        variant="outline"
+-                                        size="sm"
+-                                        class="max-lg:min-h-11"
+-                                        :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
+-                                        >Open case</ActionLink
+-                                    >
+-                                </div>
+-                            </td>
+-                        </tr>
+-                    </template>
+-                </OperationalTable>
+-            </div>
++                            </div>
++                            <p class="mt-2 text-muted-foreground">
++                                {{ medicines(row.medicineCount) }} ·
++                                {{ from(row) }}
++                            </p>
++                            <div class="mt-3 flex flex-wrap gap-2">
++                                <ActionLink
++                                    :href="row.caseUrl"
++                                    variant="outline"
++                                    size="sm"
++                                    class="min-h-11"
++                                    :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
++                                    >Open case</ActionLink
++                                >
++                                <Button
++                                    v-if="row.labelUrl"
++                                    as-child
++                                    variant="outline"
++                                    size="sm"
++                                    class="min-h-11"
++                                    ><a
++                                        :href="row.labelUrl"
++                                        target="_blank"
++                                        rel="noopener noreferrer"
++                                        ><Printer
++                                            v-if="row.labelAction === 'reprint'"
++                                            class="size-4"
++                                            aria-hidden="true"
++                                        /><Eye
++                                            v-else
++                                            class="size-4"
++                                            aria-hidden="true"
++                                        />{{
++                                            row.labelAction === 'reprint'
++                                                ? 'Reprint labels'
++                                                : 'View labels'
++                                        }}<span class="sr-only">
++                                            (opens in a new tab)</span
++                                        ></a
++                                    ></Button
++                                >
++                            </div>
++                        </li>
++                    </ul>
+ 
+-            <ul
+-                class="flex flex-col gap-3 md:hidden"
+-                aria-label="Dispensary cases"
++                    <CompactPagination
++                        :current-page="list.page"
++                        :last-page="list.lastPage"
++                        :total="list.total"
++                        @change="(page: number) => visit({ page })"
++                    />
++                </template>
++            </section>
++            <aside
++                v-if="showHelpfulInfo"
++                id="dispensary-help"
++                aria-label="Helpful information"
++                class="flex min-w-0 flex-col gap-4"
+             >
+-                <li
+-                    v-for="row in list.rows"
+-                    :key="row.publicId"
+-                    class="rounded-xl border bg-card p-4 text-sm"
+-                    data-testid="dispensary-list-card"
++                <details
++                    open
++                    class="rounded-[14px] border bg-card px-4 shadow-card"
+                 >
+-                    <div class="flex items-start justify-between gap-3">
+-                        <div class="min-w-0">
+-                            <p class="font-medium text-foreground">
+-                                <span class="mr-2 font-mono">{{
+-                                    row.queueNumber ?? '—'
+-                                }}</span
+-                                >{{ row.patientName }}
+-                            </p>
+-                            <p class="font-mono text-xs text-muted-foreground">
+-                                {{ row.patientNumber }} · {{ row.visitNumber }}
+-                            </p>
+-                        </div>
+-                        <span
+-                            class="inline-flex shrink-0 items-center gap-1.5 text-xs"
+-                            :class="
+-                                row.completedAt
+-                                    ? 'text-muted-foreground'
+-                                    : toneClass(tone(row))
+-                            "
+-                            ><span
+-                                v-if="
+-                                    !row.completedAt && tone(row) !== 'normal'
+-                                "
+-                                class="size-1.5 rounded-full bg-current"
+-                                aria-hidden="true"
+-                            ></span
+-                            >{{ row.completedAt ?? waiting(row)
+-                            }}<span
+-                                v-if="
+-                                    !row.completedAt &&
+-                                    waitingToneDescription(tone(row))
+-                                "
+-                                class="sr-only"
+-                            >
+-                                ({{ waitingToneDescription(tone(row)) }})</span
+-                            ></span
+-                        >
++                    <summary
++                        class="min-h-11 cursor-pointer py-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
++                    >
++                        About this tab
++                    </summary>
++                    <div class="pb-4 text-sm">
++                        <p class="mb-2 font-medium">{{ currentTab?.label }}</p>
++                        <p class="text-muted-foreground">{{ tabHelp }}</p>
+                     </div>
+-                    <p class="mt-2 text-muted-foreground">
+-                        {{ medicines(row.medicineCount) }} · {{ from(row) }}
+-                    </p>
+-                    <div class="mt-3 flex flex-wrap gap-2">
+-                        <ActionLink
+-                            :href="row.caseUrl"
+-                            variant="outline"
+-                            size="sm"
+-                            class="min-h-11"
+-                            :aria-label="`Open case for ${row.patientName}, ${row.visitNumber}`"
+-                            >Open case</ActionLink
+-                        >
+-                        <Button
+-                            v-if="row.labelUrl"
+-                            as-child
+-                            variant="outline"
+-                            size="sm"
+-                            class="min-h-11"
+-                            ><a
+-                                :href="row.labelUrl"
+-                                target="_blank"
+-                                rel="noopener noreferrer"
+-                                ><Printer
+-                                    v-if="row.labelAction === 'reprint'"
+-                                    class="size-4"
+-                                    aria-hidden="true"
+-                                /><Eye
+-                                    v-else
+-                                    class="size-4"
+-                                    aria-hidden="true"
+-                                />{{
+-                                    row.labelAction === 'reprint'
+-                                        ? 'Reprint labels'
+-                                        : 'View labels'
+-                                }}<span class="sr-only">
+-                                    (opens in a new tab)</span
+-                                ></a
+-                            ></Button
++                </details>
++                <details
++                    open
++                    class="rounded-[14px] border bg-card px-4 shadow-card"
++                >
++                    <summary
++                        class="min-h-11 cursor-pointer py-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
++                    >
++                        Today at a glance
++                    </summary>
++                    <dl class="pb-2 text-sm">
++                        <div
++                            v-for="tab in tabs"
++                            :key="tab.value"
++                            class="flex items-start justify-between gap-3 border-t py-3"
+                         >
+-                    </div>
+-                </li>
+-            </ul>
+-
+-            <CompactPagination
+-                :current-page="list.page"
+-                :last-page="list.lastPage"
+-                :total="list.total"
+-                @change="(page: number) => visit({ page })"
+-            />
+-        </template>
++                            <dt>{{ tab.label }}</dt>
++                            <dd class="shrink-0 font-medium tabular-nums">
++                                {{ tab.count }}
++                            </dd>
++                        </div>
++                    </dl>
++                </details>
++                <details class="rounded-[14px] border bg-card px-4 shadow-card">
++                    <summary
++                        class="min-h-11 cursor-pointer py-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
++                    >
++                        Good to know
++                    </summary>
++                    <p class="pb-4 text-sm text-muted-foreground">
++                        Allergy matches show on the case before medicines are
++                        saved. Labels print from saved lines only. Return checks
++                        happen on the case page; recording a return does not
++                        give a refund.
++                    </p>
++                </details>
++            </aside>
++        </div>
+     </main>
+ </template>
+diff --git a/tests/Frontend/dsp-workspace-demo-runtime.test.mjs b/tests/Frontend/dsp-workspace-demo-runtime.test.mjs
+new file mode 100644
+index 000000000..708827a39
+--- /dev/null
++++ b/tests/Frontend/dsp-workspace-demo-runtime.test.mjs
+@@ -0,0 +1,188 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { createRequire } from 'node:module';
++import test from 'node:test';
++import vm from 'node:vm';
++import { compileScript, parse } from '@vue/compiler-sfc';
++import ts from 'typescript';
++import * as vue from 'vue';
++
++const require = createRequire(import.meta.url);
++const code = ts.transpileModule(
++    compileScript(
++        parse(readFileSync('resources/js/pages/Dispensary/Index.vue', 'utf8'))
++            .descriptor,
++        { id: 'dsp-workspace', inlineTemplate: true },
++    ).content,
++    {
++        compilerOptions: {
++            module: ts.ModuleKind.CommonJS,
++            target: ts.ScriptTarget.ES2022,
++        },
++    },
++).outputText;
++function mount(permissions = ['dispensary.view.branch']) {
++    const calls = [];
++    const stub = (tag = 'div') => ({
++        setup:
++            (_, { slots, attrs }) =>
++            () =>
++                vue.h(tag, attrs, slots.default?.()),
++    });
++    const module = { exports: {} };
++    vm.runInNewContext(code, {
++        exports: module.exports,
++        require: (name) => {
++            if (name === 'vue')
++                return {
++                    ...vue,
++                    onMounted: () => {},
++                    onBeforeUnmount: () => {},
++                };
++            if (name === '@inertiajs/vue3')
++                return {
++                    Head: stub(),
++                    Link: stub('a'),
++                    usePage: () => ({ props: { auth: { permissions } } }),
++                    router: { get: (...args) => calls.push(args) },
++                };
++            if (name.startsWith('@/components/') || name === '@lucide/vue')
++                return new Proxy(
++                    {},
++                    {
++                        get: (_, key) =>
++                            key === '__esModule'
++                                ? true
++                                : stub(key === 'Button' ? 'button' : 'div'),
++                    },
++                );
++            if (name === '@/lib/waiting-time')
++                return {
++                    waitingTone: () => 'normal',
++                    waitingToneDescription: () => '',
++                };
++            return require(name);
++        },
++    });
++    const node = (tag, text = '') => ({
++        tag,
++        text,
++        props: {},
++        children: [],
++        parent: null,
++    });
++    const renderer = vue.createRenderer({
++        createElement: node,
++        createText: (text) => node('#text', text),
++        createComment: (text) => node('#comment', text),
++        setText: (n, t) => (n.text = t),
++        setElementText: (n, t) => {
++            n.text = t;
++            n.children = [];
++        },
++        patchProp: (n, k, _old, v) => (n.props[k] = v),
++        parentNode: (n) => n.parent,
++        nextSibling: (n) =>
++            n.parent?.children[n.parent.children.indexOf(n) + 1] ?? null,
++        insert: (n, p, anchor) => {
++            if (n.parent)
++                n.parent.children.splice(n.parent.children.indexOf(n), 1);
++            n.parent = p;
++            const i = anchor ? p.children.indexOf(anchor) : -1;
++            p.children.splice(i < 0 ? p.children.length : i, 0, n);
++        },
++        remove: (n) => {
++            if (n.parent)
++                n.parent.children.splice(n.parent.children.indexOf(n), 1);
++        },
++    });
++    const list = vue.reactive({
++        branchName: 'Synthetic Branch',
++        tab: 'prepare',
++        search: 'Synthetic',
++        counts: { prepare: 7, check: 3, done: 2 },
++        canPrintLabels: false,
++        rows: [],
++        total: 0,
++        page: 4,
++        lastPage: 4,
++    });
++    const root = node('root');
++    renderer
++        .createApp({ render: () => vue.h(module.exports.default, { list }) })
++        .mount(root);
++    const all = () => {
++        const out = [];
++        const walk = (n) => {
++            out.push(n);
++            n.children.forEach(walk);
++        };
++        walk(root);
++        return out;
++    };
++    return { list, calls, all };
++}
++
++test('workspace cards use fresh server counts and existing tab GET preserving search and resetting page', async () => {
++    const app = mount();
++    const card = () =>
++        app
++            .all()
++            .find(
++                (n) =>
++                    n.props['aria-label'] === "Waiting for doctor's check: 3",
++            );
++    assert.equal(card().props['aria-pressed'], false);
++    card().props.onClick();
++    assert.equal(app.calls[0][0], '/dispensary');
++    assert.equal(app.calls[0][1].tab, 'check');
++    assert.equal(app.calls[0][1].page, 1);
++    assert.equal(app.calls[0][1].search, 'Synthetic');
++    app.list.tab = 'check';
++    app.list.counts.check = 9;
++    await vue.nextTick();
++    const updated = app
++        .all()
++        .find((n) => n.props['aria-label'] === "Waiting for doctor's check: 9");
++    assert.equal(updated.props['aria-pressed'], true);
++});
++
++test('readonly branch viewer receives no Returns navigation; branch viewer uses existing protected route', () => {
++    assert.equal(
++        mount([])
++            .all()
++            .some((n) => n.props.href === '/dispensary/returns-to-check'),
++        false,
++    );
++    assert.equal(
++        mount()
++            .all()
++            .filter((n) => n.props.href === '/dispensary/returns-to-check')
++            .length,
++        1,
++    );
++});
++
++test('help toggle removes the entire aside and restores it without issuing navigation', async () => {
++    const app = mount();
++    const toggle = () =>
++        app
++            .all()
++            .find(
++                (n) =>
++                    n.tag === 'button' &&
++                    n.props['aria-controls'] === 'dispensary-help',
++            );
++    assert.ok(app.all().some((n) => n.tag === 'aside'));
++    toggle().props.onClick();
++    await vue.nextTick();
++    assert.equal(toggle().props['aria-expanded'], false);
++    assert.equal(
++        app.all().some((n) => n.tag === 'aside'),
++        false,
++    );
++    toggle().props.onClick();
++    await vue.nextTick();
++    assert.ok(app.all().some((n) => n.tag === 'aside'));
++    assert.equal(app.calls.length, 0);
++});

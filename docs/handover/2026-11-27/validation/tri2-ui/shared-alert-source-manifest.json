@@ -1,0 +1,16 @@
+{
+  "resources/js/components/queue/RedZoneAlertBanner.vue": "4bb06b6a1d5489e234d64d9eadcc39d56d2c3cbcb58f5dd5c8fdf948d5136a91",
+  "resources/js/pages/Queue/Index.vue": "917e0bad4834e64594fa56009986bb3c09a9fb9b00e2d8833d324e91177cd0c0",
+  "resources/js/pages/Clinical/Show.vue": "dab7f24ed069424a8cfdae2f89941e1b8d0b607da136b6797d90a36c38f90dee",
+  "resources/js/layouts/ClinicLayout.vue": "b08b734438fc7833526108f488c06378c642110ca97b94b1ada58db680276a0a",
+  "resources/js/layouts/AdminLayout.vue": "60149e2297cb696ca068fa1fdd59f07b72e7a53b8684aa8b20c2c8af17c8753f",
+  "resources/js/layouts/app/AppSidebarLayout.vue": "43ac61f1aacfcf38dda392c2a23d85c6175344d30bf60508e28f0df05c100803",
+  "resources/js/layouts/app/AppHeaderLayout.vue": "75e5953250f4102edaad78be4ba823356fac71ec881b33c9da2ddae7e665ad88",
+  "tests/Frontend/q-16b-red-zone-alert.test.mjs": "4ca24096caf8121ac85d4167d0c4ddf633466d9b1b558df288bb56bc5ccb429d",
+  "resources/js/composables/useEmergencyAlerts.ts": "aab88008c8ba64f80f5e9964f06786ecfc6f09f6b810721f4cdd6aaf8124e83c",
+  "resources/js/composables/useEmergencyHoldBridge.ts": "0f2d5c71f29aeb1abe829395d751918b4c9282a6d48d38b9c36f4b9b0e186109",
+  "resources/js/components/queue/EmergencyAlertHost.vue": "61c5b41224578cb6500223dc2ac52fbe0f896ba8abb8eeb616103bef91849509",
+  "tests/Frontend/tri2-emergency-runtime.test.mjs": "0bc6f0bdd26f7024039da8816dbbddc1802293795575a04c28c5c65fdcc7e95f",
+  "tests/Frontend/tri2-emergency-banner-runtime.test.mjs": "abd80ff020200d2b43df4cd6f971004ed05b59231b641cb61a58c79c1e2016e6",
+  "tests/Frontend/tri2-emergency-hold-runtime.test.mjs": "b2bf5469c67fe669512a1640c8175713af01e59356b8c6ba8b1e10101baba51f"
+}

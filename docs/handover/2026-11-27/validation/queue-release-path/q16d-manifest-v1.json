@@ -1,0 +1,20 @@
+{
+  "base": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+  "patch_sha256": "be50360d9716d049f43ffd27b3ed41eca3f04768f1139465fea7a85417ae3973",
+  "files": {
+    "app/Domain/HR/Roster/Services/RosterRoomLookup.php": "c78263e2ecade673d92949be44f2909e769deec6ef37c25f7f26a26c8ad3d146",
+    "app/Domain/Queue/Display/DoctorRoomService.php": "d323aab8f52595748c992b6fd345859a44f3ead1c948e08ae0c88cb16ba459ad",
+    "app/Domain/Queue/Services/RoomsTodayService.php": "192420fcdb145e0c26e6f039fbc40c5238ba5e01d864184cfa23d0ee1f5b0bbc",
+    "app/Domain/Visit/Services/VisitDoctorEligibilityService.php": "e56c0f7102870351ec7e6d3945bcd86ec1d2bf9f8ecbd57d63fc2918ed571095",
+    "app/Http/Controllers/QueueController.php": "e829f6f3bc514f21762e642dc06e8150491516af8113797fff250fd09b42ae44",
+    "docs/teams/queue-tv/Q16D-REVIEW-2026-11-26.md": "d2e2b6bbac3aac99e8c3e60fcc3a5d4a488d19636ced8b26ccaf234f741cd9d3",
+    "resources/js/components/queue/QueueRoomsToday.vue": "9562ac54effc366b4d939a55929d2ef1ebd339dad0625a635970a1240f0f9d03",
+    "resources/js/composables/useRoomsToday.ts": "42cbaeffeadbca589fae3798b626aa71092078c682e54aeececd5cbb17d8daf5",
+    "resources/js/pages/Queue/Index.vue": "73bf0d00b3b1ed4b0b0637f6e8ab2866cb3aa8769dcfc0bddc52fb87e605f5ab",
+    "routes/web.php": "4a00e6cb62a6893472a2053443c93655e67ad9fb8bc65199c45cb129c26faae2",
+    "tests/Feature/HR/RosterRoomLookupTest.php": "25056215400499b30863417782075e2483447bfdc1548313b97f55b470ccf464",
+    "tests/Feature/Queue/DoctorRoomRosterTest.php": "ffe87c6050cc03c6ad065da0b96e4b36d48bdbaa6ad36b74189e5fc27347788a",
+    "tests/Feature/Queue/RoomsTodayTest.php": "ad252650ad14c3acf6f63363c517e79c34da5d3cbbc63f57318962c4e99acf31",
+    "tests/Frontend/q-16d-rooms-today.test.mjs": "c87da66437d5a8df960e29daf4a8b2ef51f80e5fc708818cfe6780d7838b5c0b"
+  }
+}

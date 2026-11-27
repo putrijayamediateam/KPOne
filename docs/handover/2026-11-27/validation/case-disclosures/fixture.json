@@ -1,0 +1,12 @@
+{
+    "database": "kpone_case_disclosures_preview_test",
+    "case": "d2077949-8f67-4720-8d10-bdae2bf92bae",
+    "visit": "KPV-00000006",
+    "patient": "KP-00000016",
+    "branch": 1,
+    "ca": "disclosure.ca@kpone.test",
+    "doctor": "disclosure.doctor@kpone.test",
+    "supervisor": "disclosure.supervisor@kpone.test",
+    "skuCode": "SYN-SKU-SYTTYJ",
+    "line": "9427b9d8-f6f8-4f60-828a-f08db5a5f7c8"
+}

@@ -1,0 +1,10 @@
+{
+  "base": "944f36a26a86e3ac5ec3c8d6048d20f9231f4beb",
+  "patchSha256": "f769795cfb33afe4346985eb8929151f472a9d5d428a1bc7ada68917e6998af3",
+  "files": {
+    "resources/js/components/patient-board/PatientBoard.vue": "5dc1c725da0928b8a9e1b9ee3054de0e47be21fc28a02c0c9a133e681d94e796",
+    "resources/js/pages/Queue/Index.vue": "c1fdf79fd542880cbb7f766e6e569148318af17dadada441d9ca695ec5f504a2",
+    "resources/js/types/patientBoard.ts": "b2855f35c73b4f89c436134bcffa015176035a586ca6cebb1bf181b40eee883e",
+    "tests/Frontend/queue-task-columns.test.mjs": "84d9d1a8de36accaf55d8a0be0c8303a9d61c7009e16baf120dcd367e12e829d"
+  }
+}

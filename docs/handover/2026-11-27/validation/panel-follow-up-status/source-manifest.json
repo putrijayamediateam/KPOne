@@ -1,0 +1,13 @@
+{
+  "base": "76330a1923c7534b43da5fd3de7f5b6f50720c1a",
+  "patch_sha256": "7c4b56977bcfda7f12a46ed3ee61e68a365a5f12e49553ccebece65428e9e52b",
+  "files": {
+    "app/Domain/Visit/Billing/Services/PanelClaimFollowUpService.php": "3773f34cd5ff68bb8b3af809f1c37689a8cf5c350db7711f4ff96dec3a94f786",
+    "app/Http/Controllers/PanelClaimsController.php": "c1b4282a68052149eefe50d5975db1c5cb12e1342878f33d8f5cb4623bf96d37",
+    "docs/teams/panel/TEAM.md": "e1458acf287c93bfa5bef43d13684c72c0653906171ecaab617c0ca4f4bbe150",
+    "resources/js/pages/PanelClaims/FollowUp.vue": "4da8daf3778aeae08c3412642e53f404bc1cca1b5d75404eb6726f6494a196c3",
+    "tests/Feature/Billing/PanelFollowUpStatusTest.php": "621c2a6fb3f75cde97b6ac4b52e776e2f9f0e6b5cdf0b995b673539ca19ac758",
+    "tests/Frontend/panel-follow-up-context.test.mjs": "22eb1c63b77b8e7498b2aab5c665f0b230750e7e533e11ceb9d88ea2c93badcc",
+    "tests/Frontend/panel-follow-up-status.test.mjs": "a05a9b9bdb89f074a0a93308f2e9117ed1f29ec083e0c10dd4fa03282bcf7a68"
+  }
+}

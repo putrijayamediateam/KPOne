@@ -1,0 +1,10 @@
+{
+  "patch_sha256": "ecd6cf1d017d779b58013065e82e0546e231eb72a44268e273c5d7efbb4a2cd7",
+  "files": {
+    "docs/teams/inventory/TEAM.md": "ddc413cfab220714a491e0ec8e4ea53a5594ea26b0534161e15406615b1c06cf",
+    "resources/js/components/inventory/StockCountCaseList.vue": "a290f6234bb6f5c9bb2add21578c89a4b226937246c10e46fa4cb3a8999db1ec",
+    "resources/js/pages/Inventory/GovernedStock.vue": "8a129a0d59607878fd997db5019a27426b2b41741818209dc225f5cc54dceae2",
+    "tests/Frontend/stock-count-case-dialog-runtime.test.mjs": "a2dc18c6fd1397f299d99e5662b67f66c0d4c5bc65be6bfa036d2892004ce7c0",
+    "tests/Frontend/stock-writeoff-case-runtime.test.mjs": "f574c552617f8be27db248f2708eae0252e76e094a5505ad1d92948cec780a7d"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "patch_sha256": "c03483e95c90cfbbb1eca3eae084316bfd797c5068cd334cc4bc39628a3f7c52",
+  "files": {
+    "resources/js/components/billing/BillingBoardFrame.vue": "cdeb4f17015b1eecb6ffd141ff49fff9f4efd3ba4410fbd9a5629dc0f86a466b",
+    "resources/js/pages/Billing/PayLaterCollections.vue": "3751627e9bc01ed8384d93c95563b254eaac0dff79005c3f660065c258ac1df8",
+    "resources/js/pages/Billing/CashClosings.vue": "9a732a586d0f0fa74cf547d78cba912f9a95ddf49f1fb1b1ee1a6405f2e27499",
+    "tests/Frontend/billing-board-frame.test.mjs": "285691a604f3116d1a59fa3bf6548dd1308aeed079c0cbf6062fd432c84facac"
+  }
+}

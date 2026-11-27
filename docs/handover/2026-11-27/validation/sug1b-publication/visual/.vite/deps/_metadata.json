@@ -1,0 +1,128 @@
+{
+  "hash": "6a82c35d",
+  "configHash": "22956305",
+  "lockfileHash": "e3b0c442",
+  "browserHash": "e850771e",
+  "optimized": {
+    "@inertiajs/core": {
+      "src": "../../../../../KPOne/node_modules/@inertiajs/core/dist/index.js",
+      "file": "@inertiajs_core.js",
+      "fileHash": "3fdc15d1",
+      "needsInterop": false
+    },
+    "@inertiajs/vue3": {
+      "src": "../../../../../KPOne/node_modules/@inertiajs/vue3/dist/index.js",
+      "file": "@inertiajs_vue3.js",
+      "fileHash": "2d672138",
+      "needsInterop": false
+    },
+    "@lucide/vue": {
+      "src": "../../../../../KPOne/node_modules/@lucide/vue/dist/esm/lucide-vue.mjs",
+      "file": "@lucide_vue.js",
+      "fileHash": "0d7fd663",
+      "needsInterop": false
+    },
+    "@vue/compiler-dom": {
+      "src": "../../../../../KPOne/node_modules/@vue/compiler-dom/dist/compiler-dom.esm-bundler.js",
+      "file": "@vue_compiler-dom.js",
+      "fileHash": "acdd97c3",
+      "needsInterop": false
+    },
+    "@vue/runtime-dom": {
+      "src": "../../../../../KPOne/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-bundler.js",
+      "file": "@vue_runtime-dom.js",
+      "fileHash": "17a69269",
+      "needsInterop": false
+    },
+    "@vue/shared": {
+      "src": "../../../../../KPOne/node_modules/@vue/shared/dist/shared.esm-bundler.js",
+      "file": "@vue_shared.js",
+      "fileHash": "8f5dabd7",
+      "needsInterop": false
+    },
+    "@vueuse/core": {
+      "src": "../../../../../KPOne/node_modules/@vueuse/core/index.mjs",
+      "file": "@vueuse_core.js",
+      "fileHash": "2750bda4",
+      "needsInterop": false
+    },
+    "class-variance-authority": {
+      "src": "../../../../../KPOne/node_modules/class-variance-authority/dist/index.mjs",
+      "file": "class-variance-authority.js",
+      "fileHash": "84d868f2",
+      "needsInterop": false
+    },
+    "clsx": {
+      "src": "../../../../../KPOne/node_modules/clsx/dist/clsx.mjs",
+      "file": "clsx.js",
+      "fileHash": "6db6bbbf",
+      "needsInterop": false
+    },
+    "es-toolkit": {
+      "src": "../../../../../KPOne/node_modules/es-toolkit/dist/index.mjs",
+      "file": "es-toolkit.js",
+      "fileHash": "d3fb22a3",
+      "needsInterop": false
+    },
+    "es-toolkit/compat": {
+      "src": "../../../../../KPOne/node_modules/es-toolkit/dist/compat/index.mjs",
+      "file": "es-toolkit_compat.js",
+      "fileHash": "f931f0e3",
+      "needsInterop": false
+    },
+    "laravel-precognition": {
+      "src": "../../../../../KPOne/node_modules/laravel-precognition/dist/index.js",
+      "file": "laravel-precognition.js",
+      "fileHash": "93c0fae7",
+      "needsInterop": false
+    },
+    "reka-ui": {
+      "src": "../../../../../KPOne/node_modules/reka-ui/dist/index.js",
+      "file": "reka-ui.js",
+      "fileHash": "d35e3bb1",
+      "needsInterop": false
+    },
+    "tailwind-merge": {
+      "src": "../../../../../KPOne/node_modules/tailwind-merge/dist/bundle-mjs.mjs",
+      "file": "tailwind-merge.js",
+      "fileHash": "cea3a463",
+      "needsInterop": false
+    },
+    "vue": {
+      "src": "../../../../../KPOne/node_modules/vue/dist/vue.esm-bundler.js",
+      "file": "vue.js",
+      "fileHash": "ea2524fb",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "compat-BBodAdd3": {
+      "file": "compat-BBodAdd3.js",
+      "isDynamicEntry": false
+    },
+    "core-DjWCCblS": {
+      "file": "core-DjWCCblS.js",
+      "isDynamicEntry": true
+    },
+    "dist-BEjTvTF9": {
+      "file": "dist-BEjTvTF9.js",
+      "isDynamicEntry": false
+    },
+    "dist-DXTc9ItA": {
+      "file": "dist-DXTc9ItA.js",
+      "isDynamicEntry": false
+    },
+    "rolldown-runtime-SbdDWaPq": {
+      "file": "rolldown-runtime-SbdDWaPq.js",
+      "isDynamicEntry": false
+    },
+    "runtime-dom.esm-bundler-iSMPZbpu": {
+      "file": "runtime-dom.esm-bundler-iSMPZbpu.js",
+      "isDynamicEntry": false
+    },
+    "upperFirst-CLmn_-af": {
+      "file": "upperFirst-CLmn_-af.js",
+      "isDynamicEntry": false
+    }
+  }
+}

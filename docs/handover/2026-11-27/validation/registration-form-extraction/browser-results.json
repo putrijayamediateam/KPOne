@@ -1,0 +1,118 @@
+{
+  "captures": [
+    {
+      "state": "consultation",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "consultation",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "consultation",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "consultation",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "otc-panel",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "otc-panel",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "otc-panel",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "otc-panel",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "invalid",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "invalid",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "invalid",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "invalid",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "saved-patient",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "saved-patient",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "saved-patient",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "saved-patient",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "server-refusal",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "server-refusal",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "server-refusal",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "server-refusal",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "writes": [
+    {
+      "path": "/registration",
+      "method": "POST"
+    }
+  ],
+  "liveDraft": true,
+  "otcOptional": true,
+  "coverageClearsHiddenReference": true,
+  "existingValidationFocus": true,
+  "serverRefusalPreservesFormNode": true,
+  "backForward": true,
+  "writeRequestOutcome": "one rejected registration request; database count checked separately"
+}

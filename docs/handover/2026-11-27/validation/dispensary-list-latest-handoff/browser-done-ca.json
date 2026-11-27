@@ -1,0 +1,38 @@
+{
+  "captures": [
+    {
+      "phase": "done",
+      "role": "ca",
+      "width": 390,
+      "theme": "light",
+      "medicineCount": 0,
+      "labelAction": "reprint"
+    },
+    {
+      "phase": "done",
+      "role": "ca",
+      "width": 390,
+      "theme": "dark",
+      "medicineCount": 0,
+      "labelAction": "reprint"
+    },
+    {
+      "phase": "done",
+      "role": "ca",
+      "width": 1440,
+      "theme": "light",
+      "medicineCount": 0,
+      "labelAction": "reprint"
+    },
+    {
+      "phase": "done",
+      "role": "ca",
+      "width": 1440,
+      "theme": "dark",
+      "medicineCount": 0,
+      "labelAction": "reprint"
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

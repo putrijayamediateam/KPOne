@@ -1,0 +1,7 @@
+Own Waiting and Seeing now use the demo's six-column arrangement: No., Patient, Zone, Reason, Waiting/Since and Actions. Existing readiness, urgency, reassignment and treatment context stays with the patient; all original action handlers and version guards remain.
+
+This draft is stacked on #1223. Only the ordinary own-scope board opts in. Registration, emergency rows, branch boards and other tasks retain their current layout. The extracted status renderer preserves one parent-owned treatment dialog and readiness-event forwarding. No backend, permission, migration or clinical-command changes.
+
+Validation: six new actual SSR/lifecycle tests and54 affected frontend tests pass; types, lint, format and build pass. Eight real synthetic role/task/viewport states verify the six headers, preserved branch layout and focused44px action targets below the persistent emergency host. Six clinical/stock tables remain unchanged after reads. Six reviewed source-location test adapters retain their existing assertions on the actual extracted renderer. Full frontend2308 and final build pass. The new six-test suite was then strengthened to compile the actual treatment badge/outcome DTO and passed again; product source stayed unchanged.
+
+This is a bounded presentation slice. Held/Treatment/Done/Medicine-check column gaps remain separate. The integration foundation is a validation dependency; archive #1142 must never be merged. No merge or production activation is requested.

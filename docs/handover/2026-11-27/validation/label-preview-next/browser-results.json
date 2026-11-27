@@ -1,0 +1,305 @@
+{
+  "captures": [
+    {
+      "name": "ready",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "ready",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "ready",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "ready",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "mixed-blocked",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        },
+        {
+          "text": "Preview and print: Synthetic OTC medicine",
+          "height": 44
+        }
+      ],
+      "paperColors": []
+    },
+    {
+      "name": "mixed-blocked",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        },
+        {
+          "text": "Preview and print: Synthetic OTC medicine",
+          "height": 44
+        }
+      ],
+      "paperColors": []
+    },
+    {
+      "name": "mixed-blocked",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        },
+        {
+          "text": "Preview and print: Synthetic OTC medicine",
+          "height": 36
+        }
+      ],
+      "paperColors": []
+    },
+    {
+      "name": "mixed-blocked",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        },
+        {
+          "text": "Preview and print: Synthetic OTC medicine",
+          "height": 36
+        }
+      ],
+      "paperColors": []
+    },
+    {
+      "name": "reprint",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "reprint",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "reprint",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "reprint",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        }
+      ],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "readonly",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "controls": [],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "readonly",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "readonly",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "controls": [],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    },
+    {
+      "name": "readonly",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "controls": [],
+      "paperColors": [
+        {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(23, 23, 23)"
+        }
+      ]
+    }
+  ],
+  "printChecks": [
+    {
+      "name": "ready",
+      "widthMm": 100,
+      "heightMm": 62,
+      "toolbars": [
+        "none"
+      ],
+      "labels": [
+        {
+          "width": 377.9375,
+          "height": 234.328125
+        }
+      ]
+    },
+    {
+      "name": "reprint",
+      "widthMm": 100,
+      "heightMm": 62,
+      "toolbars": [
+        "none"
+      ],
+      "labels": [
+        {
+          "width": 377.9375,
+          "height": 234.328125
+        }
+      ]
+    }
+  ],
+  "checks": [
+    "ready prepared label retains enabled print guard without invoking print",
+    "mixed selection remains blocked; existing eligible individual preview remains usable",
+    "service-provisioned synthetic print history renders original REPRINT mark/count",
+    "authorized doctor preview keeps Print/checklist/history counter absent"
+  ],
+  "errors": []
+}

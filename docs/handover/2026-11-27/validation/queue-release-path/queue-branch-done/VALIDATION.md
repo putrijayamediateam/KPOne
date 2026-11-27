@@ -1,0 +1,11 @@
+# Branch Done historical checkout destination
+
+Frozen four-filef769795cfb33afe4346985eb8929151f472a9d5d428a1bc7ada68917e6998af3 on #1246. No backend/API changes. Exact existing removalReason maps only sent_to_billing→Billing or sent_to_dispensary→Dispensary. Branch Done columns use Sent to and Completed (consultation), with explicit explanation that this is historical checkout destination, not current dispensing/payment progress. Unknown routing/null time unavailable; no Now at claim.
+
+Mapper checkout destination/status require removed row, present completed-only removedAt property, active completed task and own/branch scope. Recognized routing uses Consultation checked out rather than generic Awaiting Billing. Other tasks/generic consumers retain original labels; raw API unchanged. Branch Done retains triage, flags, check notices, controls and sole parent dialog under Patient; actions and Doctor authority unchanged. Own Done keeps its columns and gains the same truthful completed-context label.
+
+Three precise faithful test adapters independently approved: generic branch default loop no longer includes changed completed mode; old ownDone negative branch fixture is generic branch without task; actual timezone mapper harness supplies active task/scope. Dedicated new branchDone and actual mapper tests replace changed-contract coverage, retaining all unrelated timezone/null/default assertions. Scope/property/task/unrecognized routing guards tested.
+
+Full frontend2322/types/build,20 actual component/mapper tests, PHP UI contract1/21 and confirmed scoped lint/format/diff checks pass. Four own/branch390dark/1440light browser states on3208 verify historicaldestination/checkout label, MYT date despite NY browser, independently paged completed list and44px focused hit-testable original action below persistenthost. Eight complete synthetic clinical/stock tables unchanged. Captures scroll relevant card/action; explanation verified in live DOM. No clinical mutation invoked, no full-page parity claim.
+
+Separate stacked draft; no merge/archive1142/production activation. Current downstream Now at remains explicitly unimplemented; next Doctors table is separately planned using existing Q16d DTO only.

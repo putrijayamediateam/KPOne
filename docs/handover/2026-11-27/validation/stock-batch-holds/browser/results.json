@@ -1,0 +1,114 @@
+{
+  "batch": "648a5166-37ae-4714-85eb-1b7d6dc8413d",
+  "placeFocus": {
+    "tag": "LI",
+    "text": "DEMO-CETI10 Batch DEMO-B003Expiry31 Jul 2028 Batch stat",
+    "batch": "648a5166-37ae-4714-85eb-1b7d6dc8413d"
+  },
+  "releaseFocus": {
+    "tag": "BUTTON",
+    "text": "Place safety hold",
+    "batch": "648a5166-37ae-4714-85eb-1b7d6dc8413d"
+  },
+  "selfReleaseAbsent": true,
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "rows": 1,
+      "targets": [
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "rows": 1,
+      "targets": [
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "rows": 1,
+      "targets": [
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "rows": 1,
+      "targets": [
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "staleDialog": "Place safety hold\n\nDEMO-CETI10 · DEMO-B003 · Cheras. No stock quantity will change.\n\nControlled reason\nChoose a reason\nSuspected quality issue\nRecall\nDamaged\nOther safety concern\n\nThe batch hold changed. Reload before continuing.\n\nCancel\nPlace hold\nClose",
+  "errors": []
+}

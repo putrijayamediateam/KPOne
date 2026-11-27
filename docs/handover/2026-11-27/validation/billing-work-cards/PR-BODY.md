@@ -1,0 +1,9 @@
+Financial work lists currently require wide-table scrolling on phones. This adds responsive cards for Finance and Panel Responsibility while retaining the existing desktop tables, pagination, authorised Review links and all displayed values. Finance keeps six separately labelled amounts; Panel keeps responsibility and requested time, with claims submission clearly separate.
+
+This is a two-file presentation change. No financial rules, permissions, migrations, backend queries or existing assertions change. Page-local action and pagination targets meet 36px desktop/44px mobile. The retained wide desktop table has visible horizontal-scroll guidance and a labelled keyboard-focusable scroll region.
+
+Validation: full frontend 2,208 tests, typecheck and production build passed; after the final pagination sizing adjustment, build and 6 focused tests passed again, with scoped lint/format clean. Synthetic role-specific browser evidence and independent review are recorded in the local review packet. Desktop table redesign and complete Billing demo parity remain outside this slice.
+
+Final synthetic browser checks passed for Finance and Panel at 390/768/1440 in light/dark: no document overflow, 36/44px Review/pagination targets, opposite-role list 403 and existing Review navigation. Keyboard proof reaches the actual table scroller and visible Review; Finance arrow scrolling works (Panel table fits). Final source patch SHA256: 51aad9576f8ca87607303dfe8ab5adfcb591d8951c1b738ddf1071badf9dd4bd.
+
+Normal main refresh now includes d783621. The attestation failure on the initial head was a stale merge base; both reviewed file hashes remain unchanged after the docs-only upstream merge, and all6 focused tests passed again. Coordinator requires fresh exact-head CI and release reconciliation before any merge. No deployment requested or performed.

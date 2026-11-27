@@ -1,0 +1,17 @@
+{
+  "docs/teams/inventory/handover-stock-workspace/ASSERTION-BATCH.md": true,
+  "docs/teams/inventory/handover-stock-workspace/ASSERTION-PROPOSAL.patch": true,
+  "docs/teams/inventory/handover-stock-workspace/HOLD.md": true,
+  "docs/teams/inventory/handover-stock-workspace/PLAN.md": true,
+  "docs/teams/inventory/handover-stock-workspace/RESUMED-DECISION.md": true,
+  "docs/teams/inventory/handover-stock-workspace/REVIEW.md": true,
+  "resources/js/components/inventory/StockOnHandList.vue": true,
+  "resources/js/pages/Inventory/Index.vue": true,
+  "tests/Frontend/classic-only-co6-kept-direct.test.mjs": true,
+  "tests/Frontend/i1b-inventory-demo-workspace.test.mjs": true,
+  "tests/Frontend/i2-session2-directory-remediation.test.mjs": true,
+  "tests/Frontend/i2-ui-ux-remediation.test.mjs": true,
+  "tests/Frontend/stk45-report-difference.test.mjs": true,
+  "tests/Frontend/stock-on-hand-runtime.test.mjs": true,
+  "tests/Frontend/ui-leftovers-1.test.mjs": true
+}

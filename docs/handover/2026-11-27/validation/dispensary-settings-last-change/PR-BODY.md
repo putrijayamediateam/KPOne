@@ -1,0 +1,7 @@
+Adds truthful Last changed metadata to Dispensary settings from the existing record. The reader reauthorizes the current actor/branch, reads switch state and attribution from one row snapshot, localizes time to the branch and filters updater names through existing staff visibility. Hidden names show Staff member; default or unattributable rows show Not available.
+
+Stacked on #1184. Original two-field settings DTO and all switch writes remain unchanged; separate nullable settingsChange contains only time/name labels. No raw staff ID/email/role, migration, permission grant or waiting link. The prior no-label frontend assertion is faithfully adapted under delegated approval to permit real metadata while retaining no-fabricated-data/navigation checks; exact impact recorded in the packet.
+
+Validation:24 focused PostgreSQL tests/216 assertions including new authority, branch, hidden-actor, null/default, timezone, no-op/replay and one-row/no-query-growth cases;plus the relevant ClinicManagement9 tests/1889 assertions;10 frontend tests; full types/build; scoped PHPStan/Pint/lint/format;12 actual synthetic responsive states for visible/default/hidden metadata. Independent Inventory source and Design visual reviews clear. Browser was readonly. Full backend CI required before merge; no merge/production.
+
+Evidence: `/workspace/kpone-validation/dispensary-settings-last-change/` contains exact manifest/patch, assertion impact, independent reviews and all logs. Scope is the existing-data reader, not full Settings demo parity.

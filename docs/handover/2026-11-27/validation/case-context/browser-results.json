@@ -1,0 +1,342 @@
+{
+  "captures": [
+    {
+      "name": "long-context",
+      "width": 390,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "long-context",
+      "width": 390,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "long-context",
+      "width": 1440,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "long-context",
+      "width": 1440,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-context",
+      "width": 390,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-context",
+      "width": 390,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-context",
+      "width": 1440,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-context",
+      "width": 1440,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "readonly-context",
+      "width": 390,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "readonly-context",
+      "width": 390,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "readonly-context",
+      "width": 1440,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "readonly-context",
+      "width": 1440,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "otc-zero-context",
+      "width": 390,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "otc-zero-context",
+      "width": 390,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "otc-zero-context",
+      "width": 1440,
+      "theme": "light",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "otc-zero-context",
+      "width": 1440,
+      "theme": "dark",
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    "real1 medicine/0services counters and dirty1 remain exact",
+    "readonly doctor omits unsaved/scan rows and preserves long identity",
+    "actual empty OTC has zero medicines, no Services row and no-doctor fallback"
+  ],
+  "errors": []
+}

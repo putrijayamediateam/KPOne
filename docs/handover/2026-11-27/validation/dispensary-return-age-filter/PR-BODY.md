@@ -1,0 +1,5 @@
+Waiting medicine returns can now be filtered by Today, Yesterday, 2 days ago or 3 days ago using the branch's calendar days. Each option means that exact day; All retains older returns. Visible help explains the distinction, and filtered empty results offer a reset path.
+
+Stacked on #1206. The filter preserves Controlled, pagination and existing checking permissions, clears when entering Checked, and leaves the default waiting total and checked-month/outcome behavior unchanged. This is an optional read filter under delegated coordinator technical disposition—not a clinical urgency rule. No schema, grants or clinical mutations.
+
+Validation: 26 PostgreSQL tests / 518 assertions, 12 frontend checks, scoped static/format checks, full types and production build passed. Twenty-four actual synthetic browser states cover 390/1440 light/dark, older All access, exact ages, empty results, pagination and resets using GET-only interactions. Independent backend and Design reviews cleared the frozen seven-file patch. One faithfully reviewed outcome-select assertion was narrowed; authority assertions and the original unfiltered empty-title assertion remain unchanged.

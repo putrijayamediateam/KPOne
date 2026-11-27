@@ -1,0 +1,29 @@
+{
+    "visitId": 60,
+    "visitNumber": "KPV-00000060",
+    "patientName": "Synthetic Context Patient",
+    "queueId": 60,
+    "block": {
+        "mode": "own",
+        "doctorUserId": 22,
+        "doctorName": "Synthetic Workload Paging Doctor",
+        "candidate": {
+            "visitNumber": "KPV-00000060",
+            "queueNumber": "A-055",
+            "patientName": "Synthetic Context Patient",
+            "patientNumber": "KP-00000070",
+            "priority": "normal",
+            "carryOver": false,
+            "operationalDate": "2026-11-27",
+            "roomName": "Synthetic Paging Room",
+            "triage": {
+                "zone": null,
+                "triaged": false
+            },
+            "visitLockVersion": 1,
+            "queueLockVersion": 1
+        },
+        "state": "ready",
+        "reason": null
+    }
+}

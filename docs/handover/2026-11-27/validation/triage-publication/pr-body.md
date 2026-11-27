@@ -1,0 +1,3 @@
+Place the existing triage form in the shared PageFrame and apply Clean Look card, field, status and responsive-spacing tokens. The script changes only to import PageFrame; calculations, validation, fields and submission remain unchanged. No backend, permissions, migrations or test assertions change.
+
+Validation: 9 focused tests, full vue-tsc, production Vite build, changed-page ESLint, Prettier and whitespace checks passed. Source exactly matches the independently reviewed presentation packet. Prior synthetic light/dark screenshots cover the reviewed appearance; no new current-main browser run or full backend suite is claimed. The large diff is mainly wrapper indentation.

@@ -1,0 +1,9 @@
+{
+  "base": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "patch_sha256": "30c911ecfe4ea7c5e8e17b1e4c011bac4e479b151bbb7a7d3517e73d5bc90d54",
+  "script_identical": true,
+  "files": {
+    "resources/js/pages/PanelClaims/FollowUp.vue": "9d8b6f0ba441452193fd41ce9be5b2167cc5cc2ebe4a1b5e6e2c3da4de244122",
+    "tests/Frontend/panel-follow-up-context.test.mjs": "820ddc3efffc2c6b28495db1f7c5f4f2052a98f1d41cb57111f7d8b5facc8518"
+  }
+}

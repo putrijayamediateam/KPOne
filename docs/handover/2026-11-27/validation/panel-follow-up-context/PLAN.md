@@ -1,0 +1,13 @@
+# Panel follow-up context — bounded next slice
+
+Preparation only until the current Panel price-review draft is closed. Proposed ownership: resources/js/pages/PanelClaims/FollowUp.vue and a new rendered frontend test. Start from current main in an isolated branch; do not stack unrelated price-review code.
+
+Use the actual branch-scoped and Panel-filtered paginated service DTO. Preserve the complete script, filter GET parameters, ordered claims, showUrl, masked actor display, patient/invoice identifiers, supplementary relationship, exact status and amountLabel/amountSen, last-action date and elapsed days. Add a responsive context area showing only filtered total, loaded row count and page position, plus native follow-up guidance. No global overdue amount or invented KPI. Do not add unrelated board links without proving their route authority.
+
+Keep the primary content usable at 390 and 1440 light/dark. Existing claim action, filter and pagination targets become at least 44px below 1024 and 36px desktop, with visible keyboard focus. Preserve table/list identity and avoid tiny link targets. Controls and mandatory empty/error information remain outside optional guidance.
+
+Source reconciliation: the complete service query excludes prepared claims that have never been submitted. The OPEN constant alone is insufficient to describe eligibility. Keep the authoritative Overdue distinction and threshold; the new rendered fixture uses Submitted with Claimed, awaiting decision, separately from Accepted, unpaid. No eligibility or money calculation change.
+
+Validation: new rendered coverage for populated/empty/filtered long names and both amount meanings; existing affected frontend checks, lint/format/types/build, actual synthetic browser for filter navigation, scoped empty state and keyboard targets. Preserve existing assertions unless a concrete presentation assertion needs separately recorded delegated peer review. No migration, permission, action endpoint or production change. Freeze a patch and obtain independent source/visual review before scoped draft publication under standing authorization.
+
+Correction after complete SQL predicate inspection: OPEN alone is not eligibility. PNL-28a explicitly excludes prepared claims that have never been submitted. Preserve that authoritative rule and the plain-language Overdue guidance; the new awaiting-decision rendering fixture uses Submitted. No backend eligibility changes. Actual browser fixture is submitted through existing Responsibility/PanelClaim services. The isolated preview clock will simulate 45 elapsed days, without rewriting immutable action timestamps, to exercise the real follow-up projection. This clock is confined to an external local router, never committed.

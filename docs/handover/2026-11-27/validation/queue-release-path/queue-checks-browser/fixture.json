@@ -1,0 +1,21 @@
+{
+    "visitId": 60,
+    "visitNumber": "KPV-00000060",
+    "caseId": 2,
+    "casePublicId": "937aee4d-0185-4d07-9afe-43d4af13c5cc",
+    "caseVersion": 4,
+    "itemId": 2,
+    "queueId": 60,
+    "encounterId": 33,
+    "batchId": 7,
+    "locationId": 2,
+    "skuId": 1,
+    "doctorEmail": "synthetic.workload.paging_doctor@kpone.test",
+    "branchId": 3,
+    "membership": {
+        "own": 1,
+        "otherDoctor": 0,
+        "ca": 0,
+        "director": 0
+    }
+}

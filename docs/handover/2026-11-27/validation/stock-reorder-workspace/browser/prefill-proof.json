@@ -1,0 +1,9 @@
+{
+  "url": "http://127.0.0.1:3198/inventory/purchase-requests?lines%5B0%5D=3ed0a610-6b5c-4632-9b19-2b83c1f6a76b%3A11995&location=3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+  "expectedQuantity": "11995.000",
+  "quantity": "11995",
+  "location": "Cheras Store (Demo)",
+  "formText": "New purchase request\n\nAnother person reviews it and turns it into a draft purchase order.\n\nDeliver to\nCheras Store (Demo)\nPreferred supplier (optional)\nSearch\n\nUp to 25 matches. Search to find more.\n\nSelect\nLines\n\nLine 1\n\nSearch\n\nUp to 25 matches. Search to find more.\n\nDEMO-AMOX250 · Amoxicillin\nQuantity\nNote (optional)\nAdd a line\n\n1 line will be sent for review.\n\nCancel\nSend for review\nClose",
+  "submitted": false,
+  "errors": []
+}

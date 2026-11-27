@@ -1,0 +1,7 @@
+Add an independent private Queue workload endpoint for held consultations, completed treatment steps awaiting review, and the assigned doctor's medicine checks. Each query counts the full authorized set, returns at most25 existing QueueRow projections, and clamps page selection after rows disappear. Ordinary latest25 board arrays and their existing payload contracts remain unchanged.
+
+This preservation draft stacks on the Queue presentation draft and therefore the CA archive. It is backend-only; no UI consumes the endpoint yet. Treatment attention means unacknowledged done Q2 steps, including not-successful outcomes; it does not imply physical return, resume a consultation or acknowledge a step. Current clinical outcome details remain behind the existing TreatmentRoomPolicy.
+
+Validation: five new PostgreSQL tests/40 assertions passed, related new+Q2/Q13/Q15 checks24tests/268assertions passed, scoped PHPStan had zero errors, PHP formatting and whitespace passed. Tests cover26-entry paging, shrink clamping, constant1vs25 hydration query count, own scope and actual MA outcome privacy. Independent Billing and Staff source reviews found no blocker; their reviews did not repeat the test suite. Exact five-file patch SHA256: bb75afe6342cb92d897d4d336fcc51e146a2707750c9985bd548bd30302c0759.
+
+No migration, permission grant, existing assertion edit, production activation or deployment. Rebase/extract onto the final published dependencies and run exact-head CI before any merge.

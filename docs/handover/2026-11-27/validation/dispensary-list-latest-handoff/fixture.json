@@ -1,0 +1,10 @@
+{
+    "database": "kpone_latest_handoff_preview_test",
+    "case": "6af4c752-4d1c-4ff7-9680-98c2fd432dca",
+    "visit": "KPV-00000032",
+    "patient": "KP-00000042",
+    "branch": 1,
+    "ca": "latest.ca@kpone.test",
+    "doctor": "latest.doctor@kpone.test",
+    "supervisor": "latest.supervisor@kpone.test"
+}

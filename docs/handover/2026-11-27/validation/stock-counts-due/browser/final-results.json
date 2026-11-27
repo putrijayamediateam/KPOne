@@ -1,0 +1,204 @@
+{
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "rowCount": 10,
+      "targets": [
+        {
+          "label": "Start count for DEMO-COD15 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-AMOX250 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-CETI10 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-CHLOR4 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-OMEP20 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-ORS at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-PARA500 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic governed dispensary",
+          "height": 36
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic receiving dispensary",
+          "height": 36
+        },
+        {
+          "label": "See all",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "rowCount": 10,
+      "targets": [
+        {
+          "label": "Start count for DEMO-COD15 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-AMOX250 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-CETI10 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-CHLOR4 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-OMEP20 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-ORS at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for DEMO-PARA500 at Cheras Dispensary (Demo)",
+          "height": 36
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic governed dispensary",
+          "height": 36
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic receiving dispensary",
+          "height": 36
+        },
+        {
+          "label": "See all",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "rowCount": 10,
+      "targets": [
+        {
+          "label": "Start count for DEMO-COD15 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-AMOX250 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-CETI10 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-CHLOR4 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-OMEP20 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-ORS at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-PARA500 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic governed dispensary",
+          "height": 44
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic receiving dispensary",
+          "height": 44
+        },
+        {
+          "label": "See all",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "rowCount": 10,
+      "targets": [
+        {
+          "label": "Start count for DEMO-COD15 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-AMOX250 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-CETI10 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-CHLOR4 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-OMEP20 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-ORS at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for DEMO-PARA500 at Cheras Dispensary (Demo)",
+          "height": 44
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic governed dispensary",
+          "height": 44
+        },
+        {
+          "label": "Start count for SYN-EBPYGLBEVN at Synthetic receiving dispensary",
+          "height": 44
+        },
+        {
+          "label": "See all",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "rowId": "50b914ee-4a43-4299-a889-f870a1ef70b4:4d57fa10-e11f-4f30-bd1e-a6fe661d9299",
+  "focusAfterStart": {
+    "tag": "LI",
+    "row": "50b914ee-4a43-4299-a889-f870a1ef70b4:4d57fa10-e11f-4f30-bd1e-a6fe661d9299"
+  },
+  "blindDialog": "Record physical count\n\nSaved evidence is append-only. A changed snapshot is refused. Approval posts atomically; the original evidence is never edited.\n\nDEMO-CETI10 · DEMO-B003 · Count what is there; the expected quantity is not shown\n\nPhysical quantity counted\nCancel\nSave evidence",
+  "noOwnRecount": true,
+  "errors": []
+}

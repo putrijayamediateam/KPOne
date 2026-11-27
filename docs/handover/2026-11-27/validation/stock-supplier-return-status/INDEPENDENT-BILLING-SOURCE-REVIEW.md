@@ -1,0 +1,7 @@
+# Independent Billing backend source review
+
+Read actual SupplierReturnService diff and new SupplierReturnStatusFilterTest contracts in KPOne-stock-supplier-return-status. Bounded backend CLEAR: strict validated show value maps to fixed existing states; individual filter uses its existing latest-version action join before25-row pagination. Group predicate correlates to MIN member ID, selects that member's latest lock_version and preserves awaiting_approval fallback, exactly matching displayed group state/history before10-row pagination. Fixed SQL expression with query-builder state bindings; no user-built SQL or group duplication introduced.
+
+Absent/blank remains All. Org/branch and fresh active-user/assignment checks unchanged. q still narrows only individual returns; returnable-lot/delivery/reservation calculations and all mutation methods unchanged. Group/individual counts remain separate, versions/authority/history projection untouched. Read new contracts for all six actual states,26/11 paging and bounded query count, malformed filters and branch scope; final author gate results still pending at this review. No independent rerun, source edits, frontend certification or immutable final hash claim yet.
+
+Final frozen artifact c3dd69b00bb7c70ace009bec273cdf6bfbb40e38467e00ee0812b83f1f1405ec independently recomputed; all five source hashes match. Backend scope remains clear. Author reports28/338 and full2279/static/build plus actual unchanged ledger/balance browser evidence; not independently rerun by reviewer. UI review remains separately attributed.

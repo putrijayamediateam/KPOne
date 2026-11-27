@@ -1,0 +1,15 @@
+# Waiting/Seeing columns — bounded validation
+
+Candidate7f39c4aade1314c0198be7fb40db4bfa71857021b3f6741526053e3ebbd31673 contains10 files on clean reviewed context #1223 cc73b15203f774c25a48f9a6a5af2eed8b12b015. This is a stacked presentation slice, not an independently mergeable replacement for the multi-parent foundation. Archive #1142 must never be merged.
+
+Only ordinary own Waiting/Seeing opts into canonical No/Patient/Zone/Reason/Waiting-or-Since/Actions. Existing status/safety content moves below Patient through a shared renderer; original default Registration/emergency/branch status cells retain that renderer. Reassignment, urgent/returned/check/readiness metadata, treatment badge/controls and original menu actions remain. No backend/query/permission/migration mutation or clinical command change.
+
+Initial five new SSR tests plus existing eight workspace tests passed. Added actual Vue custom-renderer lifecycle coverage proves readiness forwarding once, one treatment instance across task/default transition, preserved parent open key, close and unmount cleanup. Final affected suite54 tests passed. Six exact source-location adapters were independently reviewed before applying; they preserve old token/order/policy checks and compile the real extracted renderer. First full run2307 tests had10 related extraction/harness failures plus a missing generated route artifact; all were diagnosed, not waived. Final full frontend run passed all2308 tests.
+
+Types and production build passed on initial candidate; lint/format/diff checks clear. Final tiny rebuild after the mobile Reason full-width rule passed. No new backend changes require a duplicate domain suite; prior parent CI remains separate evidence.
+
+Actual synthetic preview3180 has one real-service own Waiting patient and one new real-service own Seeing consultation, plus existing held/treatment/emergency cases. Eight role/task/viewport states cover own and supervisor Waiting/Seeing at1440light and390x640dark. Actual six headers match opt-in scope, branch unchanged, action menu44px and focused/hit-testable below persistent alert host; no action was submitted. All six complete synthetic clinical/stock tables compare byte-identically after reads. Browser artifacts are in browser/; screenshots deliberately scroll the relevant table/action below the host and do not claim full-page parity.
+
+Populated Medicine-check proof was completed separately against unchanged #1223 source in queue-checks-browser. Items/Sent by/completion timestamp/current downstream remain explicit data-contract gaps. Next own Held plan is separate and unimplemented.
+
+Final v2 candidate8d31a2648ae7f47ad3eb62361fe9226f29eb79fdb138335a1555eff1d509cb84 changes only the new test after full-suite success: it compiles the actual TreatmentProgressBadge and uses its real outcome DTO, rather than a display stub. All six new tests pass again, including actual lifecycle. The first strengthened-harness run lacked clearInterval in its VM; adding real timer globals fixed that test harness without product changes. Existing v1 source/browser evidence remains applicable; final browser rerun uses rebuilt assets.

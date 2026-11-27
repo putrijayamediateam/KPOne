@@ -1,0 +1,10 @@
+{
+  "base": "8013a87483f273a1e18155fc7831c39a8029b6aa",
+  "patch_sha256": "0c6c329ea1ee706da1db0265d56cfb6cc9e14315d796193b3619b4bf305c1cc6",
+  "files": {
+    "resources/js/components/billing/BillingBoardFrame.vue": "80632ade0d83978269a95b84009a49acbdfa858d8a3bc7dde877e674e96542ca",
+    "resources/js/pages/Billing/CashClosingMonth.vue": "8cd680d5cd1b4a9aec6af0557b12e0dd755d205c666f664b2e08b58d5efd5c98",
+    "resources/js/pages/PaymentReconciliations/Index.vue": "32e2b6a63b0667c6eeae45981ddb54f7596a31ca57039f144634166d2b613207",
+    "tests/Frontend/billing-board-frame.test.mjs": "20b7df0b0c434091660740ff32b16f719b3cdad26134499cef57461bce3c1384"
+  }
+}

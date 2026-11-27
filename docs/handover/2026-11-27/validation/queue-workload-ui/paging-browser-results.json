@@ -1,0 +1,50 @@
+[
+  {
+    "actor": "paging_doctor",
+    "firstTotal": 26,
+    "firstRows": 25,
+    "secondRows": 1,
+    "nonoverlap": true
+  },
+  {
+    "actor": "paging_doctor",
+    "width": 1440,
+    "shot": "paging-paging_doctor-1440.png"
+  },
+  {
+    "actor": "paging_doctor",
+    "width": 390,
+    "shot": "paging-paging_doctor-390.png"
+  },
+  {
+    "actor": "paging_doctor",
+    "previousStable": true,
+    "filterPreservedOnPage2": true,
+    "resetReturnsPage1": true,
+    "errors": []
+  },
+  {
+    "actor": "ca_supervisor",
+    "firstTotal": 28,
+    "firstRows": 25,
+    "secondRows": 3,
+    "nonoverlap": true
+  },
+  {
+    "actor": "ca_supervisor",
+    "width": 1440,
+    "shot": "paging-ca_supervisor-1440.png"
+  },
+  {
+    "actor": "ca_supervisor",
+    "width": 390,
+    "shot": "paging-ca_supervisor-390.png"
+  },
+  {
+    "actor": "ca_supervisor",
+    "previousStable": true,
+    "filterPreservedOnPage2": true,
+    "resetReturnsPage1": true,
+    "errors": []
+  }
+]

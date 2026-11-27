@@ -1,0 +1,158 @@
+{
+  "captures": [
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        },
+        {
+          "text": "Return to Registration",
+          "height": 44
+        },
+        {
+          "text": "Continue to Billing",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 44
+        },
+        {
+          "text": "Return to Registration",
+          "height": 44
+        },
+        {
+          "text": "Continue to Billing",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        },
+        {
+          "text": "Return to Registration",
+          "height": 36
+        },
+        {
+          "text": "Continue to Billing",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "Print current labels",
+          "height": 36
+        },
+        {
+          "text": "Return to Registration",
+          "height": 36
+        },
+        {
+          "text": "Continue to Billing",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "View labels",
+          "height": 44
+        },
+        {
+          "text": "Back to Registration",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "View labels",
+          "height": 44
+        },
+        {
+          "text": "Back to Registration",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "View labels",
+          "height": 36
+        },
+        {
+          "text": "Back to Registration",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "context": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review · KP-00000023 · KPV-00000013",
+      "controls": [
+        {
+          "text": "View labels",
+          "height": 36
+        },
+        {
+          "text": "Back to Registration",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "limitations": "No-return/null-timestamp variants are actual-template runtime checks; browser uses real completed medicine case. No mutation or physical print."
+}

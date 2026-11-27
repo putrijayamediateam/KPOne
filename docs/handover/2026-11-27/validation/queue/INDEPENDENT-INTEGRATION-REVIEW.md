@@ -1,0 +1,5 @@
+# Independent combined Queue review
+
+Reviewed frozen /workspace/KPOne-queue-combined integration, not a repetition of standalone Q16 reviews. No remaining integration blocker identified. Controller methods/imports remain separate; route permissions, sensitive-no-store and throttles retained independently with no union widening. Rooms and average summary requests are both nonawaited, use lifecycle guards and reset on hidden/unmount/branch; rooms own scope suppressed. Original readiness/treatment polling remains in place. Details uses previously authorised board label while endpoint access remains audited.
+
+Independently viewed queue-branch1440dark, queue-details390dark, TV-settings390dark. Red banner remains distinct; structural room counts and average scope readable; mobile details clearly state read-only/audited and provide44px Close; native disclosure for calls summary readable. Reviewed browser-report24checks/16screens plus reported cross-feature1/17 and Queue279/2468 evidence; no reviewer heavy rerun. No source/assertion changes. This bounded integration review is not full clinical UAT or exhaustive security approval.

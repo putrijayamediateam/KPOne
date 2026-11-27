@@ -1,0 +1,8 @@
+{
+    "oneEvidenceForRetry": true,
+    "sameVisitVersion": true,
+    "sameQueueVersion": true,
+    "sameActiveHold": true,
+    "stillRegisteredServing": true,
+    "stepCompleted": true
+}

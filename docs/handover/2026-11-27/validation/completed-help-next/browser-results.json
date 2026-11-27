@@ -1,0 +1,207 @@
+{
+  "captures": [
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "light",
+      "state": "hidden"
+    },
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "light",
+      "state": "shown",
+      "heights": [
+        44,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "dark",
+      "state": "hidden"
+    },
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "dark",
+      "state": "shown",
+      "heights": [
+        44,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "light",
+      "state": "hidden"
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "light",
+      "state": "shown",
+      "heights": [
+        36,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "dark",
+      "state": "hidden"
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "dark",
+      "state": "shown",
+      "heights": [
+        36,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "light",
+      "state": "hidden"
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "light",
+      "state": "shown",
+      "heights": [
+        44,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "dark",
+      "state": "hidden"
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "dark",
+      "state": "shown",
+      "heights": [
+        44,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "light",
+      "state": "hidden"
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "light",
+      "state": "shown",
+      "heights": [
+        36,
+        44,
+        44
+      ]
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "dark",
+      "state": "hidden"
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "dark",
+      "state": "shown",
+      "heights": [
+        36,
+        44,
+        44
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "light",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "dark",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "light",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "dark",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "light",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "dark",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "light",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "dark",
+      "focusRetained": true,
+      "nativeDisclosureRetained": true,
+      "criticalWarningsIndependent": true
+    }
+  ],
+  "errors": []
+}

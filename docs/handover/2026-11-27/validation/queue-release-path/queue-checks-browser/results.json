@@ -1,0 +1,36 @@
+[
+  {
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "populatedCount": 1,
+    "existingOpenConsultationMenuPresent": true,
+    "actionNotInvoked": true,
+    "hit": {
+      "height": 44,
+      "top": 832,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "populatedCount": 1,
+    "existingOpenConsultationMenuPresent": true,
+    "actionNotInvoked": true,
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "noPageErrors": true,
+    "noClinicalActionInvoked": true
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "base": "bc31adaf003fbbf6c3e3a466cb6fc4954e5cdd7f",
+  "branch": "feature/dispensary-case-context",
+  "files": {
+    "resources/js/pages/Dispensary/Show.vue": "86395ee2503b40c3565b0c6cff412534bf9abe94f36c6a8655308416f1569178",
+    "docs/teams/dispensary-otc/TEAM.md": "8676e1f7710c6b91edd29236b8f67adb179f36216c1f6976ae69ca9b0ce13419"
+  },
+  "patchSha256": "04f77728fdd316bc7b0f069bb6173808e3649b62aa05962b4789aa6184cb953f",
+  "status": "published stacked draft; CI running",
+  "publishedHead": "8ef91a5d479143b3c669fd2b18edc7f9e732e304",
+  "url": "https://github.com/putrijayamediateam/KPOne/pull/1162"
+}

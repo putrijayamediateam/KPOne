@@ -1,0 +1,42 @@
+[
+  {
+    "path": "queue",
+    "part": "header",
+    "scrollTop": 601,
+    "scrollTag": "HTML",
+    "targetTop": 451.5,
+    "hostBottom": 440,
+    "previousDisabled": false,
+    "nextDisabled": true
+  },
+  {
+    "path": "queue",
+    "part": "pager",
+    "scrollTop": 1264,
+    "scrollTag": "HTML",
+    "targetTop": 451.75,
+    "hostBottom": 440,
+    "previousDisabled": false,
+    "nextDisabled": true
+  },
+  {
+    "path": "registration",
+    "part": "header",
+    "scrollTop": 404,
+    "scrollTag": "HTML",
+    "targetTop": 452,
+    "hostBottom": 440,
+    "previousDisabled": false,
+    "nextDisabled": true
+  },
+  {
+    "path": "registration",
+    "part": "pager",
+    "scrollTop": 1067,
+    "scrollTag": "HTML",
+    "targetTop": 452.25,
+    "hostBottom": 440,
+    "previousDisabled": false,
+    "nextDisabled": true
+  }
+]

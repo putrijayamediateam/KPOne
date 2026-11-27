@@ -1,0 +1,7 @@
+{
+    "explicitCallNowServing": true,
+    "oneCallOnly": true,
+    "calledEpisodeClosed": true,
+    "triageStillRed": true,
+    "originalConsultationStillHeld": true
+}

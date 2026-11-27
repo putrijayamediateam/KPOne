@@ -1,0 +1,17 @@
+[
+  {
+    "path": "resources/js/pages/Dispensary/Show.vue",
+    "scriptDiff": "--- \n+++ \n@@ -1278,10 +1278,11 @@\n         removed: 'Removed',\n         unchanged: '',\n     })[item.changeState];\n-const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';\n-// DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.\n+const inputClass =\n+    'mt-1 h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';\n+// DSP-17: blue scan hint only (not the error look); replaces the focus ring while shown.\n const batchHintClass =\n-    'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';\n+    'border-primary ring-2 ring-ring ring-offset-2 ring-offset-background focus-visible:ring-ring';\n \n // Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).\n const exceptionStatusLabels: Record<string, string> = {\n",
+    "identical": false
+  },
+  {
+    "path": "resources/js/components/dispensary/DoctorCheckActions.vue",
+    "scriptDiff": "",
+    "identical": true
+  },
+  {
+    "path": "resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue",
+    "scriptDiff": "",
+    "identical": true
+  }
+]

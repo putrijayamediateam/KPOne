@@ -1,0 +1,5 @@
+# Independent Inventory plan review
+
+Bounded source contract CLEAR. Inspected actual published-age tree waitingList fresh active actor, branch-view permission, mayCheck CHECK plus ca_supervisor, active branch organisation and effective assignment guards. These successful-page preconditions imply the Directory canView branch-view plus ca_supervisor alternative. Therefore an existing-route Dispensing link on the already-authorized Returns page requires no extra DTO, permission grant or invented authorized-Returns/denied-Dispensing fixture.
+
+This implication is evaluated at page load, not a promise against later authority changes; destination backend remains authoritative on every navigation. Preserve default Prepare URL and avoid copying Returns filters. Same Waiting/Checked/Controlled/Age/Outcome behavior and queries stay intact. Actual CA refusal and authorized keyboard navigation/back are appropriate browser evidence. No tests independently rerun; final template/hash review remains separate.

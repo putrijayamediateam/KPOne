@@ -1,0 +1,378 @@
+[
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "light",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "dark",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "light",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "dark",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "targets": {
+      "input": 44,
+      "search": 44,
+      "clear": 44
+    },
+    "actualAppliedPaging": true,
+    "keyboardClear": true,
+    "reviewHref": "http://127.0.0.1:3215/visits/KPV-00000045/billing"
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "light",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "dark",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "light",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "dark",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "targets": {
+      "input": 44,
+      "search": 44,
+      "clear": 44
+    },
+    "actualAppliedPaging": true,
+    "keyboardClear": true,
+    "reviewHref": "http://127.0.0.1:3215/visits/KPV-00000045/billing"
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "light",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "dark",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "light",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "dark",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "actualFailedReadRetainsApplied": true
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "light",
+    "state": "branch-late-read",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "dark",
+    "state": "branch-late-read",
+    "overflow": false
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "actualBranchReplacement": true,
+    "lateOldReadIgnored": true,
+    "lateDelivery": "delivered-or-discarded"
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "targets": {
+      "input": 36,
+      "search": 36,
+      "clear": 36
+    },
+    "actualAppliedPaging": true,
+    "keyboardClear": true,
+    "reviewHref": "http://127.0.0.1:3215/visits/KPV-00000045/billing"
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "light",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "dark",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "light",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "dark",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "targets": {
+      "input": 44,
+      "search": 44,
+      "clear": 44
+    },
+    "actualAppliedPaging": true,
+    "keyboardClear": true,
+    "reviewHref": "http://127.0.0.1:3215/visits/KPV-00000045/billing"
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "light",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "dark",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "light",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "dark",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "targets": {
+      "input": 44,
+      "search": 44,
+      "clear": 44
+    },
+    "actualAppliedPaging": true,
+    "keyboardClear": true,
+    "reviewHref": "http://127.0.0.1:3215/visits/KPV-00000045/billing"
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "light",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "dark",
+    "state": "page2",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "light",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "dark",
+    "state": "single",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "actualFailedReadRetainsApplied": true
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "light",
+    "state": "branch-late-read",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "dark",
+    "state": "branch-late-read",
+    "overflow": false
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "actualBranchReplacement": true,
+    "lateOldReadIgnored": true,
+    "lateDelivery": "delivered-or-discarded"
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "targets": {
+      "input": 36,
+      "search": 36,
+      "clear": 36
+    },
+    "actualAppliedPaging": true,
+    "keyboardClear": true,
+    "reviewHref": "http://127.0.0.1:3215/visits/KPV-00000045/billing"
+  }
+]

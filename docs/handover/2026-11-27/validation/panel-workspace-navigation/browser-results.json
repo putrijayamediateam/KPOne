@@ -1,0 +1,743 @@
+[
+  {
+    "actor": "claims-only",
+    "active": "claims",
+    "width": 1440,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "claims",
+    "width": 1440,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "follow-up",
+    "width": 1440,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "follow-up",
+    "width": 1440,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "claims",
+    "width": 768,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "claims",
+    "width": 768,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "follow-up",
+    "width": 768,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "follow-up",
+    "width": 768,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "claims",
+    "width": 390,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "claims",
+    "width": 390,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "follow-up",
+    "width": 390,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "claims-only",
+    "active": "follow-up",
+    "width": 390,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "claims",
+    "width": 1440,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 38
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "claims",
+    "width": 1440,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 38
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "follow-up",
+    "width": 1440,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 38
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "follow-up",
+    "width": 1440,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 38
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "payments",
+    "width": 1440,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": 36,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 38
+      },
+      {
+        "label": "Record Panel payment",
+        "href": null,
+        "height": 38
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "payments",
+    "width": 1440,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": 36,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 38
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 38
+      },
+      {
+        "label": "Record Panel payment",
+        "href": null,
+        "height": 38
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "activeItemPreservesDraft": true,
+    "keyboardNavigation": true,
+    "crossRouteDraftResetsAsBefore": true,
+    "paymentPosts": 0
+  },
+  {
+    "actor": "both",
+    "active": "claims",
+    "width": 768,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "claims",
+    "width": 768,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "follow-up",
+    "width": 768,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "follow-up",
+    "width": 768,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "payments",
+    "width": 768,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": 44,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "payments",
+    "width": 768,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": 44,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "activeItemPreservesDraft": true,
+    "keyboardNavigation": true,
+    "crossRouteDraftResetsAsBefore": true,
+    "paymentPosts": 0
+  },
+  {
+    "actor": "both",
+    "active": "claims",
+    "width": 390,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "claims",
+    "width": 390,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "follow-up",
+    "width": 390,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "follow-up",
+    "width": 390,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": null,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": null,
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": "/panel-remittances",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "payments",
+    "width": 390,
+    "theme": "light",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": 44,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "both",
+    "active": "payments",
+    "width": 390,
+    "theme": "dark",
+    "navOverflow": false,
+    "documentOverflow": false,
+    "paymentSelectHeight": 44,
+    "links": [
+      {
+        "label": "Claims",
+        "href": "/panel-claims",
+        "height": 44
+      },
+      {
+        "label": "Follow-up list",
+        "href": "/panel-claims/follow-up",
+        "height": 44
+      },
+      {
+        "label": "Record Panel payment",
+        "href": null,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "activeItemPreservesDraft": true,
+    "keyboardNavigation": true,
+    "crossRouteDraftResetsAsBefore": true,
+    "paymentPosts": 0
+  }
+]

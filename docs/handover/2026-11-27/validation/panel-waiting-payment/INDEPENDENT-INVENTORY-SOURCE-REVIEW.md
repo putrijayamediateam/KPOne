@@ -1,0 +1,7 @@
+# Independent Inventory waiting-payment source review
+
+Read actual new PanelWaitingPaymentProjection, directory integration and four test methods in KPOne-panel-waiting-payment. Bounded source CLEAR. Scoped builder retains original branch/org/date/filter predicates; appended statuses and non-null accepted amount match existing payable contract. Correlated payment sum binds claim/org/branch and original nonreversal predicate, avoiding duplicate joins. Bound parameters remain query bindings followed by page. Materialized balances/eligible, aggregate totals and clamped page JSON are one SQL statement; empty rows still receive totals, stable id-desc ordering and20-row limit, no200cap. Active badge consumes exact aggregate count. DTO allowlist adds balances only in this view; original summary and money mutation paths unchanged. Separate remittance authority retained.
+
+Read builder coverage for real partial payment/reversal and scoped filters;201-row temporary read projection fixture and post-statement insertion observer cover stated bounds/snapshot contract. The observer is correctly not claimed as a two-process contention race. No independent test rerun or final UI/browser certification. No bounded backend blocker.
+
+Final frozen binding: verified seven manifest files and patch c579697937ed5d83c55f270eb596a9756b569ed14bb9a3860b627c67efcff3e7. Backend projection/directory contract remains as reviewed; final62/2831/static and browser results remain builder evidence, no independent rerun. Bounded backend CLEAR.

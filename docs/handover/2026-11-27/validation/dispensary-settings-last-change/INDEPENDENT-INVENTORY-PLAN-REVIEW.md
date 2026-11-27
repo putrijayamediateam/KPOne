@@ -1,0 +1,9 @@
+# F24 metadata plan — independent Inventory review
+
+Read actual DispensarySettingsService, controller/routes, BranchDispensarySetting, StaffAccessService and migration2026_11_06_200600 from KPOne-dispensary-settings-context. No edits or tests by reviewer.
+
+No policy/schema blocker for this bounded authorized read extension. Migration seeds every existing branch with updated_at but NULL updater; runtime insertOrIgnore also starts unattributed. Missing row, missing updater or missing timestamp must therefore yield null metadata, not a fabricated initial/default change. The existing service returns on same-value/no-op and valid retry without save, so actual successful toggles advance updated_at/updater; preserve this behavior.
+
+Implementation conditions: read displayed settings and metadata from one authorized row snapshot. Calling current() and an independent metadata query can race a concurrent toggle and attach newer change attribution to an older displayed value. Keep the existing two-field settings DTO if needed and return settingsChange separately from that same row. Reauthorize a fresh active actor, existing manage permission and active branch/org/effective assignment consistent with the write service; do not broaden staff authority. Scope settings query by both branch and organisation. Resolve only updater through visibleUsers(viewer)->whereKey(...)->value(name); do not load all visible users. This preserves effective branch-date/name visibility and same-organisation filtering, with Staff member fallback when not visible. Return no IDs/email/roles. Localize timestamp using branch timezone.
+
+Tests should cover missing/default/unattributed rows, no-op/retry timestamp stability, hidden/wrong-org updater fallback, activebranch/effective assignment refusal and same-row displayed value/metadata shape. Final implementation still needs source/tests review; this is not implementation signoff.

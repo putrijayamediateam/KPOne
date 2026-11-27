@@ -1,0 +1,2078 @@
+[
+  {
+    "uri": "/.well-known/oauth-authorization-server",
+    "action": "App\\Http\\Controllers\\ConnectorDiscoveryController@authorizationServer",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/.well-known/oauth-authorization-server/{path}",
+    "action": "App\\Http\\Controllers\\ConnectorDiscoveryController@authorizationServer",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/.well-known/oauth-protected-resource",
+    "action": "App\\Http\\Controllers\\ConnectorDiscoveryController@protectedResource",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/.well-known/oauth-protected-resource/{path}",
+    "action": "App\\Http\\Controllers\\ConnectorDiscoveryController@protectedResource",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "//",
+    "action": "Closure",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/access-control",
+    "action": "App\\Http\\Controllers\\AccessControlController",
+    "controller_page_candidates": [
+      "AccessControl/Index"
+    ]
+  },
+  {
+    "uri": "/agents",
+    "action": "App\\Http\\Controllers\\AgentRegistryController@index",
+    "controller_page_candidates": [
+      "Agents/Index"
+    ]
+  },
+  {
+    "uri": "/agents/ask",
+    "action": "App\\Http\\Controllers\\AskThroughClaudeController@index",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/agents/ask/{code}",
+    "action": "App\\Http\\Controllers\\AskThroughClaudeController@show",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/agents/assistant",
+    "action": "App\\Http\\Controllers\\AgentAssistantController@index",
+    "controller_page_candidates": [
+      "Agents/Assistant"
+    ]
+  },
+  {
+    "uri": "/agents/chat",
+    "action": "App\\Http\\Controllers\\AgentChatController@state",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/agents/chat/others",
+    "action": "App\\Http\\Controllers\\AgentChatController@others",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/agents/chat/others/{thread}",
+    "action": "App\\Http\\Controllers\\AgentChatController@otherThread",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/agents/chat/threads/{thread}",
+    "action": "App\\Http\\Controllers\\AgentChatController@thread",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/agents/connected-apps",
+    "action": "App\\Http\\Controllers\\ConnectedAppsController@index",
+    "controller_page_candidates": [
+      "Agents/ConnectedApps"
+    ]
+  },
+  {
+    "uri": "/agents/daily-summary",
+    "action": "App\\Http\\Controllers\\AgentDailySummaryController@index",
+    "controller_page_candidates": [
+      "Agents/DailySummary"
+    ]
+  },
+  {
+    "uri": "/agents/inbox",
+    "action": "App\\Http\\Controllers\\AgentInboxController@index",
+    "controller_page_candidates": [
+      "Agents/Inbox"
+    ]
+  },
+  {
+    "uri": "/agents/office",
+    "action": "App\\Http\\Controllers\\AgentOfficeController@index",
+    "controller_page_candidates": [
+      "Agents/Office"
+    ]
+  },
+  {
+    "uri": "/agents/office-feed",
+    "action": "App\\Http\\Controllers\\AgentRegistryController@feed",
+    "controller_page_candidates": [
+      "Agents/Index"
+    ]
+  },
+  {
+    "uri": "/agents/office/agents/{code}",
+    "action": "App\\Http\\Controllers\\AgentOfficeController@agent",
+    "controller_page_candidates": [
+      "Agents/Office"
+    ]
+  },
+  {
+    "uri": "/approvals",
+    "action": "App\\Http\\Controllers\\ApprovalsController@index",
+    "controller_page_candidates": [
+      "Approvals/Index"
+    ]
+  },
+  {
+    "uri": "/approvals/count",
+    "action": "App\\Http\\Controllers\\ApprovalsController@count",
+    "controller_page_candidates": [
+      "Approvals/Index"
+    ]
+  },
+  {
+    "uri": "/audit-logs",
+    "action": "App\\Http\\Controllers\\AuditLogController",
+    "controller_page_candidates": [
+      "AuditLogs/Index"
+    ]
+  },
+  {
+    "uri": "/auth/google/callback",
+    "action": "App\\Http\\Controllers\\Auth\\GoogleAuthController@callback",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/auth/google/redirect",
+    "action": "App\\Http\\Controllers\\Auth\\GoogleAuthController@redirect",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/billing-approval-limits",
+    "action": "App\\Http\\Controllers\\BillingApprovalLimitController@index",
+    "controller_page_candidates": [
+      "BillingApprovalLimits/Index"
+    ]
+  },
+  {
+    "uri": "/branches",
+    "action": "App\\Http\\Controllers\\BranchController@index",
+    "controller_page_candidates": [
+      "Branches/Index"
+    ]
+  },
+  {
+    "uri": "/branches/{branch}",
+    "action": "App\\Http\\Controllers\\BranchController@show",
+    "controller_page_candidates": [
+      "Branches/Index"
+    ]
+  },
+  {
+    "uri": "/business-details",
+    "action": "App\\Http\\Controllers\\BusinessDetailsController@index",
+    "controller_page_candidates": [
+      "BusinessDetails/Index"
+    ]
+  },
+  {
+    "uri": "/business-details/branches/{branch}/logo/{asset}",
+    "action": "App\\Http\\Controllers\\BusinessDetailsController@logo",
+    "controller_page_candidates": [
+      "BusinessDetails/Index"
+    ]
+  },
+  {
+    "uri": "/careers/apply",
+    "action": "App\\Http\\Controllers\\JobApplicationController@show",
+    "controller_page_candidates": [
+      "Careers/Apply",
+      "Careers/Status",
+      "Careers/Thanks"
+    ]
+  },
+  {
+    "uri": "/careers/apply/thanks",
+    "action": "App\\Http\\Controllers\\JobApplicationController@thanks",
+    "controller_page_candidates": [
+      "Careers/Apply",
+      "Careers/Status",
+      "Careers/Thanks"
+    ]
+  },
+  {
+    "uri": "/careers/status",
+    "action": "App\\Http\\Controllers\\JobApplicationController@status",
+    "controller_page_candidates": [
+      "Careers/Apply",
+      "Careers/Status",
+      "Careers/Thanks"
+    ]
+  },
+  {
+    "uri": "/careers/status/documents/{document}",
+    "action": "App\\Http\\Controllers\\JobApplicationController@document",
+    "controller_page_candidates": [
+      "Careers/Apply",
+      "Careers/Status",
+      "Careers/Thanks"
+    ]
+  },
+  {
+    "uri": "/cash-closings",
+    "action": "App\\Http\\Controllers\\CashClosingController@index",
+    "controller_page_candidates": [
+      "Billing/CashClosingMonth",
+      "Billing/CashClosings"
+    ]
+  },
+  {
+    "uri": "/cash-closings/month",
+    "action": "App\\Http\\Controllers\\CashClosingController@month",
+    "controller_page_candidates": [
+      "Billing/CashClosingMonth",
+      "Billing/CashClosings"
+    ]
+  },
+  {
+    "uri": "/catalogue-options/{type}",
+    "action": "App\\Http\\Controllers\\CatalogueOptionController@index",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/check-in",
+    "action": "App\\Http\\Controllers\\PublicCheckInController",
+    "controller_page_candidates": [
+      "PublicCheckIn/Show",
+      "PublicCheckIn/Status"
+    ]
+  },
+  {
+    "uri": "/check-in/status",
+    "action": "App\\Http\\Controllers\\PublicCheckInController@status",
+    "controller_page_candidates": [
+      "PublicCheckIn/Show",
+      "PublicCheckIn/Status"
+    ]
+  },
+  {
+    "uri": "/checkout-settings",
+    "action": "App\\Http\\Controllers\\PanelSettingsController@index",
+    "controller_page_candidates": [
+      "PanelSettings/Form",
+      "PanelSettings/Index"
+    ]
+  },
+  {
+    "uri": "/checkout-settings/panels/create",
+    "action": "App\\Http\\Controllers\\PanelSettingsController@create",
+    "controller_page_candidates": [
+      "PanelSettings/Form",
+      "PanelSettings/Index"
+    ]
+  },
+  {
+    "uri": "/checkout-settings/panels/{panel}/edit",
+    "action": "App\\Http\\Controllers\\PanelSettingsController@edit",
+    "controller_page_candidates": [
+      "PanelSettings/Form",
+      "PanelSettings/Index"
+    ]
+  },
+  {
+    "uri": "/clinic-compliance",
+    "action": "App\\Http\\Controllers\\ClinicComplianceController@index",
+    "controller_page_candidates": [
+      "ClinicCompliance/Index"
+    ]
+  },
+  {
+    "uri": "/clinic-compliance/audit-photos/{photo}",
+    "action": "App\\Http\\Controllers\\ClinicComplianceController@openAuditPhoto",
+    "controller_page_candidates": [
+      "ClinicCompliance/Index"
+    ]
+  },
+  {
+    "uri": "/clinic-compliance/files/{file}",
+    "action": "App\\Http\\Controllers\\ClinicComplianceController@openFile",
+    "controller_page_candidates": [
+      "ClinicCompliance/Index"
+    ]
+  },
+  {
+    "uri": "/clinic-compliance/task-photos/{photo}",
+    "action": "App\\Http\\Controllers\\ClinicComplianceController@openTaskPhoto",
+    "controller_page_candidates": [
+      "ClinicCompliance/Index"
+    ]
+  },
+  {
+    "uri": "/clinic-management",
+    "action": "App\\Http\\Controllers\\ClinicManagementController",
+    "controller_page_candidates": [
+      "ClinicManagement/Index"
+    ]
+  },
+  {
+    "uri": "/clinical-services",
+    "action": "App\\Http\\Controllers\\ClinicalServiceCatalogueController@index",
+    "controller_page_candidates": [
+      "ClinicalService/Index"
+    ]
+  },
+  {
+    "uri": "/clinical-services/{clinicalService}/setup",
+    "action": "App\\Http\\Controllers\\ClinicalServiceCatalogueController@editSetup",
+    "controller_page_candidates": [
+      "ClinicalService/Index"
+    ]
+  },
+  {
+    "uri": "/clinician-credentials",
+    "action": "App\\Http\\Controllers\\ClinicianCredentialController@index",
+    "controller_page_candidates": [
+      "ClinicianCredentials/Index",
+      "MedicalCertificateTemplates/Index"
+    ]
+  },
+  {
+    "uri": "/clinician-credentials/me",
+    "action": "App\\Http\\Controllers\\ClinicianCredentialController@own",
+    "controller_page_candidates": [
+      "ClinicianCredentials/Index",
+      "MedicalCertificateTemplates/Index"
+    ]
+  },
+  {
+    "uri": "/consultation-settings",
+    "action": "App\\Http\\Controllers\\DiagnosisPresetSettingsController@index",
+    "controller_page_candidates": [
+      "ConsultationSettings/Index"
+    ]
+  },
+  {
+    "uri": "/consultation-settings/review",
+    "action": "App\\Http\\Controllers\\SuggestionReviewController@index",
+    "controller_page_candidates": [
+      "SuggestionReview/Index"
+    ]
+  },
+  {
+    "uri": "/dashboard",
+    "action": "App\\Http\\Controllers\\DashboardController",
+    "controller_page_candidates": [
+      "Dashboard"
+    ]
+  },
+  {
+    "uri": "/dispensary",
+    "action": "App\\Http\\Controllers\\DispensaryController@index",
+    "controller_page_candidates": [
+      "Dispensary/Completed",
+      "Dispensary/Index",
+      "Dispensary/Labels",
+      "Dispensary/ReturnsToCheck",
+      "Dispensary/Show"
+    ]
+  },
+  {
+    "uri": "/dispensary-settings",
+    "action": "App\\Http\\Controllers\\DispensarySettingsController@show",
+    "controller_page_candidates": [
+      "Dispensary/Settings"
+    ]
+  },
+  {
+    "uri": "/dispensary/doctor-checks",
+    "action": "App\\Http\\Controllers\\DispensaryDoctorCheckController@waiting",
+    "controller_page_candidates": [
+      "Dispensary/DoctorChecks"
+    ]
+  },
+  {
+    "uri": "/dispensary/returns-to-check",
+    "action": "App\\Http\\Controllers\\DispensaryController@returnsToCheck",
+    "controller_page_candidates": [
+      "Dispensary/Completed",
+      "Dispensary/Index",
+      "Dispensary/Labels",
+      "Dispensary/ReturnsToCheck",
+      "Dispensary/Show"
+    ]
+  },
+  {
+    "uri": "/dispensary/{dispensaryCase}",
+    "action": "App\\Http\\Controllers\\DispensaryController@show",
+    "controller_page_candidates": [
+      "Dispensary/Completed",
+      "Dispensary/Index",
+      "Dispensary/Labels",
+      "Dispensary/ReturnsToCheck",
+      "Dispensary/Show"
+    ]
+  },
+  {
+    "uri": "/dispensary/{dispensaryCase}/items/{itemPublicId}/label",
+    "action": "App\\Http\\Controllers\\DispensaryController@labels",
+    "controller_page_candidates": [
+      "Dispensary/Completed",
+      "Dispensary/Index",
+      "Dispensary/Labels",
+      "Dispensary/ReturnsToCheck",
+      "Dispensary/Show"
+    ]
+  },
+  {
+    "uri": "/dispensary/{dispensaryCase}/labels",
+    "action": "App\\Http\\Controllers\\DispensaryController@labels",
+    "controller_page_candidates": [
+      "Dispensary/Completed",
+      "Dispensary/Index",
+      "Dispensary/Labels",
+      "Dispensary/ReturnsToCheck",
+      "Dispensary/Show"
+    ]
+  },
+  {
+    "uri": "/dispensary/{dispensaryCase}/review",
+    "action": "App\\Http\\Controllers\\DispensaryReviewController@show",
+    "controller_page_candidates": [
+      "Dispensary/Review"
+    ]
+  },
+  {
+    "uri": "/email/verify",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\EmailVerificationPromptController@__invoke",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/email/verify/{id}/{hash}",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\VerifyEmailController@__invoke",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/financial-work",
+    "action": "App\\Http\\Controllers\\BillingWorkController@finance",
+    "controller_page_candidates": [
+      "FinancialWork/Index"
+    ]
+  },
+  {
+    "uri": "/forgot-password",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\PasswordResetLinkController@create",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/hr/applications",
+    "action": "App\\Http\\Controllers\\HR\\ApplicationsController@index",
+    "controller_page_candidates": [
+      "HR/Applications"
+    ]
+  },
+  {
+    "uri": "/hr/applications/interview-documents/{document}",
+    "action": "App\\Http\\Controllers\\HR\\ApplicationsController@document",
+    "controller_page_candidates": [
+      "HR/Applications"
+    ]
+  },
+  {
+    "uri": "/hr/applications/{application}/cv",
+    "action": "App\\Http\\Controllers\\HR\\ApplicationsController@cv",
+    "controller_page_candidates": [
+      "HR/Applications"
+    ]
+  },
+  {
+    "uri": "/hr/appraisals",
+    "action": "App\\Http\\Controllers\\HR\\AppraisalsController@index",
+    "controller_page_candidates": [
+      "HR/Appraisal",
+      "HR/Appraisals"
+    ]
+  },
+  {
+    "uri": "/hr/appraisals/{appraisal}",
+    "action": "App\\Http\\Controllers\\HR\\AppraisalsController@show",
+    "controller_page_candidates": [
+      "HR/Appraisal",
+      "HR/Appraisals"
+    ]
+  },
+  {
+    "uri": "/hr/attendance",
+    "action": "App\\Http\\Controllers\\HR\\AttendanceController@index",
+    "controller_page_candidates": [
+      "HR/Attendance"
+    ]
+  },
+  {
+    "uri": "/hr/attendance/clock-state",
+    "action": "App\\Http\\Controllers\\HR\\AttendanceController@clockState",
+    "controller_page_candidates": [
+      "HR/Attendance"
+    ]
+  },
+  {
+    "uri": "/hr/attendance/photos/{photo}/{size}",
+    "action": "App\\Http\\Controllers\\HR\\AttendanceController@photo",
+    "controller_page_candidates": [
+      "HR/Attendance"
+    ]
+  },
+  {
+    "uri": "/hr/claims",
+    "action": "App\\Http\\Controllers\\HR\\ClaimsController@index",
+    "controller_page_candidates": [
+      "HR/Claims"
+    ]
+  },
+  {
+    "uri": "/hr/claims/receipts/{receipt}",
+    "action": "App\\Http\\Controllers\\HR\\ClaimsController@openReceipt",
+    "controller_page_candidates": [
+      "HR/Claims"
+    ]
+  },
+  {
+    "uri": "/hr/credentials",
+    "action": "App\\Http\\Controllers\\HR\\CredentialsController@index",
+    "controller_page_candidates": [
+      "HR/Credentials"
+    ]
+  },
+  {
+    "uri": "/hr/dashboard",
+    "action": "App\\Http\\Controllers\\HR\\DashboardController@index",
+    "controller_page_candidates": [
+      "HR/Dashboard"
+    ]
+  },
+  {
+    "uri": "/hr/discipline",
+    "action": "App\\Http\\Controllers\\HR\\DisciplineController@index",
+    "controller_page_candidates": [
+      "HR/Discipline",
+      "HR/DisciplineCase"
+    ]
+  },
+  {
+    "uri": "/hr/discipline/{case}",
+    "action": "App\\Http\\Controllers\\HR\\DisciplineController@show",
+    "controller_page_candidates": [
+      "HR/Discipline",
+      "HR/DisciplineCase"
+    ]
+  },
+  {
+    "uri": "/hr/discipline/{case}/files/{file}",
+    "action": "App\\Http\\Controllers\\HR\\DisciplineController@openFile",
+    "controller_page_candidates": [
+      "HR/Discipline",
+      "HR/DisciplineCase"
+    ]
+  },
+  {
+    "uri": "/hr/incidents",
+    "action": "App\\Http\\Controllers\\HR\\IncidentsController@index",
+    "controller_page_candidates": [
+      "HR/Incident",
+      "HR/Incidents"
+    ]
+  },
+  {
+    "uri": "/hr/incidents/{incident}",
+    "action": "App\\Http\\Controllers\\HR\\IncidentsController@show",
+    "controller_page_candidates": [
+      "HR/Incident",
+      "HR/Incidents"
+    ]
+  },
+  {
+    "uri": "/hr/incidents/{incident}/photos/{photo}",
+    "action": "App\\Http\\Controllers\\HR\\IncidentsController@photo",
+    "controller_page_candidates": [
+      "HR/Incident",
+      "HR/Incidents"
+    ]
+  },
+  {
+    "uri": "/hr/labour-cost",
+    "action": "App\\Http\\Controllers\\HR\\LabourCostController@index",
+    "controller_page_candidates": [
+      "HR/LabourCost"
+    ]
+  },
+  {
+    "uri": "/hr/leave",
+    "action": "App\\Http\\Controllers\\HR\\LeaveController@index",
+    "controller_page_candidates": [
+      "HR/Leave"
+    ]
+  },
+  {
+    "uri": "/hr/leave/evidence/{file}",
+    "action": "App\\Http\\Controllers\\HR\\LeaveController@openEvidence",
+    "controller_page_candidates": [
+      "HR/Leave"
+    ]
+  },
+  {
+    "uri": "/hr/letters",
+    "action": "App\\Http\\Controllers\\HR\\LettersController@index",
+    "controller_page_candidates": [
+      "HR/Letter",
+      "HR/Letters"
+    ]
+  },
+  {
+    "uri": "/hr/letters/{letter}",
+    "action": "App\\Http\\Controllers\\HR\\LettersController@show",
+    "controller_page_candidates": [
+      "HR/Letter",
+      "HR/Letters"
+    ]
+  },
+  {
+    "uri": "/hr/locum-pay",
+    "action": "App\\Http\\Controllers\\HR\\LocumPayController@index",
+    "controller_page_candidates": [
+      "HR/LocumPay"
+    ]
+  },
+  {
+    "uri": "/hr/memos",
+    "action": "App\\Http\\Controllers\\HR\\MemosController@index",
+    "controller_page_candidates": [
+      "HR/Memos"
+    ]
+  },
+  {
+    "uri": "/hr/memos/audience",
+    "action": "App\\Http\\Controllers\\HR\\MemosController@audience",
+    "controller_page_candidates": [
+      "HR/Memos"
+    ]
+  },
+  {
+    "uri": "/hr/memos/{memo}/pdf",
+    "action": "App\\Http\\Controllers\\HR\\MemosController@pdf",
+    "controller_page_candidates": [
+      "HR/Memos"
+    ]
+  },
+  {
+    "uri": "/hr/messages",
+    "action": "App\\Http\\Controllers\\HR\\MessagesController@index",
+    "controller_page_candidates": [
+      "HR/Messages"
+    ]
+  },
+  {
+    "uri": "/hr/open-shifts",
+    "action": "App\\Http\\Controllers\\HR\\OpenShiftsController@index",
+    "controller_page_candidates": [
+      "HR/OpenShifts"
+    ]
+  },
+  {
+    "uri": "/hr/payroll",
+    "action": "App\\Http\\Controllers\\HR\\PayrollController@index",
+    "controller_page_candidates": [
+      "HR/Payroll",
+      "HR/PayrollRun",
+      "HR/Payslip"
+    ]
+  },
+  {
+    "uri": "/hr/payroll/runs/{run}",
+    "action": "App\\Http\\Controllers\\HR\\PayrollController@showRun",
+    "controller_page_candidates": [
+      "HR/Payroll",
+      "HR/PayrollRun",
+      "HR/Payslip"
+    ]
+  },
+  {
+    "uri": "/hr/payslips/{payslip}",
+    "action": "App\\Http\\Controllers\\HR\\PayrollController@payslip",
+    "controller_page_candidates": [
+      "HR/Payroll",
+      "HR/PayrollRun",
+      "HR/Payslip"
+    ]
+  },
+  {
+    "uri": "/hr/records",
+    "action": "App\\Http\\Controllers\\HR\\RecordsController@index",
+    "controller_page_candidates": [
+      "HR/Records",
+      "HR/StaffFile"
+    ]
+  },
+  {
+    "uri": "/hr/records/{worker}",
+    "action": "App\\Http\\Controllers\\HR\\RecordsController@show",
+    "controller_page_candidates": [
+      "HR/Records",
+      "HR/StaffFile"
+    ]
+  },
+  {
+    "uri": "/hr/records/{worker}/documents/{document}",
+    "action": "App\\Http\\Controllers\\HR\\RecordsController@openDocument",
+    "controller_page_candidates": [
+      "HR/Records",
+      "HR/StaffFile"
+    ]
+  },
+  {
+    "uri": "/hr/roster",
+    "action": "App\\Http\\Controllers\\HR\\RosterController@index",
+    "controller_page_candidates": [
+      "HR/Roster"
+    ]
+  },
+  {
+    "uri": "/hr/sops",
+    "action": "App\\Http\\Controllers\\HR\\SopsController@index",
+    "controller_page_candidates": [
+      "HR/Sops"
+    ]
+  },
+  {
+    "uri": "/hr/sops/versions/{version}/open",
+    "action": "App\\Http\\Controllers\\HR\\SopsController@open",
+    "controller_page_candidates": [
+      "HR/Sops"
+    ]
+  },
+  {
+    "uri": "/insight",
+    "action": "Closure",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/insights/daily-receipts/download",
+    "action": "App\\Http\\Controllers\\ClinicInsightsController@downloadDailyReport",
+    "controller_page_candidates": [
+      "Insights/Overview",
+      "Insights/Report",
+      "Insights/Today"
+    ]
+  },
+  {
+    "uri": "/insights/daily-sales/download",
+    "action": "App\\Http\\Controllers\\ClinicInsightsController@downloadDailyReport",
+    "controller_page_candidates": [
+      "Insights/Overview",
+      "Insights/Report",
+      "Insights/Today"
+    ]
+  },
+  {
+    "uri": "/insights/overview",
+    "action": "App\\Http\\Controllers\\ClinicInsightsController@overview",
+    "controller_page_candidates": [
+      "Insights/Overview",
+      "Insights/Report",
+      "Insights/Today"
+    ]
+  },
+  {
+    "uri": "/insights/sales-summary/download",
+    "action": "App\\Http\\Controllers\\ClinicInsightsController@downloadSalesSummary",
+    "controller_page_candidates": [
+      "Insights/Overview",
+      "Insights/Report",
+      "Insights/Today"
+    ]
+  },
+  {
+    "uri": "/insights/today",
+    "action": "App\\Http\\Controllers\\ClinicInsightsController@today",
+    "controller_page_candidates": [
+      "Insights/Overview",
+      "Insights/Report",
+      "Insights/Today"
+    ]
+  },
+  {
+    "uri": "/insights/{section}",
+    "action": "App\\Http\\Controllers\\ClinicInsightsController@report",
+    "controller_page_candidates": [
+      "Insights/Overview",
+      "Insights/Report",
+      "Insights/Today"
+    ]
+  },
+  {
+    "uri": "/inventory",
+    "action": "App\\Http\\Controllers\\InventoryController",
+    "controller_page_candidates": [
+      "Inventory/Index"
+    ]
+  },
+  {
+    "uri": "/inventory-references/skus/{sku}/batches",
+    "action": "App\\Http\\Controllers\\InventoryReferenceController@skuBatches",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/inventory-services-settings/medicine-details",
+    "action": "App\\Http\\Controllers\\MedicineOptionSettingsController@index",
+    "controller_page_candidates": [
+      "InventoryServicesSettings/MedicineDetails"
+    ]
+  },
+  {
+    "uri": "/inventory-services-settings/suppliers",
+    "action": "App\\Http\\Controllers\\SupplierSettingsController@index",
+    "controller_page_candidates": [
+      "InventoryServicesSettings/Suppliers"
+    ]
+  },
+  {
+    "uri": "/inventory/batch-holds",
+    "action": "App\\Http\\Controllers\\InventoryBatchHoldController@index",
+    "controller_page_candidates": [
+      "Inventory/BatchHolds"
+    ]
+  },
+  {
+    "uri": "/inventory/branch-replenishment",
+    "action": "App\\Http\\Controllers\\BranchReplenishmentController@index",
+    "controller_page_candidates": [
+      "Inventory/BranchReplenishment"
+    ]
+  },
+  {
+    "uri": "/inventory/controlled-register",
+    "action": "App\\Http\\Controllers\\ControlledRegisterController@index",
+    "controller_page_candidates": [
+      "Inventory/ControlledRegister",
+      "Inventory/ControlledRegisterPrint",
+      "Inventory/ControlledRegisterShow"
+    ]
+  },
+  {
+    "uri": "/inventory/controlled-register/{sku}",
+    "action": "App\\Http\\Controllers\\ControlledRegisterController@show",
+    "controller_page_candidates": [
+      "Inventory/ControlledRegister",
+      "Inventory/ControlledRegisterPrint",
+      "Inventory/ControlledRegisterShow"
+    ]
+  },
+  {
+    "uri": "/inventory/controlled-register/{sku}/print",
+    "action": "App\\Http\\Controllers\\ControlledRegisterController@print",
+    "controller_page_candidates": [
+      "Inventory/ControlledRegister",
+      "Inventory/ControlledRegisterPrint",
+      "Inventory/ControlledRegisterShow"
+    ]
+  },
+  {
+    "uri": "/inventory/counts",
+    "action": "App\\Http\\Controllers\\GovernedStockController@counts",
+    "controller_page_candidates": [
+      "Inventory/GovernedStock"
+    ]
+  },
+  {
+    "uri": "/inventory/medicine-sales",
+    "action": "App\\Http\\Controllers\\MedicineSalesController",
+    "controller_page_candidates": [
+      "Inventory/MedicineSales"
+    ]
+  },
+  {
+    "uri": "/inventory/opening-import",
+    "action": "App\\Http\\Controllers\\OpeningImportController@index",
+    "controller_page_candidates": [
+      "Inventory/OpeningImport"
+    ]
+  },
+  {
+    "uri": "/inventory/opening-import/template",
+    "action": "App\\Http\\Controllers\\OpeningImportController@template",
+    "controller_page_candidates": [
+      "Inventory/OpeningImport"
+    ]
+  },
+  {
+    "uri": "/inventory/picker",
+    "action": "App\\Http\\Controllers\\InventoryController@picker",
+    "controller_page_candidates": [
+      "Inventory/Index"
+    ]
+  },
+  {
+    "uri": "/inventory/purchase-orders/print/logo/{asset}",
+    "action": "App\\Http\\Controllers\\PurchaseOrderPrintController@logo",
+    "controller_page_candidates": [
+      "Inventory/PurchaseOrderPrint"
+    ]
+  },
+  {
+    "uri": "/inventory/purchase-orders/{purchaseOrder}/print",
+    "action": "App\\Http\\Controllers\\PurchaseOrderPrintController@show",
+    "controller_page_candidates": [
+      "Inventory/PurchaseOrderPrint"
+    ]
+  },
+  {
+    "uri": "/inventory/purchase-requests",
+    "action": "App\\Http\\Controllers\\PurchaseRequestController@index",
+    "controller_page_candidates": [
+      "Inventory/PurchaseRequests"
+    ]
+  },
+  {
+    "uri": "/inventory/readiness",
+    "action": "App\\Http\\Controllers\\InventoryReadinessController@index",
+    "controller_page_candidates": [
+      "Inventory/Readiness"
+    ]
+  },
+  {
+    "uri": "/inventory/recalls",
+    "action": "App\\Http\\Controllers\\InventoryRecallController@index",
+    "controller_page_candidates": [
+      "Inventory/Recalls"
+    ]
+  },
+  {
+    "uri": "/inventory/recalls/batches",
+    "action": "App\\Http\\Controllers\\InventoryRecallController@batches",
+    "controller_page_candidates": [
+      "Inventory/Recalls"
+    ]
+  },
+  {
+    "uri": "/inventory/reorder-levels/current",
+    "action": "App\\Http\\Controllers\\InventoryOperationsController@currentReorderLevel",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/inventory/reorder-suggestions",
+    "action": "App\\Http\\Controllers\\ReorderSuggestionController@index",
+    "controller_page_candidates": [
+      "Inventory/ReorderSuggestions"
+    ]
+  },
+  {
+    "uri": "/inventory/scan",
+    "action": "App\\Http\\Controllers\\InventoryScanController@lookup",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/inventory/skus",
+    "action": "App\\Http\\Controllers\\SkuEditController@index",
+    "controller_page_candidates": [
+      "Inventory/Skus"
+    ]
+  },
+  {
+    "uri": "/inventory/stock-health",
+    "action": "App\\Http\\Controllers\\StockHealthController@index",
+    "controller_page_candidates": [
+      "Inventory/StockHealth"
+    ]
+  },
+  {
+    "uri": "/inventory/stock-review",
+    "action": "App\\Http\\Controllers\\InventoryStockReviewController@index",
+    "controller_page_candidates": [
+      "Inventory/StockReview"
+    ]
+  },
+  {
+    "uri": "/inventory/stock-value",
+    "action": "App\\Http\\Controllers\\StockValuationController",
+    "controller_page_candidates": [
+      "Inventory/StockValue"
+    ]
+  },
+  {
+    "uri": "/inventory/stock-value/journal",
+    "action": "App\\Http\\Controllers\\StockValuationController@journal",
+    "controller_page_candidates": [
+      "Inventory/StockValue"
+    ]
+  },
+  {
+    "uri": "/inventory/supplier-invoices",
+    "action": "App\\Http\\Controllers\\SupplierInvoiceController@index",
+    "controller_page_candidates": [
+      "Inventory/SupplierInvoices"
+    ]
+  },
+  {
+    "uri": "/inventory/supplier-returns",
+    "action": "App\\Http\\Controllers\\SupplierReturnController@index",
+    "controller_page_candidates": [
+      "Inventory/SupplierReturns"
+    ]
+  },
+  {
+    "uri": "/inventory/supplier-terms",
+    "action": "App\\Http\\Controllers\\SupplierTermsController@index",
+    "controller_page_candidates": [
+      "Inventory/SupplierTerms"
+    ]
+  },
+  {
+    "uri": "/inventory/treatment-usage",
+    "action": "App\\Http\\Controllers\\TreatmentUsageController@index",
+    "controller_page_candidates": [
+      "Inventory/TreatmentUsage"
+    ]
+  },
+  {
+    "uri": "/inventory/writeoffs",
+    "action": "App\\Http\\Controllers\\GovernedStockController@writeoffs",
+    "controller_page_candidates": [
+      "Inventory/GovernedStock"
+    ]
+  },
+  {
+    "uri": "/login",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\AuthenticatedSessionController@create",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/mcp",
+    "action": "Closure",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/me",
+    "action": "Closure",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/medical-certificate-templates",
+    "action": "App\\Http\\Controllers\\ClinicianCredentialController@templates",
+    "controller_page_candidates": [
+      "ClinicianCredentials/Index",
+      "MedicalCertificateTemplates/Index"
+    ]
+  },
+  {
+    "uri": "/medicines",
+    "action": "App\\Http\\Controllers\\MedicineCatalogueController@index",
+    "controller_page_candidates": [
+      "Medicine/Index"
+    ]
+  },
+  {
+    "uri": "/medicines/inventory-skus",
+    "action": "App\\Http\\Controllers\\MedicineCatalogueController@searchInventorySkus",
+    "controller_page_candidates": [
+      "Medicine/Index"
+    ]
+  },
+  {
+    "uri": "/medicines/{medicine}/setup",
+    "action": "App\\Http\\Controllers\\MedicineCatalogueController@editSetup",
+    "controller_page_candidates": [
+      "Medicine/Index"
+    ]
+  },
+  {
+    "uri": "/my-day",
+    "action": "App\\Http\\Controllers\\MyDayController@show",
+    "controller_page_candidates": [
+      "MyDay/Index"
+    ]
+  },
+  {
+    "uri": "/oauth/authorize",
+    "action": "Laravel\\Passport\\Http\\Controllers\\AuthorizationController@authorize",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/panel-claims",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@index",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-claims/allocations/{allocation}/create",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@create",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-claims/follow-up",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@followUp",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-claims/pack",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@pack",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-claims/pack/copies/{print}",
+    "action": "App\\Http\\Controllers\\PanelClaimPackCopiesController@show",
+    "controller_page_candidates": [
+      "PanelClaims/Pack"
+    ]
+  },
+  {
+    "uri": "/panel-claims/pack/logo/{asset}",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@packLogo",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-claims/{claim}",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@show",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-claims/{claim}/documents/{document}",
+    "action": "App\\Http\\Controllers\\PanelClaimsController@document",
+    "controller_page_candidates": [
+      "PanelClaims/Create",
+      "PanelClaims/FollowUp",
+      "PanelClaims/Index",
+      "PanelClaims/Pack",
+      "PanelClaims/Show"
+    ]
+  },
+  {
+    "uri": "/panel-invoices",
+    "action": "App\\Http\\Controllers\\PanelInvoicesController@index",
+    "controller_page_candidates": [
+      "PanelInvoices/Index"
+    ]
+  },
+  {
+    "uri": "/panel-invoices/download",
+    "action": "App\\Http\\Controllers\\PanelInvoicesController@download",
+    "controller_page_candidates": [
+      "PanelInvoices/Index"
+    ]
+  },
+  {
+    "uri": "/panel-payment-corrections",
+    "action": "App\\Http\\Controllers\\PanelPaymentCorrectionsController@index",
+    "controller_page_candidates": [
+      "PanelPaymentCorrections/Index"
+    ]
+  },
+  {
+    "uri": "/panel-price-changes",
+    "action": "App\\Http\\Controllers\\PanelPriceChangesController@index",
+    "controller_page_candidates": [
+      "PanelPriceChanges/Index"
+    ]
+  },
+  {
+    "uri": "/panel-remittances",
+    "action": "App\\Http\\Controllers\\PanelRemittancesController@index",
+    "controller_page_candidates": [
+      "PanelRemittances/Index"
+    ]
+  },
+  {
+    "uri": "/panel-responsibility",
+    "action": "App\\Http\\Controllers\\BillingWorkController@panel",
+    "controller_page_candidates": [
+      "FinancialWork/Index"
+    ]
+  },
+  {
+    "uri": "/patient-contact/{context}/{key}/whatsapp",
+    "action": "App\\Http\\Controllers\\PatientWhatsAppController",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/patient-merges",
+    "action": "App\\Http\\Controllers\\PatientMergeController@index",
+    "controller_page_candidates": [
+      "Patient/MergeRequests"
+    ]
+  },
+  {
+    "uri": "/patients",
+    "action": "App\\Http\\Controllers\\PatientController@index",
+    "controller_page_candidates": [
+      "Patient/Create",
+      "Patient/Edit",
+      "Patient/Index",
+      "Patient/Show"
+    ]
+  },
+  {
+    "uri": "/patients/create",
+    "action": "App\\Http\\Controllers\\PatientController@create",
+    "controller_page_candidates": [
+      "Patient/Create",
+      "Patient/Edit",
+      "Patient/Index",
+      "Patient/Show"
+    ]
+  },
+  {
+    "uri": "/patients/{patient}",
+    "action": "App\\Http\\Controllers\\PatientController@show",
+    "controller_page_candidates": [
+      "Patient/Create",
+      "Patient/Edit",
+      "Patient/Index",
+      "Patient/Show"
+    ]
+  },
+  {
+    "uri": "/patients/{patient}/edit",
+    "action": "App\\Http\\Controllers\\PatientController@edit",
+    "controller_page_candidates": [
+      "Patient/Create",
+      "Patient/Edit",
+      "Patient/Index",
+      "Patient/Show"
+    ]
+  },
+  {
+    "uri": "/patients/{patient}/history",
+    "action": "App\\Http\\Controllers\\PatientController@history",
+    "controller_page_candidates": [
+      "Patient/Create",
+      "Patient/Edit",
+      "Patient/Index",
+      "Patient/Show"
+    ]
+  },
+  {
+    "uri": "/patients/{patient}/merge-compare",
+    "action": "App\\Http\\Controllers\\PatientMergeController@compare",
+    "controller_page_candidates": [
+      "Patient/MergeRequests"
+    ]
+  },
+  {
+    "uri": "/pay-later-collections",
+    "action": "App\\Http\\Controllers\\PayLaterCollectionController@index",
+    "controller_page_candidates": [
+      "Billing/PayLaterCollections"
+    ]
+  },
+  {
+    "uri": "/payment-methods",
+    "action": "App\\Http\\Controllers\\PaymentMethodController@index",
+    "controller_page_candidates": [
+      "PaymentMethods/Index"
+    ]
+  },
+  {
+    "uri": "/payment-reconciliations",
+    "action": "App\\Http\\Controllers\\PaymentReconciliationController@index",
+    "controller_page_candidates": [
+      "PaymentReconciliations/Index"
+    ]
+  },
+  {
+    "uri": "/pricing",
+    "action": "App\\Http\\Controllers\\PricingController@index",
+    "controller_page_candidates": [
+      "Pricing/Index",
+      "Pricing/PriceCheck",
+      "Pricing/PriceHistory"
+    ]
+  },
+  {
+    "uri": "/pricing/charges/{charge}/history",
+    "action": "App\\Http\\Controllers\\PricingController@history",
+    "controller_page_candidates": [
+      "Pricing/Index",
+      "Pricing/PriceCheck",
+      "Pricing/PriceHistory"
+    ]
+  },
+  {
+    "uri": "/pricing/price-check",
+    "action": "App\\Http\\Controllers\\PricingController@priceCheck",
+    "controller_page_candidates": [
+      "Pricing/Index",
+      "Pricing/PriceCheck",
+      "Pricing/PriceHistory"
+    ]
+  },
+  {
+    "uri": "/public-checkin-links",
+    "action": "App\\Http\\Controllers\\PublicCheckInLinkController@index",
+    "controller_page_candidates": [
+      "PublicCheckInLinks/Index"
+    ]
+  },
+  {
+    "uri": "/purchase",
+    "action": "App\\Http\\Controllers\\ClinicPlaceholderController",
+    "controller_page_candidates": [
+      "Clinic/Placeholder"
+    ]
+  },
+  {
+    "uri": "/queue",
+    "action": "App\\Http\\Controllers\\QueueController@index",
+    "controller_page_candidates": [
+      "Queue/Index"
+    ]
+  },
+  {
+    "uri": "/queue-display",
+    "action": "App\\Http\\Controllers\\QueueDisplayController@screen",
+    "controller_page_candidates": [
+      "QueueDisplay/Screen"
+    ]
+  },
+  {
+    "uri": "/queue-display-settings",
+    "action": "App\\Http\\Controllers\\QueueDisplaySettingsController@index",
+    "controller_page_candidates": [
+      "QueueDisplay/Settings"
+    ]
+  },
+  {
+    "uri": "/queue-display/branches/{branch}/posters/{poster}",
+    "action": "App\\Http\\Controllers\\QueueDisplayController@poster",
+    "controller_page_candidates": [
+      "QueueDisplay/Screen"
+    ]
+  },
+  {
+    "uri": "/queue-display/feed",
+    "action": "App\\Http\\Controllers\\QueueDisplayController@feed",
+    "controller_page_candidates": [
+      "QueueDisplay/Screen"
+    ]
+  },
+  {
+    "uri": "/queue/call-next",
+    "action": "App\\Http\\Controllers\\QueueController@callNextBlock",
+    "controller_page_candidates": [
+      "Queue/Index"
+    ]
+  },
+  {
+    "uri": "/queue/readiness-updates",
+    "action": "App\\Http\\Controllers\\QueueReadinessController@updates",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/queue/red-zone-alerts",
+    "action": "App\\Http\\Controllers\\QueueController@redZoneAlerts",
+    "controller_page_candidates": [
+      "Queue/Index"
+    ]
+  },
+  {
+    "uri": "/queue/treatment-updates",
+    "action": "App\\Http\\Controllers\\TreatmentProgressController@updates",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/queue/waiting-counts",
+    "action": "App\\Http\\Controllers\\QueueController@waitingCounts",
+    "controller_page_candidates": [
+      "Queue/Index"
+    ]
+  },
+  {
+    "uri": "/registration",
+    "action": "App\\Http\\Controllers\\RegistrationController@index",
+    "controller_page_candidates": [
+      "Registration/Create",
+      "Registration/Index"
+    ]
+  },
+  {
+    "uri": "/registration-review",
+    "action": "App\\Http\\Controllers\\PublicIntakeReviewController@index",
+    "controller_page_candidates": [
+      "RegistrationReview/Show"
+    ]
+  },
+  {
+    "uri": "/registration-review/{publicIntake}",
+    "action": "App\\Http\\Controllers\\PublicIntakeReviewController@show",
+    "controller_page_candidates": [
+      "RegistrationReview/Show"
+    ]
+  },
+  {
+    "uri": "/registration-review/{publicIntake}/guardian-contact",
+    "action": "App\\Http\\Controllers\\PublicIntakeReviewController@guardianContact",
+    "controller_page_candidates": [
+      "RegistrationReview/Show"
+    ]
+  },
+  {
+    "uri": "/registration-settings",
+    "action": "App\\Http\\Controllers\\RegistrationSettingsController@index",
+    "controller_page_candidates": [
+      "RegistrationSettings/Index"
+    ]
+  },
+  {
+    "uri": "/registration/create",
+    "action": "App\\Http\\Controllers\\RegistrationController@create",
+    "controller_page_candidates": [
+      "Registration/Create",
+      "Registration/Index"
+    ]
+  },
+  {
+    "uri": "/registration/recommended-doctor",
+    "action": "App\\Http\\Controllers\\RegistrationController@recommendedDoctor",
+    "controller_page_candidates": [
+      "Registration/Create",
+      "Registration/Index"
+    ]
+  },
+  {
+    "uri": "/reports/billing-detail",
+    "action": "App\\Http\\Controllers\\PatientBillingReportController@index",
+    "controller_page_candidates": [
+      "Reports/BillingDetail"
+    ]
+  },
+  {
+    "uri": "/reports/daily-summary",
+    "action": "App\\Http\\Controllers\\BranchReportController@index",
+    "controller_page_candidates": [
+      "Reports/BranchReport"
+    ]
+  },
+  {
+    "uri": "/reports/panel-summary",
+    "action": "App\\Http\\Controllers\\BranchReportController@index",
+    "controller_page_candidates": [
+      "Reports/BranchReport"
+    ]
+  },
+  {
+    "uri": "/reports/stock-movement",
+    "action": "App\\Http\\Controllers\\BranchReportController@index",
+    "controller_page_candidates": [
+      "Reports/BranchReport"
+    ]
+  },
+  {
+    "uri": "/reports/transactions",
+    "action": "App\\Http\\Controllers\\BranchReportController@index",
+    "controller_page_candidates": [
+      "Reports/BranchReport"
+    ]
+  },
+  {
+    "uri": "/reset-password/{token}",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\NewPasswordController@create",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/reviews",
+    "action": "App\\Http\\Controllers\\ClinicPlaceholderController",
+    "controller_page_candidates": [
+      "Clinic/Placeholder"
+    ]
+  },
+  {
+    "uri": "/sales-targets",
+    "action": "App\\Http\\Controllers\\SalesTargetController@index",
+    "controller_page_candidates": [
+      "Billing/SalesTargets"
+    ]
+  },
+  {
+    "uri": "/settings/appearance",
+    "action": "Inertia\\Controller",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/settings/profile",
+    "action": "App\\Http\\Controllers\\Settings\\ProfileController@edit",
+    "controller_page_candidates": [
+      "settings/Profile"
+    ]
+  },
+  {
+    "uri": "/settings/security",
+    "action": "App\\Http\\Controllers\\Settings\\SecurityController@edit",
+    "controller_page_candidates": [
+      "settings/Security"
+    ]
+  },
+  {
+    "uri": "/spaces",
+    "action": "App\\Http\\Controllers\\DepartmentSpaceController@index",
+    "controller_page_candidates": [
+      "Spaces/Show"
+    ]
+  },
+  {
+    "uri": "/spaces/{space}",
+    "action": "App\\Http\\Controllers\\DepartmentSpaceController@show",
+    "controller_page_candidates": [
+      "Spaces/Show"
+    ]
+  },
+  {
+    "uri": "/staff",
+    "action": "App\\Http\\Controllers\\StaffController@index",
+    "controller_page_candidates": [
+      "Staff/Create",
+      "Staff/Edit",
+      "Staff/Index",
+      "Staff/Show"
+    ]
+  },
+  {
+    "uri": "/staff/create",
+    "action": "App\\Http\\Controllers\\StaffController@create",
+    "controller_page_candidates": [
+      "Staff/Create",
+      "Staff/Edit",
+      "Staff/Index",
+      "Staff/Show"
+    ]
+  },
+  {
+    "uri": "/staff/{staff}",
+    "action": "App\\Http\\Controllers\\StaffController@show",
+    "controller_page_candidates": [
+      "Staff/Create",
+      "Staff/Edit",
+      "Staff/Index",
+      "Staff/Show"
+    ]
+  },
+  {
+    "uri": "/staff/{staff}/edit",
+    "action": "App\\Http\\Controllers\\StaffController@edit",
+    "controller_page_candidates": [
+      "Staff/Create",
+      "Staff/Edit",
+      "Staff/Index",
+      "Staff/Show"
+    ]
+  },
+  {
+    "uri": "/storage/{path}",
+    "action": "Closure",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/triage-guideline",
+    "action": "App\\Http\\Controllers\\TriageGuidelineController@index",
+    "controller_page_candidates": [
+      "TriageGuideline/Index"
+    ]
+  },
+  {
+    "uri": "/up",
+    "action": "Closure",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/user/confirm-password",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\ConfirmablePasswordController@show",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/user/confirmed-password-status",
+    "action": "Laravel\\Fortify\\Http\\Controllers\\ConfirmedPasswordStatusController@show",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visit-reasons",
+    "action": "App\\Http\\Controllers\\VisitReasonController@index",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visits/{historicalVisit}/encounter/history",
+    "action": "App\\Http\\Controllers\\ClinicalEncounterController@history",
+    "controller_page_candidates": [
+      "Clinical/HistoryShow",
+      "Clinical/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{historicalVisit}/encounter/review",
+    "action": "App\\Http\\Controllers\\ConsultationReviewController@show",
+    "controller_page_candidates": [
+      "Clinical/Review"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}",
+    "action": "App\\Http\\Controllers\\VisitController@show",
+    "controller_page_candidates": [
+      "Registration/Edit",
+      "Registration/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/attendance",
+    "action": "App\\Http\\Controllers\\AttendanceController@index",
+    "controller_page_candidates": [
+      "Attendance/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/attendance/source",
+    "action": "App\\Http\\Controllers\\AttendanceController@source",
+    "controller_page_candidates": [
+      "Attendance/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/attendance/{document}",
+    "action": "App\\Http\\Controllers\\AttendanceController@show",
+    "controller_page_candidates": [
+      "Attendance/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing",
+    "action": "App\\Http\\Controllers\\BillingController@show",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing/activity",
+    "action": "App\\Http\\Controllers\\InvoiceActivityController@visit",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visits/{visit}/billing/issued/prints/{print}",
+    "action": "App\\Http\\Controllers\\BillingController@showIssued",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing/outstanding/{group}",
+    "action": "App\\Http\\Controllers\\BillingController@outstanding",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing/payments",
+    "action": "App\\Http\\Controllers\\BillingController@payments",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing/{invoice}/activity",
+    "action": "App\\Http\\Controllers\\InvoiceActivityController@billing",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visits/{visit}/billing/{invoice}/bill-to",
+    "action": "App\\Http\\Controllers\\InvoiceBillToController@index",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visits/{visit}/billing/{invoice}/letterhead-logo/{asset}",
+    "action": "App\\Http\\Controllers\\BillingController@letterheadLogo",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing/{invoice}/notes",
+    "action": "App\\Http\\Controllers\\InvoiceNoteController@index",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visits/{visit}/billing/{invoice}/print",
+    "action": "App\\Http\\Controllers\\BillingController@printInvoice",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/billing/{invoice}/receipts/{payment}/print",
+    "action": "App\\Http\\Controllers\\BillingController@printReceipt",
+    "controller_page_candidates": [
+      "Billing/Payments",
+      "Billing/Print",
+      "Billing/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/edit",
+    "action": "App\\Http\\Controllers\\VisitController@edit",
+    "controller_page_candidates": [
+      "Registration/Edit",
+      "Registration/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/encounter",
+    "action": "App\\Http\\Controllers\\ClinicalEncounterController@show",
+    "controller_page_candidates": [
+      "Clinical/HistoryShow",
+      "Clinical/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/encounter/diagnosis-presets",
+    "action": "App\\Http\\Controllers\\ClinicalEncounterController@diagnosisPresets",
+    "controller_page_candidates": [
+      "Clinical/HistoryShow",
+      "Clinical/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/history",
+    "action": "App\\Http\\Controllers\\VisitHistoryController",
+    "controller_page_candidates": [
+      "Billing/Invoice",
+      "Visits/History"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/invoice",
+    "action": "App\\Http\\Controllers\\VisitHistoryController@invoice",
+    "controller_page_candidates": [
+      "Billing/Invoice",
+      "Visits/History"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/invoice/activity",
+    "action": "App\\Http\\Controllers\\InvoiceActivityController@completed",
+    "controller_page_candidates": []
+  },
+  {
+    "uri": "/visits/{visit}/medical-certificates",
+    "action": "App\\Http\\Controllers\\MedicalCertificateController@index",
+    "controller_page_candidates": [
+      "MedicalCertificates/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/medical-certificates/{document}",
+    "action": "App\\Http\\Controllers\\MedicalCertificateController@show",
+    "controller_page_candidates": [
+      "MedicalCertificates/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/referrals",
+    "action": "App\\Http\\Controllers\\ReferralController@index",
+    "controller_page_candidates": [
+      "Referrals/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/referrals/source",
+    "action": "App\\Http\\Controllers\\ReferralController@source",
+    "controller_page_candidates": [
+      "Referrals/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/referrals/{document}",
+    "action": "App\\Http\\Controllers\\ReferralController@show",
+    "controller_page_candidates": [
+      "Referrals/Index"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/triage",
+    "action": "App\\Http\\Controllers\\TriageController@show",
+    "controller_page_candidates": [
+      "Triage/Show"
+    ]
+  },
+  {
+    "uri": "/visits/{visit}/triage/view",
+    "action": "App\\Http\\Controllers\\TriageViewController@show",
+    "controller_page_candidates": [
+      "Triage/View"
+    ]
+  },
+  {
+    "uri": "/website/activities",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/activities/create",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/activities/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/branch-profiles",
+    "action": "App\\Http\\Controllers\\WebsiteDraftController@profiles",
+    "controller_page_candidates": [
+      "Website/Media",
+      "Website/Profiles"
+    ]
+  },
+  {
+    "uri": "/website/careers",
+    "action": "App\\Http\\Controllers\\WebsitePeopleController@index",
+    "controller_page_candidates": [
+      "Website/People"
+    ]
+  },
+  {
+    "uri": "/website/careers/create",
+    "action": "App\\Http\\Controllers\\WebsitePeopleController@index",
+    "controller_page_candidates": [
+      "Website/People"
+    ]
+  },
+  {
+    "uri": "/website/careers/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsitePeopleController@index",
+    "controller_page_candidates": [
+      "Website/People"
+    ]
+  },
+  {
+    "uri": "/website/doctor-profiles",
+    "action": "App\\Http\\Controllers\\WebsitePeopleController@index",
+    "controller_page_candidates": [
+      "Website/People"
+    ]
+  },
+  {
+    "uri": "/website/doctor-profiles/create",
+    "action": "App\\Http\\Controllers\\WebsitePeopleController@index",
+    "controller_page_candidates": [
+      "Website/People"
+    ]
+  },
+  {
+    "uri": "/website/doctor-profiles/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsitePeopleController@index",
+    "controller_page_candidates": [
+      "Website/People"
+    ]
+  },
+  {
+    "uri": "/website/faqs",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/faqs/create",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/faqs/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/little-shield",
+    "action": "App\\Http\\Controllers\\WebsiteLittleShieldController@index",
+    "controller_page_candidates": [
+      "Website/LittleShield"
+    ]
+  },
+  {
+    "uri": "/website/media",
+    "action": "App\\Http\\Controllers\\WebsiteDraftController@media",
+    "controller_page_candidates": [
+      "Website/Media",
+      "Website/Profiles"
+    ]
+  },
+  {
+    "uri": "/website/media/{asset}/image",
+    "action": "App\\Http\\Controllers\\WebsiteDraftController@image",
+    "controller_page_candidates": [
+      "Website/Media",
+      "Website/Profiles"
+    ]
+  },
+  {
+    "uri": "/website/promotions",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/promotions/create",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/promotions/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsiteEditorialController@index",
+    "controller_page_candidates": [
+      "Website/Editorial"
+    ]
+  },
+  {
+    "uri": "/website/releases",
+    "action": "App\\Http\\Controllers\\WebsiteReleaseController@index",
+    "controller_page_candidates": [
+      "Website/Releases"
+    ]
+  },
+  {
+    "uri": "/website/releases/output-plans",
+    "action": "App\\Http\\Controllers\\WebsiteOutputPlanController@index",
+    "controller_page_candidates": [
+      "Website/OutputPlans"
+    ]
+  },
+  {
+    "uri": "/website/releases/output-plans/{plan}",
+    "action": "App\\Http\\Controllers\\WebsiteOutputPlanController@index",
+    "controller_page_candidates": [
+      "Website/OutputPlans"
+    ]
+  },
+  {
+    "uri": "/website/releases/{release}",
+    "action": "App\\Http\\Controllers\\WebsiteReleaseController@index",
+    "controller_page_candidates": [
+      "Website/Releases"
+    ]
+  },
+  {
+    "uri": "/website/releases/{release}/media/{filename}",
+    "action": "App\\Http\\Controllers\\WebsiteReleaseController@media",
+    "controller_page_candidates": [
+      "Website/Releases"
+    ]
+  },
+  {
+    "uri": "/website/releases/{release}/output-plans",
+    "action": "App\\Http\\Controllers\\WebsiteOutputPlanController@index",
+    "controller_page_candidates": [
+      "Website/OutputPlans"
+    ]
+  },
+  {
+    "uri": "/website/service-categories",
+    "action": "App\\Http\\Controllers\\WebsiteServicesController@index",
+    "controller_page_candidates": [
+      "Website/Services"
+    ]
+  },
+  {
+    "uri": "/website/service-categories/create",
+    "action": "App\\Http\\Controllers\\WebsiteServicesController@index",
+    "controller_page_candidates": [
+      "Website/Services"
+    ]
+  },
+  {
+    "uri": "/website/service-categories/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsiteServicesController@index",
+    "controller_page_candidates": [
+      "Website/Services"
+    ]
+  },
+  {
+    "uri": "/website/services",
+    "action": "App\\Http\\Controllers\\WebsiteServicesController@index",
+    "controller_page_candidates": [
+      "Website/Services"
+    ]
+  },
+  {
+    "uri": "/website/services/create",
+    "action": "App\\Http\\Controllers\\WebsiteServicesController@index",
+    "controller_page_candidates": [
+      "Website/Services"
+    ]
+  },
+  {
+    "uri": "/website/services/{websiteItem}",
+    "action": "App\\Http\\Controllers\\WebsiteServicesController@index",
+    "controller_page_candidates": [
+      "Website/Services"
+    ]
+  },
+  {
+    "uri": "/workspace",
+    "action": "App\\Http\\Controllers\\WorkspaceController",
+    "controller_page_candidates": []
+  }
+]

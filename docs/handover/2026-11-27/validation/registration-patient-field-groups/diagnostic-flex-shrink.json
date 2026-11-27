@@ -1,0 +1,349 @@
+{
+  "proof": {
+    "dialogNameFocus": {
+      "id": "quick-patient-name",
+      "label": null,
+      "ancestors": [
+        {
+          "tag": "INPUT",
+          "classes": "h-9 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11",
+          "height": 44,
+          "top": 397,
+          "shrink": "1"
+        },
+        {
+          "tag": "LABEL",
+          "classes": "grid gap-1 md:col-span-2",
+          "height": 92,
+          "top": 373,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "grid gap-3 md:grid-cols-2",
+          "height": 530,
+          "top": 373,
+          "shrink": "1"
+        },
+        {
+          "tag": "SECTION",
+          "classes": "space-y-3 border-t border-border/60 pt-4",
+          "height": 579,
+          "top": 324,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "space-y-5 p-4",
+          "height": 1655,
+          "top": 308,
+          "shrink": "1"
+        },
+        {
+          "tag": "FIELDSET",
+          "classes": "contents",
+          "height": 0,
+          "top": 0,
+          "shrink": "1"
+        },
+        {
+          "tag": "SECTION",
+          "classes": "overflow-hidden rounded-lg border bg-card shadow-card",
+          "height": 1845,
+          "top": 119,
+          "shrink": "0"
+        },
+        {
+          "tag": "DIV",
+          "classes": "flex min-h-0 flex-col gap-4 overflow-y-auto p-1",
+          "height": 852,
+          "top": 115,
+          "shrink": "1"
+        }
+      ],
+      "focused": true,
+      "height": 44,
+      "top": 397,
+      "bottom": 441,
+      "visible": true,
+      "unobstructed": true
+    },
+    "dialogPhoneFocus": {
+      "id": "quick-phone",
+      "label": null,
+      "ancestors": [
+        {
+          "tag": "INPUT",
+          "classes": "h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1",
+          "height": 44,
+          "top": 519,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "flex flex-col gap-2 sm:flex-row",
+          "height": 96,
+          "top": 467,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "grid gap-2",
+          "height": 152,
+          "top": 439,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "grid gap-3 md:grid-cols-2",
+          "height": 750,
+          "top": 439,
+          "shrink": "1"
+        },
+        {
+          "tag": "SECTION",
+          "classes": "space-y-3 border-t border-border/60 pt-4 max-lg:[&_input]:min-h-11 max-lg:[&_select]:min-h-11",
+          "height": 799,
+          "top": 390,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "space-y-5 p-4",
+          "height": 1631,
+          "top": -201,
+          "shrink": "1"
+        },
+        {
+          "tag": "FIELDSET",
+          "classes": "contents",
+          "height": 0,
+          "top": 0,
+          "shrink": "1"
+        },
+        {
+          "tag": "SECTION",
+          "classes": "overflow-hidden rounded-lg border bg-card shadow-card",
+          "height": 1821,
+          "top": -390,
+          "shrink": "0"
+        }
+      ],
+      "focused": true,
+      "height": 44,
+      "top": 519,
+      "bottom": 563,
+      "visible": true,
+      "unobstructed": true
+    },
+    "dialogIdentifierFocus": {
+      "id": "",
+      "label": "IC or Passport number",
+      "ancestors": [
+        {
+          "tag": "INPUT",
+          "classes": "h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0",
+          "height": 44,
+          "top": 393,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "flex flex-col gap-2 sm:flex-row sm:gap-0",
+          "height": 96,
+          "top": 341,
+          "shrink": "1"
+        },
+        {
+          "tag": "LABEL",
+          "classes": "grid gap-1",
+          "height": 144,
+          "top": 317,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "grid gap-3 md:grid-cols-2",
+          "height": 156,
+          "top": 317,
+          "shrink": "1"
+        },
+        {
+          "tag": "SECTION",
+          "classes": "space-y-3 border-t border-border/60 pt-4",
+          "height": 205,
+          "top": 268,
+          "shrink": "1"
+        },
+        {
+          "tag": "DIV",
+          "classes": "space-y-5 p-4",
+          "height": 1603,
+          "top": -1114,
+          "shrink": "1"
+        },
+        {
+          "tag": "FIELDSET",
+          "classes": "contents",
+          "height": 0,
+          "top": 0,
+          "shrink": "1"
+        },
+        {
+          "tag": "SECTION",
+          "classes": "overflow-hidden rounded-lg border bg-card shadow-card",
+          "height": 1793,
+          "top": -1303,
+          "shrink": "0"
+        }
+      ],
+      "focused": true,
+      "height": 44,
+      "top": 393,
+      "bottom": 437,
+      "visible": true,
+      "unobstructed": true
+    },
+    "uncertainGroupsLocked": true
+  },
+  "captures": [],
+  "errors": [],
+  "writes": [
+    {
+      "idempotency_key": "d1b33987-59cc-43c9-9357-f44c12017c03",
+      "expected_branch_id": 1,
+      "patient_number": "",
+      "quick_patient": {
+        "adult_confirmed": false,
+        "adult_confirmation_key": "ff76bf31-99a7-41ed-8097-836906125a8e",
+        "guardian": null,
+        "full_name": "Synthetic Grouping Draft",
+        "date_of_birth": "",
+        "nationality_code": "",
+        "email": "",
+        "address_line_1": "",
+        "address_line_2": "",
+        "city": "",
+        "state": "",
+        "postcode": "",
+        "country_code": "MY",
+        "sex": "unknown",
+        "mobile_phone": "0123456789",
+        "phone_country": "MY",
+        "duplicate_override": false,
+        "identifiers": [
+          {
+            "identifier_type": "passport",
+            "issuing_country_code": "MY",
+            "value": "SYNTHETIC-GROUP-01"
+          }
+        ]
+      },
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    }
+  ],
+  "geometry": [
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-phone",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-phone-country",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-email",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-address_line_1",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-country_code",
+      "height": 40
+    }
+  ],
+  "abortedBeforeServer": 1,
+  "qualification": "Actual client validation and focus. Unconfirmed state is one controlled POST abort before server; no successful creation or committed replay claimed."
+}

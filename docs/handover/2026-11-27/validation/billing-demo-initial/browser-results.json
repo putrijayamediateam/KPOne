@@ -1,0 +1,319 @@
+[
+  {
+    "name": "collect",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Return to Workspace",
+        "height": 32
+      },
+      {
+        "text": "Open billing",
+        "height": 36
+      },
+      {
+        "text": "Previous",
+        "height": 32
+      },
+      {
+        "text": "Next",
+        "height": 32
+      }
+    ]
+  },
+  {
+    "name": "collect",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Return to Workspace",
+        "height": 32
+      },
+      {
+        "text": "Open billing",
+        "height": 36
+      },
+      {
+        "text": "Previous",
+        "height": 32
+      },
+      {
+        "text": "Next",
+        "height": 32
+      }
+    ]
+  },
+  {
+    "name": "collection-details",
+    "width": 1440,
+    "text": "Bill details\nVisit\nKPV-00000001 · 26 Nov 2026\nApproved pay later\nRM 25.00\nPay later\nRM 25.00\nDue now\nRM 0.00",
+    "actionBox": {
+      "x": 1006.75,
+      "y": 536.8125,
+      "width": 104.25,
+      "height": 36
+    }
+  },
+  {
+    "name": "close",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 32
+      },
+      {
+        "text": "Month view",
+        "height": 32
+      },
+      {
+        "text": "",
+        "height": 36
+      },
+      {
+        "text": "Load day",
+        "height": 36
+      },
+      {
+        "text": "Record count",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 32
+      },
+      {
+        "text": "Month view",
+        "height": 32
+      },
+      {
+        "text": "",
+        "height": 36
+      },
+      {
+        "text": "Load day",
+        "height": 36
+      },
+      {
+        "text": "Record count",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "close-validation",
+    "width": 1440,
+    "body": "Record the cash count\n\nTake out the opening float first, then count only the day's takings. If more was refunded than taken, enter a minus amount (for example -20.00).\n\nCounted cash takings (RM)\n\nDifference: RM 15.00 short\n\nReason for the difference\nDo not enter patient names or identifiers.\n\nThe counted cash differs from the expected cash. Explain the difference.\n\nRecord count"
+  },
+  {
+    "name": "collect",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Return to Workspace",
+        "height": 44
+      },
+      {
+        "text": "Open billing",
+        "height": 44
+      },
+      {
+        "text": "Previous",
+        "height": 44
+      },
+      {
+        "text": "Next",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "collect",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Return to Workspace",
+        "height": 44
+      },
+      {
+        "text": "Open billing",
+        "height": 44
+      },
+      {
+        "text": "Previous",
+        "height": 44
+      },
+      {
+        "text": "Next",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Load day",
+        "height": 44
+      },
+      {
+        "text": "Record count",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Load day",
+        "height": 44
+      },
+      {
+        "text": "Record count",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "close-validation",
+    "width": 390,
+    "body": "Record the cash count\n\nTake out the opening float first, then count only the day's takings. If more was refunded than taken, enter a minus amount (for example -20.00).\n\nCounted cash takings (RM)\n\nDifference: RM 15.00 short\n\nReason for the difference\nDo not enter patient names or identifiers.\n\nThe counted cash differs from the expected cash. Explain the difference.\n\nRecord count"
+  }
+]

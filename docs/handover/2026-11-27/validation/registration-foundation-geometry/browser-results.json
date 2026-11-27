@@ -1,0 +1,290 @@
+{
+  "head": "ecadc1125c6b6603828cf6951a06e6d4e547e3b6",
+  "patchSha256": "7384c96dd81e71642074795fef6c3a5166089bb01ed8ee40beb9e4324e1b6046",
+  "captures": [
+    {
+      "view": "create-quick",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "view": "create-quick",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "view": "create-quick",
+      "width": 768,
+      "theme": "light"
+    },
+    {
+      "view": "create-quick",
+      "width": 768,
+      "theme": "dark"
+    },
+    {
+      "view": "create-quick",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "view": "create-quick",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "view": "edit-panel",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "view": "edit-panel",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "view": "edit-panel",
+      "width": 768,
+      "theme": "light"
+    },
+    {
+      "view": "edit-panel",
+      "width": 768,
+      "theme": "dark"
+    },
+    {
+      "view": "edit-panel",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "view": "edit-panel",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "measurements": [
+    {
+      "label": "Identification type",
+      "viewport": 390,
+      "theme": "light",
+      "width": 324,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Consultation",
+      "viewport": 390,
+      "theme": "light",
+      "width": 156,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "OTC",
+      "viewport": 390,
+      "theme": "light",
+      "width": 156,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Identification type",
+      "viewport": 390,
+      "theme": "dark",
+      "width": 324,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Consultation",
+      "viewport": 390,
+      "theme": "dark",
+      "width": 156,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "OTC",
+      "viewport": 390,
+      "theme": "dark",
+      "width": 156,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Identification type",
+      "viewport": 768,
+      "theme": "light",
+      "width": 160,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Consultation",
+      "viewport": 768,
+      "theme": "light",
+      "width": 138,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "OTC",
+      "viewport": 768,
+      "theme": "light",
+      "width": 138,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Identification type",
+      "viewport": 768,
+      "theme": "dark",
+      "width": 160,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Consultation",
+      "viewport": 768,
+      "theme": "dark",
+      "width": 138,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "OTC",
+      "viewport": 768,
+      "theme": "dark",
+      "width": 138,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Identification type",
+      "viewport": 1440,
+      "theme": "light",
+      "width": 160,
+      "height": 36,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Consultation",
+      "viewport": 1440,
+      "theme": "light",
+      "width": 138,
+      "height": 40,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "OTC",
+      "viewport": 1440,
+      "theme": "light",
+      "width": 138,
+      "height": 40,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Identification type",
+      "viewport": 1440,
+      "theme": "dark",
+      "width": 160,
+      "height": 36,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Consultation",
+      "viewport": 1440,
+      "theme": "dark",
+      "width": 138,
+      "height": 40,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "OTC",
+      "viewport": 1440,
+      "theme": "dark",
+      "width": 138,
+      "height": 40,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Member/staff reference",
+      "viewport": 390,
+      "theme": "light",
+      "width": 350.546875,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Member/staff reference",
+      "viewport": 390,
+      "theme": "dark",
+      "width": 342.375,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Member/staff reference",
+      "viewport": 768,
+      "theme": "light",
+      "width": 335,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Member/staff reference",
+      "viewport": 768,
+      "theme": "dark",
+      "width": 335,
+      "height": 44,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Member/staff reference",
+      "viewport": 1440,
+      "theme": "light",
+      "width": 399,
+      "height": 40,
+      "focused": true,
+      "unobstructed": true
+    },
+    {
+      "label": "Member/staff reference",
+      "viewport": 1440,
+      "theme": "dark",
+      "width": 399,
+      "height": 40,
+      "focused": true,
+      "unobstructed": true
+    }
+  ],
+  "errors": [],
+  "writes": [],
+  "visitTypeLocalToggle": true,
+  "editActor": "demo.director@kpone.test",
+  "authorizedWaitingVisit": true,
+  "authorizedBranchSwitch": true
+}

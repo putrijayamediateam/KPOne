@@ -1,0 +1,19 @@
+{
+  "base": "721f682772279902ef2d4a3a1b40fddb8e93aa46",
+  "scope": "Bounded workload endpoint/client and current-record policy batching; no tab UI",
+  "patchSha256": "438cb661821365752aac518dc85bdbc28914cabc2584496e2da140da6b3ee35a",
+  "files": {
+    "app/Domain/Clinical/TreatmentRoom/TreatmentRoomPolicy.php": "183c301103c381c56df6bf03a2a5eeafaa401e72de28f44f6bd793f2e52ed77c",
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "1fa962854c079a0d2346ba11614d2d0f8eb817d8669a03c98e7f215666d5c422",
+    "app/Domain/Queue/Services/QueueWorkloadQuery.php": "8f94ccd906fc30c066973f9d3a158293ef7087d2e72cfb7546965728d02a39a7",
+    "app/Domain/Queue/Treatment/TreatmentStepProjection.php": "ebfbd314317547b566662e96e2d2e58c6c2a275f1b73a718ef19f397c313efed",
+    "app/Http/Controllers/QueueController.php": "9f437696e249cdbff9f9c63113fd7d9854370e9aec304a68e3c0544cc9d0c24a",
+    "resources/js/composables/useQueueWorkload.ts": "72fa8d508b2266745ebf40db456bfc4fad050efe7caf88d8d4bc831b7442048a",
+    "routes/web.php": "31144579d595d5dea1f4a350587f7629302e572c27450ad397e78b0b788cc495",
+    "tests/Feature/Clinical/TreatmentRoomBatchPolicyTest.php": "d1e346c2c8cb6c4b90a278713943ce38f8beaa8b01c614934045903093cad005",
+    "tests/Feature/Queue/QueueWorkloadOutcomeBatchTest.php": "22f0d1888ab6861fb73a71e2a96843735105ee29f9bb73492fa27e2eba7ddf2b",
+    "tests/Feature/Queue/QueueWorkloadTest.php": "5dfd909e8b31943818a34aa209e08fef4ded66cdabe04aa14a35a811ad728e2e",
+    "tests/Feature/Queue/QueueWorkloadValidationTest.php": "3cd76395cd45220fd146872a6ec7b49311585f802084d3e21ac611d8de2bfab8",
+    "tests/Frontend/queue-workload.test.mjs": "2124c297a9785866eaf8c3159f566e605a0ca35708da4be6c80cd70087157a8b"
+  }
+}

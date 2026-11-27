@@ -1,0 +1,12 @@
+{
+  "base": "bd9a42331d72cf1d2b54ad72b5671e8913d0a483",
+  "files": {
+    "resources/js/pages/Queue/Index.vue": "15c9bbe98bd80bedf160ed4d16b89387bd11533cd905c83282adbf47a8cd8df6",
+    "resources/js/pages/Registration/Index.vue": "5f3e00c63ed77b141b0d0e4f71c508f13ce81b77852fd08551316f41e84913dc"
+  },
+  "scriptParity": {
+    "resources/js/pages/Queue/Index.vue": true,
+    "resources/js/pages/Registration/Index.vue": true
+  },
+  "patchSha256": "4f80418aaad5c5ae87d112fd4773cfc9d8ced6f1f68ff68a0a702b130fb1d672"
+}

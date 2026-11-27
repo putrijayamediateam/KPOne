@@ -1,0 +1,453 @@
+[
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "no-panel",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "no-panel",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "no-panel",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "no-panel",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "empty",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "empty",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "ready-reversed-history",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "ready-reversed-history",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "ready-reversed-history",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "ready-reversed-history",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "over-split",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "over-split",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "over-split",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "over-split",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "targets": {
+      "panel": 44,
+      "amount": 44,
+      "reference": 44,
+      "date": 44,
+      "fill": 44,
+      "clear": 44,
+      "record": 44,
+      "part": 44,
+      "correction": 44,
+      "statementHeading": 44,
+      "mapping": 44,
+      "useStatement": 44,
+      "fileInput": 44
+    },
+    "actualCsvUpload": true,
+    "actualDialogCancelKeepsDraft": true,
+    "paymentNotPosted": true
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "no-panel",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "no-panel",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "no-panel",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "no-panel",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "empty",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "empty",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "ready-reversed-history",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "ready-reversed-history",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "ready-reversed-history",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "ready-reversed-history",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "over-split",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "over-split",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "over-split",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "over-split",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "targets": {
+      "panel": 44,
+      "amount": 44,
+      "reference": 44,
+      "date": 44,
+      "fill": 44,
+      "clear": 44,
+      "record": 44,
+      "part": 44,
+      "correction": 44,
+      "statementHeading": 44,
+      "mapping": 44,
+      "useStatement": 44,
+      "fileInput": 44
+    },
+    "actualCsvUpload": true,
+    "actualDialogCancelKeepsDraft": true,
+    "paymentNotPosted": true
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "no-panel",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "no-panel",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "no-panel",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "no-panel",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "empty",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "empty",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "empty",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "ready-reversed-history",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "ready-reversed-history",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "ready-reversed-history",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "ready-reversed-history",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "over-split",
+    "warningTokenProbe": {
+      "fg": "rgb(138, 90, 0)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 5.9269788497474005
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "over-split",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "over-split",
+    "warningTokenProbe": {
+      "fg": "rgb(255, 180, 84)",
+      "bg": "rgb(20, 20, 22)",
+      "ratio": 10.433329286987615
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "over-split",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "targets": {
+      "panel": 36,
+      "amount": 36,
+      "reference": 36,
+      "date": 36,
+      "fill": 36,
+      "clear": 36,
+      "record": 36,
+      "part": 36,
+      "correction": 36,
+      "statementHeading": 36,
+      "mapping": 36,
+      "useStatement": 36,
+      "fileInput": 36
+    },
+    "actualCsvUpload": true,
+    "actualDialogCancelKeepsDraft": true,
+    "paymentNotPosted": true
+  },
+  {
+    "actor": "Director",
+    "routeStatus": 403
+  }
+]

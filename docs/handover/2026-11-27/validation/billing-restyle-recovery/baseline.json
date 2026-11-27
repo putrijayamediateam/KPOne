@@ -1,0 +1,8 @@
+{
+  "base": "b71f71486496e1b1dc7b567e2a493ac528272452",
+  "files": {
+    "resources/js/components/billing/BillingWorkspace.vue": "895001d01d6fc958cc8ebb0bf8873f965adbfb7d94264a9bd3320e605f5bf6cd",
+    "resources/js/pages/Billing/CashClosings.vue": "9a732a586d0f0fa74cf547d78cba912f9a95ddf49f1fb1b1ee1a6405f2e27499",
+    "tests/Frontend/dd-29-billing-touch-targets.test.mjs": "f448527a9a627bb5a2b4391971e3dfc2ccd4a9943b811176d24aefcd15880545"
+  }
+}

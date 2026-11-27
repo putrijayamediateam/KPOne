@@ -1,0 +1,302 @@
+[
+  {
+    "actor": "approver",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Approve selected (0)",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "actor": "approver",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Approve selected (5)",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      },
+      {
+        "text": "Approve",
+        "height": 36
+      },
+      {
+        "text": "Reject",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "actor": "approver",
+    "width": 1440,
+    "rejectDraftRetained": true,
+    "cancelFocusRestored": true
+  },
+  {
+    "actor": "approver",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Approve selected (0)",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "approver",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Approve selected (5)",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      },
+      {
+        "text": "Approve",
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "approver",
+    "width": 390,
+    "rejectDraftRetained": true,
+    "cancelFocusRestored": true
+  },
+  {
+    "actor": "proposer",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Propose price change",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "actor": "proposer",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Propose price change",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "actor": "proposer",
+    "width": 1440,
+    "proposeDraftRetained": true,
+    "noBulkApproval": true
+  },
+  {
+    "actor": "proposer",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Propose price change",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "proposer",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "asideText": "Organisation proposals\nWaiting for approval\n5\nOldest waiting proposals loaded\n5\nDecided proposals\n0\n\nDecision page 1 of 1 contains 0 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals",
+    "actionTargets": [
+      {
+        "text": "Propose price change",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "actor": "proposer",
+    "width": 390,
+    "proposeDraftRetained": true,
+    "noBulkApproval": true
+  },
+  {
+    "partialSkip": "1 could not be approved. Review the refreshed lists. This proposal has changed. Reload and review it again.",
+    "remainingCheckboxes": 0,
+    "aside": "Organisation proposals\nWaiting for approval\n0\nOldest waiting proposals loaded\n0\nDecided proposals\n5\n\nDecision page 1 of 1 contains 5 proposals.\n\nTimes are shown in Asia/Kuala_Lumpur. These proposals apply across the organisation.\n\nReviewing a proposal\n\nCheck the Panel, charge, new price, agreement reference and start time before deciding.\n\nSomeone other than the proposer must approve. A proposal can become stale if its price changes while it is waiting.\n\nAlready built bills keep their original price. Self-pay prices are managed separately.\n\nSelected approvals"
+  },
+  {
+    "decidedRows": 5,
+    "paginationTargets": [
+      44,
+      44
+    ]
+  }
+]

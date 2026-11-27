@@ -1,0 +1,38 @@
+{
+  "captures": [
+    {
+      "phase": "done",
+      "role": "doctor",
+      "width": 390,
+      "theme": "light",
+      "medicineCount": 0,
+      "labelAction": "view"
+    },
+    {
+      "phase": "done",
+      "role": "doctor",
+      "width": 390,
+      "theme": "dark",
+      "medicineCount": 0,
+      "labelAction": "view"
+    },
+    {
+      "phase": "done",
+      "role": "doctor",
+      "width": 1440,
+      "theme": "light",
+      "medicineCount": 0,
+      "labelAction": "view"
+    },
+    {
+      "phase": "done",
+      "role": "doctor",
+      "width": 1440,
+      "theme": "dark",
+      "medicineCount": 0,
+      "labelAction": "view"
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

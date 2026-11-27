@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "MA has no consultation recall action",
+    "MA has no doctor Call In action",
+    "ma-held-treatment-dialog 1440/light: no horizontal overflow",
+    "ma-held-treatment-dialog 1440/dark: no horizontal overflow",
+    "ma-held-treatment-dialog 390/light: no horizontal overflow",
+    "ma-held-treatment-dialog 390/dark: no horizontal overflow",
+    "MA treatment announcement request succeeds",
+    "Held visit remains on the Queue after announcement",
+    "Supervisor sees held treatment announcement action",
+    "Held supervisor row still hides consultation recall",
+    "Doctor without narrow permission retains held treatment-call refusal",
+    "No browser JavaScript errors"
+  ],
+  "screenshots": [
+    "/workspace/kpone-validation/treatment-call/ma-held-treatment-dialog-1440-light.png",
+    "/workspace/kpone-validation/treatment-call/ma-held-treatment-dialog-1440-dark.png",
+    "/workspace/kpone-validation/treatment-call/ma-held-treatment-dialog-390-light.png",
+    "/workspace/kpone-validation/treatment-call/ma-held-treatment-dialog-390-dark.png"
+  ],
+  "errors": [],
+  "result": "passed"
+}

@@ -1,0 +1,186 @@
+[
+  {
+    "role": "paging_doctor",
+    "task": "waiting",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      " Reason ",
+      "Waiting",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 856,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "paging_doctor",
+    "task": "waiting",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      " Reason ",
+      "Waiting",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "paging_doctor",
+    "task": "seeing",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      " Reason ",
+      "Since",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 734,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "paging_doctor",
+    "task": "seeing",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      " Reason ",
+      "Since",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "ca_supervisor",
+    "task": "waiting",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      " Doctor ",
+      "Waiting / since",
+      "Status",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 872.75,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "ca_supervisor",
+    "task": "waiting",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      " Doctor ",
+      "Waiting / since",
+      "Status",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "ca_supervisor",
+    "task": "seeing",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      " Doctor ",
+      "Waiting / since",
+      "Status",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 881.75,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "ca_supervisor",
+    "task": "seeing",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      " Doctor ",
+      "Waiting / since",
+      "Status",
+      "Actions"
+    ],
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  }
+]

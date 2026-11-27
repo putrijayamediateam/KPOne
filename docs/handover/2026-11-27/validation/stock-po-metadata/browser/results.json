@@ -1,0 +1,116 @@
+{
+  "number": "PO-202611-70KWYGLF",
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 36,
+          "width": 269
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 36,
+          "width": 269
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 36,
+          "width": 269
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 36,
+          "width": 269
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 347
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 347
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 347
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 347
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 324
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 324
+        }
+      ]
+    }
+  ],
+  "staleRefused": true,
+  "stalePreserved": "SYN-PO-VERIFIED",
+  "submittedRead": "Expected delivery date\n3 Dec 2026\nSupplier reference\nSYN-PO-VERIFIED",
+  "selfApprove": 0,
+  "printHref": "/inventory/purchase-orders/162a708c-0546-4b7e-b0ff-67ac4872d92b/print",
+  "printContainsDate": true,
+  "printContainsReference": true,
+  "printNoPrice": true,
+  "errors": []
+}

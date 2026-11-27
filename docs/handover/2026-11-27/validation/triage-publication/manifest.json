@@ -1,0 +1,11 @@
+{
+  "base": "67fcc9105ad6da7adec8383265129fd0ba2a2aba",
+  "files": {
+    "resources/js/pages/Triage/Show.vue": "eecaea71f4a6834db484b44abcfce1bbfafa781cf01885cae150b2d7a246c43f"
+  },
+  "scriptParity": {
+    "resources/js/pages/Triage/Show.vue": false
+  },
+  "patchSha256": "ebcf185f87c43c64a077ea00d0cf3d8972b021d828a3580b086b534fdffa26bb",
+  "clinicalScriptParityExcludingPageFrameImport": true
+}

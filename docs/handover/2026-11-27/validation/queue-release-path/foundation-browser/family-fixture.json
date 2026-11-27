@@ -1,0 +1,22 @@
+{
+    "result": {
+        "links": [
+            {
+                "id": 1,
+                "lockVersion": 1,
+                "active": true,
+                "relationshipCode": "sibling",
+                "relationshipLabel": "Sibling of",
+                "suppressed": false,
+                "patientNumber": "KP-00000018",
+                "name": "Synthetic Shared UI Red Patient Two",
+                "url": "http:\/\/127.0.0.1:3155\/patients\/KP-00000018",
+                "canUpdate": true
+            }
+        ],
+        "canAdd": true
+    },
+    "patientNumber": "KP-00000016",
+    "otherPatientNumber": "KP-00000018",
+    "currentVisit": "KPV-00000006"
+}

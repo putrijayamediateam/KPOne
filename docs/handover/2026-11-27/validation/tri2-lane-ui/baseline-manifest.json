@@ -1,0 +1,46 @@
+[
+  {
+    "path": "resources/js/pages/Queue/Index.vue",
+    "sha256": "917e0bad4834e64594fa56009986bb3c09a9fb9b00e2d8833d324e91177cd0c0"
+  },
+  {
+    "path": "resources/js/pages/Registration/Index.vue",
+    "sha256": "482d5f934f15f402f4fcc0a7db7ea8960fe2aedf604a607b0cc99d4bb730bf82"
+  },
+  {
+    "path": "resources/js/types/queue.ts",
+    "sha256": "45a6dd8f505883d2ce4ca01d7e49e9629e80e5e950036ee5e18fefa2dcfb0148"
+  },
+  {
+    "path": "resources/js/types/patientBoard.ts",
+    "sha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575"
+  },
+  {
+    "path": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "73886690003c0e9c52aae193dbcba7fbe9886f63cbe9f9fa75f651169dcae51c"
+  },
+  {
+    "path": "tests/Frontend/flow-fixes-1.test.mjs",
+    "sha256": "01098e87248e3a5b4de063b8cc4a69d80d838cbf9d07bbe75f02ffded721938b"
+  },
+  {
+    "path": "tests/Frontend/rb-01-registration-board-search.test.mjs",
+    "sha256": "16b93160f285f5781560dc23c47d03c31ed94f7693410427cee5043ae21957e7"
+  },
+  {
+    "path": "tests/Frontend/rb-02-registration-board-dates.test.mjs",
+    "sha256": "220ec09e6e3d529c43e06a80c5e6858837789c8357ce018d65a67aa69149bcc4"
+  },
+  {
+    "path": "tests/Frontend/reg-live-1.test.mjs",
+    "sha256": "53d3b2e36338def2b38a2cd9fa2047b60c95aa512694a4d3a2ae5b19807e765c"
+  },
+  {
+    "path": "tests/Frontend/treatment-call-authority.test.mjs",
+    "sha256": "9d8a7c23b1a6977104d24af7436f2b84b2cf0a7693c0600483d3b080f2f9450a"
+  },
+  {
+    "path": "tests/Frontend/classic-only-co4-kept.test.mjs",
+    "sha256": "8f75d8f373ac8835d8dbba877d552ae3c3f70d518ea08d6e43b25bb5ae22dc2a"
+  }
+]

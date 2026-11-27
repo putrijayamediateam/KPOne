@@ -1,0 +1,11 @@
+# Independent Inventory Returns helpful-information contract
+
+CLEAR for existing-prop-only optional help. Actual published-age waitingList normalizes age to All on Checked and outcome to All on Waiting; the shared base applies Controlled to both counts. Waiting count uses recorded_at local-calendar age only while Waiting is active; Checked count always uses checked_at within the branch-local current month, and selected outcome only while Checked is active. The inactive tab count therefore does not retain that tab's previous age/outcome selection. Use explicit dynamic labels or the proposed full explanation, never Today activity or unfiltered branch totals. Omit the subsection for absent counts; zero is valid when supplied. Counts are separate existing reads, not a newly guaranteed atomic snapshot.
+
+Source check confirms oldest-first waiting, descending check-time Checked, fresh supervisor/view/check and active-branch authority. Opening a case does not check a return. check() rejects the recorder as checker; controlled medicines reject Quarantine and permit Dispose or Refuse if recorded by mistake. Prefer exactly that qualified wording, not an unconditional claim every returned controlled medicine has already been disposed. Do not imply quarantine restores ordinary saleable stock or any refund/payment. Preserve mandatory operational rules outside optional help and existing case route authority.
+
+No new query, counter, mutation, permission or clinical rule required. Final source/render/browser validation remains separate; no heavy tests rerun for this plan review.
+
+## Final frozen pin
+
+Independently verified all 4 source hashes and exact patch 3e191644a4c3cf3e4225d179cab9a1ae57138c0fbaa934d167f6e20e4599b9e7. Final source counters match reviewed scopes: inactive age/outcome reset labels, explicit shared medicine filter, branch-local month and no absent-count zero substitution. Controlled medicine wording correctly permits Refuse for erroneous records and does not imply automatic disposal. Read exact two old-test whitespace-only adaptations; predicates/assertions remain intact. Builder19 frontend/type/build/static and20 read-only browser states are attributed, not rerun; visual closure separately Design-owned.

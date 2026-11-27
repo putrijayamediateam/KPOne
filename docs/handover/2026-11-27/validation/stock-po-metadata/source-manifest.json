@@ -1,0 +1,17 @@
+{
+  "patch_sha256": "3b1712c867d80aa60cdad04725ea0bce3df8244ce558780e18bea135e7bb957d",
+  "files": {
+    "app/Domain/Organisation/Inventory/Models/PurchaseOrder.php": "f5d4ef8c6b2ce011b4f43bb4294bbdde41b37405b1a129ac5698624a83136745",
+    "app/Domain/Organisation/Inventory/Services/InventoryOperationsDirectoryService.php": "7e3a5d8f631cc7cb641882a4c8d72bdc803aba878cd30f0615ec93b3a41bf8d6",
+    "app/Domain/Organisation/Inventory/Services/ProcurementService.php": "67b58322fef17f264a23d7aee625d1b8c077a5df616ec56efc5bb5036abc857b",
+    "app/Domain/Organisation/Inventory/Services/PurchaseOrderPrintService.php": "f28a416c4124ccced473ae61d58bd11d2b38190a915ad739f786382347f0b394",
+    "app/Http/Controllers/InventoryOperationsController.php": "a0ba220f0a72c71e1d351f9dcab3253d9beac52c0e0ba45da98bee33bebc3108",
+    "database/migrations/2026_11_26_120000_add_purchase_order_delivery_metadata.php": "76d874383747b49f34bc94e87a9ca90e63f57ae6899a4236a224e4adb0ac96c7",
+    "docs/teams/inventory/TEAM.md": "f361ace9b7c6b1d73d558ee6aa6f6a08dba7369f138047c85449781feaaad99d",
+    "resources/js/components/inventory/InventoryOperationsPanel.vue": "568048e58f18c0b1e4b3bbb4a5863f31b34ea61d1b03a48b396b22af69124f6d",
+    "resources/js/pages/Inventory/PurchaseOrderPrint.vue": "14c9a0e2a7f79e085b80c2be752f86de0ebbe940bbd984e6ad3abecd9ad3e66c",
+    "resources/js/types/inventory-operations.ts": "113dfa65030eb47ee908100d78a20b47cf860a2ff25db552c92d947ab1db9d01",
+    "tests/Feature/Inventory/PurchaseOrderDeliveryMetadataTest.php": "c02e1f23e6685b27836b85c5dee5412a5af8c723db65ba29403a84b298837406",
+    "tests/Frontend/stock-po-metadata-runtime.test.mjs": "892572b9d7a00a1e670220d0ea34fac580597ff8eead80141ba26ad2c6257aeb"
+  }
+}

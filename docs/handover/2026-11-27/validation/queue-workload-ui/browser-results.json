@@ -1,0 +1,138 @@
+[
+  {
+    "role": "resident_doctor",
+    "check": "seeing excludes held",
+    "total": 1
+  },
+  {
+    "role": "resident_doctor",
+    "check": "held includes actual treatment patient",
+    "total": 2
+  },
+  {
+    "role": "resident_doctor",
+    "check": "truthful treatment attention",
+    "total": 1
+  },
+  {
+    "role": "resident_doctor",
+    "check": "real today completion",
+    "total": 2
+  },
+  {
+    "role": "resident_doctor",
+    "check": "medicine checks true zero",
+    "total": 0
+  },
+  {
+    "role": "resident_doctor",
+    "check": "Reset held succeeds"
+  },
+  {
+    "role": "resident_doctor",
+    "check": "Reset completed succeeds"
+  },
+  {
+    "role": "resident_doctor",
+    "check": "Reset seeing succeeds"
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": false,
+    "shot": "workload-resident_doctor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": true,
+    "shot": "workload-resident_doctor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": false,
+    "shot": "workload-resident_doctor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": true,
+    "shot": "workload-resident_doctor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "check": "failure clears stale rows and retry restores"
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "seeing excludes held",
+    "total": 1
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "held includes actual treatment patient",
+    "total": 2
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "real today completion",
+    "total": 2
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "Reset held succeeds"
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "Reset completed succeeds"
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "Reset seeing succeeds"
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "dark": false,
+    "shot": "workload-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "dark": true,
+    "shot": "workload-ca_supervisor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "dark": false,
+    "shot": "workload-ca_supervisor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "dark": true,
+    "shot": "workload-ca_supervisor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "failure clears stale rows and retry restores"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "patch_sha256": "dcdf21e78ad10ddf7d38f34c725dd070b54a52126f2a3f791153e4fbdddbc47e",
+  "source_sha256": "044f472adfb1a1f4a07ed19351c8fcf502321c2153c740097a7085eb107d6f3b",
+  "base_overlay": "97af5b9c9221ef6c84ca4604b3db91d1ad89d10b2dd76290be284b208b1ba1a1 preserved unchanged",
+  "change": "NEW test dates constructed in branch timezone, same instants, no assertion edits",
+  "validation": "3 tests / 47 assertions PASS"
+}

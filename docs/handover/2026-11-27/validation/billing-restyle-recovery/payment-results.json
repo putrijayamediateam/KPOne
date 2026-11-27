@@ -1,0 +1,746 @@
+[
+  {
+    "name": "billing",
+    "width": 1440,
+    "theme": "light",
+    "inputs": [
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 36,
+        "min": "36px",
+        "tagClass": "billing-input"
+      },
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 36,
+        "min": "36px",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-w-0 w-full min-h-11 lg:min-h-9"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 36,
+        "min": "36px",
+        "tagClass": "billing-input"
+      }
+    ],
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 36
+      },
+      {
+        "text": "View activity log",
+        "height": 36
+      },
+      {
+        "text": "View profile",
+        "height": 36
+      },
+      {
+        "text": "Change",
+        "height": 36
+      },
+      {
+        "text": "History",
+        "height": 36
+      },
+      {
+        "text": "Add note",
+        "height": 36
+      },
+      {
+        "text": "Note history",
+        "height": 36
+      },
+      {
+        "text": "View all",
+        "height": 36
+      },
+      {
+        "text": "All",
+        "height": 36
+      },
+      {
+        "text": "Items",
+        "height": 36
+      },
+      {
+        "text": "Services",
+        "height": 36
+      },
+      {
+        "text": "Documents",
+        "height": 36
+      },
+      {
+        "text": "Manage",
+        "height": 36
+      },
+      {
+        "text": "Add",
+        "height": 36
+      },
+      {
+        "text": "Use amount due (RM 25.00)",
+        "height": 44
+      },
+      {
+        "text": "Select method",
+        "height": 36
+      },
+      {
+        "text": "Add Payment",
+        "height": 36
+      },
+      {
+        "text": "Cancel",
+        "height": 36
+      },
+      {
+        "text": "Close",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 1440,
+    "theme": "dark",
+    "inputs": [
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 36,
+        "min": "36px",
+        "tagClass": "billing-input"
+      },
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 36,
+        "min": "36px",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-w-0 w-full min-h-11 lg:min-h-9"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 36,
+        "min": "36px",
+        "tagClass": "billing-input"
+      }
+    ],
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 36
+      },
+      {
+        "text": "View activity log",
+        "height": 36
+      },
+      {
+        "text": "View profile",
+        "height": 36
+      },
+      {
+        "text": "Change",
+        "height": 36
+      },
+      {
+        "text": "History",
+        "height": 36
+      },
+      {
+        "text": "Add note",
+        "height": 36
+      },
+      {
+        "text": "Note history",
+        "height": 36
+      },
+      {
+        "text": "View all",
+        "height": 36
+      },
+      {
+        "text": "All",
+        "height": 36
+      },
+      {
+        "text": "Items",
+        "height": 36
+      },
+      {
+        "text": "Services",
+        "height": 36
+      },
+      {
+        "text": "Documents",
+        "height": 36
+      },
+      {
+        "text": "Manage",
+        "height": 36
+      },
+      {
+        "text": "Add",
+        "height": 36
+      },
+      {
+        "text": "Use amount due (RM 25.00)",
+        "height": 44
+      },
+      {
+        "text": "Select method",
+        "height": 36
+      },
+      {
+        "text": "Add Payment",
+        "height": 36
+      },
+      {
+        "text": "Cancel",
+        "height": 36
+      },
+      {
+        "text": "Close",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 768,
+    "theme": "light",
+    "inputs": [
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 36,
+        "min": "auto",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between rounded-md py-2 whitespace-nowrap transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-9 w-auto max-w-44 gap-2 border-0 bg-muted/60 px-2.5 text-xs font-normal shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/35"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      },
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-w-0 w-full min-h-11 lg:min-h-9"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      }
+    ],
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 44
+      },
+      {
+        "text": "View activity log",
+        "height": 44
+      },
+      {
+        "text": "View profile",
+        "height": 44
+      },
+      {
+        "text": "Change",
+        "height": 44
+      },
+      {
+        "text": "History",
+        "height": 44
+      },
+      {
+        "text": "Add note",
+        "height": 44
+      },
+      {
+        "text": "Note history",
+        "height": 44
+      },
+      {
+        "text": "View all",
+        "height": 44
+      },
+      {
+        "text": "All",
+        "height": 44
+      },
+      {
+        "text": "Items",
+        "height": 44
+      },
+      {
+        "text": "Services",
+        "height": 44
+      },
+      {
+        "text": "Documents",
+        "height": 44
+      },
+      {
+        "text": "Manage",
+        "height": 44
+      },
+      {
+        "text": "Add",
+        "height": 44
+      },
+      {
+        "text": "Use amount due (RM 25.00)",
+        "height": 44
+      },
+      {
+        "text": "Select method",
+        "height": 44
+      },
+      {
+        "text": "Add Payment",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Close",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 768,
+    "theme": "dark",
+    "inputs": [
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 36,
+        "min": "auto",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between rounded-md py-2 whitespace-nowrap transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-9 w-auto max-w-44 gap-2 border-0 bg-muted/60 px-2.5 text-xs font-normal shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/35"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      },
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-w-0 w-full min-h-11 lg:min-h-9"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      }
+    ],
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 44
+      },
+      {
+        "text": "View activity log",
+        "height": 44
+      },
+      {
+        "text": "View profile",
+        "height": 44
+      },
+      {
+        "text": "Change",
+        "height": 44
+      },
+      {
+        "text": "History",
+        "height": 44
+      },
+      {
+        "text": "Add note",
+        "height": 44
+      },
+      {
+        "text": "Note history",
+        "height": 44
+      },
+      {
+        "text": "View all",
+        "height": 44
+      },
+      {
+        "text": "All",
+        "height": 44
+      },
+      {
+        "text": "Items",
+        "height": 44
+      },
+      {
+        "text": "Services",
+        "height": 44
+      },
+      {
+        "text": "Documents",
+        "height": 44
+      },
+      {
+        "text": "Manage",
+        "height": 44
+      },
+      {
+        "text": "Add",
+        "height": 44
+      },
+      {
+        "text": "Use amount due (RM 25.00)",
+        "height": 44
+      },
+      {
+        "text": "Select method",
+        "height": 44
+      },
+      {
+        "text": "Add Payment",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Close",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 390,
+    "theme": "light",
+    "inputs": [
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 36,
+        "min": "auto",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between rounded-md py-2 whitespace-nowrap transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-9 w-auto max-w-44 gap-2 border-0 bg-muted/60 px-2.5 text-xs font-normal shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/35"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      },
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-w-0 w-full min-h-11 lg:min-h-9"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      }
+    ],
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 44
+      },
+      {
+        "text": "View activity log",
+        "height": 44
+      },
+      {
+        "text": "View profile",
+        "height": 44
+      },
+      {
+        "text": "Change",
+        "height": 44
+      },
+      {
+        "text": "History",
+        "height": 44
+      },
+      {
+        "text": "Add note",
+        "height": 44
+      },
+      {
+        "text": "Note history",
+        "height": 44
+      },
+      {
+        "text": "View all",
+        "height": 44
+      },
+      {
+        "text": "All",
+        "height": 44
+      },
+      {
+        "text": "Items",
+        "height": 44
+      },
+      {
+        "text": "Services",
+        "height": 44
+      },
+      {
+        "text": "Documents",
+        "height": 44
+      },
+      {
+        "text": "Manage",
+        "height": 44
+      },
+      {
+        "text": "Add",
+        "height": 44
+      },
+      {
+        "text": "Use amount due (RM 25.00)",
+        "height": 44
+      },
+      {
+        "text": "Select method",
+        "height": 44
+      },
+      {
+        "text": "Add Payment",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Close",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 390,
+    "theme": "dark",
+    "inputs": [
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 36,
+        "min": "auto",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between rounded-md py-2 whitespace-nowrap transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-9 w-auto max-w-44 gap-2 border-0 bg-muted/60 px-2.5 text-xs font-normal shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/35"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      },
+      {
+        "tag": "BUTTON",
+        "type": "button",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-field-fill/30 dark:hover:bg-field-fill/50 flex cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[background-color,border-color,box-shadow] outline-none hover:border-foreground/25 hover:bg-muted/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-w-0 w-full min-h-11 lg:min-h-9"
+      },
+      {
+        "tag": "INPUT",
+        "type": "text",
+        "height": 44,
+        "min": "44px",
+        "tagClass": "billing-input"
+      }
+    ],
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 44
+      },
+      {
+        "text": "View activity log",
+        "height": 44
+      },
+      {
+        "text": "View profile",
+        "height": 44
+      },
+      {
+        "text": "Change",
+        "height": 44
+      },
+      {
+        "text": "History",
+        "height": 44
+      },
+      {
+        "text": "Add note",
+        "height": 44
+      },
+      {
+        "text": "Note history",
+        "height": 44
+      },
+      {
+        "text": "View all",
+        "height": 44
+      },
+      {
+        "text": "All",
+        "height": 44
+      },
+      {
+        "text": "Items",
+        "height": 44
+      },
+      {
+        "text": "Services",
+        "height": 44
+      },
+      {
+        "text": "Documents",
+        "height": 44
+      },
+      {
+        "text": "Manage",
+        "height": 44
+      },
+      {
+        "text": "Add",
+        "height": 44
+      },
+      {
+        "text": "Use amount due (RM 25.00)",
+        "height": 44
+      },
+      {
+        "text": "Select method",
+        "height": 44
+      },
+      {
+        "text": "Add Payment",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Close",
+        "height": 44
+      }
+    ]
+  }
+]

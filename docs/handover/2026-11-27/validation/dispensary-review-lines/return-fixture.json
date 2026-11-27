@@ -1,0 +1,9 @@
+{
+    "database": "kpone_dispensary_review_lines_preview_test",
+    "case": "53c3253a-cb39-4d6a-9ca0-c89dbd94ea10",
+    "return": "90230297-ed69-48e1-a869-046228465cb4",
+    "state": "completed",
+    "quantity": "1.000",
+    "service": "DispensaryReturnService::record",
+    "checked": false
+}

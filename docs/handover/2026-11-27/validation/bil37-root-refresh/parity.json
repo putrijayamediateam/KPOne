@@ -1,0 +1,11 @@
+{
+  "prior_head": "d44ce4bc3faca6cb15f68a7f493b0cc2c5773734",
+  "new_main": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+  "files_changed_by_upstream": [
+    "app/Domain/Access/BillingPermissions.php",
+    "docs/teams/billing/TEAM.md",
+    "routes/web.php"
+  ],
+  "unchanged_slice_files": 15,
+  "resolution": "Retained both BIL36 and BIL37 documentation rows; code merge was automatic."
+}

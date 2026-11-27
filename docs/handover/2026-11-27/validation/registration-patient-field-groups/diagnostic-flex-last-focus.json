@@ -1,0 +1,68 @@
+{
+  "id": "",
+  "label": "IC or Passport number",
+  "ancestors": [
+    {
+      "tag": "INPUT",
+      "classes": "h-9 w-full min-w-0 rounded-[10px] border border-input bg-field-fill px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0",
+      "height": 44,
+      "top": 393,
+      "shrink": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "flex flex-col gap-2 sm:flex-row sm:gap-0",
+      "height": 96,
+      "top": 341,
+      "shrink": "1"
+    },
+    {
+      "tag": "LABEL",
+      "classes": "grid gap-1",
+      "height": 144,
+      "top": 317,
+      "shrink": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "grid gap-3 md:grid-cols-2",
+      "height": 156,
+      "top": 317,
+      "shrink": "1"
+    },
+    {
+      "tag": "SECTION",
+      "classes": "space-y-3 border-t border-border/60 pt-4",
+      "height": 205,
+      "top": 268,
+      "shrink": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "space-y-5 p-4",
+      "height": 1603,
+      "top": -1114,
+      "shrink": "1"
+    },
+    {
+      "tag": "FIELDSET",
+      "classes": "contents",
+      "height": 0,
+      "top": 0,
+      "shrink": "1"
+    },
+    {
+      "tag": "SECTION",
+      "classes": "overflow-hidden rounded-lg border bg-card shadow-card",
+      "height": 1793,
+      "top": -1303,
+      "shrink": "0"
+    }
+  ],
+  "focused": true,
+  "height": 44,
+  "top": 393,
+  "bottom": 437,
+  "visible": true,
+  "unobstructed": true
+}

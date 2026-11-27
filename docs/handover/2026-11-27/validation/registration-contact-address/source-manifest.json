@@ -1,0 +1,10 @@
+{
+  "base": "e8d3769e855467baa70e9e50259b43926c8f13f4",
+  "patchSha256": "939037052314629084ed43b488b7b6e450e1a95d02b68f811f38d8718fa779f4",
+  "files": {
+    "resources/js/components/patient/RegistrationContactFields.vue": "12dbd4b2ea213bc9ede87472f90724c76727be287e7bee5e473d96ba916cf49c",
+    "resources/js/components/registration/RegistrationCreateForm.vue": "5859dc99451f789673f16d67f5c05f41d7c6bcfc6cc3bff09134acc7207afbb6",
+    "tests/Frontend/registration-contact-slots.test.mjs": "913679b69aa31dd1b519dc1308241710ac4c754b3e1736823160ec2ec3dde5ba",
+    "tests/Frontend/registration-patient-field-groups.test.mjs": "7a0d2fc61fc48afd72c494a4b6e17d140affb8dbf77ce8503601136b28af5422"
+  }
+}

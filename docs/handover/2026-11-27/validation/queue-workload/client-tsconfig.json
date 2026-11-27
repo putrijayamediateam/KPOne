@@ -1,0 +1,12 @@
+{
+  "extends": "/workspace/KPOne-queue-workload/tsconfig.json",
+  "include": [
+    "/workspace/KPOne-queue-workload/resources/js/composables/useQueueWorkload.ts"
+  ],
+  "exclude": [],
+  "compilerOptions": {
+    "types": [
+      "/workspace/KPOne-queue-workload/node_modules/vite/client"
+    ]
+  }
+}

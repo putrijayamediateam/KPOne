@@ -1,0 +1,93 @@
+{
+  "patch_sha256": "d8725e7ed0b3aec9399202e665b361cd61dfae29374549d5c3602f576899581e",
+  "files": {
+    "app/Console/Commands/ActivateEmergencyAlerts.php": {
+      "base_sha256": null,
+      "source_sha256": "1ccc15d80ee741bbd7d7b36f99f1658cc5d2e5fb7c161519346726c34f0ea1b2"
+    },
+    "app/Domain/Access/PermissionCatalogue.php": {
+      "base_sha256": "340841c9427a2c288266b484791ff30839134a88bd18ae8020fe5eee13f09947",
+      "source_sha256": "8cdb9cbb7e0b20aa053574fa577d8af2f806d8e6823c6452a3bf329ef5a8e097"
+    },
+    "app/Domain/Clinical/Triage/TriageService.php": {
+      "base_sha256": "fbb6178c658e0865353f66d218843c479a12643e91ac0d2ead1bce00e80cbf8b",
+      "source_sha256": "4c5d78deccd838274048cacc8c1e43427fcd2b091c9c6143de622e4a6078103f"
+    },
+    "app/Domain/Queue/Emergency/EmergencyAlert.php": {
+      "base_sha256": null,
+      "source_sha256": "c93b4b83ad64a1d597d64992cbfc04d020d4c72af2274e5cc4d235ff57f7dcef"
+    },
+    "app/Domain/Queue/Emergency/EmergencyAlertService.php": {
+      "base_sha256": null,
+      "source_sha256": "e00d614626de9e7ff242ced1ead3c62221fd1dc28c3e77c4af71e8c3bb007a0e"
+    },
+    "app/Domain/Queue/QueueWaitingOrder.php": {
+      "base_sha256": "058f2e40038f981135c83a3adb5906492854031d1a3810c10cff4ce8ce7564b4",
+      "source_sha256": "95591c0b4f1600b9176105b91b93d01863264c71bc16b4290c1208df3c184dbe"
+    },
+    "app/Domain/Queue/Readiness/CallHoldService.php": {
+      "base_sha256": "726eb00658a1ac73ba9796ea38623fda68200a34bb2a2a3471c970ac304ea3c9",
+      "source_sha256": "418efc58ac23506c2c780951160a4f7ccdab9ccdf46a641cd0ef2cec89f527e9"
+    },
+    "app/Domain/Queue/Services/QueueEntryService.php": {
+      "base_sha256": "e31f7f8feb73b94a4e2fffcc717110d52f0e0fa2546edab78eb6d9ffede6faa0",
+      "source_sha256": "4eddfd361052b9b9f089dd7e5d6b5adce7a4ed320f0b02db9a9ed50bee4f05dd"
+    },
+    "app/Domain/Queue/Services/RedZoneAlertService.php": {
+      "base_sha256": "d2e3f36e2f46366941dfd9049cf931ab6527d061af7019e1120236407c699c44",
+      "source_sha256": "e02a6ca3cb9716d97a9a42e872f0067c33500a88ee02721a7466b2fb97cc4883"
+    },
+    "app/Domain/Visit/Services/VisitAdministrationService.php": {
+      "base_sha256": "5afc025034129989c68406037f5c1e54fd09d20b442480b584e853d8817aa6f6",
+      "source_sha256": "191cba805c79712337872bbfdbce84d3dab744607ab2b43ede6b695db52524ba"
+    },
+    "app/Http/Controllers/EmergencyAlertController.php": {
+      "base_sha256": null,
+      "source_sha256": "d279d6c2d6a48dfb3a4157d1262767b1ac129cb522ea45d1609d29ca6443af20"
+    },
+    "app/Http/Controllers/QueueController.php": {
+      "base_sha256": "9b15f5f34dad49ad3cf863700663e91cd9f27f38c564c4c9f3615cb15d0b62bd",
+      "source_sha256": "3a1d89fbd3fb79b75f6b70dd97f436a731e0e48d0a960862cf0ad9425a6466a6"
+    },
+    "database/migrations/2026_11_26_030000_create_queue_emergency_alerts.php": {
+      "base_sha256": null,
+      "source_sha256": "dfff7e9cd1926c5f2060f7356cec4d4980a86db5717654510aad03e9ea979ab6"
+    },
+    "docs/teams/patients-registration/TEAM.md": {
+      "base_sha256": "7d2ed739045404e188d8b86f86a65fa603e35b4a018676616b1db9196181888e",
+      "source_sha256": "d73c4d65586935716a2a985c5025b19929f58b92887437172a7eb998906c812d"
+    },
+    "phpunit.xml": {
+      "base_sha256": "011e11b929c720160ba37a2f55c0f477f18765e3e4d060d87ada15f129b7f120",
+      "source_sha256": "c8198c0fe34404729b22058be7dd84f42417bd8d402285bd9b8739e9171c84e8"
+    },
+    "routes/web.php": {
+      "base_sha256": "f8f4be3b0dfa799b8cfa98a27fa15df26b45532d68d6134fbe35620204883fe8",
+      "source_sha256": "2f4e849bb733e780a994f499d5329c24708977f56bc98762916e0d04313fa1ea"
+    },
+    "tests/Feature/Queue/EmergencyAlertLifecycleTest.php": {
+      "base_sha256": null,
+      "source_sha256": "09c364718dc8299d7f00814aa730ac3129bb7205f0915b3e5658151fd3f469f0"
+    },
+    "tests/Feature/Queue/PostgresEmergencyAlertContentionTest.php": {
+      "base_sha256": null,
+      "source_sha256": "2e2303a39122e14d4226aed6aeb8066adae48264ca32d8fbf673fe2c1dec9ced"
+    },
+    "tests/Feature/Queue/QueueWaitingOrderTest.php": {
+      "base_sha256": "a9693bb2cbc0806669560e60069e44929e61964debd3e14b6b5130b129f19078",
+      "source_sha256": "3446db051202b0fc1376bcc95781a597e2b1dc9537453f9df96bd59ab25e7b60"
+    },
+    "tests/Feature/Queue/RedZoneAlertTest.php": {
+      "base_sha256": "095779d488cdc0249b3a996860aada030c8f17ddea82f44b9379a08a4514ecc1",
+      "source_sha256": "c11c5db5e6e399fc21f0b4cf9ebe8cb5e0b58d1d0143f34414d20ebc02ca13b4"
+    },
+    "tests/Support/PostgresEmergencyAlertWorker.php": {
+      "base_sha256": null,
+      "source_sha256": "b78820631c6b980ecc28ed2941330a4e82bde69d9626e5dbcfa1a7229549764c"
+    },
+    "tests/Support/PostgresRedZoneWorker.php": {
+      "base_sha256": "322216d3af3d68be1b71a88d00e47db4180618d4f5f1980a76b6b6298c86497a",
+      "source_sha256": "c0b5aeebc5f217edcd4d9de9b2f6e478c38e4cc629da49e3d53c9a923b4cf88b"
+    }
+  }
+}

@@ -1,0 +1,224 @@
+{
+  "publicId": "9f97c2a2-7784-4dd7-a603-6bd763ab3336",
+  "matrix": [
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Waiting for approval (1)",
+          "height": 44
+        },
+        {
+          "label": "Matched (0)",
+          "height": 44
+        },
+        {
+          "label": "Accepted (0)",
+          "height": 44
+        },
+        {
+          "label": "Rejected (0)",
+          "height": 44
+        },
+        {
+          "label": "Close match for invoice SYN-INVOICE-WORKLIST",
+          "height": 44
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Waiting for approval (1)",
+          "height": 44
+        },
+        {
+          "label": "Matched (0)",
+          "height": 44
+        },
+        {
+          "label": "Accepted (0)",
+          "height": 44
+        },
+        {
+          "label": "Rejected (0)",
+          "height": 44
+        },
+        {
+          "label": "Close match for invoice SYN-INVOICE-WORKLIST",
+          "height": 44
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Waiting for approval (1)",
+          "height": 44
+        },
+        {
+          "label": "Matched (0)",
+          "height": 44
+        },
+        {
+          "label": "Accepted (0)",
+          "height": 44
+        },
+        {
+          "label": "Rejected (0)",
+          "height": 44
+        },
+        {
+          "label": "Close match for invoice SYN-INVOICE-WORKLIST",
+          "height": 44
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Waiting for approval (1)",
+          "height": 44
+        },
+        {
+          "label": "Matched (0)",
+          "height": 44
+        },
+        {
+          "label": "Accepted (0)",
+          "height": 44
+        },
+        {
+          "label": "Rejected (0)",
+          "height": 44
+        },
+        {
+          "label": "Close match for invoice SYN-INVOICE-WORKLIST",
+          "height": 44
+        },
+        {
+          "label": "Previous",
+          "height": 44
+        },
+        {
+          "label": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Waiting for approval (1)",
+          "height": 36
+        },
+        {
+          "label": "Matched (0)",
+          "height": 36
+        },
+        {
+          "label": "Accepted (0)",
+          "height": 36
+        },
+        {
+          "label": "Rejected (0)",
+          "height": 36
+        },
+        {
+          "label": "Close match for invoice SYN-INVOICE-WORKLIST",
+          "height": 36
+        },
+        {
+          "label": "Previous",
+          "height": 36
+        },
+        {
+          "label": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Waiting for approval (1)",
+          "height": 36
+        },
+        {
+          "label": "Matched (0)",
+          "height": 36
+        },
+        {
+          "label": "Accepted (0)",
+          "height": 36
+        },
+        {
+          "label": "Rejected (0)",
+          "height": 36
+        },
+        {
+          "label": "Close match for invoice SYN-INVOICE-WORKLIST",
+          "height": 36
+        },
+        {
+          "label": "Previous",
+          "height": 36
+        },
+        {
+          "label": "Next",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "selfRefusal": 0,
+  "noCost": {
+    "notShown": true,
+    "leaked": false,
+    "quantity": true
+  },
+  "staleError": "This invoice changed. Reload and review it again.",
+  "denied": true,
+  "errors": []
+}

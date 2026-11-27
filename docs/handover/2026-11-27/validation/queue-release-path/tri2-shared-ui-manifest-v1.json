@@ -1,0 +1,79 @@
+{
+  "base": "0475a77df618ef751a70637aa06fba3e20822b6f",
+  "patch": "TRI2-SHARED-UI-ON-PRESENCE-v1.patch",
+  "sha256": "5eb0103ba50a218072ef61fcd4a541ecba6f630b851d3934fb1ec0395b88a033",
+  "files": [
+    {
+      "path": "docs/reviews/TRI2-SHARED-UI-RECOVERY-2026-11-26.md",
+      "sha256": "eea8b128405536e858a9bb4d273b40a6e2cea237eb1d9c4c0a06545500d977b9"
+    },
+    {
+      "path": "resources/js/components/queue/EmergencyAlertHost.vue",
+      "sha256": "494e49e7ac1bde61c1669b22eb44594ab22a0ee35bafd0d3e13917326722683f"
+    },
+    {
+      "path": "resources/js/components/queue/RedZoneAlertBanner.vue",
+      "sha256": "c1135f9fd43ff5baf9bc6bf62ad731f1ebca4d11f77bfb1b9baa77c44ec2a2c8"
+    },
+    {
+      "path": "resources/js/composables/useEmergencyAlerts.ts",
+      "sha256": "dc17af7757b46a5ded00efcd56ce4a6e70b0824d045a07bee43126556c92ad7f"
+    },
+    {
+      "path": "resources/js/composables/useEmergencyHoldBridge.ts",
+      "sha256": "0f2d5c71f29aeb1abe829395d751918b4c9282a6d48d38b9c36f4b9b0e186109"
+    },
+    {
+      "path": "resources/js/layouts/AdminLayout.vue",
+      "sha256": "60149e2297cb696ca068fa1fdd59f07b72e7a53b8684aa8b20c2c8af17c8753f"
+    },
+    {
+      "path": "resources/js/layouts/ClinicLayout.vue",
+      "sha256": "b08b734438fc7833526108f488c06378c642110ca97b94b1ada58db680276a0a"
+    },
+    {
+      "path": "resources/js/layouts/app/AppHeaderLayout.vue",
+      "sha256": "75e5953250f4102edaad78be4ba823356fac71ec881b33c9da2ddae7e665ad88"
+    },
+    {
+      "path": "resources/js/layouts/app/AppSidebarLayout.vue",
+      "sha256": "43ac61f1aacfcf38dda392c2a23d85c6175344d30bf60508e28f0df05c100803"
+    },
+    {
+      "path": "resources/js/pages/Clinical/Show.vue",
+      "sha256": "e40038c5394d5ae07cc564b48c1e0d46444c81e0cc94f29266bc7f9346d3d9f5"
+    },
+    {
+      "path": "resources/js/pages/Queue/Index.vue",
+      "sha256": "8d473a8a6b8fdb096203505844b5e670c80fc06996c96537a25c605ffa1c72d7"
+    },
+    {
+      "path": "tests/Frontend/classic-only-co10-kept-layouts.test.mjs",
+      "sha256": "1e887eec5c9c5c37fa830a1d492b36328e18c4b48eec5f0f7cb130d9a498cd8a"
+    },
+    {
+      "path": "tests/Frontend/oh-06c-unsaved-work-guard.test.mjs",
+      "sha256": "92589aff29fef8b4f7c0c03361f06327272b2b3eb461fa480d9c53b582c0452f"
+    },
+    {
+      "path": "tests/Frontend/q-16b-red-zone-alert.test.mjs",
+      "sha256": "4ca24096caf8121ac85d4167d0c4ddf633466d9b1b558df288bb56bc5ccb429d"
+    },
+    {
+      "path": "tests/Frontend/tri2-emergency-banner-runtime.test.mjs",
+      "sha256": "6e0ead9c09984af9f34b8dd297c2f2f496208a60832b7f3a72e983b28e222879"
+    },
+    {
+      "path": "tests/Frontend/tri2-emergency-hold-runtime.test.mjs",
+      "sha256": "ac3113d11bef0190101fea0c737d104d87daa8d7d1aef0d17aba61a6a78be743"
+    },
+    {
+      "path": "tests/Frontend/tri2-emergency-host-lifecycle.test.mjs",
+      "sha256": "7f5ecf4fafa69f5d5a8787252960c6f6f8df31c337f599d5ae6ae6437d92bf06"
+    },
+    {
+      "path": "tests/Frontend/tri2-emergency-runtime.test.mjs",
+      "sha256": "daa13172aac923a7a0e0fa2e85feb77311bdeca44bb440e3fcb4c340552cd416"
+    }
+  ]
+}

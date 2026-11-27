@@ -1,0 +1,5 @@
+Queue's branch Doctors section currently presents room cards. Add an optional four-column Doctor / Room / Now / Waiting for them table using the existing bounded, authorized Rooms today response, with responsive phone cards. Preserve room provenance, not-ready subset, held limits, independent pagination and summary focus; default component cards remain unchanged.
+
+Stacked review draft on #1247 (`recovery/queue-branch-done`), three files only. No backend eligibility, permission, mutation or TV-feed changes. This is not a standalone main merge or full Queue parity claim; the prior scoped dependency chain remains required. Never merge archive #1142.
+
+Validation: full frontend 2,327; focused actual-component/default compatibility 12; existing backend 3 tests/27 assertions; types, build, scoped lint/format. Synthetic actual 27 eligible doctors proves 25+2 pages, desktop/short-phone focus below the persistent alert host, optional-read error/poll recovery and own-scope control exclusion. Eight clinical/stock tables remain byte-identical. Unknown/provenance/escaped text variants are actual-component tests, not invented clinical runtime fixtures.

@@ -1,0 +1,9 @@
+{
+  "scriptIdentical": true,
+  "sha256": "e337a0b2b5a14e1513bb0bd44fc1d126cc275f3124782a9b94bf4348e8f44ff8",
+  "unchangedFiles": {
+    "resources/js/pages/Registration/Create.vue": "647faec93f03b838154c618811d85d3e07423d80b1d115b0d59fe99f75ec661d",
+    "resources/js/pages/Registration/Index.vue": "981e132b2a0206e168e47ed08e5b4150452da275159cfb7c2b9a45c5fe75e8b5",
+    "resources/js/components/registration/RegistrationCreateDialog.vue": "4b121c7b3d739116c55059a7c93396764b5e67ddd4f57a28dfaf20aebc8d2040"
+  }
+}

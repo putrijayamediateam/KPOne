@@ -1,0 +1,27 @@
+{
+  "base": "e8d3769e855467baa70e9e50259b43926c8f13f4",
+  "bothScriptsByteIdentical": true,
+  "defaultHtmlIdenticalExceptVueCommentsAndBetweenTagWhitespace": true,
+  "cases": [
+    {
+      "publicForm": false,
+      "required": false,
+      "normalizedHtmlSha256": "2aa5f6f7d9ff205cbd1fd34c239e21c749748144e17cbb2e3fcfa9c309de6f36"
+    },
+    {
+      "publicForm": false,
+      "required": true,
+      "normalizedHtmlSha256": "48b8ac16d72a0c43e793323d41e7b545cdc9e23c3cb9ec5147206adb1281d8d3"
+    },
+    {
+      "publicForm": true,
+      "required": false,
+      "normalizedHtmlSha256": "8581884e61bb0b7a87ae719efb2cca64dbda65be4eb840113ed8bad0dc2ed0b7"
+    },
+    {
+      "publicForm": true,
+      "required": true,
+      "normalizedHtmlSha256": "8d181fc7208085c0639d65caed16adf33fe325803b8e388de0ae31400d43715e"
+    }
+  ]
+}

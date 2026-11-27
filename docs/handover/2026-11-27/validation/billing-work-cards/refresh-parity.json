@@ -1,0 +1,10 @@
+{
+  "head": "039d28effb40ac96221c24f3649407a8711586b6",
+  "main": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "scope_files": [
+    "resources/js/pages/FinancialWork/Index.vue",
+    "tests/Frontend/financial-work-cards.test.mjs"
+  ],
+  "source_hashes_unchanged": true,
+  "patch_sha256": "51aad9576f8ca87607303dfe8ab5adfcb591d8951c1b738ddf1071badf9dd4bd"
+}

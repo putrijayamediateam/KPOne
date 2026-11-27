@@ -1,0 +1,21 @@
+{
+  "status": "published_draft",
+  "url": "https://github.com/putrijayamediateam/KPOne/pull/1248",
+  "branch": "fix/trial-data-director-fixture-clock",
+  "head": "305c2033682d00926dfe97a188f74291dd594117",
+  "originalLocalCommit": "c5b13613c2ed122a8edb65a0a04052da563c18a7",
+  "archiveBranch": "archive/trial-director-clock-local-c5b13613",
+  "tree": "34b25944832c489489c7e7a908becd8ee2e87dcf",
+  "treeParityVerified": true,
+  "base": "d0f37b5c1864b796fc7b4224996bd917551af3e7",
+  "files": 1,
+  "additions": 29,
+  "deletions": 0,
+  "ci": {
+    "runId": 45934479513,
+    "status": "queued",
+    "head": "305c2033682d00926dfe97a188f74291dd594117"
+  },
+  "merged": false,
+  "attachment": "Child tool requested; pending, root notified."
+}

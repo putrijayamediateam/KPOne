@@ -1,0 +1,23 @@
+{
+  "captures": [
+    {
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "abortedBeforeServer": 1,
+  "committedResponseRetest": false
+}

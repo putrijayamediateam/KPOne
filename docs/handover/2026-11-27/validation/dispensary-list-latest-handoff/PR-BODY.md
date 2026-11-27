@@ -1,0 +1,5 @@
+After a case was returned and resent, the Dispensary list could show the oldest handoff's medicine count and hide label links even after the latest handoff completed. The list appended descending order to an existing ascending relation order. Replacing only this eager query's ordering with descending reorder makes the existing count and label predicates read the latest attempt. Global history remains ascending.
+
+Stacked on #1212. Separate prerequisite to medicine search; no medicine-search code, frontend change, permission, schema or clinical/Verify change is included. Approved under delegated coordinator technical authority.
+
+Two new domain-generated regressions failed before the fix;33 focused tests/502 assertions, PHPStan/Pint and diff checks pass afterward. Twelve actual synthetic GET-only browser states confirm latest count and existing CA/doctor label presentation at390/1440 light/dark using byte-identical parent frontend assets. Independent backend/SQL and Design reviews are recorded. No physical printing claimed.

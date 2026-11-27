@@ -1,0 +1,13 @@
+{
+  "head": "e3b14e164446c5ec71f943cd8abe5ddfae5cc784",
+  "main": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "originalBlobsEqual": {
+    "resources/css/space-shell-layout.css": true,
+    "resources/js/pages/MyDay/Index.vue": true,
+    "resources/js/pages/Spaces/Show.vue": true
+  },
+  "scriptsEqualMain": {
+    "resources/js/pages/MyDay/Index.vue": true,
+    "resources/js/pages/Spaces/Show.vue": true
+  }
+}

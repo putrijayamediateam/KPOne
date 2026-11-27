@@ -1,0 +1,7 @@
+# Independent Billing review of Queue convergence plan
+
+26 November 2026. Read-only plan review of QUEUE-CONVERGENCE-PLAN.md including exact Family1148 validation-parent addition, dry-merge conflict findings and Staff safeguards. Clear to begin the coordinator-authorized Phase1 validation foundation. This is not source implementation or release signoff.
+
+The multi-parent foundation must remain explicitly labelled, without archive ancestry or a visual-only claim. Preserve the full authorized ordinary+lane allVisits hydration when adding AUTO warnings; preserve both-endpoint Family view policies and independent nullable Family/Treatment projections; retain singleton shared emergency host and Clinical Hold/unsaved continuation. Automatic controller/routes/phpunit merges still require endpoint/middleware and contention-discovery inventory review. Keep existing24/21/21 query ceilings and execute combined fixtures before proposing any change.
+
+Required combined checks include own/branch identity suppression, full-set emergency exclusion independent of paging, retained manual and Treatment actions, current outcome read policy, reassignment-warning permission, Family waiting-today scope, failed/stale poll cleanup and one emergency continuation handler. The exact Family parent is a validation dependency, not source imported from the old archive. Final source, runtime and publication reviews remain pending implementation.

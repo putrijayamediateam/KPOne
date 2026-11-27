@@ -1,0 +1,36 @@
+{
+  "results": [
+    {
+      "check": "actual wrong-patient void preserves history after correction",
+      "posts": [
+        {
+          "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/voids?steps_page=1&current_page=1&history_page=1",
+          "body": {
+            "expected_branch_id": 3,
+            "visit_lock_version": 1,
+            "queue_lock_version": 9,
+            "target_record_id": 55,
+            "reason_code": "wrong_patient",
+            "idempotency_key": "f1df5928-6cf6-4629-b250-6bae8c8e8fd4"
+          }
+        }
+      ]
+    },
+    {
+      "check": "void history exposes no patient transfer or crosspatient navigation"
+    }
+  ],
+  "posts": [
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/voids?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "target_record_id": 55,
+        "reason_code": "wrong_patient",
+        "idempotency_key": "f1df5928-6cf6-4629-b250-6bae8c8e8fd4"
+      }
+    }
+  ]
+}

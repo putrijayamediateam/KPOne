@@ -1,0 +1,9 @@
+{
+  "fixture": "Actual compiled local component and real Vue DOM; icon stub only, synthetic props replaced deliberately. Separate from real server workflow.",
+  "surviving": true,
+  "removed": true,
+  "disabled": true,
+  "disabledFallback": true,
+  "outside": true,
+  "errors": []
+}

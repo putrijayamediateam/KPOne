@@ -1,0 +1,8 @@
+{
+  "docs/reviews/STOCK-COUNTS-DUE-COMPOSITION.md": "198108f031123b1ff745ec6929d8a304a7e36b4a6b5e83dc7a774fcff9834f27",
+  "resources/js/components/inventory/StockCountsDueList.vue": "7ace9d0da0187088f3906e5d95301b853e5048a3080b07fde1815e446c5110e1",
+  "resources/js/pages/Inventory/GovernedStock.vue": "39f3cd5123e421c709cafa3b90f8f7fa9282b5864141b70a2221e4641ab9dd15",
+  "tests/Frontend/stk23-cycle-counts.test.mjs": "763368dc5db561669278a7933cc4aa631ca9438d9b1c5d07603fe6c033db83f1",
+  "tests/Frontend/stock-counts-due-focus.test.mjs": "c75883e5a4b202654fd4255c3cc18cab1ca50789acc96bb85a77511fcdb97406",
+  "tests/Frontend/stock-counts-due-runtime.test.mjs": "f8830909d0936f27d9c1a1073b9c482334d380c5cfb9eeabbe59173b3d72bbf8"
+}

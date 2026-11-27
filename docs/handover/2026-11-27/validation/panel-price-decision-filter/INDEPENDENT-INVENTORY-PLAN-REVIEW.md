@@ -1,0 +1,7 @@
+# Independent Inventory Panel decision filter plan review
+
+Bounded contract CLEAR after reading actual PanelPriceChangesPage and index controller. The existing base query is organisation-scoped; waiting uses proposed and decided uses status != proposed before25 pagination. An optional exact approved/rejected/withdrawn predicate on only the decided clone preserves existing scope, separate waitingCount, selection and staff-visible names. No financial or mutation rule is added. Do not describe selected Panel/charge as decided-list filters: currently they control proposal price selection only, even when retained in the URL. Organisation-wide copy is appropriate.
+
+Strict malformed/unknown validation should be exercised at HTTP and read-service entry points where public callers can supply the new value. Preserve omitted/empty All and append the optional argument so old callers remain valid. Keep original transaction and bounded25 projection; inherited per-row base-price queries mean no constant-query claim.
+
+The planned preserveState/read-tab repair is explicit and justified, but direct filtered links, clear-to-All, pagination and selection-only partial reload need tests against applied server status, not optimistic input. Confirm failed GET leaves loaded selection/results truthful and existing proposal/rejection/withdrawal payload, version/key and waiting selection remain unchanged. No new total, grant, schema or write transition. Plan review only; final source/SQL and browser evidence still required, no tests independently rerun.

@@ -1,0 +1,9 @@
+# Registration heading assertion decision
+
+26 November2026: under the user's explicit delegation of technical decisions, the exact PROPOSED-heading-test.patch was independently reviewed by the Staff Design agent before application. This is a delegated technical decision, not a fabricated direct owner answer.
+
+The earlier UX-3 expectation required a literal visually hidden Registration h1. The composition uses the existing shared PageHeader to render a visible Registration heading. The replacement keeps Queue and TV checks unchanged, asserts exactly one PageHeader with the exact title as main's first child and no duplicate local h1, and verifies the shared title branches are visible and title-bound. Actual browser evidence additionally checks exactly one rendered Registration heading and Register action. Focused UX-3 passes10/10. No other old assertions changed; four existing runtime harnesses only recognize the added presentation imports.
+
+The visible-heading intent overlaps published Registration restyle1132; this branch does not import its other three pages. Filter sizing overlaps1138; no Queue source or shared control changed. A later integration must reconcile these presentation hunks without duplicating features.
+
+Final visual refinement added explicit focus-ring tokens to QR's existing desktop horizontal scroller. Full suite exposed one exact class-string pin in q1b2-public-patient-intake.test.mjs:239. Staff Design independently cleared PROPOSED-qr-focus-test.patch before application under the same delegated authority: retain hidden/overflow/md behavior and mobile replacement check, update exact focus-ring tokens and add keyboard-region/name coverage. No permission/business assertion changed. Actual rebuilt browser verifies keyboard scroll and visible focused Verify action.

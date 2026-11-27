@@ -1,0 +1,23 @@
+{
+  "old_head": "ecadc1125c6b6603828cf6951a06e6d4e547e3b6",
+  "head": "d8c77e29646fe1c1d8d31e219ecc348fbe385abc",
+  "main": "18ab8e772bde6bd31d50410007d832c7863cf150",
+  "all_nine_blobs_unchanged": true,
+  "blobs": {
+    "resources/js/pages/Registration/Create.vue": "30be980162097b211db6e275843e03735741d07c",
+    "resources/js/pages/Registration/Edit.vue": "2f3e75181479d487b56dd1d6c09574701904f60c",
+    "resources/js/pages/Registration/Index.vue": "c2a2f2125eb65d24a4c09c294609a9125f8c944e",
+    "resources/js/pages/Registration/Show.vue": "b3563d724f2f7d23957fd7418e7bb693c811ab37",
+    "tests/Frontend/dark-1.test.mjs": "e2bec4c85604fbcca026265b3332fbe7db54581d",
+    "tests/Frontend/i2-ui-ux-remediation.test.mjs": "6f5dacf8a6a46f26baf0ed66885e72014db2a8fd",
+    "tests/Frontend/reg-6-phone-input-fit.test.mjs": "6b11a3f08933ba866afc1f5fba81c776163741b1",
+    "tests/Frontend/ui-dropdown-darkmode-polish.test.mjs": "cfcc7e2f9a05b397c34f291e586f5bbff85863c3",
+    "tests/Frontend/ux-3-accessible-names-headings.test.mjs": "515cb6676815056b048974ed7cf51955d879fd31"
+  },
+  "scripts_identical_to_main": {
+    "resources/js/pages/Registration/Create.vue": true,
+    "resources/js/pages/Registration/Edit.vue": true,
+    "resources/js/pages/Registration/Index.vue": true,
+    "resources/js/pages/Registration/Show.vue": true
+  }
+}

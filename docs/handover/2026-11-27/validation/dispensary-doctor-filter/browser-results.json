@@ -1,0 +1,154 @@
+{
+  "captures": [
+    {
+      "name": "all-first-page",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "all-first-page",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "all-first-page",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "all-first-page",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "second-page",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "second-page",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "second-page",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "second-page",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "selected-long-name",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "selected-long-name",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "selected-long-name",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "selected-long-name",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "empty-choices-pinned",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "empty-choices-pinned",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "empty-choices-pinned",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "empty-choices-pinned",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "contradictory-empty",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "contradictory-empty",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "contradictory-empty",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "contradictory-empty",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "invalid-reset",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "invalid-reset",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "invalid-reset",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "invalid-reset",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "checks": [
+    "25 bounded options, explicit second page, persistent synchronous focus, no auto-selection",
+    "Option search does not change case filter and pins validated selected label",
+    "Leaving Prepare clears Doctor and Type, Waiting has no control",
+    "403 clears loaded identities and exposes retry error"
+  ],
+  "targets": [
+    {
+      "width": 390,
+      "selector": "#dispensary-doctor",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "selector": "#dispensary-doctor-search",
+      "height": 44
+    },
+    {
+      "width": 1440,
+      "selector": "#dispensary-doctor",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "selector": "#dispensary-doctor-search",
+      "height": 36
+    }
+  ],
+  "writes": [],
+  "errors": []
+}

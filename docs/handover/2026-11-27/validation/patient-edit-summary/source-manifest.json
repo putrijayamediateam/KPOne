@@ -1,0 +1,9 @@
+{
+  "base": "bd00307b1a82c4d675bd149ba5cc05e2dba5aa8a",
+  "patch_sha256": "e6bb4c3bf137ae985319e8e280c396a6f5e3723ab59252301bf15e2125aa7b61",
+  "files": {
+    "resources/js/pages/Patient/Edit.vue": "36c99eed42cc9d3d5cf59e42dee3ab27441155618610114ed0b934c197e4d35f",
+    "resources/js/lib/patient-edit-summary.ts": "ba3d44fd02ea3390eb4682e028f129a38e8c9fa0dc8954b5b592d465d00e710f",
+    "tests/Frontend/patient-edit-summary.test.mjs": "23f8aea564d1a8a6de94986c4a193b036c8d37a4e865a34b5975e7ab5fd85bbf"
+  }
+}

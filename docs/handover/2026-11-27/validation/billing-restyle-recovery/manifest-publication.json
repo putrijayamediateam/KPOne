@@ -1,0 +1,11 @@
+{
+  "base": "8013a87483f273a1e18155fc7831c39a8029b6aa",
+  "fresh_main_validation_base": "b71f71486496e1b1dc7b567e2a493ac528272452",
+  "patch_sha256": "351a0ea52b03f91116aacdc916e392eab1a03a39d3d18e24d7fb9516e95a0de9",
+  "files": {
+    "resources/js/components/billing/BillingWorkspace.vue": "684a1a862976fa77868d2930c536e4eb4da84ac6cf1c02ab66f0208961882801",
+    "resources/js/pages/Billing/CashClosings.vue": "4a28f00c4c0dbf77e71674f5468d7d438056583fa5aa2aee8a62a0353a4356a8",
+    "tests/Frontend/dd-29-billing-touch-targets.test.mjs": "0fe5d7f7e87b88481f7779a8927bf89da7f97bcfd006e25edeb1f228b4da468d",
+    "docs/teams/billing/BILLING-RESTYLE-RECOVERY.md": "1fa63fabe042ec822ae8ea85549e2fe051386b041081185f5427971cca1a0ee5"
+  }
+}

@@ -1,0 +1,9 @@
+# Independent presence recovery and batch-authority review
+
+CLEAR for exact6-file artifact86b6e8d7ceb8a94a14b498016d60e2ade95f080807e438f37579a15549ebdb0a; all manifest source hashes independently matched. Read-only source review, no independent heavy tests.
+
+New selectableUserIds is an additive batched equivalent of existing canSelect: same active branch/org equality, organisation-switch bypass, branch-switch permission plus staff-profile effective assignment, and branch-local effective date. Existing canSelect and hasEffectiveAssignment are unchanged. The batch method intentionally does not introduce active-user/role rules; the presence caller freshly filters active organisation users and resident-doctor response authority before counting. This preserves the old authority boundary while avoiding per-user assignment queries. Keyed users and array_values retain bounded lookup/list semantics.
+
+Presence remains cache-only recent polling,30-second strict window,512-entry cap and60-second TTL. Candidate expiry, fresh permission/assignment recheck, nonblocking lock and cache failure return unknown(null), not false zero. No patient or doctor identity enters the new response; only available/doctorCount/windowSeconds are appended to the existing alert response. No grant, migration, roster availability promise or clinical data expansion.
+
+Reviewed new tests compare batched vs single-user authority across branch-local assignment midnight, foreign/no-profile/inactive branch and organisation-switch cases, prove1-vs26 query equality with exact output keys, and exact30-second expiry. Author final exact-source20 tests/135 assertions, PHPStan0 and Pint PASS are attributed evidence, not reviewer reruns. Final remote CI and compatible UI/release dependencies remain coordinator gates; no production activation or full integrated rollout claim.

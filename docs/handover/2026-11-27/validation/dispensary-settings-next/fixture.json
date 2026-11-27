@@ -1,0 +1,5 @@
+{
+    "database": "kpone_dispensary_settings_preview_test",
+    "actor": "settings.supervisor@kpone.test",
+    "branch": 1
+}

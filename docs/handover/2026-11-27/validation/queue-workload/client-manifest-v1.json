@@ -1,0 +1,8 @@
+{
+  "patch_sha256": "87189ecf3bddfe140a1adff3c2c3f43def46a42d0f6e83b49754ef633a2eea36",
+  "files": {
+    "resources/js/composables/useQueueWorkload.ts": "8ec2cb8406b41a70d2bcc81bebaa1786546c3c0a06ab58a4b52c22975962990b",
+    "tests/Frontend/queue-workload.test.mjs": "31988ed137a9f61f8c01cf74cca6c4cfc87c631b89330e10aabde22ae881b33a"
+  },
+  "status": "Client preparation only; not wired into Queue yet;3new behavior tests and scopedlint/format pass"
+}

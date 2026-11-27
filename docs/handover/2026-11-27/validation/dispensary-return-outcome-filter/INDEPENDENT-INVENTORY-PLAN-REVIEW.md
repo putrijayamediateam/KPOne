@@ -1,0 +1,7 @@
+# Independent Inventory plan review
+
+Reviewed actual1155 waitingList signature, checked/waiting base query, paginator/count construction, waitingTotal named withCounts:false caller and controller call. Bounded plan clear. Appending optional outcome after withCounts preserves existing positional/named call contracts; derive from the existing OUTCOMES allowlist, normalize waiting to all, and apply predicate only inside checked query after its existing check join and branch-local month range. Fresh actor/role/permission/branch assignment guards and current organisation/branch filtering must remain unchanged.
+
+Checked active total naturally reflects outcome+controlled; waiting count must continue using base(false) without outcome. When Waiting clears outcome, the other checked tab count reflects all outcomes with current controlled filter: label/filter state must make that reset visible. Existing withCounts:false callers remain count-free except paginator mechanics. Fixed-query tests should compare like-for-like in-range requests; existing out-of-range clamping can legitimately requery pagination. No new join/query/grant/mutation is needed. Keep outcome filter in pagination links and reset page1 on selection changes. Unknown/array HTTP inputs must never reach a scalar typed argument or raw query.
+
+No bounded plan blocker. Final source/tests still require review; no independent heavy test run performed.

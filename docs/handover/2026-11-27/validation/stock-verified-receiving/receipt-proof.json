@@ -1,0 +1,5 @@
+{"receipts" : 1, "reviews" : 1, "approvals" : [{"actor_user_id":2,"lock_version":2}], "consumptions" : 1, "lots" : [{"batch_number":"SYN-RECV-0","quantity":1.000,"outcome":"accepted","reason":null,"cost_total_sen":125,"cost_source":"actual"}, 
+ {"batch_number":"SYN-RECV-1","quantity":1.000,"outcome":"quarantined","reason":"damaged","cost_total_sen":0,"cost_source":"actual"}, 
+ {"batch_number":"SYN-RECV-2","quantity":1.000,"outcome":"rejected","reason":"damaged","cost_total_sen":null,"cost_source":null}], "movements" : [{"batch_number":"SYN-RECV-0","movement_type":"purchase_receipt","quantity":1.000}, 
+ {"batch_number":"SYN-RECV-1","movement_type":"purchase_receipt","quantity":1.000}], "holds" : [{"batch_number":"SYN-RECV-1","action":"place","reason":"damaged"}], "order" : [{"status":"partially_received","ordered_quantity":500.000,"received_quantity":2.000}, 
+ {"status":"partially_received","ordered_quantity":300.000,"received_quantity":0.000}]}

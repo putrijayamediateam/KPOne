@@ -1,0 +1,5 @@
+{
+  "expected": "http://127.0.0.1:3192/dispensary/returns-to-check?view=checked&outcome=quarantine&controlled=yes",
+  "actual": "http://127.0.0.1:3192/dispensary/returns-to-check?controlled=yes&outcome=quarantine&view=checked",
+  "historyLength": 8
+}

@@ -1,0 +1,7 @@
+Calls today in authorized TV settings now shows real branch-local call totals, recalls and room/service counts. Room labels paginate independently at25 while totals remain complete. A single bounded SQL statement keeps counts and the page on one snapshot during concurrent calls; historical room labels remain distinct from current room inventory.
+
+Stats-only GET paging preserves unsaved settings, room and poster drafts, blocks during mutations, cancels stale requests, and retains keyboard focus and last-loaded evidence on errors. The TV feed, spoken calls, privacy settings, permissions and mutation payloads are unchanged. This recovers the existing Q16f disclosure against current main; it is not the full demo TV-page makeover and has no archive#1142 dependency.
+
+Validation:9 backend tests/87 assertions, full frontend2217/2217, PHPStan0, Pint, changed-file lint/format, types and production build pass. Independent backend and UI review cover the frozen candidate. Real synthetic service-created26 calls/25recalls across26 historical labels prove25+1 paging, complete totals, draft/error/retry/focus behavior and390/768/1440light/dark targets. No production data or activation.
+
+The existing CO8 exact endpoint-occurrence assertion adds one duplicate read URL for the new stats GET; all mutation, version and privacy assertions remain. The recovered unpublished stats key assertion adds only pagination metadata. These faithful adaptations are recorded under delegated technical authority and independently reviewed.

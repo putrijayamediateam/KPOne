@@ -1,0 +1,5 @@
+{
+    "database": "kpone_returns_nav_preview_test",
+    "supervisor": "age.supervisor@kpone.test",
+    "ca": "returns.navigation.ca@kpone.test"
+}

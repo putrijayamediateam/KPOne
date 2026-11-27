@@ -1,0 +1,440 @@
+{
+  "captures": [
+    {
+      "name": "saved-summary",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "saved-summary",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "saved-summary",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "saved-summary",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-collapsed",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-collapsed",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-collapsed",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "dirty-collapsed",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "scan-revealed",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "scan-revealed",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "scan-revealed",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "scan-revealed",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "save-error",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "save-error",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "save-error",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "save-error",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "add-disclosures",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "true"
+        }
+      ]
+    },
+    {
+      "name": "add-disclosures",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "true"
+        }
+      ]
+    },
+    {
+      "name": "add-disclosures",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "true"
+        }
+      ]
+    },
+    {
+      "name": "add-disclosures",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "true"
+        }
+      ]
+    },
+    {
+      "name": "doctor-readonly",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "doctor-readonly",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "doctor-readonly",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "disclosures": []
+    },
+    {
+      "name": "doctor-readonly",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "disclosures": []
+    }
+  ],
+  "checks": [
+    "dirty collapse/reopen retains draft and blocker; keyboard focus remains on trigger",
+    "actual SKU scan opens details and retains scanner focus",
+    "real invalid Save all response reopens line and preserves draft",
+    "actual mounted medicine/service searches retain text across close/open",
+    "attending doctor remains readonly without editor/add disclosures"
+  ],
+  "errors": []
+}

@@ -1,0 +1,4 @@
+[{"movement_type":"transfer_dispatch","quantity":2.000,"reference_type":"inventory_stock_request","reference_public_id":"239a24c0-a288-46b7-90d1-444a289a81d5"}, 
+ {"movement_type":"transfer_dispatch","quantity":2.000,"reference_type":"inventory_stock_request","reference_public_id":"b22b7d67-b0c4-4292-a688-9180dbb07441"}, 
+ {"movement_type":"transfer_receipt","quantity":1.000,"reference_type":"inventory_stock_request","reference_public_id":"239a24c0-a288-46b7-90d1-444a289a81d5"}, 
+ {"movement_type":"transfer_receipt","quantity":2.000,"reference_type":"inventory_stock_request","reference_public_id":"b22b7d67-b0c4-4292-a688-9180dbb07441"}]

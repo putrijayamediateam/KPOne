@@ -1,0 +1,60 @@
+[
+  {
+    "path": "resources/js/pages/Registration/Create.vue",
+    "original": "27454cac445c674996a2fbc7283a2c6e868d3b9d",
+    "current": "27454cac445c674996a2fbc7283a2c6e868d3b9d",
+    "identical": true,
+    "scriptIdenticalToMain": true
+  },
+  {
+    "path": "resources/js/pages/Registration/Edit.vue",
+    "original": "5be8fb89876dd413f8d9bf9502d9aa76c2379d97",
+    "current": "5be8fb89876dd413f8d9bf9502d9aa76c2379d97",
+    "identical": true,
+    "scriptIdenticalToMain": true
+  },
+  {
+    "path": "resources/js/pages/Registration/Index.vue",
+    "original": "c2a2f2125eb65d24a4c09c294609a9125f8c944e",
+    "current": "c2a2f2125eb65d24a4c09c294609a9125f8c944e",
+    "identical": true,
+    "scriptIdenticalToMain": true
+  },
+  {
+    "path": "resources/js/pages/Registration/Show.vue",
+    "original": "b3563d724f2f7d23957fd7418e7bb693c811ab37",
+    "current": "b3563d724f2f7d23957fd7418e7bb693c811ab37",
+    "identical": true,
+    "scriptIdenticalToMain": true
+  },
+  {
+    "path": "tests/Frontend/dark-1.test.mjs",
+    "original": "e2bec4c85604fbcca026265b3332fbe7db54581d",
+    "current": "e2bec4c85604fbcca026265b3332fbe7db54581d",
+    "identical": true
+  },
+  {
+    "path": "tests/Frontend/i2-ui-ux-remediation.test.mjs",
+    "original": "6f5dacf8a6a46f26baf0ed66885e72014db2a8fd",
+    "current": "6f5dacf8a6a46f26baf0ed66885e72014db2a8fd",
+    "identical": true
+  },
+  {
+    "path": "tests/Frontend/reg-6-phone-input-fit.test.mjs",
+    "original": "dd5a0beeb4477d64f96343f53cef7cf560ca2a22",
+    "current": "dd5a0beeb4477d64f96343f53cef7cf560ca2a22",
+    "identical": true
+  },
+  {
+    "path": "tests/Frontend/ui-dropdown-darkmode-polish.test.mjs",
+    "original": "cfcc7e2f9a05b397c34f291e586f5bbff85863c3",
+    "current": "cfcc7e2f9a05b397c34f291e586f5bbff85863c3",
+    "identical": true
+  },
+  {
+    "path": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "original": "515cb6676815056b048974ed7cf51955d879fd31",
+    "current": "515cb6676815056b048974ed7cf51955d879fd31",
+    "identical": true
+  }
+]

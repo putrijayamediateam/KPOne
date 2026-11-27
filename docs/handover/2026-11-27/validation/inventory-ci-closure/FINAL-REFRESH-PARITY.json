@@ -1,0 +1,118 @@
+{
+  "service": {
+    "head": "dc72ac506c19b8bb384ed5685c2543f02035db0a",
+    "main": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+    "base": "origin/main",
+    "previous_head": "5efd7d1879a93fbfeab3e819fbb21494c5edf00f",
+    "same": {
+      "app/Domain/Access/PermissionCatalogue.php": true,
+      "app/Domain/Organisation/Inventory/Models/HandCost.php": true,
+      "app/Domain/Organisation/Inventory/Models/StockMovement.php": true,
+      "app/Domain/Organisation/Inventory/Services/HandCostService.php": true,
+      "database/migrations/2026_11_26_110000_create_inventory_hand_costs.php": true,
+      "database/migrations/2026_11_26_110100_grant_inventory_hand_cost_permissions.php": true,
+      "docs/teams/inventory/STK-46-DESIGN.md": true,
+      "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md": true,
+      "docs/teams/inventory/STK-46-SERVICE.md": true,
+      "docs/teams/inventory/TEAM.md": true,
+      "docs/teams/inventory/stk46-drafts/2026_11_26_110000_create_inventory_hand_costs.php": true,
+      "docs/teams/inventory/stk46-drafts/2026_11_26_110100_grant_inventory_hand_cost_permissions.php": true,
+      "phpunit.xml": true,
+      "tests/Feature/Inventory/HandCostTest.php": true,
+      "tests/Feature/Inventory/PostgresHandCostRaceTest.php": true,
+      "tests/Feature/RoleOneRolesTest.php": true,
+      "tests/Support/HandCostFixture.php": true,
+      "tests/Support/HandCostRaceWorker.php": true
+    },
+    "clean": true
+  },
+  "replay": {
+    "head": "1babfa3e7e2b313a839e81040f947edf7eef4b52",
+    "main": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+    "base": "feature/stk-46-design-continue",
+    "previous_head": "517f83d5059fcff6a1f9ebe643622ea529fdd91a",
+    "same": {
+      "app/Domain/Organisation/Inventory/Services/HandCostRestatement.php": true,
+      "app/Domain/Organisation/Inventory/Services/StockJournalSummaryService.php": true,
+      "app/Domain/Organisation/Inventory/Services/StockValuationReportService.php": true,
+      "app/Domain/Organisation/Inventory/Services/WeightedAverageCostService.php": true,
+      "resources/js/pages/Inventory/StockValue.vue": true,
+      "tests/Feature/Inventory/HandCostRestatementTest.php": true,
+      "tests/Unit/Inventory/HandCostReplayTest.php": true
+    },
+    "clean": true
+  },
+  "ui": {
+    "head": "dccaf4c2b2649837a881fcce2e789cfa4c0f078f",
+    "main": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+    "base": "feature/stk-46-replay-publication",
+    "previous_head": "37155056634e7df4464f6ced3969b0ecd3c73efd",
+    "same": {
+      "app/Domain/Organisation/Inventory/Services/HandCostPageService.php": true,
+      "app/Http/Controllers/HandCostController.php": true,
+      "app/Http/Controllers/InventoryController.php": true,
+      "docs/teams/inventory/REL-STK.md": true,
+      "docs/teams/inventory/STK-46-UI.md": true,
+      "docs/teams/inventory/TEAM.md": true,
+      "resources/js/lib/hand-cost.ts": true,
+      "resources/js/pages/Inventory/HandCosts.vue": true,
+      "resources/js/pages/Inventory/Index.vue": true,
+      "routes/web.php": true,
+      "tests/Feature/Inventory/HandCostPageTest.php": true,
+      "tests/Frontend/classic-only-co6-kept-v2-inventory-home.test.mjs": true,
+      "tests/Frontend/dd-12-inventory-headers.test.mjs": true,
+      "tests/Frontend/stk46-hand-cost-money.test.mjs": true
+    },
+    "clean": true
+  },
+  "approver": {
+    "head": "84a8d48cd568a99b0cc76e3f80a297f7f9ed69bf",
+    "main": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+    "base": "origin/main",
+    "previous_head": "2ba4b4ff9ea1493c4aa32fb860a1a98f6c115e21",
+    "same": {
+      "app/Domain/Access/PermissionCatalogue.php": true,
+      "app/Domain/Organisation/Inventory/Services/ProcurementService.php": true,
+      "app/Domain/Organisation/Inventory/Services/SupplierInvoiceService.php": true,
+      "app/Domain/Shared/TrialData/PhaseFourInventory.php": true,
+      "database/migrations/2026_11_07_003800_narrow_purchase_order_and_supplier_invoice_approvers.php": true,
+      "database/seeders/KPOneInventoryWalkSeeder.php": true,
+      "docs/teams/inventory/TEAM.md": true,
+      "resources/js/components/inventory/InventoryOperationsPanel.vue": true,
+      "resources/js/pages/Inventory/SupplierInvoices.vue": true,
+      "tests/Feature/Inventory/ApproverNarrowingMigrationTest.php": true,
+      "tests/Feature/Inventory/PurchaseOrderApprovalTest.php": true,
+      "tests/Feature/Inventory/PurchaseOrderShortCloseTest.php": true,
+      "tests/Feature/Inventory/SupplierInvoiceTest.php": true,
+      "tests/Feature/InventoryWalkSeederTest.php": true,
+      "tests/Frontend/stk19-po-approval.test.mjs": true,
+      "tests/Frontend/stk21-short-close.test.mjs": true,
+      "tests/Frontend/stk22-supplier-invoices.test.mjs": true
+    },
+    "clean": true
+  },
+  "stock": {
+    "head": "456ab8feb459e194255ffe193d0f28fe2d6b749e",
+    "main": "83c5999bb6658c9009c81bc70cb444b8a8e0a9c4",
+    "base": "origin/main",
+    "previous_head": "ac98a31a15cd87db04d03d8976d2238c72a1ebcb",
+    "same": {
+      "docs/teams/inventory/handover-stock-workspace/ASSERTION-BATCH.md": true,
+      "docs/teams/inventory/handover-stock-workspace/ASSERTION-PROPOSAL.patch": true,
+      "docs/teams/inventory/handover-stock-workspace/HOLD.md": true,
+      "docs/teams/inventory/handover-stock-workspace/PLAN.md": true,
+      "docs/teams/inventory/handover-stock-workspace/RESUMED-DECISION.md": true,
+      "docs/teams/inventory/handover-stock-workspace/REVIEW.md": true,
+      "resources/js/components/inventory/StockOnHandList.vue": true,
+      "resources/js/pages/Inventory/Index.vue": true,
+      "tests/Frontend/classic-only-co6-kept-direct.test.mjs": true,
+      "tests/Frontend/i1b-inventory-demo-workspace.test.mjs": true,
+      "tests/Frontend/i2-session2-directory-remediation.test.mjs": true,
+      "tests/Frontend/i2-ui-ux-remediation.test.mjs": true,
+      "tests/Frontend/stk45-report-difference.test.mjs": true,
+      "tests/Frontend/stock-on-hand-runtime.test.mjs": true,
+      "tests/Frontend/ui-leftovers-1.test.mjs": true
+    },
+    "clean": true
+  }
+}

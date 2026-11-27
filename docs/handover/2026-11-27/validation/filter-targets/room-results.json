@@ -1,0 +1,203 @@
+{
+  "results": [
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 390,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 44
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.03) 0px 0px 0px 0.0659px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "room-check-doctor-queue-390-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 390,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 44
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "room-check-doctor-queue-390-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 768,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 44
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.46) 0px 0px 0px 0.914573px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "room-check-doctor-queue-768-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 768,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 44
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(107, 166, 255, 0.176) 0px 0px 0px 0.349441px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "room-check-doctor-queue-768-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 1440,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 36
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36
+        },
+        {
+          "name": "Urgency",
+          "height": 36
+        },
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "Reset",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.176) 0px 0px 0px 0.349441px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "room-check-doctor-queue-1440-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 1440,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 36
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36
+        },
+        {
+          "name": "Urgency",
+          "height": 36
+        },
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "Reset",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(107, 166, 255, 0.173) 0px 0px 0px 0.348529px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "room-check-doctor-queue-1440-dark.png"
+    }
+  ],
+  "errors": []
+}

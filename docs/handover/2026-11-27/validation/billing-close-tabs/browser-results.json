@@ -1,0 +1,86 @@
+[
+  {
+    "name": "month",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "mains": 1,
+    "current": "Cash closing month"
+  },
+  {
+    "name": "month",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "mains": 1,
+    "current": "Cash closing month"
+  },
+  {
+    "name": "month",
+    "width": 1440,
+    "monthNavigation": true
+  },
+  {
+    "name": "terminal",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "mains": 1,
+    "current": "Terminal check"
+  },
+  {
+    "name": "terminal",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "mains": 1,
+    "current": "Terminal check"
+  },
+  {
+    "name": "terminal",
+    "width": 1440,
+    "validationBody": "Record terminal close\n\nEnter the terminal's approved sales totals and transaction counts for this branch, payment method, and business date.\n\nPayment method\nSelect a payment method\nSynthetic cash\nApproved sales transactions\n\nThe terminal sales count field must be at least 0.\n\nApproved sales total (RM)\nTerminal refunds (count)\nTerminal refunds (RM)\nVoided transactions (count)\nVoided transactions (RM)\n\nRefunds and voids are saved as terminal-reported information. They are not subtracted from approved sales and do not trigger a KPOne refund or reversal.\n\nTerminal batch / close reference (optional)\nDo not enter patient names or identifiers, cardholder data, full card numbers, credentials, or secrets.\nKPOne receipts recorded for this method and day\nPosted receipts\n0\nPosted total\nRM 0.00\nReversed receipts (excluded)\n0 · RM 0.00\n\nEstimated sales difference: RM 0.00\nTransaction count also differs.\n\nExplain the difference (required)\nNotes (optional)\nRecord close"
+  },
+  {
+    "name": "month",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "mains": 1,
+    "current": "Cash closing month"
+  },
+  {
+    "name": "month",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "mains": 1,
+    "current": "Cash closing month"
+  },
+  {
+    "name": "month",
+    "width": 390,
+    "monthNavigation": true
+  },
+  {
+    "name": "terminal",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "mains": 1,
+    "current": "Terminal check"
+  },
+  {
+    "name": "terminal",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "mains": 1,
+    "current": "Terminal check"
+  },
+  {
+    "name": "terminal",
+    "width": 390,
+    "validationBody": "Record terminal close\n\nEnter the terminal's approved sales totals and transaction counts for this branch, payment method, and business date.\n\nPayment method\nSelect a payment method\nSynthetic cash\nApproved sales transactions\n\nThe terminal sales count field must be at least 0.\n\nApproved sales total (RM)\nTerminal refunds (count)\nTerminal refunds (RM)\nVoided transactions (count)\nVoided transactions (RM)\n\nRefunds and voids are saved as terminal-reported information. They are not subtracted from approved sales and do not trigger a KPOne refund or reversal.\n\nTerminal batch / close reference (optional)\nDo not enter patient names or identifiers, cardholder data, full card numbers, credentials, or secrets.\nKPOne receipts recorded for this method and day\nPosted receipts\n0\nPosted total\nRM 0.00\nReversed receipts (excluded)\n0 · RM 0.00\n\nEstimated sales difference: RM 0.00\nTransaction count also differs.\n\nExplain the difference (required)\nNotes (optional)\nRecord close"
+  }
+]

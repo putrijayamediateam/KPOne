@@ -1,0 +1,11 @@
+# Next branch Done — historical checkout destination, not current downstream location
+
+Canonical branch Done has Doctor / Now at / Completed. Current approved Queue DTO supplies removalReason and completed-workload-only removedAt; it does not supply current dispensary/payment state. Do not infer Now at from those routing facts or from canOpenEncounter.
+
+Propose truthful narrow adaptation: branch Done No., Patient, Doctor, **Sent to**, **Completed (consultation)**, Actions, with explicit explanation that Sent to records consultation checkout destination and does not indicate current downstream progress. Map only exact sent_to_billing→Billing and sent_to_dispensary→Dispensary, otherwise Not available; no endpoint, new data, policy or permission.
+
+For completed-only Queue rows (identified by present removedAt property, including null), label existing status badge **Consultation checked out** rather than the generic historical helper's Awaiting Billing, which otherwise sounds like current financial state even if visit later completed. This applies truthfully to own/branch Done only; other removed/check rows and generic Registration/emergency/default consumers retain their status logic. No financial/clinical transition is implied. Branch-local date+time from reviewed completionLabel retained, null unavailable.
+
+Move exact safety/status renderer under Patient only for branch+completed, retaining its triage slot, urgent/check warnings, controls and sole parent dialog key. New dedicated Sent to cell replaces the old generic Status column. Preserve Doctor/reassign authority and all existing actions. Current downstream Now at remains an explicitly unresolved metadata contract/full-demo difference, never claimed implemented.
+
+Require Billing lifecycle and Staff presentation review before code. New actual mapper exact routing/unrecognized/null and checkout-only label tests, branch/own Done/default cases, actor policy already backend-covered; real branch/own Done27records25+2 paging +NYbrowser/MYTtime, mobile hit/focus and unchanged state. Existing branchCompleted default-layout expectation needs exact separately reviewed adaptation. Separate draft after branchHeld publication.

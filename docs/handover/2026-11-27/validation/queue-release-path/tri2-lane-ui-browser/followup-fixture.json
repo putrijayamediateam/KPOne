@@ -1,0 +1,16 @@
+{
+    "syntheticOnly": true,
+    "notForClinicalUse": true,
+    "database": "kpone_tri2_lane_ui_preview_test",
+    "branchId": 3,
+    "created": [
+        {
+            "visitNumber": "KPV-00000031",
+            "visitId": 31,
+            "queueId": 31,
+            "patientNumber": "KP-00000041",
+            "triageId": 28
+        }
+    ],
+    "activationCommandRun": false
+}

@@ -1,0 +1,47 @@
+diff --git a/resources/js/pages/Queue/Index.vue b/resources/js/pages/Queue/Index.vue
+--- a/resources/js/pages/Queue/Index.vue
++++ b/resources/js/pages/Queue/Index.vue
+@@ -147,6 +147,9 @@
+ const treatmentAlerts = useTreatmentDoneAlerts(true);
+ const activeTab = ref<QueueTab>('waiting');
+ const workspaceSection = ref<'queue' | 'doctors'>('queue');
++watch([() => live.value.branch.id, () => live.value.scope], () => {
++    workspaceSection.value = 'queue';
++});
+ // Q-5: the Completed tab lists the latest 25 entries; its count is every completed entry at the branch.
+ const completedLine = computed(() =>
+     completedShownLine(
+diff --git a/tests/Frontend/queue-demo-workspace.test.mjs b/tests/Frontend/queue-demo-workspace.test.mjs
+--- a/tests/Frontend/queue-demo-workspace.test.mjs
++++ b/tests/Frontend/queue-demo-workspace.test.mjs
+@@ -157,3 +157,30 @@
+     assert.match(own, /No\.<\/th>/);
+     assert.match(own, /Reason<\/th>/);
+ });
++
++test('changing branch or losing branch-wide view leaves the Doctors section', async () => {
++    const pageSource = readFileSync(
++        'resources/js/pages/Queue/Index.vue',
++        'utf8',
++    );
++    const callback = pageSource.match(
++        /watch\(\s*\[\(\) => live\.value\.branch\.id, \(\) => live\.value\.scope\],[\s\S]*?\n\}\);/,
++    )[0];
++    const live = Vue.ref({ branch: { id: 1 }, scope: 'branch' });
++    const workspaceSection = Vue.ref('doctors');
++    const stop = runInNewContext(callback.replace(/;$/, ''), {
++        watch: Vue.watch,
++        live,
++        workspaceSection,
++    });
++    live.value.scope = 'own';
++    await Vue.nextTick();
++    assert.equal(workspaceSection.value, 'queue');
++    live.value.scope = 'branch';
++    await Vue.nextTick();
++    workspaceSection.value = 'doctors';
++    live.value.branch.id = 2;
++    await Vue.nextTick();
++    assert.equal(workspaceSection.value, 'queue');
++    stop();
++});

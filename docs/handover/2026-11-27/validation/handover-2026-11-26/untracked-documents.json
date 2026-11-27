@@ -1,0 +1,302 @@
+[
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/PROGRESS-2026-11-26.md",
+    "sha256": "93dc7c5f414b3fbd8edb917db132c1695e0ff1b01a55e73fa898b1541651e74b"
+  },
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/design/CLEAN-LOOK-SPEC.md",
+    "sha256": "6447409b85ad983c5f5c548c714705afdc77a992b64e2106506b0f942901a760"
+  },
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/teams/billing/BIL-38-DESIGN.md",
+    "sha256": "d225da8b1c8c37f66c5234e46ffbb44435fb3b76c52214a0742855f02b0e8a64"
+  },
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/teams/dispensary-otc/CLEAN-LOOK-GAPS-2026-11-26.md",
+    "sha256": "e2848494095a6638804444dbb843002e713235fb3bcd3299077ca88366d72bd6"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "docs/evidence/auto-1c/board-1440-light.png",
+    "sha256": "fda8139008f2aba1f420fc288d20028d3deadac4218c5e9185163b4620ca686d"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "docs/teams/patients-registration/AUTO-1c-DESIGN.md",
+    "sha256": "d08d0f95faf295e512d33996a925c7f5c81fd2d07d2b9d1983eec414f7787c80"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "docs/teams/patients-registration/AUTO-1c-RECOVERY-2026-11-26.md",
+    "sha256": "359a549172eb5fd8ad9e2159d496f454ca7d78b2b246190d79624b04573c8254"
+  },
+  {
+    "tree": "/workspace/KPOne-bil36",
+    "file": "docs/teams/billing/BIL-36-DESIGN.md",
+    "sha256": "6c2b95c1e2b645609382d2b1dea0c949966bd094c90a2d85ec04854311d7a2d1"
+  },
+  {
+    "tree": "/workspace/KPOne-bil36",
+    "file": "docs/teams/billing/BIL-36-REVIEW-2026-11-26.md",
+    "sha256": "5fa354028fd46db993f6ca4baac39726bb42b9495064a76a186aecbc8b5055ee"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "docs/teams/billing/BIL-37-DESIGN.md",
+    "sha256": "10c4c0be995a8facac37d9333e1435341e3af743c654a032a0d2ba7b417bb5f0"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "docs/teams/billing/BIL-37-REVIEW-2026-11-26.md",
+    "sha256": "19c8335716e129ff57ef892ac55bdcf5f46b2f3ccec8aa3ce727a5f8bcf446f7"
+  },
+  {
+    "tree": "/workspace/KPOne-bil38",
+    "file": "docs/teams/billing/BIL-38-DESIGN.md",
+    "sha256": "d225da8b1c8c37f66c5234e46ffbb44435fb3b76c52214a0742855f02b0e8a64"
+  },
+  {
+    "tree": "/workspace/KPOne-bil38",
+    "file": "docs/teams/billing/BIL-38-REVIEW-2026-11-26.md",
+    "sha256": "ae021ab6adf73dcc9c34a442953f33a0286d9cb102044f66c3bff80878e78d8c"
+  },
+  {
+    "tree": "/workspace/KPOne-billing-preview",
+    "file": "docs/teams/billing/CLEAN-LOOK-STAGE1-PLAN.md",
+    "sha256": "82d70f5d4c43b46211baa7d627b961e78545c73927ea6947ea2fb6fb7636f091"
+  },
+  {
+    "tree": "/workspace/KPOne-cln-cl1",
+    "file": "docs/reviews/CLN-CL-1-2026-11-26.md",
+    "sha256": "652b6beb6dc67434a65300249dd08436315de6f3a4496688bc83a91e2be1c208"
+  },
+  {
+    "tree": "/workspace/KPOne-cln-cl1",
+    "file": "docs/reviews/CLN-CL-1-APPROVAL-ITEMS.md",
+    "sha256": "faeee36f023bfda0c66a95242d7158fc9f82b4040748f330651957a9762e2e5c"
+  },
+  {
+    "tree": "/workspace/KPOne-dsp-cl1",
+    "file": "docs/reviews/DSP-CL-1-2026-11-26.md",
+    "sha256": "f831e70ea249dfcd60d54fb41cca51fddd4eb372db9e8c37d679426dfad4b806"
+  },
+  {
+    "tree": "/workspace/KPOne-dsp28",
+    "file": "docs/reviews/DSP-28-RECOVERY-2026-11-26.md",
+    "sha256": "d2f40871f06f6122e017455d0b264b58881fa9e240307bc8a4feebea1a65722f"
+  },
+  {
+    "tree": "/workspace/KPOne-dsp28",
+    "file": "docs/teams/dispensary-otc/CLEAN-LOOK-GAPS-2026-11-26.md",
+    "sha256": "f81b7fdd8c64c223bc7d44cd8ee3051a07d7bdcd01a719f3e2e5dfd4923d4008"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  },
+  {
+    "tree": "/workspace/KPOne-filter-targets",
+    "file": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+    "sha256": "816fb21f2c53b4ab47b0f82032904c57851109dbc02b0a0fcaa2405a42b82746"
+  },
+  {
+    "tree": "/workspace/KPOne-filter-targets",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  },
+  {
+    "tree": "/workspace/KPOne-panel30",
+    "file": "docs/teams/panel/PNL-30-BULK-APPROVE-DESIGN.md",
+    "sha256": "ead8346e095cfaa01289f4352585d67eb7b3b7f980c59afc29aefece369a9633"
+  },
+  {
+    "tree": "/workspace/KPOne-panel30",
+    "file": "docs/teams/panel/PNL-30-CONTINUATION-2026-11-26.md",
+    "sha256": "da0d4ef3ae22295f458499c51045b72ef2f5915ba6129c0d8ecfe0a478b01145"
+  },
+  {
+    "tree": "/workspace/KPOne-panel30",
+    "file": "docs/teams/panel/PNL-30-WORDING-APPROVAL.md",
+    "sha256": "2f18b2ef382941ee09aec501b8d6495ee8308f182f2f5ffa08ea2c8bddbb2581"
+  },
+  {
+    "tree": "/workspace/KPOne-q16c",
+    "file": "docs/teams/queue-tv/PROGRESS-2026-11-26.md",
+    "sha256": "b2f3b31022659fcc2872ca0e70d00c4495405a7670b75cad48b6d57fdd44cc3f"
+  },
+  {
+    "tree": "/workspace/KPOne-q16d",
+    "file": "docs/teams/queue-tv/Q16D-REVIEW-2026-11-26.md",
+    "sha256": "5c1380cd42f223d6d0a228faebad2d161d7ae427c75ad161cbe2ea7b8b9b10a3"
+  },
+  {
+    "tree": "/workspace/KPOne-q16e",
+    "file": "docs/teams/queue-tv/Q16E-REVIEW-2026-11-26.md",
+    "sha256": "455812116120499aa0267208e6628ee42f1dbbb818635eea30a018ccceaa0cfb"
+  },
+  {
+    "tree": "/workspace/KPOne-q16f",
+    "file": "docs/teams/queue-tv/Q16F-REVIEW-2026-11-26.md",
+    "sha256": "211b2264e2296a4eeb1fdaa6f7e6cdbb1daf449eca27b460dff8367f9be0b7d9"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+    "sha256": "816fb21f2c53b4ab47b0f82032904c57851109dbc02b0a0fcaa2405a42b82746"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+    "sha256": "816fb21f2c53b4ab47b0f82032904c57851109dbc02b0a0fcaa2405a42b82746"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "docs/teams/patients-registration/STAGE1-HOMES-ASSESSMENT.md",
+    "sha256": "b0b2feb6565ede50a7b3481ae2c0ddb227199e346a0eb016de9acf4ad6743b7d"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "docs/teams/patients-registration/STAGE1-HOMES-ASSESSMENT.md",
+    "sha256": "b0b2feb6565ede50a7b3481ae2c0ddb227199e346a0eb016de9acf4ad6743b7d"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+    "sha256": "816fb21f2c53b4ab47b0f82032904c57851109dbc02b0a0fcaa2405a42b82746"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/STK-46-DESIGN.md",
+    "sha256": "859e358d3f771c459edc635bf854dc62f7886db27d795b5989251f668ee2f04f"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md",
+    "sha256": "29f195dc0ad5a1714e7bd00fb201eff72dcf8e8de63f799d0de63f0d13d6850c"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/STK-46-SERVICE.md",
+    "sha256": "1465bc6168262fca9e5d75cfef6e98ba7772d4563e0a3b02e8ea85985b174114"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/stk46-drafts/2026_11_26_110000_create_inventory_hand_costs.php",
+    "sha256": "4d08366761087bfc2991b8ed4cc81d22f37dc35affe487ccec3cba98e3c16977"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/stk46-drafts/2026_11_26_110100_grant_inventory_hand_cost_permissions.php",
+    "sha256": "ca1665c0dfa79461f314f15cbfdbcefc3375b254534729d80c96129bcba8edd4"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/STK-46-DESIGN.md",
+    "sha256": "859e358d3f771c459edc635bf854dc62f7886db27d795b5989251f668ee2f04f"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md",
+    "sha256": "29f195dc0ad5a1714e7bd00fb201eff72dcf8e8de63f799d0de63f0d13d6850c"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/STK-46-SERVICE.md",
+    "sha256": "1465bc6168262fca9e5d75cfef6e98ba7772d4563e0a3b02e8ea85985b174114"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/stk46-drafts/2026_11_26_110000_create_inventory_hand_costs.php",
+    "sha256": "4d08366761087bfc2991b8ed4cc81d22f37dc35affe487ccec3cba98e3c16977"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/stk46-drafts/2026_11_26_110100_grant_inventory_hand_cost_permissions.php",
+    "sha256": "ca1665c0dfa79461f314f15cbfdbcefc3375b254534729d80c96129bcba8edd4"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-DESIGN.md",
+    "sha256": "859e358d3f771c459edc635bf854dc62f7886db27d795b5989251f668ee2f04f"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md",
+    "sha256": "29f195dc0ad5a1714e7bd00fb201eff72dcf8e8de63f799d0de63f0d13d6850c"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-SERVICE.md",
+    "sha256": "1465bc6168262fca9e5d75cfef6e98ba7772d4563e0a3b02e8ea85985b174114"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-UI.md",
+    "sha256": "d66b783873583eb243f3cff56006812815ec988f64b4c2cd824923b6b933ae3d"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/stk46-drafts/2026_11_26_110000_create_inventory_hand_costs.php",
+    "sha256": "4d08366761087bfc2991b8ed4cc81d22f37dc35affe487ccec3cba98e3c16977"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/stk46-drafts/2026_11_26_110100_grant_inventory_hand_cost_permissions.php",
+    "sha256": "ca1665c0dfa79461f314f15cbfdbcefc3375b254534729d80c96129bcba8edd4"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+    "sha256": "816fb21f2c53b4ab47b0f82032904c57851109dbc02b0a0fcaa2405a42b82746"
+  },
+  {
+    "tree": "/workspace/KPOne-tri-cl1",
+    "file": "docs/reviews/TRI-CL-1-2026-11-26.md",
+    "sha256": "79cd54b993eab982354d3bac5555e7cb4743432c562622c84c5a96eb14847421"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+    "sha256": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da"
+  }
+]

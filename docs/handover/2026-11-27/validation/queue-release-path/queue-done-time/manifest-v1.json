@@ -1,0 +1,13 @@
+{
+  "base": "b0ed07f2771533b743a7e30e8226cce5a7625bcb",
+  "patchSha256": "23ed6cfa2ca26a7ed4d5a1c919c7c9496d4e504a44bf48585f7f23e2020466a1",
+  "files": {
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "5eb7e01112fc77249646e38a20e401155257a29224d9d67d5796e29dbbb49c92",
+    "resources/js/components/patient-board/PatientBoard.vue": "d0d7db3d9b684b64e738bd2b3c96b8e19b1c071f0090ee7b610cb57ceebe1ad7",
+    "resources/js/pages/Queue/Index.vue": "9516c16167d34360fed2b84718c93fd03eae9af7db2d62f3c7f46d4842de0437",
+    "resources/js/types/patientBoard.ts": "5702061035f924429ef13ff29a645ca09fba67cd579c9d8f68610117443344b9",
+    "resources/js/types/queue.ts": "07c0598256656fcffede53fa209ad48543aa2bd6414645bd6ae14b48d5879791",
+    "tests/Feature/Queue/QueueCompletedTimestampTest.php": "92d34c77998a712abf39fe0077a4eac9349ede3925dbe25fb5ac153294802860",
+    "tests/Frontend/queue-task-columns.test.mjs": "7608f4cf56ce664b3cf1959a903f27280913ba79023f4d2578d2cc9d6e261750"
+  }
+}

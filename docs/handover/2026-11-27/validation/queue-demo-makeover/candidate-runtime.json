@@ -1,0 +1,378 @@
+[
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": false,
+    "shot": "candidate-resident_doctor-1440-light.png",
+    "title": [
+      "My patients"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 998
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 89.09375
+      },
+      {
+        "label": "Patient",
+        "width": 249.5
+      },
+      {
+        "label": "Reason",
+        "width": 178.203125
+      },
+      {
+        "label": "Waiting / since",
+        "width": 178.203125
+      },
+      {
+        "label": "Status",
+        "width": 178.203125
+      },
+      {
+        "label": "Actions",
+        "width": 124.796875
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": true,
+    "shot": "candidate-resident_doctor-1440-dark.png",
+    "title": [
+      "My patients"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 998
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 89.09375
+      },
+      {
+        "label": "Patient",
+        "width": 249.5
+      },
+      {
+        "label": "Reason",
+        "width": 178.203125
+      },
+      {
+        "label": "Waiting / since",
+        "width": 178.203125
+      },
+      {
+        "label": "Status",
+        "width": 178.203125
+      },
+      {
+        "label": "Actions",
+        "width": 124.796875
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": false,
+    "shot": "candidate-resident_doctor-390-light.png",
+    "title": [
+      "My patients"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 352
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 0
+      },
+      {
+        "label": "Patient",
+        "width": 0
+      },
+      {
+        "label": "Reason",
+        "width": 0
+      },
+      {
+        "label": "Waiting / since",
+        "width": 0
+      },
+      {
+        "label": "Status",
+        "width": 0
+      },
+      {
+        "label": "Actions",
+        "width": 0
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": true,
+    "shot": "candidate-resident_doctor-390-dark.png",
+    "title": [
+      "My patients"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 352
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 0
+      },
+      {
+        "label": "Patient",
+        "width": 0
+      },
+      {
+        "label": "Reason",
+        "width": 0
+      },
+      {
+        "label": "Waiting / since",
+        "width": 0
+      },
+      {
+        "label": "Status",
+        "width": 0
+      },
+      {
+        "label": "Actions",
+        "width": 0
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "supervisor",
+    "width": 1440,
+    "dark": false,
+    "shot": "candidate-supervisor-1440-light.png",
+    "title": [
+      "Queue"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 998
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 90.71875
+      },
+      {
+        "label": "Patient",
+        "width": 254.03125
+      },
+      {
+        "label": "Doctor",
+        "width": 163.296875
+      },
+      {
+        "label": "Waiting / since",
+        "width": 181.453125
+      },
+      {
+        "label": "Status",
+        "width": 181.453125
+      },
+      {
+        "label": "Actions",
+        "width": 127.046875
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "supervisor",
+    "width": 1440,
+    "dark": true,
+    "shot": "candidate-supervisor-1440-dark.png",
+    "title": [
+      "Queue"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 998
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 90.71875
+      },
+      {
+        "label": "Patient",
+        "width": 254.03125
+      },
+      {
+        "label": "Doctor",
+        "width": 163.296875
+      },
+      {
+        "label": "Waiting / since",
+        "width": 181.453125
+      },
+      {
+        "label": "Status",
+        "width": 181.453125
+      },
+      {
+        "label": "Actions",
+        "width": 127.046875
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "supervisor",
+    "width": 390,
+    "dark": false,
+    "shot": "candidate-supervisor-390-light.png",
+    "title": [
+      "Queue"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 352
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 0
+      },
+      {
+        "label": "Patient",
+        "width": 0
+      },
+      {
+        "label": "Doctor",
+        "width": 0
+      },
+      {
+        "label": "Waiting / since",
+        "width": 0
+      },
+      {
+        "label": "Status",
+        "width": 0
+      },
+      {
+        "label": "Actions",
+        "width": 0
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  },
+  {
+    "role": "supervisor",
+    "width": 390,
+    "dark": true,
+    "shot": "candidate-supervisor-390-dark.png",
+    "title": [
+      "Queue"
+    ],
+    "overflow": false,
+    "activeTab": [
+      "Waiting 0"
+    ],
+    "tableLayout": {
+      "class": "w-full text-left text-[13px] leading-5 table-fixed md:min-w-[800px]",
+      "layout": "fixed",
+      "width": 352
+    },
+    "tableColumns": [
+      {
+        "label": "No.",
+        "width": 0
+      },
+      {
+        "label": "Patient",
+        "width": 0
+      },
+      {
+        "label": "Doctor",
+        "width": 0
+      },
+      {
+        "label": "Waiting / since",
+        "width": 0
+      },
+      {
+        "label": "Status",
+        "width": 0
+      },
+      {
+        "label": "Actions",
+        "width": 0
+      }
+    ],
+    "infoCount": 1,
+    "emergencyLane": 1,
+    "errors": []
+  }
+]

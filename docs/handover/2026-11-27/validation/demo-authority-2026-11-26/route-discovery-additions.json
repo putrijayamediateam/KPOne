@@ -1,0 +1,249 @@
+{
+  "HR": [
+    "/hr/dashboard",
+    "/hr/leave",
+    "/hr/attendance"
+  ],
+  "Admin": [
+    "/approvals",
+    "/staff",
+    "/branches",
+    "/audit-logs"
+  ],
+  "Stock": [
+    "/inventory"
+  ],
+  "Modern": [
+    "/insights/today",
+    "/dashboard"
+  ],
+  "AgentDailySummary": [
+    "/agents/daily-summary"
+  ],
+  "AgentOffice": [
+    "/agents/office"
+  ],
+  "AllAgents": [
+    "/agents"
+  ],
+  "Appraisals": [
+    "/hr/appraisals"
+  ],
+  "Attendance": [
+    "/hr/attendance"
+  ],
+  "ApprovalLimits": [
+    "/billing-approval-limits"
+  ],
+  "AuditLog": [
+    "/audit-logs"
+  ],
+  "CareersPublic": [
+    "/careers/apply"
+  ],
+  "CheckoutSettings": [
+    "/checkout-settings"
+  ],
+  "Compliance": [
+    "/clinic-compliance"
+  ],
+  "CreateClaim": [
+    "/panel-claims/allocations/{allocation}/create"
+  ],
+  "ClaimPack": [
+    "/panel-claims/pack"
+  ],
+  "CorrectPanelPayment": [
+    "/panel-payment-corrections"
+  ],
+  "Credentials": [
+    "/hr/credentials"
+  ],
+  "Discipline": [
+    "/hr/discipline"
+  ],
+  "DispensarySettings": [
+    "/dispensary-settings"
+  ],
+  "DoctorChecks": [
+    "/dispensary/doctor-checks"
+  ],
+  "ReturnsToCheck": [
+    "/dispensary/returns-to-check"
+  ],
+  "HrDashboard": [
+    "/hr/dashboard"
+  ],
+  "HrMessages": [
+    "/hr/messages"
+  ],
+  "Incidents": [
+    "/hr/incidents"
+  ],
+  "JobApplications": [
+    "/hr/applications"
+  ],
+  "LabourCost": [
+    "/hr/labour-cost"
+  ],
+  "Leave": [
+    "/hr/leave"
+  ],
+  "Letters": [
+    "/hr/letters"
+  ],
+  "LocumPay": [
+    "/hr/locum-pay"
+  ],
+  "Memos": [
+    "/hr/memos"
+  ],
+  "OpenShifts": [
+    "/hr/open-shifts"
+  ],
+  "Payroll": [
+    "/hr/payroll"
+  ],
+  "Payslip": [
+    "/hr/payslips/{payslip}"
+  ],
+  "StaffFiles": [
+    "/hr/records"
+  ],
+  "StaffClaims": [
+    "/hr/claims"
+  ],
+  "Sops": [
+    "/hr/sops"
+  ],
+  "MedicineCatalogue": [
+    "/medicines"
+  ],
+  "ServiceCatalogue": [
+    "/clinical-services"
+  ],
+  "MedicineDetails": [
+    "/inventory-services-settings/medicine-details"
+  ],
+  "Suppliers": [
+    "/inventory-services-settings/suppliers"
+  ],
+  "MC": [
+    "/visits/{visit}/medical-certificates"
+  ],
+  "ReferralLetter": [
+    "/visits/{visit}/referrals"
+  ],
+  "Consultation": [
+    "/visits/{visit}/encounter"
+  ],
+  "PreviousConsultation": [
+    "/visits/{historicalVisit}/encounter/history"
+  ],
+  "PharmacyCase": [
+    "/dispensary/{dispensaryCase}"
+  ],
+  "Triage": [
+    "/visits/{visit}/triage"
+  ],
+  "QrCheckins": [
+    "/registration-review"
+  ],
+  "QrLinks": [
+    "/public-checkin-links"
+  ],
+  "PublicQrForm": [
+    "/check-in"
+  ],
+  "PublicQrStatus": [
+    "/check-in/status"
+  ],
+  "StockCount": [
+    "/inventory/counts"
+  ],
+  "WriteOff": [
+    "/inventory/writeoffs"
+  ],
+  "OpeningImport": [
+    "/inventory/opening-import"
+  ],
+  "PilotReadiness": [
+    "/inventory/readiness"
+  ],
+  "SkuEdit": [
+    "/inventory/skus"
+  ],
+  "InvPurchaseRequest": [
+    "/inventory/purchase-requests"
+  ],
+  "WebsiteDoctors": [
+    "/website/doctor-profiles"
+  ],
+  "WebsiteBranches": [
+    "/website/branch-profiles"
+  ],
+  "WebsiteCareers": [
+    "/website/careers"
+  ],
+  "WebsiteFaqs": [
+    "/website/faqs"
+  ],
+  "WebsiteLittleShield": [
+    "/website/little-shield"
+  ],
+  "WebsiteMedia": [
+    "/website/media"
+  ],
+  "WebsitePromotions": [
+    "/website/promotions"
+  ],
+  "WebsiteReleases": [
+    "/website/releases"
+  ],
+  "WebsiteServices": [
+    "/website/services"
+  ],
+  "SignIn": [
+    "/login"
+  ],
+  "Settings": [
+    "/settings"
+  ],
+  "ProfileSettings": [
+    "/settings/profile"
+  ],
+  "PasswordPages": [
+    "/forgot-password",
+    "/reset-password/{token}"
+  ],
+  "DrugLabel": [
+    "/dispensary/{dispensaryCase}/labels"
+  ],
+  "McTemplates": [
+    "/medical-certificate-templates"
+  ],
+  "MyCredentials": [
+    "/clinician-credentials/me"
+  ],
+  "PatientMerge": [
+    "/patient-merges"
+  ],
+  "TerminalCheck": [
+    "/payment-reconciliations"
+  ],
+  "VisitHistory": [
+    "/visits/{visit}/history"
+  ],
+  "PharmacyCompleted": [
+    "/dispensary"
+  ],
+  "TreatmentRoom": [
+    "/visits/{visit}/triage"
+  ],
+  "SupplierPriceList": [
+    "/inventory/supplier-terms"
+  ],
+  "BillsToCollect": [
+    "/pay-later-collections"
+  ]
+}

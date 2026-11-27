@@ -1,0 +1,13 @@
+# Confirmed bounded-alert alarm suppression
+
+Reproduction: NEW `EmergencyAlertBoundedAlarmTest` in the isolated TRI2 tree uses real patient/visit/queue/triage/Take services, branch-local clock,26 red Waiting visits and25 successful Takes. The endpoint remains bounded25 and lane total remains26, while the database contains one open untaken episode. Its response contains only the25 older taken entries. The new expectation that the untaken visit remain visible FAILS (1 test/4 assertions), recorded in `bounded-alarm-proof.log`.
+
+The UI computes untaken entries from returned `takenBy === null`; zero untaken entries removes the emergency title and prevents the repeating tone. Thus this is a behavioral defect, not an assertion migration.
+
+Minimal proposed contract: global alert response prioritizes effectively untaken entries before applying its existing25 limit. Within untaken/taken groups, retain existing legacy-first then known raised-time/queued-time and ID ordering. The separate paginated lane continues to retain taken Waiting rows and uses its own existing order. No new fields, permission, route, migration, unbounded payload, or frontend assertion change is needed.
+
+Effective status must exactly match current projection: latest canonical claim belongs to the visit's current assigned doctor, AND when an open episode exists its taken_claim_id equals that latest claim. A legacy entry may use its latest claim as before. Null episode pointer, pre-floor old claim, mismatched pointer, or reassigned doctor remains effectively untaken. Merely ordering by non-null taken_claim_id would be wrong.
+
+Implementation should add a correlated EXISTS order rank before current order clauses and limit. This adds no separate SQL round-trip. New coverage must include the confirmed25+1 boundary, mixed episode/legacy ordering, and reassignment making a formerly taken item urgent again. Existing RedZoneAlertTest/EmergencyAlertLifecycleTest assertions concern individual rows and do not pin a mixed taken/untaken order; no existing assertion change is anticipated. Run those classes unchanged after authorization.
+
+Application source remains unchanged pending coordinator authorization. The three-file aggregate assertion proposal is independently ready at `TRI2b-PROPOSED-AGGREGATE-ASSERTIONS.patch` (SHA938070930a1e08fe17cef3d05b80cf678455254046638297138c8af3a61a1e7b). Its exact changes remain30→32 pilot queries; ordinarygreen/emergencyred plus own-scope assertion; additive emergency top-level key/empty metadata;400-row ceilings18→20 and16→18, preserving no-growth/source/privacy guards. This new alarm defect does not justify weakening any of those assertions.

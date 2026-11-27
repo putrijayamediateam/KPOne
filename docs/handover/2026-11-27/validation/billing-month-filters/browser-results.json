@@ -1,0 +1,142 @@
+[
+  {
+    "actor": "counter",
+    "width": 1440,
+    "theme": "light",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      36,
+      36,
+      36
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "counter",
+    "width": 1440,
+    "theme": "dark",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      36,
+      36,
+      36
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "counter",
+    "width": 1440,
+    "nativeKeyboardSelection": true,
+    "tabToFlag": true
+  },
+  {
+    "actor": "counter",
+    "width": 1440,
+    "failedNavigationRetains": true,
+    "actualMonthChangeResets": true
+  },
+  {
+    "actor": "counter",
+    "width": 390,
+    "theme": "light",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      44,
+      44,
+      44
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "counter",
+    "width": 390,
+    "theme": "dark",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      44,
+      44,
+      44
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "counter",
+    "width": 390,
+    "nativeKeyboardSelection": true,
+    "tabToFlag": true
+  },
+  {
+    "actor": "counter",
+    "width": 390,
+    "failedNavigationRetains": true,
+    "actualMonthChangeResets": true
+  },
+  {
+    "actor": "readonly",
+    "width": 1440,
+    "theme": "light",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      36,
+      36,
+      36
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "readonly",
+    "width": 1440,
+    "theme": "dark",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      36,
+      36,
+      36
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "readonly",
+    "width": 1440,
+    "nativeKeyboardSelection": true,
+    "tabToFlag": true
+  },
+  {
+    "actor": "readonly",
+    "width": 390,
+    "theme": "light",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      44,
+      44,
+      44
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "readonly",
+    "width": 390,
+    "theme": "dark",
+    "summaryUnchanged": true,
+    "overflow": false,
+    "targets": [
+      44,
+      44,
+      44
+    ],
+    "emptyResetVisible": true
+  },
+  {
+    "actor": "readonly",
+    "width": 390,
+    "nativeKeyboardSelection": true,
+    "tabToFlag": true
+  }
+]

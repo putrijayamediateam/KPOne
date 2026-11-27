@@ -1,0 +1,30 @@
+{
+  "errors": [],
+  "responses": [
+    {
+      "url": "http://127.0.0.1:3111/registration",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:3111/registration",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:3111/registration/create",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:3111/registration",
+      "status": 302,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:3111/registration",
+      "status": 200,
+      "method": "GET"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+    "database": "kpone_dispensary_review_lines_preview_test",
+    "director": "settings.hidden-editor@kpone.test",
+    "activeBranch": null,
+    "cases": [
+        {
+            "case": "53c3253a-cb39-4d6a-9ca0-c89dbd94ea10",
+            "branchId": 3,
+            "branch": "Puchong",
+            "type": "consultation",
+            "patient": "Synthetic CA Endtoend Patient",
+            "status": "completed"
+        },
+        {
+            "case": "79affe97-6cdf-463e-9484-c4c20be994c6",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "consultation",
+            "patient": "Synthetic Visit Patient fl206T5q",
+            "status": "awaiting_doctor_check"
+        },
+        {
+            "case": "3deb3655-f2a2-4acb-a820-47a35aafd0fe",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "otc",
+            "patient": "Synthetic Visit Patient BH7AeVRW",
+            "status": "dispensing"
+        },
+        {
+            "case": "d2077949-8f67-4720-8d10-bdae2bf92bae",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "consultation",
+            "patient": "Synthetic Patient With A Deliberately Long Name For Responsive Review",
+            "status": "dispensing"
+        },
+        {
+            "case": "11941251-79e5-4386-957e-4482d22e923e",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "otc",
+            "patient": "Synthetic Visit Patient 3oBZvKht",
+            "status": "dispensing"
+        },
+        {
+            "case": "85a99dda-8145-4b70-a428-1f5ac2026b68",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "otc",
+            "patient": "Synthetic Visit Patient QvMx7c4u",
+            "status": "dispensing"
+        },
+        {
+            "case": "78ddb9e7-9b58-4af8-868e-da475ff64b4e",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "otc",
+            "patient": "Synthetic Visit Patient G0SPNWXo",
+            "status": "dispensing"
+        },
+        {
+            "case": "a10e5909-96de-459a-acd7-4398585c1629",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "consultation",
+            "patient": "Synthetic Visit Patient tMDjZ687",
+            "status": "dispensing"
+        },
+        {
+            "case": "9bb0aade-1c46-41b2-a3ba-334a42754882",
+            "branchId": 1,
+            "branch": "Cheras",
+            "type": "consultation",
+            "patient": "Synthetic Long Completed Patient With Multiple Names For Narrow Screen Review",
+            "status": "completed"
+        }
+    ]
+}

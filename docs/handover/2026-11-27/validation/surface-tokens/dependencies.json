@@ -1,0 +1,13 @@
+{
+  "source": "/workspace/KPOne-shell1125",
+  "sourceCommit": "5d81b50605d34127498d80cc638a481db6d524c8",
+  "copiedDirectories": [
+    "vendor",
+    "resources/js/routes",
+    "resources/js/actions",
+    "resources/js/wayfinder"
+  ],
+  "dependencyLocksMatch": true,
+  "generatedSymlinks": false,
+  "environmentFilesAccessed": false
+}

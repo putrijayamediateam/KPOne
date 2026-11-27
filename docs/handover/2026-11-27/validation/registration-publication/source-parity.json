@@ -1,0 +1,18 @@
+{
+  "Index": {
+    "scriptEqualMain": true,
+    "equalsStandalone": false
+  },
+  "Create": {
+    "scriptEqualMain": true,
+    "equalsStandalone": true
+  },
+  "Show": {
+    "scriptEqualMain": true,
+    "equalsStandalone": true
+  },
+  "Edit": {
+    "scriptEqualMain": true,
+    "equalsStandalone": true
+  }
+}

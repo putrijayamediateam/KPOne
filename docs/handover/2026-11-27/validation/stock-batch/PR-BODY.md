@@ -1,0 +1,13 @@
+Batch & Expiry previously required horizontal scrolling across nine columns. It now presents one batch/location balance per responsive row, with exact quantity and unit, location, expiry date/status and separate batch/hold status visible. A keyboard disclosure retains SKU, item/medicine and received date details. Expired and held can coexist; zero, fractional units and missing dates keep their existing meanings.
+
+This draft is stacked on the Stock workspace branch (#1144). Its eight-file overlay adds no backend/query, stock action, permission or migration change. Index script excluding imports is byte-identical to the dependency. Loading hides stale controls, projection replacement resets disclosures, and focus stays with a surviving row or the labelled list without stealing external focus. A page-local Location picker wrapper supplies44px mobile/36px desktop targets.
+
+Four existing source-pin tests now follow the actual rendering components; all route, permission, reason fallback and quantity assertions remain, and both extracted lists are checked. These faithful extraction changes were independently reviewed under delegated technical approval.
+
+Validation:
+- Full frontend2,215/2,215 passed; seven new real Vue rendering/focus regressions. After the final sizing class,24 focused tests, final types and production build passed. Full lint/resource format passed, with final changed paths checked again.
+- Real synthetic page at390/1440 light/dark: expired+held details, missing received date, keyboard expansion, server batch filter/reset, return to On-hand, zero browser errors/overflow; measured owned controls44px mobile/36px desktop.
+- Separate native-browser fixture uses the actual compiled component and real Vue DOM renderer (visual icon/status children stubbed): five focus scenarios pass.
+- Independent source/visual review clear; frozen patch SHA75c123bab67ea772971ade3fa79620b252f3386302beb3c9b3b0617c8432a14f matches all8 files. Exact-head CI pending.
+
+No fresh local full backend suite is claimed for this frontend-only overlay. The synthetic browser fixture has13 records on one page; pagination handlers are unchanged and replacement is runtime-tested. Broader Expiring and held workflows, write-off actions, other Inventory pages and SKU aggregation remain separate. No merge, production deployment or real data.

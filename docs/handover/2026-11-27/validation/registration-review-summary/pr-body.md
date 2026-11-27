@@ -1,0 +1,5 @@
+Registration currently requires staff to re-scan the form to check doctor, reasons and coverage before submitting. Add a read-only “Check and register” section reflecting the current selected/new patient, branch, visit, doctor, urgency, ordered reasons and coverage/member reference.
+
+Stacked on #1132 (`feature/clean-look-registration`); this PR contains only the summary component, Create wiring and four new actual-component tests. The original submit handler is byte-identical. Existing validation, repeat confirmation, retry/branch guards and sticky action stay intact. No backend, permissions, schema or existing test assertions change. This is a bounded demo content slice, not the complete modal/four-stage registration flow.
+
+Validation: 2209/2209 frontend tests, TypeScript, production build and full ESLint pass. Actual browser16 states cover new/saved patient, consultation, OTC/panel and validation refusal at390/1440 in both themes, with no page errors, document overflow or patient/visit writes. Original invalid-name focus and current draft updates verified. Independent source/visual review and formatting final gate recorded in the local review packet.

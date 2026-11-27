@@ -1,0 +1,50 @@
+[
+  {
+    "width": 390,
+    "theme": "light",
+    "singleHost": true,
+    "noOverflow": true,
+    "emergencyTitle": true
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "singleHost": true,
+    "noOverflow": true,
+    "emergencyTitle": true
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "singleHost": true,
+    "noOverflow": true,
+    "emergencyTitle": true
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "singleHost": true,
+    "noOverflow": true,
+    "emergencyTitle": true
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "singleHost": true,
+    "noOverflow": true,
+    "emergencyTitle": true
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "singleHost": true,
+    "noOverflow": true,
+    "emergencyTitle": true
+  },
+  {
+    "deviceMuteBounded": true
+  },
+  {
+    "recorderNoResponseOrSound": true
+  }
+]

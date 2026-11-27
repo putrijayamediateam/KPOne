@@ -1,0 +1,19 @@
+# Next Medicine-check metadata contract — preparation, not implemented
+
+Canonical own Medicine checks needs Items and Sent by. Current populated proof already establishes existing own/assigned/attending/permission membership and unchanged state; QueueRow deliberately contains no medicine lines. Preserve that privacy boundary and the current Open Consultation action (no invented Check/Verify shortcut).
+
+Proposed scope: a separately reviewed checks-only structural summary, after the exact existing authorized paged workload projection. Bounded25 entries, identity-based enrichment, constant batched queries. No generic Queue/Registration/TV/public expansion, no permission/migration/clinical transition.
+
+Sender source must be DispensaryCase.sent_for_check_by_user_id, written on each actual sendForDoctorCheck; it is not the original handoff sender nor current handler. Existing DoctorDispensaryAttentionService already shows sentBy under doctor-check authority. Return only authorized sender display name, nullable unavailable when missing, with no user ID or contact data. Revalidate same organisation/branch/awaiting status, assigned+attending doctor, current open handoff before enrichment to avoid races leaking stale evidence.
+
+Items definition remains pending Dispensary peer confirmation of actual assertItemsReady/current-hand-off semantics: count prepared lines, not units, batches, full historic attempts or prescription names. Explicitly assess removed/not_dispensed line handling against existing reader. No application code until this contract is settled. Prefer truthful label 'Item lines' with explanation if raw current-line count includes intentional non-dispensed/removed rows; never claim those are supplied medicines.
+
+Required new tests: sender/current attempt semantics after sendback/resend, removed/partial/unavailable handling, negative other-doctor/CA/director and cross-branch/org, revoked permission, no nested medicine/details/IDs, absent summary elsewhere, 1-versus26 constant queries, independent paging and same versions/state. Actual own mobile/desktop populated proof must preserve original action and persistent host; default Registration/emergency/branch unchanged. Staff plan/source/final review and Dispensary/Billing semantic review before freeze.
+
+## Dispensary source review resolved the count definition
+
+Dispensary peer confirmed: DoctorDispensaryAttentionService::checkLines includes every item of the current open handoff. assertItemsReady refuses pending, requires acknowledgement for partial/not_dispensed unless CHANGE_REMOVED, but does not omit those lines from review. Count all these review lines, including removed/not_dispensed, under **Item lines** with concise explanation. Do not reuse the separate workspace non-not_dispensed count. Sender is exactly sent_for_check_by_user_id. This is independent source-contract review, not a runtime rerun. No medicine names, quantities, IDs or clinical details are proposed.
+
+## Exact identity/concurrency requirements before implementation
+
+Case has unique treatment_plan_id, while open handoff has unique open_case_guard. Do not sum arbitrary historical cases for the same visit or select latest by guess. Build metadata from the current eligible awaiting-check case/encounter and its exact open handoff, restricted to the bounded loaded visit IDs and repeated same organisation/branch/current assignment/attending-doctor authority. If multiple candidates unexpectedly map to one visit, omit metadata as unavailable rather than silently combine. Use one SQL snapshot for sender/count evidence if feasible so a resend cannot mix sender from one attempt with count from another. Output only `{itemLineCount: int, sentBy: string|null}` (null summary if eligibility changed), no case/handoff/staff IDs or clinical details. UI reads the structural summary only; existing action is unchanged.

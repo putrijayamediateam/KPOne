@@ -1,0 +1,166 @@
+{
+  "matrix": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "shadow": "none"
+      }
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "shadow": "none"
+      }
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "shadow": "none"
+      }
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "shadow": "none"
+      }
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "shadow": "none"
+      }
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "shadow": "none"
+      }
+    }
+  ],
+  "errors": [],
+  "target": {
+    "id": 48,
+    "number": "SRN-202611-XCE3QIIN",
+    "quantity": "0.001",
+    "unit": "capsule"
+  },
+  "selfApprovalAbsent": true,
+  "selfExplanation": "SRN-202611-XCE3QIIN\nWaiting for approval\n\n0.001 capsule · DEMO-AMOX250 · batch SYN-RECV-1 (expires 31 Dec 2028) · Cheras Store (Demo)\n\nDemo Pharma Supplies (fictional) · delivery SYN-RECEIVING-REVIEW · Damaged\n\nClose\n\nYou requested this return, so a Finance Officer or Director must approve it.\n\nCancel\nHistory",
+  "staleDialog": "Reject\n\nSRN-202611-XCE3QIIN · DEMO-AMOX250 · batch SYN-RECV-1 · 0.001 capsule · Demo Pharma Supplies (fictional)\n\nWhy are you rejecting it?\nChoose a reason\nSupplier has not agreed\nStock is still usable\nWrong quantity\nOther\nReject\nClose",
+  "final": {
+    "id": 48,
+    "public_id": "831b589a-6ce9-46b8-b719-39eb4b725b3e",
+    "return_number": "SRN-202611-XCE3QIIN",
+    "quantity": "0.001",
+    "base_unit": "capsule",
+    "reason": "damaged",
+    "supplier_reference": null,
+    "requester_user_id": 5,
+    "created_at": "2026-11-27 02:53:14+00",
+    "state": "credited",
+    "lock_version": 4,
+    "sku_code": "DEMO-AMOX250",
+    "item": "Amoxicillin",
+    "batch_number": "SYN-RECV-1",
+    "expiry_date": "2028-12-31",
+    "location": "Cheras Store (Demo)",
+    "supplier": "Demo Pharma Supplies (fictional)",
+    "delivery_reference": "SYN-RECEIVING-REVIEW",
+    "history": [
+      {
+        "id": 64,
+        "return_id": 48,
+        "action": "requested",
+        "state": "awaiting_approval",
+        "actor_user_id": 5,
+        "reason_code": null,
+        "reference": null,
+        "credit_amount_sen": null,
+        "lock_version": 1,
+        "movement_id": null,
+        "created_at": "2026-11-27 02:53:14+00",
+        "actor_name": "You",
+        "at_local": "27 Nov 2026, 10:53 AM"
+      },
+      {
+        "id": 65,
+        "return_id": 48,
+        "action": "approved",
+        "state": "approved",
+        "actor_user_id": 7,
+        "reason_code": null,
+        "reference": null,
+        "credit_amount_sen": null,
+        "lock_version": 2,
+        "movement_id": null,
+        "created_at": "2026-11-27 02:53:20+00",
+        "actor_name": "Demo Finance Officer",
+        "at_local": "27 Nov 2026, 10:53 AM"
+      },
+      {
+        "id": 66,
+        "return_id": 48,
+        "action": "dispatched",
+        "state": "dispatched",
+        "actor_user_id": 5,
+        "reason_code": null,
+        "reference": "SYN-WORKLIST-DISPATCH",
+        "credit_amount_sen": null,
+        "lock_version": 3,
+        "movement_id": 29,
+        "created_at": "2026-11-27 02:53:24+00",
+        "actor_name": "You",
+        "at_local": "27 Nov 2026, 10:53 AM"
+      },
+      {
+        "id": 67,
+        "return_id": 48,
+        "action": "credit_recorded",
+        "state": "credited",
+        "actor_user_id": 7,
+        "reason_code": null,
+        "reference": "SYN-WORKLIST-CREDIT",
+        "credit_amount_sen": null,
+        "lock_version": 4,
+        "movement_id": null,
+        "created_at": "2026-11-27 02:53:27+00",
+        "actor_name": "Demo Finance Officer",
+        "at_local": "27 Nov 2026, 10:53 AM"
+      }
+    ],
+    "canDecide": false,
+    "canDispatch": false,
+    "canCredit": false,
+    "canCancel": false,
+    "requestedByYou": true
+  },
+  "independentSelections": {
+    "group": "true",
+    "single": "true"
+  },
+  "openAfterCredit": 1
+}

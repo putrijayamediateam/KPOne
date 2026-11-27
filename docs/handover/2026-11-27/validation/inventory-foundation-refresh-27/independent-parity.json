@@ -1,0 +1,28 @@
+{
+  "head": "c8409375ebf3bc978635d74a9d5172757afa2fcc",
+  "main": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "original": "814c738ab336b5e4372bc86ef09450aa8c531d43",
+  "files": {
+    "docs/teams/inventory/TEAM.md": true,
+    "resources/js/components/inventory/InventoryOperationsPanel.vue": true,
+    "resources/js/components/inventory/TransferDifferences.vue": true,
+    "resources/js/components/inventory/TransferReceiptForm.vue": true,
+    "resources/js/pages/Inventory/BatchHolds.vue": true,
+    "resources/js/pages/Inventory/GovernedStock.vue": true,
+    "resources/js/pages/Inventory/Readiness.vue": true,
+    "resources/js/pages/Inventory/Skus.vue": true,
+    "resources/js/pages/Inventory/SupplierReturns.vue": true,
+    "tests/Frontend/clean-inv-1-tokens.test.mjs": true,
+    "tests/Frontend/stk6-transfer-shortages.test.mjs": true
+  },
+  "scripts": {
+    "resources/js/components/inventory/InventoryOperationsPanel.vue": true,
+    "resources/js/components/inventory/TransferDifferences.vue": true,
+    "resources/js/components/inventory/TransferReceiptForm.vue": true,
+    "resources/js/pages/Inventory/BatchHolds.vue": true,
+    "resources/js/pages/Inventory/GovernedStock.vue": true,
+    "resources/js/pages/Inventory/Readiness.vue": true,
+    "resources/js/pages/Inventory/Skus.vue": true,
+    "resources/js/pages/Inventory/SupplierReturns.vue": true
+  }
+}

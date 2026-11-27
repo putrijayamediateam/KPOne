@@ -1,0 +1,406 @@
+{
+  "firstId": "239a24c0-a288-46b7-90d1-444a289a81d5",
+  "secondId": "b22b7d67-b0c4-4292-a688-9180dbb07441",
+  "draftPreserved": true,
+  "selfRefused": false,
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 36
+        },
+        {
+          "label": "Search Source location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Source location",
+          "height": 36
+        },
+        {
+          "label": "Search Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 36
+        },
+        {
+          "label": "Remove",
+          "height": 36
+        },
+        {
+          "label": "Add request line",
+          "height": 36
+        },
+        {
+          "label": "Submit stock request",
+          "height": 36
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "DEMO-PARA500 accepted into stock",
+          "height": 36
+        },
+        {
+          "label": "DEMO-PARA500 short",
+          "height": 36
+        },
+        {
+          "label": "DEMO-PARA500 damaged",
+          "height": 36
+        },
+        {
+          "label": "DEMO-PARA500 extra",
+          "height": 36
+        },
+        {
+          "label": "Confirm receipt",
+          "height": 36
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 36
+        },
+        {
+          "label": "Search Source location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Source location",
+          "height": 36
+        },
+        {
+          "label": "Search Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 36
+        },
+        {
+          "label": "Remove",
+          "height": 36
+        },
+        {
+          "label": "Add request line",
+          "height": 36
+        },
+        {
+          "label": "Submit stock request",
+          "height": 36
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "DEMO-PARA500 accepted into stock",
+          "height": 36
+        },
+        {
+          "label": "DEMO-PARA500 short",
+          "height": 36
+        },
+        {
+          "label": "DEMO-PARA500 damaged",
+          "height": 36
+        },
+        {
+          "label": "DEMO-PARA500 extra",
+          "height": 36
+        },
+        {
+          "label": "Confirm receipt",
+          "height": 36
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 44
+        },
+        {
+          "label": "Search Source location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Source location",
+          "height": 44
+        },
+        {
+          "label": "Search Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 44
+        },
+        {
+          "label": "Remove",
+          "height": 44
+        },
+        {
+          "label": "Add request line",
+          "height": 44
+        },
+        {
+          "label": "Submit stock request",
+          "height": 44
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "DEMO-PARA500 accepted into stock",
+          "height": 44
+        },
+        {
+          "label": "DEMO-PARA500 short",
+          "height": 44
+        },
+        {
+          "label": "DEMO-PARA500 damaged",
+          "height": 44
+        },
+        {
+          "label": "DEMO-PARA500 extra",
+          "height": 44
+        },
+        {
+          "label": "Confirm receipt",
+          "height": 44
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 44
+        },
+        {
+          "label": "Search Source location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Source location",
+          "height": 44
+        },
+        {
+          "label": "Search Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 44
+        },
+        {
+          "label": "Remove",
+          "height": 44
+        },
+        {
+          "label": "Add request line",
+          "height": 44
+        },
+        {
+          "label": "Submit stock request",
+          "height": 44
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "DEMO-PARA500 accepted into stock",
+          "height": 44
+        },
+        {
+          "label": "DEMO-PARA500 short",
+          "height": 44
+        },
+        {
+          "label": "DEMO-PARA500 damaged",
+          "height": 44
+        },
+        {
+          "label": "DEMO-PARA500 extra",
+          "height": 44
+        },
+        {
+          "label": "Confirm receipt",
+          "height": 44
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "selfRefusedAfterSettledReceipt": true
+}

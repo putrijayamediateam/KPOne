@@ -1,0 +1,7 @@
+Purchase orders now presents the existing newest 50 scoped orders as a responsive worklist with explicit loaded-window search/status counts and persistent details. Drafts survive collapse/filtering, and per-instance receiving busy ownership keeps an in-flight order visible without changing command authority, payloads, versions or retry keys.
+
+Stacked on #1216. No backend, query, migration or grant change. Unsupported supplier-sent/Returned lifecycle, global totals and pack/lead-time semantics remain separate.
+
+Validation: 2,269 frontend tests, types, scoped lint, resource format, production build and 12 backend tests / 92 assertions pass. Exact independently reviewed source-pin adaptations retain authority/accessibility/monetary checks. Actual synthetic UI proves create/edit/submit, independent approval, refused receiving with retained draft/error, busy disclosure/filter lock and read-only action absence. All balances and 24 stock movements unchanged. Open worklist/create/receiving controls measured at 390/768/1440 in both themes: 44px mobile/tablet and 36px desktop, no overflow or page errors.
+
+Frozen 14-file patch: 265dbcece06e44a7a0d47161eb875db64d0a66822ce0830fe4667b5142f47459. Evidence and independent review: `/workspace/kpone-validation/stock-po-worklist/`. Focus restoration is covered by actual-SFC runtime tests; the real browser proves keyboard disclosure, not every reactive focus path. No production execution or merge.

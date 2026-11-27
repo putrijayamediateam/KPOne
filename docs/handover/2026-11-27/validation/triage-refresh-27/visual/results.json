@@ -1,0 +1,61 @@
+{
+  "kind": "public actual Vue component with synthetic props and production CSS; no authenticated backend proof",
+  "results": [
+    {
+      "viewportWidth": 390,
+      "theme": "light",
+      "height": 44,
+      "width": 132.203125,
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "resetReturnsOfferedGreen": true
+    },
+    {
+      "viewportWidth": 390,
+      "theme": "dark",
+      "height": 44,
+      "width": 132.203125,
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "resetReturnsOfferedGreen": true
+    },
+    {
+      "viewportWidth": 768,
+      "theme": "light",
+      "height": 44,
+      "width": 132.203125,
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "resetReturnsOfferedGreen": true
+    },
+    {
+      "viewportWidth": 768,
+      "theme": "dark",
+      "height": 44,
+      "width": 132.203125,
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "resetReturnsOfferedGreen": true
+    },
+    {
+      "viewportWidth": 1440,
+      "theme": "light",
+      "height": 36,
+      "width": 132.203125,
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "resetReturnsOfferedGreen": true
+    },
+    {
+      "viewportWidth": 1440,
+      "theme": "dark",
+      "height": 36,
+      "width": 132.203125,
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "resetReturnsOfferedGreen": true
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

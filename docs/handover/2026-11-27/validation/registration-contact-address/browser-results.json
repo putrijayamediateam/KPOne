@@ -1,0 +1,549 @@
+{
+  "proof": {
+    "fullpagePatientSection": {
+      "height": 1777,
+      "scrollHeight": 1775,
+      "flexShrink": "0"
+    },
+    "fullpagePhoneEmailAddressTabOrder": true,
+    "fullpageNameFocus": {
+      "id": "quick-patient-name",
+      "label": null,
+      "focused": true,
+      "height": 44,
+      "top": 417,
+      "bottom": 461,
+      "visible": true,
+      "unobstructed": true
+    },
+    "fullpagePhoneFocus": {
+      "id": "quick-phone",
+      "label": null,
+      "focused": true,
+      "height": 44,
+      "top": 478,
+      "bottom": 522,
+      "visible": true,
+      "unobstructed": true
+    },
+    "fullpageIdentifierFocus": {
+      "id": "",
+      "label": "IC or Passport number",
+      "focused": true,
+      "height": 44,
+      "top": 352,
+      "bottom": 396,
+      "visible": true,
+      "unobstructed": true
+    },
+    "minorGuardianUnchanged": true,
+    "dialogPatientSection": {
+      "height": 1813,
+      "scrollHeight": 1811,
+      "flexShrink": "0"
+    },
+    "dialogPhoneEmailAddressTabOrder": true,
+    "dialogNameFocus": {
+      "id": "quick-patient-name",
+      "label": null,
+      "focused": true,
+      "height": 44,
+      "top": 397,
+      "bottom": 441,
+      "visible": true,
+      "unobstructed": true
+    },
+    "dialogPhoneFocus": {
+      "id": "quick-phone",
+      "label": null,
+      "focused": true,
+      "height": 44,
+      "top": 519,
+      "bottom": 563,
+      "visible": true,
+      "unobstructed": true
+    },
+    "dialogIdentifierFocus": {
+      "id": "",
+      "label": "IC or Passport number",
+      "focused": true,
+      "height": 44,
+      "top": 393,
+      "bottom": 437,
+      "visible": true,
+      "unobstructed": true
+    },
+    "uncertainGroupsLocked": true
+  },
+  "captures": [
+    {
+      "state": "fullpage-identity",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-identity",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-identity",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-identity",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-contact",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-contact",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-contact",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-contact",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-address",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-address",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-address",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-address",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-identifiers",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-identifiers",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-identifiers",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-identifiers",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-identifier-error",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-identifier-error",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-identifier-error",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-identifier-error",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-minor",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-minor",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-minor",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-minor",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-address",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-address",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-address",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-address",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identifier-error",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identifier-error",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identifier-error",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identifier-error",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-unconfirmed-contact",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-unconfirmed-contact",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-unconfirmed-contact",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-unconfirmed-contact",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "writes": [
+    {
+      "idempotency_key": "cced1306-5b4c-4285-a17e-aed52abb1ead",
+      "expected_branch_id": 1,
+      "patient_number": "",
+      "quick_patient": {
+        "adult_confirmed": false,
+        "adult_confirmation_key": "086a47a3-e6bd-49f4-9a6d-1bd8d43b2e41",
+        "guardian": null,
+        "full_name": "Synthetic Grouping Draft",
+        "date_of_birth": "",
+        "nationality_code": "",
+        "email": "",
+        "address_line_1": "",
+        "address_line_2": "",
+        "city": "",
+        "state": "",
+        "postcode": "",
+        "country_code": "MY",
+        "sex": "unknown",
+        "mobile_phone": "0123456789",
+        "phone_country": "MY",
+        "duplicate_override": false,
+        "identifiers": [
+          {
+            "identifier_type": "passport",
+            "issuing_country_code": "MY",
+            "value": "SYNTHETIC-GROUP-01"
+          }
+        ]
+      },
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    }
+  ],
+  "geometry": [
+    {
+      "mode": "fullpage",
+      "width": 390,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 390,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 390,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 390,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 390,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 768,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 768,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 768,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 768,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 768,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "fullpage",
+      "width": 1440,
+      "selector": "#quick-phone",
+      "height": 40
+    },
+    {
+      "mode": "fullpage",
+      "width": 1440,
+      "selector": "#quick-phone-country",
+      "height": 40
+    },
+    {
+      "mode": "fullpage",
+      "width": 1440,
+      "selector": "#quick-contact-email",
+      "height": 40
+    },
+    {
+      "mode": "fullpage",
+      "width": 1440,
+      "selector": "#quick-contact-address_line_1",
+      "height": 40
+    },
+    {
+      "mode": "fullpage",
+      "width": 1440,
+      "selector": "#quick-contact-country_code",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-phone",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-phone-country",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-email",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-address_line_1",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-country_code",
+      "height": 40
+    }
+  ],
+  "abortedBeforeServer": 1,
+  "qualification": "Actual client validation and focus. Unconfirmed state is one controlled POST abort before server; no successful creation or committed replay claimed."
+}

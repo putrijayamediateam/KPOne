@@ -1,0 +1,11 @@
+# Next patient mode discrepancy — bounded proposal, no source implementation
+
+The demo puts Find/New modes beside the Patient heading. Current authorized form uses search-first selection and exposes Quick create only through its existing no-listed-result/empty-recent branches. TEAM V2-REG explicitly calls the flow search-first. An unrestricted New mode would remove that existing presentation safeguard, so it is not proposed.
+
+Actual source caveat: current Quick create is also available for a nonempty query shorter than three characters when no rows are listed, and when the recent list is empty; it is not proof that a successful network search found no match. Do not silently tighten this into a new mandatory successful-search rule or claim that current behavior guarantees a completed duplicate search.
+
+Proposed first slice: native accessible Find/New radio-style controls using existing handlers. Find calls existing changePatient; New calls existing startQuickCreate only when its existing affordance would be available, or remains the active current mode. New is otherwise disabled with explicit search-first help. Preserve the same existing eligibility expression, request/state/duplicate policy, masked rows and quick draft behavior; no new grant or API. Existing no-result Quick create action can remain initially until exact interaction review determines whether removing it creates a source-test or discoverability regression.
+
+Requirements for peer contract before code: keyboard behavior for a disabled New option; selected-patient representation as Find; no lost hidden quick draft when returning to Find; pending/uncertain disabled fieldsets still prevent switching; failed/stale search must not be represented as a verified no-match; no implicit create/submit or fake patient number. Existing source assertions require a concrete reviewed adaptation. Preserve current privacy and command snapshot rules.
+
+Alternative if the disabled mode misleads users: retain the existing search-first actions and improve only the Patient heading/help composition, recording demo mode-switch parity as deferred. Coordinator/Staff should choose the bounded interaction from actual workflow evidence; no owner business-rule question is needed unless the existing search-first rule is intentionally changed.

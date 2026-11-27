@@ -1,0 +1,13 @@
+# Completed case optional guidance
+
+Stacked on reviewed Completed context1175/a86be917. Adds a local presentation ref and tertiary header toggle for native About/Good to know disclosures after operational returns content. Critical completion/readonly/return warnings remain outside the optional area. v-show retains native detail expansion. Readonly copy describes staff actions, not doctor mutation. No duplicate Related links, follow-up, Ready workflow or new clinical facts.
+
+Source policy verification: existing DispensaryReturnService requires CHECK+ca_supervisor, refuses checking own record and refuses controlled-medicine quarantine; existing return component explains refund separation. Help uses authorized checker who did not record it, retaining precise separation without expanding authority.
+
+Exact three files: Completed.vue, new actual-template runtime test, TEAM.md. Script equals prior script after removing only the new ref import/declaration. Existing action predicates, URLs, return child and payloads remain untouched. Source manifest/patch d16d4f3ddd3628634c8ca9fd422ec3da5062893639fa797b677eea516422e1b4.
+
+44 focused tests pass (41 existing +3 new actual-template cases), full frontend types/build, scoped ESLint/format/diff and unchanged returns service PHPStan zero. Initial source copied the critical completion phrase into About and used another outline action; review refined About to neutral description and help to tertiary ghost, preserving established primary/outline hierarchy and original assertions. Initial logs retained; no existing assertion changed. Existing parent context renderer lacks the new optional ref and emits Vue warnings in its isolated harness; all its assertions pass; the new helper runtime renderer explicitly supplies the presentation ref.
+
+Actual browser verification uses only task-owned synthetic database kpone_completed_help_preview_test at127.0.0.1:55439, preview3087. No return submission or print is invoked. Responsive/keyboard/persistence results and independent final review are recorded separately before publication. No full backend/contention/migration rerun for this presentation-only slice; remote CI required. No merge/production.
+
+Final actual browser PASS:16 hidden/shown screenshots across CA/doctor at390/1440 in light/dark;8 keyboard/persistence sequences confirm focus stays on toggle and native Good to know expansion survives hide/show. All owned toggle/summary targets >=44 mobile/>=36 desktop; no page overflow or browser errors. Completion/readonly/no-refund notices remain independently visible. No-return/null states rely on actual-template tests rather than claimed browser fixtures.

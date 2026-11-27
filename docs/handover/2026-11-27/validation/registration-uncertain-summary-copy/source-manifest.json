@@ -1,0 +1,9 @@
+{
+  "base": "8c0a494b5b52e1881a1c0982a7cae75a7d3cc744",
+  "patchSha256": "5e18e6456bac9f7193b6e9a03951b7bcaa8c780dbad2627e34fd499732fbcaa6",
+  "files": {
+    "resources/js/components/registration/RegistrationCreateForm.vue": "1d03928185a09c78eb1851e722ad6f347d08fed16283bdb5797423b94ec79c92",
+    "resources/js/components/registration/RegistrationReviewSummary.vue": "7d2f3079a584e5b51f3c219dc0ac88bc8e48982323bceb6e36fe45b5bab031c7",
+    "tests/Frontend/registration-review-summary.test.mjs": "ea9ef83c5dee8fbe27ca4da36171190efeba894a58cd24a97ef6e69a79811504"
+  }
+}

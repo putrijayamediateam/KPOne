@@ -1,0 +1,144 @@
+{
+  "cleared": "Expected delivery date\nNot specified\nSupplier reference\nNot specified",
+  "edits": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date for PO-202611-FQFVOCBW (optional)",
+          "height": 36,
+          "width": 248
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-FQFVOCBW (optional)",
+          "height": 36,
+          "width": 248
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date for PO-202611-FQFVOCBW (optional)",
+          "height": 36,
+          "width": 248
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-FQFVOCBW (optional)",
+          "height": 36,
+          "width": 248
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 326
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 326
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 326
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 326
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 282
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 282
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Expected delivery date for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 282
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-FQFVOCBW (optional)",
+          "height": 44,
+          "width": 282
+        }
+      ]
+    }
+  ],
+  "logos": [
+    {
+      "alt": "Clinic logo",
+      "loaded": true
+    }
+  ],
+  "errors": []
+}

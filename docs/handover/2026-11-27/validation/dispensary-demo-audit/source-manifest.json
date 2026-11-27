@@ -1,0 +1,83 @@
+{
+  "main": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "files": [
+    {
+      "path": "resources/js/pages/Dispensary/Index.vue",
+      "mainSHA256": "ebb8bbe1eea85838ac80716b6f0e902922d336bac9e03fa776e158ac750ace59",
+      "caSHA256": "7025f4d70002e269e8d55ccf7cbad4abd7de51ab0b4e407bed08638c85a0c8d3",
+      "same": false
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Settings.vue",
+      "mainSHA256": "471ed93b6c0ae0a67c96882416561e93e0739cb3d67f6648a04b0580c918dd23",
+      "caSHA256": "471ed93b6c0ae0a67c96882416561e93e0739cb3d67f6648a04b0580c918dd23",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/DoctorChecks.vue",
+      "mainSHA256": "217ac2a582afc9dbb455f8faa3c280d5033e16cf1ee1b435d89f9a40841c099e",
+      "caSHA256": "217ac2a582afc9dbb455f8faa3c280d5033e16cf1ee1b435d89f9a40841c099e",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Review.vue",
+      "mainSHA256": "676dd4b381f7b7881178288554d27783f1af7da705130445577067fb18993164",
+      "caSHA256": "676dd4b381f7b7881178288554d27783f1af7da705130445577067fb18993164",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Labels.vue",
+      "mainSHA256": "257bbfe14f933bcc0f13f57711d03b42b7c40a896585134d65856f7c910f8a79",
+      "caSHA256": "257bbfe14f933bcc0f13f57711d03b42b7c40a896585134d65856f7c910f8a79",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Completed.vue",
+      "mainSHA256": "2beb3985172f3502423b7689e50b73f1c7332213ea199cec8e639c317f1e1de3",
+      "caSHA256": "2beb3985172f3502423b7689e50b73f1c7332213ea199cec8e639c317f1e1de3",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Show.vue",
+      "mainSHA256": "75256e8b09ef1c0770e0e4ebd067061259ef5a48e963410241ec57c3b8041c96",
+      "caSHA256": "2f17cbe9ee935c63c38fd993855792083b628357041325b7abbfeece66c16b95",
+      "same": false
+    },
+    {
+      "path": "resources/js/pages/Dispensary/ReturnsToCheck.vue",
+      "mainSHA256": "8ddeb8313a86375b5697187867ff2a6446286098396b525bdac18be574fb30a3",
+      "caSHA256": "5d4c1be41a990f6042569f6ae95e0aadc2dc465b6aa6ea7a6b80f5d4949bcecf",
+      "same": false
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Partials/AllergyMatchWarning.vue",
+      "mainSHA256": "6b80fac0a4956ab9f6e6bb08128fd8d746e1ce73037986cca4d242b4f4bc273e",
+      "caSHA256": "6b80fac0a4956ab9f6e6bb08128fd8d746e1ce73037986cca4d242b4f4bc273e",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Partials/ReturnCheckPanel.vue",
+      "mainSHA256": "e4a27897d36a214c1ad4ca5559e6d390e15e6992d1c506007eac953609d401c5",
+      "caSHA256": "e4a27897d36a214c1ad4ca5559e6d390e15e6992d1c506007eac953609d401c5",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Partials/OtcAllergyRecordForm.vue",
+      "mainSHA256": "05cca0fd468b8c1035d60dabf89d96bc1875a180b7298bf472b6d818493b556c",
+      "caSHA256": "05cca0fd468b8c1035d60dabf89d96bc1875a180b7298bf472b6d818493b556c",
+      "same": true
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Partials/MedicineReturnsSection.vue",
+      "mainSHA256": "7169374c29bae45f7afe78d698cc4f87d5c0791b87344be40dd1e80f7b7767b8",
+      "caSHA256": "7169374c29bae45f7afe78d698cc4f87d5c0791b87344be40dd1e80f7b7767b8",
+      "same": true
+    },
+    {
+      "path": "app/Domain/DepartmentSpace/PharmacySpace.php",
+      "mainSHA256": "e10b6310864caf806af44d4cfeb5485ae2cd66c149042e3e7baf48d4f514fcd0",
+      "caSHA256": "e38313fd598d6a1ee6e9150f9f2e6967516be5ed3f08956d5fa415bc036b6a8d",
+      "same": false
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+{
+  "keyboardExpanded": "true",
+  "helpHidden": true,
+  "tasksVisible": true,
+  "filteredUrl": "http://127.0.0.1:3071/inventory?page=1&search=DEMO-PARA500&tab=stock",
+  "filteredHasParacetamol": true,
+  "filteredHasAmoxicillin": false,
+  "reportSheet": true,
+  "focusReturned": true,
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "inventory-search",
+          "height": 36
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 36
+        },
+        {
+          "label": "inventory-status",
+          "height": 36
+        },
+        {
+          "label": "My reports (0)",
+          "height": 36
+        },
+        {
+          "label": "About this view",
+          "height": 36
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 36
+        },
+        {
+          "label": "Related pages",
+          "height": 36
+        },
+        {
+          "label": "Good to know",
+          "height": 36
+        }
+      ],
+      "overflow": false,
+      "rows": 13,
+      "held": true,
+      "expired": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "inventory-search",
+          "height": 36
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 36
+        },
+        {
+          "label": "inventory-status",
+          "height": 36
+        },
+        {
+          "label": "My reports (0)",
+          "height": 36
+        },
+        {
+          "label": "About this view",
+          "height": 36
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 36
+        },
+        {
+          "label": "Related pages",
+          "height": 36
+        },
+        {
+          "label": "Good to know",
+          "height": 36
+        }
+      ],
+      "overflow": false,
+      "rows": 13,
+      "held": true,
+      "expired": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "inventory-search",
+          "height": 44
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 44
+        },
+        {
+          "label": "inventory-status",
+          "height": 44
+        },
+        {
+          "label": "My reports (0)",
+          "height": 44
+        },
+        {
+          "label": "About this view",
+          "height": 44
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 44
+        },
+        {
+          "label": "Related pages",
+          "height": 44
+        },
+        {
+          "label": "Good to know",
+          "height": 44
+        }
+      ],
+      "overflow": false,
+      "rows": 13,
+      "held": true,
+      "expired": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "inventory-search",
+          "height": 44
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 44
+        },
+        {
+          "label": "inventory-status",
+          "height": 44
+        },
+        {
+          "label": "My reports (0)",
+          "height": 44
+        },
+        {
+          "label": "About this view",
+          "height": 44
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 44
+        },
+        {
+          "label": "Related pages",
+          "height": 44
+        },
+        {
+          "label": "Good to know",
+          "height": 44
+        }
+      ],
+      "overflow": false,
+      "rows": 13,
+      "held": true,
+      "expired": true
+    }
+  ],
+  "errors": []
+}

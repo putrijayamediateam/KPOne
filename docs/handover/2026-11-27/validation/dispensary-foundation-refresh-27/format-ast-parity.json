@@ -1,0 +1,17 @@
+{
+  "tests/Frontend/dark-1.test.mjs": {
+    "astIdentical": true,
+    "beforeSha256": "2f1844932c5f60d60e19e7495e489ea896ae323408375d4e9809c59993877246",
+    "afterSha256": "4518d282f58760bf84f6291e73e9bbc79771357e4a115e323f9dd185b2eb479d"
+  },
+  "tests/Frontend/ds-01b-3-otc-dispense.test.mjs": {
+    "astIdentical": true,
+    "beforeSha256": "968ffddcda900d143abc1b20f4f04cd6840cf28b5ee173d0b4d0471688563e18",
+    "afterSha256": "b76a2cd5ddd558863eb12b305d2c67ba928c3eea3449b7bc060a288fdcf6fbbd"
+  },
+  "tests/Frontend/ds-01d-dispensary-layout.test.mjs": {
+    "astIdentical": true,
+    "beforeSha256": "3704f0544ae1ee783c064a5c6d24add8baf90d0d6ac15da3b83c9b8fec2f9afc",
+    "afterSha256": "4e5fd19ea32180f3550d59aa1864cea517b0ad2598123ec79984a2951e3e4f87"
+  }
+}

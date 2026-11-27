@@ -1,0 +1,7 @@
+Queue now loads held consultations, treatment updates, medicine checks, Seeing now and Done today from independently paginated authorized queries. Seeing now excludes active holds; Done today uses branch-local checkout-day boundaries, and Treatment updates explicitly does not claim the patient has physically returned. Existing patient actions, versions, emergency lane and clinical outcome policies remain intact.
+
+This draft stacks on #1153 → #1151 → #1145 → archive #1142. Do not merge the archive or treat this as a standalone main candidate; the dependency stack needs scoped extraction and final CI. No migration, permission grant, production activation or TV change is included.
+
+Validation: related PostgreSQL27tests/285assertions, full frontend2283tests, scopedPHPStan, TypeScript, build, lint/format and whitespace passed. Actual browser checks cover own/branch data, reset, failure/retry,390/1440 light/dark and unchanged clinical state; real26-row own and28-row branch paging verifies25-row bounds, stable pages and preserved filters. Existing UI expectations were replaced explicitly under the owner's delegated decision, retaining accessibility, old helper boundaries and Registration behavior; the exact replacement record accompanies the immutable review packet.
+
+Frozen16-file patch SHA256: 8d4e2a2f532a0928fd30832e4eeb18321547f4bb9e818e28ec9e422b9c0295cb. Independent source and final visual review results are recorded with the handover evidence; this bounded Queue slice does not claim complete demo parity for other pages.

@@ -1,0 +1,71 @@
+{
+  "base": "5025cf3e4b0e36aa455f1323affdc271926f2963",
+  "patch": "TREATMENT-RECORD-ON-CALL-v1.patch",
+  "sha256": "d4205fa7169d51b14daaee0f6c7a830ecc6193a990e75e382a6f6d36e2a50285",
+  "files": [
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/Models/TreatmentRoomRecord.php",
+      "sha256": "699e33c221029ecb1d809b9a76c0f2b57d494c5d1c9d36446f63de04bf4992b5"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/Models/TreatmentRoomRecordVoid.php",
+      "sha256": "c6a29b1598e91f03b96c266b6917dbff5fa3d0f7341e0602db74b27b3f4413d6"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/TreatmentRoomDirectory.php",
+      "sha256": "f3497603a677472e814ffcad5c6025089f042e6abe23e0b3b4979d5ad1846e7f"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/TreatmentRoomPagination.php",
+      "sha256": "61c330027eed37f9578ad99ffd4f8f88780e6db234037644660973862647f5da"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/TreatmentRoomPolicy.php",
+      "sha256": "2e305b5949342cd468bdd111fb2a8935227d74cea9856575bde8663597259cef"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/TreatmentRoomProjection.php",
+      "sha256": "0d6b336e02c6177f9547bc502cf34e04a7f9ac36491f75a1f9d7711797d77e07"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/TreatmentRoomService.php",
+      "sha256": "78a62b1de8e4d5b2f9603be0611b644579869546ac78d2e90065db678d6b5668"
+    },
+    {
+      "path": "app/Domain/Clinical/TreatmentRoom/TreatmentRoomVocabulary.php",
+      "sha256": "821eaa6f84eb10f514ca3bc28f7a2ce17219818d5be71a3009c7162fcccbef7b"
+    },
+    {
+      "path": "app/Domain/Queue/Treatment/TreatmentStepProjection.php",
+      "sha256": "e53586e8d065617f5e9299a9ad6f72f875e7d5fe259a304fb893c2bfae48b942"
+    },
+    {
+      "path": "app/Domain/Queue/Treatment/TreatmentStepService.php",
+      "sha256": "2d0dc3a47d8b22ff7062d427af5f879e627f8b1bcd0954298a530f497a4934fb"
+    },
+    {
+      "path": "database/migrations/2026_11_26_180000_create_treatment_room_records.php",
+      "sha256": "a39e12e7dc83472307dd2cef01d415938c4a2e9aad2e0d963df81097a949041f"
+    },
+    {
+      "path": "phpunit.xml",
+      "sha256": "a804f697cf86b64358e2c5e70dfce458b2e59a273d5cb2d9121d8cdb75cca55c"
+    },
+    {
+      "path": "tests/Feature/Clinical/PostgresTreatmentRoomRecordTest.php",
+      "sha256": "3a5ca9d0604c23e016c68d45a0f6b286ab856571fbe87b67903e9dc39ba0abb7"
+    },
+    {
+      "path": "tests/Feature/Clinical/TreatmentRoomPaginationTest.php",
+      "sha256": "704754247ef09c7c35b2cc7983362f269e4c0b7b65a069a692a401740a65dbf8"
+    },
+    {
+      "path": "tests/Feature/Clinical/TreatmentRoomRecordTest.php",
+      "sha256": "6118d0865e74ce13795ecf56091673e19037584bf0a33aa224d29ca69dee6392"
+    },
+    {
+      "path": "tests/Support/PostgresTreatmentRoomRecordWorker.php",
+      "sha256": "d6d2527030194015cce0f8b05ae04c5c63abfd024fec5c549f725da3eef6d3fc"
+    }
+  ]
+}

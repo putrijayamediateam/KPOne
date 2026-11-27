@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6InFmM1FBQkN5cnByUEFoWVJGb1M5TFE9PSIsInZhbHVlIjoiZEVDRmRPd0FiYVg2TXFZSklSNTBlZm9ra0MrNXptTHdTaE9pbTZzNnFFSzF1OWVnSSsxTlVkcTgxYVRwWitNM0JVNU5nZ1BUMUluZWdDbCtvd1J6eFdxNWxDUDcvRE0xTXFVcHpxR0hvU0VFNUxZUXhKd1dqdys3N0thN042dm4iLCJtYWMiOiJlZGVhZjkwMjk1ZGI4MzljYjk4NTQzMGNhOGYwNjhmOWRmZTk1YjYxYjJhODNjYzRmNDBiZTI4NDJmZDQ1MTMyIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795668991.865501,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6IlRuOU9xWTNVNXhQc2o2SHF6K1g1QXc9PSIsInZhbHVlIjoiR1lKUjlmN3lyODNFSG1HdVJlSGE1elBUb0MwNWJ0Q2JLNTZqVWhtbHVYTGx5MENMWUxHOGJuK2Rka1ZjZEhwbHVnR3VxZDVlUVNZdVNYaEVqSXRtOU1wcHg0U2lkdUdmTVNWR0J6L256TXZPM3plYkZFeU5FT01GQUVKb2ROekwiLCJtYWMiOiIwZWYwYjAwYWU4ZDNhYWM1MDZmNjRlYjk2ZDI1NzMyMTMyNGMzNjJmYTRlMzE3MWIwMTkzNjU3YmQ2NzJkZGM1IiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795668991.86566,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3036",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c5-3c0f-7246-ab7c-c56cab4c4273",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c5-3c0f-7246-ab7c-c56cab4c4273\",\"serverEpoch\":\"01a215c5-3c0f-7246-ab7c-c56cab4c4273\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c5-41c6-723d-9bfc-68006c997631",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c5-41c6-723d-9bfc-68006c997631\",\"serverEpoch\":\"01a215c5-41c6-723d-9bfc-68006c997631\"}"
+        },
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c5-41c6-723d-9bfc-68006c997631\",\"serverEpoch\":\"01a215c5-41c6-723d-9bfc-68006c997631\"}"
+        }
+      ]
+    }
+  ]
+}

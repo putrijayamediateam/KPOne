@@ -1,0 +1,19 @@
+{
+  "app/Domain/Access/PermissionCatalogue.php": true,
+  "app/Domain/Organisation/Inventory/Services/ProcurementService.php": true,
+  "app/Domain/Organisation/Inventory/Services/SupplierInvoiceService.php": true,
+  "app/Domain/Shared/TrialData/PhaseFourInventory.php": true,
+  "database/migrations/2026_11_07_003800_narrow_purchase_order_and_supplier_invoice_approvers.php": true,
+  "database/seeders/KPOneInventoryWalkSeeder.php": true,
+  "docs/teams/inventory/TEAM.md": true,
+  "resources/js/components/inventory/InventoryOperationsPanel.vue": true,
+  "resources/js/pages/Inventory/SupplierInvoices.vue": true,
+  "tests/Feature/Inventory/ApproverNarrowingMigrationTest.php": true,
+  "tests/Feature/Inventory/PurchaseOrderApprovalTest.php": true,
+  "tests/Feature/Inventory/PurchaseOrderShortCloseTest.php": true,
+  "tests/Feature/Inventory/SupplierInvoiceTest.php": true,
+  "tests/Feature/InventoryWalkSeederTest.php": true,
+  "tests/Frontend/stk19-po-approval.test.mjs": true,
+  "tests/Frontend/stk21-short-close.test.mjs": true,
+  "tests/Frontend/stk22-supplier-invoices.test.mjs": true
+}

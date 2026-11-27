@@ -1,0 +1,3 @@
+# Delegated whitespace assertion adaptation
+
+Owner standing delegation authorizes technical review decisions. Staff Design independently reviewed WHITESPACE-ASSERTIONS-PROPOSED.patch and approved preserving exact bulk count, canApprove/not-mine conditions, copy and bulk→empty→list order/adjacency while tolerating formatter whitespace after nesting content in the new layout. Applied only these two existing test files; no permission, financial, idempotency or response expectation changed. The final EmptyState matcher additionally accepts whitespace immediately after v-if's opening quote because Prettier wraps that attribute value; reviewer notified. This is delegated technical review, not a new direct owner tick-box answer.

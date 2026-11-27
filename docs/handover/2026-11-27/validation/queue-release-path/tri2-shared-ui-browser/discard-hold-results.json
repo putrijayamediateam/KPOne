@@ -1,0 +1,17 @@
+{
+  "explicitDiscard": true,
+  "noEncounterPatch": true,
+  "savedNotePreserved": true,
+  "oneTake": true,
+  "returnedOriginal": true,
+  "requests": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:3079/visits/KPV-00000006/encounter/hold"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:3079/visits/KPV-00000008/queue/take-red-zone"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "target": "KPV-00000007",
+  "cancelNoRequest": true,
+  "existingCallDialog": true,
+  "oneExplicitCall": true,
+  "laneRowRemovedAfterCall": true,
+  "posts": [
+    {
+      "expected_branch_id": 3,
+      "visit_lock_version": 3,
+      "queue_lock_version": 1
+    }
+  ]
+}

@@ -1,0 +1,268 @@
+{
+    "visit": {
+        "visit_number": "KPV-00000002",
+        "status": "completed",
+        "completed_at": "2026-11-26T03:12:07.000000Z"
+    },
+    "queue": {
+        "status": "removed"
+    },
+    "encounter": {
+        "status": "in_progress"
+    },
+    "dispensary": {
+        "status": "completed",
+        "completed_at": "2026-11-26T03:09:54.000000Z"
+    },
+    "invoice": {
+        "invoice_number": "KPI-00000001",
+        "status": "finalized",
+        "total_sen": 3030
+    },
+    "payments": [
+        {
+            "receipt_number": "KPR-00000001",
+            "status": "posted",
+            "amount_sen": 3030,
+            "method_snapshot": "Synthetic CA cash"
+        }
+    ],
+    "stock_movements": [
+        {
+            "public_id": "d62889df-4868-4f9d-b3b9-4bfc6696d515",
+            "movement_type": "transfer_receipt",
+            "quantity": "1.000",
+            "source_location_id": null,
+            "destination_location_id": 2,
+            "dispensary_item_batch_allocation_id": null
+        },
+        {
+            "public_id": "693c3543-8e41-4f23-8745-9464d5f9272a",
+            "movement_type": "dispense",
+            "quantity": "1.000",
+            "source_location_id": 2,
+            "destination_location_id": null,
+            "dispensary_item_batch_allocation_id": 1
+        }
+    ],
+    "cash_closing": [
+        {
+            "business_date": "2026-11-26T00:00:00.000000Z",
+            "expected_receipt_count": 1,
+            "expected_cash_sen": 3030,
+            "counted_cash_sen": 3030,
+            "variance_sen": 0,
+            "decision_exists": false
+        }
+    ],
+    "audit_events": [
+        {
+            "event": "queue.room.selected",
+            "subject_type": "App\\Models\\User",
+            "subject_id": 18,
+            "occurred_at": "2026-11-26T02:53:41.000000Z"
+        },
+        {
+            "event": "auth.login.succeeded",
+            "subject_type": "App\\Models\\User",
+            "subject_id": 17,
+            "occurred_at": "2026-11-26T02:53:51.000000Z"
+        },
+        {
+            "event": "visit_reason.created",
+            "subject_type": "App\\Domain\\Visit\\Models\\VisitReason",
+            "subject_id": 12,
+            "occurred_at": "2026-11-26T02:54:57.000000Z"
+        },
+        {
+            "event": "patient.identifier.added",
+            "subject_type": "App\\Domain\\Patient\\Models\\Patient",
+            "subject_id": 12,
+            "occurred_at": "2026-11-26T02:56:06.000000Z"
+        },
+        {
+            "event": "patient.created",
+            "subject_type": "App\\Domain\\Patient\\Models\\Patient",
+            "subject_id": 12,
+            "occurred_at": "2026-11-26T02:56:06.000000Z"
+        },
+        {
+            "event": "visit.created",
+            "subject_type": "App\\Domain\\Visit\\Models\\Visit",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T02:56:06.000000Z"
+        },
+        {
+            "event": "queue.entered",
+            "subject_type": "App\\Domain\\Queue\\Models\\QueueEntry",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T02:56:06.000000Z"
+        },
+        {
+            "event": "auth.login.succeeded",
+            "subject_type": "App\\Models\\User",
+            "subject_id": 17,
+            "occurred_at": "2026-11-26T02:56:48.000000Z"
+        },
+        {
+            "event": "visit.triage.recorded",
+            "subject_type": "App\\Domain\\Visit\\Models\\Visit",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T02:57:15.000000Z"
+        },
+        {
+            "event": "auth.login.succeeded",
+            "subject_type": "App\\Models\\User",
+            "subject_id": 18,
+            "occurred_at": "2026-11-26T02:57:22.000000Z"
+        },
+        {
+            "event": "queue.called",
+            "subject_type": "App\\Domain\\Queue\\Models\\QueueEntry",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T02:57:54.000000Z"
+        },
+        {
+            "event": "encounter.started",
+            "subject_type": "App\\Domain\\Clinical\\Models\\ClinicalEncounter",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T02:58:41.000000Z"
+        },
+        {
+            "event": "encounter.vitals_from_triage",
+            "subject_type": "App\\Domain\\Clinical\\Models\\ClinicalEncounter",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T02:58:41.000000Z"
+        },
+        {
+            "event": "encounter.updated",
+            "subject_type": "App\\Domain\\Clinical\\Models\\ClinicalEncounter",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T03:00:48.000000Z"
+        },
+        {
+            "event": "allergy_profile.updated",
+            "subject_type": "App\\Domain\\Clinical\\Models\\PatientAllergyProfile",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:00:51.000000Z"
+        },
+        {
+            "event": "encounter.allergy_reviewed",
+            "subject_type": "App\\Domain\\Clinical\\Models\\ClinicalEncounter",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T03:01:25.000000Z"
+        },
+        {
+            "event": "treatment_plan.created",
+            "subject_type": "App\\Domain\\Clinical\\Models\\TreatmentPlan",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:02:10.000000Z"
+        },
+        {
+            "event": "treatment_plan.sent_to_dispensary",
+            "subject_type": "App\\Domain\\Clinical\\Models\\TreatmentPlan",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:02:38.000000Z"
+        },
+        {
+            "event": "dispensary.started",
+            "subject_type": "App\\Domain\\Clinical\\Dispensary\\Models\\DispensaryCase",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:03:40.000000Z"
+        },
+        {
+            "event": "payment_method.created",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\PaymentMethod",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:07:26.000000Z"
+        },
+        {
+            "event": "payment_method.published",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\PaymentMethod",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:07:26.000000Z"
+        },
+        {
+            "event": "payment_method.classification_changed",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\PaymentMethod",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:07:26.000000Z"
+        },
+        {
+            "event": "inventory.stock_request.received",
+            "subject_type": "App\\Domain\\Organisation\\Inventory\\Models\\StockRequest",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:08:46.000000Z"
+        },
+        {
+            "event": "dispensary.item_edited",
+            "subject_type": "App\\Domain\\Clinical\\Dispensary\\Models\\DispensaryCase",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:09:44.000000Z"
+        },
+        {
+            "event": "inventory.dispensed",
+            "subject_type": "App\\Domain\\Organisation\\Inventory\\Models\\StockMovement",
+            "subject_id": 9,
+            "occurred_at": "2026-11-26T03:09:54.000000Z"
+        },
+        {
+            "event": "dispensary.completed",
+            "subject_type": "App\\Domain\\Clinical\\Dispensary\\Models\\DispensaryCase",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:09:54.000000Z"
+        },
+        {
+            "event": "billing.draft_built",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\Invoice",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:10:03.000000Z"
+        },
+        {
+            "event": "billing.finalized",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\Invoice",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:10:12.000000Z"
+        },
+        {
+            "event": "billing.payment_recorded",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\Invoice",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:10:42.000000Z"
+        },
+        {
+            "event": "billing.cash_counted",
+            "subject_type": "App\\Domain\\Visit\\Billing\\Models\\CashClosing",
+            "subject_id": 1,
+            "occurred_at": "2026-11-26T03:10:46.000000Z"
+        },
+        {
+            "event": "auth.login.succeeded",
+            "subject_type": "App\\Models\\User",
+            "subject_id": 19,
+            "occurred_at": "2026-11-26T03:11:00.000000Z"
+        },
+        {
+            "event": "auth.login.succeeded",
+            "subject_type": "App\\Models\\User",
+            "subject_id": 19,
+            "occurred_at": "2026-11-26T03:11:30.000000Z"
+        },
+        {
+            "event": "billing.visit_completed",
+            "subject_type": "App\\Domain\\Visit\\Models\\Visit",
+            "subject_id": 2,
+            "occurred_at": "2026-11-26T03:12:07.000000Z"
+        }
+    ],
+    "ledger": {
+        "total": 3030,
+        "self_pay": 3030,
+        "panel": 0,
+        "deferred": 0,
+        "due_now": 0
+    },
+    "treatment_plan": {
+        "status": "ready_for_dispensing"
+    }
+}

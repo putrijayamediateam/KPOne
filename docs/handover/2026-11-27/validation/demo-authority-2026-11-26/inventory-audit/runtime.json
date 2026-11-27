@@ -1,0 +1,6557 @@
+[
+  {
+    "role": "supervisor",
+    "requested": "Stock",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nOn hand\n12\nBy form\n7\nExpiring and held\n6\nBatch holds\n9\nStock health\n11\nPack checks\n2\n12\nOn hand\n7\nBy form\n6\nExpiring and held\n9\nBatch holds\nSearch\nUsable stock by item. Open a row for its batches.\nHide helpful info\nLocation: All locations · 142 ▾\nKind: Medicines ▾\nReport a difference\nEdit SKUs\nImport opening stock\nItem\nOn hand\nNearest expiry\nLocation\nParacetamol 500 mg\nTablet · Dispensary\n180 tab\n12/2026 (PC-0412)\nDispensary\nCount\nAmoxicillin 250 mg\nCapsule · Dispensary\n96 cap\n03/2027 (AM-2207)\nDispensary\nCount\nLoratadine 10 mg\nTablet · Dispensary\n60 tab\n08/2027 (LO-1180)\nDispensary\nCount\nSalbutamol inhaler\nInhaler · Store room\n4 unit\n06/2027 (SB-0310)\nStore room\nCount\nNormal saline 0.9% 500 ml\nBag · Treatment room\n7 bag\n02/2027 (NS-1102)\nTreatment room\nCount\nCetirizine 10 mg\nTablet · Dispensary\n120 tab\n01/2027 (CE-0931)\nDispensary\nCount\nOmeprazole 20 mg\nCapsule · Dispensary\n84 cap\n04/2027 (OM-3301)\nDispensary\nCount\nChlorpheniramine 4 mg\nTablet · Dispensary\n210 tab\n—\nDispensary\nCount\nDiclofenac gel 1%\nTube · Dispensary\n9 tube\n—\nDispensary\nCount\nIbuprofen 400 mg\nTablet · Store room\n280 tab\n10/2027 (IB-4410)\nStore room\nCount\nGauze swab 10 x 10\nPack · Treatment room\n14 pack\n01/2029 (GZ-1121)\nTreatment room\nCount\nMetformin 500 mg\nTablet · Dispensary\n460 tab\n09/2027 (MF-5120)\nDispensary\nCount\nAbout this tab\nOn hand\n\nUsable stock by item. Open a row for its batches.\n\nToday at a glance\nOn hand\n12\nBy form\n7\nExpiring and held\n6\nBatch holds\n9\nStock health\n11\nPack checks\n2\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On hand\n12",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "By form\n7",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Expiring and held\n6",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Batch holds\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock health\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Pack checks\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "12\nOn hand",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "7\nBy form",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "6\nExpiring and held",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nBatch holds",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Location: All locations · 142 ▾",
+        "label": "Location: All locations · 142. Change",
+        "disabled": false
+      },
+      {
+        "text": "Kind: Medicines ▾",
+        "label": "Kind: Medicines. Change",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Loratadine 10 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 0.9% 500 ml",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Cetirizine 10 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Omeprazole 20 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Chlorpheniramine 4 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Diclofenac gel 1%",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Ibuprofen 400 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Gauze swab 10 x 10",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Metformin 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nOn hand",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Edit SKUs",
+        "href": "SkuEdit.dc.html"
+      },
+      {
+        "text": "Import opening stock",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "On hand\n12",
+        "href": "#"
+      },
+      {
+        "text": "By form\n7",
+        "href": "#"
+      },
+      {
+        "text": "Expiring and held\n6",
+        "href": "#"
+      },
+      {
+        "text": "Batch holds\n9",
+        "href": "#"
+      },
+      {
+        "text": "Stock health\n11",
+        "href": "#"
+      },
+      {
+        "text": "Pack checks\n2",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "Receiving",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\n8\nPurchase requests\n9\nPurchase orders\n2\nOn order\n4\nReceive delivery\nSearch\nReceiving PO-00318 from Supplier A · Delivery reference (DO no.) DO-2231 · received by Siti · 18 Nov, 09:52. 4 lines on this order · 2 ready · 2 need approval · 1,180 units counted. Stock for exception lines posts only after someone other than the receiver approves them. Rules: a delivery reference is required; every lot needs the real expiry from the box; accepted + quarantined + rejected must equal what arrived; a wrong item is rejected, never swapped in. Each lot records batch, expiry (from the box), accepted, quarantined, rejected and total paid for this lot (RM, optional).\nHide helpful info\nDelivery: PO-00318 · Supplier A · Arrived 09:40 · 4 lines · Now ▾\nInto location: Store room ▾\nScan a box to find its line\nPost receipt\nLine on the order\nOrdered\nLots (batch · expiry)\nResult\nParacetamol 500 mg · tablet\nest. RM 0.05 per unit\n1,000 tab\nPC-0627 · 30/06/2028\n1,000 of 1,000 · adds up\nEnter lots\nAmoxicillin 250 mg · capsule\nest. RM 0.18 per unit\n200 cap\nAM-2301, AM-2302 · 2 lots\n200 of 200 · 20 rejected (damaged)\nEnter lots\nSalbutamol inhaler · unit\nest. RM 9.50 per unit\n6 unit\nSB-0712 · 31/10/2027\n4 of 6 · 2 short\nEnter lots\nNormal saline 0.9% 500 ml · bag\nest. RM 3.20 per unit\n10 bag\n—\nNot entered yet\nEnter lots\nAbout this tab\nReceive delivery\n\nReceiving PO-00318 from Supplier A · Delivery reference (DO no.) DO-2231 · received by Siti · 18 Nov, 09:52. 4 lines on this order · 2 ready · 2 need approval · 1,180 units counted. Stock for exception lines posts only after someone other than the receiver approves them. Rules: a delivery reference is required; every lot needs the real expiry from the box; accepted + quarantined + rejected must equal what arrived; a wrong item is rejected, never swapped in. Each lot records batch, expiry (from the box), accepted, quarantined, rejected and total paid for this lot (RM, optional).\n\nToday at a glance\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase requests\n8",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase orders\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On order\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Receive delivery\n4",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier returns\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier price list\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "8\nPurchase requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nPurchase orders",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "2\nOn order",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "4\nReceive delivery",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Delivery: PO-00318 · Supplier A · Arrived 09:40 · 4 lines · Now ▾",
+        "label": "Delivery: PO-00318 · Supplier A · Arrived 09:40 · 4 lines · Now. Change",
+        "disabled": false
+      },
+      {
+        "text": "Into location: Store room ▾",
+        "label": "Into location: Store room. Change",
+        "disabled": false
+      },
+      {
+        "text": "Scan a box to find its line",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg · tablet",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg · capsule",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler · unit",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 0.9% 500 ml · bag",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nReceive delivery",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Post receipt",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Purchase requests\n8",
+        "href": "#"
+      },
+      {
+        "text": "Purchase orders\n9",
+        "href": "#"
+      },
+      {
+        "text": "On order\n2",
+        "href": "#"
+      },
+      {
+        "text": "Receive delivery\n4",
+        "href": "#"
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "href": "#"
+      },
+      {
+        "text": "Supplier returns\n11",
+        "href": "#"
+      },
+      {
+        "text": "Supplier price list\n9",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "Transfers",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nLow stock and reorder\n10\nTransfers\n15\nOther branches need\n6\n10\nLow stock and reorder\n15\nTransfers\n6\nOther branches need\nSearch\nBranch requests go to the central store on Thursday. Receive what arrives; shortages stay open until someone else resolves them.\nHide helpful info\nDirection: Into Cheras · 5 ▾\nStatus: All ▾\nRequest from the central store (Thursday)\nRequest stock into Cheras\nItem\nQty\nFrom / to\nStatus\nTR-0087\nFrom Puchong · 7 lines · sent 17 Nov\n7 lines\nPuchong → Cheras\nTo receive\nReceive\nTR-0085\nFrom Sg. Besi · 3 lines · sent 16 Nov\n3 lines\nSungai Besi → Cheras\nTo receive\nReceive\nTR-0083\nFrom Puchong · 1 short, 1 damaged\n—\nPuchong → Cheras\nDifferences open\nReceive\nTR-0080\nFrom Sg. Besi · 1 extra\n—\nSungai Besi → Cheras\nDifferences open\nReceive\nTR-0088\nFrom Puchong · asked 18 Nov\n—\nPuchong → Cheras\nRequested\nReceive\nTR-0079\nFrom Puchong · 4 lines · 12 Nov\n4 lines\nPuchong → Cheras\nReceived\nReceive\nTR-0076\nFrom Sg. Besi · arrived later, credited\n—\nSungai Besi → Cheras\nResolved\nReceive\nTR-0074\nFrom Puchong · 6 lines · 8 Nov\n6 lines\nPuchong → Cheras\nReceived\nReceive\nTR-0071\nFrom Sg. Besi · lost in transit, ref LT-0071\n—\nSungai Besi → Cheras\nResolved\nReceive\nTR-0069\nFrom Puchong · 2 lines · 4 Nov\n2 lines\nPuchong → Cheras\nReceived\nReceive\nTR-0089\nTo Sg. Besi · 2 lines · asked 18 Nov\n2 lines\nCheras → Sungai Besi\nTo dispatch\nReceive\nTR-0086\nTo Puchong · 3 lines · sent 17 Nov\n3 lines\nCheras → Puchong\nTo receive\nReceive\nTR-0082\nTo Sg. Besi · 5 lines · 14 Nov\n5 lines\nCheras → Sungai Besi\nReceived\nReceive\nTR-0078\nTo Puchong · 1 short at Puchong\n—\nCheras → Puchong\nDifferences open\nReceive\nTR-0073\nTo Sg. Besi · 2 lines · 7 Nov\n2 lines\nCheras → Sungai Besi\nReceived\nReceive\nAbout this tab\nTransfers\n\nBranch requests go to the central store on Thursday. Receive what arrives; shortages stay open until someone else resolves them.\n\nToday at a glance\nLow stock and reorder\n10\nTransfers\n15\nOther branches need\n6\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Low stock and reorder\n10",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Transfers\n15",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Other branches need\n6",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "10\nLow stock and reorder",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "15\nTransfers",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "6\nOther branches need",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Direction: Into Cheras · 5 ▾",
+        "label": "Direction: Into Cheras · 5. Change",
+        "disabled": false
+      },
+      {
+        "text": "Status: All ▾",
+        "label": "Status: All. Change",
+        "disabled": false
+      },
+      {
+        "text": "Request stock into Cheras",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0087",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0085",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0083",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0080",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0088",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0079",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0076",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0074",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0071",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0069",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0089",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0086",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0082",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0078",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0073",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nTransfers",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Request from the central store (Thursday)",
+        "href": "InvBranchRequest.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Low stock and reorder\n10",
+        "href": "#"
+      },
+      {
+        "text": "Transfers\n15",
+        "href": "#"
+      },
+      {
+        "text": "Other branches need\n6",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "StockCount",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nCounts due\n10\nCount sheet\n11\nWrite-offs\n11\n10\nCounts due\n11\nCount sheet\n11\nWrite-offs\nSearch\n12 counts due · 6 days since the last count. Stock leaves only by a governed count, write-off, transfer or return. Never counted first, then the oldest. Blind count: the system quantity stays hidden while counting.\nHide helpful info\nScan or type barcode\nItem\nOn hand\nLast counted\nLocation\nSalbutamol inhaler\nInhaler\n4\nNever counted\nStore room\nStart count\nMetformin 500 mg\nTablet\n460\n17 Oct 2026\nDispensary\nStart count\nGauze swab 10 x 10\nPack\n14\n20 Oct 2026\nTreatment room\nStart count\nDispensary shelf A\n14 items\n—\nCounting now\nDispensary\nStart count\nOmeprazole 20 mg\nCapsule\n—\n41 days ago\nDispensary\nStart count\nIbuprofen 400 mg\nTablet\n—\n38 days ago\nStore room\nStart count\nNormal saline 500 ml\nBottle\n—\n36 days ago\nTreatment room\nStart count\nCetirizine 10 mg\nTablet\n—\n33 days ago\nDispensary\nStart count\nDiclofenac gel 1%\nTube\n—\n32 days ago\nDispensary\nStart count\nPatient returns\nReturns location\n—\n31 days ago\nReturns location\nStart count\nAbout this tab\nCounts due\n\n12 counts due · 6 days since the last count. Stock leaves only by a governed count, write-off, transfer or return. Never counted first, then the oldest. Blind count: the system quantity stays hidden while counting.\n\nToday at a glance\nCounts due\n10\nCount sheet\n11\nWrite-offs\n11\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts due\n10",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Count sheet\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Write-offs\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "10\nCounts due",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "11\nCount sheet",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "11\nWrite-offs",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan or type barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Metformin 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Gauze swab 10 x 10",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Dispensary shelf A",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Omeprazole 20 mg",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Ibuprofen 400 mg",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 500 ml",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Cetirizine 10 mg",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Diclofenac gel 1%",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Patient returns",
+        "disabled": false
+      },
+      {
+        "text": "Start count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nCounts due",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Counts due\n10",
+        "href": "#"
+      },
+      {
+        "text": "Count sheet\n11",
+        "href": "#"
+      },
+      {
+        "text": "Write-offs\n11",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "WriteOff",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nCounts due\n10\nCount sheet\n11\nWrite-offs\n11\n10\nCounts due\n11\nCount sheet\n11\nWrite-offs\nSearch\nPeople never approve their own write-off. 3 waiting for you · 4 lines in WO-0034 · 1 reversal proposed · 9 approved this month. The approver is never the counter, the recounter or the proposer. Quantities only; stock value is not shown here.\nHide helpful info\nShow: Waiting · 3 ▾\nWrite-off\nDetail\nReason\nStatus\nWO-0034\nExpired, Dispensary\n4 lines · proposed by Siti · 17 Nov\nExpired\nWaiting for approval\nApprove\nWO-0033\nDamaged, Store room\n2 lines · proposed by Siti · 16 Nov\nDamaged\nWaiting for approval\nApprove\nWO-0031\nReversal of WO-0029\nWrong batch chosen · by Siti\nReversal of WO-0029\nReversal proposed\nApprove\nWO-0032\nCount difference\nFrom count SC-0118 · 2 short\nCount difference\nApproved\nWO-0030\nExpired, Treatment room\n3 lines · approved by Dr. Director\nExpired\nApproved\nWO-0029\nDamaged, Dispensary\n1 line · reversal waiting\nDamaged\nApproved\nWO-0028\nContaminated\nProposer asked to add disposal ref\nContaminated\nReturned\nApprove\nWO-0027\nExpired, Store room\n5 lines · approved by Farid\nExpired\nApproved\nWO-0026\nCount difference\nFrom count SC-0109 · 1 short\nCount difference\nApproved\nWO-0025\nDamaged, Store room\nReversed by WO-0025R\nDamaged\nReversed\nApprove\nWO-0024\nExpired, Dispensary\n2 lines · approved by Farid\nExpired\nApproved\nAbout this tab\nWrite-offs\n\nPeople never approve their own write-off. 3 waiting for you · 4 lines in WO-0034 · 1 reversal proposed · 9 approved this month. The approver is never the counter, the recounter or the proposer. Quantities only; stock value is not shown here.\n\nToday at a glance\nCounts due\n10\nCount sheet\n11\nWrite-offs\n11\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts due\n10",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Count sheet\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Write-offs\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "10\nCounts due",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "11\nCount sheet",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "11\nWrite-offs",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Show: Waiting · 3 ▾",
+        "label": "Show: Waiting · 3. Change",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0034",
+        "disabled": false
+      },
+      {
+        "text": "Approve",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0033",
+        "disabled": false
+      },
+      {
+        "text": "Approve",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0031",
+        "disabled": false
+      },
+      {
+        "text": "Approve",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0032",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0030",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0029",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0028",
+        "disabled": false
+      },
+      {
+        "text": "Approve",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0027",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0026",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0025",
+        "disabled": false
+      },
+      {
+        "text": "Approve",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for WO-0024",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nWrite-offs",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Counts due\n10",
+        "href": "#"
+      },
+      {
+        "text": "Count sheet\n11",
+        "href": "#"
+      },
+      {
+        "text": "Write-offs\n11",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "BatchHolds",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nOn hand\n12\nBy form\n7\nExpiring and held\n6\nBatch holds\n9\nStock health\n11\nPack checks\n2\n12\nOn hand\n7\nBy form\n6\nExpiring and held\n9\nBatch holds\nSearch\nCheras · 25 per page. Held stock cannot be allocated or dispensed. Placing or releasing a hold changes no quantity and creates no movement. Place: CA Supervisor, Finance Officer or Director. Release: Finance Officer or Director, never the person who placed the hold. No disposal, patient tracing or notifications.\nHide helpful info\nShow: All batches · 9 ▾\nDemo, act as: Siti (CA Supervisor) ▾\nPrevious\nNext\nRecalls (every branch)\nWrite off stock\nItem · batch\nExpiry\nLocation\nHold\nAmoxicillin 250 mg capsule\nbatch AM-2207\n03/2027\nDispensary\nNo active branch hold\nHold or release\nNormal saline 500 ml\nbatch NS-1102\n02/2027\nTreatment room\nHeld: suspected quality issue · by Siti\nHold or release\nCetirizine 10 mg tablet\nbatch CE-0931\n01/2027\nDispensary\nHeld: damaged · by Mei Lin\nHold or release\nParacetamol 500 mg tablet\nbatch PC-0412\n12/2026\nDispensary\nNo active branch hold\nHold or release\nOmeprazole 20 mg capsule\nbatch OM-3301\n04/2027\nStore room\nNo active branch hold\nHold or release\nMetformin 500 mg tablet\nbatch MF-5120\n09/2027\nDispensary\nNo active branch hold\nHold or release\nSalbutamol inhaler 100 mcg\nbatch SB-0310\n06/2027\nDispensary\nHeld: recall · by Siti\nHold or release\nLoratadine 10 mg tablet\nbatch LO-1180\n08/2027\nDispensary\nNo active branch hold\nHold or release\nIbuprofen 400 mg tablet\nbatch IB-4410\n10/2027\nStore room\nNo active branch hold\nHold or release\nAbout this tab\nBatch holds\n\nCheras · 25 per page. Held stock cannot be allocated or dispensed. Placing or releasing a hold changes no quantity and creates no movement. Place: CA Supervisor, Finance Officer or Director. Release: Finance Officer or Director, never the person who placed the hold. No disposal, patient tracing or notifications.\n\nToday at a glance\nOn hand\n12\nBy form\n7\nExpiring and held\n6\nBatch holds\n9\nStock health\n11\nPack checks\n2\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On hand\n12",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "By form\n7",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Expiring and held\n6",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Batch holds\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock health\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Pack checks\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "12\nOn hand",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "7\nBy form",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "6\nExpiring and held",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nBatch holds",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Show: All batches · 9 ▾",
+        "label": "Show: All batches · 9. Change",
+        "disabled": false
+      },
+      {
+        "text": "Demo, act as: Siti (CA Supervisor) ▾",
+        "label": "Demo, act as: Siti (CA Supervisor). Change",
+        "disabled": false
+      },
+      {
+        "text": "Previous",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Next",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Recalls (every branch)",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Write off stock",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg capsule",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 500 ml",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Cetirizine 10 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Omeprazole 20 mg capsule",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Metformin 500 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler 100 mcg",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Loratadine 10 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Ibuprofen 400 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "Hold or release",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nBatch holds",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "On hand\n12",
+        "href": "#"
+      },
+      {
+        "text": "By form\n7",
+        "href": "#"
+      },
+      {
+        "text": "Expiring and held\n6",
+        "href": "#"
+      },
+      {
+        "text": "Batch holds\n9",
+        "href": "#"
+      },
+      {
+        "text": "Stock health\n11",
+        "href": "#"
+      },
+      {
+        "text": "Pack checks\n2",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "InvReceive",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#InvReceive",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\n8\nPurchase requests\n9\nPurchase orders\n2\nOn order\n4\nReceive delivery\nSearch\nReceiving PO-00318 from Supplier A · Delivery reference (DO no.) DO-2231 · received by Siti · 18 Nov, 09:52. 4 lines on this order · 2 ready · 2 need approval · 1,180 units counted. Stock for exception lines posts only after someone other than the receiver approves them. Rules: a delivery reference is required; every lot needs the real expiry from the box; accepted + quarantined + rejected must equal what arrived; a wrong item is rejected, never swapped in. Each lot records batch, expiry (from the box), accepted, quarantined, rejected and total paid for this lot (RM, optional).\nHide helpful info\nDelivery: PO-00318 · Supplier A · Arrived 09:40 · 4 lines · Now ▾\nInto location: Store room ▾\nScan a box to find its line\nPost receipt\nLine on the order\nOrdered\nLots (batch · expiry)\nResult\nParacetamol 500 mg · tablet\nest. RM 0.05 per unit\n1,000 tab\nPC-0627 · 30/06/2028\n1,000 of 1,000 · adds up\nEnter lots\nAmoxicillin 250 mg · capsule\nest. RM 0.18 per unit\n200 cap\nAM-2301, AM-2302 · 2 lots\n200 of 200 · 20 rejected (damaged)\nEnter lots\nSalbutamol inhaler · unit\nest. RM 9.50 per unit\n6 unit\nSB-0712 · 31/10/2027\n4 of 6 · 2 short\nEnter lots\nNormal saline 0.9% 500 ml · bag\nest. RM 3.20 per unit\n10 bag\n—\nNot entered yet\nEnter lots\nAbout this tab\nReceive delivery\n\nReceiving PO-00318 from Supplier A · Delivery reference (DO no.) DO-2231 · received by Siti · 18 Nov, 09:52. 4 lines on this order · 2 ready · 2 need approval · 1,180 units counted. Stock for exception lines posts only after someone other than the receiver approves them. Rules: a delivery reference is required; every lot needs the real expiry from the box; accepted + quarantined + rejected must equal what arrived; a wrong item is rejected, never swapped in. Each lot records batch, expiry (from the box), accepted, quarantined, rejected and total paid for this lot (RM, optional).\n\nToday at a glance\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\nRelated pages\nGood to know\nReceive delivery\nArrived 09:40\n\nPO/CHR/2026/0116 · Medipharm Supplies (test) · Central store · Cheras (HQ)\n\nThis delivery has an exception (2 short, 10 damaged). Stock posts only after someone else approves the exception.\n\nDelivery\nSupplier delivery reference (required)\nReceived at\nReceived by\nRizal (Store Admin)\nTotal paid for this delivery (RM, optional)\nLeft blank, the order estimate is kept and marked estimate.\nLots\n\nScan a box to find its line. A scan only finds; it never fills a quantity.\n\nLine\tBatch\tExpiry (from the box)\tAccepted\tQuarantined\tRejected\tReason\nParacetamol 500 mg tablet\t\t\t\t\t\t—\nAmoxicillin 250 mg capsule\t\t\t\t\t\t\nDamaged\nWrong item\nExpiry problem\nOverage\n\nAmoxicillin 250 mg capsule (2nd lot)\t\t\t\t\t\t—\nSalbutamol inhaler 100 mcg\t\t\t\t\t\t\nShort (2 not delivered)\nDamaged\n+ Split into another lot\nCheck\n✓\nI checked each batch and expiry against the boxes\nCancel\nScan a box\nPost receipt\nDesign notes\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase requests\n8",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase orders\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On order\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Receive delivery\n4",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier returns\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier price list\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "8\nPurchase requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nPurchase orders",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "2\nOn order",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "4\nReceive delivery",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Delivery: PO-00318 · Supplier A · Arrived 09:40 · 4 lines · Now ▾",
+        "label": "Delivery: PO-00318 · Supplier A · Arrived 09:40 · 4 lines · Now. Change",
+        "disabled": false
+      },
+      {
+        "text": "Into location: Store room ▾",
+        "label": "Into location: Store room. Change",
+        "disabled": false
+      },
+      {
+        "text": "Scan a box to find its line",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg · tablet",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg · capsule",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler · unit",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 0.9% 500 ml · bag",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nReceive delivery",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "+ Split into another lot",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "✓\nI checked each batch and expiry against the boxes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan a box",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Post receipt",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Design notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Post receipt",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Enter lots",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Purchase requests\n8",
+        "href": "#"
+      },
+      {
+        "text": "Purchase orders\n9",
+        "href": "#"
+      },
+      {
+        "text": "On order\n2",
+        "href": "#"
+      },
+      {
+        "text": "Receive delivery\n4",
+        "href": "#"
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "href": "#"
+      },
+      {
+        "text": "Supplier returns\n11",
+        "href": "#"
+      },
+      {
+        "text": "Supplier price list\n9",
+        "href": "#"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "Cancel",
+        "href": "Stock.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "InvDispatch",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#InvDispatch",
+    "text": "KP\nSI\n4\nInventory\nHQ central store · Store Admin · buys and sends for all branches\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew purchase request\nBranch requests\nCentral stock\nBuying\nBranch requests\n3\nDispatched\n1\n3\nBranch requests\n1\nDispatched\nSearch\nThursday requests from the branches. Prepare, pick batches first-expiry-first, then dispatch.\nHide helpful info\nRequest day: Thursday · Proposal\nBranch\nItems\nRequested\nStatus\nPuchong\nrequested by Aida (CA Supervisor)\n12\nThu 19 Nov · 4:40 PM\nWaiting to prepare\nPrepare and dispatch\nSungai Besi\nrequested by Farid (CA Supervisor)\n7\nThu 19 Nov · 5:05 PM\nWaiting to prepare\nPrepare and dispatch\nCheras\nurgent request\n1\nMon 23 Nov · 9:15 AM\nOutside request day\nPrepare and dispatch\nAbout this tab\nBranch requests\n\nThursday requests from the branches. Prepare, pick batches first-expiry-first, then dispatch.\n\nToday at a glance\nBranch requests\n3\nDispatched\n1\nRelated pages\nGood to know\nDispatch transfer\nWaiting to prepare\n\nPuchong request · 12 lines (3 shown) · requested Thu 19 Nov by Aida\n\nPick list\nItem\tAsked\tBatch (earliest expiry first)\tSend\nParacetamol 500 mg tablet\t1,000\t\nPC-0412 · exp 12/2026 · 1,200 on hand\nPC-0519 · exp 05/2027 · 4,000 on hand\n\t\nAmoxicillin 250 mg capsule\t400\t\nAM-2219 · exp 08/2027 · 900 on hand\nAM-2207 · on safety hold (cannot send)\n\t\nGauze swab 10 x 10\t20\t\nGZ-1102 · no expiry · 60 on hand\n\t\nIf you chose a later batch\nReason (only when not the earliest)\nNot needed: earliest chosen\nEarliest batch is packed for another branch\nEarliest batch is too small for this request\nCancel\nPrint pick list\nDispatch transfer\nDesign notes\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Central stock",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Buying",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch requests\n3",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Dispatched\n1",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "3\nBranch requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "1\nDispatched",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Request day: Thursday · Proposal",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Puchong",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Sungai Besi",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Cheras",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nBranch requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Print pick list",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Dispatch transfer",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Design notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "New purchase request",
+        "href": "InvPurchaseRequest.dc.html"
+      },
+      {
+        "text": "Prepare and dispatch",
+        "href": "InvDispatch.dc.html"
+      },
+      {
+        "text": "Prepare and dispatch",
+        "href": "InvDispatch.dc.html"
+      },
+      {
+        "text": "Prepare and dispatch",
+        "href": "InvDispatch.dc.html"
+      },
+      {
+        "text": "Branch requests\n3",
+        "href": "#"
+      },
+      {
+        "text": "Dispatched\n1",
+        "href": "#"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "Cancel",
+        "href": "Stock.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "InvReceiveTransfer",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#InvReceiveTransfer",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nLow stock and reorder\n10\nTransfers\n15\nOther branches need\n6\n10\nLow stock and reorder\n15\nTransfers\n6\nOther branches need\nSearch\nBranch requests go to the central store on Thursday. Receive what arrives; shortages stay open until someone else resolves them.\nHide helpful info\nDirection: Into Cheras · 5 ▾\nStatus: All ▾\nRequest from the central store (Thursday)\nRequest stock into Cheras\nItem\nQty\nFrom / to\nStatus\nTR-0087\nFrom Puchong · 7 lines · sent 17 Nov\n7 lines\nPuchong → Cheras\nTo receive\nReceive\nTR-0085\nFrom Sg. Besi · 3 lines · sent 16 Nov\n3 lines\nSungai Besi → Cheras\nTo receive\nReceive\nTR-0083\nFrom Puchong · 1 short, 1 damaged\n—\nPuchong → Cheras\nDifferences open\nReceive\nTR-0080\nFrom Sg. Besi · 1 extra\n—\nSungai Besi → Cheras\nDifferences open\nReceive\nTR-0088\nFrom Puchong · asked 18 Nov\n—\nPuchong → Cheras\nRequested\nReceive\nTR-0079\nFrom Puchong · 4 lines · 12 Nov\n4 lines\nPuchong → Cheras\nReceived\nReceive\nTR-0076\nFrom Sg. Besi · arrived later, credited\n—\nSungai Besi → Cheras\nResolved\nReceive\nTR-0074\nFrom Puchong · 6 lines · 8 Nov\n6 lines\nPuchong → Cheras\nReceived\nReceive\nTR-0071\nFrom Sg. Besi · lost in transit, ref LT-0071\n—\nSungai Besi → Cheras\nResolved\nReceive\nTR-0069\nFrom Puchong · 2 lines · 4 Nov\n2 lines\nPuchong → Cheras\nReceived\nReceive\nTR-0089\nTo Sg. Besi · 2 lines · asked 18 Nov\n2 lines\nCheras → Sungai Besi\nTo dispatch\nReceive\nTR-0086\nTo Puchong · 3 lines · sent 17 Nov\n3 lines\nCheras → Puchong\nTo receive\nReceive\nTR-0082\nTo Sg. Besi · 5 lines · 14 Nov\n5 lines\nCheras → Sungai Besi\nReceived\nReceive\nTR-0078\nTo Puchong · 1 short at Puchong\n—\nCheras → Puchong\nDifferences open\nReceive\nTR-0073\nTo Sg. Besi · 2 lines · 7 Nov\n2 lines\nCheras → Sungai Besi\nReceived\nReceive\nAbout this tab\nTransfers\n\nBranch requests go to the central store on Thursday. Receive what arrives; shortages stay open until someone else resolves them.\n\nToday at a glance\nLow stock and reorder\n10\nTransfers\n15\nOther branches need\n6\nRelated pages\nGood to know\nReceive transfer TR-0087\nTo receive\n\nFrom Puchong · 7 lines (3 shown) · sent 17 Nov\n\nWhat arrived\nItem · batch\tSent\tAccepted\tShort\tDamaged\tExtra\nParacetamol 500 mg tablet · PC-0412\t500\t\t\t\t\nSalbutamol inhaler 100 mcg · SB-0610\t4\t\t\t\t\nIbuprofen 400 mg tablet · IB-0233\t100\t\t\t\t\nAbout the differences\nNote (optional)\nCheck\n✓\nI counted what arrived, line by line\nCancel\nConfirm receipt\nDesign notes\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Low stock and reorder\n10",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Transfers\n15",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Other branches need\n6",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "10\nLow stock and reorder",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "15\nTransfers",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "6\nOther branches need",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Direction: Into Cheras · 5 ▾",
+        "label": "Direction: Into Cheras · 5. Change",
+        "disabled": false
+      },
+      {
+        "text": "Status: All ▾",
+        "label": "Status: All. Change",
+        "disabled": false
+      },
+      {
+        "text": "Request stock into Cheras",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0087",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0085",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0083",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0080",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0088",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0079",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0076",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0074",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0071",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0069",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0089",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0086",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0082",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0078",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for TR-0073",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nTransfers",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "✓\nI counted what arrived, line by line",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Confirm receipt",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Design notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Request from the central store (Thursday)",
+        "href": "InvBranchRequest.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Receive",
+        "href": "InvReceiveTransfer.dc.html"
+      },
+      {
+        "text": "Low stock and reorder\n10",
+        "href": "#"
+      },
+      {
+        "text": "Transfers\n15",
+        "href": "#"
+      },
+      {
+        "text": "Other branches need\n6",
+        "href": "#"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "Cancel",
+        "href": "Stock.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "supervisor",
+    "requested": "InvReportDiff",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#InvReportDiff",
+    "text": "KP\nSI\n4\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nOn hand\n12\nBy form\n7\nExpiring and held\n6\nBatch holds\n9\nStock health\n11\nPack checks\n2\n12\nOn hand\n7\nBy form\n6\nExpiring and held\n9\nBatch holds\nSearch\nUsable stock by item. Open a row for its batches.\nHide helpful info\nLocation: All locations · 142 ▾\nKind: Medicines ▾\nReport a difference\nEdit SKUs\nImport opening stock\nItem\nOn hand\nNearest expiry\nLocation\nParacetamol 500 mg\nTablet · Dispensary\n180 tab\n12/2026 (PC-0412)\nDispensary\nCount\nAmoxicillin 250 mg\nCapsule · Dispensary\n96 cap\n03/2027 (AM-2207)\nDispensary\nCount\nLoratadine 10 mg\nTablet · Dispensary\n60 tab\n08/2027 (LO-1180)\nDispensary\nCount\nSalbutamol inhaler\nInhaler · Store room\n4 unit\n06/2027 (SB-0310)\nStore room\nCount\nNormal saline 0.9% 500 ml\nBag · Treatment room\n7 bag\n02/2027 (NS-1102)\nTreatment room\nCount\nCetirizine 10 mg\nTablet · Dispensary\n120 tab\n01/2027 (CE-0931)\nDispensary\nCount\nOmeprazole 20 mg\nCapsule · Dispensary\n84 cap\n04/2027 (OM-3301)\nDispensary\nCount\nChlorpheniramine 4 mg\nTablet · Dispensary\n210 tab\n—\nDispensary\nCount\nDiclofenac gel 1%\nTube · Dispensary\n9 tube\n—\nDispensary\nCount\nIbuprofen 400 mg\nTablet · Store room\n280 tab\n10/2027 (IB-4410)\nStore room\nCount\nGauze swab 10 x 10\nPack · Treatment room\n14 pack\n01/2029 (GZ-1121)\nTreatment room\nCount\nMetformin 500 mg\nTablet · Dispensary\n460 tab\n09/2027 (MF-5120)\nDispensary\nCount\nAbout this tab\nOn hand\n\nUsable stock by item. Open a row for its batches.\n\nToday at a glance\nOn hand\n12\nBy form\n7\nExpiring and held\n6\nBatch holds\n9\nStock health\n11\nPack checks\n2\nRelated pages\nGood to know\nReport a difference\nNew\n\nFor staff: you never type stock numbers. Tell the CA Supervisor what you see; a governed count fixes the stock.\n\nWhat you saw\nItem or batch\nLocation\nCheras · Dispensary\nCheras · Store room\nCheras · Treatment room\nWhat you counted (optional)\nThe system quantity is not shown here.\nWhat is wrong\nFewer than expected\nMore than expected\nDamaged\nExpired on the shelf\nIn the wrong place\nNote\nNote (optional)\nCancel\nReport\nDesign notes\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Dispensary",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On hand\n12",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "By form\n7",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Expiring and held\n6",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Batch holds\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock health\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Pack checks\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "12\nOn hand",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "7\nBy form",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "6\nExpiring and held",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nBatch holds",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Location: All locations · 142 ▾",
+        "label": "Location: All locations · 142. Change",
+        "disabled": false
+      },
+      {
+        "text": "Kind: Medicines ▾",
+        "label": "Kind: Medicines. Change",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Loratadine 10 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 0.9% 500 ml",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Cetirizine 10 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Omeprazole 20 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Chlorpheniramine 4 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Diclofenac gel 1%",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Ibuprofen 400 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Gauze swab 10 x 10",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Metformin 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nOn hand",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Fewer than expected",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "More than expected",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Damaged",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Expired on the shelf",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "In the wrong place",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Design notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "SI\n4",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "Edit SKUs",
+        "href": "SkuEdit.dc.html"
+      },
+      {
+        "text": "Import opening stock",
+        "href": "OpeningImport.dc.html"
+      },
+      {
+        "text": "On hand\n12",
+        "href": "#"
+      },
+      {
+        "text": "By form\n7",
+        "href": "#"
+      },
+      {
+        "text": "Expiring and held\n6",
+        "href": "#"
+      },
+      {
+        "text": "Batch holds\n9",
+        "href": "#"
+      },
+      {
+        "text": "Stock health\n11",
+        "href": "#"
+      },
+      {
+        "text": "Pack checks\n2",
+        "href": "#"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "Cancel",
+        "href": "Stock.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "director",
+    "requested": "Reports",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Reports",
+    "text": "KP\nDR\n14\nReports\nCheras · 1 to 23 Nov 2026\nMy branch\nAll branches\nYour downloads\nRun report\nMoney\nPanel\nInventory\nDaily summary\nTransactions\nBilling detail\nSearch\nTotal received is Cash + Non-cash only. Panel and pay-later are what is owed, not received.\nHide helpful info\nBranch: Cheras ▾\nDates (up to 31 days): 1 – 18 Nov 2026 ▾\nPayment method: All methods ▾\nVisit type: All visits ▾\nRun report\nDownload CSV\nPanel by Panel\nDue by week\nHow this report counts\nYour downloads\nBranch Manager: own branch\nDate\nCash\nNon-cash\nPanel\nTotal received\nMon 23 Nov\nso far\nRM 412.00\nRM 238.00\nRM 185.00\nRM 650.00\nDownload CSV\nSat 21 Nov\nRM 1,284.00\nRM 640.00\nRM 455.00\nRM 1,924.00\nDownload CSV\nFri 20 Nov\nRM 1,102.00\nRM 712.00\nRM 390.00\nRM 1,814.00\nDownload CSV\nTotal\n1–18 Nov · made 18 Nov, 2:14 PM\nRM 21,066.10\nRM 27,846.30\nRM 9,126.00\nRM 48,912.40\nDownload CSV\nAbout this tab\nDaily summary\n\nTotal received is Cash + Non-cash only. Panel and pay-later are what is owed, not received.\n\nToday at a glance\nRelated pages\nGood to know\nDr. Director · Director · not saving\nAsk KPOne\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "All branches",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Your downloads",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Run report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Money",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Panel",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Daily summary",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Transactions",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Billing detail",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch: Cheras ▾",
+        "label": "Branch: Cheras. Change",
+        "disabled": false
+      },
+      {
+        "text": "Dates (up to 31 days): 1 – 18 Nov 2026 ▾",
+        "label": "Dates (up to 31 days): 1 – 18 Nov 2026. Change",
+        "disabled": false
+      },
+      {
+        "text": "Payment method: All methods ▾",
+        "label": "Payment method: All methods. Change",
+        "disabled": false
+      },
+      {
+        "text": "Visit type: All visits ▾",
+        "label": "Visit type: All visits. Change",
+        "disabled": false
+      },
+      {
+        "text": "Run report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Panel by Panel",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Due by week",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "How this report counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Your downloads",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch Manager: own branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Mon 23 Nov",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Sat 21 Nov",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Fri 20 Nov",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Total",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nDaily summary",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ask KPOne",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "DR\n14",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "RepDaily.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Reports.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TransactionDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "BillingDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelSummary.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockMovement.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockValue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Modern.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "director",
+    "requested": "StockMovement",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Reports",
+    "text": "KP\nDR\n14\nReports\nCheras · 1 to 23 Nov 2026\nMy branch\nAll branches\nYour downloads\nRun report\nMoney\nPanel\nInventory\nStock movement\nStock value\nCost and margin\nLosses\nMedicine sales\nSearch\nQuantities only, no cost.\nHide helpful info\nBranch: Cheras ▾\nDates (up to 31 days): 1 – 18 Nov 2026 ▾\nSKU: All SKUs ▾\nRun report\nDownload CSV\nMovements by type\nHow this report counts\nWho sees this\nSku\nOpening\nIn\nOut\nClosing\nParacetamol 500 mg\ntablet\n1,420\n600\n1,432\n588\nDownload CSV\nAmoxicillin 250 mg\ncapsule\n421\n300\n672\n49\nDownload CSV\nAbout this tab\nStock movement\n\nQuantities only, no cost.\n\nToday at a glance\nRelated pages\nGood to know\nDr. Director · Director · not saving\nAsk KPOne\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "All branches",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Your downloads",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Run report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Money",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Panel",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock movement",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock value",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Cost and margin",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Losses",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Medicine sales",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch: Cheras ▾",
+        "label": "Branch: Cheras. Change",
+        "disabled": false
+      },
+      {
+        "text": "Dates (up to 31 days): 1 – 18 Nov 2026 ▾",
+        "label": "Dates (up to 31 days): 1 – 18 Nov 2026. Change",
+        "disabled": false
+      },
+      {
+        "text": "SKU: All SKUs ▾",
+        "label": "SKU: All SKUs. Change",
+        "disabled": false
+      },
+      {
+        "text": "Run report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Movements by type",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "How this report counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Who sees this",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nStock movement",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ask KPOne",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "DR\n14",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "RepDaily.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Reports.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TransactionDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "BillingDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelSummary.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockMovement.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockValue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Modern.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "director",
+    "requested": "StockValue",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Reports",
+    "text": "KP\nDR\n14\nReports\nCheras · 1 to 23 Nov 2026\nMy branch\nAll branches\nYour downloads\nRun report\nMoney\nPanel\nInventory\nStock movement\nStock value\nCost and margin\nLosses\nMedicine sales\nSearch\nDirector only. Management report — cost policy to be confirmed by the clinic's accountant.\nHide helpful info\nBranch: Cheras ▾\nPeriod: 1–20 Nov 2026 ▾\nDownload journal summary (CSV)\nTotals and summary\nHow this is counted\nNotes\nItem\nOn hand\nAverage cost\nValue\nParacetamol 500 mg\ntablet\n588\nRM 0.03\nRM 17.64\nDownload CSV\nSalbutamol inhaler\ninhaler\n3\nRM 9.80\nRM 29.40\nDownload CSV\nNormal saline 500 ml\nbottle\n26\n—\nNo cost recorded\nDownload CSV\nOmeprazole 20 mg capsule\nIncludes an estimate\n286\nRM 0.9816\nRM 280.74\nDownload CSV\nTotal · 9 medicines\nstock value on 20 Nov 2026\nRM 1,097.48\nDownload CSV\nAbout this tab\nStock value\n\nDirector only. Management report — cost policy to be confirmed by the clinic's accountant.\n\nToday at a glance\nRelated pages\nGood to know\nDr. Director · Director · not saving\nAsk KPOne\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "All branches",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Your downloads",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Run report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Money",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Panel",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock movement",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock value",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Cost and margin",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Losses",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Medicine sales",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch: Cheras ▾",
+        "label": "Branch: Cheras. Change",
+        "disabled": false
+      },
+      {
+        "text": "Period: 1–20 Nov 2026 ▾",
+        "label": "Period: 1–20 Nov 2026. Change",
+        "disabled": false
+      },
+      {
+        "text": "Download journal summary (CSV)",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Totals and summary",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "How this is counted",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Normal saline 500 ml",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Omeprazole 20 mg capsule",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Total · 9 medicines",
+        "disabled": false
+      },
+      {
+        "text": "Download CSV",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nStock value",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ask KPOne",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "DR\n14",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "RepDaily.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Reports.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TransactionDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "BillingDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelSummary.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockMovement.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockValue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Modern.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "director",
+    "requested": "MedicineSales",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Reports",
+    "text": "KP\nDR\n14\nReports\nCheras · 1 to 23 Nov 2026\nMy branch\nAll branches\nYour downloads\nRun report\nMoney\nPanel\nInventory\nStock movement\nStock value\nCost and margin\nLosses\nMedicine sales\nSearch\nYour best-selling medicines for one month, with the cost of what was dispensed and the profit. Top 25, ranked by sales or gross profit. Director and Finance Officer. Figures can change if an invoice is voided later. Each view is recorded.\nHide helpful info\nMonth: November 2026 (to date) ▾\nBranch: Cheras ▾\nRank by: Sales ▾\nMoney totals\nMedicines sold below cost · 1\nCost not complete\nRank\nMedicine\nUnits\nSales\nCost\nGross profit\nMargin\nLines below cost\nFree lines\n1\nAmoxicillin 250 mg capsule\n1,320 capsule\nRM 2,380.00\nRM 1,650.00\nRM 730.00\n30.7%\n0\n0\n2\nParacetamol 500 mg tablet\n2,840 tablet\nRM 1,420.00\nRM 312.00\nRM 1,108.00\n78.0%\n0\n3\n3\nSalbutamol inhaler 100 mcg\n96 inhaler\nRM 1,350.00\nRM 1,296.00\nRM 54.00\n4.0%\n2\n0\n4\nMetformin 500 mg tablet\n1,980 tablet\nRM 1,210.00\nRM 1,094.00 (estimate)\nRM 116.00\n9.6%\n0\n0\n5\nParacetamol syrup 120 mg/5 ml\n9,600 ml\nRM 980.00\n—\nCost not complete\n—\n—\n0\n0\nAbout this tab\nMedicine sales\n\nYour best-selling medicines for one month, with the cost of what was dispensed and the profit. Top 25, ranked by sales or gross profit. Director and Finance Officer. Figures can change if an invoice is voided later. Each view is recorded.\n\nToday at a glance\nRelated pages\nGood to know\nDr. Director · Director · not saving\nAsk KPOne\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "All branches",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Your downloads",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Run report",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Money",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Panel",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock movement",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Stock value",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Cost and margin",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Losses",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Medicine sales",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Month: November 2026 (to date) ▾",
+        "label": "Month: November 2026 (to date). Change",
+        "disabled": false
+      },
+      {
+        "text": "Branch: Cheras ▾",
+        "label": "Branch: Cheras. Change",
+        "disabled": false
+      },
+      {
+        "text": "Rank by: Sales ▾",
+        "label": "Rank by: Sales. Change",
+        "disabled": false
+      },
+      {
+        "text": "Money totals",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Medicines sold below cost · 1",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Cost not complete",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Amoxicillin 250 mg capsule",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol 500 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Salbutamol inhaler 100 mcg",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Metformin 500 mg tablet",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Paracetamol syrup 120 mg/5 ml",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nMedicine sales",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ask KPOne",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "DR\n14",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "RepDaily.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Reports.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TransactionDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "BillingDetail.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelSummary.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PanelInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockMovement.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockValue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Modern.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "director",
+    "requested": "InvPoApprove",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#InvPoApprove",
+    "text": "KP\nDR\n14\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\n8\nPurchase requests\n9\nPurchase orders\n2\nOn order\n4\nReceive delivery\nSearch\nCheras · newest first. 2 orders waiting for you · 1 part received. The person who prepared an order never approves it. Estimated costs are shown to the Director only. No payment in KPOne. On order lists the items; this tab lists the orders.\nHide helpful info\nShow: All · 9 ▾\nOrder\nSupplier\nLines\nStatus\nPO/CHR/2026/0118\nprepared by Siti · 17 Nov\nMedipharm Supplies\n7 lines\nWaiting for approval\nApprove\nPO/CHR/2026/0117\nprepared by Siti · 16 Nov\nSinar Farma\n3 lines\nWaiting for approval\nApprove\nPO/CHR/2026/0116\napproved by Farid · 14 Nov\nMedipharm Supplies\n5 lines\nSent to supplier\nPO/CHR/2026/0115\n2 of 4 delivered\nKlang Medical Trading\n4 lines\nPart received\nPO/CHR/2026/0114\ndelivered 12 Nov\nSinar Farma\n6 lines\nReceived\nOpen\nPO/CHR/2026/0113\nasked to change quantity\nTeguh Surgical\n2 lines\nReturned\nOpen\nPO/CHR/2026/0112\ndelivered 8 Nov\nMedipharm Supplies\n8 lines\nReceived\nOpen\nPO/CHR/2026/0111\ndelivered 6 Nov\nKlang Medical Trading\n1 line\nReceived\nOpen\nPO/CHR/2026/0119\nnot sent for approval\nTeguh Surgical\n2 lines\nDraft\nOpen\nAbout this tab\nPurchase orders\n\nCheras · newest first. 2 orders waiting for you · 1 part received. The person who prepared an order never approves it. Estimated costs are shown to the Director only. No payment in KPOne. On order lists the items; this tab lists the orders.\n\nToday at a glance\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\nRelated pages\nGood to know\nPurchase order PO/CHR/2026/0118\nWaiting for approval\n\nMedipharm Supplies (test) · 7 lines · prepared by Siti, 17 Nov\n\nOrder\nSupplier\nMedipharm Supplies (test)\nDeliver to\nCentral store · Cheras (HQ)\nExpected\n24 Nov 2026\nEstimated total\nRM 1,284.00 (estimate)\nPrint preview (A4)\n\nKLINIK PUTRIJAYA (TEST)\n\nNo. 1, Jalan Contoh 1, 56000 Cheras, Kuala Lumpur · Tel: 03-2000 0001\n\nPURCHASE ORDER\n\nPO No: PO/CHR/2026/0118 · Date: 17/11/2026\n\nTo: Medipharm Supplies (test)\n\nDeliver to: Central store · Cheras\n\nItem · Qty · Unit price (RM) · Total (RM)\n\nParacetamol 500 mg tablet · 2 box of 1,000 · 150.00 · 300.00\n\nAmoxicillin 250 mg capsule · 4 box of 100 · 82.00 · 328.00\n\nSalbutamol inhaler 100 mcg · 2 box of 10 · 160.00 · 320.00\n\n... 4 more lines\n\nEstimated total: RM 1,284.00\n\nPrepared by: Siti Approved by: ______________\n\nNote to the preparer (when returning)\nNote\nCancel\nPrint PO\nReturn to preparer\nApprove order\nDesign notes\nDr. Director · Director · not saving\nAsk KPOne\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Front desk",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Consultation",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Billing",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase requests\n8",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase orders\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On order\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Receive delivery\n4",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier returns\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier price list\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "8\nPurchase requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nPurchase orders",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "2\nOn order",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "4\nReceive delivery",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Show: All · 9 ▾",
+        "label": "Show: All · 9. Change",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0118",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0117",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0116",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0115",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0114",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0113",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0112",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0111",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PO/CHR/2026/0119",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nPurchase orders",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Print PO",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Return to preparer",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Approve order",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Design notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ask KPOne",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "DR\n14",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ControlledRegister.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockMovement.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockValue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "MedicineCatalogue.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Approve",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Approve",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Open",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Open",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Open",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Open",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Open",
+        "href": "InvPoApprove.dc.html"
+      },
+      {
+        "text": "Purchase requests\n8",
+        "href": "#"
+      },
+      {
+        "text": "Purchase orders\n9",
+        "href": "#"
+      },
+      {
+        "text": "On order\n2",
+        "href": "#"
+      },
+      {
+        "text": "Receive delivery\n4",
+        "href": "#"
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "href": "#"
+      },
+      {
+        "text": "Supplier returns\n11",
+        "href": "#"
+      },
+      {
+        "text": "Supplier price list\n9",
+        "href": "#"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "Cancel",
+        "href": "Stock.dc.html"
+      }
+    ]
+  },
+  {
+    "role": "store",
+    "requested": "Stock",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#Stock",
+    "text": "KP\nRZ\n2\nInventory\nHQ central store · Store Admin · buys and sends for all branches\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew purchase request\nBranch requests\nCentral stock\nBuying\nBranch requests\n3\nDispatched\n1\n3\nBranch requests\n1\nDispatched\nSearch\nThursday requests from the branches. Prepare, pick batches first-expiry-first, then dispatch.\nHide helpful info\nRequest day: Thursday · Proposal\nBranch\nItems\nRequested\nStatus\nPuchong\nrequested by Aida (CA Supervisor)\n12\nThu 19 Nov · 4:40 PM\nWaiting to prepare\nPrepare and dispatch\nSungai Besi\nrequested by Farid (CA Supervisor)\n7\nThu 19 Nov · 5:05 PM\nWaiting to prepare\nPrepare and dispatch\nCheras\nurgent request\n1\nMon 23 Nov · 9:15 AM\nOutside request day\nPrepare and dispatch\nAbout this tab\nBranch requests\n\nThursday requests from the branches. Prepare, pick batches first-expiry-first, then dispatch.\n\nToday at a glance\nBranch requests\n3\nDispatched\n1\nRelated pages\nGood to know\nRizal · Store Admin · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Central stock",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Buying",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Branch requests\n3",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Dispatched\n1",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "3\nBranch requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "1\nDispatched",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Request day: Thursday · Proposal",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Puchong",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Sungai Besi",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for Cheras",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nBranch requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "RZ\n2",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "New purchase request",
+        "href": "InvPurchaseRequest.dc.html"
+      },
+      {
+        "text": "Prepare and dispatch",
+        "href": "InvDispatch.dc.html"
+      },
+      {
+        "text": "Prepare and dispatch",
+        "href": "InvDispatch.dc.html"
+      },
+      {
+        "text": "Prepare and dispatch",
+        "href": "InvDispatch.dc.html"
+      },
+      {
+        "text": "Branch requests\n3",
+        "href": "#"
+      },
+      {
+        "text": "Dispatched\n1",
+        "href": "#"
+      }
+    ]
+  },
+  {
+    "role": "store",
+    "requested": "InvRfq",
+    "url": "http://127.0.0.1:3059/KPOne-Clean-Look-Demo.html#InvRfq",
+    "text": "KP\nRZ\n2\nInventory\nCheras · CA Supervisor\nMy branch\nHQ\nReceive delivery\nReport a difference\nScan barcode\nNew stock count\nInventory\nTo do today\nOrdering\nPurchasing\nSafety\nCounts\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\n8\nPurchase requests\n9\nPurchase orders\n2\nOn order\n4\nReceive delivery\nSearch\nRequests turn into a draft order, made by someone else. 4 requests to review. No payment in KPOne; estimates only, to confirm with the clinic's accountant.\nHide helpful info\nShow: All · 8 ▾\nNew request\nAsk suppliers for quotes (RFQ) · Proposal\nRequest\nAsked by\nDetail\nStatus\nPR-0334\nParacetamol 500 mg\nHafiz\nHafiz · low stock · 18 Nov\nWaiting for review\nMake PO\nPR-0333\nGauze swab 10 x 10\nAina\nAina · treatment room · 18 Nov\nWaiting for review\nMake PO\nPR-0332\nSalbutamol inhaler\nHafiz\nHafiz · 17 Nov\nWaiting for review\nMake PO\nPR-0331\nAmoxicillin 250 mg\nHafiz\nHafiz · in PO/CHR/2026/0118\nConverted\nPR-0330\nLoratadine 10 mg\nAina\nAina · stock available at Puchong\nRejected\nMake PO\nPR-0329\nNormal saline 500 ml\nKamal\nKamal · 15 Nov\nWaiting for review\nMake PO\nPR-0328\nCetirizine 10 mg\nKamal\nKamal · in PO/CHR/2026/0116\nConverted\nPR-0327\nDiclofenac gel 1%\nAina\nAina · not needed\nWithdrawn\nMake PO\nAbout this tab\nPurchase requests\n\nRequests turn into a draft order, made by someone else. 4 requests to review. No payment in KPOne; estimates only, to confirm with the clinic's accountant.\n\nToday at a glance\nPurchase requests\n8\nPurchase orders\n9\nOn order\n2\nReceive delivery\n4\nSupplier invoices\n5\nSupplier returns\n11\nSupplier price list\n9\nRelated pages\nGood to know\nAsk suppliers for quotes (RFQ)\nNot built yet\n\nPick items, one request per supplier, then turn the chosen quote into a purchase order.\n\nItems from PR-0334 and PR-0332\nParacetamol 500 mg tablet\n1,000 tablet\nSalbutamol inhaler 100 mcg\n6 inhaler\nPrepared by\nRizal (Store Admin)\nQuotes received\n\nType each supplier's price as on their quote. Prices are seen by the Director, Finance Officer and Store Admin only.\n\nSupplier\tPrice for one pack (RM)\tLead time\tValid until\nSinar Farma Sdn Bhd (test)\t\t4 days\t30 Nov 2026\nMedSupply Utama (test)\t\t9 days\t5 Dec 2026\nKlang Medical Trading (test)\t\t3 days\t28 Nov 2026\n+ Add a supplier\nQuote to use\nSinar Farma · RM 150.00 · 4 days\nMedSupply Utama · RM 146.50 · 9 days\nKlang Medical Trading · RM 152.00 · 3 days\nCancel\nRecord RFQ for 3 suppliers\nTurn chosen quote into a PO\nDesign notes\nRizal · Store Admin · not saving\nReset demo\nSign out",
+    "buttons": [
+      {
+        "text": "",
+        "label": "Today",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "HR",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Reports",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Settings",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Search Inventory",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Pin: keep the panel open",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Close panel",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "My branch",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "HQ",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Scan barcode",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "New stock count",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Inventory",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "To do today",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Ordering",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchasing",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Safety",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Counts",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase requests\n8",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Purchase orders\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "On order\n2",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Receive delivery\n4",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier returns\n11",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Supplier price list\n9",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "8\nPurchase requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "9\nPurchase orders",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "2\nOn order",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "4\nReceive delivery",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Hide helpful info",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Show: All · 8 ▾",
+        "label": "Show: All · 8. Change",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0334",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0333",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0332",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0331",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0330",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0329",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0328",
+        "disabled": false
+      },
+      {
+        "text": "",
+        "label": "Show details for PR-0327",
+        "disabled": false
+      },
+      {
+        "text": "About this tab\nPurchase requests",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Today at a glance",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Related pages",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Good to know",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "+ Add a supplier",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sinar Farma · RM 150.00 · 4 days",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "MedSupply Utama · RM 146.50 · 9 days",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Klang Medical Trading · RM 152.00 · 3 days",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Record RFQ for 3 suppliers",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Turn chosen quote into a PO",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Design notes",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Reset demo",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "text": "Sign out",
+        "label": null,
+        "disabled": false
+      }
+    ],
+    "links": [
+      {
+        "text": "RZ\n2",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockOnHand.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "",
+        "href": "ReorderSuggestions.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Transfers.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockExpiry.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockCount.dc.html"
+      },
+      {
+        "text": "",
+        "href": "WriteOff.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Receiving.dc.html"
+      },
+      {
+        "text": "",
+        "href": "PurchaseOrders.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierInvoices.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierReturns.dc.html"
+      },
+      {
+        "text": "",
+        "href": "SupplierPriceList.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Recalls.dc.html"
+      },
+      {
+        "text": "",
+        "href": "TreatmentUsage.dc.html"
+      },
+      {
+        "text": "",
+        "href": "StockHealth.dc.html"
+      },
+      {
+        "text": "",
+        "href": "Me.dc.html"
+      },
+      {
+        "text": "Receive delivery",
+        "href": "InvReceive.dc.html"
+      },
+      {
+        "text": "Report a difference",
+        "href": "InvReportDiff.dc.html"
+      },
+      {
+        "text": "New request",
+        "href": "InvPurchaseRequest.dc.html"
+      },
+      {
+        "text": "Ask suppliers for quotes (RFQ) · Proposal",
+        "href": "InvRfq.dc.html"
+      },
+      {
+        "text": "Make PO",
+        "href": "InvCreatePO.dc.html"
+      },
+      {
+        "text": "Make PO",
+        "href": "InvCreatePO.dc.html"
+      },
+      {
+        "text": "Make PO",
+        "href": "InvCreatePO.dc.html"
+      },
+      {
+        "text": "Make PO",
+        "href": "InvCreatePO.dc.html"
+      },
+      {
+        "text": "Make PO",
+        "href": "InvCreatePO.dc.html"
+      },
+      {
+        "text": "Make PO",
+        "href": "InvCreatePO.dc.html"
+      },
+      {
+        "text": "Purchase requests\n8",
+        "href": "#"
+      },
+      {
+        "text": "Purchase orders\n9",
+        "href": "#"
+      },
+      {
+        "text": "On order\n2",
+        "href": "#"
+      },
+      {
+        "text": "Receive delivery\n4",
+        "href": "#"
+      },
+      {
+        "text": "Supplier invoices\n5",
+        "href": "#"
+      },
+      {
+        "text": "Supplier returns\n11",
+        "href": "#"
+      },
+      {
+        "text": "Supplier price list\n9",
+        "href": "#"
+      },
+      {
+        "text": "",
+        "href": "Stock.dc.html"
+      },
+      {
+        "text": "Cancel",
+        "href": "Stock.dc.html"
+      }
+    ]
+  }
+]

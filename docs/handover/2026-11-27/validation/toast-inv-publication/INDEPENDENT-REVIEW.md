@@ -1,0 +1,9 @@
+# PR1111 independent release review
+
+Exact reviewed head: a9300ab2ee2552554d3a4edcc4107f6353eb7978; base current main c1e5fc05. No release blocker found in the final ten-file diff. Working tree clean; no mutation or merge performed.
+
+Independently verified all ten final file blobs equal the original published30aa8a991 version. Original approval commit5b917cf5f9bbc265fe46cc044d12352cb558d832 records the five owner-approved replacements (three controlled-register outcomes plus two cycle-count outcomes). The final four test files contain exactly those five channel replacements with identical messages, retaining redirects, no-error checks, state/count/retry assertions. No new assertion scope was introduced during refresh.
+
+Six controllers replace16 session-success messages with the application’s existing Inertia flash toast contract. Existing Inertia imports are present. The frontend flash listener reads event.detail.flash.toast and dispatches the same type/message to vue-sonner. Every changed success flash follows the existing completed service call; caught validation/domain exceptions still throw/redirect before it. The pack blind-check mismatch returns withErrors before the success flash. Recall lift, conversion, accepted/rejected and plural cycle-count redirects/text remain unchanged. Permissions, transactions, payload allowlists, idempotency, routes and frontend are untouched. SupplierSettings remains outside this PR.
+
+Coordinator verified all six exact-head CI checks green. PR body reports fresh88 controller tests/915assertions plus Pint/PHPStan and carried prior TrialData24/627 evidence. This reviewer inspected source/blob/history parity; it did not rerun database/browser/full suites and does not claim those as independent reruns. Clear for coordinator’s serial merge decision at this exact SHA; no deployment implied.

@@ -1,0 +1,11 @@
+# Active DSP checkpoint
+
+Root coordinator authorized automatic bounded continuation/publication after independent review, no merges/production. PR1139 refreshed73490f3d and PR1158 bc31adaf both exact-head six green. PR1162 context stacked draft8ef91a5d has attestation passed and downstream CI running (watch session30780; log case-context/ci-watch.log). Root attaches PRs; child attach tool repeatedly times out.
+
+Current /workspace/KPOne-case-help branch feature/dispensary-case-help based8ef91a5d. Three uncommitted files Show.vue, new dsp-case-help-runtime.test.mjs, TEAM.md. Exact source patch3bde27129bb59b2a0d17de709663bc14bb37b246fd1e1e47cb9e254be2d1a968; manifest hashes stable.160 focused tests pass (156 unchanged+4 new actual-template SSR), lint/format/types/build pass. Script exact except helpfulInfoOpen ref. Design mapping and early source review clear; final visual closure pending.
+
+Own preview3082 / own DBkpone_case_help_preview_test verified55439; clone of synthetic preceding context DB. Server session27650. Actual browser final run session9506, browser.log. First run timed out because unknown SKU failures are intentionally polite status, not assertive warning. No app change. Corrected harness uses another actual active synthetic SKU fixture.wrongSku from same branch; final run must preserve wrong-medicine alert while hiding help, dirty draft, original print guards, readonly/OTC, authorized View-label targets. Expected20 screenshots (help-shown, help-hidden-warnings, help-readonly, help-readonly-preview, help-otc ×390/1440 light/dark). Print/Preview/toggle/details measured44/36; summaryrow40. On success inspect images, send Staff final review then publish exact three-file stacked draft atop1162. Keep old failure log honestly; no source patch changed.
+
+Heavy frontend slot released to Patients after DSP type/build. Root may use secondslot max2; Queue next Treatment-call also coordinating. No DSP heavy active now. No further build unless actual source fix needed.
+
+Prepared next-only plan /workspace/kpone-validation/label-preview-next/PLAN.md (F23 screen toolbar composition; all script/physical print CSS/article must remain byte-identical; no new partial-print semantics or labels). No implementation yet. Parent current authorized continuous next bounded slices; send plan to Design before edits after current closure.

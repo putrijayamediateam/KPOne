@@ -1,0 +1,162 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "context": "Current follow-up list\nMatching claims\n1\nClaims on this page\n1\n\nPage 1 of 1. Puchong · All Panels. Counts follow the current branch and Panel filter.\n\nBefore following up\n\nOpen the claim to review its latest action and evidence before following up on the Panel's portal.\n\nEach row uses its Panel's follow-up threshold. A new recorded action can remove a claim from this list.\n\nClaimed amounts awaiting a decision are different from unpaid amounts after a decision. Keep the amount label with each claim.",
+    "row": "Claim 1 · KPI-00000002\n\nSynthetic Billing Review Patient · Synthetic Financial Work Panel\n\nAccepted, unpaid · Unpaid RM 10.00\n\nPanel accepted claim\n\n27 Nov 2026 · by Demo Panel Officer\n\n44 days, no action\nFollow up after 30 days",
+    "targets": [
+      {
+        "text": "Back to Panel Claims",
+        "height": 36
+      },
+      {
+        "text": "All PanelsSynthetic Financial Work Panel (after 30 days",
+        "height": 36
+      },
+      {
+        "text": "Claim 1",
+        "height": 36
+      },
+      {
+        "text": "Previous",
+        "height": 36
+      },
+      {
+        "text": "Next",
+        "height": 36
+      },
+      {
+        "text": "Before following up",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "context": "Current follow-up list\nMatching claims\n1\nClaims on this page\n1\n\nPage 1 of 1. Puchong · All Panels. Counts follow the current branch and Panel filter.\n\nBefore following up\n\nOpen the claim to review its latest action and evidence before following up on the Panel's portal.\n\nEach row uses its Panel's follow-up threshold. A new recorded action can remove a claim from this list.\n\nClaimed amounts awaiting a decision are different from unpaid amounts after a decision. Keep the amount label with each claim.",
+    "row": "Claim 1 · KPI-00000002\n\nSynthetic Billing Review Patient · Synthetic Financial Work Panel\n\nAccepted, unpaid · Unpaid RM 10.00\n\nPanel accepted claim\n\n27 Nov 2026 · by Demo Panel Officer\n\n44 days, no action\nFollow up after 30 days",
+    "targets": [
+      {
+        "text": "Back to Panel Claims",
+        "height": 36
+      },
+      {
+        "text": "All PanelsSynthetic Financial Work Panel (after 30 days",
+        "height": 36
+      },
+      {
+        "text": "Claim 1",
+        "height": 36
+      },
+      {
+        "text": "Previous",
+        "height": 36
+      },
+      {
+        "text": "Next",
+        "height": 36
+      },
+      {
+        "text": "Before following up",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "filteredEmpty": true,
+    "url": "/panel-claims/follow-up?panel=SYN-CONTEXT",
+    "context": "Current follow-up list\nMatching claims\n0\nClaims on this page\n0\n\nPage 1 of 1. Puchong · Selected Panel. Counts follow the current branch and Panel filter.\n\nBefore following up\n\nOpen the claim to review its latest action and evidence before following up on the Panel's portal.\n\nEach row uses its Panel's follow-up threshold. A new recorded action can remove a claim from this list.\n\nClaimed amounts awaiting a decision are different from unpaid amounts after a decision. Keep the amount label with each claim."
+  },
+  {
+    "width": 1440,
+    "keyboardTabFromFilterToClaim": true
+  },
+  {
+    "width": 1440,
+    "keyboardEnterNavigatedToClaim": true
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "context": "Current follow-up list\nMatching claims\n1\nClaims on this page\n1\n\nPage 1 of 1. Puchong · All Panels. Counts follow the current branch and Panel filter.\n\nBefore following up\n\nOpen the claim to review its latest action and evidence before following up on the Panel's portal.\n\nEach row uses its Panel's follow-up threshold. A new recorded action can remove a claim from this list.\n\nClaimed amounts awaiting a decision are different from unpaid amounts after a decision. Keep the amount label with each claim.",
+    "row": "Claim 1 · KPI-00000002\n\nSynthetic Billing Review Patient · Synthetic Financial Work Panel\n\nAccepted, unpaid · Unpaid RM 10.00\n\nPanel accepted claim\n\n27 Nov 2026 · by Demo Panel Officer\n\n44 days, no action\nFollow up after 30 days",
+    "targets": [
+      {
+        "text": "Back to Panel Claims",
+        "height": 44
+      },
+      {
+        "text": "All PanelsSynthetic Financial Work Panel (after 30 days",
+        "height": 44
+      },
+      {
+        "text": "Claim 1",
+        "height": 44
+      },
+      {
+        "text": "Previous",
+        "height": 44
+      },
+      {
+        "text": "Next",
+        "height": 44
+      },
+      {
+        "text": "Before following up",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "context": "Current follow-up list\nMatching claims\n1\nClaims on this page\n1\n\nPage 1 of 1. Puchong · All Panels. Counts follow the current branch and Panel filter.\n\nBefore following up\n\nOpen the claim to review its latest action and evidence before following up on the Panel's portal.\n\nEach row uses its Panel's follow-up threshold. A new recorded action can remove a claim from this list.\n\nClaimed amounts awaiting a decision are different from unpaid amounts after a decision. Keep the amount label with each claim.",
+    "row": "Claim 1 · KPI-00000002\n\nSynthetic Billing Review Patient · Synthetic Financial Work Panel\n\nAccepted, unpaid · Unpaid RM 10.00\n\nPanel accepted claim\n\n27 Nov 2026 · by Demo Panel Officer\n\n44 days, no action\nFollow up after 30 days",
+    "targets": [
+      {
+        "text": "Back to Panel Claims",
+        "height": 44
+      },
+      {
+        "text": "All PanelsSynthetic Financial Work Panel (after 30 days",
+        "height": 44
+      },
+      {
+        "text": "Claim 1",
+        "height": 44
+      },
+      {
+        "text": "Previous",
+        "height": 44
+      },
+      {
+        "text": "Next",
+        "height": 44
+      },
+      {
+        "text": "Before following up",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "filteredEmpty": true,
+    "url": "/panel-claims/follow-up?panel=SYN-CONTEXT",
+    "context": "Current follow-up list\nMatching claims\n0\nClaims on this page\n0\n\nPage 1 of 1. Puchong · Selected Panel. Counts follow the current branch and Panel filter.\n\nBefore following up\n\nOpen the claim to review its latest action and evidence before following up on the Panel's portal.\n\nEach row uses its Panel's follow-up threshold. A new recorded action can remove a claim from this list.\n\nClaimed amounts awaiting a decision are different from unpaid amounts after a decision. Keep the amount label with each claim."
+  },
+  {
+    "width": 390,
+    "keyboardTabFromFilterToClaim": true
+  },
+  {
+    "width": 390,
+    "keyboardEnterNavigatedToClaim": true
+  }
+]

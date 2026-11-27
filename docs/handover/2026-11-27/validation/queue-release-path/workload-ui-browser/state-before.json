@@ -1,0 +1,226 @@
+{
+    "Completed1": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed2": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed3": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed4": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed5": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed6": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed7": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed8": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed9": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed10": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed11": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed12": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed13": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed14": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed15": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed16": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed17": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed18": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed19": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed20": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed21": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed22": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed23": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed24": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed25": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Completed26": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 1,
+        "status": "removed",
+        "held": false,
+        "unacknowledged": 0
+    },
+    "Treatment": {
+        "visitVersion": 1,
+        "queueVersion": 3,
+        "encounterVersion": 2,
+        "status": "serving",
+        "held": true,
+        "unacknowledged": 1
+    },
+    "Seeing": {
+        "visitVersion": 1,
+        "queueVersion": 2,
+        "encounterVersion": 1,
+        "status": "serving",
+        "held": false,
+        "unacknowledged": 0
+    }
+}

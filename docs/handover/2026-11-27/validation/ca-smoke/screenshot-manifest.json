@@ -1,0 +1,262 @@
+[
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-cash-closings-ca_supervisor-1440-dark.png",
+    "sha256": "d1ce040b32f53e8804bf3eed5e3d9338d417f60be16c1aca0ee460d52800f691",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-cash-closings-ca_supervisor-1440-light.png",
+    "sha256": "244a55378b9e30376181c4026b8ed673b6519cf751ba21792847df1e6ade701a",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-cash-closings-ca_supervisor-390-dark.png",
+    "sha256": "ca24d5083613f5d224d3bc1c8680d9742b4b071fb072200e15311d97d435cc6c",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-cash-closings-ca_supervisor-390-light.png",
+    "sha256": "17806c28bb5e0701f0763179cf2f4e795140602af3b991b544b51b64eeddacdc",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-registration-ca-1440-dark.png",
+    "sha256": "01d6987c2e8c656fec91f284d02da8c9b2f2690b61781a49b8fe2c3c15f447d4",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-registration-ca-1440-light.png",
+    "sha256": "33d57f9bba801112fd00257514ebfa84e0a9d2dda69fa1c9604fdfa0b61ceefc",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-registration-ca-390-dark.png",
+    "sha256": "68001dd358fbfffecb878f11ca81e3158296ac30aff376dbe04227fa0329a1ce",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-registration-ca-390-light.png",
+    "sha256": "b6a91ea1e62f321efcd45557000767521f709060f898ddcdd0a2308a0ce2c702",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-visits-KPV-00000002-billing-ca-1440-dark.png",
+    "sha256": "cf1996fe10c62fbccc53a56a3a4ad0ee7b83e43ed0ab18fb8edb22f418f1820a",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-visits-KPV-00000002-billing-ca-1440-light.png",
+    "sha256": "9eaa41de15d20950158942b5b0c556d1dc1c8256b38ba68e3793c73a14da20c1",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-visits-KPV-00000002-billing-ca-390-dark.png",
+    "sha256": "af68d31662aa4b8fabf31c87ffabdfde5fef3f0e50dbb0d750541cb0a8be5284",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/-visits-KPV-00000002-billing-ca-390-light.png",
+    "sha256": "93463b4110130cbe0a59753357ff84e6478cbafb880f8b0a3502705fe5d5128c",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/bill-link-resident_doctor-1440-dark.png",
+    "sha256": "53cc15e35325639253f2a02545f07729d8529f28ff16d0894f54b4241d282b36",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/bill-link-resident_doctor-1440-light.png",
+    "sha256": "7d5b52f67879f439bd08149a419fe47a6f3bfa4081361b82ac1b007eaf0d2cff",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/bill-link-resident_doctor-390-dark.png",
+    "sha256": "ea9f085ca169f037e7a8914ed649a8de3ed6b85fefdb4e9425a0d640364f04c7",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/bill-link-resident_doctor-390-light.png",
+    "sha256": "52dcca7f89c316cb18109344bab6e46085ae9ff2035a2a3731f93b55a82b483b",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/build-ca-1440-dark.png",
+    "sha256": "073972c4e31ce744ece0b228b5ab73a601b844e0980193e8e56d763305ed8575",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/build-ca-1440-light.png",
+    "sha256": "6b5f45ed0eabd6716f8371e6fe6c0ea6575bb78cefbb839d6d8658e539ae0d23",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/build-ca-390-dark.png",
+    "sha256": "8538a6a9ec210dc6f7c7b6511a80f3978cc27407801701cde85846e95d43a48a",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/build-ca-390-light.png",
+    "sha256": "c16274f3b465f14ccadb538824da1a85114027baf1bfc32e296deb1ba9122037",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/count-ca-1440-dark.png",
+    "sha256": "304503cc6f199f6b7ed615f66f9d2a4d10b0463287746c85ce75516da77eaaf8",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/count-ca-1440-light.png",
+    "sha256": "88456808cf891c6e4a5314fc63f0d897d9e5a2c4df60be227e749a08056e3d66",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/count-ca-390-dark.png",
+    "sha256": "8d50f027f53f8da12b6e4c844cddaf3f2efc62e8bbf985276cdb45e06b268d40",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/count-ca-390-light.png",
+    "sha256": "06ab96e2d94d73f4c4ef25b97ddf870a04fa9c61589d5967ac6e84aefaaa06ab",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finalize-ca-1440-dark.png",
+    "sha256": "9cfb1f601c95885a6b53f1d265c0e4bee76f017033287089608c1010d476c755",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finalize-ca-1440-light.png",
+    "sha256": "bed4e164c909aa5ddcc206691d84251dcfe2262642ccfbe65022d91b9a8e2e02",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finalize-ca-390-dark.png",
+    "sha256": "b705651ddc3b43d0d4e543980ad3a7d3a4ff2d7cc020143bea9093f3aeb57a9c",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finalize-ca-390-light.png",
+    "sha256": "3acd3feb8b7094cb1e33622b34253259d9cb4c110994bda083a9e41bcb7b5a5f",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finish-dispense-ca-1440-dark.png",
+    "sha256": "b29c36f3b53c6309069c138e72146426221105a9efde184dbb61b21b358b9d71",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finish-dispense-ca-1440-light.png",
+    "sha256": "72617fe9614eb7e074a3cb604172a92a455eb92508b4ccbf828fa67aa1ecbd4c",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finish-dispense-ca-390-dark.png",
+    "sha256": "c12f087ed34b20893992cac806fd3bb2a17c0db08e981b5c8649fd22b2cbc185",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/finish-dispense-ca-390-light.png",
+    "sha256": "ace0d2a5ce0b9fb29240093d627ff1886cf75291a9a783aca8cd02206400e4f5",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/open-resident_doctor-1440-dark.png",
+    "sha256": "01963828571a5b9212883439e4da81c715b31e6e215cefc75b7a47b3020d6e27",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/open-resident_doctor-1440-light.png",
+    "sha256": "38c484764819f6960b141a602abf5186f9b02b4bdf787fd63cf506fb5d80941e",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/open-resident_doctor-390-dark.png",
+    "sha256": "5cf280850d38b4f29bc844e5c1abcdd9821d05ccc3a28dda190d556fbe50d7f7",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/open-resident_doctor-390-light.png",
+    "sha256": "034a28d1e931b16d4d9b6ce2fb1c4fd4ecef85e0937c0a7379dadd9b6fdbb61b",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-ca-1440-dark.png",
+    "sha256": "5f35fad1ebe699e20578a259b8d51291c6124ff7c8db4d73bed410ec919e9240",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-ca-1440-light.png",
+    "sha256": "4443d838195659823c626cd18e85e244fa421aa2ec1744bb78a3c2463a7a8e1d",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-ca-390-dark.png",
+    "sha256": "8fbb69596645eee8a1f82fb6f3f1b57952aa8ab908171e6bec74d7487706cada",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-ca-390-light.png",
+    "sha256": "1aae632db68d6558a2b86f6155065175c5b017baf16437935721dc3f33e7d3f1",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-open-ca-1440-dark.png",
+    "sha256": "54fbd38d4d30e4162bf4d97042e538cb7238c20ca486ef68209baf711243cadd",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-open-ca-1440-light.png",
+    "sha256": "5589fbd14be658765d9b5670bdd0c492a4f60ec67cfd8dab034c06c9dd1c2f41",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-open-ca-390-dark.png",
+    "sha256": "6da9fa0e9c9303bcc8f2e04a38d7ade1e25dd1a7559e284c26da79d6bbf92427",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/payment-open-ca-390-light.png",
+    "sha256": "c044a22c3cd11569f1a595b16f322ff74979c886de8bacbf2769bc39e38527de",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/save-line-ca-1440-dark.png",
+    "sha256": "5b6e7be58ecc473735bcfadb3179252402f59a18244df3a8a748b2a651ff1c4f",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/save-line-ca-1440-light.png",
+    "sha256": "85d76b1acd41e554e50e8db7f758c18f5922c59e51625cbdc66eb7b884178fc1",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/save-line-ca-390-dark.png",
+    "sha256": "92a484d983b9b7edf4f3cb0f28cddbfcd11375de95edb4ab30f25e41c577ffcd",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/save-line-ca-390-light.png",
+    "sha256": "b13eb48f69ad2db4890e0221586a1ea6e072aad3cc7b9c029243d0e4e965f543",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/triage-ca-1440-dark.png",
+    "sha256": "7eab185bbf65cb76bc7074a74fd9fe0095f4c9e92b8a3345bb671a4ca7c52113",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/triage-ca-1440-light.png",
+    "sha256": "6a031521b722e872f35fae59fbe22fae225358621fd0573b190d0b7733a945e4",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/triage-ca-390-dark.png",
+    "sha256": "5671cb2bb2a86eed5d23134b46eabbc9a01312b7e83420a586c4b1ab7047e1e0",
+    "horizontalOverflow": false
+  },
+  {
+    "path": "/workspace/kpone-validation/ca-smoke/triage-ca-390-light.png",
+    "sha256": "102a74d2cecdbd2fe0bc7200f048f8db9adacfd25cff57e3bca2033b51c27af6",
+    "horizontalOverflow": false
+  }
+]

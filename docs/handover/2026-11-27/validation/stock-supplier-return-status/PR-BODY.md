@@ -1,0 +1,7 @@
+Supplier returns can now be narrowed to All, Open or Done without changing return actions or stock accounting. Both lists filter by their existing displayed latest state before pagination; individual returns keep25 rows and grouped requests10. Open includes dispatched returns awaiting a credit reference; Done does not imply payment or refund.
+
+Changing Show resets both request pages and preserves delivery/lot/search context. Each list retains its own filtered total, text search remains individual-only, and a refused GET keeps the loaded selection. Existing authority, reservations, movements and mutation handlers are unchanged.
+
+Validation:28 backend tests/338 assertions;24 focused and2,279 full frontend tests; types, scoped ESLint/Pint/PHPStan, resources formatting, build and diff checks passed. Synthetic browser covers six390/768/1440 light/dark views,44/36 filter targets, paging, individual-only search and intentionally aborted GET. Its single recorded network error is the injected failure; loaded Done state remains. All balances,28 movements and63 actions match the baseline captured after domain fixture setup.
+
+Stacked on #1230. This closes only the Show read filter, not the complete supplier-return worklist or wider Stock parity. No migration, grant or existing assertion changes; no production execution. Frozen five-file patch: c3dd69b00bb7c70ace009bec273cdf6bfbb40e38467e00ee0812b83f1f1405ec. Independent backend source review clear; final frozen design review recorded in the local validation package before publication.

@@ -1,0 +1,4 @@
+[{"action":"created","state":"awaiting_count","actor_user_id":5,"lock_version":1,"quantity":null,"movement_id":null,"movement_type":null,"movement_quantity":null}, 
+ {"action":"counted","state":"awaiting_recount","actor_user_id":5,"lock_version":2,"quantity":295.000,"movement_id":null,"movement_type":null,"movement_quantity":null}, 
+ {"action":"recounted","state":"awaiting_approval","actor_user_id":13,"lock_version":3,"quantity":295.000,"movement_id":null,"movement_type":null,"movement_quantity":null}, 
+ {"action":"approved","state":"posted","actor_user_id":7,"lock_version":4,"quantity":1.000,"movement_id":20,"movement_type":"stocktake_loss","movement_quantity":1.000}]

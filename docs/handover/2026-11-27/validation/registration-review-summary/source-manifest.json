@@ -1,0 +1,9 @@
+{
+  "base": "ecadc1125c6b6603828cf6951a06e6d4e547e3b6",
+  "patchSha256": "a97fd5ed281175da3bbf7bc0fef826ce13a012409fccd4b5e193c0931c3c0154",
+  "files": {
+    "resources/js/components/registration/RegistrationReviewSummary.vue": "5f77562cca4e3a0427156b63b5f79ccdc80609b44f40fd7ffa403178149557a6",
+    "resources/js/pages/Registration/Create.vue": "dd33367618111422a13a7368c1efbff2b302f7c39a29a8229e0364f90f21e5cc",
+    "tests/Frontend/registration-review-summary.test.mjs": "43b4c658ddcc5e3633bc406dd2be95c8a61ee4021954429b84f5d15a8559bea9"
+  }
+}

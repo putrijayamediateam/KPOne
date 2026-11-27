@@ -1,0 +1,18 @@
+{
+  "base": "9764037af1bfcb24ebad3102a124ff3f6cd7acd2",
+  "patchSha256": "bd1c2fe571362f686295554827fb0627cf1767c3fa77dedb5e68533f003642ab",
+  "files": {
+    "app/Domain/Queue/Display/QueueCallStatsService.php": "5812f59d1ac8ded5f1ccca71fcca380a9af5f4600bc63e349ab2b2fc43f44f35",
+    "app/Http/Controllers/QueueDisplaySettingsController.php": "9abe0531825079a816a87dfa445a5b5f43d3fb3df37ed5d66b4128c194d9ba83",
+    "docs/teams/queue-tv/Q16F-REVIEW-2026-11-26.md": "709703b75482a4ba198995a6afa2a502158ceec0a64428afd3578d814f25a8a8",
+    "resources/js/components/queue/QueueCallsToday.vue": "72b96a107bedac2736c64ee5b592819a736e32273c153c8ff11a798ab139d891",
+    "resources/js/lib/queue-call-stats.ts": "9a414b8558bc815e27931700539f66cbf6424dcc941e9a8a0a896397411baf85",
+    "resources/js/pages/QueueDisplay/Settings.vue": "1b3c75c5176a6a780046bf0e24bfb9c116f65e156d4ae68cbd2727612d30ab6d",
+    "tests/Feature/Queue/QueueCallStatsBoundaryTest.php": "f1d2de57233264c3cd84c00e4580830e99851e0147e79aae351bf7a137d8ebc7",
+    "tests/Feature/Queue/QueueCallStatsPaginationTest.php": "f77c337e05b05c5356f4465bfb050ce62fcd428c20f772fe545facf4562bb9f7",
+    "tests/Feature/Queue/QueueCallStatsTest.php": "9f88994298961d630fd9367237598d99edad6a1495d0518f907c3c57bd0afd93",
+    "tests/Frontend/classic-only-co8-kept-ui-tv-settings-parity.test.mjs": "936483e9fd32746dae89c0a4149f6e508e4426b05b75d25765c89e0e3f8af947",
+    "tests/Frontend/q-16f-calls-pagination.test.mjs": "0a5897a61f1e2e159a26cf24a7cc01c9b1720bc942a2a6b3876849e9def32a23",
+    "tests/Frontend/q-16f-calls-today.test.mjs": "f015e47c8c7a0f631273b352bd5055dea06a9987a7a1afbd45deb3e1b7cd6ea8"
+  }
+}

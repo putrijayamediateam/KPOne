@@ -1,0 +1,7 @@
+# Independent workload client review
+
+CLEAR bounded endpoint/client packet `438cb661821365752aac518dc85bdbc28914cabc2584496e2da140da6b3ee35a` for separate draft preservation, subject to the recorded independent backend review. Verified immutable patch and all12 file hashes. Independently inspected useQueueWorkload and ran its three actual transpiled-client tests: all pass.
+
+Selection keys include branch/section/page and submitted filters; selection changes clear rows, abort and increment generation. Publication requires current generation, nonaborted request and caller acceptance; response branch/section mismatch fails closed. Request identity protects loading cleanup and parent listener is removed. Failed accepted refresh removes stale actionable rows. Server-clamped page remains authoritative.
+
+No tabs are wired in this slice. Integration must call reset on branch/scope/unmount, supply context acceptance and cancellation, and never await optional workload in the primary queue refresh. The composable alone does not promise permanent disposal after reset or enforce caller scope transitions. Existing UI Reset regression is explicitly retained for the next wiring slice, not claimed as tested here. No visual/full-workload UI claim. Backend27/346/static and full2293/types/build are builder/peer evidence, not independently rerun by this client review. No blocking client finding; no merge.

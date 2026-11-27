@@ -1,0 +1,452 @@
+[
+  {
+    "own": true,
+    "key": "waiting",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Reason",
+      "Waiting",
+      "Actions"
+    ],
+    "optionalSection": "summary",
+    "optionalTotal": 0,
+    "optionalRows": 0,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000060",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "waiting",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Reason",
+      "Waiting",
+      "Actions"
+    ],
+    "optionalSection": "summary",
+    "optionalTotal": 0,
+    "optionalRows": 0,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000060",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "seeing",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Reason",
+      "Since",
+      "Actions"
+    ],
+    "optionalSection": "seeing",
+    "optionalTotal": 1,
+    "optionalRows": 1,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000061",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "seeing",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Reason",
+      "Since",
+      "Actions"
+    ],
+    "optionalSection": "seeing",
+    "optionalTotal": 1,
+    "optionalRows": 1,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000061",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "held",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Treatment step",
+      "Held",
+      "Actions"
+    ],
+    "optionalSection": "held",
+    "optionalTotal": 1,
+    "optionalRows": 1,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000058",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "held",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Treatment step",
+      "Held",
+      "Actions"
+    ],
+    "optionalSection": "held",
+    "optionalTotal": 1,
+    "optionalRows": 1,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000058",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "treatment",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Treatment",
+      "Result",
+      "Actions"
+    ],
+    "optionalSection": "treatment",
+    "optionalTotal": 1,
+    "optionalRows": 1,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000058",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "treatment",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Treatment",
+      "Result",
+      "Actions"
+    ],
+    "optionalSection": "treatment",
+    "optionalTotal": 1,
+    "optionalRows": 1,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000058",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "completed",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Seen for",
+      "Completed (consultation)",
+      "Actions"
+    ],
+    "optionalSection": "completed",
+    "optionalTotal": 27,
+    "optionalRows": 25,
+    "renderedRows": 25,
+    "sampledVisit": "KPV-00000032",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": true,
+    "key": "completed",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Seen for",
+      "Completed (consultation)",
+      "Actions"
+    ],
+    "optionalSection": "completed",
+    "optionalTotal": 27,
+    "optionalRows": 25,
+    "renderedRows": 25,
+    "sampledVisit": "KPV-00000032",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "waiting",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Status",
+      "Waiting",
+      "Actions"
+    ],
+    "optionalSection": "summary",
+    "optionalTotal": 0,
+    "optionalRows": 0,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000060",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "waiting",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Status",
+      "Waiting",
+      "Actions"
+    ],
+    "optionalSection": "summary",
+    "optionalTotal": 0,
+    "optionalRows": 0,
+    "renderedRows": 1,
+    "sampledVisit": "KPV-00000060",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "seeing",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Status",
+      "Since",
+      "Actions"
+    ],
+    "optionalSection": "seeing",
+    "optionalTotal": 2,
+    "optionalRows": 2,
+    "renderedRows": 2,
+    "sampledVisit": "KPV-00000007",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "seeing",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Status",
+      "Since",
+      "Actions"
+    ],
+    "optionalSection": "seeing",
+    "optionalTotal": 2,
+    "optionalRows": 2,
+    "renderedRows": 2,
+    "sampledVisit": "KPV-00000007",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "held",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Treatment step",
+      "Held",
+      "Actions"
+    ],
+    "optionalSection": "held",
+    "optionalTotal": 3,
+    "optionalRows": 3,
+    "renderedRows": 3,
+    "sampledVisit": "KPV-00000058",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "held",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Treatment step",
+      "Held",
+      "Actions"
+    ],
+    "optionalSection": "held",
+    "optionalTotal": 3,
+    "optionalRows": 3,
+    "renderedRows": 3,
+    "sampledVisit": "KPV-00000058",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "completed",
+    "width": 1440,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Sent to",
+      "Completed (consultation)",
+      "Actions"
+    ],
+    "optionalSection": "completed",
+    "optionalTotal": 27,
+    "optionalRows": 25,
+    "renderedRows": 25,
+    "sampledVisit": "KPV-00000032",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "own": false,
+    "key": "completed",
+    "width": 390,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Sent to",
+      "Completed (consultation)",
+      "Actions"
+    ],
+    "optionalSection": "completed",
+    "optionalTotal": 27,
+    "optionalRows": 25,
+    "renderedRows": 25,
+    "sampledVisit": "KPV-00000032",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  }
+]

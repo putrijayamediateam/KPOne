@@ -1,0 +1,10 @@
+{
+  "base": "2d1113a377b78da066398d5ac18457a4424c3d18",
+  "patchSha256": "912f9d2d2e86326b953b7d42a18e96707ccda59482568f04ffb11f7c0b48f827",
+  "files": {
+    "resources/js/pages/Dispensary/Settings.vue": "42692d8de40c4ceded70d0f3b7bc2ff39ba20ea53d104d9f7e3b246836b79211",
+    "tests/Frontend/dsp-settings-context-runtime.test.mjs": "ce81fc84eb9c6037b1e39962b787cf5dd1336a9d44d4c4fbb984042c8023ac53",
+    "tests/Frontend/dsp-settings-switch-runtime.test.mjs": "f840fc78d2c8afb47dea7464cbb3aa252aa59bb213d18495b4a55ac66398ec26",
+    "docs/teams/dispensary-otc/TEAM.md": "06abb58275ccf8a0c115c7ada513c8c78da0b1fbb3537153ab6b7e1b026bdb0a"
+  }
+}

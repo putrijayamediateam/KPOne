@@ -1,0 +1,15 @@
+{
+  "patch": "/workspace/kpone-validation/tri2-bounded-alarm/TRI2-bounded-alarm-followup.patch",
+  "sha256": "90eae5fd9cd59d8ab0d70f462b62659c69d612acf8fcc536e936884177ac26ec",
+  "files": {
+    "app/Domain/Queue/Services/RedZoneAlertService.php": "601b79d9d6d88a95b0d5b29a7bba9796d94aa040918b669242f0a6085237825c",
+    "tests/Feature/Queue/EmergencyAlertBoundedAlarmTest.php": "c8ab08a967ddf005e79cbb29c5d222c17a4650850e5441156d52a3d4c8b84207"
+  },
+  "baseline_service_sha256": "e02a6ca3cb9716d97a9a42e872f0067c33500a88ee02721a7466b2fb97cc4883",
+  "validation": {
+    "focused_tests": 30,
+    "assertions": 155,
+    "phpstan_errors": 0
+  },
+  "existing_assertions_changed": false
+}

@@ -1,0 +1,9 @@
+{
+  "base": "eec5d5444bd14b0358e0383c1ea5d427e4d33f11",
+  "patchSha256": "0bff17dd781021a7e35ad3b038fc6bec057e1de1489125553bb0cc006dbb17d5",
+  "files": {
+    "resources/js/pages/Dispensary/Labels.vue": "8d0face1e9fe113382313860bae639dd43eb73999c3de23d280e73b30e05fb94",
+    "tests/Frontend/dsp-label-preview-screen-runtime.test.mjs": "234c9b82652008eae131a38b62680c518221e933db7efecd4f09d36722713354",
+    "docs/teams/dispensary-otc/TEAM.md": "8f0fadfe095af3f16f2100768489653d2c356c53e90e87349a8d11413a4f3b65"
+  }
+}

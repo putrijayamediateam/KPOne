@@ -1,0 +1,24 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "patchSha256": "1b150a54d2e0f9bb6ce30a21cd37da84dd778b5dc6d971b1ba3214d9840e2ff0",
+  "files": {
+    "app/Domain/Patient/Services/PatientEmergencyContactService.php": "108daa54f7e74a5790bf616617ef3d174887df864a5ffab8c51135112816f1c8",
+    "app/Http/Controllers/PatientEmergencyContactController.php": "eaadc6167ed1f262a97125d15d08181acff323f78df599b64bf280ca583a4ff1",
+    "database/migrations/2026_11_26_010000_create_patient_emergency_contacts.php": "2922c42dc9f7d309288d9144b568fb9c7df17e4d1f26a1450172c218e445a977",
+    "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md": "01b96c4b0a7c77780302716bf113afa6d895ec66e85806d707d2eea8be72b080",
+    "resources/js/components/patient/EmergencyContactCard.vue": "a0f1ee430541f2efb95f610230f07ac2d2dd40abf363687215a6e1ff1646aa9e",
+    "tests/Feature/Patient/PostgresEmergencyContactContentionTest.php": "bfb9f6cdc3f2d87a58ae37fad8c69b3ace8f7260c58d367bc40bf944334393bc",
+    "tests/Feature/Visit/PatientEmergencyContactTest.php": "4feb806d9f8c7094732cc41eeb24e9507baa74b453ebccb48cba696441a079e6",
+    "tests/Frontend/patient-emergency-contact.test.mjs": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "tests/Support/PostgresEmergencyContactWorker.php": "5c130257152479451bd4d93713f05cb41294bcd9ccf40e671dea17ef2d3d68ae",
+    "app/Domain/Visit/Services/VisitRegistrationService.php": "a8748b450063f434eee2a727b73973a48d9caf45a12b5065e437189fd016c572",
+    "app/Http/Controllers/PatientController.php": "8b5efd9568f50845675fa87fc95810196f1a0c018c1d8859355d41dd93fe43c0",
+    "app/Http/Controllers/RegistrationController.php": "43688616d15e1fc8cba1aa6235b1fa98e1d0a1a722f9fdfd373caa5fd3fc0e89",
+    "app/Http/Requests/StoreVisitRequest.php": "a283c78b3ba5d61270f44959aab5705a58789e19cee3c036c625115202cf0322",
+    "docs/teams/patients-registration/TEAM.md": "d2910da35552166d60115225557b23af64b81e82fc2a8baed29d68cba258441d",
+    "phpunit.xml": "a10ecf47bd5f2c880d1db1b765737ffce3cec27c40640dcb6ab4c64fec726393",
+    "resources/js/pages/Patient/Show.vue": "5b7fedab7f9987b94b8882116324e88f830383719680f13b2f2696abc3fae6b5",
+    "resources/js/pages/Registration/Create.vue": "4c31301f0af62153a0edeb0691d311180cf9f93735854495a79413ef9b4057fd",
+    "routes/web.php": "39db6c9213e2fa4ff589f3af572ed2915c9dcd7a1e152abc1cbce33117c9d075"
+  }
+}

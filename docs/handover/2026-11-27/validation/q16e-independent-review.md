@@ -1,0 +1,5 @@
+# Q16e independent review
+
+Reviewed new summary/composable and queue board integration in /workspace/KPOne-q16e. Found optional summary request awaited before clinical readiness/treatment polls and next scheduling, without timeout; stalled summary could block operational refresh. Sent finding to queue_tv before edits. Re-review confirms nonawaited summary, own abort controller, parent-abort forwarding, superseded request/reset cancellation, sequence and lifecycle publication guards; finding resolved. New regression covers hung replacement/nonawait integration.
+
+No remaining scoped blocker identified. Own/whole-branch label explicit, null distinct from valid0 minutes, error state clears stale count; semantic tokens used. No aria-live flood each poll. Backend route permission/active-branch validation and existing queue-entry consultation invariant inspected; no permission expansion introduced. Tests reported by owner: frontend4 and inherited backend2/10 assertions. Independent review did not launch heavy jobs or change source; final browser/accessibility UAT remains owner package scope.

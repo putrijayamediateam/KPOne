@@ -1,0 +1,7 @@
+Branch Queue viewers can expand Rooms today to see each eligible doctor's current room/source, availability, waiting/not-ready counts and held consultations. Own-only viewers do not receive the projection. The view carries structural information only, with no patient names, clinical content or actions.
+
+This extracts Q16d directly onto current main83c5999 without archive #1142. Doctors use independent25-row pages, stable name/id order, explicit total/visible counts and server clamping. New batch APIs preserve existing single-doctor roster/leave/manual-room semantics. SQL groups serving/held/count data, avoiding per-doctor room/busy query growth. Optional polling is nonblocking and cancels stale work; keyboard paging retains focus on the persistent summary.
+
+Validation: PostgreSQL18 tests/246 assertions, including1-versus26 query-count/parity, shift/manual/leave/overnight boundaries and pagination; all2,210 frontend tests; scoped PHPStan/lint/format, full types/build passed. Ten actual browser checks/eight390/1440 light/dark captures proved27 doctors→25+2 without overlap, Previous and keyboard focus, own-only hiding, no overflow or JS errors. Independent source/visual review clear; seven frontend tests independently passed. Existing assertions are unchanged; no grant or migration added.
+
+Bounded dependency release only; the full demo Doctors-tab layout remains in the separate makeover stack. Q16e #1157 is independent and its shared hooks must be retained when integrating both. No merge or production activation requested.

@@ -1,0 +1,5 @@
+Adds the demo's Outcome filter to the existing returns checked-this-month list: All, Quarantined, Disposed and Refused. It uses the real scoped checked records, preserves controlled filtering and pagination, and shows truthful matching totals/empty states. Leaving Checked clears the outcome selection.
+
+Stacked on #1155. Existing branch, month, authority and privacy checks remain; waiting counts are unaffected by outcome. The optional service argument preserves existing callers. No new queries, permission grants, migrations or return mutations; checking remains on the case page.
+
+Validation:23 PostgreSQL tests/455 assertions,10 frontend checks, PHPStan/Pint, types/build and scoped lint/format pass. Tests cover all outcomes, combined filters, malformed queries, authorization, month boundaries, pagination and unchanged query count. Sixteen actual synthetic width/theme states exercise GET-only filtering, page reset/preservation, empty results and normalized selection. Independent backend and design reviews clear. No merge or production action.

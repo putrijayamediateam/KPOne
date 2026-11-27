@@ -1,0 +1,28 @@
+{
+  "patch_sha256": "1a0924e754fc5c26d444e6e453f1636dd5ce37492fd132f7433bbba20238c787",
+  "files": {
+    "resources/js/pages/Queue/Index.vue": {
+      "base_sha256": "983f752473d77557edbb6f8b97bf7a7a66c5347c41db4537a9f6936c35ec8b26",
+      "source_sha256": "791c5ce89f68fd2fe13c6c1965f46e286e1b52aeb7769a39448c1ca757609466"
+    },
+    "resources/js/components/patient-board/PatientBoard.vue": {
+      "base_sha256": "b8d548d06e55496e65f18099ee76a8b00898fd83b1b833822f0541b142ef3d7b",
+      "source_sha256": "12456118fb5b5cb63ff63ab0ed405853b80c37663bcdcba7abcdc3bb3b42b85e"
+    },
+    "resources/js/components/queue/QueueWorkspaceFrame.vue": {
+      "base_sha256": null,
+      "source_sha256": "9b2d3b95c70179ddcd81564441d1bba7fd36d453357328a2e7f7b725c8b3f6bb"
+    },
+    "tests/Frontend/queue-demo-workspace.test.mjs": {
+      "base_sha256": null,
+      "source_sha256": "4bdb5976d426084a7c73a341326a99b159ca485b7ba15bfd99bb1dc5d3ef9265"
+    },
+    "resources/js/components/queue/EmergencyLane.vue": {
+      "base_sha256": "98a24eaf4e5ed820f5e17aa1fca9796b4b4795d399d16e46584411b8a527f774",
+      "source_sha256": "13674a0abcbb4491fe879d16ab1c5f89523b47f8ab2b4048c9b58de5f3719653"
+    }
+  },
+  "focus_tests": 71,
+  "new_tests": 6,
+  "supersedes": "v1/v2/v3 candidates retained, v4 includes peer warning/column fixes"
+}

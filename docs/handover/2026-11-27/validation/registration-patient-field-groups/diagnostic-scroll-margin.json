@@ -1,0 +1,161 @@
+{
+  "proof": {},
+  "captures": [
+    {
+      "state": "dialog-identity",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identity",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-contact",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-identifiers",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "writes": [],
+  "geometry": [
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 390,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-phone",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-phone-country",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-email",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-address_line_1",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 768,
+      "selector": "#quick-contact-country_code",
+      "height": 44
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-phone",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-phone-country",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-email",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-address_line_1",
+      "height": 40
+    },
+    {
+      "mode": "dialog",
+      "width": 1440,
+      "selector": "#quick-contact-country_code",
+      "height": 40
+    }
+  ],
+  "abortedBeforeServer": 0,
+  "qualification": "Actual client validation and focus. Unconfirmed state is one controlled POST abort before server; no successful creation or committed replay claimed."
+}

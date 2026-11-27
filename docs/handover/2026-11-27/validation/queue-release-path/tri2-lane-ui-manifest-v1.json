@@ -1,0 +1,75 @@
+{
+  "base": "a83e9e8f3e0cd35b027a55f8fe5bb3f10687699a",
+  "patch": "TRI2-LANE-UI-ON-SHARED-v1.patch",
+  "sha256": "1ee88356ed7646d643d247c6f18aa3574dbb7c67bdbcd3d673ac8d940135aa82",
+  "files": [
+    {
+      "path": "app/Domain/Queue/Readiness/CallHoldProjection.php",
+      "sha256": "c2c8f547731d632b58f4e30c6d23cf324c6ef36051f3e926f76b5b5068d19d09"
+    },
+    {
+      "path": "docs/reviews/TRI2-LANE-UI-RECOVERY-2026-11-26.md",
+      "sha256": "dfbf71bc6b203789384ba0af9374d62be83a82f7fbb65c9be8151d183c03444f"
+    },
+    {
+      "path": "resources/js/components/patient-board/PatientBoard.vue",
+      "sha256": "d825956cba869d8fdaf15798b191df1f2e3c1d830b8d1958e94d1221d2e63be9"
+    },
+    {
+      "path": "resources/js/components/queue/EmergencyLane.vue",
+      "sha256": "98a24eaf4e5ed820f5e17aa1fca9796b4b4795d399d16e46584411b8a527f774"
+    },
+    {
+      "path": "resources/js/lib/emergency-lane.ts",
+      "sha256": "b9ae39a16cba5ef2c8c0b85f197a6cd80625628f596fd54b810bc6ce1b67b03f"
+    },
+    {
+      "path": "resources/js/pages/Queue/Index.vue",
+      "sha256": "540d546aa8eb42437340819c516c96823d7787a4ab6d3be26e3e7bd61a1746ba"
+    },
+    {
+      "path": "resources/js/pages/Registration/Index.vue",
+      "sha256": "b926790ba2684415fa2ca56de38566f9d4b1f010f5b561be1fa0ce26c7ab5cb5"
+    },
+    {
+      "path": "resources/js/types/patientBoard.ts",
+      "sha256": "969d449e2b9025ce48d5dbb6b1b000023920e629de8fa227f371fdb9e6963992"
+    },
+    {
+      "path": "resources/js/types/queue.ts",
+      "sha256": "f689aa9f22e6755231f4d042860e23e5f9d7feefcd6aa6a7d1b66c6e23a66de2"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyLaneReadinessCapabilityTest.php",
+      "sha256": "5d8182dd1bc2c8246b0bbf8092037926684abd4a08727b7e4349764062da33f6"
+    },
+    {
+      "path": "tests/Frontend/classic-only-co4-kept.test.mjs",
+      "sha256": "7a440b70f66012abb0d3b804b430edef799d80b1c0f3e544b603aefa3e2e07d0"
+    },
+    {
+      "path": "tests/Frontend/flow-fixes-1.test.mjs",
+      "sha256": "3e1ce7c2c6334a77db32faa85471c50b1089190c49cfbad38ccddefc6a3fb20b"
+    },
+    {
+      "path": "tests/Frontend/rb-01-registration-board-search.test.mjs",
+      "sha256": "c3e20df0a74922cbcd94ff79a7df3415bf84b36e0115a41a2d251ffd01553837"
+    },
+    {
+      "path": "tests/Frontend/rb-02-registration-board-dates.test.mjs",
+      "sha256": "0f469786df688c5c7953b2645a48209b62761d4dfee49f24d1a62f22046e32a2"
+    },
+    {
+      "path": "tests/Frontend/reg-live-1.test.mjs",
+      "sha256": "50b2690becfc100547391ec8ad2dd99a3ceca923eb691e4b2e134d2e3c962615"
+    },
+    {
+      "path": "tests/Frontend/treatment-call-authority.test.mjs",
+      "sha256": "8f977512cf6fc185a8ad4bc568484545618128d0fd7ed08f7dc2d32f52eb9bbd"
+    },
+    {
+      "path": "tests/Frontend/tri2-emergency-lane-runtime.test.mjs",
+      "sha256": "6ef446cedc7c01dc9b87471dacab285c9d1b13a4de570d1e28f014d344a16897"
+    }
+  ]
+}

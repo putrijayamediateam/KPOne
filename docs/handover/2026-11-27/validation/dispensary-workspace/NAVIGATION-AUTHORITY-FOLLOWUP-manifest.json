@@ -1,0 +1,26 @@
+{
+  "base": "bd6997e9d9a77928d2635f315eade4b8886f3123",
+  "patchSHA256": "385676011ad562fab7e4a2106b3cbfdddedd7a7ce75451e019f118c89a314f13",
+  "files": [
+    {
+      "path": "app/Http/Controllers/DispensaryController.php",
+      "sha256": "896e55804ab8b6de89120afe8fd7f85d94bbe395937ec9f0c64090a66926d4ef"
+    },
+    {
+      "path": "docs/teams/dispensary-otc/TEAM.md",
+      "sha256": "dc67a67c1fb7a0b7e6d355d3a52917e80aa9f73b5ae5b3a3c03115adc7be5767"
+    },
+    {
+      "path": "resources/js/pages/Dispensary/Index.vue",
+      "sha256": "d8f19715ee8a9adf231201b5bfe399e9176641d14c398b7e5a8839610859490d"
+    },
+    {
+      "path": "tests/Frontend/dsp-workspace-demo-runtime.test.mjs",
+      "sha256": "224b9ae3b2c047e9699bb3cf6d55d3f0b69c09bcaab1f24ab1441c471cbde6c0"
+    },
+    {
+      "path": "tests/Feature/Clinical/DispensaryWorkspaceNavigationTest.php",
+      "sha256": "87f72b7fef44ea79ff744b7d2b597ab9c88edff265c834c05ffc817c2d072269"
+    }
+  ]
+}

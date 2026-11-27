@@ -1,0 +1,116 @@
+{
+  "id": 139734084290,
+  "run_id": 45768175955,
+  "workflow_name": "tests",
+  "head_branch": "feature/clean-look-dispensary-publication",
+  "run_url": "https://api.github.com/repos/putrijayamediateam/KPOne/actions/runs/45768175955",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOT-JFc88AAAAgiMzqwg",
+  "head_sha": "30ce29ad0a315b58f8495393737af6e5296b913f",
+  "url": "https://api.github.com/repos/putrijayamediateam/KPOne/actions/jobs/139734084290",
+  "html_url": "https://github.com/putrijayamediateam/KPOne/actions/runs/45768175955/job/139734084290",
+  "status": "completed",
+  "conclusion": "success",
+  "created_at": "2026-11-26T06:26:13Z",
+  "started_at": "2026-11-26T06:26:16Z",
+  "completed_at": "2026-11-26T06:26:43Z",
+  "name": "attest",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-11-26T06:26:16Z",
+      "completed_at": "2026-11-26T06:26:19Z"
+    },
+    {
+      "name": "Validate pull-request candidate",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-11-26T06:26:19Z",
+      "completed_at": "2026-11-26T06:26:19Z"
+    },
+    {
+      "name": "Validate exact-SHA request",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 3,
+      "started_at": "2026-11-26T06:26:19Z",
+      "completed_at": "2026-11-26T06:26:19Z"
+    },
+    {
+      "name": "Checkout exact candidate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 4,
+      "started_at": "2026-11-26T06:26:19Z",
+      "completed_at": "2026-11-26T06:26:19Z"
+    },
+    {
+      "name": "Checkout exact pull-request candidate",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-11-26T06:26:19Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    },
+    {
+      "name": "Checkout code",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 6,
+      "started_at": "2026-11-26T06:26:41Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    },
+    {
+      "name": "Attest pull-request checkout and integration",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-11-26T06:26:41Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    },
+    {
+      "name": "Attest exact checkout",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8,
+      "started_at": "2026-11-26T06:26:41Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    },
+    {
+      "name": "Publish the attested candidate SHA",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-11-26T06:26:41Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    },
+    {
+      "name": "Post Checkout exact pull-request candidate",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18,
+      "started_at": "2026-11-26T06:26:41Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19,
+      "started_at": "2026-11-26T06:26:41Z",
+      "completed_at": "2026-11-26T06:26:41Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/putrijayamediateam/KPOne/check-runs/139734084290",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000009374,
+  "runner_name": "GitHub Actions 1000009374",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

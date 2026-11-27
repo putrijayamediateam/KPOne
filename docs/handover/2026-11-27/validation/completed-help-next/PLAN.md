@@ -1,0 +1,13 @@
+# Completed case optional guidance — bounded F21 follow-up
+
+Preparation while return target validation runs. Locked PharmacyCompleted.dc.html __kpFrame lists About this page, Related pages and Good to know; actual Completed.vue has no helper panel. The reference's optional finished-case guidance is a genuine remaining content/interaction gap after the published completion card. Preserve dedicated real route, not a fake modal.
+
+Proposed three files: Completed.vue, new actual-template runtime test, TEAM.md. Stack on reviewed1175 so no duplicate foundation. Add one local showHelpfulInfo ref and header toggle with44/36 targets/aria-controls; mount optional native About and Good to know details after operational returns content with v-show preserving expanded state. No new related links because real header already binds actor-specific back/labels/billing and duplicating generic demo URLs would weaken authority clarity.
+
+About text: finished fulfilment case, current saved labels, medicine returns where allowed. Good to know: case cannot return to doctor; recording a medicine return does not issue a refund; an authorized supervisor who did not record it checks it separately; controlled medicines cannot be quarantined. All facts must be rechecked against actual service/component code before editing. Readonly doctor copy says view only and describes CA actions without instructing doctor to record/print. Existing completion/read-only/returns safety explanations remain outside the optional toggle and unchanged.
+
+Do not edit return child, submit handlers, payload/locks/retry logic or any permissions. No follow-up, Ready or new completion action. New tests should render actual optional area/toggle and retain critical notices for CA/doctor and no-return states. Actual browser keyboard detail/toggle focus and retained expanded state, no return submission,390/1440 light/dark. Existing source assertions listed before any needed edits; no silent weakening. Independent review and scoped gates before separate publication.
+
+## Source wording verification
+
+DispensaryReturnService::mayCheck (line541) currently requires CHECK permission AND ca_supervisor role. Separation enforcement lines268–269 refuses the recorder. Lines272–274 refuse quarantine when current catalogue controlled flag is true; allowedOutcomes projection also excludes quarantine. Existing MedicineReturnsSection returns-no-refund note states no money back and separate billing refund approval. Help will use future-safe wording "an authorized checker who did not record it" rather than broaden authority; clinical behavior unchanged. Design plan cleared subject to these checks.

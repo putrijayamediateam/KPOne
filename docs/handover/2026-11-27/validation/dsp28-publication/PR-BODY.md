@@ -1,0 +1,7 @@
+Returns to check now includes a Checked this month view for the active branch, showing outcome, checker and time. Both views can be filtered by controlled-medicine status. This recovers the already-approved DSP-28 scope; rows remain read-only and checks still happen on the existing case page.
+
+The service retains its active-user, CA Supervisor, permission, organization and branch gates. History uses the branch-local calendar month and does not expose private return/refusal notes. The home waiting count avoids loading the additional tab count. No migrations, grants, Ready state, inline return checks or existing assertion changes. Desktop controls meet36px and mobile44px targets.
+
+Validation:30 focused PostgreSQL tests/452 assertions,13 existing frontend checks, full PHPStan/TypeScript, production build and scoped formatting/lint. Eight synthetic browser states cover waiting/checked390/1440 light/dark and controlled-filter round trips with no page overflow/errors. Independent source review found no authority/branch/month/privacy blocker.
+
+Initial filter-only PHPUnit runs reported passing assertions but exited1 due to baseline duplicate Contention-suite registrations. The final run explicitly selects Feature and passes with exit0; no tests/configuration were weakened. Generic filtered-empty copy and shared branch-description duplication remain documented presentation debt. This is a draft for review, not a merge request.

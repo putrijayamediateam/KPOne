@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "Synthetic MA switched through actual branch selector to Puchong; Cheras held patient disappeared",
+    "Puchong page contains no Cheras synthetic patient identity",
+    "Switching back to Cheras restores the held patient"
+  ],
+  "errors": [],
+  "result": "passed"
+}

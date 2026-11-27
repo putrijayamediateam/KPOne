@@ -1,0 +1,77 @@
+[
+  {
+    "role": "resident_doctor",
+    "check": "branch room projection absent from own board"
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": false,
+    "shot": "q16d-resident_doctor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": true,
+    "shot": "q16d-resident_doctor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": false,
+    "shot": "q16d-resident_doctor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": true,
+    "shot": "q16d-resident_doctor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "check": "bounded pages, no overlap, total and keyboard focus",
+    "firstTotal": 27,
+    "firstCount": 25,
+    "secondCount": 2
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "dark": false,
+    "shot": "q16d-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "dark": true,
+    "shot": "q16d-ca_supervisor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "dark": false,
+    "shot": "q16d-ca_supervisor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "dark": true,
+    "shot": "q16d-ca_supervisor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  }
+]

@@ -1,0 +1,407 @@
+{
+  "matrix": [
+    {
+      "role": "ca_supervisor",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "ca_supervisor",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "ca_supervisor",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "ca_supervisor",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "ca_supervisor",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "",
+          "height": 36
+        },
+        {
+          "name": "Search Location",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        },
+        {
+          "name": "Location",
+          "height": 36
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "ca_supervisor",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "",
+          "height": 36
+        },
+        {
+          "name": "Search Location",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        },
+        {
+          "name": "Location",
+          "height": 36
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance_officer",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance_officer",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance_officer",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance_officer",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "",
+          "height": 44
+        },
+        {
+          "name": "Search Location",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        },
+        {
+          "name": "Location",
+          "height": 44
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 44
+        },
+        {
+          "name": "Search",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance_officer",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "",
+          "height": 36
+        },
+        {
+          "name": "Search Location",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        },
+        {
+          "name": "Location",
+          "height": 36
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance_officer",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "",
+          "height": 36
+        },
+        {
+          "name": "Search Location",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        },
+        {
+          "name": "Location",
+          "height": 36
+        },
+        {
+          "name": "Only rows that need orderingAll low-stock rows",
+          "height": 36
+        },
+        {
+          "name": "Search",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "actualSelectionSubmit": "http://127.0.0.1:3211/inventory/reorder-suggestions?location=3edd91b4-176f-4d86-9a05-5f2b06bdfb9e&need=order&page=1",
+  "ca_supervisor": {
+    "rows": 2,
+    "total": 2,
+    "selectedSurvivesOmittedMatch": true,
+    "costPresent": false
+  },
+  "prefill": {
+    "url": "http://127.0.0.1:3211/inventory/purchase-requests?lines%5B0%5D=3ed0a610-6b5c-4632-9b19-2b83c1f6a76b%3A11995&location=3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+    "quantity": "11995",
+    "submitted": false
+  },
+  "finance_officer": {
+    "rows": 2,
+    "total": 2,
+    "selectedSurvivesOmittedMatch": true,
+    "costPresent": true
+  }
+}

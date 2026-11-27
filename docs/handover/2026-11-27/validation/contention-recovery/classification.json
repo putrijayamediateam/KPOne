@@ -1,0 +1,28 @@
+{
+  "original_counts": {
+    "tests": 314,
+    "passed": 248,
+    "failed": 8,
+    "errors": 58,
+    "assertions": 3041
+  },
+  "explicit_cipher_errors": 57,
+  "explicit_cipher_failures": 6,
+  "unclassified_worker_runtime_failures": [
+    "Tests\\Feature\\PostgresBillingRegressionTest::test_two_first_prints_of_one_invoice_at_once_give_one_original_and_one_copy",
+    "Tests\\Feature\\PostgresBillingRegressionTest::test_a_finance_style_printer_and_a_ca_pressing_print_at_once_give_one_original_and_one_copy"
+  ],
+  "historical_missing_table_errors": [
+    {
+      "test": "Tests\\Feature\\PostgresDispensaryInventoryRegressionTest::test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence",
+      "file": "/workspace/KPOne-ca-integration/tests/Feature/PostgresDispensaryInventoryRegressionTest.php",
+      "line": 786,
+      "message": "SQLSTATE[42P01]: Undefined table: 7 ERROR:  relation \"queue_emergency_alerts\" does not exist\nLINE 1: select * from \"queue_emergency_alerts\" where \"queue_entry_id...\n                      ^ (Connection: pgsql_dispensary_inventory_child, Host: 127.0.0.1, Port: 55439, Database: kpone_dispensary_inventory_asriv8yrltal06q6_testing, SQL: select * from \"queue_emergency_alerts\" where \"queue_entry_id\" = 1 and \"closed_at\" is null limit 1 for update)"
+    }
+  ],
+  "replacement_synthetic_key_decoded_bytes": 32,
+  "original_key_decoded_bytes": 26,
+  "database": "kpone_ca_contention_test",
+  "source_changed": false,
+  "original_key_evidence": "Coordinator verified original literal synthetic placeholder via Python (35 As plus padding)."
+}

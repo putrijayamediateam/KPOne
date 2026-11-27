@@ -1,0 +1,11 @@
+{
+  "patchSha256": "6edeb5fffccecd5c20a64db2e99dba2283b4c6c87eddf3a692c6be020d01d1a3",
+  "files": {
+    "resources/js/components/patient/FamilyLinksCard.vue": "8ba6dc602363eb96b291084648af217fe4a89d7e6c3834641cad1e7150192e44",
+    "resources/js/components/clinical/FamilyWaitingCard.vue": "a79ace394a7ee85ee99011aae0e3e3a4c4f4c5a5f78042af4e467db86e7c31bf",
+    "resources/js/pages/Patient/Show.vue": "fffe0048f92031ba50743f6b69b57caf620bbdd93f88adfc29568969df1bf08f",
+    "resources/js/pages/Clinical/Show.vue": "58cf1ef36503cda9e7bd3377afb63d084fd90eb636f507c9338ef9ce9dc74161",
+    "resources/js/types/clinical.ts": "ba282760cf0964dc8b3413e8d2031bd03e10c9fbc54e26a6dcf99d683d298da9",
+    "tests/Frontend/family-links-ui.test.mjs": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd"
+  }
+}

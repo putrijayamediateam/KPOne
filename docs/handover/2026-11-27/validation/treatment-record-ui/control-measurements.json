@@ -1,0 +1,42 @@
+[
+  {
+    "width": 1440,
+    "controls": [
+      {
+        "text": "Treatment room",
+        "height": 36,
+        "font": "14px"
+      },
+      {
+        "text": "Choose a procedure or sample",
+        "height": 36,
+        "font": "14px"
+      },
+      {
+        "text": "Start treatment",
+        "height": 36,
+        "font": "14px"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "controls": [
+      {
+        "text": "Treatment room",
+        "height": 44,
+        "font": "14px"
+      },
+      {
+        "text": "Choose a procedure or sample",
+        "height": 44,
+        "font": "14px"
+      },
+      {
+        "text": "Start treatment",
+        "height": 44,
+        "font": "14px"
+      }
+    ]
+  }
+]

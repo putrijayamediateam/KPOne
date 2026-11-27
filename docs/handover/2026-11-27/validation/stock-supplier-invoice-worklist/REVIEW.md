@@ -1,0 +1,13 @@
+# Supplier invoice match worklist
+
+Base1226 fc98024ec2de1fdcb48cb1307df8bd59b05c08fb. Frozen five-file patch34c60e4435a3da8d644a065bfdd9fb1e49086be9e8b1758da6ef151b17033bbe. Manifest adjacent.
+
+Existing scoped server status/count/pagination now has responsive invoice/order/authorized-total/status summaries with persistent match details. Original quantity/price match, provenance, recorder exclusion and global decision dialog remain. Parent script byte-identical after removing child import. New component never calls amount formatter with showAmounts=false, including injected raw values. Pending commands disable selection/status/pagination; original captured invoice/version survives refreshed rows. No backend/query/schema/grant/money change.
+
+Gates: full2276frontend, types, scoped ESLint, full resource format, build12.56s and diff-check pass. Existing SupplierInvoiceTest10/69 passes own testDB. Seven new runtime tests independently rerun by Staff; original recorder sentence has one separately reviewed whitespace-only pin adaptation. Initial generic type visibility failure corrected inline constraint; new-test lint style fixes retain assertions. Initial build lacked PHP PATH, corrected command only; final pass above.
+
+Own3182/source/DB browser: existing synthetic partially received order short-closed via normal ProcurementService by independent Finance actor7; invoice then recorded through UI for99.00 and waits. Recorder cannot decide. CA sees quantity-only and Not shown, no99.00/price-result leak. Separate Director2 accepts; another stale Director dialog rejects with changed-version error retained. BasicCA gets no-invoice-access projection. Exact accepted version2/recorder7/decider2 and all unchanged balance quantities/24movements captured in after-proof.json. Six390/768/1440lightdark matrices min44mobile/tablet36desktop/nooverflow/pageerrors. Final empty/noauthority captures are read-only supplemental evidence.
+
+Final independent source/visual closure required before draft publication. Focus restoration proven by actualSFC custom-renderer tests, not every native browser path; keyboard Open match exercised in real browser. Broader Stock navigation, due-date/payment metadata and unsupported lifecycle contracts remain separate. Root alone merges.
+
+Capture qualification: stale refusal screenshot was taken immediately after toggling the dark class, before CSS transition settled. Renamed `stale-decision-390-transition-light-dialog.png`; it proves the retained refusal dialog, not settled dark-dialog contrast. The seven source tests and six settled match matrices remain separate evidence. A settled no-toast quantity-only capture with computed active/pager opacity/disabled states supplements the initial quick capture.

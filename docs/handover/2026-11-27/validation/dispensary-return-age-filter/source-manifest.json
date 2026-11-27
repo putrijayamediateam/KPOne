@@ -1,0 +1,13 @@
+{
+  "base": "09f65f51fbc912d858a6772621e0a1e3d62316b2",
+  "patchSha256": "61b18971cc8179a7030f62a606146021a64420206bea7d53ee9421b18fe7507d",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensaryReturnService.php": "6beacc356795b5cd05210de9c82c0b427fe4b42fa8cdec05db623df213a6c940",
+    "app/Http/Controllers/DispensaryController.php": "0f359ea8dde08a03388a469fa29e56ef314a28c49335917aa0cd74e420e87cd5",
+    "resources/js/pages/Dispensary/ReturnsToCheck.vue": "a1172839938c3628b70045bdab9e4183e1fc2dd0aa958c7b62901b1f956f3ee1",
+    "tests/Feature/Clinical/DispensaryReturnsAgeFilterTest.php": "82f9d838ac783202624026b3c5fa1a2e4ac5b46c03d0ee857b4f8668346b7bc1",
+    "tests/Frontend/dsp-return-age-runtime.test.mjs": "1bbab87ab00aebe6ad97f300bbe4f43e8633dd01c451bdd5cee1b33dc5aeb27f",
+    "tests/Frontend/dsp-return-outcome-runtime.test.mjs": "6bcd56c86e6c3a5eaec66c3fed3dcba00de837c68646a37390ab3576cd4abe33",
+    "docs/teams/dispensary-otc/TEAM.md": "4a6bb990f1055bfe703031f20fb9b553204c3c80a0ab6881c427279761a6d695"
+  }
+}

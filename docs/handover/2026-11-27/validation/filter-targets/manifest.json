@@ -1,0 +1,12 @@
+{
+  "resources/js/pages/Queue/Index.vue": {
+    "before": "98717c8fe86b207989fe7950799d77558afe63bd62a19e5fd421d7547a1a9b12",
+    "after": "983f752473d77557edbb6f8b97bf7a7a66c5347c41db4537a9f6936c35ec8b26",
+    "scriptEqual": true
+  },
+  "resources/js/pages/Registration/Index.vue": {
+    "before": "d86eb2b9e0b2e2816712e791f30362efdfd174920e48272082a1cf799f634161",
+    "after": "cbdfd9b29bbe58a533e84d2737463f9cd39a088ed027932c81934fc9382190a4",
+    "scriptEqual": true
+  }
+}

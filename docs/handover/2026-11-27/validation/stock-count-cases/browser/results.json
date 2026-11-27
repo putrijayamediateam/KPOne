@@ -1,0 +1,86 @@
+{
+  "ownRefused": true,
+  "ownApproveRefused": true,
+  "blindRecount": "Record physical count\n\nSaved evidence is append-only. A changed snapshot is refused. Approval posts atomically; the original evidence is never edited.\n\nDEMO-PARA500 · DEMO-B101 · Count what is there; the expected quantity is not shown\n\nPhysical quantity counted\nCancel\nSave evidence",
+  "firstText": "Stock count\nDEMO-CETI10\nBatch DEMO-B003\nLocation\nCheras Dispensary (Demo)\nNext step\nA different counter must recount\nBlind count · system quantity hidden\nStock count\nDEMO-PARA500\nBatch DEMO-B101\nLocation\nCheras Store (Demo)\nNext step\nA different counter must recount\nBlind count · system quantity hidden\nStock count · DEMO-PARA500 · DEMO-B101\n\nCheras Store (Demo) · Count variance\n\nBlind count: the expected quantity shows to the approver once the counts are in.\n\nA different counter must recount\n\nEvidence history",
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 100
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 100
+        },
+        {
+          "label": "Evidence history",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 100
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 100
+        },
+        {
+          "label": "Evidence history",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 224
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 224
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Stock countDEMO-CETI10Batch DEMO-B003LocationCheras Dis",
+          "height": 224
+        },
+        {
+          "label": "Stock countDEMO-PARA500Batch DEMO-B101LocationCheras St",
+          "height": 224
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "history": "Immutable evidence history\n\nOriginal counts and recounts are retained. No edit or delete.\n\ncreated · Staff 5 · Version 1\n\nCounter must enter the first count\n\ncounted · Staff 5 · Version 2\n\nQuantity 295.000\n\nA different counter must recount\n\nrecounted · Staff 13 · Version 3\n\nQuantity 295.000\n\nIndependent CA Supervisor, Finance Officer or Director approval required\n\napproved · Staff 7 · Version 4\n\nQuantity 1.000\n\nPosted: immutable movement recorded\n\nMovement 20\n\nClose history",
+  "errors": []
+}

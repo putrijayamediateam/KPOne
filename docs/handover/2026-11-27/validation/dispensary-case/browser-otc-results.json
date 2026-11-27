@@ -1,0 +1,78 @@
+{
+  "captures": [
+    {
+      "name": "otc-unconfirmed",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "left": 16,
+      "main": 16,
+      "right": 16
+    },
+    {
+      "name": "otc-unconfirmed",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "left": 16,
+      "main": 16,
+      "right": 16
+    },
+    {
+      "name": "otc-unconfirmed",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "left": 96,
+      "main": 392,
+      "right": 1116
+    },
+    {
+      "name": "otc-unconfirmed",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "left": 96,
+      "main": 392,
+      "right": 1116
+    },
+    {
+      "name": "otc-confirmed",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "left": 16,
+      "main": 16,
+      "right": 16
+    },
+    {
+      "name": "otc-confirmed",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "left": 16,
+      "main": 16,
+      "right": 16
+    },
+    {
+      "name": "otc-confirmed",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "left": 96,
+      "main": 392,
+      "right": 1116
+    },
+    {
+      "name": "otc-confirmed",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "left": 96,
+      "main": 392,
+      "right": 1116
+    }
+  ],
+  "checks": [],
+  "errors": []
+}

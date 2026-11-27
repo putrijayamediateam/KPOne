@@ -1,0 +1,3 @@
+A randomized recorder name such as “Corene Lockman” makes the read-only triage test's whole-payload forbidden-`lock` assertion fail even when no lock field is exposed. Use deterministic fictional recorder and patient display names in that test, preserving every existing payload, privacy and audit assertion and the same registration scenario.
+
+Validation: TriageDoctorViewTest11 tests /103 assertions pass; Pint and diff checks pass. Independent fixture review confirms assertion and scenario parity. No application code changes. Observed failure: #1180 head fcfe5f30287cefdd613873aab7c64650ecfed1e2, run45875051038, job140100599679. This is separate from the TrialData clock fixture fix.

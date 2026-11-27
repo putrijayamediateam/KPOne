@@ -1,0 +1,14 @@
+{
+    "case": {
+        "status": "dispensing",
+        "items": 1
+    },
+    "previewCase": {
+        "status": "awaiting_doctor_check",
+        "items": 1
+    },
+    "otcCase": {
+        "status": "dispensing",
+        "items": 0
+    }
+}

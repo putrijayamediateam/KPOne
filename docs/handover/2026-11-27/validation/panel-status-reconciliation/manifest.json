@@ -1,0 +1,13 @@
+{
+  "base": "473c9ef9e243394e0a749228dd1f40e1da47031a",
+  "base_pr": 1203,
+  "patch_sha256": "759ef8c540e459e842e389e994a04c08abdc96666e3c53079d5be72d304dccc3",
+  "files": {
+    "app/Domain/Visit/Billing/Services/PanelClaimDirectoryService.php": "f775644d6edd1e0e5607b2b57a9d7379b857be2cfe7942b18ba8eac0436410c1",
+    "app/Http/Controllers/PanelClaimsController.php": "8b1c16e6a03e0f9e5d6a5b42cafd064b784a185cec0124ab80c7085ff74a7ddf",
+    "docs/teams/panel/TEAM.md": "91dc608e1e31bdaeadbb3387bb13fcc78803df7e280ba84009a7382ed8708414",
+    "resources/js/pages/PanelClaims/Index.vue": "b4d34ec9894c2eabf2dc4c6414f8e5ef54106e8d128787fe5e7a05532d4a7178",
+    "tests/Feature/Billing/PanelQueriedDirectoryTest.php": "cb7563d51a73569e037bab50819d8964e343eb9b3d8a3632d2f9b5bdd133b1ae",
+    "tests/Frontend/panel-queried-view.test.mjs": "1d4c93173099a53b8ac4ceea49a8e782bed02b6637d0410b099c84e2740576b7"
+  }
+}

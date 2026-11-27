@@ -1,0 +1,38 @@
+[
+  {
+    "role": "paging_doctor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "shot": "paging_doctor-1440-light-summary.png",
+    "counts": "0\nWaiting\n1\nSeeing now\n1\nTreatment updates\n1\nOn hold",
+    "scrollY": 254
+  },
+  {
+    "role": "paging_doctor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "shot": "paging_doctor-390-dark-summary.png",
+    "counts": "0\nWaiting\n1\nSeeing now\n1\nTreatment updates\n1\nOn hold",
+    "scrollY": 526
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "shot": "ca_supervisor-1440-light-summary.png",
+    "counts": "0\nWaiting\n2\nServing now\n3\nOn hold\n26\nDone today",
+    "scrollY": 236
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "shot": "ca_supervisor-390-dark-summary.png",
+    "counts": "0\nWaiting\n2\nServing now\n3\nOn hold\n26\nDone today",
+    "scrollY": 425
+  }
+]

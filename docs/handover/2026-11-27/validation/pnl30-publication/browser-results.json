@@ -1,0 +1,36 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "checkboxes": 6,
+    "confirm": "Approve 5 price changes? Each one is checked on its own. Any that cannot be approved are skipped. Review the refreshed lists and reasons after approval.\n\nConfirm approval\nCancel"
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "checkboxes": 6,
+    "confirm": "Approve 5 price changes? Each one is checked on its own. Any that cannot be approved are skipped. Review the refreshed lists and reasons after approval.\n\nConfirm approval\nCancel"
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "checkboxes": 6,
+    "confirm": "Approve 5 price changes? Each one is checked on its own. Any that cannot be approved are skipped. Review the refreshed lists and reasons after approval.\n\nConfirm approval\nCancel"
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "checkboxes": 6,
+    "confirm": "Approve 5 price changes? Each one is checked on its own. Any that cannot be approved are skipped. Review the refreshed lists and reasons after approval.\n\nConfirm approval\nCancel"
+  },
+  {
+    "partialSkipText": "1 could not be approved. Review the refreshed lists. This proposal has changed. Reload and review it again.",
+    "remainingCheckboxes": 0,
+    "overflow": false,
+    "errors": []
+  }
+]

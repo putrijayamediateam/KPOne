@@ -1,0 +1,203 @@
+{
+    "ca": {
+        "branchName": "Cheras",
+        "canSeeCost": false,
+        "canRequest": true,
+        "lookBackDays": 30,
+        "filters": {
+            "q": "",
+            "need": "order"
+        },
+        "rows": [
+            {
+                "key": "2:2",
+                "skuCode": "DEMO-AMOX250",
+                "skuPublicId": "3ed0a610-6b5c-4632-9b19-2b83c1f6a76b",
+                "locationPublicId": "3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+                "itemName": "Amoxicillin",
+                "location": "Cheras Store (Demo)",
+                "stockUnit": "capsule",
+                "reorderLevel": "10000.000",
+                "maxLevel": "12000.000",
+                "onHand": "1.000",
+                "onOrder": "6.000",
+                "incoming": "0.000",
+                "averageDailyUse": "0.000",
+                "sold7": null,
+                "sold14": null,
+                "sold30": null,
+                "supplier": {
+                    "name": "Demo Pharma Supplies (fictional)",
+                    "leadTimeDays": 3,
+                    "packDescription": "Synthetic box",
+                    "packQuantity": "5.000",
+                    "minimumOrderPacks": 1
+                },
+                "suggestedPacks": 2399,
+                "suggestedQuantity": "11995.000",
+                "coveredByOrders": false
+            },
+            {
+                "key": "1:1",
+                "skuCode": "DEMO-PARA500",
+                "skuPublicId": "5fab8d3c-9af2-4f34-a462-b4d26fca060b",
+                "locationPublicId": "4d57fa10-e11f-4f30-bd1e-a6fe661d9299",
+                "itemName": "Paracetamol",
+                "location": "Cheras Dispensary (Demo)",
+                "stockUnit": "tablet",
+                "reorderLevel": "10000.000",
+                "maxLevel": "12000.000",
+                "onHand": "203.000",
+                "onOrder": "0.000",
+                "incoming": "0.000",
+                "averageDailyUse": "0.000",
+                "sold7": null,
+                "sold14": null,
+                "sold30": null,
+                "supplier": {
+                    "name": "Demo Pharma Supplies (fictional)",
+                    "leadTimeDays": 3,
+                    "packDescription": "Synthetic box",
+                    "packQuantity": "5.000",
+                    "minimumOrderPacks": 1
+                },
+                "suggestedPacks": 2360,
+                "suggestedQuantity": "11800.000",
+                "coveredByOrders": false
+            },
+            {
+                "key": "2:1",
+                "skuCode": "DEMO-PARA500",
+                "skuPublicId": "5fab8d3c-9af2-4f34-a462-b4d26fca060b",
+                "locationPublicId": "3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+                "itemName": "Paracetamol",
+                "location": "Cheras Store (Demo)",
+                "stockUnit": "tablet",
+                "reorderLevel": "10000.000",
+                "maxLevel": "12000.000",
+                "onHand": "295.000",
+                "onOrder": "0.000",
+                "incoming": "0.000",
+                "averageDailyUse": "0.000",
+                "sold7": null,
+                "sold14": null,
+                "sold30": null,
+                "supplier": {
+                    "name": "Demo Pharma Supplies (fictional)",
+                    "leadTimeDays": 3,
+                    "packDescription": "Synthetic box",
+                    "packQuantity": "5.000",
+                    "minimumOrderPacks": 1
+                },
+                "suggestedPacks": 2341,
+                "suggestedQuantity": "11705.000",
+                "coveredByOrders": false
+            }
+        ],
+        "page": 1,
+        "lastPage": 1,
+        "total": 3
+    },
+    "finance": {
+        "branchName": "Cheras",
+        "canSeeCost": true,
+        "canRequest": false,
+        "lookBackDays": 30,
+        "filters": {
+            "q": "",
+            "need": "order"
+        },
+        "rows": [
+            {
+                "key": "2:2",
+                "skuCode": "DEMO-AMOX250",
+                "skuPublicId": "3ed0a610-6b5c-4632-9b19-2b83c1f6a76b",
+                "locationPublicId": "3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+                "itemName": "Amoxicillin",
+                "location": "Cheras Store (Demo)",
+                "stockUnit": "capsule",
+                "reorderLevel": "10000.000",
+                "maxLevel": "12000.000",
+                "onHand": "1.000",
+                "onOrder": "6.000",
+                "incoming": "0.000",
+                "averageDailyUse": "0.000",
+                "sold7": null,
+                "sold14": null,
+                "sold30": null,
+                "supplier": {
+                    "name": "Demo Pharma Supplies (fictional)",
+                    "leadTimeDays": 3,
+                    "packDescription": "Synthetic box",
+                    "packQuantity": "5.000",
+                    "minimumOrderPacks": 1
+                },
+                "suggestedPacks": 2399,
+                "suggestedQuantity": "11995.000",
+                "coveredByOrders": false,
+                "estimateSen": null
+            },
+            {
+                "key": "1:1",
+                "skuCode": "DEMO-PARA500",
+                "skuPublicId": "5fab8d3c-9af2-4f34-a462-b4d26fca060b",
+                "locationPublicId": "4d57fa10-e11f-4f30-bd1e-a6fe661d9299",
+                "itemName": "Paracetamol",
+                "location": "Cheras Dispensary (Demo)",
+                "stockUnit": "tablet",
+                "reorderLevel": "10000.000",
+                "maxLevel": "12000.000",
+                "onHand": "203.000",
+                "onOrder": "0.000",
+                "incoming": "0.000",
+                "averageDailyUse": "0.000",
+                "sold7": null,
+                "sold14": null,
+                "sold30": null,
+                "supplier": {
+                    "name": "Demo Pharma Supplies (fictional)",
+                    "leadTimeDays": 3,
+                    "packDescription": "Synthetic box",
+                    "packQuantity": "5.000",
+                    "minimumOrderPacks": 1
+                },
+                "suggestedPacks": 2360,
+                "suggestedQuantity": "11800.000",
+                "coveredByOrders": false,
+                "estimateSen": 0
+            },
+            {
+                "key": "2:1",
+                "skuCode": "DEMO-PARA500",
+                "skuPublicId": "5fab8d3c-9af2-4f34-a462-b4d26fca060b",
+                "locationPublicId": "3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+                "itemName": "Paracetamol",
+                "location": "Cheras Store (Demo)",
+                "stockUnit": "tablet",
+                "reorderLevel": "10000.000",
+                "maxLevel": "12000.000",
+                "onHand": "295.000",
+                "onOrder": "0.000",
+                "incoming": "0.000",
+                "averageDailyUse": "0.000",
+                "sold7": null,
+                "sold14": null,
+                "sold30": null,
+                "supplier": {
+                    "name": "Demo Pharma Supplies (fictional)",
+                    "leadTimeDays": 3,
+                    "packDescription": "Synthetic box",
+                    "packQuantity": "5.000",
+                    "minimumOrderPacks": 1
+                },
+                "suggestedPacks": 2341,
+                "suggestedQuantity": "11705.000",
+                "coveredByOrders": false,
+                "estimateSen": 0
+            }
+        ],
+        "page": 1,
+        "lastPage": 1,
+        "total": 3
+    }
+}

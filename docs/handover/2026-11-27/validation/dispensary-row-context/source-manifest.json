@@ -1,0 +1,15 @@
+{
+  "base": "4a88fb3cb64abaf9258a2f26b772c101fefd2c24",
+  "patchSha256": "cbb34921c165d85056a2cbc9d2c332ec37318fdc58bdcf80e762fcfdc58c0f56",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensaryListService.php": "832a63de19e7915709fd788535d0644f54961cf99ec7ea06d22d2c9f54a5558f",
+    "docs/teams/dispensary-otc/TEAM.md": "dc461b6e569215a933931970d2bc19c2b5745a90430f253ce8629c5aa05ccc96",
+    "resources/js/pages/Dispensary/Index.vue": "30dc70ec92bc7d3f05e76cf8598e35dac8d52fe901fa35cfe4361e80a0a58a9e",
+    "resources/js/pages/Dispensary/partials/DispensaryRowContext.vue": "87b7ec66b637ea342abed38230d226dc01d9d6305c056836c8e66ebbcd60c9ce",
+    "tests/Feature/Clinical/DispensaryRowContextTest.php": "d3beb11a1ab37e8d0d0d5aa3b03fed90eeb1212e2c2bc8f93831ba0c00ded01b",
+    "tests/Frontend/dsp-case-type-filter-runtime.test.mjs": "a6784a64e61a14157be7af7a54fe2e5bb606897a666ae50e647006f2f0c225f2",
+    "tests/Frontend/dsp-doctor-filter-runtime.test.mjs": "95998f164cca19fadcd8528cdc6d191cce4bccee01ed8f26428d35d6de814317",
+    "tests/Frontend/dsp-row-context-runtime.test.mjs": "8bad6f44c91038eae8b5dab9f0917f9eda31d13bb8ff212cb419ddd14ebf394c",
+    "tests/Frontend/dsp-workspace-demo-runtime.test.mjs": "f3fc2640bdeb58e56d40c6d73f8d600adddfbfa53da16a93aff98035809087b9"
+  }
+}

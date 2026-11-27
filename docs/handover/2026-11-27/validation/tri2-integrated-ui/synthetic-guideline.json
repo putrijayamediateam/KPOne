@@ -1,0 +1,13 @@
+{
+    "syntheticOnly": true,
+    "notForClinicalUse": true,
+    "notice": "Application approval status exercises two-actor test workflow only. No real signed medical document or clinical approval is claimed.",
+    "source": "tests\/Feature\/Clinical\/Triage\/TriageTestCase.php test labels and thresholds",
+    "database": "kpone_ca_preview_test",
+    "guidelineId": 1,
+    "versionNumber": 1,
+    "status": "approved",
+    "enteredBy": 10,
+    "approvedBy": 2,
+    "createdAt": "2026-11-26T04:52:48+00:00"
+}

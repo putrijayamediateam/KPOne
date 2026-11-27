@@ -1,0 +1,22 @@
+{
+  "targets": [
+    {
+      "text": "Choose a reasonSuspected quality issueRecallD",
+      "height": 44
+    },
+    {
+      "text": "Cancel",
+      "height": 44
+    },
+    {
+      "text": "Place hold",
+      "height": 44
+    },
+    {
+      "text": "Close",
+      "height": 44
+    }
+  ],
+  "emptyRows": 0,
+  "errors": []
+}

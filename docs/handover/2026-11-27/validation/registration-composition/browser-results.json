@@ -1,0 +1,321 @@
+{
+  "captures": [
+    {
+      "name": "today",
+      "width": 390,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 44
+        },
+        {
+          "text": "Related pages",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "today",
+      "width": 390,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 44
+        },
+        {
+          "text": "Related pages",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "today",
+      "width": 1440,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 36
+        },
+        {
+          "text": "Related pages",
+          "height": 36
+        },
+        {
+          "text": "Good to know",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "today",
+      "width": 1440,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 36
+        },
+        {
+          "text": "Related pages",
+          "height": 36
+        },
+        {
+          "text": "Good to know",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 390,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 44
+        },
+        {
+          "text": "Related pages",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 390,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 44
+        },
+        {
+          "text": "Related pages",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 1440,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 36
+        },
+        {
+          "text": "Related pages",
+          "height": 36
+        },
+        {
+          "text": "Good to know",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 1440,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ],
+      "summaryMetrics": [
+        {
+          "text": "About this view",
+          "height": 36
+        },
+        {
+          "text": "Related pages",
+          "height": 36
+        },
+        {
+          "text": "Good to know",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "backNavigation": true,
+  "draftAndFocusPreserved": true,
+  "enterSearch": true,
+  "qrVerifyFocusedAndWithinScroller": true
+}

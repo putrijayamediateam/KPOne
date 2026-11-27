@@ -1,0 +1,107 @@
+{
+  "base": "fcfe5f30287cefdd613873aab7c64650ecfed1e2",
+  "patch": "TRI2-LIFECYCLE-ON-TREATMENT-v1.patch",
+  "sha256": "7d8a55232350a0b3025645baf74dae047d06ed0921da7fc55cd89488525081b8",
+  "files": [
+    {
+      "path": "app/Console/Commands/ActivateEmergencyAlerts.php",
+      "sha256": "1ccc15d80ee741bbd7d7b36f99f1658cc5d2e5fb7c161519346726c34f0ea1b2"
+    },
+    {
+      "path": "app/Domain/Access/PermissionCatalogue.php",
+      "sha256": "f82d1eff8b83e2ddd2775719e09ef86af5a9e6ac952e657af6e930804f3d2827"
+    },
+    {
+      "path": "app/Domain/Clinical/Triage/TriageService.php",
+      "sha256": "4c5d78deccd838274048cacc8c1e43427fcd2b091c9c6143de622e4a6078103f"
+    },
+    {
+      "path": "app/Domain/Queue/Emergency/EmergencyAlert.php",
+      "sha256": "c93b4b83ad64a1d597d64992cbfc04d020d4c72af2274e5cc4d235ff57f7dcef"
+    },
+    {
+      "path": "app/Domain/Queue/Emergency/EmergencyAlertService.php",
+      "sha256": "e00d614626de9e7ff242ced1ead3c62221fd1dc28c3e77c4af71e8c3bb007a0e"
+    },
+    {
+      "path": "app/Domain/Queue/QueueWaitingOrder.php",
+      "sha256": "95591c0b4f1600b9176105b91b93d01863264c71bc16b4290c1208df3c184dbe"
+    },
+    {
+      "path": "app/Domain/Queue/Readiness/CallHoldService.php",
+      "sha256": "418efc58ac23506c2c780951160a4f7ccdab9ccdf46a641cd0ef2cec89f527e9"
+    },
+    {
+      "path": "app/Domain/Queue/Services/QueueEntryService.php",
+      "sha256": "4eddfd361052b9b9f089dd7e5d6b5adce7a4ed320f0b02db9a9ed50bee4f05dd"
+    },
+    {
+      "path": "app/Domain/Queue/Services/RedZoneAlertService.php",
+      "sha256": "601b79d9d6d88a95b0d5b29a7bba9796d94aa040918b669242f0a6085237825c"
+    },
+    {
+      "path": "app/Domain/Visit/Services/VisitAdministrationService.php",
+      "sha256": "191cba805c79712337872bbfdbce84d3dab744607ab2b43ede6b695db52524ba"
+    },
+    {
+      "path": "app/Http/Controllers/EmergencyAlertController.php",
+      "sha256": "d279d6c2d6a48dfb3a4157d1262767b1ac129cb522ea45d1609d29ca6443af20"
+    },
+    {
+      "path": "app/Http/Controllers/QueueController.php",
+      "sha256": "d33fd7172794c4c523cf8ca88c4df2b66faf75310535659b28bf43cddca6bdeb"
+    },
+    {
+      "path": "database/migrations/2026_11_26_030000_create_queue_emergency_alerts.php",
+      "sha256": "dfff7e9cd1926c5f2060f7356cec4d4980a86db5717654510aad03e9ea979ab6"
+    },
+    {
+      "path": "docs/reviews/TRI2-LIFECYCLE-RECOVERY-2026-11-26.md",
+      "sha256": "ce2dcbd181f28e2f0dcecae260e3cea858e8daa1f186c09b08e5596a4d8cdaa7"
+    },
+    {
+      "path": "phpunit.xml",
+      "sha256": "bb599902d4c336965f97bcdaac2144655a0059bae4a50a79a99df386049f31fd"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "07447df688d2f2545e0dcb975a9842f53ccea8677f58d343ff33b8e6a3654e5d"
+    },
+    {
+      "path": "tests/Feature/Clinical/Triage/TriageServiceTest.php",
+      "sha256": "1a67b8338cde9b9633fcbd55fc07d22500de2cb36b62386dcf3655babd43a91f"
+    },
+    {
+      "path": "tests/Feature/PostgresDispensaryInventoryRegressionTest.php",
+      "sha256": "26e159ee914c5e57db4b7cf79747d18e66f8280709a25462076b8e081bac94ba"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyAlertBoundedAlarmTest.php",
+      "sha256": "376ee2df710b4d26e8e97e43958ae185f58b5ba5e4117c753fa7246b128cdb2f"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyAlertLifecycleTest.php",
+      "sha256": "09c364718dc8299d7f00814aa730ac3129bb7205f0915b3e5658151fd3f469f0"
+    },
+    {
+      "path": "tests/Feature/Queue/PostgresEmergencyAlertContentionTest.php",
+      "sha256": "2e2303a39122e14d4226aed6aeb8066adae48264ca32d8fbf673fe2c1dec9ced"
+    },
+    {
+      "path": "tests/Feature/Queue/QueueWaitingOrderTest.php",
+      "sha256": "3446db051202b0fc1376bcc95781a597e2b1dc9537453f9df96bd59ab25e7b60"
+    },
+    {
+      "path": "tests/Feature/Queue/RedZoneAlertTest.php",
+      "sha256": "c11c5db5e6e399fc21f0b4cf9ebe8cb5e0b58d1d0143f34414d20ebc02ca13b4"
+    },
+    {
+      "path": "tests/Support/PostgresEmergencyAlertWorker.php",
+      "sha256": "b78820631c6b980ecc28ed2941330a4e82bde69d9626e5dbcfa1a7229549764c"
+    },
+    {
+      "path": "tests/Support/PostgresRedZoneWorker.php",
+      "sha256": "c0b5aeebc5f217edcd4d9de9b2f6e478c38e4cc629da49e3d53c9a923b4cf88b"
+    }
+  ]
+}

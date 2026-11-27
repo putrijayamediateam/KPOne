@@ -1,0 +1,9 @@
+{
+  "base": "7efdd0786659564e9c35758d18785977a8c4f03f",
+  "patchSha256": "4fcdb3351c3e8ca9b3b06a133cf3ea8723e8be5d98c75efa027715a3c3f53cfb",
+  "files": {
+    "resources/js/components/registration/RegistrationCreateForm.vue": "1003f6a547738796e7c4a4de946391a06c12a56db6cd67c567b3babfbf816f57",
+    "tests/Frontend/registration-patient-mode.test.mjs": "86a2b6e5f32164a3ca9e6d2b764a7496aebe00ee1055a94c5023a32d2941b4df",
+    "tests/Frontend/ui-polish-1.test.mjs": "87cd6f6f73e3210c3ef54bd09eb510c2b4ea192ef2df00cd41587f242f56deb0"
+  }
+}

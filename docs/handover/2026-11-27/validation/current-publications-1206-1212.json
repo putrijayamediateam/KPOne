@@ -1,0 +1,425 @@
+[
+  {
+    "baseRefName": "feature/dsp28-checked-returns-publication",
+    "headRefOid": "09f65f51fbc912d858a6772621e0a1e3d62316b2",
+    "number": 1206,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:21:45Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45910361086/job/140216979449",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:21:18Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:27:50Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45910361086/job/140217366328",
+        "name": "static",
+        "startedAt": "2026-11-26T23:21:47Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:33:14Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45910361086/job/140217366239",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:21:48Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:38:36Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45910361086/job/140217366254",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:21:47Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:39:58Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45910361086/job/140217366305",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:22:03Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:40:03Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45910361086/job/140223188573",
+        "name": "ci",
+        "startedAt": "2026-11-26T23:40:00Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "Dispensary returns: filter checked records by outcome"
+  },
+  {
+    "baseRefName": "feature/stock-writeoff-cases-demo",
+    "headRefOid": "12b79b6f6dead47ba36c39cc57e451f762c04832",
+    "number": 1207,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:29:47Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911217532/job/140219800580",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:29:21Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:36:04Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911217532/job/140219947734",
+        "name": "static",
+        "startedAt": "2026-11-26T23:29:50Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911217532/job/140219947757",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:29:50Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:45:09Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911217532/job/140219947771",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:29:50Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911217532/job/140219947856",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:29:50Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "Compose verified receiving and preserve refused drafts"
+  },
+  {
+    "baseRefName": "feature/panel-workspace-navigation",
+    "headRefOid": "57c8737f1369ea507c96380e3d679bd0090c2b3b",
+    "number": 1208,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:31:18Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911371867/job/140220292263",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:30:53Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:37:28Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911371867/job/140220445681",
+        "name": "static",
+        "startedAt": "2026-11-26T23:31:21Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:45:15Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911371867/job/140220445724",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:31:21Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:45:30Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911371867/job/140220445760",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:32:32Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911371867/job/140220445791",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:31:41Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "Panel: add dedicated Queried claims view"
+  },
+  {
+    "baseRefName": "feature/registration-native-dialog",
+    "headRefOid": "8c0a494b5b52e1881a1c0982a7cae75a7d3cc744",
+    "number": 1209,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:33:17Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911435945/job/140220494645",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:32:47Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:40:28Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911435945/job/140221089717",
+        "name": "static",
+        "startedAt": "2026-11-26T23:35:58Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911435945/job/140221089707",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:33:20Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911435945/job/140221089636",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:33:20Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911435945/job/140221089732",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:33:20Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "Registration: group existing fields into four demo sections"
+  },
+  {
+    "baseRefName": "feature/dsp-workspace-demo-parity",
+    "headRefOid": "ca21001ee6581bc516270ba90f6404fca35b49e6",
+    "number": 1210,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:36:36Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911722542/job/140221426185",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:36:01Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:42:41Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911722542/job/140222148742",
+        "name": "static",
+        "startedAt": "2026-11-26T23:36:38Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:46:23Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911722542/job/140222148632",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:36:38Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911722542/job/140222148599",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:36:38Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45911722542/job/140222148625",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:36:38Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "feat(dispensary): filter To prepare by case type"
+  },
+  {
+    "baseRefName": "feature/registration-section-composition",
+    "headRefOid": "f8e45b027a9842728440eff19d818e866927e6d2",
+    "number": 1211,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:40:23Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912261944/job/140223179704",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:39:58Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:44:59Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912261944/job/140223324143",
+        "name": "static",
+        "startedAt": "2026-11-26T23:40:26Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912261944/job/140223324057",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:40:26Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912261944/job/140223323946",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:40:25Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912261944/job/140223324020",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:40:26Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "Registration: clarify the unconfirmed summary state"
+  },
+  {
+    "baseRefName": "feature/dispensary-type-filter",
+    "headRefOid": "304cfd263fc884ceafed3c180d0b71d66b7f4b3b",
+    "number": 1212,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-11-26T23:42:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912445092/job/140223765487",
+        "name": "attest",
+        "startedAt": "2026-11-26T23:41:52Z",
+        "status": "COMPLETED",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912445092/job/140223961024",
+        "name": "static",
+        "startedAt": "2026-11-26T23:45:01Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912445092/job/140223961066",
+        "name": "backend (shard 1)",
+        "startedAt": "2026-11-26T23:45:12Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912445092/job/140223961056",
+        "name": "backend (shard 2)",
+        "startedAt": "2026-11-26T23:45:18Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45912445092/job/140223961075",
+        "name": "backend (shard 3)",
+        "startedAt": "2026-11-26T23:45:32Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "tests"
+      }
+    ],
+    "title": "feat(dispensary): search existing A and B queue numbers"
+  }
+]

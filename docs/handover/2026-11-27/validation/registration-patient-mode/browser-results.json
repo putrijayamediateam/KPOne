@@ -1,0 +1,102 @@
+{
+  "proof": {
+    "recentNewUnavailable": true,
+    "keyboardNewFocusNoRequest": true,
+    "findFocusAndEligibleDraftReturn": true,
+    "selectedFindNoOp": true,
+    "loadingAndResultsNewUnavailable": true,
+    "unconfirmedBothModesLocked": true
+  },
+  "captures": [
+    {
+      "state": "fullpage-find",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-find",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-find",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-find",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-new",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-new",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-new",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-new",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-selected",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-selected",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-selected",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-selected",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "posts": [
+    "/login",
+    "/patients/search",
+    "/patients/search",
+    "/patients/search",
+    "/registration"
+  ],
+  "abortedBeforeServer": 1,
+  "qualification": "Unconfirmed UI uses controlled transport abort before server; no committed replay or successful registration is claimed for this presentation-only slice."
+}

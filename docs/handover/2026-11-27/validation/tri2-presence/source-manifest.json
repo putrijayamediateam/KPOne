@@ -1,0 +1,18 @@
+{
+  "base_overlay_sha256": "d8725e7ed0b3aec9399202e665b361cd61dfae29374549d5c3602f576899581e",
+  "patch_sha256": "dcc91701131f58f0718ec60279ca00f7cd35ad3b683ffeca1b7a895e16f11a80",
+  "files": {
+    "app/Domain/Queue/Emergency/EmergencyDoctorPresence.php": {
+      "base_sha256": null,
+      "source_sha256": "8211fcda963332d5e3abe28223b1d8dec37b06273baa880673d4ca6195f825f1"
+    },
+    "app/Http/Controllers/QueueController.php": {
+      "base_sha256": "3a1d89fbd3fb79b75f6b70dd97f436a731e0e48d0a960862cf0ad9425a6466a6",
+      "source_sha256": "0455d0590297e2ce727bd3864c322688a888ca7d397a666101cee39a7efaeddc"
+    },
+    "tests/Feature/Queue/EmergencyDoctorPresenceTest.php": {
+      "base_sha256": null,
+      "source_sha256": "5aafef9f9902ae31d5063b62e28e60044dcb795c233d66549dcbd5db2b27f2ee"
+    }
+  }
+}

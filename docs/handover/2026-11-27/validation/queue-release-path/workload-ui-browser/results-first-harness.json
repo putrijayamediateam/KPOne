@@ -1,0 +1,50 @@
+[
+  {
+    "actor": "paging_doctor",
+    "width": 1440,
+    "theme": "light",
+    "state": "Done today page1",
+    "total": 26,
+    "control": {
+      "height": 36,
+      "top": 927,
+      "bottom": 963,
+      "hostBottom": 400,
+      "hit": true,
+      "viewport": 1000
+    }
+  },
+  {
+    "actor": "paging_doctor",
+    "width": 390,
+    "theme": "dark",
+    "state": "Done today page1",
+    "total": 26,
+    "control": {
+      "height": 44,
+      "top": 297.5,
+      "bottom": 341.5,
+      "hostBottom": 256,
+      "hit": true,
+      "viewport": 640
+    }
+  },
+  {
+    "actor": "paging_doctor",
+    "paging": "25+last",
+    "nonoverlap": true,
+    "focus": true,
+    "prevHit": {
+      "height": 44,
+      "top": 297.5,
+      "bottom": 341.5,
+      "hostBottom": 256,
+      "hit": true,
+      "viewport": 640
+    }
+  },
+  {
+    "actor": "paging_doctor",
+    "reset": true
+  }
+]

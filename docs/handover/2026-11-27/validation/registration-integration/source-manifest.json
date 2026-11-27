@@ -1,0 +1,137 @@
+[
+  {
+    "path": "app/Domain/Patient/Services/PatientEmergencyContactService.php",
+    "base_sha256": null,
+    "snapshot_sha256": "108daa54f7e74a5790bf616617ef3d174887df864a5ffab8c51135112816f1c8"
+  },
+  {
+    "path": "app/Domain/Visit/Services/VisitRegistrationService.php",
+    "base_sha256": "480918d3b3f985c14fee6b97eb3ee4d6165ca586dda4ed85b20bf864490002b7",
+    "snapshot_sha256": "a8748b450063f434eee2a727b73973a48d9caf45a12b5065e437189fd016c572"
+  },
+  {
+    "path": "app/Http/Controllers/PatientController.php",
+    "base_sha256": "a8f1b2116b4da200cb6b8202795d5de2265c8d530f3353be96accd29483479c7",
+    "snapshot_sha256": "8b5efd9568f50845675fa87fc95810196f1a0c018c1d8859355d41dd93fe43c0"
+  },
+  {
+    "path": "app/Http/Controllers/PatientEmergencyContactController.php",
+    "base_sha256": null,
+    "snapshot_sha256": "eaadc6167ed1f262a97125d15d08181acff323f78df599b64bf280ca583a4ff1"
+  },
+  {
+    "path": "app/Http/Controllers/RegistrationController.php",
+    "base_sha256": "d3d1db3c55b7ffb1f74937a169ce12d83312aca3f5f87b51b0b9698f89f1924a",
+    "snapshot_sha256": "43688616d15e1fc8cba1aa6235b1fa98e1d0a1a722f9fdfd373caa5fd3fc0e89"
+  },
+  {
+    "path": "app/Http/Requests/StoreVisitRequest.php",
+    "base_sha256": "67ea35d36fed7f8147b4ecde66e15be68be90585f03b067c5002b40725276d90",
+    "snapshot_sha256": "a283c78b3ba5d61270f44959aab5705a58789e19cee3c036c625115202cf0322"
+  },
+  {
+    "path": "database/migrations/2026_11_26_010000_create_patient_emergency_contacts.php",
+    "base_sha256": null,
+    "snapshot_sha256": "2922c42dc9f7d309288d9144b568fb9c7df17e4d1f26a1450172c218e445a977"
+  },
+  {
+    "path": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "base_sha256": null,
+    "snapshot_sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0"
+  },
+  {
+    "path": "docs/teams/patients-registration/STAGE1-HOMES-ASSESSMENT.md",
+    "base_sha256": null,
+    "snapshot_sha256": "b0b2feb6565ede50a7b3481ae2c0ddb227199e346a0eb016de9acf4ad6743b7d"
+  },
+  {
+    "path": "docs/teams/patients-registration/TEAM.md",
+    "base_sha256": "9e0126efc92851a912b4058fcad2d45c2a06345b2d726a1f33f08263851286e6",
+    "snapshot_sha256": "b76e096275dbb001a0efa25640e81c017ccb22c610ef0e16fb7e2d9302eee229"
+  },
+  {
+    "path": "phpunit.xml",
+    "base_sha256": "44dbda462adf0038010a2d818f78ce8881d05ffaa42721ef032dcf0dd2c460c4",
+    "snapshot_sha256": "801cf7a7d1c5e610064714bd3f8451e154a496188bbaa63009967f96ff46145b"
+  },
+  {
+    "path": "resources/js/components/patient/EmergencyContactCard.vue",
+    "base_sha256": null,
+    "snapshot_sha256": "a0f1ee430541f2efb95f610230f07ac2d2dd40abf363687215a6e1ff1646aa9e"
+  },
+  {
+    "path": "resources/js/pages/Patient/Show.vue",
+    "base_sha256": "ed9c2e4a91597f6e9e0425a888be66a25c89e517e4be2b9616b48733a4b557fb",
+    "snapshot_sha256": "5b7fedab7f9987b94b8882116324e88f830383719680f13b2f2696abc3fae6b5"
+  },
+  {
+    "path": "resources/js/pages/Registration/Create.vue",
+    "base_sha256": "b174101219786f6930205c23f3b9cdf05bf8ae55b31507e4d2f4e4912d1d8bc1",
+    "snapshot_sha256": "d63911a0ecbb6beec4bffc243f9baf5380c6c3fb8068917a9bdcd0a746929660"
+  },
+  {
+    "path": "resources/js/pages/Registration/Edit.vue",
+    "base_sha256": "89a7262c90b9945f43c4fab057c23489bb9151d3bb5502deddeba416199dd279",
+    "snapshot_sha256": "b435b85fd7cfe2debad7355218408e5f6dab65534816261807c2677676759d03"
+  },
+  {
+    "path": "resources/js/pages/Registration/Index.vue",
+    "base_sha256": "57e2946c2811b6e4300405cc0909a460c1ac62fbdede322a1eb3e84148fa3919",
+    "snapshot_sha256": "7f2627ebd930752e26e06062ab3e704821a2397462c101d3083519b4cf1ee3b0"
+  },
+  {
+    "path": "resources/js/pages/Registration/Show.vue",
+    "base_sha256": "a19cd6b9d5c0824d419d8e251e6715f02b556b5d57a430eae1ee017ba132edf5",
+    "snapshot_sha256": "16c9539c94635f212d2320e95b3b8c772bcd8e4bfd3bc0454f661481248ca690"
+  },
+  {
+    "path": "routes/web.php",
+    "base_sha256": "42ab8e3078e41038aae23814403b2f547e84a04634c9f813966b8b98d19df9be",
+    "snapshot_sha256": "8877e30009f142111743d187e1509a4c35df61c0bb6019c90f62eb7da311d1e8"
+  },
+  {
+    "path": "tests/Feature/Patient/PostgresEmergencyContactContentionTest.php",
+    "base_sha256": null,
+    "snapshot_sha256": "bfb9f6cdc3f2d87a58ae37fad8c69b3ace8f7260c58d367bc40bf944334393bc"
+  },
+  {
+    "path": "tests/Feature/Visit/PatientEmergencyContactTest.php",
+    "base_sha256": null,
+    "snapshot_sha256": "4feb806d9f8c7094732cc41eeb24e9507baa74b453ebccb48cba696441a079e6"
+  },
+  {
+    "path": "tests/Frontend/dark-1.test.mjs",
+    "base_sha256": "a48a0043fd027c105294c9d7a5f53357b3e1eba04820e32afca754bd2da03c9c",
+    "snapshot_sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940"
+  },
+  {
+    "path": "tests/Frontend/i2-ui-ux-remediation.test.mjs",
+    "base_sha256": "7453de38699732a65a07a4b8f58813ae6d03ef37e9a3579f89e4257c258f7667",
+    "snapshot_sha256": "b3fac5f1f5377313af9127fa6007078fe342350e444c09fd660d9fa83ff4f7c6"
+  },
+  {
+    "path": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "base_sha256": null,
+    "snapshot_sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94"
+  },
+  {
+    "path": "tests/Frontend/reg-6-phone-input-fit.test.mjs",
+    "base_sha256": "b9a87b23940326202f36e5c91bde771f70e676613e744c79b3e6a2245d690c66",
+    "snapshot_sha256": "a758c8ea9619a8d01e092944cb4184fa9859a59c4eba71ae8de72120f6adf732"
+  },
+  {
+    "path": "tests/Frontend/ui-dropdown-darkmode-polish.test.mjs",
+    "base_sha256": "e4a641fe1e3bcdde909fd37e06950173fc701d454ea9dfe6fed04ff7b8af201a",
+    "snapshot_sha256": "c86067f343b776bfc1546102064e824a6df47018e2fbd5d0deb89e474a91cd47"
+  },
+  {
+    "path": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "base_sha256": "2a051c56f6d1866be247be230c82704ae02dc7ab8f0391c712e493adde901538",
+    "snapshot_sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea"
+  },
+  {
+    "path": "tests/Support/PostgresEmergencyContactWorker.php",
+    "base_sha256": null,
+    "snapshot_sha256": "5c130257152479451bd4d93713f05cb41294bcd9ccf40e671dea17ef2d3d68ae"
+  }
+]

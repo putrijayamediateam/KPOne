@@ -1,0 +1,439 @@
+{
+  "results": [
+    {
+      "name": "supervisor-actions",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Verify",
+          "height": 44
+        },
+        {
+          "text": "Send back",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-actions",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Verify",
+          "height": 44
+        },
+        {
+          "text": "Send back",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-actions",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Verify",
+          "height": 44
+        },
+        {
+          "text": "Send back",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-actions",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Verify",
+          "height": 44
+        },
+        {
+          "text": "Send back",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-actions",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Verify",
+          "height": 36
+        },
+        {
+          "text": "Send back",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "supervisor-actions",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Verify",
+          "height": 36
+        },
+        {
+          "text": "Send back",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "supervisor-radio",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "The doctor is off shift",
+          "height": 44
+        },
+        {
+          "text": "The doctor is in an emergency",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-radio",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "The doctor is off shift",
+          "height": 44
+        },
+        {
+          "text": "The doctor is in an emergency",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-radio",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "The doctor is off shift",
+          "height": 44
+        },
+        {
+          "text": "The doctor is in an emergency",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-radio",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "The doctor is off shift",
+          "height": 44
+        },
+        {
+          "text": "The doctor is in an emergency",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "supervisor-radio",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "The doctor is off shift",
+          "height": 36
+        },
+        {
+          "text": "The doctor is in an emergency",
+          "height": 36
+        },
+        {
+          "text": "Other",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "supervisor-radio",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "The doctor is off shift",
+          "height": 36
+        },
+        {
+          "text": "The doctor is in an emergency",
+          "height": 36
+        },
+        {
+          "text": "Other",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "sendback-radio",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Wrong medicine",
+          "height": 44
+        },
+        {
+          "text": "Wrong quantity",
+          "height": 44
+        },
+        {
+          "text": "Wrong batch",
+          "height": 44
+        },
+        {
+          "text": "Label problem",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "sendback-radio",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Wrong medicine",
+          "height": 44
+        },
+        {
+          "text": "Wrong quantity",
+          "height": 44
+        },
+        {
+          "text": "Wrong batch",
+          "height": 44
+        },
+        {
+          "text": "Label problem",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "sendback-radio",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Wrong medicine",
+          "height": 44
+        },
+        {
+          "text": "Wrong quantity",
+          "height": 44
+        },
+        {
+          "text": "Wrong batch",
+          "height": 44
+        },
+        {
+          "text": "Label problem",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "sendback-radio",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Wrong medicine",
+          "height": 44
+        },
+        {
+          "text": "Wrong quantity",
+          "height": 44
+        },
+        {
+          "text": "Wrong batch",
+          "height": 44
+        },
+        {
+          "text": "Label problem",
+          "height": 44
+        },
+        {
+          "text": "Other",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "sendback-radio",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Wrong medicine",
+          "height": 36
+        },
+        {
+          "text": "Wrong quantity",
+          "height": 36
+        },
+        {
+          "text": "Wrong batch",
+          "height": 36
+        },
+        {
+          "text": "Label problem",
+          "height": 36
+        },
+        {
+          "text": "Other",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "sendback-radio",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Wrong medicine",
+          "height": 36
+        },
+        {
+          "text": "Wrong quantity",
+          "height": 36
+        },
+        {
+          "text": "Wrong batch",
+          "height": 36
+        },
+        {
+          "text": "Label problem",
+          "height": 36
+        },
+        {
+          "text": "Other",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "attention",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Acknowledge partial fulfilment",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "attention",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Acknowledge partial fulfilment",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "attention",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Acknowledge partial fulfilment",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "attention",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Acknowledge partial fulfilment",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "attention",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Acknowledge partial fulfilment",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "attention",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Acknowledge partial fulfilment",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "focus": true,
+  "acknowledged": true
+}

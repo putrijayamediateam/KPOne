@@ -1,0 +1,7 @@
+# Independent Billing source-backed plan review
+
+Read actual SupplierReturnService transition table, individual query and groupsPage in KPOne-stock-supplier-invoice-worklist. Proposed Open=awaiting_approval/approved/dispatched and Done=credited/rejected/cancelled matches current transitions. Dispatched still awaits credit reference; credited does not establish a supplier payment/refund. No mutation/state mapping changes needed.
+
+Concrete correction requested before implementation: current individual paginator is25, group paginator is10, not both25. Preserve both current limits and use11+ groups for boundary evidence. Groups display the lowest-id line's latest-version state/history because all lines transition atomically. New SQL predicate must match that representative latest state (and deliberately preserve current awaiting_approval fallback if no history), not match any old action or multiply group rows with joins. Individual latest-version join already supplies exact state. Apply status before each independent count/page, retaining existing q-only-individual semantics and returnable lot/delivery calculations.
+
+With those explicit corrections, bounded plan CLEAR. Existing authority, actor freshness, org/branch scope, versions/actions/history, reservation/dispatch/credit evidence remain. Full source/tests and final immutable artifact review still required. No code edits or heavy tests by reviewer; no claim of frontend approval or implementation readiness.

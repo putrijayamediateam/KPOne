@@ -1,0 +1,9 @@
+{
+  "base": "cf3adbb7f584fc3aad016ebcfdf9c884c6f76f17",
+  "patchSha256": "9e99caca06baf64c8c0ee80356816e92ffbea9d3168b6fb1948d932d3c03ef35",
+  "files": {
+    "docs/teams/dispensary-otc/TEAM.md": "00982f74dde74cf0503c216c0807471b2c32d04ccb61528fd10ce0a1cd9a0552",
+    "resources/js/pages/Dispensary/ReturnsToCheck.vue": "3c9b18b6c93e9ea5af380297af0c2dece230fc1560c6e1948834af5f8619da8a",
+    "tests/Frontend/dsp-returns-navigation-runtime.test.mjs": "d9c45969c26b9da4a877dbeef607c18a02e5f1f875f92101ea073b3038d76799"
+  }
+}

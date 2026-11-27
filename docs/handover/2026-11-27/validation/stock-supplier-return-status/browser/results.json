@@ -1,0 +1,127 @@
+{
+  "initial": {
+    "show": "all",
+    "single": 31,
+    "group": 16
+  },
+  "open": {
+    "show": "open",
+    "single": 28,
+    "group": 13,
+    "singleStates": [
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval"
+    ],
+    "groupStates": [
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval",
+      "awaiting_approval"
+    ]
+  },
+  "page2": {
+    "show": "open",
+    "page": 2,
+    "rows": 3
+  },
+  "done": {
+    "show": "done",
+    "single": 3,
+    "group": 3,
+    "singleStates": [
+      "cancelled",
+      "rejected",
+      "credited"
+    ],
+    "groupStates": [
+      "cancelled",
+      "rejected",
+      "credited"
+    ],
+    "singlePage": 1,
+    "groupPage": 1,
+    "delivery": 1
+  },
+  "searched": {
+    "show": "done",
+    "single": 0,
+    "group": 3
+  },
+  "refusedLoaded": "done",
+  "matrix": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "overflow": false,
+      "label": "Show returns"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "overflow": false,
+      "label": "Show returns"
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "height": 44,
+      "overflow": false,
+      "label": "Show returns"
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "height": 44,
+      "overflow": false,
+      "label": "Show returns"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "overflow": false,
+      "label": "Show returns"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "overflow": false,
+      "label": "Show returns"
+    }
+  ],
+  "errors": [
+    "Network error (http://127.0.0.1:3186/inventory/supplier-returns?q=NO-SUCH-SYNTHETIC-RETURN&show=open&page=1&lots_page=1&groups_page=1&delivery=1)"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "wrapper": {
+    "path": "/workspace/attachments/e9bc43ff-8ddf-4760-a2e6-8ad93df3e127/KPOne-Clean-Look-Demo.html",
+    "sha256": "1633ed31900f6ce49097332ad668d77fe8a7601215695b3d01419e29305753f9"
+  },
+  "assets": [
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/Pharmacy.dc.html",
+      "sha256": "4bb0b4be27b5103521e0f3a7b010ca31617cc43d91b3d4c56d38dcb2dacc8428"
+    },
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/PharmacyCase.dc.html",
+      "sha256": "0a2938c44fdd6eacc6c68ac712e30601c2cc94903f84667fa5e14d417249728a"
+    },
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/PharmacyCompleted.dc.html",
+      "sha256": "dc4b142a0c7d6bf4346663fc9aff7f93edcbc1a32c32f7b30064b8f6d30876ab"
+    },
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/DoctorChecks.dc.html",
+      "sha256": "688b4d67d169839f671dcd89c9e20eb4e48b39f60648f877d810f5e7a3c2246a"
+    },
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/ReturnsToCheck.dc.html",
+      "sha256": "dd529cbbe4da523832a5625709c10625128f4b6c7fb08170bd8062961e20f3ec"
+    },
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/DrugLabel.dc.html",
+      "sha256": "606cb0c4287f7c04ca85ceb01682a38409cee95b1d7523d30a514c1f9d9ae91e"
+    },
+    {
+      "path": "/workspace/kpone-validation/demo-authority-2026-11-26/project/DispensarySettings.dc.html",
+      "sha256": "40f8885f0a52ef866c25ba54c73f4053d7b05918a0b2a79a0d98192c1b0fe28a"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "base_commit": "67fcc9105ad6da7adec8383265129fd0ba2a2aba",
+  "branch": "fix/auth-verification-fixture-id",
+  "worktree": "/workspace/KPOne-auth-fixture",
+  "patch_sha256": "2e298cf67014418462dd24045ab9bffacb5f8a68a6ad1559156b6bc40c2ca34a",
+  "files": {
+    "tests/Feature/Auth/EmailVerificationTest.php": "53997509451993605b9671802381ab2d5c80c3ff21c260f1f65c723fea0a6cef"
+  },
+  "committed": false,
+  "pushed": false
+}

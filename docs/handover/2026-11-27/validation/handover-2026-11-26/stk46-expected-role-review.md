@@ -1,0 +1,3 @@
+# Independent exact expected-role follow-up review
+
+Reviewed two-line RoleOneRolesTest.php diff in KPOne-stk46: adds inventory.cost.check.organisation and inventory.cost.enter.organisation to StoreAdmin expected set. Both match existing approved migration2026_11_26_110100 and catalogue assignments. No denial removed, no production change, no financial authority beyond those already-approved grants. Parent confirms prior explicit owner approval call86d6d13df20e492b98d8870b7828a8a5 question1. Independent source review clear; author owns focused execution gate. This is not a new invented owner answer.

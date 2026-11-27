@@ -1,0 +1,26 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "patchSha256": "1ffddb6999c5e0f702476c2dc0242d3f373381e91373032fcb17187395e476ec",
+  "files": {
+    "app/Domain/Patient/Models/PatientFamilyLink.php": "3bcd32a14dc732343e83beb3b2ed627bcd5f62b2a55f9c80c22a0b715aa6900d",
+    "app/Domain/Patient/Services/FamilyWaitingProjection.php": "1fd16e594c072640cf72259c49a7d1c1a9959f57d4f398589e1113c77df87122",
+    "app/Domain/Patient/Services/PatientFamilyLinkService.php": "e12f9c3dbf164f536a8fca013dc7b8e8052e1cdfc4c4fa5c6587c7d0d493bf9d",
+    "app/Http/Controllers/PatientFamilyLinkController.php": "0ea89fec3f87088417b594d9353f82c913b1f5d8fe4761aac7a6f8a328c506ba",
+    "database/migrations/2026_11_26_020000_create_patient_family_links.php": "d300df410b0499826edfc95d272c00207886608330220accd4910dc70d22f54e",
+    "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md": "5e9fa645efe1aed078fe98d09a3a8cef2de8915886a4be347eb2090ad0b4f8da",
+    "resources/js/components/clinical/FamilyWaitingCard.vue": "a79ace394a7ee85ee99011aae0e3e3a4c4f4c5a5f78042af4e467db86e7c31bf",
+    "resources/js/components/patient/FamilyLinksCard.vue": "8ba6dc602363eb96b291084648af217fe4a89d7e6c3834641cad1e7150192e44",
+    "tests/Feature/Patient/PostgresFamilyLinkContentionTest.php": "62bce166ad1ae9349c530499ef7b86f5a0eff4b604956a138f8632765776e175",
+    "tests/Feature/Visit/FamilyWaitingProjectionTest.php": "8e68968238f39609e0539237cae0d4b76a127a42c0d46e4e2890cb520a738568",
+    "tests/Feature/Visit/PatientFamilyLinkTest.php": "a0da5fa4d5706023214d851aa7adfb0ceb00e316b9d1167fe7f29da8f313c53e",
+    "tests/Frontend/family-links-ui.test.mjs": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd",
+    "tests/Support/PostgresFamilyLinkWorker.php": "3c6c2739e58899abf2250e4ee502d7089f6a95c85d12b1a30ec68e29da82c2ed",
+    "app/Domain/Clinical/Services/ClinicalEncounterDirectoryService.php": "3bd3fdd40656875598e1c639ef7400f7192e2b314af7bb7f6adbfc22121b49c3",
+    "docs/teams/patients-registration/TEAM.md": "7d2ed739045404e188d8b86f86a65fa603e35b4a018676616b1db9196181888e",
+    "phpunit.xml": "aaa4f11b4d879b8319cb4e0472a557ac67111cf804467ce53732fb6d7330a76e",
+    "resources/js/pages/Clinical/Show.vue": "570f3c3133c38c3954432bb5e900db26dd260c6822e3988635e06147ad699e93",
+    "resources/js/pages/Patient/Show.vue": "fffe0048f92031ba50743f6b69b57caf620bbdd93f88adfc29568969df1bf08f",
+    "resources/js/types/clinical.ts": "ba282760cf0964dc8b3413e8d2031bd03e10c9fbc54e26a6dcf99d683d298da9",
+    "routes/web.php": "d689dc5591f6e522765c1fabdada582126a7afe4fca24fc95a8bb26b2dc6e9ba"
+  }
+}

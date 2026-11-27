@@ -1,0 +1,26 @@
+[
+  {
+    "path": "tests/Feature/HR/DisciplineTest.php",
+    "sha256": "abe2218d3b08512bbbe8b7079d14023738b04111ba6fe48ed37bf7e44b0f6976"
+  },
+  {
+    "path": "tests/Feature/PharmacySpaceTest.php",
+    "sha256": "114edf7d730a255c752c7c926108dc89348c7bf7cadcdfee904c79a217fa422c"
+  },
+  {
+    "path": "tests/Frontend/classic-only-co10-kept-layouts.test.mjs",
+    "sha256": "805853d494ba0d7edb1e36dc2b45fc30be8e5c64dfde6880508e8b94b85d4379"
+  },
+  {
+    "path": "tests/Feature/Access/ShellMenuTest.php",
+    "sha256": "6b913e7634d3a67e9e856cf55bbd989b8e13b5614803c615076d581c39c0cdd3"
+  },
+  {
+    "path": "tests/Frontend/clean-look-shell.test.mjs",
+    "sha256": "fc490410dc67f756ecb74fde259df4e5185454ece38caea82b7286215f705d1f"
+  },
+  {
+    "path": "tests/Frontend/page-header-branch-description.test.mjs",
+    "sha256": "d44695b6b13870b7809f44c8a2032b1ab36da8a3b2e24c7e7d3197df543d676b"
+  }
+]

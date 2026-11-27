@@ -1,0 +1,9 @@
+{
+  "base": "d0f37b5c1864b796fc7b4224996bd917551af3e7",
+  "files": {
+    "tests/Feature/TrialDataCommandTest.php": "b12cfd0d35dd63729409b7b0de42ecb8869cb2a300a5d7fd681e4f813952da67"
+  },
+  "patchSha256": "d240cc69458681645873e314195a1567259f69d0c4c17d9697cb8c48ea92423c",
+  "existingAssertionsChanged": false,
+  "productionFilesChanged": false
+}

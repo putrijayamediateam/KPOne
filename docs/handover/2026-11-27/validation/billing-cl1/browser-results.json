@@ -1,0 +1,578 @@
+[
+  {
+    "name": "billing",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 36
+      },
+      {
+        "text": "View activity log",
+        "height": 36
+      },
+      {
+        "text": "View profile",
+        "height": 36
+      },
+      {
+        "text": "Change",
+        "height": 36
+      },
+      {
+        "text": "History",
+        "height": 36
+      },
+      {
+        "text": "Add note",
+        "height": 36
+      },
+      {
+        "text": "Note history",
+        "height": 36
+      },
+      {
+        "text": "View all",
+        "height": 36
+      },
+      {
+        "text": "All",
+        "height": 36
+      },
+      {
+        "text": "Items",
+        "height": 36
+      },
+      {
+        "text": "Services",
+        "height": 36
+      },
+      {
+        "text": "Documents",
+        "height": 36
+      },
+      {
+        "text": "Manage",
+        "height": 36
+      },
+      {
+        "text": "Add",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 36
+      },
+      {
+        "text": "View activity log",
+        "height": 36
+      },
+      {
+        "text": "View profile",
+        "height": 36
+      },
+      {
+        "text": "Change",
+        "height": 36
+      },
+      {
+        "text": "History",
+        "height": 36
+      },
+      {
+        "text": "Add note",
+        "height": 36
+      },
+      {
+        "text": "Note history",
+        "height": 36
+      },
+      {
+        "text": "View all",
+        "height": 36
+      },
+      {
+        "text": "All",
+        "height": 36
+      },
+      {
+        "text": "Items",
+        "height": 36
+      },
+      {
+        "text": "Services",
+        "height": 36
+      },
+      {
+        "text": "Documents",
+        "height": 36
+      },
+      {
+        "text": "Manage",
+        "height": 36
+      },
+      {
+        "text": "Add",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "dailyclose",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Daily cash closing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 32
+      },
+      {
+        "text": "Month view",
+        "height": 32
+      },
+      {
+        "text": "",
+        "height": 36
+      },
+      {
+        "text": "Load day",
+        "height": 36
+      },
+      {
+        "text": "Record count",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "dailyclose",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Daily cash closing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 32
+      },
+      {
+        "text": "Month view",
+        "height": 32
+      },
+      {
+        "text": "",
+        "height": 36
+      },
+      {
+        "text": "Load day",
+        "height": 36
+      },
+      {
+        "text": "Record count",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "print",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print invoice",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "print",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print invoice",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "receipt",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print receipt",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "receipt",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print receipt",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 44
+      },
+      {
+        "text": "View activity log",
+        "height": 44
+      },
+      {
+        "text": "View profile",
+        "height": 44
+      },
+      {
+        "text": "Change",
+        "height": 44
+      },
+      {
+        "text": "History",
+        "height": 44
+      },
+      {
+        "text": "Add note",
+        "height": 44
+      },
+      {
+        "text": "Note history",
+        "height": 44
+      },
+      {
+        "text": "View all",
+        "height": 44
+      },
+      {
+        "text": "All",
+        "height": 44
+      },
+      {
+        "text": "Items",
+        "height": 44
+      },
+      {
+        "text": "Services",
+        "height": 44
+      },
+      {
+        "text": "Documents",
+        "height": 44
+      },
+      {
+        "text": "Manage",
+        "height": 44
+      },
+      {
+        "text": "Add",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "billing",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Patient Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Registration",
+        "height": 44
+      },
+      {
+        "text": "View activity log",
+        "height": 44
+      },
+      {
+        "text": "View profile",
+        "height": 44
+      },
+      {
+        "text": "Change",
+        "height": 44
+      },
+      {
+        "text": "History",
+        "height": 44
+      },
+      {
+        "text": "Add note",
+        "height": 44
+      },
+      {
+        "text": "Note history",
+        "height": 44
+      },
+      {
+        "text": "View all",
+        "height": 44
+      },
+      {
+        "text": "All",
+        "height": 44
+      },
+      {
+        "text": "Items",
+        "height": 44
+      },
+      {
+        "text": "Services",
+        "height": 44
+      },
+      {
+        "text": "Documents",
+        "height": 44
+      },
+      {
+        "text": "Manage",
+        "height": 44
+      },
+      {
+        "text": "Add",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "dailyclose",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Daily cash closing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Load day",
+        "height": 44
+      },
+      {
+        "text": "Record count",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "dailyclose",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Daily cash closing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "DC",
+        "height": 44
+      },
+      {
+        "text": "Terminal Reconciliation",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Load day",
+        "height": 44
+      },
+      {
+        "text": "Record count",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "print",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print invoice",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "print",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print invoice",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "receipt",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print receipt",
+        "height": 38
+      }
+    ]
+  },
+  {
+    "name": "receipt",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Puchong"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Print receipt",
+        "height": 38
+      }
+    ]
+  }
+]

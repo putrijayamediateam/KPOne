@@ -1,0 +1,7 @@
+{
+  "base": "46ca8f1977259c10e6c32440fd86b4effa39a9c6",
+  "entireStateAndHandlersByteIdentical": true,
+  "templateNormalizedIdentical": true,
+  "normalization": "Whitespace and one formatter-only trailing function-argument comma excluded; DOM and labels separately checked.",
+  "stateSha256": "062e9c102ed3ba83d2e0bf21ff1328247613c5e1654630c1b922a94cec2f0721"
+}

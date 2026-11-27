@@ -1,0 +1,827 @@
+{
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "containerWidth": 520,
+      "formWidth": 486,
+      "minFieldWidth": 202,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Look up",
+          "height": 44
+        },
+        {
+          "label": "Use camera",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 36
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 36
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 2 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 36
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44
+        },
+        {
+          "label": "Post receipt",
+          "height": 44
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "containerWidth": 520,
+      "formWidth": 486,
+      "minFieldWidth": 202,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Look up",
+          "height": 44
+        },
+        {
+          "label": "Use camera",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 36
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 36
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 2 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 36
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44
+        },
+        {
+          "label": "Post receipt",
+          "height": 44
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "containerWidth": 676,
+      "formWidth": 642,
+      "minFieldWidth": 280,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Look up",
+          "height": 44
+        },
+        {
+          "label": "Use camera",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 2 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44
+        },
+        {
+          "label": "Post receipt",
+          "height": 44
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "containerWidth": 676,
+      "formWidth": 642,
+      "minFieldWidth": 280,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Look up",
+          "height": 44
+        },
+        {
+          "label": "Use camera",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 2 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 68
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44
+        },
+        {
+          "label": "Post receipt",
+          "height": 44
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "containerWidth": 298,
+      "formWidth": 264,
+      "minFieldWidth": 194,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 72
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Look up",
+          "height": 44
+        },
+        {
+          "label": "Use camera",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 2 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44
+        },
+        {
+          "label": "Post receipt",
+          "height": 44
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "containerWidth": 298,
+      "formWidth": 264,
+      "minFieldWidth": 194,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 72
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Look up",
+          "height": 44
+        },
+        {
+          "label": "Use camera",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "DEMO-AMOX250 lot 2 total paid RM",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44
+        },
+        {
+          "label": "",
+          "height": 44
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44
+        },
+        {
+          "label": "Choose a reason DamagedWrong itemShort e",
+          "height": 44
+        },
+        {
+          "label": "Remove lot",
+          "height": 44
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44
+        },
+        {
+          "label": "Post receipt",
+          "height": 44
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "scanFocus": {
+    "tag": "INPUT",
+    "id": "scan-receiving-dc8e9a43-113c-4309-973f-bb9c4b9f39c0"
+  },
+  "scanDidNotFill": {
+    "physical": "",
+    "batch": ""
+  },
+  "addFocus": {
+    "tag": "INPUT",
+    "placeholder": null,
+    "lot": "1"
+  },
+  "removeFocus": {
+    "tag": "INPUT",
+    "placeholder": null,
+    "lot": "2"
+  },
+  "errors": []
+}

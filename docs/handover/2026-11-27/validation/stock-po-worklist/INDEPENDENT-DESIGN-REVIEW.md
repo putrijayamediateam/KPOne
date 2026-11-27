@@ -1,0 +1,11 @@
+# Independent PO worklist review
+
+Bounded source/worklist visual clearance at14-file patch `265dbcece06e44a7a0d47161eb875db64d0a66822ce0830fe4667b5142f47459`. All14 source hashes and patch independently verified. Previously reviewed actual list, receiving event and parent aggregation source; independently ran nine final worklist/processing tests, all passing. Per-instance Symbol ownership prevents old cleanup from unlocking a replacement receiver; keyed mounted details preserve drafts, explicit busy state disables filters/disclosure, and original confirmation identity/version survives refresh.
+
+Previously cleared seven exact heading/formatting adapters and the emit-only manual setup context adapter retain existing behavioral assertions. No backend/schema/grant changes. Loaded-window counts/search explicitly describe newest50, not global totals.
+
+Viewed full-page worklist390dark and1440light. Expanded draft context and controls remain readable; desktop PO section has room for the retained form. Read six matrix results: sampled worklist/edit controls36desktop and44at390/768, no overflow/errors. Browser records busy close/search/status blocked, selected detail retained, actual exception refusal retaining draft, and zero forbidden readonly actions. Independently parsed package-root before-stock.json and after-stock.json: structurally equal,24 movements and all balances unchanged. File formatting differs, so byte identity is not claimed. Disclosure keyboard Enter is actual browser evidence; focus restoration is runtime-test evidence, not asserted as independently browser-tested.
+
+Builder full2269/types/lint/format/build and backend12/92 are reported passing. Independent rerun was nine focused tests only. Separate opened Create/Receiving control measurements remain pending and are not certified by this note; existing whole Stock composition/navigation and backend demo lifecycle gaps remain open. Root owns release/merge.
+
+Supplement: independently read opened-targets.json after initial review. All six sampled opened Create/Receiving matrices have minimum44px at390/768 and36px at1440, no overflow/errors. This closes the pending sampled target evidence, not an all-controls audit.

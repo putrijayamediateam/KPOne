@@ -1,0 +1,462 @@
+{
+  "captures": [
+    {
+      "name": "initial",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "initial",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "initial",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "initial",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "populated",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "populated",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "populated",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "populated",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "passport",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "passport",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "passport",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "passport",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 44
+        },
+        {
+          "name": "Patient number",
+          "height": 44
+        },
+        {
+          "name": "NRIC",
+          "height": 44
+        },
+        {
+          "name": "Passport",
+          "height": 44
+        },
+        {
+          "name": "Phone",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Name",
+          "height": 36
+        },
+        {
+          "name": "Patient number",
+          "height": 36
+        },
+        {
+          "name": "NRIC",
+          "height": 36
+        },
+        {
+          "name": "Passport",
+          "height": 36
+        },
+        {
+          "name": "Phone",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "query": "Synthetic",
+      "search_type": "name",
+      "issuing_country_code": "",
+      "page": 1
+    },
+    {
+      "query": "SYNTHETIC123",
+      "search_type": "passport",
+      "issuing_country_code": "MY",
+      "page": 1
+    },
+    {
+      "query": "a",
+      "search_type": "name",
+      "issuing_country_code": "",
+      "page": 1
+    }
+  ],
+  "radioArrowNavigation": true,
+  "noAutomaticSearch": true,
+  "clearNoRequest": true,
+  "clearRestoresFocus": true,
+  "passportPayload": true
+}

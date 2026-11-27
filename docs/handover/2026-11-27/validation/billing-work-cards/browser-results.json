@@ -1,0 +1,238 @@
+[
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "cards": 0,
+    "reviewTargets": [
+      36,
+      36
+    ],
+    "paginationTargets": [
+      36,
+      36
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "cards": 0,
+    "reviewTargets": [
+      36,
+      36
+    ],
+    "paginationTargets": [
+      36,
+      36
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "tabReachedScroller": true,
+    "arrowScrolled": true,
+    "tabReviewVisible": true
+  },
+  {
+    "mode": "finance",
+    "width": 1440,
+    "otherMode403": true,
+    "reviewNavigation": true
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "light",
+    "overflow": false,
+    "cards": 2,
+    "reviewTargets": [
+      44,
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "theme": "dark",
+    "overflow": false,
+    "cards": 2,
+    "reviewTargets": [
+      44,
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "finance",
+    "width": 768,
+    "otherMode403": true,
+    "reviewNavigation": true
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "cards": 2,
+    "reviewTargets": [
+      44,
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "cards": 2,
+    "reviewTargets": [
+      44,
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "finance",
+    "width": 390,
+    "otherMode403": true,
+    "reviewNavigation": true
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "cards": 0,
+    "reviewTargets": [
+      36
+    ],
+    "paginationTargets": [
+      36,
+      36
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "cards": 0,
+    "reviewTargets": [
+      36
+    ],
+    "paginationTargets": [
+      36,
+      36
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "tabReachedScroller": true,
+    "arrowScrolled": null,
+    "tabReviewVisible": true
+  },
+  {
+    "mode": "panel",
+    "width": 1440,
+    "otherMode403": true,
+    "reviewNavigation": true
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "light",
+    "overflow": false,
+    "cards": 1,
+    "reviewTargets": [
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "theme": "dark",
+    "overflow": false,
+    "cards": 1,
+    "reviewTargets": [
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "panel",
+    "width": 768,
+    "otherMode403": true,
+    "reviewNavigation": true
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "cards": 1,
+    "reviewTargets": [
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "cards": 1,
+    "reviewTargets": [
+      44
+    ],
+    "paginationTargets": [
+      44,
+      44
+    ],
+    "mutatingForms": 0
+  },
+  {
+    "mode": "panel",
+    "width": 390,
+    "otherMode403": true,
+    "reviewNavigation": true
+  }
+]

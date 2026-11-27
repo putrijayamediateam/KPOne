@@ -1,0 +1,58 @@
+{
+  "captures": [
+    {
+      "role": "supervisor",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "role": "supervisor",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "role": "supervisor",
+      "width": 1440,
+      "theme": "light",
+      "height": 38
+    },
+    {
+      "role": "supervisor",
+      "width": 1440,
+      "theme": "dark",
+      "height": 38
+    },
+    {
+      "role": "director",
+      "width": 390,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "role": "director",
+      "width": 390,
+      "theme": "dark",
+      "height": null
+    },
+    {
+      "role": "director",
+      "width": 1440,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "role": "director",
+      "width": 1440,
+      "theme": "dark",
+      "height": null
+    }
+  ],
+  "checks": [
+    "Keyboard link opens actual waiting-doctor check tab while setting is off",
+    "Settings-only Director sees no link and direct destination returns403"
+  ],
+  "errors": [],
+  "readOnlyBrowser": true
+}

@@ -1,0 +1,8 @@
+# Synthetic lane evidence stages
+
+1. Clone of the isolated shared-UI preview;22 new Waiting red visits created through real patient/registration/queue/triage services. Four restored red visits yield26 total. No production/activation/reset.
+2. `results.json`:18 checks on26 total,25+1 pages, own3 including one carried-over row, keyboard success/error/retry, scope, responsive states and absent new-readiness action. Some early mobile captures were during the ordinary-filter refresh; desktop captures were settled. These early images do not prove settled mobile pager state.
+3. `manual-call-results.json` and `manual-call-proof.json`: existing Call dialog Cancel sent no command; explicit Call moved one own row to Serving, closed its episode, retained red triage and the original consultation's hold. Total becomes25 and own count2. `filtered-response-proof.json` then awaits actual filtered HTTP responses and confirms0ordinary rows versus25emergency rows in both pages.
+4. Independent reviewer requested settled mobile header/card and pager evidence. One additional synthetic visit was created through the same real services (`followup-fixture.json`, one-shot guarded marker), bringing total back to26 without altering/reversing previous evidence. Four `*-390-dark-settled-{header,pager}.png` captures and `settled-mobile.json` record actual scroll positions, header below the sticky host, enabled Previous and disabled Next on page2. Frozen application source is unchanged.
+
+Failed harness attempts: duplicate visible error text required scoping to its actual error element; Queue serving/removed arrays needed their real response shape. No application change or assertion weakening was made for those harness errors. Final proof files alone carry pass claims.

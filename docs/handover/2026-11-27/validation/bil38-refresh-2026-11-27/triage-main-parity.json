@@ -1,0 +1,22 @@
+{
+  "previous": "74c28354bf79d042615db62952788eebc9ae906d",
+  "candidate": "c7334e3e0c87272d0777b49936e4c7c33d2e13ca",
+  "main": "9764037af1bfcb24ebad3102a124ff3f6cd7acd2",
+  "scope": {
+    "app/Domain/Access/BillingPermissions.php": "67c8edc226c0d9d244d6492156435b5c0b2da840",
+    "database/migrations/2026_11_26_250100_grant_director_price_publication_additively.php": "24f6bb46279953d132c2d351c95af28f27049544",
+    "docs/teams/billing/BIL-38-DESIGN.md": "59721f0f2db54d9587d6c28ad6b90632e4094f15",
+    "docs/teams/billing/BIL-38-REVIEW-2026-11-26.md": "bd28e04975733a550b548c8ce51ec5b437893168",
+    "docs/teams/billing/TEAM.md": "a4623bf7e18ce14a6bd0fd129a4295a9175ecb84",
+    "tests/Feature/Billing/DirectorPricePublicationTest.php": "bd03ec83b6a48b2373d16eee8e96a00abed437c5",
+    "tests/Feature/Billing/PricingControllerTest.php": "016daa114e00a937607e9573d8b850995366612d",
+    "tests/Feature/Billing/SupervisorPricingTest.php": "881acdb6896fabc3fe5c6f691a7141cfc064e019",
+    "tests/Feature/Clinical/ClinicalServiceCatalogueControllerTest.php": "13c07a8e4b8f4be026301804684ea32d0ff6d653",
+    "tests/Feature/Clinical/UnifiedCatalogueSetupTest.php": "17d55fb083536cfb522f1494fd9f77eb031bef40",
+    "tests/Feature/Inventory/CatalogueImportTest.php": "afd8a33f375dd805ecfcd3c41b510d47a3bfd0d1"
+  },
+  "scope_blobs_unchanged": true,
+  "upstream_paths": [
+    "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php"
+  ]
+}

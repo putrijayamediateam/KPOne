@@ -1,0 +1,10 @@
+{
+  "base": "ca21001ee6581bc516270ba90f6404fca35b49e6",
+  "patchSha256": "0fc6ee00a221b0fe0e0b05dfece24794979fa0b4e7b112d7a7a01f88d2b13609",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensaryListService.php": "a1ff6e7e7b3bbd5e16cd699a8ca5a69199db50ca9903d074cdaf76a575e7d639",
+    "resources/js/pages/Dispensary/Index.vue": "a263c57044ade1c7b6a74e6e96a05a134eb2c57afd1875c9999743910ad5867a",
+    "tests/Feature/Clinical/DispensaryQueueSearchTest.php": "56a9e4c79b099588419c8c372085ca590cf5d4c5c21626596dbad415cbbe8054",
+    "docs/teams/dispensary-otc/TEAM.md": "799bfbf1b023ab1bcad62a5f6d3b6c93b05edd2df9aa670a7ca41168ffa9138d"
+  }
+}

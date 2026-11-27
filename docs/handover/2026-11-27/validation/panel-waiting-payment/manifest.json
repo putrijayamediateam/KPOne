@@ -1,0 +1,14 @@
+{
+  "base": "57c8737f1369ea507c96380e3d679bd0090c2b3b",
+  "base_pr": 1208,
+  "patch_sha256": "c579697937ed5d83c55f270eb596a9756b569ed14bb9a3860b627c67efcff3e7",
+  "files": {
+    "app/Domain/Visit/Billing/Services/PanelClaimDirectoryService.php": "7dbfd5a4dc446d2918fc68569176240f85c2914c39d3c6f9f5003047c31ddbcd",
+    "app/Domain/Visit/Billing/Services/PanelWaitingPaymentProjection.php": "e9f753cbed1d53f8b3b65ca9598278eb068147b9c69a0ef085d57c6ce32ff1af",
+    "app/Http/Controllers/PanelClaimsController.php": "9e19e85ce8231a5ff98d2a27a065fa37359636c98a649148dba565fd5e2f21e3",
+    "docs/teams/panel/TEAM.md": "c09eb5ce1ba2b1d17668d21b40977c923c5763be414a75dfc642a0bc4be2acc0",
+    "resources/js/pages/PanelClaims/Index.vue": "2b690ed7e06925defe910eea24eaa08d18a381738ebc75f5cfdf29704c0256da",
+    "tests/Feature/Billing/PanelWaitingPaymentTest.php": "b49e0b7dd66d6ec67894b15694861c20bbbe16496af239457a01c7481f807f0b",
+    "tests/Frontend/panel-waiting-payment.test.mjs": "c2429b0bd6de6cc6f9753f4a585dc9656c07f1c2bad0addb055d28548cd8bbad"
+  }
+}

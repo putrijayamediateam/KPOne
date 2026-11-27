@@ -1,0 +1,4 @@
+{
+  "script": "identical excluding ref import/local presentation state",
+  "operationalContent": "identical excluding whitespace and one formatter trailing comma; new wrapper only"
+}

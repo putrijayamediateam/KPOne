@@ -1,0 +1,12 @@
+{
+  "base": "97c01615d5a31652ac3df647a9f183daef0bfd4e",
+  "patchSha256": "89d431bbc6408be86376258489768a692d8256d710a01bc97f6946148e78bff5",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensaryReturnService.php": "982d7a2fcbbba9143b04476dae80bc870d14043c2efb8600d6d1551c5f443e0f",
+    "app/Http/Controllers/DispensaryController.php": "a006a5722e9dc3010afb6af45d3440ec31017a4b67c619a1c2387f3994553d94",
+    "docs/teams/dispensary-otc/TEAM.md": "679a549ebbf2e53eabe38bb96cfb0d29a0f3bbc7bf4a71c292d7e29971df3721",
+    "resources/js/pages/Dispensary/ReturnsToCheck.vue": "d936915b3280e1672cf98f66a1146afc6dbee61786da51bf4d98fac5fcb88e2c",
+    "tests/Feature/Clinical/DispensaryReturnsOutcomeFilterTest.php": "f6be6ae008593b7d1a9f19faf5a233b77f5c58c23b1d57bbd6359d2c9b87556f",
+    "tests/Frontend/dsp-return-outcome-runtime.test.mjs": "0d96c6fd3c9e412c942239f548b42562661e498994ae519224a5f35f70a39182"
+  }
+}

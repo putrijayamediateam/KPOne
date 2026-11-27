@@ -1,0 +1,29 @@
+{
+  "captures": [
+    {
+      "name": "patient-retry-error",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

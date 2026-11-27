@@ -1,0 +1,11 @@
+{
+  "base": "8013a87483f273a1e18155fc7831c39a8029b6aa",
+  "patch_sha256": "0d9bff55a1a40d23fe9959b6f88e922e064d6eec984d5222afb36fd97240efed",
+  "files": {
+    "app/Domain/Visit/Billing/Services/PayLaterCollectionService.php": "6a0c50087cc0740df0528780143cc76c646587f9a112db660b62f1088421aa1e",
+    "app/Http/Controllers/PayLaterCollectionController.php": "ef1a1d7e0fc1f5897441f227397dd4b38135b7d1b184347a42f2c2faa99a0b13",
+    "resources/js/pages/Billing/PayLaterCollections.vue": "c5011f069abd7292e4df70e770e05374d3114087416c2977f1d2aba0b7b2bdd7",
+    "tests/Feature/Billing/CollectionSearchTest.php": "960197eef5ea9bae527a2b6f8728f8e338dca767df0d4135dd18024ba16e286e",
+    "tests/Frontend/collection-search.test.mjs": "a99b6a482e27857c391d773eaf527286d55230d3b3dfd9d1331203000c66938f"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "captures": [
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "role": "ca",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "role": "ca",
+      "width": 768,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "role": "ca",
+      "width": 768,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "role": "ca",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "role": "doctor",
+      "width": 390,
+      "theme": "dark",
+      "height": null
+    },
+    {
+      "role": "doctor",
+      "width": 768,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "role": "doctor",
+      "width": 768,
+      "theme": "dark",
+      "height": null
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "role": "doctor",
+      "width": 1440,
+      "theme": "dark",
+      "height": null
+    }
+  ],
+  "focus": [
+    {
+      "width": 390,
+      "theme": "light",
+      "quantityFocused": true,
+      "triggerFocusRestored": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "quantityFocused": true,
+      "triggerFocusRestored": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "quantityFocused": true,
+      "triggerFocusRestored": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "quantityFocused": true,
+      "triggerFocusRestored": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "quantityFocused": true,
+      "triggerFocusRestored": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "quantityFocused": true,
+      "triggerFocusRestored": true
+    }
+  ],
+  "errors": [],
+  "mutations": "No return submitted; open/cancel only."
+}

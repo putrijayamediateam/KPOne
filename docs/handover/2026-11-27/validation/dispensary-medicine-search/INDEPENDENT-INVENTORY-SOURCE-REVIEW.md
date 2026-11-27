@@ -1,0 +1,9 @@
+# Final independent Inventory backend/SQL review
+
+CLEAR at frozen five-file patch8feff47f0eb74f51bb006a8c1a71c97fde4c4eb219a8ae27d3e0442a42917a6c, basec5119da62 (separate latest-list-order correction1217). Independently verified patch SHA and every manifest file against current source. No source edits or heavy test rerun.
+
+Read actual latestHandoff HasOne/ofMany(attempt_number,max), list predicate and all four new domain tests, plus actual aggregate and paginated SQL in query-proof.json. The generated latest-attempt aggregate is independent of name/status matching. Its outer selected-handoff EXISTS applies item status!=not_dispensed and bound escaped LOWER(snapshot) matching afterward, so an older matching attempt cannot be selected. The max-id tie-break is deterministic and consistent with unique case/attempt history. Global ascending history relation remains unchanged.
+
+Actual SQL puts patient-name OR medicine-match inside one parenthesized predicate beneath organisation/branch/status, with original ordering and25-row limit. No raw input interpolation, extra name/notes projection, catalogue rename lookup, grant or mutation. Exact KP/KPV/A/B precedence and original count independence remain. Initial count test compared differently warmed actor relations; final equal warm samples test the intended query-count property without relaxing the assertion.
+
+Read regressions for current versus superseded attempt names, OTC snapshot rename/removal/literal wildcard escaping, Type intersection, grouped patient OR/current-branch and role denial, equal query counts and identifier precedence. Builder backend.log records19 tests/349 assertions PASS. Builder10frontend/types/build/static/16GET browser states and separate Design clearance remain attributed evidence, not independently rerun or certified here. No bounded backend/SQL blocker; publication can proceed under standing authorization.

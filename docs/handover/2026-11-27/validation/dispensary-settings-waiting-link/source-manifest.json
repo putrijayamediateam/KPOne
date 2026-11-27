@@ -1,0 +1,11 @@
+{
+  "base": "db23d6af3591c7b47041306bab9de3f9948680d3",
+  "patchSha256": "d597bf00b4b61b8d91365d3e36cdf7edcf67001ac33f1301815bc51496a00af7",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensarySettingsReader.php": "2e116eaa13f1e765be80c04d52d90e7e4209fd0007d41cb510cb9527185ef7e0",
+    "docs/teams/dispensary-otc/TEAM.md": "cc17f3b777eda4b9e24b1b29b4c8b7cbec0909b22b12872b651172628701d249",
+    "resources/js/pages/Dispensary/Settings.vue": "31d7a9dd158e765d2fc6432ada54a0eba99a0de1c91abaac6c6a1c0e9be98838",
+    "tests/Feature/Clinical/DispensarySettingsReadTest.php": "62fb7497ffea2d3187bf18a7686313a717360fb416eb8e039f797dfab80aaa69",
+    "tests/Frontend/dsp-settings-context-runtime.test.mjs": "6bb6d2ca1ba52f4a7ff6103455888318bbb32a9813627d99042212fd84db7272"
+  }
+}

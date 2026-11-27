@@ -1,0 +1,90 @@
+{
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "text": "Reversal\nDEMO-CETI10\nBatch DEMO-B003\nLocation\nCheras Dispensary (Demo)\nStatus\nPosted: immutable movement recorded\nRequested quantity: 1 tablet\nCorrection\nReversal · DEMO-CETI10 · DEMO-B003\n\nCheras Dispensary (Demo) · Correction\n\nSnapshot 199.000 tablet\n\nRequested quantity 1.000\n\nPosted: immutable movement recorded\n\nEvidence history",
+      "targets": [
+        {
+          "label": "ReversalDEMO-CETI10Batch DEMO-B003LocationCheras Dispen",
+          "height": 120
+        },
+        {
+          "label": "Evidence history",
+          "height": 36
+        },
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispe",
+          "height": 120
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "text": "Reversal\nDEMO-CETI10\nBatch DEMO-B003\nLocation\nCheras Dispensary (Demo)\nStatus\nPosted: immutable movement recorded\nRequested quantity: 1 tablet\nCorrection\nReversal · DEMO-CETI10 · DEMO-B003\n\nCheras Dispensary (Demo) · Correction\n\nSnapshot 199.000 tablet\n\nRequested quantity 1.000\n\nPosted: immutable movement recorded\n\nEvidence history",
+      "targets": [
+        {
+          "label": "ReversalDEMO-CETI10Batch DEMO-B003LocationCheras Dispen",
+          "height": 120
+        },
+        {
+          "label": "Evidence history",
+          "height": 36
+        },
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispe",
+          "height": 120
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "text": "Reversal\nDEMO-CETI10\nBatch DEMO-B003\nLocation\nCheras Dispensary (Demo)\nStatus\nPosted: immutable movement recorded\nRequested quantity: 1 tablet\nCorrection\nReversal · DEMO-CETI10 · DEMO-B003\n\nCheras Dispensary (Demo) · Correction\n\nSnapshot 199.000 tablet\n\nRequested quantity 1.000\n\nPosted: immutable movement recorded\n\nEvidence history",
+      "targets": [
+        {
+          "label": "ReversalDEMO-CETI10Batch DEMO-B003LocationCheras Dispen",
+          "height": 252
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        },
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispe",
+          "height": 252
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "text": "Reversal\nDEMO-CETI10\nBatch DEMO-B003\nLocation\nCheras Dispensary (Demo)\nStatus\nPosted: immutable movement recorded\nRequested quantity: 1 tablet\nCorrection\nReversal · DEMO-CETI10 · DEMO-B003\n\nCheras Dispensary (Demo) · Correction\n\nSnapshot 199.000 tablet\n\nRequested quantity 1.000\n\nPosted: immutable movement recorded\n\nEvidence history",
+      "targets": [
+        {
+          "label": "ReversalDEMO-CETI10Batch DEMO-B003LocationCheras Dispen",
+          "height": 252
+        },
+        {
+          "label": "Evidence history",
+          "height": 44
+        },
+        {
+          "label": "Write-offDEMO-CETI10Batch DEMO-B003LocationCheras Dispe",
+          "height": 252
+        }
+      ]
+    }
+  ],
+  "historyFocus": {
+    "tag": "BUTTON",
+    "text": "Evidence history"
+  },
+  "emptyCases": 0,
+  "errors": []
+}

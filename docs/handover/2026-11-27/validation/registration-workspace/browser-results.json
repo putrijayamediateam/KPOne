@@ -1,0 +1,306 @@
+{
+  "captures": [
+    {
+      "name": "today",
+      "width": 390,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "today",
+      "width": 390,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "today",
+      "width": 1440,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "today",
+      "width": 1440,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": "page"
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "patients",
+      "width": 390,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": "page"
+        }
+      ]
+    },
+    {
+      "name": "patients",
+      "width": 390,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": "page"
+        }
+      ]
+    },
+    {
+      "name": "patients",
+      "width": 1440,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": "page"
+        }
+      ]
+    },
+    {
+      "name": "patients",
+      "width": 1440,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": null
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": "page"
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 390,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 390,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 1440,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "qr",
+      "width": 1440,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins0",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "backNavigation": true
+}

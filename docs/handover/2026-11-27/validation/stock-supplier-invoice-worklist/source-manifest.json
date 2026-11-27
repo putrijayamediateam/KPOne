@@ -1,0 +1,11 @@
+{
+  "base": "fc98024ec2de1fdcb48cb1307df8bd59b05c08fb",
+  "patchSha256": "34c60e4435a3da8d644a065bfdd9fb1e49086be9e8b1758da6ef151b17033bbe",
+  "files": {
+    "docs/teams/inventory/TEAM.md": "dc510024302a808134d4e46a091eae275da9e16b41e8ae881892858f6cae249d",
+    "resources/js/pages/Inventory/SupplierInvoices.vue": "c2867d94d11ca558733cd80bd1d75ed036a8ad5366aa45a0edac9bfc1b5995ea",
+    "tests/Frontend/stk22-supplier-invoices.test.mjs": "a6ef5326d527e92f405f4ab945691c33ebbb83c225dc8d2c01ee20706d6b88a8",
+    "resources/js/components/inventory/StockSupplierInvoiceList.vue": "26211a587bf2ff3936ef9b116574818b92b5f0aefdac8619edc49beb7efb2863",
+    "tests/Frontend/stock-supplier-invoice-worklist-runtime.test.mjs": "c27f4095fc100cb29eab650a18036e9823b3587787b81263af7710ec43581571"
+  }
+}

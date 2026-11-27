@@ -1,0 +1,629 @@
+{
+  "results": [
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 390,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-queue-390-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 390,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(107, 166, 255, 0.176) 0px 0px 0px 0.349495px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-queue-390-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 768,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-queue-768-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 768,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-queue-768-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 1440,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36
+        },
+        {
+          "name": "Urgency",
+          "height": 36
+        },
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "Reset",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-queue-1440-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 1440,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36
+        },
+        {
+          "name": "Urgency",
+          "height": 36
+        },
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "Reset",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-queue-1440-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 390,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-registration-390-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 390,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-registration-390-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 768,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.03) 0px 0px 0px 0.0655955px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-registration-768-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 768,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(107, 166, 255, 0.03) 0px 0px 0px 0.0650069px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-registration-768-dark.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 1440,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "More",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-registration-1440-light.png"
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 1440,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "More",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "doctor-registration-1440-dark.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 390,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Doctor",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(245, 245, 247, 0.176) 0px 0px 0px 0.352132px, rgba(0, 122, 255, 0.176) 0px 0px 0px 0.704264px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-queue-390-light.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 390,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Doctor",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-queue-390-dark.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 768,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Doctor",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-queue-768-light.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 768,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 44
+        },
+        {
+          "name": "Doctor",
+          "height": 44
+        },
+        {
+          "name": "Urgency",
+          "height": 44
+        },
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "Reset",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(11, 11, 13, 0.03) 0px 0px 0px 0.0659px, rgba(107, 166, 255, 0.03) 0px 0px 0px 0.1318px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-queue-768-dark.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 1440,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36
+        },
+        {
+          "name": "Doctor",
+          "height": 36
+        },
+        {
+          "name": "Urgency",
+          "height": 36
+        },
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "Reset",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(245, 245, 247, 0.03) 0px 0px 0px 0.0656134px, rgba(0, 122, 255, 0.03) 0px 0px 0px 0.131227px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-queue-1440-light.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 1440,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36
+        },
+        {
+          "name": "Doctor",
+          "height": 36
+        },
+        {
+          "name": "Urgency",
+          "height": 36
+        },
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "Reset",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(11, 11, 13, 0.176) 0px 0px 0px 0.35127px, rgba(107, 166, 255, 0.176) 0px 0px 0px 0.702539px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-queue-1440-dark.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 390,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.176) 0px 0px 0px 0.351216px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-registration-390-light.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 390,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(107, 166, 255, 0.03) 0px 0px 0px 0.0650069px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-registration-390-dark.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 768,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.03) 0px 0px 0px 0.0650069px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-registration-768-light.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 768,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 44
+        },
+        {
+          "name": "More",
+          "height": 44
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-registration-768-dark.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 1440,
+      "theme": "light",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "More",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 122, 255, 0.176) 0px 0px 0px 0.349441px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-registration-1440-light.png"
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 1440,
+      "theme": "dark",
+      "controls": [
+        {
+          "name": "Apply",
+          "height": 36
+        },
+        {
+          "name": "More",
+          "height": 36
+        }
+      ],
+      "focus": {
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(107, 166, 255, 0.03) 0px 0px 0px 0.0650069px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+        "outline": "none"
+      },
+      "screenshot": "ca-registration-1440-dark.png"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,11 @@
+{
+  "status": "held_no_remote_attempt",
+  "localCommit": "dd61f8a962116a1b942e41b74c795222d962f168",
+  "tree": "215345d94091a259da0192f6215e2ae905a87cc3",
+  "branch": "feature/visit-edit-change-summary",
+  "base": "7457a39d90ad0c780bbae2ada79fb044f73bcbc4",
+  "plannedBaseBranch": "feature/clean-look-registration",
+  "reviewedPatchSha256": "741a565e0315833f087d2ebbdeb7f33076e207ad41e874cb97a0022a51c1e370",
+  "remoteCreated": false,
+  "reason": "Root handling explicit public publication approval after Settings upload rejection. No upload attempted for this separate summary slice."
+}

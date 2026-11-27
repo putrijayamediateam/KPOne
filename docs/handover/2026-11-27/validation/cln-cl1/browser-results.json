@@ -1,0 +1,235 @@
+{
+  "result": [
+    {
+      "width": 390,
+      "mode": "light",
+      "overflow": false,
+      "padding": "16px",
+      "minTargetHeight": 44,
+      "undersized": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "16px",
+      "minTargetHeight": 44,
+      "undersized": []
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "overflow": false,
+      "padding": "24px",
+      "minTargetHeight": 44,
+      "undersized": []
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "24px",
+      "minTargetHeight": 44,
+      "undersized": []
+    },
+    {
+      "width": 1024,
+      "mode": "light",
+      "overflow": false,
+      "padding": "32px",
+      "minTargetHeight": 16.65625,
+      "undersized": [
+        {
+          "tag": "A",
+          "text": "My Queue",
+          "height": 16.65625
+        },
+        {
+          "tag": "A",
+          "text": "Medical certificates(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Referral letters(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Attendance confirmation(opens in a new t",
+          "height": 32
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Call again",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start treatment step",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "On Hold",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cheras",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "32px",
+      "minTargetHeight": 16.65625,
+      "undersized": [
+        {
+          "tag": "A",
+          "text": "My Queue",
+          "height": 16.65625
+        },
+        {
+          "tag": "A",
+          "text": "Medical certificates(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Referral letters(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Attendance confirmation(opens in a new t",
+          "height": 32
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Call again",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start treatment step",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "On Hold",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cheras",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "overflow": false,
+      "padding": "32px",
+      "minTargetHeight": 16.65625,
+      "undersized": [
+        {
+          "tag": "A",
+          "text": "My Queue",
+          "height": 16.65625
+        },
+        {
+          "tag": "A",
+          "text": "Medical certificates(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Referral letters(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Attendance confirmation(opens in a new t",
+          "height": 32
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Call again",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start treatment step",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "On Hold",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cheras",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "32px",
+      "minTargetHeight": 16.65625,
+      "undersized": [
+        {
+          "tag": "A",
+          "text": "My Queue",
+          "height": 16.65625
+        },
+        {
+          "tag": "A",
+          "text": "Medical certificates(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Referral letters(opens in a new tab)",
+          "height": 32
+        },
+        {
+          "tag": "A",
+          "text": "Attendance confirmation(opens in a new t",
+          "height": 32
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Call again",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start treatment step",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "On Hold",
+          "height": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cheras",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "syntheticSave": true,
+  "tabs": true
+}

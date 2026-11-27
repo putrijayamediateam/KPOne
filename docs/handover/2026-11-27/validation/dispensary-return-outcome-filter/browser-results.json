@@ -1,0 +1,125 @@
+{
+  "captures": [
+    {
+      "name": "dispose",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "selection": "dispose"
+    },
+    {
+      "name": "dispose",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "selection": "dispose"
+    },
+    {
+      "name": "dispose",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "selection": "dispose"
+    },
+    {
+      "name": "dispose",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "selection": "dispose"
+    },
+    {
+      "name": "quarantine",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "selection": "quarantine"
+    },
+    {
+      "name": "quarantine",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "selection": "quarantine"
+    },
+    {
+      "name": "quarantine",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "selection": "quarantine"
+    },
+    {
+      "name": "quarantine",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "selection": "quarantine"
+    },
+    {
+      "name": "refuse",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "selection": "refuse"
+    },
+    {
+      "name": "refuse",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "selection": "refuse"
+    },
+    {
+      "name": "refuse",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "selection": "refuse"
+    },
+    {
+      "name": "refuse",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "selection": "refuse"
+    },
+    {
+      "name": "filtered-empty",
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "selection": "quarantine"
+    },
+    {
+      "name": "filtered-empty",
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "selection": "quarantine"
+    },
+    {
+      "name": "filtered-empty",
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "selection": "quarantine"
+    },
+    {
+      "name": "filtered-empty",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "selection": "quarantine"
+    }
+  ],
+  "checks": [
+    "Disposed page2 retains outcome and real26total",
+    "Filter change resets page; controlled preserves outcome; truthful empty and reset path",
+    "Waiting clears outcome, returning Checked defaults All",
+    "Array query normalizes to visible All"
+  ],
+  "errors": [],
+  "writes": [],
+  "readOnlyBrowser": true
+}

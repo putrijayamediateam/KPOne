@@ -1,0 +1,107 @@
+{
+  "captures": [
+    {
+      "name": "qr-populated",
+      "width": 390,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "qr-populated",
+      "width": 390,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 44,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 44,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 44,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "qr-populated",
+      "width": 1440,
+      "theme": "light",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    },
+    {
+      "name": "qr-populated",
+      "width": 1440,
+      "theme": "dark",
+      "metrics": [
+        {
+          "text": "Today",
+          "height": 36,
+          "href": "/registration",
+          "current": null
+        },
+        {
+          "text": "QR check-ins1",
+          "height": 36,
+          "href": "/registration?tab=qr-intake",
+          "current": "page"
+        },
+        {
+          "text": "Patients",
+          "height": 36,
+          "href": "/patients",
+          "current": null
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "verifyNavigation": true,
+  "doctorQrOmitted": true
+}

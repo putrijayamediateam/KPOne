@@ -1,0 +1,5 @@
+# Q16d independent scoped review
+
+Reviewed current QueueRoomsToday.vue, useRoomsToday.ts, Queue board integration, service permission boundary and new SSR/composable tests in /workspace/KPOne-q16d. No blocker identified in reviewed scope. Own-only scope is suppressed in view and composable and rejected server-side; active branch expected-id validation retained. Optional poll is nonblocking. Prior/reset requests aborted, parent abort forwarded, sequence/lifecycle guards prevent stale publication; hidden page/unmount resets.
+
+Native details/summary provides keyboard disclosure with44px minimum summary target and visible focus outline. Labels distinguish no rooms, no eligible doctors, loading/failure, serving/free/other-branch busy, roster/chosen room source, and not-ready subset of waiting. Structural doctor/room/count data only; no patient name introduced. No repeated aria-live announcement on polling. SSR tests cover output states; this review does not substitute for real-browser disclosure/focus check. No source/assertion edits or heavyweight jobs launched by reviewer.

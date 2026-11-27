@@ -1,0 +1,128 @@
+[
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "warningCount": 2,
+    "check": "neutral warning and existing authorized Edit visit link"
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 1440,
+    "dark": false,
+    "shot": "auto1c-queue-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "errors": [],
+    "hitboxes": [
+      {
+        "width": 51.59375,
+        "height": 36
+      },
+      {
+        "width": 51.59375,
+        "height": 36
+      }
+    ]
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 768,
+    "dark": false,
+    "shot": "auto1c-queue-ca_supervisor-768-light.png",
+    "overflow": false,
+    "errors": [],
+    "hitboxes": [
+      {
+        "width": 51.59375,
+        "height": 44
+      },
+      {
+        "width": 51.59375,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 390,
+    "dark": false,
+    "shot": "auto1c-queue-ca_supervisor-390-light.png",
+    "overflow": false,
+    "errors": [],
+    "hitboxes": [
+      {
+        "width": 51.59375,
+        "height": 44
+      },
+      {
+        "width": 51.59375,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "warningCount": 2,
+    "check": "neutral warning and existing authorized Edit visit link"
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 1440,
+    "dark": false,
+    "shot": "auto1c-registration-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "errors": [],
+    "hitboxes": [
+      {
+        "width": 51.59375,
+        "height": 36
+      },
+      {
+        "width": 51.59375,
+        "height": 36
+      }
+    ]
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 768,
+    "dark": false,
+    "shot": "auto1c-registration-ca_supervisor-768-light.png",
+    "overflow": false,
+    "errors": [],
+    "hitboxes": [
+      {
+        "width": 51.59375,
+        "height": 44
+      },
+      {
+        "width": 51.59375,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 390,
+    "dark": false,
+    "shot": "auto1c-registration-ca_supervisor-390-light.png",
+    "overflow": false,
+    "errors": [],
+    "hitboxes": [
+      {
+        "width": 51.59375,
+        "height": 44
+      },
+      {
+        "width": 51.59375,
+        "height": 44
+      }
+    ]
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "provenance": "browser-only synthetic PanelShortfall prop; no server decision or financial mutation",
+    "text": "Panel shortfall: RM 10.00\n\nThe Panel accepted only part of the claim. The Panel accepted RM 10.00 of its RM 20.00 share.\n\nShown for information only. What the patient owes is unchanged.",
+    "style": {
+      "color": "rgb(138, 90, 0)",
+      "background": "rgb(255, 244, 220)"
+    },
+    "contrast_ratio": 5.43
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "provenance": "browser-only synthetic PanelShortfall prop; no server decision or financial mutation",
+    "text": "Panel shortfall: RM 10.00\n\nThe Panel accepted only part of the claim. The Panel accepted RM 10.00 of its RM 20.00 share.\n\nShown for information only. What the patient owes is unchanged.",
+    "style": {
+      "color": "rgb(255, 180, 84)",
+      "background": "rgb(51, 36, 15)"
+    },
+    "contrast_ratio": 8.51
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "provenance": "browser-only synthetic PanelShortfall prop; no server decision or financial mutation",
+    "text": "Panel shortfall: RM 10.00\n\nThe Panel accepted only part of the claim. The Panel accepted RM 10.00 of its RM 20.00 share.\n\nShown for information only. What the patient owes is unchanged.",
+    "style": {
+      "color": "rgb(138, 90, 0)",
+      "background": "rgb(255, 244, 220)"
+    },
+    "contrast_ratio": 5.43
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "provenance": "browser-only synthetic PanelShortfall prop; no server decision or financial mutation",
+    "text": "Panel shortfall: RM 10.00\n\nThe Panel accepted only part of the claim. The Panel accepted RM 10.00 of its RM 20.00 share.\n\nShown for information only. What the patient owes is unchanged.",
+    "style": {
+      "color": "rgb(255, 180, 84)",
+      "background": "rgb(51, 36, 15)"
+    },
+    "contrast_ratio": 8.51
+  }
+]

@@ -1,0 +1,15 @@
+# Optional case helpful-info review packet
+
+Isolated three-file slice above frozen PR1162 head8ef91a5d: Show.vue, new actual-template SSR test file, TEAM note. Reference mapping and exact copy are in PLAN.md. Design cleared optional placement after operational controls, preserved warnings and readonly wording before implementation.
+
+A local ref controls the optional panel; native About/Good to know details remain mounted with v-show. The two existing header label guards moved unchanged from their slot templates onto the same label buttons so a separate help toggle is always available. No link was added to the help panel. Readonly copy avoids editing instructions; OTC copy describes its existing allergy confirmation. All mandatory scanner/allergy/dirty/error/action content remains outside.
+
+Completed:156 existing focused checks unchanged; four new actual-template SSR tests verify readonly/no-print behavior, preview/print/dirty predicates, mounted hidden details and OTC copy. Scoped lint passes, including an explicit test-only reserved-name exception to register the existing Button component in the isolated renderer. No existing assertions were weakened. Script parity proves all original script bytes unchanged after removing the single visibility ref. Full types/build pass. Actual browser passes 20 light/dark captures at 390/1440: keyboard hide/show retains opened native details and draft, wrong-medicine/unsaved/allergy warnings remain outside, readonly/OTC text is correct, and authorized Print/View labels/toggle each measure44px mobile/36px desktop. No overflow/page errors. Final independent Design review is clear for exact patch3bde2712; see INDEPENDENT-REVIEW.md.
+
+Own synthetic preview database kpone_case_help_preview_test is cloned from the preceding task-owned display fixture; verified local port55439. Preview3082. Browser plan covers native keyboard details, hide/show preserving opened state and dirty fields, unknown scan/unsaved/allergy warnings remaining visible, and original print visibility, plus readonly/OTC390/1440 light/dark. No clinical mutations are needed.
+
+Related links and missing DTO data are deliberately outside this first help slice. Verify-completes, authority and backend/schema remain unchanged; full demo parity is not claimed.
+
+Browser harness correction: the first run waited for an assertive warning after an unknown barcode. Existing ScanInput intentionally announces unknown lookup failures politely; only a found medicine rejected by the case raises the assertive wrong-medicine warning. No application change was needed. The final harness uses a different existing synthetic SKU from the same branch to exercise that actual warning and retain it while help is hidden. Initial timeout log remains browser-initial-unknown-status.log; it is not an app failure or a passing final run.
+
+Published stacked draft PR1167 at9717a6a12b9dd71d01095d10e3d8027b0ab1c2b1, base feature/dispensary-case-context. Exact reviewed patch3bde2712 and all three hashes unchanged. CI queued; no merge/force push.

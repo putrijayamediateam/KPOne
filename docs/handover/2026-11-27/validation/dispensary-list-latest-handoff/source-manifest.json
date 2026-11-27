@@ -1,0 +1,9 @@
+{
+  "base": "304cfd263fc884ceafed3c180d0b71d66b7f4b3b",
+  "patchSha256": "27973048a93a6f3c278cb304c0d63a5d5fd497a374d8f768d47fbf4635bd2f49",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensaryListService.php": "06f5093157f7f6afc84de7ae8b6a052d0052e2588bd31bb78f0524e2f6d0787b",
+    "tests/Feature/Clinical/DispensaryLatestHandoffListTest.php": "2679942c83015304eb086e0d222f0282b80b2080b168db168dca48180553d277",
+    "docs/teams/dispensary-otc/TEAM.md": "5dfdb78b2da32d6bd164975835727bfb4360f52768a5b560251194c85c946b61"
+  }
+}

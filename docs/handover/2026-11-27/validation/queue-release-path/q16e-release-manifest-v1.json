@@ -1,0 +1,44 @@
+{
+  "base_commit": "e5e72f69b79e68cbb57f72d2a7ad974f19aaa048",
+  "original_patch_sha256": "84fe67b5a4eb60154ed5910fb4821c2bb62337448fd6ed020f7cb42f7ce8d616",
+  "patch_sha256": "d8c36bd44e79b581eb19ecba9fb08501ceaf4e330d4c520f83805ab6df5e53d1",
+  "files": {
+    "app/Domain/Queue/Services/QueueWaitStatsService.php": {
+      "base_sha256": null,
+      "source_sha256": "4c512c2aef2df8402e6c8950ef192c1f05ad8162a4aca63275acf9b3dcd25524"
+    },
+    "app/Http/Controllers/QueueController.php": {
+      "base_sha256": "0bbf0b0fa7c011c4e21ad6f890e66067e3e59e797a3ee1b9adc9a1e406480647",
+      "source_sha256": "71f1c3bed1a7fabef570dc81688b8361ca57ed03fe04dac3eeac45ae09218f39"
+    },
+    "docs/teams/queue-tv/Q16E-REVIEW-2026-11-26.md": {
+      "base_sha256": null,
+      "source_sha256": "a5fde8b71018aae80e79538feb1b0a1a9cd45193acb6ede3197fe526a05efa6c"
+    },
+    "resources/js/components/queue/QueueAverageWaitSummary.vue": {
+      "base_sha256": null,
+      "source_sha256": "5b10e73d78e8cf0e6714e797e2c0c07ed93225e43b2d4e4c6f16a1cf9a7a887a"
+    },
+    "resources/js/composables/useQueueAverageWait.ts": {
+      "base_sha256": null,
+      "source_sha256": "b6c8a881dcc36917b1e3011d091ba5322062ce21a964d90ce25b998cef63b446"
+    },
+    "resources/js/pages/Queue/Index.vue": {
+      "base_sha256": "bcedb0f52c677f76c0d29b75a80164e09346654d9ac7e36610edd0b477a26482",
+      "source_sha256": "8bf59f23fded2bd54b951581079b3b4878bb5b03eaa66b07733b6babbfe280b3"
+    },
+    "routes/web.php": {
+      "base_sha256": "610262f0acfc59e8f336b55dafa689f6435668209c54041fc6534ac03526e42c",
+      "source_sha256": "a8341e9098000cdd99d080251443e8aacb49bc291a8a7247cb0ccb5e077f00f6"
+    },
+    "tests/Feature/Queue/QueueAverageWaitTest.php": {
+      "base_sha256": null,
+      "source_sha256": "d3855a6fac70bddd5a6c1021833b2ba631982875e3b580834d5c1e1bd8c5d201"
+    },
+    "tests/Frontend/q-16e-average-wait.test.mjs": {
+      "base_sha256": null,
+      "source_sha256": "cfa73bec433bcb6631943335e816e2d947c5305d024c75c02c377b5087122923"
+    }
+  },
+  "reconciliation": "Three shared insertion-only files; original scalar mean now SQLaggregate; same instant branch-local testclock; new aggregate regression; release review append"
+}

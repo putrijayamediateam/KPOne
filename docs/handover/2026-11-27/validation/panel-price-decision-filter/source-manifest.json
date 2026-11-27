@@ -1,0 +1,12 @@
+{
+  "base": "88d21dfe232222ddf2f8ca4f44291b1c5f9a79c2",
+  "patchSha256": "54a9584d3acdae6d45cdfad8eac40bd432cb061f05f5de54bb5b9e5af7916fab",
+  "files": {
+    "app/Domain/Visit/Billing/Services/PanelPriceChangesPage.php": "0fdb49018ecfb5c58bdf52dd047433d3b54446ca5599ef55f5d177a90359a266",
+    "app/Http/Controllers/PanelPriceChangesController.php": "e3c89919c5ce66dc72b69d8c3858737fd8e3ac18b3639e0936a56af449366056",
+    "docs/teams/panel/TEAM.md": "2b2afebf7a1ae24215206418b1850d629e565fa2f8e19edea3e2d811f0ae9267",
+    "resources/js/pages/PanelPriceChanges/Index.vue": "b29f5119ba615cb84b794865afb1d68d9a7fe215867db4143dd0824c797ec968",
+    "tests/Feature/Billing/PanelPriceDecisionFilterTest.php": "00789dc0bd1aed4f9c573d588bde53d6b52edefa7517f3c5c187856f10b29fd7",
+    "tests/Frontend/panel-price-decision-filter.test.mjs": "d64542d7290bc0de70c36f4aeedaaccb3b63a974cdafb1684914cbe99dd2af8e"
+  }
+}

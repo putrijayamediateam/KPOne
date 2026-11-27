@@ -1,0 +1,885 @@
+{
+  "Billing": {
+    "sha256": "a7ccfda91a326107a273f556932be211ea43e33f003276c307fef3cfaca7dc90",
+    "tabs": [
+      {
+        "key": "pay",
+        "label": "To pay",
+        "cols": [
+          "NO.",
+          "PATIENT",
+          "WHO PAYS",
+          "TOTAL",
+          "DUE NOW"
+        ],
+        "action": {
+          "label": "Take payment",
+          "dark": true,
+          "to": "paid",
+          "done": "opens the bill to take payment (demo).",
+          "next": [
+            "PatientBilling.dc.html",
+            "Patient billing"
+          ]
+        },
+        "tools": [
+          {
+            "label": "If today is counted early",
+            "done": "Today's cash has been counted and is waiting for the Branch Manager's approval. New payments are paused until it is approved or returned for a recount. Registration and consultations carry on (BIL-32)."
+          }
+        ]
+      },
+      {
+        "key": "panel",
+        "label": "Panel and pay later",
+        "cols": [
+          "NO.",
+          "PATIENT",
+          "PANEL",
+          "PANEL SHARE",
+          "STATUS"
+        ],
+        "action": {
+          "label": "Approve share",
+          "dark": false,
+          "to": "pay",
+          "done": "Panel share approved (demo). Any balance moves to To pay."
+        }
+      },
+      {
+        "key": "collect",
+        "label": "Bills to collect",
+        "cols": [
+          "KP NO.",
+          "PATIENT",
+          "INVOICE",
+          "OWED",
+          "DUE"
+        ],
+        "note": "Approved pay-later bills still owed. Oldest first.",
+        "action": {
+          "label": "Collect",
+          "dark": true,
+          "to": "paid",
+          "done": "opens the bill to collect the balance (demo).",
+          "next": [
+            "PatientBilling.dc.html",
+            "Patient billing"
+          ]
+        },
+        "filters": [
+          {
+            "label": "Due date",
+            "options": [
+              "All",
+              "Over 60 days late",
+              "31 to 60 days late",
+              "Up to 30 days late",
+              "Not due yet"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Overdue by age",
+            "done": "9 bills past their due date, RM 798.40 overdue: over 60 days 2 bills RM 250.50; 31 to 60 days 3 bills RM 257.40; up to 30 days 4 bills RM 290.50 (demo). Pick an age in Due date to see the bills."
+          },
+          {
+            "label": "Paid this week",
+            "done": "3 pay later bills settled since Monday (demo): Hamidah binti Salleh RM 64.00 cash, Lau Kok Wai RM 120.00 DuitNow QR, Kalaivani a/p Raman RM 40.00 card. Each payment has its own receipt."
+          },
+          {
+            "label": "About this list",
+            "done": "Approved pay later bills at Cheras that still have money owed, oldest due date first (demo). This list only reads; money is taken on the patient's Billing page."
+          }
+        ]
+      },
+      {
+        "key": "paid",
+        "label": "Paid today",
+        "cols": [
+          "NO.",
+          "PATIENT",
+          "METHOD",
+          "PAID",
+          "RECEIPT"
+        ],
+        "action": {
+          "label": "Reprint",
+          "dark": false,
+          "done": "receipt reprinted as COPY (demo)."
+        }
+      },
+      {
+        "key": "close",
+        "label": "Cash closing",
+        "cols": [
+          "DAY",
+          "COUNTED BY",
+          "EXPECTED",
+          "COUNTED",
+          "STATUS"
+        ],
+        "note": "Count after the last patient. Someone else approves after midnight. Expected cash is cash receipts less cash receipts reversed and cash refunds paid out. A reason is needed for any difference. Someone other than the counter (a Finance Officer, the Director or another CA Supervisor) approves or returns the count, after the day ends at midnight.",
+        "action": {
+          "label": "Count cash",
+          "dark": true,
+          "done": "opens the cash count (demo). New payments pause until it is approved.",
+          "next": [
+            "Billing.dc.html",
+            "Cash closing"
+          ]
+        },
+        "tools": [
+          {
+            "label": "Paused and locked days",
+            "done": "Waiting for approval: new payments and changes to this day's bills are paused until it is approved or returned for a recount. Registration and consultations carry on. Once approved the day is locked: This day's cash is closed and locked. A bill or receipt of that day cannot be changed or voided; only a refund is possible. (BIL-32)"
+          },
+          {
+            "label": "Who approves",
+            "done": "Someone other than you approves or returns this count, after the day ends at midnight (demo): Finance Officer (any finance officer), Director (Dr. Director), or another CA Supervisor (not you)."
+          },
+          {
+            "label": "Waiting for approval",
+            "done": "2 days waiting for approval (demo): Thu 19 Nov and Wed 18 Nov."
+          },
+          {
+            "label": "Today at a glance",
+            "done": "Cheras, November (demo): RM 5.00 short today \u00b7 14 days approved \u00b7 2 waiting \u00b7 1 not counted."
+          }
+        ],
+        "form": {
+          "title": "Count for Fri 20 Nov \u00b7 Cheras",
+          "fields": [
+            {
+              "label": "Day",
+              "type": "select",
+              "options": [
+                "Fri 20 Nov (today)"
+              ]
+            },
+            {
+              "label": "Cash you counted (RM)",
+              "type": "number",
+              "placeholder": "1,279.50"
+            },
+            {
+              "label": "Reason for the difference",
+              "type": "select",
+              "options": [
+                "Change given wrongly at 3 pm"
+              ]
+            },
+            {
+              "label": "Note \u00b7 optional",
+              "type": "textarea",
+              "placeholder": "Anything the approver should know"
+            }
+          ],
+          "submit": {
+            "label": "Submit count",
+            "done": "Count for Fri 20 Nov submitted: RM 5.00 short, reason recorded (demo). Someone other than you approves it after midnight. A second submit says: Already submitted. Waiting for someone other than you to approve after midnight."
+          }
+        }
+      },
+      {
+        "key": "closemonth",
+        "label": "Cash closing month",
+        "cols": [
+          "DAY",
+          "COUNTED BY",
+          "APPROVED OR RETURNED BY",
+          "DIFFERENCE",
+          "STATUS"
+        ],
+        "note": "Read only. One row per day: the latest count for the day, or the approved count for an approved day. The person who counted never approves the same day.",
+        "action": null,
+        "filters": [
+          {
+            "label": "Month",
+            "options": [
+              "November 2026",
+              "October 2026 (every day approved)",
+              "December 2026 (not started yet)"
+            ]
+          },
+          {
+            "label": "Status",
+            "options": [
+              "All",
+              "Approved",
+              "Waiting",
+              "Returned",
+              "Not counted",
+              "Today"
+            ]
+          },
+          {
+            "label": "Flag",
+            "options": [
+              "All",
+              "No count",
+              "Not approved",
+              "Changed after approval"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "\u2039 Oct",
+            "done": "October: every day approved (demo)."
+          },
+          {
+            "label": "Dec \u203a",
+            "done": "December has not started yet (demo)."
+          },
+          {
+            "label": "Approved days this month",
+            "done": "Cheras, November (demo): 14 approved days. Differences approved: Sat 14 RM 1.00 short, Sun 8 RM 0.50 over, Tue 3 RM 2.00 short; the rest match."
+          }
+        ]
+      },
+      {
+        "key": "terminal",
+        "label": "Terminal check",
+        "cols": [
+          "METHOD",
+          "KPONE RECEIPTS",
+          "TERMINAL",
+          "DIFFERENCE",
+          "STATUS"
+        ],
+        "note": "Mon, 17 Nov 2026 \u00b7 KPOne receipts against the terminal's own report, per payment method. Manual close, no terminal link (Director, Finance Officer, CA and CA Supervisor). Outside this manual close: cash (see Cash closing), Panel and pay later. This page compares only. It never creates, changes or refunds a payment and does not confirm the bank settlement.",
+        "action": {
+          "label": "Record close",
+          "dark": false,
+          "done": "opens Record terminal close for this method (demo). Copy the figures from the terminal's closing slip."
+        },
+        "filters": [
+          {
+            "label": "Business day",
+            "options": [
+              "Mon, 17 Nov \u00b7 Difference",
+              "Tue, 18 Nov \u00b7 Open today",
+              "Sun, 16 Nov \u00b7 Matches",
+              "Sat, 15 Nov \u00b7 Explained",
+              "Fri, 14 Nov \u00b7 Matches",
+              "Thu, 13 Nov \u00b7 Matches",
+              "Wed, 12 Nov \u00b7 Not recorded",
+              "Tue, 11 Nov \u00b7 Matches",
+              "Mon, 10 Nov \u00b7 Explained",
+              "Sun, 9 Nov \u00b7 Matches",
+              "Sat, 8 Nov \u00b7 Matches",
+              "Fri, 7 Nov \u00b7 Matches"
+            ]
+          },
+          {
+            "label": "Status",
+            "options": [
+              "All",
+              "Matches",
+              "Needs reason",
+              "Not entered"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Day totals",
+            "done": "Mon, 17 Nov (demo): 3 methods need attention \u00b7 RM 2,270.90 KPOne non-cash receipts \u00b7 RM 2,132.90 terminal approved sales \u00b7 1 day not recorded (Wed, 12 Nov)."
+          },
+          {
+            "label": "Terminal approved sales by batch",
+            "done": "As typed from the settlement slips, Mon 17 Nov (demo): B-20261117-01 Card terminal and Debit card (MyDebit), 20 sales, RM 1,604.90, Matches \u00b7 B-20261117-02 DuitNow QR, 8 sales, RM 470.00, RM 42.00 short \u00b7 G-1117 GrabPay, 2 sales, RM 58.00, Matches \u00b7 Touch \u2019n Go eWallet not entered. KPOne records the figures you type; it does not connect to the terminal."
+          },
+          {
+            "label": "Day list with status",
+            "done": "Proposal: needs owner approval (demo). Day list with status; today KPOne loads one day at a time."
+          }
+        ],
+        "form": {
+          "title": "Record terminal close \u00b7 Mon, 17 Nov",
+          "fields": [
+            {
+              "label": "Payment method",
+              "type": "select",
+              "options": [
+                "Card terminal (Visa / Mastercard)",
+                "DuitNow QR",
+                "Debit card (MyDebit)",
+                "Touch \u2019n Go eWallet",
+                "GrabPay"
+              ]
+            },
+            {
+              "label": "Approved sales (count)",
+              "type": "number",
+              "placeholder": "8"
+            },
+            {
+              "label": "Approved sales (RM)",
+              "type": "number",
+              "placeholder": "470.00"
+            },
+            {
+              "label": "Refunds (count)",
+              "type": "number",
+              "placeholder": "0"
+            },
+            {
+              "label": "Refunds (RM)",
+              "type": "number",
+              "placeholder": "0.00"
+            },
+            {
+              "label": "Voids (count)",
+              "type": "number",
+              "placeholder": "1"
+            },
+            {
+              "label": "Voids (RM)",
+              "type": "number",
+              "placeholder": "42.00"
+            },
+            {
+              "label": "Terminal batch reference \u00b7 optional",
+              "type": "text",
+              "placeholder": "e.g. B-20261117-01"
+            },
+            {
+              "label": "Difference explanation \u00b7 needed when the figures differ",
+              "type": "textarea",
+              "placeholder": "Type why the terminal and KPOne differ"
+            }
+          ],
+          "submit": {
+            "label": "Record terminal close",
+            "done": "Terminal close recorded for Mon, 17 Nov (new revision kept) (demo). Saving again adds a new revision; earlier revisions are kept and shown in the history."
+          }
+        }
+      },
+      {
+        "key": "receipts",
+        "label": "Receipts and refunds",
+        "cols": [
+          "RECEIPT",
+          "PATIENT",
+          "METHOD",
+          "AMOUNT",
+          "STATUS"
+        ],
+        "note": "Receipts on INV-CHR-2026-01488, newest first. A receipt is reversed, never deleted or edited. A refund is only for a reversed receipt, for the full reversed amount, before the visit is completed. A Finance Officer or Director who did not record the refund approves it. A reversal is not a refund: only money really handed back is recorded as a refund.",
+        "action": null,
+        "filters": [
+          {
+            "label": "Status",
+            "options": [
+              "All",
+              "Posted",
+              "Reversed \u00b7 refund waiting",
+              "Reversed \u00b7 no refund",
+              "Reversed \u00b7 refund approved"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Invoice summary",
+            "done": "Mohd Faizal bin Hassan \u00b7 A-011 \u00b7 KP-000122 \u00b7 IC \u2022\u2022\u2022\u20223390 \u00b7 Self-pay \u00b7 Visit not completed \u00b7 KPV-00002560 \u00b7 INV-CHR-2026-01488 (demo): Lines RM 113.50 \u00b7 Adjustment \u2014 \u00b7 Invoice total RM 113.50 \u00b7 Received (after reversals) RM 48.50 \u00b7 Panel or pay later \u2014 \u00b7 Due now RM 65.00."
+          },
+          {
+            "label": "Reversed receipts",
+            "done": "Reversals keep the receipt and add a row (demo): RCP-CHR-2026-04411 reversed 18 Nov, 10:20 AM by Hafiz, RM 50.00, Wrong amount charged, refund waiting \u00b7 RCP-CHR-2026-04402 reversed 18 Nov, 9:58 AM by Aina R., RM 40.00, Posted to wrong invoice, no refund recorded."
+          },
+          {
+            "label": "Activity",
+            "done": "Activity on INV-CHR-2026-01488 (demo): 10:25 AM refund recorded on RCP-\u20264411 (waiting) \u00b7 Aina R. | 10:24 AM payment posted \u00b7 DuitNow QR \u00b7 Hafiz | 10:22 AM payment posted \u00b7 Cash \u00b7 Hafiz | 10:20 AM receipt RCP-\u20264411 reversed \u00b7 Hafiz | 9:58 AM receipt RCP-\u20264402 reversed \u00b7 Aina R."
+          },
+          {
+            "label": "At a glance",
+            "done": "1 refund waiting for you \u00b7 RM 48.50 received \u00b7 RM 90.00 reversed \u00b7 RM 65.00 due now (demo)."
+          }
+        ],
+        "form": {
+          "title": "+ Add payment",
+          "fields": [
+            {
+              "label": "Invoice",
+              "type": "select",
+              "options": [
+                "INV-CHR-2026-01488 \u00b7 Mohd Faizal bin Hassan"
+              ]
+            },
+            {
+              "label": "Method",
+              "type": "select",
+              "options": [
+                "Cash",
+                "DuitNow QR",
+                "Card terminal"
+              ]
+            },
+            {
+              "label": "Amount received (RM)",
+              "type": "number",
+              "placeholder": "65.00"
+            }
+          ],
+          "submit": {
+            "label": "Record payment",
+            "done": "RM 65.00 received from Mohd Faizal bin Hassan. Due now is RM 0.00 (demo). If nothing is due: Nothing due now. The bill is settled.",
+            "next": [
+              "PatientBilling.dc.html",
+              "Patient billing"
+            ]
+          }
+        }
+      },
+      {
+        "key": "history",
+        "label": "Invoices history",
+        "cols": [
+          "DATE",
+          "PATIENT",
+          "VISIT",
+          "INVOICE",
+          "TOTAL"
+        ],
+        "note": "Completed visits only, newest first. Open a visit for what the doctor ordered beside what the CA dispensed, the invoice and its documents. Printing records the copy: first print ORIGINAL, then COPY; a changed invoice prints REVISED.",
+        "action": {
+          "label": "Open invoice",
+          "dark": false,
+          "done": "opens the invoice (demo).",
+          "next": [
+            "InvoiceView.dc.html",
+            "Invoice"
+          ]
+        },
+        "filters": [
+          {
+            "label": "Type",
+            "options": [
+              "All",
+              "Consultation",
+              "OTC"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Patient",
+            "done": "Rajesh a/l Kumar \u00b7 KP-000126 \u00b7 \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u20224419 \u00b7 Male \u00b7 41 y \u00b7 Malaysian \u00b7 Self-pay \u00b7 Allergy: Sulfonamides \u00b7 9 visits (demo).",
+            "next": [
+              "Patient.dc.html",
+              "Patient"
+            ]
+          },
+          {
+            "label": "Logs",
+            "done": "Invoice log, read only (demo): Finalised 10:05 AM \u00b7 Aina | Payment recorded 10:07 AM \u00b7 Aina | Invoice printed (ORIGINAL) 10:08 AM \u00b7 Aina | Visit completed 10:09 AM \u00b7 Aina. No reasons, notes or clinical details are shown in the log."
+          }
+        ]
+      }
+    ],
+    "related": [
+      [
+        "Patient billing",
+        "",
+        "PatientBilling.dc.html"
+      ],
+      [
+        "Manage payments",
+        "",
+        "Billing.dc.html"
+      ],
+      [
+        "Cash closing (count)",
+        "",
+        "Billing.dc.html"
+      ],
+      [
+        "Panel claims",
+        "",
+        "Panel.dc.html"
+      ],
+      [
+        "Pay later summary",
+        "still owed RM 1,147.40 at Cheras \u00b7 9 past due \u00b7 3 paid this week",
+        "PatientBilling.dc.html"
+      ],
+      [
+        "Invoice",
+        "printable invoice",
+        "InvoiceView.dc.html"
+      ],
+      [
+        "Visit details",
+        "",
+        "VisitDetails.dc.html"
+      ],
+      [
+        "Payment methods",
+        "setting",
+        "PaymentMethods.dc.html"
+      ],
+      [
+        "Registration",
+        "",
+        "Registration.dc.html"
+      ]
+    ]
+  },
+  "Panel": {
+    "sha256": "e64a285e5430b20e8fb5d59460dd84071f005d2ed3939db637e3b6508c8ffc5e",
+    "tabs": [
+      {
+        "key": "claim",
+        "label": "To claim",
+        "cols": [
+          "INVOICE",
+          "PANEL",
+          "PATIENT \u00b7 VISIT",
+          "DUE"
+        ],
+        "note": "Approved Panel invoices with no claim yet. Overdue ones are in red. A claim is prepared automatically when a Panel bill is approved. Pending lists approved invoices that still have no claim (from before, or not created); Overdue lists Prepared claims not submitted by the Panel's due date.",
+        "action": {
+          "label": "Create claim",
+          "dark": true,
+          "to": "sub",
+          "done": "claim created as Submitted (demo).",
+          "next": [
+            "CreateClaim.dc.html",
+            "Create panel claim"
+          ]
+        },
+        "filters": [
+          {
+            "label": "Panel",
+            "options": [
+              "All",
+              "AIA (11)",
+              "PMCare (4)",
+              "Medkad (2)",
+              "Direct companies (1)"
+            ]
+          },
+          {
+            "label": "Show",
+            "options": [
+              "All",
+              "Overdue only",
+              "Due in 3 days or less"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Waiting to claim RM 4,812.00",
+            "done": "18 approved Panel shares with no claim yet (demo): AIA 11 RM 2,906.50 (2 overdue), PMCare 4 RM 1,020.00 (1 overdue), Medkad 2 RM 585.50, Direct companies 1 RM 300.00. Each Panel's due rule comes from Checkout settings."
+          },
+          {
+            "label": "Overdue \u00b7 3",
+            "done": "3 invoices past the Panel's claim due date (demo): Nur Izzati RM 48.00, Arif Hakimi RM 96.00, Yusof K. RM 75.00. Overdue invoices can still be claimed: create the claim, then submit it on the Panel portal."
+          },
+          {
+            "label": "Print pack",
+            "done": "opens the claim pack for the ticked claims (demo).",
+            "next": [
+              "ClaimPack.dc.html",
+              "Claim pack"
+            ]
+          },
+          {
+            "label": "Create claims for 3 waiting invoices",
+            "done": "Create claims for 3 waiting invoices? Creates a Prepared claim for each. Nothing is submitted. Each claim stays Prepared until you submit it (demo)."
+          }
+        ],
+        "bulk": {
+          "label": "Claim ticked",
+          "done": "creates Submitted claims for the ticked invoices of one Panel (demo). Up to 20, all or nothing, one shared remarks text, no photos.",
+          "next": [
+            "CreateClaim.dc.html",
+            "Create panel claim"
+          ]
+        }
+      },
+      {
+        "key": "sub",
+        "label": "Submitted",
+        "cols": [
+          "CLAIM",
+          "PANEL",
+          "AMOUNT",
+          "SUBMITTED"
+        ],
+        "note": "Waiting for the Panel to decide.",
+        "action": {
+          "label": "Record decision",
+          "dark": false,
+          "to": "pay",
+          "done": "decision recorded: accepted (demo)."
+        },
+        "filters": [
+          {
+            "label": "Panel",
+            "options": [
+              "All",
+              "AIA (22)",
+              "PMCare (9)",
+              "Medkad (6)",
+              "Direct companies (3)"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Submitted, unpaid RM 9,340.00",
+            "done": "40 claims waiting for the Panel's decision or payment (demo): AIA 22 RM 5,120.00, PMCare 9 RM 2,010.00, Medkad 6 RM 1,480.00 (2 past follow-up days), Direct companies 3 RM 730.00."
+          },
+          {
+            "label": "Print pack",
+            "done": "Pack printed and frozen as version 1, ORIGINAL (demo). A reprint of the same version is a COPY; if a claim in it changes, the next print is REVISED. An older paper says a later version exists."
+          }
+        ],
+        "bulk": {
+          "label": "Print pack",
+          "done": "opens one claim pack for the ticked claims of one Panel (demo). Up to 50; mixed Panels are refused.",
+          "next": [
+            "ClaimPack.dc.html",
+            "Claim pack"
+          ]
+        }
+      },
+      {
+        "key": "follow",
+        "label": "Follow up",
+        "cols": [
+          "CLAIM",
+          "PANEL",
+          "AMOUNT",
+          "NO ACTION FOR"
+        ],
+        "note": "Open claims with no new action for at least their Panel's follow-up days, oldest first. Claims never submitted are left out; they are on Overdue under To claim.",
+        "action": {
+          "label": "Open claim",
+          "dark": false,
+          "done": "opens the claim with its logs (demo)."
+        },
+        "filters": [
+          {
+            "label": "Panel",
+            "options": [
+              "All Panels (each Panel's own days)",
+              "AIA \u00b7 30 days",
+              "PMCare \u00b7 21 days",
+              "Etiqa \u00b7 30 days",
+              "Syarikat Maju Test \u00b7 14 days"
+            ]
+          },
+          {
+            "label": "Status",
+            "options": [
+              "All",
+              "Submitted",
+              "Queried",
+              "Prepared, not submitted",
+              "Partly paid",
+              "Accepted"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "By status",
+            "done": "12 claims to follow up (demo): Submitted 6 RM 508.50 (oldest 61 days), Queried 2 RM 156.00 (74 days), Prepared not submitted 1 RM 72.00 (58 days), Partly paid 2 RM 152.00 (47 days), Accepted 1 RM 55.00 (40 days)."
+          },
+          {
+            "label": "By Panel RM 943.50",
+            "done": "AIA 5 claims RM 300.00 (30 days), PMCare 3 RM 165.50 (21), Etiqa 2 RM 180.00 (30), Syarikat Maju Test 2 RM 298.00 (14) (demo). Follow-up days are set per Panel in Checkout settings (1 to 365, default 30).",
+            "next": [
+              "CheckoutSettings.dc.html",
+              "Checkout settings"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "pay",
+        "label": "Waiting for payment",
+        "cols": [
+          "CLAIM",
+          "PANEL",
+          "ACCEPTED",
+          "UNPAID"
+        ],
+        "note": "Record one Panel payment and split it across these claims, as on the Panel's statement.",
+        "action": {
+          "label": "Record payment",
+          "dark": true,
+          "to": "paid",
+          "done": "payment recorded against this claim (demo)."
+        },
+        "filters": [
+          {
+            "label": "Statement",
+            "options": [
+              "All",
+              "In the split",
+              "Already paid",
+              "Not found"
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "label": "Fill oldest first",
+            "done": "split filled from the oldest accepted claim first (demo). Only the 200 oldest open claims fill the split."
+          },
+          {
+            "label": "Statement rows \u00b7 11 of 14 matched",
+            "done": "8 in the split (1 part RM 60.00 of 96.00), 3 claims already paid, 3 not found (one looks like a typo) (demo). Rows not in the split add up to RM 136.00."
+          },
+          {
+            "label": "Remove statement file",
+            "done": "Remove the statement file? The file and its rows are deleted now instead of after 30 days. Nothing was recorded from it; the split stays as you set it (demo)."
+          },
+          {
+            "label": "Accepted claims \u00b7 27",
+            "done": "RM 2,026.50 unpaid (demo): Aug 4 RM 312.00 (older than 60 days), Sep 8 RM 590.00, Oct 11 RM 838.50 (in the split list), Nov 4 RM 286.00."
+          },
+          {
+            "label": "Recorded wrongly later?",
+            "done": "a Finance Officer or the Director who did not record it can reverse the whole payment, with a reason. It is never a refund (demo).",
+            "next": [
+              "CorrectPanelPayment.dc.html",
+              "Correct a Panel payment"
+            ]
+          }
+        ],
+        "form": {
+          "title": "1 \u00b7 The payment",
+          "fields": [
+            {
+              "label": "Panel",
+              "type": "select",
+              "options": [
+                "AIA (TPA)",
+                "PMCare",
+                "MiCare",
+                "Medkad",
+                "Syarikat Maju (direct)"
+              ]
+            },
+            {
+              "label": "Amount received (RM)",
+              "type": "number",
+              "placeholder": "778.50"
+            },
+            {
+              "label": "Date received",
+              "type": "date"
+            },
+            {
+              "label": "Reference (optional)",
+              "type": "text",
+              "placeholder": "EFT 88120419"
+            },
+            {
+              "label": "Panel statement (optional, CSV)",
+              "type": "file",
+              "placeholder": "Encrypted and deleted after 30 days. At most 1 MB, 500 rows. Nothing is recorded from a file by itself."
+            }
+          ],
+          "submit": {
+            "label": "Record payment",
+            "done": "recorded RM 778.50 from AIA, split across the claims with an amount (demo). The split must equal the payment and no claim can be paid more than it owes; otherwise it is not recorded and shows 'RM x still to split' or 'too much'. Claim pages, Panel summary and Insights now show it."
+          }
+        },
+        "bulk": {
+          "label": "Use these in the split",
+          "done": "ticked statement matches put into the split (demo). Matching is exact, so a typo reads 'Not found'."
+        }
+      },
+      {
+        "key": "paid",
+        "label": "Paid",
+        "cols": [
+          "CLAIM",
+          "PANEL",
+          "PAID",
+          "DATE"
+        ],
+        "action": null
+      },
+      {
+        "key": "query",
+        "label": "Queried",
+        "cols": [
+          "CLAIM",
+          "PANEL",
+          "AMOUNT",
+          "QUERY"
+        ],
+        "note": "The Panel asked a question before deciding. Answer on the Panel portal, then record what you sent on the claim page.",
+        "action": {
+          "label": "Record answer",
+          "dark": false,
+          "to": "sub",
+          "done": "answer recorded on the claim (demo). The claim goes back to waiting for the Panel's decision."
+        }
+      }
+    ],
+    "related": [
+      [
+        "Create claim",
+        "",
+        "CreateClaim.dc.html"
+      ],
+      [
+        "Claim pack (print)",
+        "",
+        "ClaimPack.dc.html"
+      ],
+      [
+        "Panel responsibility",
+        "approve at billing",
+        "PanelResponsibility.dc.html"
+      ],
+      [
+        "Correct a Panel payment",
+        "Finance or Director",
+        "CorrectPanelPayment.dc.html"
+      ],
+      [
+        "Panel summary",
+        "report",
+        "Reports.dc.html"
+      ],
+      [
+        "Panel invoices",
+        "report and CSV",
+        "Reports.dc.html"
+      ],
+      [
+        "Claim message template",
+        "setting",
+        "ClaimMessageTemplate.dc.html"
+      ],
+      [
+        "Panels and due rules",
+        "setting",
+        "CheckoutSettings.dc.html"
+      ],
+      [
+        "Panel price changes",
+        "",
+        "PanelPriceChanges.dc.html"
+      ],
+      [
+        "Follow-up days per Panel",
+        "setting \u00b7 1 to 365, default 30",
+        "CheckoutSettings.dc.html"
+      ]
+    ]
+  }
+}

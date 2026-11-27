@@ -1,0 +1,18 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "patchSHA256": "ca246c5935cdde2280d2c975eab5463f6df57fc1c1fad896b46eb2f39d18a7b0",
+  "files": [
+    {
+      "path": "resources/js/pages/Dispensary/Index.vue",
+      "sha256": "71f4c0dde0086dbf37cffd6716d9f0b36e2b7a7efd257f87c7c883ea95a26b6c"
+    },
+    {
+      "path": "tests/Frontend/dsp-workspace-demo-runtime.test.mjs",
+      "sha256": "472e8ecd6098ac2358237613e93ed7dd221dc5689abefe242fb3bab28b700d17"
+    },
+    {
+      "path": "docs/teams/dispensary-otc/TEAM.md",
+      "sha256": "a120b8f780dead38a4051f60d414b6b5c79a36cc87dfa2fce2bc770b2f82324e"
+    }
+  ]
+}

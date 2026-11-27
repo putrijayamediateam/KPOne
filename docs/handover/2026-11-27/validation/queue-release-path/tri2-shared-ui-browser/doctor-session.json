@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6InBySVhHS2dOQUkxWGVFR2pKYVp4OXc9PSIsInZhbHVlIjoiZXVocDQwS05obmNoVFVoc1Yzd1YrUkJNNmd2QXBFTnlFS2lOSStOeVh0M25kODNCN29oSTlqK1B6Nm5wQmFUVDNSckdFTWc3TW95QUdudU9PTUtVeUcwa2FBRjgvM0I0cCs3TFRpZG9rMjdaall3Ly90RDVLVTVBalFnV2M4dDciLCJtYWMiOiIzYzY2YWNlOTlhYjYwOTI4NGIwNTQ1Yjg1NzBhOTBlZGY4NDY4ZThiODYzMTJkNDY1YjU1YTdjZmZlYzAzOGU0IiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795726512.149056,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6ImdKR25WZXdMbWNIWElOYlB6aEdxQXc9PSIsInZhbHVlIjoieFZyS2E3dFFPdkpZZXRQTjhpSnRpdXdTS0FLeWFvMm5QeHY0a05UdFNhSktsbWtOR05wOXQydThUVlZtVG41c3FYTFlGV2dya0IzNzhSRXcvRUlwL0VqKzJnSFdUS3JiRG01TWpONmEwMEtyVVowNGdxZ296b3ltVVpmWDdMVE0iLCJtYWMiOiIxYjE1MzhkYmYxNTVkMDM2NTU2ZTUzZjM0MTE4OGUzY2YyY2I2ZDcyZjU4ZmNkMDdkMjVkNGJjODRlNzdkN2JhIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795726512.149172,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3079",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a21936-1bd1-7278-9dd9-dd01bbd41811",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a21936-1bd1-7278-9dd9-dd01bbd41811\",\"serverEpoch\":\"01a21936-1bd1-7278-9dd9-dd01bbd41811\"}"
+        },
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a21936-246d-736d-a76a-ea492238c873\",\"serverEpoch\":\"01a21936-246d-736d-a76a-ea492238c873\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a21936-246d-736d-a76a-ea492238c873",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a21936-246d-736d-a76a-ea492238c873\",\"serverEpoch\":\"01a21936-246d-736d-a76a-ea492238c873\"}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "result": "passed",
+  "measurements": [
+    {
+      "width": 390,
+      "controls": [
+        {
+          "text": "Synthetic Treatment Proof Room",
+          "role": "combobox",
+          "height": 44,
+          "width": 316
+        },
+        {
+          "text": "Cancel",
+          "role": null,
+          "height": 44,
+          "width": 71.5625
+        },
+        {
+          "text": "Call to room",
+          "role": null,
+          "height": 44,
+          "width": 105.53125
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "controls": [
+        {
+          "text": "Synthetic Treatment Proof Room",
+          "role": "combobox",
+          "height": 44,
+          "width": 342
+        },
+        {
+          "text": "Cancel",
+          "role": null,
+          "height": 44,
+          "width": 71.5625
+        },
+        {
+          "text": "Call to room",
+          "role": null,
+          "height": 44,
+          "width": 105.53125
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "controls": [
+        {
+          "text": "Synthetic Treatment Proof Room",
+          "role": "combobox",
+          "height": 36,
+          "width": 342
+        },
+        {
+          "text": "Cancel",
+          "role": null,
+          "height": 36,
+          "width": 71.5625
+        },
+        {
+          "text": "Call to room",
+          "role": null,
+          "height": 36,
+          "width": 105.53125
+        }
+      ]
+    }
+  ]
+}

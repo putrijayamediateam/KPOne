@@ -1,0 +1,9 @@
+Quick-patient fields now have local Identity, Contact and address, and Identifiers sections, with the existing conditional Guardian section and duplicate-review control retained. The combined contact label reflects the shared component's actual contents; shared/public components are unchanged.
+
+The entire form script and original model/required/error bindings are preserved. Existing first-invalid focus follows the new visible DOM order. Browser testing exposed a Patient flex child collapsing to 2px inside the dialog; a local `shrink-0` class keeps its fields visible and focusable. Measured 40px contact inputs/selects now receive a page-local 44px mobile minimum; desktop remains 40px. No field, backend rule, permission, schema, payload or retry logic changes.
+
+Validation: 2,244 full frontend tests, types, full lint/format passed before the final one-class collapse fix. After that fix, 11 relevant rendered/section/immutable-form tests, scoped lint, production build and script/binding parity passed. Three existing source pins received independently reviewed whitespace-only adaptations; original semantics remain. Actual rebuilt-source browser: 40 captures, 30 target measurements, all six fullpage/dialog name→phone→identifier focus and hit tests pass, guardian visibility and uncertain locked fields verified. The one submission was deliberately aborted before server; synthetic visits remain 9. Controlled failure evidence is not a committed replay claim.
+
+Independent source/visual review recorded against exact patch b5dc58e1cfae55c7fde77f79245f4f6e73693d6e37d88abac5219bd3880c2671. Evidence: /workspace/kpone-validation/registration-patient-field-groups. Stacked on #1221; five files. No full-demo parity claim or merge/deployment.
+
+Published through the connected GitHub API after shell credentials expired. Remote tree dee4049dd4cb0af70a1972374308203dc7dccae9 exactly matches the tested local commit tree; only commit metadata differs.

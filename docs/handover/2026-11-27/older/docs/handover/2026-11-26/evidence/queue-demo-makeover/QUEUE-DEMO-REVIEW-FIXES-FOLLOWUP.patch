@@ -1,0 +1,134 @@
+diff --git a/resources/js/components/patient-board/PatientBoard.vue b/resources/js/components/patient-board/PatientBoard.vue
+--- a/resources/js/components/patient-board/PatientBoard.vue
++++ b/resources/js/components/patient-board/PatientBoard.vue
+@@ -132,7 +132,7 @@
+             class="w-full text-left text-[13px] leading-5"
+             :class="
+                 queueLayout
+-                    ? 'table-auto md:min-w-[720px]'
++                    ? 'table-fixed md:min-w-[800px]'
+                     : 'table-fixed md:min-w-[1040px]'
+             "
+         >
+@@ -143,12 +143,14 @@
+                     <template v-if="queueLayout">
+                         <th class="w-20 px-3 py-2">No.</th>
+                         <th class="w-56 px-3 py-2">Patient</th>
+-                        <th class="px-3 py-2">Reason</th>
++                        <th v-if="queueLayout === 'own'" class="w-40 px-3 py-2">
++                            Reason
++                        </th>
+                         <th v-if="queueLayout === 'branch'" class="px-3 py-2">
+                             Doctor
+                         </th>
+-                        <th class="px-3 py-2">Waiting / since</th>
+-                        <th class="px-3 py-2">Status</th>
++                        <th class="w-40 px-3 py-2">Waiting / since</th>
++                        <th class="w-40 px-3 py-2">Status</th>
+                         <th class="w-28 px-3 py-2 text-right">Actions</th>
+                     </template>
+                     <template v-else>
+@@ -210,6 +212,27 @@
+                                 </div>
+                             </div>
+                         </div>
++                        <div
++                            v-if="queueLayout === 'own' && row.doctorWarning"
++                            class="mt-2 flex flex-wrap items-center gap-1"
++                            data-testid="own-doctor-warning"
++                        >
++                            <span
++                                class="rounded-md border px-1.5 py-0.5 text-xs"
++                                :class="
++                                    row.doctorWarning.code === 'another_free'
++                                        ? 'border-border text-muted-foreground'
++                                        : 'border-warning/40 bg-warning/10 text-warning-strong'
++                                "
++                                >{{ row.doctorWarning.label }}</span
++                            >
++                            <Link
++                                :href="editHref(row.visitNumber)"
++                                class="inline-flex min-h-9 items-center text-xs font-medium underline underline-offset-2 max-lg:min-h-11"
++                                :aria-label="`Reassign visit ${row.visitNumber}: ${row.doctorWarning.label}`"
++                                >Reassign</Link
++                            >
++                        </div>
+                     </td>
+                     <td
+                         v-if="!queueLayout"
+@@ -236,6 +259,7 @@
+                     </td>
+                     <td
+                         class="px-3 py-2.5 align-middle"
++                        v-if="queueLayout !== 'branch'"
+                         data-label="Visit notes"
+                     >
+                         <div class="text-xs leading-5">
+@@ -257,6 +281,7 @@
+                                     <span
+                                         class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
+                                         tabindex="0"
++                                        :class="queueLayout ? 'max-w-36' : ''"
+                                         :title="row.doctorName ?? 'Unassigned'"
+                                     >
+                                         <UserRound
+@@ -710,13 +735,7 @@
+                 </tr>
+                 <tr v-if="!rows.length">
+                     <td
+-                        :colspan="
+-                            queueLayout === 'own'
+-                                ? 6
+-                                : queueLayout === 'branch'
+-                                  ? 7
+-                                  : 9
+-                        "
++                        :colspan="queueLayout ? 6 : 9"
+                         class="px-4 py-12 text-center text-sm text-muted-foreground"
+                     >
+                         {{
+diff --git a/tests/Frontend/queue-demo-workspace.test.mjs b/tests/Frontend/queue-demo-workspace.test.mjs
+--- a/tests/Frontend/queue-demo-workspace.test.mjs
++++ b/tests/Frontend/queue-demo-workspace.test.mjs
+@@ -115,7 +115,7 @@
+                     ),
+     },
+ );
+-const board = (queueLayout) =>
++const board = (queueLayout, extraRow = {}) =>
+     renderToString(
+         createSSRApp(boardModule.exports.default, {
+             queueLayout,
+@@ -133,6 +133,7 @@
+                     can: {},
+                     actions: {},
+                     triage: null,
++                    ...extraRow,
+                 },
+             ],
+         }),
+@@ -155,7 +156,7 @@
+     }
+ 
+     assert.match(own, /No\.<\/th>/);
+-    assert.match(own, /Reason<\/th>/);
++    assert.match(own, /Reason\s*<\/th>/);
+ });
+ 
+ test('changing branch or losing branch-wide view leaves the Doctors section', async () => {
+@@ -184,3 +185,15 @@
+     assert.equal(workspaceSection.value, 'queue');
+     stop();
+ });
++
++test('an authorized own-scope reassignment warning survives the focused doctor column layout', async () => {
++    const html = await board('own', {
++        visitNumber: 'KPV-00000001',
++        doctorWarning: { code: 'no_room', label: 'No room assigned' },
++    });
++    assert.match(html, /data-testid="own-doctor-warning"/);
++    assert.match(html, /No room assigned/);
++    assert.match(html, /Reassign visit KPV-00000001: No room assigned/);
++    assert.match(html, /href="[^"]*KPV-00000001[^"]*"/);
++    assert.doesNotMatch(await board('own'), /data-testid="own-doctor-warning"/);
++});

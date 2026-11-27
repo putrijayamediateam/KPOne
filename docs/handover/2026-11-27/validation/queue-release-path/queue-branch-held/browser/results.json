@@ -1,0 +1,66 @@
+[
+  {
+    "role": "paging_doctor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "oneBadge": true,
+    "unsuccessful": true,
+    "patientHeldStatus": true,
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "noMutation": true
+  },
+  {
+    "role": "paging_doctor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "oneBadge": true,
+    "unsuccessful": true,
+    "patientHeldStatus": true,
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "noMutation": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "oneBadge": true,
+    "unsuccessful": true,
+    "patientHeldStatus": true,
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "noMutation": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "oneBadge": true,
+    "unsuccessful": true,
+    "patientHeldStatus": true,
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "noMutation": true
+  }
+]

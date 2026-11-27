@@ -1,0 +1,12 @@
+{
+  "head": "fae04b354793ac2dcab43f4c244edf71a22e91da",
+  "main": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "originalBlobsEqual": {
+    "resources/js/pages/Queue/Index.vue": false,
+    "resources/js/pages/Registration/Index.vue": true
+  },
+  "scriptsEqualMain": {
+    "resources/js/pages/Queue/Index.vue": true,
+    "resources/js/pages/Registration/Index.vue": true
+  }
+}

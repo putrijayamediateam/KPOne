@@ -1,0 +1,28 @@
+{
+    "branchId": 1,
+    "visitNumber": "KPV-00000001",
+    "queueId": 5,
+    "treatmentRoomId": 2,
+    "treatmentRoomName": "Synthetic Treatment Proof Room",
+    "emails": {
+        "medical_assistant": "synthetic.treatmentui.medical_assistant@kpone.test",
+        "resident_doctor": "synthetic.treatmentui.resident_doctor@kpone.test",
+        "ca_supervisor": "synthetic.treatmentui.ca_supervisor@kpone.test",
+        "ca": "synthetic.treatmentui.ca@kpone.test"
+    },
+    "before": {
+        "visit": {
+            "status": "registered",
+            "lock_version": 1
+        },
+        "queue": {
+            "status": "serving",
+            "lock_version": 3
+        },
+        "encounter": {
+            "status": "in_progress",
+            "lock_version": 2
+        },
+        "holdId": 1
+    }
+}

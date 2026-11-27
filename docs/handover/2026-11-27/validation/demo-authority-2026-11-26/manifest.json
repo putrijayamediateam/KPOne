@@ -1,0 +1,1074 @@
+{
+  "source": "/workspace/attachments/e9bc43ff-8ddf-4760-a2e6-8ad93df3e127/KPOne-Clean-Look-Demo.html",
+  "sha256": "1633ed31900f6ce49097332ad668d77fe8a7601215695b3d01419e29305753f9",
+  "files": [
+    {
+      "file": "project/AccessControl.dc.html",
+      "title": "Access control",
+      "sha256": "cd816ec8b263e0b53c0555f2c887a00944cdb07c06b3cebea594cc154cd778eb",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Admin.dc.html",
+      "title": "Admin",
+      "sha256": "00325eaadb14c66186aa79b64d396be6db1147034aadc58d249a612af61d7969",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/AgentDailySummary.dc.html",
+      "title": "Daily summary",
+      "sha256": "f1582749fd3f2f9489e17c32bd8d9a50f8ec944591e734774222899ec71509f0",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/AgentOffice.dc.html",
+      "title": "Agent office",
+      "sha256": "eb817aa6d8eb4077e2aee4e68ddf92c5053e6ba5d3ddf7c323180956ae19286b",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/AllAgents.dc.html",
+      "title": "AI agents",
+      "sha256": "35e745adefe00bdb5f1f5b68ccccc0bc9f09c10b111642c5bf95a003446592dc",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Appraisals.dc.html",
+      "title": "Appraisals",
+      "sha256": "1b168ab1242afdb0784ff7c5fcf92a608fb8d49f119e082f64cde8c279a10b53",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ApprovalLimits.dc.html",
+      "title": "Approval limits",
+      "sha256": "a5cbf9d7d9b158355d15bdc9fb6bd3f51e8fe826a14f2c0461c77ae0909a9f65",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Approvals.dc.html",
+      "title": "Approvals",
+      "sha256": "94ac418c4a2ae61f4287f10d88cdb1d7251d6528bfd3d35009c6bb4841316496",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Attendance.dc.html",
+      "title": "Attendance",
+      "sha256": "627f54d3108c95d9939bc7fc68b2f4562d64c9a61f6a66d822904ec796191d5d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/AttendanceLetter.dc.html",
+      "title": "Attendance confirmation",
+      "sha256": "a29f6e289d7394121df24e51b1f51053d9bf8806c82923d52125da2edd71e11c",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/AuditLog.dc.html",
+      "title": "Audit log",
+      "sha256": "4e45a52e97bdded9afba0ac984f0d8b7a317c256d82b047407471e951d07871f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/BatchHolds.dc.html",
+      "title": "Batch safety holds",
+      "sha256": "c0475db093b2f569bd9d4783d04150cc66c228dd22faecd0784069386751a0d2",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Billing.dc.html",
+      "title": "Billing",
+      "sha256": "a7ccfda91a326107a273f556932be211ea43e33f003276c307fef3cfaca7dc90",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/BillingDetail.dc.html",
+      "title": "Billing detail",
+      "sha256": "d736cd52faa24345c7641cdd114fbe3b63aa46e3fdf3774752ff4e77a3fa2cf8",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/BillingMap.dc.html",
+      "title": "Billing function map",
+      "sha256": "d9989eced4c2d7a417fcd5124b8431b0adff6d0b38a745a23c51c038347e9396",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/BillsToCollect.dc.html",
+      "title": "Bills to collect",
+      "sha256": "2f51bc84f34068b86ef026fa675c1e1706c221ffd474f42e5eae1eeffbfdb6b9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Branches.dc.html",
+      "title": "Branches",
+      "sha256": "34224309394cc913df9eaba15632be0293b3550944be6b15e9846a00245d7386",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/CareersPublic.dc.html",
+      "title": "Careers",
+      "sha256": "48d1e15bf30ee8b13bbd714f80102d0d1a5efcee6acb5298029cb2945797322c",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/CashClosing.dc.html",
+      "title": "Cash closing",
+      "sha256": "f0529f0b1de8e66ff3c4c274f7d25137ed29952c9c5315474723b341f6b3b661",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/CheckoutSettings.dc.html",
+      "title": "Checkout settings",
+      "sha256": "7797746ef395718a4fd88cc0a9631cdfe72a5c71768fe8f120ff4278173acc54",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ClaimMessageTemplate.dc.html",
+      "title": "Claim message template",
+      "sha256": "2e4633adc9ba94a45cc5b6f7924616fa4d3c5c54543f314ef3224efe7bd1c323",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ClaimPack.dc.html",
+      "title": "Claim pack",
+      "sha256": "d84eec0a51b14a5cb23285c730d8a5af437e028db4fb2ba6029160f5e6d0c3e6",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ClaimsFollowUp.dc.html",
+      "title": "Claims follow-up",
+      "sha256": "068ae9596e328d53a4611ff81040dd1cc827bb13a3ab87d416376ce04f62912b",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ClinicianCredentials.dc.html",
+      "title": "Clinician credentials",
+      "sha256": "8b0cca8c5e2d808d160e0946db41ea39b45ecc5800888463e805abccdf561607",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Compliance.dc.html",
+      "title": "Clinic compliance",
+      "sha256": "f6afadd4331a6b8ec3e679b71d3bba441d24eab66831ae0ed292b5b94c1b97db",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Consultation.dc.html",
+      "title": "Consultation",
+      "sha256": "67a87d4f838df9ffd5d2bf37664e584be1a3d6063e1f810e32743a27109191c0",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ConsultationSettings.dc.html",
+      "title": "Consultation settings",
+      "sha256": "214fb74f33ce1d1e28fd5477a51a0071a2ee8e49cabac9464d96d9519457f9df",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ControlledRegister.dc.html",
+      "title": "Controlled register",
+      "sha256": "623e55786404fb89068647f0e42c08e4dbee976ffcf1eddd86cc595a70448ad7",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/CorrectPanelPayment.dc.html",
+      "title": "Correct a Panel payment",
+      "sha256": "c0f064becd56b64cc8cca0f2d0a82cedafc6a8b4f0a0bef087720eacc4eebdf2",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/CreateClaim.dc.html",
+      "title": "Create panel claim",
+      "sha256": "e1237d3fd2d22aff9fbd36fc3c601c1a8d5f35c317b664cd824c0587d86d291d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Credentials.dc.html",
+      "title": "Credentials",
+      "sha256": "dcb139dd7818bcce40334cc3ee123783dc9a1af7d3a090321c08e1fd4855d3fc",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/DailySummaryOld.dc.html",
+      "title": "Reports",
+      "sha256": "884dd16e678b20ea4f16af541de2b90f20d5c866feacf0ad46b371c97641f515",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/DirectorHome.dc.html",
+      "title": "Director home",
+      "sha256": "e109fbd0deee6945f5093f25bb72a60d6c0d0288cedc64042d352040426a2b28",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/DirectorOverview.dc.html",
+      "title": "Director overview",
+      "sha256": "aaf92da769a87ea2c39341758ab29614798face0966db9f825ab854ebbcc5ac4",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Discipline.dc.html",
+      "title": "Discipline",
+      "sha256": "7a04d035d90436d16a3b76ca723c9974cf340edd012f7404d62085f8b08b48a2",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/DispensarySettings.dc.html",
+      "title": "Dispensary settings",
+      "sha256": "40f8885f0a52ef866c25ba54c73f4053d7b05918a0b2a79a0d98192c1b0fe28a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/DoctorChecks.dc.html",
+      "title": "Waiting for doctor's check",
+      "sha256": "688b4d67d169839f671dcd89c9e20eb4e48b39f60648f877d810f5e7a3c2246a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/DrugLabel.dc.html",
+      "title": "Drug labels",
+      "sha256": "606cb0c4287f7c04ca85ceb01682a38409cee95b1d7523d30a514c1f9d9ae91e",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/EmergencyAlert.dc.html",
+      "title": "Emergency lane",
+      "sha256": "4a92767c40af017c68a53d0ae07128669a698e50badbac68a7711fab798869da",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/FamilyBill.dc.html",
+      "title": "Family bill",
+      "sha256": "f64fda098948835185e7cdf8df4cfc9c3dcdf4ca9f18d3fcb2998f540e9776e9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/FinanceHome.dc.html",
+      "title": "Finance home",
+      "sha256": "21a3b27162dc5dd369995bb0ce95848b9c47796b45552a30f291ec722cefaf0c",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/FollowUp.dc.html",
+      "title": "Follow-up tickets",
+      "sha256": "bcfdd81008ccb96f898fb19432ac88f11555a0a4b3cd9d6209eaf69dc8207d4f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HR.dc.html",
+      "title": "HR",
+      "sha256": "5004ab9ce998b44cd391f0a25705805009bc8c72a3d85614286238ea571fbc0d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeAA.dc.html",
+      "title": "Account assistant home",
+      "sha256": "34bb3663412011467c02f271da8fff090140e2a17e7ecd9848aba909aecbca2b",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeAdm.dc.html",
+      "title": "Administrator home",
+      "sha256": "05205d7117ff54f25cb7a810116af15e3121a52e1a6b963f35e559ff08b323dc",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeBM.dc.html",
+      "title": "Branch manager home",
+      "sha256": "9b6213972ceb3f211c7001bcf63650e7985ba07291319e29e3ed3929e55aa808",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeCA.dc.html",
+      "title": "Clinic assistant home",
+      "sha256": "42e7d36eba0932ba1cf8addafa771263b4c908bf98e7aad91d98e12ebab43b81",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeDoctor.dc.html",
+      "title": "Resident doctor home",
+      "sha256": "6fdb7b173153acdf2d558b5a4a80be1fbae60dadb16a8d935249ceb3d6f77f79",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeFin.dc.html",
+      "title": "Finance officer home",
+      "sha256": "defb6a04b7c257272b3be6b4a5ce311933ef48b3f0214206c61751684dd5dfaa",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeHR.dc.html",
+      "title": "HR manager home",
+      "sha256": "0124c92b0dcd84020c3bc481630e338f64e8965430e6d0dc11238173a7f42f16",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeMA.dc.html",
+      "title": "Medical assistant home",
+      "sha256": "db72b67891f88e68cd13f16b6430b74a96828046d53cb89ce4a8d222ccc62c89",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeOffice.dc.html",
+      "title": "Office staff home",
+      "sha256": "4bb6882087d426ae4cef2de7df749ffd8f3957a47d85530bd4905f9f04e30603",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomePanel.dc.html",
+      "title": "Panel officer home",
+      "sha256": "51bf5c8f2a70508f3bf6ea2ad5f0453797849985cdf611677dd97de34fd0a1a1",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeStore.dc.html",
+      "title": "Store admin home",
+      "sha256": "330546ccea53a747ff959a7b5de3f683045597225191637ec6d4e6f738c6724b",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HomeSup.dc.html",
+      "title": "CA supervisor home",
+      "sha256": "44f9d7238b98d79af7dc6d8dc0ec63175bf51dc8823eae1418c003f94b3187f9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HqView.dc.html",
+      "title": "All branches",
+      "sha256": "1dc7529aa5e4555e5f671b01571f46891f5ecb21bc7814353a1c7bbc2efcdfc0",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HrDashboard.dc.html",
+      "title": "HR dashboard",
+      "sha256": "43633fcc62cbd4d78831586b246d92f69c2e5e04ec0785d3f5dddb645e896822",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/HrMessages.dc.html",
+      "title": "HR messages",
+      "sha256": "848add9181d7fe640153ab388e0b9c7359e4108cbced54512deddc244f0c880f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Incidents.dc.html",
+      "title": "Incidents",
+      "sha256": "2034edecd3e2b284cb7ce821264aaebef5175c2c783be2c9946fb989e18f9e4a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Insights.dc.html",
+      "title": "Insights",
+      "sha256": "bda8a1442400dfd43c98b4502f7ca69809006f44f931885075c64bea04907830",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvBranchRequest.dc.html",
+      "title": "Request stock from the central store",
+      "sha256": "1c4d323226f6c3dfa22de6fc5441f6a2dfd66e3baf8efb922b9ba4a8302fbf04",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvCreatePO.dc.html",
+      "title": "Create purchase order",
+      "sha256": "695c99d00832739752e72cbf3775b589a77914a66dc19c6e78972435f41190fb",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvDispatch.dc.html",
+      "title": "Dispatch transfer",
+      "sha256": "01c2835472cf7c23d85d14c3b1316edc79172660e5f142ec3e5d667bae16a9b5",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvLanes.dc.html",
+      "title": "Inventory: who does what",
+      "sha256": "3db03132feffc28bb35c487b13078a864990205cde8fc23f480cb97d6dbdb870",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvMyWork.dc.html",
+      "title": "My inventory work",
+      "sha256": "83f68722dcdb4eef243c8453224a13df9d370c463c63ecfd1fbfe501fbf216ca",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvPoApprove.dc.html",
+      "title": "Purchase order PO/CHR/2026/0118",
+      "sha256": "1ccb4e578777b0ec1751252ff8bb923c819bf7b887fb8948450e73e5a24624a3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvPurchaseRequest.dc.html",
+      "title": "New purchase request",
+      "sha256": "534ea3cc4e43c8ae4780d61168e8d14c88efdbbf3c70e4fd7909ff558b5ffe6f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvReceive.dc.html",
+      "title": "Receive delivery",
+      "sha256": "bc18ae416596b1425126015ebe5917f69016ae97ec7f094d79c8c981b122e94d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvReceiveTransfer.dc.html",
+      "title": "Receive transfer TR-0087",
+      "sha256": "02901dd582c506dbabceace9bb31169c7f3cc18358b3d9b93b3aa2c6f8974387",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvReportDiff.dc.html",
+      "title": "Report a difference",
+      "sha256": "06a60c8c4602d6db6e2ca7f31af1c62842a90fcec55cf714215b16ae9dccb7d8",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvRfq.dc.html",
+      "title": "Ask suppliers for quotes (RFQ)",
+      "sha256": "00b9e727cdd4f3b8bf4f20ed5713c4fab294740eadfe992f8e0d0f777d7408f8",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvSupplierBill.dc.html",
+      "title": "Supplier bill SF-INV-55087",
+      "sha256": "fd341693aef71bc8aa09a1c5c093dd234b86a7555b3b62a0b074916342a485f0",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvTimeline.dc.html",
+      "title": "Track an inventory document",
+      "sha256": "e65a7c716d4283d28c3fde8b36fd1df98652319eab5f3e23591696c44ec46925",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InventoryFlow.dc.html",
+      "title": "Inventory flow",
+      "sha256": "b8fcf7a0e8c5be71fda46e4f1617a89afc10359da6911acfc30ad6cac8c84f8d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/InvoiceView.dc.html",
+      "title": "Invoice",
+      "sha256": "f7fa16adad825dbdc74e6a80e0d2f9a4a609ca71678f3f39e5871644b5e3d9c4",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/JobApplications.dc.html",
+      "title": "Job applications",
+      "sha256": "c402f8f0b99bd88c46083f7d6feb360d7f0499a4de04d839b6523b332d2968b6",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/JourneyMap.dc.html",
+      "title": "Patient journey",
+      "sha256": "ebad6878cd29606f09166427b28a15f09f6e512ee2d6ff2b55d845f41a5536af",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/LabourCost.dc.html",
+      "title": "Labour cost",
+      "sha256": "a9a126947d927be1d71f8b977b1b72bfdb0f0f5a14515b4f74d1aac9dacf2fa3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Leave.dc.html",
+      "title": "Leave",
+      "sha256": "dc63bc470984c379adeb38d66e3354c9098723618edae03024e1c2fe9c92a0f1",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Letters.dc.html",
+      "title": "Letters",
+      "sha256": "7e17b9ce4761591e0c37573123002c9c6bfc550bb08bce9cbd0f928aeef32191",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/LocumPay.dc.html",
+      "title": "Locum pay",
+      "sha256": "5c64cdeebb23c3ad1d7c32abbb5fe3d836496900c140d88829a5d85e0899e7ab",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/MC.dc.html",
+      "title": "Medical certificate",
+      "sha256": "8e6785a5f3c4a78e378033454cf87ff7564b76cac8aa92f864b0f4a6cd9eba7c",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ManagePayments.dc.html",
+      "title": "Manage payments",
+      "sha256": "c9ba0d0a0883a0038a17d3a5f1c890b14167f47173adeb1d9e8c6fa9e48d6845",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/McTemplates.dc.html",
+      "title": "MC templates",
+      "sha256": "a69a1781773646e474524e443f4002acf307049bef63a1c123e92b99decb74ec",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Me.dc.html",
+      "title": "Me",
+      "sha256": "79d9951b8208243559e3f9231fd044a2a0ddc3560e6fb6b93eb85b989f8a4da7",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/MedicineCatalogue.dc.html",
+      "title": "Medicine catalogue",
+      "sha256": "92406dddcdae764ab9c4aa54d18ae019325f96cf0e219943efbed056d073c56e",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/MedicineDetails.dc.html",
+      "title": "Medicine details",
+      "sha256": "70f45b6f68ddf9e07ac7a5c1b6985e4e6d8cf0fcf5c721b5aaa5642be047e5c3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Memos.dc.html",
+      "title": "Memos",
+      "sha256": "0a4e0f5a1d3d6fa6c7387dbf655339d67190ebf9627234a26e36498ec7bbde4f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Modern.dc.html",
+      "title": "Today: modern",
+      "sha256": "519cffe9f007e68753e06a9514aa828d9a91f4c415e1e9f2981932541cfc2449",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/MyCredentials.dc.html",
+      "title": "My clinician credentials",
+      "sha256": "1e835196fe6b2aa6351aa39c91b813e21c6a9632db53c6bbb15c4aebb29343b7",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/MyQueue.dc.html",
+      "title": "My patients",
+      "sha256": "247fff0dda3b8acf8fb9a74333471d2be8f3ef04149c614e139397a6d3e6314a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/OpenShifts.dc.html",
+      "title": "Open shifts",
+      "sha256": "04836e12676ab482938c44c0c5d08812caa2dd22d742c45cf528b3375e0e6e5e",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/OpeningImport.dc.html",
+      "title": "Import opening stock",
+      "sha256": "e43f74e3ddcee0c396438f373563c70149120f4acb97b0fe4e1f2b9908c4eda1",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Panel.dc.html",
+      "title": "Panel",
+      "sha256": "e64a285e5430b20e8fb5d59460dd84071f005d2ed3939db637e3b6508c8ffc5e",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PanelClaims.dc.html",
+      "title": "Panel claims",
+      "sha256": "1b0daa9ac113c06696ca7900c89fde96708ba14e24d40fe63d6fe8d512c4abfb",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PanelInvoices.dc.html",
+      "title": "Panel invoices",
+      "sha256": "8f3a358946b08916e42d45f30329d44170c165472977ac91148ac0ec7fb4ca5a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PanelPayments.dc.html",
+      "title": "Panel payments",
+      "sha256": "37d30004d893bab9b085144782261ae93313f5256652cc75321ee5f48c3c542f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PanelPriceChanges.dc.html",
+      "title": "Panel price changes",
+      "sha256": "d5932921b094628539f8b2478f018f73c8ee48d24dcb2c41d67ede2180d15355",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PanelResponsibility.dc.html",
+      "title": "Panel responsibility",
+      "sha256": "5d746da4f5b612d508578c3090f97f7018d2677cb55ef2122289a90051dd94e3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PanelSummary.dc.html",
+      "title": "Panel summary",
+      "sha256": "41df03319b982a760456990058000d4fb145c790c8d0bb92d47a0eb8bc4463e8",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PasswordPages.dc.html",
+      "title": "Password pages",
+      "sha256": "c5cc72ae54388bcbee42cf412a7a4fae6a984787c0d1d6f50ffe45ca89cf7456",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Patient.dc.html",
+      "title": "Patient",
+      "sha256": "798a7758183b3091d65e1655e5ca0ad98d2afdaa6508f10e1e4d91daf5a5d1a9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PatientBilling.dc.html",
+      "title": "Patient billing",
+      "sha256": "615063b70e507164c3141f450c6674db458725632812a594017b3865b2cb79e5",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PatientCreate.dc.html",
+      "title": "Create patient",
+      "sha256": "d00f50e07d2ba58e392d76704d0b95526fe6542d1ccc47a1ca3afc4c98a2d6ff",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PatientDirectory.dc.html",
+      "title": "Patient directory",
+      "sha256": "6fd9f7ccd75e024a6fd9dc8a198151cd3273fe59decba9b97b69fa7cf8a30ffb",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PatientEdit.dc.html",
+      "title": "Edit patient",
+      "sha256": "c882422677fdfb84808e5e9fcb25128c0611825dfddb4dd56c3337f0f1b9e6d9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PatientMerge.dc.html",
+      "title": "Patient merge",
+      "sha256": "b93c930b78319f867ea280639b1aabf2c19c73bdfcaa0394bb7284176c9bba43",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PaymentMethods.dc.html",
+      "title": "Payment methods",
+      "sha256": "93c72043edd93f1e90613604f5b6a8c7f6e7fefdf3f9a65b17ab755429bca760",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Payroll.dc.html",
+      "title": "Payroll",
+      "sha256": "99e82ac6f56c9eb5f92b78315a48059a69a8323d5ed493737cb4d2108fed2d69",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Payslip.dc.html",
+      "title": "Payslip",
+      "sha256": "d4f23fdeb0c9999bb2e12abe4c250398f0e9b25fbc70e7af65062c0bf8d863b3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Pharmacy.dc.html",
+      "title": "Dispensary",
+      "sha256": "4bb0b4be27b5103521e0f3a7b010ca31617cc43d91b3d4c56d38dcb2dacc8428",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PharmacyCase.dc.html",
+      "title": "Dispensary case",
+      "sha256": "0a2938c44fdd6eacc6c68ac712e30601c2cc94903f84667fa5e14d417249728a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PharmacyCompleted.dc.html",
+      "title": "Dispensary completed",
+      "sha256": "dc4b142a0c7d6bf4346663fc9aff7f93edcbc1a32c32f7b30064b8f6d30876ab",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PilotReadiness.dc.html",
+      "title": "Pilot readiness",
+      "sha256": "6d8d1108be651deff7cab6b5ca3e115f8d12b3af418255aaa75a01fac9944f43",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PreviousConsultation.dc.html",
+      "title": "Previous consultation",
+      "sha256": "f3afe9a44b02489abf837081de97058fc72b9fb00ec1bb6aec245b275808918f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PriceCheck.dc.html",
+      "title": "Check price list",
+      "sha256": "d9c3fa1d32254be6007091c9a272f2502c1fcd77d0f070a5993daa3809969d2a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Pricing.dc.html",
+      "title": "Pricing",
+      "sha256": "9a95f670047d1b09c525b5515890a8237b07fa1424bd15207a96cf062cebb6fb",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ProfileSettings.dc.html",
+      "title": "Your settings",
+      "sha256": "f89ace86de05d0f6c65d6f503442a48110dbf0463382ab7f549658038893cae5",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PublicQrForm.dc.html",
+      "title": "Public QR check-in form",
+      "sha256": "80ba739e51f7bf94d484690935085d00ba7cadbb3ced38ee148321dabe25a19d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PublicQrStatus.dc.html",
+      "title": "Public QR status",
+      "sha256": "c0dd2cfc0cad3913f429247b701e8c4ec9bff9697d7e6dec847cff3e82d2bcc9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/PurchaseOrders.dc.html",
+      "title": "Purchase orders",
+      "sha256": "9edd38878a0ae3c83a9545ba91ac80f4849068770b16877d15826fbf54747a5f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/QrCheckins.dc.html",
+      "title": "QR check-ins",
+      "sha256": "a87ec340d69b4e883daed6a494f81e91d49fde6b5fa09d9655dd30263d70998c",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/QrLinks.dc.html",
+      "title": "QR check-in links",
+      "sha256": "2883c8319af1540937e7f4e46ef67aa4880aa320131f546294b266d661835e78",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/QueueBoard.dc.html",
+      "title": "Consultation queue",
+      "sha256": "707838758efe688f4b52deaf63ed26e425c132d3151ad8d41a71f3af6827280d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/QueueDisplaySettings.dc.html",
+      "title": "Queue display settings",
+      "sha256": "ea6a543eeec8eb00044d8c582715d7025d726c8809f2c44d4fcd32bfb7c71937",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/QuickAnswers.dc.html",
+      "title": "Quick answers",
+      "sha256": "949ab39f154de9ab6afb8ed93728446a9ba96e839e8f0b0f95af4d1d65d13c55",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Recalls.dc.html",
+      "title": "Recalls",
+      "sha256": "6497a64fd25068a92c90a378afb26ad947bf6a6bcb33e2cd621596e518a366c6",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Receiving.dc.html",
+      "title": "Receiving",
+      "sha256": "956437339e390876bef9457e53d3479a35eef5150373464e2a26b25f00a1a2b3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ReferralLetter.dc.html",
+      "title": "Referral letter",
+      "sha256": "ad6d6420b24773b54fcaf6d0751bc131a333fa659d4784c554c0f514010e774e",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/RegisterVisit.dc.html",
+      "title": "Register visit",
+      "sha256": "9054cf35de7499188b76001605fe2395d97f7dbf39a9e8406de4705f583c11fb",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Registration.dc.html",
+      "title": "Registration",
+      "sha256": "f7d48c2e8306d1a65699ea968d4438118eb2ef012a8d7a014b7407aaa47cd103",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/RegistrationSettings.dc.html",
+      "title": "Registration settings",
+      "sha256": "0a4f8465b1612fe019ed46819d5cfea0beddaa3175063de85740fe1086ce4146",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ReorderSuggestions.dc.html",
+      "title": "Reorder suggestions",
+      "sha256": "ab3f10edcef007713ae018866657cf2794bef0eaa754ecdb67a2935ec44c8841",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Reports.dc.html",
+      "title": "Reports",
+      "sha256": "0f2a030a1625352504388f85f6dc3d1c0ddddb9e70ed5f95ba7b03b762463135",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ReturnsToCheck.dc.html",
+      "title": "Returns to check",
+      "sha256": "dd529cbbe4da523832a5625709c10625128f4b6c7fb08170bd8062961e20f3ec",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/ServiceCatalogue.dc.html",
+      "title": "Service catalogue",
+      "sha256": "8888201eb9096fd8eb99e204c3039f43a33f2f775436dc9236f513adc276c4f5",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Settings.dc.html",
+      "title": "Settings",
+      "sha256": "61e45426f59e97066d70dd2da12ed35b75d1cf33b61e0db336e9d45578170779",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Sidebar.dc.html",
+      "title": "KPOne sidebar",
+      "sha256": "1abc04fc33ed9b0f661bfcd50e11913e15bbac8610315e6a68be96b79af1ee28",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/SignIn.dc.html",
+      "title": "Staff sign in",
+      "sha256": "b5b47232faae753d0940f6e292494c00c905d4325be270342816930927d0e786",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/SkuEdit.dc.html",
+      "title": "SKUs",
+      "sha256": "d87d72cc5a5c34cc86a6f3db63cd81041cb1570a292b521da4ee21072ff4e9c3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Sops.dc.html",
+      "title": "SOPs",
+      "sha256": "c37dade10d3c6f787c6d958cde72f26ece5d3f564aa741e73d240fc8a0479a01",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Staff.dc.html",
+      "title": "Staff and access",
+      "sha256": "48cf7e260c87340492acf1b68e5937aec737ce75c53fcf4cf49e7c183e7566d3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StaffClaims.dc.html",
+      "title": "Staff claims",
+      "sha256": "1e568f5f1141e71365343230777fd8754db4bb0e0cdc720f8e3d2fced4dcba62",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StaffFiles.dc.html",
+      "title": "Staff files",
+      "sha256": "919e2d0d3b2dbbeea301f4ebf242e040bbdbe265601750880b4e22075fa776a2",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StatusGuide.dc.html",
+      "title": "Status guide",
+      "sha256": "601edb9805460a560b1fcc1ec253b0be2deef217903ae99121e8b5c3ab86fac5",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Stock.dc.html",
+      "title": "Inventory",
+      "sha256": "721c4ad667452c25aed6886dfe4903d35a42c5c531595838d3c30e7f86bf35d9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StockCount.dc.html",
+      "title": "Stock count",
+      "sha256": "bfce64c6ffda9c4df7faba15293e8ad68d50818713bbf021ee7858ecc096a5ef",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StockHealth.dc.html",
+      "title": "Stock health",
+      "sha256": "6161687d10c52aea38770c47efffb8117b8a17bde05a017c9369399bfe73ad20",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StockMovement.dc.html",
+      "title": "Stock movement",
+      "sha256": "4f495ed5083ce757d7ae585320e7e2503ee70821f283a00873b144d1cb2a92e8",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StockOtherBranches.dc.html",
+      "title": "Stock other branches need",
+      "sha256": "12dbdb5d0431643288b3d7ded5043a7f0811cd2adc107a8d415c2ed6c7ecc64a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/StockValue.dc.html",
+      "title": "Stock value and cost",
+      "sha256": "a8c0deb1a171b6f508d05f3c7db6268e9fc6ca617ba1b4b941fd3dbcb3940a2d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/SupplierInvoices.dc.html",
+      "title": "Supplier invoices",
+      "sha256": "5a435ff1bf99ed7a77f2d239bbfbb41d4e125145fce526e264008af93a73b221",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/SupplierPriceList.dc.html",
+      "title": "Supplier price list",
+      "sha256": "6dadc509c62dff5b320083bc536d6ef70cf24c51ae343cb8b294c0b90331b27a",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/SupplierReturns.dc.html",
+      "title": "Supplier returns",
+      "sha256": "1dbb4178c0e79469494425ca4595957f4493afc2472ede24e6d5a93d2d7f711b",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Suppliers.dc.html",
+      "title": "Suppliers",
+      "sha256": "f5b7a320cf4c91de6a281dac3cd9f49ea9fbe353949a49272baa57bb563a2415",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/TerminalCheck.dc.html",
+      "title": "Terminal check",
+      "sha256": "4eeac84282ead73e768461ea804d66112b6b5d73752e9a33d54af473706cb882",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/TransactionDetail.dc.html",
+      "title": "Transaction detail",
+      "sha256": "360e645f12448eae574b587ae154d4d9b4e490089e39e4fb2b255455797281d9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Transfers.dc.html",
+      "title": "Transfers",
+      "sha256": "3ba4efb66f518374dc62f2def0d5bfcc31c433cdb090ce1c9ec2faca008795ca",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/TreatmentRoom.dc.html",
+      "title": "Treatment room",
+      "sha256": "11ac8310bf20b669b698fd48376f90dc3b0fd5b7001878cd9a8096d98fe51852",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/TreatmentUsage.dc.html",
+      "title": "Treatment room usage",
+      "sha256": "860f58ede00a255fd405636e690a9d32c4c38df0187164c8805e4783ad2f7742",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/Triage.dc.html",
+      "title": "Triage and treatment room",
+      "sha256": "4ccb7d25081c3fcd4813e29f1be311782b650aee57fe5f6b6db765a4a4947099",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/TriageGuideline.dc.html",
+      "title": "Triage guideline",
+      "sha256": "50982a3e706b99f8d9e6980619e0ed88b420ed6235cec4368bc0c4c2193922d9",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/VisitDetails.dc.html",
+      "title": "Visit details",
+      "sha256": "5dda21219d7a9ebb6067e69c8837105c3f6647eaab565e42d9c0c6fab7993b5d",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/VisitEdit.dc.html",
+      "title": "Edit visit",
+      "sha256": "686cb43ec57b871f69e37c1d959a67e3e6066aabac95fff589d7fb8a2ee4ee17",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/VisitHistory.dc.html",
+      "title": "Invoices history",
+      "sha256": "fcde65cc8d16d7ca3afbbd9a0735cdbdcb5f5e0309fe1f58c0af657522da9058",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WaitingRoomTv.dc.html",
+      "title": "Waiting-room TV",
+      "sha256": "585bcdc435f94c5cb2dc43cd342f75323c53a13f1082e87dbfd6bd00ef9408f6",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteBranches.dc.html",
+      "title": "Website branch profiles",
+      "sha256": "7ac90f317e93f7594f8d99fdc289cc276fba2dc4e457bd2e0877607b76301092",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteCareers.dc.html",
+      "title": "Website careers",
+      "sha256": "a0c4c8549eb404c07c727f55a46b7c51894ca6d2ccb9550c0c157c36e2949a80",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteDoctors.dc.html",
+      "title": "Website doctor profiles",
+      "sha256": "b298f83521db9a1230da5f885fe6d421021eeba25aa79bb4903f11614b41a7dd",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteFaqs.dc.html",
+      "title": "Website FAQs",
+      "sha256": "87b3283725b304bb016927138bdcc6b0b646bc150078f35a9658b32a06963d6c",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteLittleShield.dc.html",
+      "title": "Little Shield",
+      "sha256": "86b57e9ad19eba4f2c7731a80d381e8fa4204de1097d71cc7c2e59a68c01c9e3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteMedia.dc.html",
+      "title": "Website media library",
+      "sha256": "90065114c69d635fc5f84f9edbcf891f9df6b1e237ca751da477dfbabe0f8dd7",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsitePromotions.dc.html",
+      "title": "Website promotions",
+      "sha256": "2e0d88b85400885813f780f4adb057f058c020dba199349c0c9f0dfd1690e4d4",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteReleases.dc.html",
+      "title": "Website releases",
+      "sha256": "df44f29a892ddb61b22d58fe5adcb5eab93a959be53eec991e154e598252cfa3",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WebsiteServices.dc.html",
+      "title": "Website services",
+      "sha256": "b55d06b02896e82ace44f81f0d60da0502961325f50e2f15c443a2ae843ec6e0",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WfQueueBoard.dc.html",
+      "title": "Queue board, new workflow",
+      "sha256": "49f4b74b47d4a7e9a82044deef50fcdc8a07eedef37f2fcc254c6537ae4dde8f",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WfRegisterVisit.dc.html",
+      "title": "Register visit, new workflow",
+      "sha256": "1ee700912e4d506d26aa0b02644e665a64a7a14ed851b7da9a8ba04ed39d4cbd",
+      "same_as_old_zip": true
+    },
+    {
+      "file": "project/WriteOff.dc.html",
+      "title": "Write-off",
+      "sha256": "e6f9f57eb027945988e44215a5ef6c401d7f0e3ec8a57b25d988827d9502c608",
+      "same_as_old_zip": true
+    }
+  ]
+}

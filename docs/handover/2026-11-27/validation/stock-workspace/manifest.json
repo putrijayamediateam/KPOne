@@ -1,0 +1,10 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "patchSha256": "6bb1b68c5db4c6ba0d1fd191110526e77006391aeccfa8f2f20bf48231035a1f",
+  "files": {
+    "resources/js/pages/Inventory/Index.vue": "6e193837139197b3c2df341d33bf14bb6a024d71bdaf1528e5f40756f3696212",
+    "resources/js/components/inventory/StockOnHandList.vue": "aca5c6fb80b15a04de7c879c48adc4177aa2a5d287147eae217a86ce262ce1cb",
+    "tests/Frontend/stock-on-hand-runtime.test.mjs": "cd4a7ea8aac6e467d6d6ebcf87cbfb413ffb15ae6443a551f453844dbaedb366"
+  },
+  "assertions": "pending, not included"
+}

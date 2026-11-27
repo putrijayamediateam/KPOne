@@ -1,0 +1,9 @@
+{
+  "base": "d0f37b5c1864b796fc7b4224996bd917551af3e7",
+  "patchSha256": "34bf7b8272c8459d770904b756f47606acfac35157f4faa9a6f141f972a410e8",
+  "files": {
+    "resources/js/pages/RegistrationSettings/Index.vue": "2b7efd026737de0e4e82d8e555cd326f861c6cb105520e50988a4e96e3b92f3b",
+    "tests/Frontend/registration-settings.test.mjs": "6915eeb9630f4be11bbdb8fdb3e6cead52af85830fd4c2669bdf95511a2c99a9",
+    "tests/Frontend/registration-settings-composition.test.mjs": "5205570756f3d91453228357a6ebc2a3f201ced450160392b8c8a833336f7f87"
+  }
+}

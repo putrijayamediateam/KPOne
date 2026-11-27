@@ -1,0 +1,10 @@
+{
+  "base": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "patch_sha256": "9a0883e25c56b1667d605cfc614b1db6cb7a886dde7fa8f7cebde74db82753fa",
+  "files": {
+    "resources/js/pages/PanelPriceChanges/Index.vue": "02a9d979d5b619d0e7384a83dc39afe8f386081ad637eb73fcfc2bb9b61b2f7d",
+    "tests/Frontend/panel-price-changes.test.mjs": "fda9fef7ea561edd46ddef71beb91f015d7cb26f47a218e5387faaa5685afc25",
+    "tests/Frontend/panel-price-context.test.mjs": "b72a4c36458488bb0e9e9b56405a5bf726f5fdfc140070ef7b221d145485e67a",
+    "tests/Frontend/pnl-30-bulk-approve.test.mjs": "d01e8e6da2568a9783f033d2ed984f04f970136b356b20e8620e85368e35a934"
+  }
+}

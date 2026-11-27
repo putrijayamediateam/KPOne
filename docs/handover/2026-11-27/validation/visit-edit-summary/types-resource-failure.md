@@ -1,0 +1,1 @@
+First full types attempt exited137 with only Killed, no TypeScript diagnostic. Fullfrontend/build were not reached. Cgroup snapshot afterward:16GiB memory.max;memory.current15,265,738,752; cumulative oom18/oom_kill3 (not attributed conclusively to this process). Retry coordinated after Queue heavy pipeline; no compiler/config/assertion change.

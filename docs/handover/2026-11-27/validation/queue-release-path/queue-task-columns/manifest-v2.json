@@ -1,0 +1,16 @@
+{
+  "base": "cc73b15203f774c25a48f9a6a5af2eed8b12b015",
+  "patchSha256": "8d31a2648ae7f47ad3eb62361fe9226f29eb79fdb138335a1555eff1d509cb84",
+  "files": {
+    "resources/js/components/patient-board/PatientBoard.vue": "b8aff8015425e39d862e18994e15dbf3e2275c20adc18dfc619d04d86cf8c03a",
+    "resources/js/components/patient-board/PatientBoardStatus.vue": "fcd3acad4abef5d37a7373bebc0b7e1ca4362c4bf9dcd786f086d9f18301107c",
+    "resources/js/pages/Queue/Index.vue": "786b0508a914e7f3fcabe639fec8e87ecdce03aabc3c462ee4256cbef7e087ac",
+    "tests/Frontend/call-readiness.test.mjs": "fe2b658ac7fdc8bfdf2484a38766374aac0119eb9c945e67c712d9eabe152739",
+    "tests/Frontend/dd-38-board-chips-dark.test.mjs": "f33e538bcdc37ddaf5e6fda2dae3fc078ddb1a155b2fc197c445097f1ff3aecd",
+    "tests/Frontend/flow-fixes-1.test.mjs": "4427d03f6fa0870b4a6b84cf55af507a9e1695946df835328e58f7dcece00b01",
+    "tests/Frontend/q-1-waiting-time.test.mjs": "2e089ad04b43f72a94a8338ad697e6d9049934b2e2e686c44fb455c7728bd0f6",
+    "tests/Frontend/q-13-dispensary-check-block.test.mjs": "b1ef956378abd0cc48c77a0704528fe7c6147f41bbe5d87338341dcc6c990905",
+    "tests/Frontend/q-2-treatment-progress.test.mjs": "b8eeb93eb78d1808b43f8f0fabe1890884dfcb04f9c8bc196a65e2b7d423dbf3",
+    "tests/Frontend/queue-task-columns.test.mjs": "b0f489475ce57a8890eeb370ce8af31335cb42ab77bd5dcd574c83fed70c6c80"
+  }
+}

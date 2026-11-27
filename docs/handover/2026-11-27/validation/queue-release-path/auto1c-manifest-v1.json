@@ -1,0 +1,24 @@
+{
+  "base": "8c9cc5f8a282cfb563a91e828096f7ac21b1821f",
+  "patch_sha256": "0ad334863851f1581a7b2725b92f3ce6316f1d48d5224fe77e356f4e566d9a3d",
+  "files": {
+    "app/Domain/HR/Roster/Services/RosterOnDuty.php": "d6815a165a9826dd515c96dbee8ff74a75a9d00348e8180d07d5134a2bd3d275",
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "23b6e07353504ea313647d0e1149f81e60495a66ea6d87358af60951170ae090",
+    "app/Domain/Visit/Assignment/DoctorWarningProjection.php": "81d725ce925ae907c7cfa50669de2609c8e35fb436cd690333d5935f55fac292",
+    "app/Domain/Visit/Services/VisitDirectoryService.php": "0fcac1f516ee4814bb0d7d3162c71413756e65f18aa3629b91ee123db52cde06",
+    "app/Providers/AppServiceProvider.php": "bec93d679805b46464bd2eb316737e00b27006ed3d7e458eac00c3bbe183b9b3",
+    "docs/evidence/auto-1c/board-1440-light.png": "fda8139008f2aba1f420fc288d20028d3deadac4218c5e9185163b4620ca686d",
+    "docs/teams/patients-registration/AUTO-1c-DESIGN.md": "d08d0f95faf295e512d33996a925c7f5c81fd2d07d2b9d1983eec414f7787c80",
+    "docs/teams/patients-registration/AUTO-1c-RECOVERY-2026-11-26.md": "49bf6b32a5cb6b372934fbce0120715599a06213c5ac4913a9e338071e34f1ee",
+    "resources/js/components/patient-board/PatientBoard.vue": "73886690003c0e9c52aae193dbcba7fbe9886f63cbe9f9fa75f651169dcae51c",
+    "resources/js/pages/Queue/Index.vue": "14e45898b2fe70b69de42b71eb877747f92783d74a476e798513f1f88445ac62",
+    "resources/js/pages/Registration/Index.vue": "439641bfaf987004d952b42676c8b45bef976401249056be7edcecff84ad01b6",
+    "resources/js/types/patientBoard.ts": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575",
+    "resources/js/types/queue.ts": "d7afa0f0633545029c8736974deb54cf90bc30a5ea36e078cd05f0213dec7c98",
+    "resources/js/types/visit.ts": "464734667dc389ecbdb7fbb4bc3986e1cc6560553022ffe623875b62f1867854",
+    "tests/Feature/Queue/DoctorWarningTemporalTest.php": "c27f9d178a36aeaf1c9df3fbef01fd1f990275b97fc16e418a70b68307d8b928",
+    "tests/Feature/Queue/DoctorWarningTest.php": "635e63a839ac4bd23fd7780a3df761c8dd186ddf48de3cf73121a81f6e0ab58b",
+    "tests/Feature/Queue/QueuePerformanceTest.php": "2be086edac5de8260a91a627a401051d60baa09de088052671b04d229e4d30ce",
+    "tests/Frontend/auto-1c-doctor-warning.test.mjs": "6f819a3efcadf49ba323dd32d8b132d97f24fe3cebc2ed5d947a6f60ce5bfb06"
+  }
+}

@@ -1,0 +1,26 @@
+{
+    "actualUtc": "2026-11-27T03:20:53+00:00",
+    "frozenBranchLocal": "2026-11-26T12:00:00+08:00",
+    "assignmentsBeforeTravel": [
+        {
+            "branch_id": 1,
+            "is_primary": true,
+            "valid_from": "2026-11-27",
+            "valid_until": null
+        },
+        {
+            "branch_id": 2,
+            "is_primary": false,
+            "valid_from": "2026-11-26",
+            "valid_until": null
+        },
+        {
+            "branch_id": 3,
+            "is_primary": false,
+            "valid_from": "2026-11-26",
+            "valid_until": null
+        }
+    ],
+    "exit": 1,
+    "output": "The Director has no current assignment at CHERAS. Run `php artisan kpone:director-branches` first, then try again.\n"
+}

@@ -1,0 +1,10 @@
+{
+  "patch_sha256": "42113c20132b0974c168ea40d5c17c41c9ee6faea5fdad0dbafc460cf512804a",
+  "files": {
+    "docs/teams/inventory/TEAM.md": "7fcaeef2ec6799af98d866d9f0b2c9378a4b1e05152fd132c07f793b026d9427",
+    "resources/js/components/inventory/StockBatchHoldList.vue": "5031c40afcce7e075b8ef20cc040c793a08bdc5ace4571e8091b296aa8dff9d8",
+    "resources/js/pages/Inventory/BatchHolds.vue": "6aeb88339c88352b0c60cfd65cfb1c1b04e93fcdcacb996084361089b5e54981",
+    "tests/Frontend/stock-batch-hold-runtime.test.mjs": "f3665643c56625d12a3aa8b2d0f38560dc17feefc392b7b1aed75757355d182c",
+    "tests/Frontend/ui-polish-1.test.mjs": "12573d1ad958cbd78926ad0ef4746c50b8a462ca0ed65b34db81c3c2d86f9fcb"
+  }
+}

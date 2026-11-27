@@ -1,0 +1,9 @@
+# Next bounded branch Waiting/Serving column alignment
+
+Canonical MyQueue C0 mapping previously verified: branch Waiting/Serving No., Patient, Doctor, Status, Waiting/Since, then real existing actions. Current branch generic table places Waiting/since before Status and uses generic mobile Duration. Existing data suffices; no new endpoint/metadata/policy needed.
+
+Propose separate presentation-only branch on final Medicine draft. Add explicit branch timeline condition only when queueLayout=branch and queueTask=waiting|seeing. Ordinary Index already supplies these task identifiers. Move the exact existing PatientBoardStatus renderer before timing for those two modes and corresponding header; old Status placement remains for Registration, emergency (no task), branch Held/Done and all unrelated consumers. Original single treatmentDialogKey owner and readiness event forwarding remain; two template locations must be mutually exclusive, never duplicate an actionable dialog. Preserve original triage/urgent/returned/check warnings/readiness/overrides/treatment/actions, doctor reassignment warning and doctor width bounds. Own task layouts unchanged.
+
+Visible timing label Waiting or Since matches actual existing waiting/serving duration source; no timestamp/duration recalculation. No new Calls, Resume, roster or availability policy. Branch Held step column, branch Done current downstream state and complete Doctors tab remain separate gaps.
+
+Required new actual SSR/default and compiled event/lifecycle tests through branch task→default transition, sole dialog and once-only readiness forwarding. New browser1440light/390dark branch Waiting/Serving states, action and short-phone hit targets below persistent emergency host, unchanged eight-table state. Full frontend/type/build and independent source/visual review. Existing source assertions only adapted if exact faithful semantics require it, separately recorded.

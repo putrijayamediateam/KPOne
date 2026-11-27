@@ -1,0 +1,16 @@
+{
+  "base": "630ea3d2627f5610392c79c2eab835411b71a1c4",
+  "patchSha256": "8ed6fbc5a2da4052489f1ee4d766dc45972451b1289bec66fbc7b34099b78bf5",
+  "files": {
+    "resources/js/components/queue/QueueWorkspaceFrame.vue": "6bb5e9f461dad0f89e0381be331652e0f723959562e3bc94aca098539ac3dbac",
+    "resources/js/pages/Queue/Index.vue": "d69da73c95f0359122d99251086a3d3f4e561fadb712875bd8ab3fb3caa3418f",
+    "tests/Frontend/q-15-checks-waiting-pill.test.mjs": "d06cead5942dd946971d13b240b089da7b06e180f370323b174442c5f9ae505c",
+    "tests/Frontend/q-5-completed-tab-count.test.mjs": "0ec3399fa739b13fcdd35fee6f454990a208354404293b66796748571482e96e",
+    "tests/Frontend/q-5b-serving-tab-count.test.mjs": "c78afc890e029566db7fe2da8a90288bd76ad540dedcf95f99524f1c5c94a37b",
+    "tests/Frontend/queue-demo-workspace.test.mjs": "65510978f6240588136c1522f87dada32d8cc65ce38cd81a7b903e56675c7793",
+    "tests/Frontend/queue-workload-integration-race.test.mjs": "d1e3ea6c2302f64a304fd6af8036f60a6fc386dd9b53b3f0eb2e0319ad2a1cbf",
+    "tests/Frontend/queue-workload-page-focus.test.mjs": "ba7000c30ade3e548f94b0bc664bfab80ff83020896c5abefa6907c1c8160e81",
+    "tests/Frontend/queue-workload-reset-followup.test.mjs": "dfe6b35bddaf3e97b753c0c76fd2fda3bbaf04e9402fdab171544f5ebe22a15e",
+    "tests/Frontend/tab-counts-1.test.mjs": "7845e971a3c3b403046dac542c0a6b3c1f74a62f27fedfffeba545e7381957d7"
+  }
+}

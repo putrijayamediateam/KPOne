@@ -1,0 +1,28 @@
+{
+  "checks": [
+    "26 real calls and 25 recalls; page1 has25 room labels",
+    "keyboard page2 preserves draft, full totals and persistent focus",
+    "network error retains page2 evidence, draft and keyboard focus",
+    "explicit retry succeeds without settings write",
+    "390 light: no horizontal overflow; pager target 44px",
+    "390 dark: no horizontal overflow; pager target 44px",
+    "768 light: no horizontal overflow; pager target 44px",
+    "768 dark: no horizontal overflow; pager target 44px",
+    "1440 light: no horizontal overflow; pager target 36px",
+    "1440 dark: no horizontal overflow; pager target 36px"
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3154/queue-display-settings?branch=3&rooms_page=2"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3154/queue-display-settings?branch=3&rooms_page=1"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3154/queue-display-settings?branch=3&rooms_page=1"
+    }
+  ]
+}

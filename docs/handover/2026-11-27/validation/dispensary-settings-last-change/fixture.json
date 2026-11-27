@@ -1,0 +1,24 @@
+{
+    "database": "kpone_settings_last_change_preview_test",
+    "visible": {
+        "actor": "settings.supervisor@kpone.test",
+        "branch": "Cheras",
+        "change": {
+            "changedAt": "27 Nov 2026, 2:34 AM",
+            "changedBy": "Synthetic Long Settings Supervisor With Multiple Names For Responsive Attribution Review"
+        }
+    },
+    "default": {
+        "actor": "settings.default@kpone.test",
+        "branch": "Sungai Besi",
+        "change": null
+    },
+    "hidden": {
+        "actor": "settings.hidden-viewer@kpone.test",
+        "branch": "Puchong",
+        "change": {
+            "changedAt": "27 Nov 2026, 2:45 AM",
+            "changedBy": "Staff member"
+        }
+    }
+}

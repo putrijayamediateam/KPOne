@@ -1,0 +1,26 @@
+[
+  {
+    "name": "registration-workspace",
+    "tree": "/workspace/KPOne-registration-workspace-publication",
+    "branch": "feature/registration-workspace-publication",
+    "sha": "7ceee8e48ea060ce280ae274760ee4af33060d07",
+    "status": "Open draft; all six CI checks passed on recorded head",
+    "pr": "https://github.com/putrijayamediateam/KPOne/pull/1146"
+  },
+  {
+    "name": "emergency",
+    "tree": "/workspace/KPOne-emergency-publication",
+    "branch": "feature/patient-emergency-contact-publication",
+    "sha": "c791e6d9e20bfd8d5887c210d0913fbb6fe7e1cc",
+    "status": "Open draft; all six CI checks passed on recorded head",
+    "pr": "https://github.com/putrijayamediateam/KPOne/pull/1147"
+  },
+  {
+    "name": "family",
+    "tree": "/workspace/KPOne-family-publication",
+    "branch": "feature/patient-family-links-publication",
+    "sha": "d3f814f1c595ddb14d86037e1bd93c902a7ddbc2",
+    "status": "Open draft; all six CI checks passed on recorded head",
+    "pr": "https://github.com/putrijayamediateam/KPOne/pull/1148"
+  }
+]

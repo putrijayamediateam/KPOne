@@ -1,0 +1,8 @@
+{
+  "base": "114fd56decdbb4b709c6fa083464a5d1bd1df6d4",
+  "patch_sha256": "c13f7634a43242544a66ed197f2aad67f9b157b4079905889fd9c62bef96e8a5",
+  "files": {
+    "resources/js/pages/Billing/CashClosingMonth.vue": "004dafccae1fb9e9c8cb9d71867ba3b11e98b481cca29457f7e3a7208059ef89",
+    "tests/Frontend/cash-month-filters.test.mjs": "6cdf77ced5c060537f0984d1f9aae7ffe9e384d3b64ddd8e483d56df7fee5d8c"
+  }
+}

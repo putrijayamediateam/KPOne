@@ -1,0 +1,15 @@
+# AUTO1c bounded batch follow-up: independent review
+
+Reviewed artifact AUTO1C-BOUNDED-FOLLOWUP-review.patch SHA256 1db4bbd225814916c35c865521b594c46cca29848824b9e8f5acee01a0b88352 against actual KPOne-auto1c-release source. Bounded source disposition: clear; final extraction manifest and CI remain separate release gates.
+
+The recovered approved design explicitly requires a free alternative with a room (AUTO-1c-DESIGN section3/Q2). Existing recommendation rows include free doctors without rooms, so filtering only free/current-duty was insufficient. The correction filters room eligibility only in this warning projection; recommendation/assignment ordering is unchanged. Branches without configured consultation rooms retain the existing room-not-required convention.
+
+Candidate IDs retain existing eligible/day-rostered membership and intersect current duty. Waiting membership matches the recommendation query's branch/status/assigned-doctor scope. Grouped busy membership matches ConsultationLocks::doctorBusy: organisation-wide Serving, excluding active holds, boolean membership only. This retains other-branch busy knowledge without exposing patient identities. Batched room resolution uses the separately reviewed Q16d API. Leave/current-shift/no-room precedence and fixed warning-only payload remain unchanged. QueueDirectory still gates disclosure on row update authority.
+
+New tests meaningfully cover no-room negative then selected-room positive and populated one-versus26-doctor constant-query behavior with no audit writes. Existing assertions are not changed by this follow-up. Builder reports15 PostgreSQL cases/172 assertions, static0 and original frontend4 pass; these backend checks were not independently rerun here. Full release artifact/types/build/frontend gates were still running at review time. This is not certification of an archive merge, clinical reassignment or full demo parity.
+
+## Final extraction and target closure
+
+Final18-file stacked artifact AUTO1C-ON-Q16D-v2.patch SHA256 d9c9e6d8a1524dc465082331fcc3b5c1e76615060be611778c5a8384f63c3046 based1161head8c9cc5f8 independently hash-verified with every manifest file. Directory additions preserve Q16c and expose warning only through existing row update authority; historical performance assertion remains exactly21→22 with all other ceilings intact. Reviewed actual supervisor Queue390dark and Registration1440light images and read-only fixture state hashes. No new clinical state mutation or alternate-doctor identity is shown.
+
+The introduced Reassign link initially measured16px desktop despite mobile44. Minimal class correction now measures36px at1440 and44px at768/390 on both routes (auto1c-hitboxes-after.json), widths51.6px. This closes the local target finding; source/final manifest match. Builder reports2214 frontend,15/172 PG, types/build/static/lint/format and20 browser checks; final target correction additionally passed build/focused4. These are builder gates, not independent reruns. Bounded final source/visual disposition: clear. This is stacked on Q16d and is not an archive merge or whole-board/demo-parity clearance.

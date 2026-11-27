@@ -1,0 +1,3 @@
+Apply shared Clean Look surfaces and semantic accent tokens to MyDay and the Front desk/Consultation homes. Both Vue scripts remain byte-identical to main, preserving role projections and masking. The shared Spaces stylesheet also affects its existing consumers. No backend, permissions, migrations or test assertions change.
+
+Validation: 35 focused tests, full vue-tsc, production Vite build, changed-page ESLint, Prettier and whitespace checks passed. Source exactly matches the independently reviewed presentation packet. Prior synthetic light/dark screenshots cover the reviewed appearance; no new current-main browser matrix or full backend suite is claimed.

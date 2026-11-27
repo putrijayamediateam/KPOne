@@ -1,0 +1,312 @@
+diff --git a/app/Domain/Queue/Services/QueueWorkloadQuery.php b/app/Domain/Queue/Services/QueueWorkloadQuery.php
+new file mode 100644
+--- /dev/null
++++ b/app/Domain/Queue/Services/QueueWorkloadQuery.php
+@@ -0,0 +1,56 @@
++<?php
++
++namespace App\Domain\Queue\Services;
++
++use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
++use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
++use App\Domain\Organisation\Models\Branch;
++use App\Domain\Queue\Models\QueueEntry;
++use App\Domain\Queue\Treatment\TreatmentStep;
++use App\Domain\Visit\Models\Visit;
++use App\Models\User;
++use Illuminate\Database\Eloquent\Builder;
++
++/** Structural workload membership only; existing row projections decide what clinical detail is visible. */
++final class QueueWorkloadQuery
++{
++    /** @param Builder<QueueEntry> $query
++     * @return Builder<QueueEntry>
++     */
++    public function apply(Builder $query, User $actor, Branch $branch, string $section): Builder
++    {
++        $query->where('visits.status', Visit::STATUS_REGISTERED)
++            ->where('visits.organisation_id', $actor->organisation_id)->where('visits.branch_id', $branch->id);
++        if ($section === 'held') {
++            return $query->where('queue_entries.status', QueueEntry::STATUS_SERVING)
++                ->whereExists(fn ($holds) => $holds->selectRaw('1')->from('consultation_holds')
++                    ->whereColumn('consultation_holds.queue_entry_id', 'queue_entries.id')
++                    ->whereColumn('consultation_holds.visit_id', 'visits.id')->whereNull('resumed_at'));
++        }
++        if ($section === 'treatment') {
++            // Same unacknowledged done-step definition as Q2 updates(). Neither a physical return nor an auto-resume.
++            return $query->where('queue_entries.status', QueueEntry::STATUS_SERVING)
++                ->whereExists(fn ($steps) => $steps->selectRaw('1')->from('queue_treatment_steps')
++                    ->whereColumn('queue_treatment_steps.queue_entry_id', 'queue_entries.id')
++                    ->where('queue_treatment_steps.organisation_id', $actor->organisation_id)
++                    ->where('queue_treatment_steps.branch_id', $branch->id)
++                    ->where('state', TreatmentStep::STATE_DONE)->whereNull('closed_at'));
++        }
++        abort_unless($section === 'checks', 422);
++        // Exact Q13/Q15 membership. Medicine snapshots never enter this structural directory.
++        if (! $actor->hasRole('resident_doctor') || ! $actor->can('dispensary.doctor_check.own')
++            || ! $actor->can('encounters.view.own')) {
++            return $query->whereRaw('1 = 0');
++        }
++
++        return $query->where('visits.assigned_doctor_user_id', $actor->id)
++            ->where('queue_entries.status', QueueEntry::STATUS_REMOVED)
++            ->where('queue_entries.removal_reason', 'sent_to_dispensary')
++            ->whereIn('visits.id', DispensaryCase::query()->select('visit_id')
++                ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
++                ->where('status', DispensaryCase::STATUS_AWAITING_DOCTOR_CHECK)
++                ->whereHas('encounter', fn ($q) => $q->where('organisation_id', $actor->organisation_id)
++                    ->where('branch_id', $branch->id)->where('attending_clinician_user_id', $actor->id))
++                ->whereHas('handoffs', fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)));
++    }
++}
+diff --git a/app/Domain/Queue/Services/QueueDirectoryService.php b/app/Domain/Queue/Services/QueueDirectoryService.php
+--- a/app/Domain/Queue/Services/QueueDirectoryService.php
++++ b/app/Domain/Queue/Services/QueueDirectoryService.php
+@@ -58,6 +58,46 @@
+     public function poll(User $actor, array $criteria = []): array
+     {
+         return $this->buildSnapshot($actor, $criteria, false);
++    }
++
++    /** Independent bounded lists: never derive workload from the ordinary latest-25 board rows.
++     * @return array<string, mixed>
++     */
++    public function workload(User $actor, int $expectedBranchId, string $section, int $page = 1): array
++    {
++        abort_unless($actor->is_active, 403);
++        Gate::forUser($actor)->authorize('viewAny', QueueEntry::class);
++        $branch = $this->activeBranch($actor);
++        abort_unless($branch->id === $expectedBranchId && $this->branches->canSelect($actor, $branch)
++            && $this->branches->hasEffectiveAssignment($actor, $branch), 403);
++        abort_unless(in_array($section, ['held', 'treatment', 'checks'], true), 422);
++        $now = now()->utc();
++        $query = app(QueueWorkloadQuery::class)->apply($this->baseQuery($actor, $branch, []), $actor, $branch, $section);
++        $total = (clone $query)->count();
++        $lastPage = max(1, (int) ceil($total / 25));
++        $page = min(max(1, $page), $lastPage);
++        $entries = $query->orderBy('queue_entries.id')->forPage($page, 25)->get();
++        $entries->load(['visit.patient', 'visit.assignedDoctor', 'visit.reasonAssignments.reason', 'visit.clinicalEncounter.holds']);
++        $readiness = app(CallHoldProjection::class)->rows($actor, array_values($entries->modelKeys()));
++        $treatment = app(TreatmentStepProjection::class)->rows($actor, $entries);
++        $triage = app(TriageZoneProjection::class)->forVisits($actor, $entries
++            ->map(fn (QueueEntry $entry): array => TriageZoneProjection::subject($entry->visit, $entry))->all());
++        foreach ($entries as $entry) {
++            $entry->setRelation('callReadiness', $readiness[$entry->id] ?? null);
++            $entry->setRelation('treatmentProgress', $treatment[$entry->id] ?? null);
++            $entry->setRelation('triageZone', $triage[$entry->visit_id] ?? null);
++        }
++        $checks = $section === 'checks'
++            ? $this->dispensaryAttention->checksForVisits($actor, $entries->map(fn (QueueEntry $entry) => $entry->visit)) : [];
++        $eligibleDoctorIds = $this->doctors->eligibleDoctorIds($branch, $now->setTimezone($branch->timezone)->toDateString());
++        $hints = [];
++
++        return [
++            'branchId' => $branch->id, 'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
++            'section' => $section, 'serverNow' => $now->toIso8601String(),
++            'data' => $this->rows($actor, $entries, $branch, $now, $eligibleDoctorIds, $hints, $checks, $checks),
++            'total' => $total, 'currentPage' => $page, 'lastPage' => $lastPage, 'perPage' => 25,
++        ];
+     }
+ 
+     /**
+diff --git a/app/Http/Controllers/QueueController.php b/app/Http/Controllers/QueueController.php
+--- a/app/Http/Controllers/QueueController.php
++++ b/app/Http/Controllers/QueueController.php
+@@ -106,6 +106,17 @@
+         return to_route('queue.index');
+     }
+ 
++    public function workload(Request $request, QueueDirectoryService $directory): JsonResponse
++    {
++        $data = $request->validate([
++            'expected_branch_id' => ['required', 'integer', 'min:1'],
++            'section' => ['required', 'in:held,treatment,checks'],
++            'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'],
++        ]);
++
++        return response()->json($directory->workload($request->user(), (int) $data['expected_branch_id'], $data['section'], (int) ($data['page'] ?? 1)));
++    }
++
+     public function search(SearchQueueEntriesRequest $request, QueueDirectoryService $directory): JsonResponse
+     {
+         return response()->json($directory->poll($request->user(), $request->validated()));
+diff --git a/routes/web.php b/routes/web.php
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -1541,6 +1541,9 @@
+         Route::get('queue/rooms-today', [QueueController::class, 'roomsToday'])
+             ->middleware(['permission:queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+             ->name('queue.rooms-today');
++        Route::get('queue/workload', [QueueController::class, 'workload'])
++            ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
++            ->name('queue.workload');
+         Route::get('queue/average-wait', [QueueController::class, 'averageWait'])
+             ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+             ->name('queue.average-wait');
+diff --git a/tests/Feature/Queue/QueueWorkloadTest.php b/tests/Feature/Queue/QueueWorkloadTest.php
+new file mode 100644
+--- /dev/null
++++ b/tests/Feature/Queue/QueueWorkloadTest.php
+@@ -0,0 +1,162 @@
++<?php
++
++namespace Tests\Feature\Queue;
++
++use App\Domain\Clinical\Dispensary\Services\DispensaryService;
++use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
++use App\Domain\Clinical\TreatmentRoom\TreatmentRoomService;
++use App\Domain\Queue\Services\QueueDirectoryService;
++use App\Domain\Queue\Treatment\TreatmentStep;
++use App\Domain\Queue\Treatment\TreatmentStepService;
++use Carbon\CarbonImmutable;
++use Illuminate\Support\Facades\Date;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Str;
++use Tests\Feature\Clinical\ClinicalTestCase;
++use Tests\Support\DoctorCheckFixtures;
++
++class QueueWorkloadTest extends ClinicalTestCase
++{
++    use DoctorCheckFixtures;
++
++    protected function setUp(): void
++    {
++        parent::setUp();
++        Date::setTestNow(CarbonImmutable::parse('2026-11-26 09:00:00', $this->branch->timezone)->utc());
++    }
++
++    public function test_old_held_patient_is_found_outside_latest_serving_page_and_other_doctor_is_excluded(): void
++    {
++        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
++        $encounter = $this->startEncounter($doctor, $visit, $queue);
++        $this->holdEncounter($doctor, $visit, $queue, $encounter);
++        Date::setTestNow(now()->addMinutes(5));
++        for ($i = 0; $i < 26; $i++) {
++            $entry = $this->send($ca, $this->consultationVisit($ca, $doctor));
++            $entry->forceFill(['status' => 'serving', 'called_at' => now(), 'called_by_user_id' => $doctor->id])->save();
++        }
++        $this->selectBranch($doctor);
++        $directory = app(QueueDirectoryService::class);
++        $this->assertNotContains($visit->visit_number, collect($directory->poll($doctor, ['status' => 'serving'])['serving'])->pluck('visitNumber'));
++        $result = $directory->workload($doctor, $this->branch->id, 'held');
++        $this->assertSame(1, $result['total']);
++        $this->assertSame($visit->visit_number, $result['data'][0]['visitNumber']);
++        $this->assertTrue($result['data'][0]['isHeld']);
++        $this->assertSame($queue->refresh()->lock_version, $result['data'][0]['queueLockVersion']);
++        $this->assertNull($encounter->holds()->sole()->resumed_at, 'Reading never resumes a consultation.');
++        $other = $this->doctor();
++        $this->selectBranch($other);
++        $this->assertSame(0, $directory->workload($other, $this->branch->id, 'held')['total']);
++        $this->selectBranch($ca);
++        $this->assertSame(1, $directory->workload($ca, $this->branch->id, 'held')['total']);
++    }
++
++    public function test_treatment_membership_is_unacknowledged_done_and_pages_are_bounded_and_clamped(): void
++    {
++        $doctor = $this->doctor();
++        $ca = $this->actor('ca');
++        $visits = [];
++        $countQueries = function () use ($ca): int {
++            $this->selectBranch($ca);
++            app(QueueDirectoryService::class)->workload($ca, $this->branch->id, 'treatment');
++            DB::enableQueryLog();
++            DB::flushQueryLog();
++            app(QueueDirectoryService::class)->workload($ca, $this->branch->id, 'treatment');
++            $count = count(DB::getQueryLog());
++            DB::disableQueryLog();
++
++            return $count;
++        };
++        $singleQueries = 0;
++        for ($i = 0; $i < 26; $i++) {
++            $visit = $this->consultationVisit($ca, $doctor);
++            $entry = $this->send($ca, $visit);
++            $entry->forceFill(['status' => 'serving', 'called_at' => now(), 'called_by_user_id' => $doctor->id])->save();
++            $step = app(TreatmentStepService::class)->start($ca, $visit, ['expected_branch_id' => $this->branch->id, 'step_code' => 'nebuliser', 'idempotency_key' => (string) Str::uuid()]);
++            app(TreatmentStepService::class)->complete($ca, $visit, ['expected_branch_id' => $this->branch->id, 'treatment_step_id' => $step['id'], 'lock_version' => 1, 'idempotency_key' => (string) Str::uuid()]);
++            $visits[] = $visit;
++            if ($i === 0) {
++                $singleQueries = $countQueries();
++            }
++        }
++        $this->assertSame($singleQueries, $countQueries(), 'One and twenty-five hydrated rows use a constant query count.');
++        $this->selectBranch($doctor);
++        $directory = app(QueueDirectoryService::class);
++        $first = $directory->workload($doctor, $this->branch->id, 'treatment');
++        $last = $directory->workload($doctor, $this->branch->id, 'treatment', 2);
++        $this->assertSame(26, $first['total']);
++        $this->assertCount(25, $first['data']);
++        $this->assertCount(1, $last['data']);
++        $this->assertSame($visits[25]->visit_number, $last['data'][0]['visitNumber']);
++        $this->assertSame('done', $last['data'][0]['treatmentProgress']['state']);
++        $this->assertSame(26, TreatmentStep::query()->whereNull('closed_at')->count(), 'Polling acknowledges nothing.');
++        app(TreatmentStepService::class)->acknowledgeOnOpen($doctor, $visits[25]);
++        $clamped = $directory->workload($doctor, $this->branch->id, 'treatment', 2);
++        $this->assertSame(25, $clamped['total']);
++        $this->assertSame(1, $clamped['currentPage']);
++        $this->assertCount(25, $clamped['data']);
++        $this->selectBranch($other = $this->doctor());
++        $this->assertSame(0, $directory->workload($other, $this->branch->id, 'treatment')['total']);
++    }
++
++    public function test_medicine_check_matches_existing_count_and_row_policy_without_medicine_payload(): void
++    {
++        $f = $this->prepared();
++        $this->switchOn($f['visit']->branch);
++        $this->selectBranch($f['ca']);
++        app(DispensaryService::class)->sendForDoctorCheck($f['ca'], $f['case']->refresh(), [
++            'expected_branch_id' => $this->branch->id, 'case_lock_version' => $f['case']->lock_version, 'retry_key' => (string) Str::uuid(),
++        ]);
++        $this->selectBranch($f['doctor']);
++        $directory = app(QueueDirectoryService::class);
++        $result = $directory->workload($f['doctor'], $this->branch->id, 'checks');
++        $this->assertSame(1, $result['total']);
++        $this->assertSame(app(DoctorDispensaryAttentionService::class)->checksWaitingCount($f['doctor'], $this->branch), $result['total']);
++        $this->assertTrue($result['data'][0]['dispensaryCheckWaiting']);
++        $this->assertTrue($result['data'][0]['canOpenEncounter']);
++        $this->assertArrayNotHasKey('lines', $result['data'][0]);
++        foreach ([$f['ca'], $this->doctor(), $this->actor('director')] as $actor) {
++            $this->selectBranch($actor);
++            $this->assertSame(0, $directory->workload($actor, $this->branch->id, 'checks')['total']);
++        }
++    }
++
++    public function test_not_successful_treatment_remains_attention_but_clinical_outcome_requires_its_existing_policy(): void
++    {
++        [$doctor, , $visit, $queue] = $this->servingFixture();
++        $encounter = $this->startEncounter($doctor, $visit, $queue);
++        $this->holdEncounter($doctor, $visit, $queue, $encounter);
++        $ma = $this->actor('medical_assistant');
++        $this->selectBranch($ma);
++        $versions = fn (): array => ['expected_branch_id' => $this->branch->id, 'visit_lock_version' => $visit->refresh()->lock_version, 'queue_lock_version' => $queue->refresh()->lock_version];
++        $service = app(TreatmentRoomService::class);
++        $started = $service->start($ma, $visit, [...$versions(), 'procedure_code' => 'urine_sample', 'idempotency_key' => (string) Str::uuid()]);
++        $step = TreatmentStep::findOrFail($started['id']);
++        $service->recordOutcome($ma, $visit, [...$versions(), 'treatment_step_id' => $step->id, 'step_lock_version' => $step->lock_version,
++            'procedure_code' => 'urine_sample', 'outcome_code' => 'not_successful', 'reason_code' => 'patient_declined', 'idempotency_key' => (string) Str::uuid()]);
++        $directory = app(QueueDirectoryService::class);
++        $this->selectBranch($doctor);
++        $own = $directory->workload($doctor, $this->branch->id, 'treatment');
++        $this->assertSame(1, $own['total']);
++        $this->assertSame('Not successful', $own['data'][0]['treatmentProgress']['outcome']['outcomeLabel']);
++        $this->assertTrue($own['data'][0]['isHeld']);
++        $this->selectBranch($director = $this->actor('director'));
++        $branch = $directory->workload($director, $this->branch->id, 'treatment');
++        $this->assertSame(1, $branch['total'], 'Existing step-only board visibility is unchanged.');
++        $this->assertSame('done', $branch['data'][0]['treatmentProgress']['state']);
++        $this->assertArrayNotHasKey('outcome', $branch['data'][0]['treatmentProgress']);
++        $this->assertNull($encounter->holds()->sole()->resumed_at);
++    }
++
++    public function test_endpoint_checks_branch_section_and_read_authority(): void
++    {
++        $doctor = $this->doctor();
++        $this->selectBranch($doctor);
++        $url = route('queue.workload', ['expected_branch_id' => $this->branch->id, 'section' => 'held']);
++        $this->getJson($url)->assertOk()->assertJsonPath('total', 0)->assertJsonPath('perPage', 25);
++        $this->getJson(route('queue.workload', ['expected_branch_id' => $this->branch->id + 1000, 'section' => 'held']))->assertForbidden();
++        $this->getJson(route('queue.workload', ['expected_branch_id' => $this->branch->id, 'section' => 'invented']))->assertUnprocessable();
++        $this->selectBranch($this->actor('finance_officer'));
++        $this->getJson($url)->assertForbidden();
++    }
++}

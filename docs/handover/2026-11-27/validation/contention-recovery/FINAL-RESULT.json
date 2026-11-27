@@ -1,0 +1,20 @@
+{
+  "completed_at_utc": "2026-11-26T06:56:24.159392+00:00",
+  "junit": {
+    "name": "/workspace/KPOne-ca-integration/phpunit.xml",
+    "tests": "314",
+    "assertions": "4271",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "1870.371447"
+  },
+  "exit_code": 0,
+  "source_files_checked": 3406,
+  "changed_files": [],
+  "added_files": [],
+  "removed_files": [],
+  "source_snapshot_sha256": "dfec9f71e90f5323f25001267fb0b325d5f9568cab0b320049c07b811f085748",
+  "log_sha256": "f407c0702e3af8491344c390964491e24b061d58775592bf46b8ed8da805697e",
+  "junit_sha256": "a24a8de5c402d2ebba0ab3f6803b5c0ac5b0f645d6b8d3dc0669253240351720"
+}

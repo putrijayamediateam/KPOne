@@ -1,0 +1,12 @@
+{
+  "base": "141418b067766512bfa57d1ff36391bb60aeff04",
+  "scriptExact": true,
+  "patchSha256": "8b2b243d97fbd2476e2496a57acf9bc2477486b1d8db6c82c0a0c2adab7b9b4a",
+  "files": {
+    "resources/js/pages/Dispensary/Settings.vue": "4b004550c86a560c1145a690687273d6091bddac40c62d4d3a442eaac5afd367",
+    "tests/Frontend/dsp-settings-context-runtime.test.mjs": "cb7eb21f172c539b4a4ee624705fe9c390854d38f415901c30e9d65a18a3f35c",
+    "docs/teams/dispensary-otc/TEAM.md": "b431624072de2bba52b7e22b3aa8ebd5bbd05f02b11d208ca03f649f137f4c6c"
+  },
+  "refreshedBase": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "refresh": "Only two unrelated HR docs changed; source and patch hashes unchanged."
+}

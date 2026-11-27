@@ -1,0 +1,20 @@
+{
+  "base": "c4d7df759180927508a27b0d4c2cae9254bee1fc",
+  "patchSha256": "265dbcece06e44a7a0d47161eb875db64d0a66822ce0830fe4667b5142f47459",
+  "files": {
+    "docs/teams/inventory/TEAM.md": "89a507b6b30a5333c555dcfa16c99857d51db66bb2075850a1c3c2a66a92449b",
+    "resources/js/components/inventory/InventoryOperationsPanel.vue": "783318710cb16c883512c78180efa94509778889fdfa6b04a37b73844c1f91b2",
+    "resources/js/components/inventory/VerifiedReceivingForm.vue": "599c35ae8514c212ad38019b2517c59f260c4f8b395ac818b1b9c8b9c8be2921",
+    "tests/Frontend/classic-only-co10c-kept.test.mjs": "08088f8d429c73054572c8f6df3b2d8cc67bd986f5eb3d2b661a5899c5a887de",
+    "tests/Frontend/classic-only-co6-kept-v2-inventory-orders.test.mjs": "9eceacf7ef5bc2a53de3bf6607a41a6ddb3b770332ff68042bf698d5e4b569c3",
+    "tests/Frontend/i2-inventory-operations.test.mjs": "24aa6c0fac451a48020cdfeafadb6b7752fa698b68144ac0d6aefc71a67c0baf",
+    "tests/Frontend/receipt-row-labels.test.mjs": "6081c7bfe1066fe5c986e1bca31e248ddefe9460e68636303cba39ca6d7f7817",
+    "tests/Frontend/stk10b-receipt-cost-evidence.test.mjs": "cdee49f6cfd37b547d7de0d6e69338479862d8524529a2ee31234467e552ed4a",
+    "tests/Frontend/stk19-po-approval.test.mjs": "affed7958bc9ab7110b016890f42615264498cec7d9769b0a9214282589b37cb",
+    "tests/Frontend/stk21-short-close.test.mjs": "f28c2678ccb9de483fbc78ed1326cea77f35fc7dd3a98d00e928aa20f7824f4d",
+    "tests/Frontend/verified-receiving-composition-runtime.test.mjs": "c11fe221ee3817e42cc53311df91bd0684ef79291f6996a1fc077703542a86cb",
+    "resources/js/components/inventory/StockPurchaseOrderList.vue": "7f1ba906da03106ebee365bbad7913de26d8bd996cbbc770bcb69db1862b3953",
+    "tests/Frontend/stock-po-worklist-processing-runtime.test.mjs": "7c0fc5a4dee9075b2661aaffded784a9cbe18975667f308f205ac563f6ef65f6",
+    "tests/Frontend/stock-po-worklist-runtime.test.mjs": "6a7ec181e96c5bf95d588cf28af149a06d5c66cdf66bdb0e7b99f93efcaa5a4f"
+  }
+}

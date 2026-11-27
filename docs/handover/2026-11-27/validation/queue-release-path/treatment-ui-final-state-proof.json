@@ -1,0 +1,11 @@
+{
+    "sameRetryPayload": true,
+    "oneOutcomeEvidence": true,
+    "originalFailurePreserved": true,
+    "correctionPreservesPerformance": true,
+    "voidTargetsOnlySuccessor": true,
+    "sameVisitVersion": true,
+    "sameQueueVersion": true,
+    "sameActiveHold": true,
+    "stillRegisteredServing": true
+}

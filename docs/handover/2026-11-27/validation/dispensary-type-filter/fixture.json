@@ -1,0 +1,7 @@
+{
+    "database": "kpone_case_type_preview_test",
+    "actor": "type.ca@kpone.test",
+    "case": "12394bee-8be4-47bc-805e-ce5ff7c9b693",
+    "branch": 1,
+    "setup": "Existing synthetic domain fixture methods, no permission changes"
+}

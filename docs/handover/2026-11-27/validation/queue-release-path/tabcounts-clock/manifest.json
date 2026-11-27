@@ -1,0 +1,7 @@
+{
+  "base": "d0f37b5c1864b796fc7b4224996bd917551af3e7",
+  "patchSha256": "5b3f88da0b5d198956ef85919a832a893f1479326731e112d77a62585ce18c69",
+  "files": {
+    "tests/Feature/Queue/TabCountsTest.php": "147c8d39e26ecdb39c77c9f98f9ffa3e00f4d404e5ac3b6d8566cd02d771420d"
+  }
+}

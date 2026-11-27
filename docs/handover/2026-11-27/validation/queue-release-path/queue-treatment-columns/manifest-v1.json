@@ -1,0 +1,12 @@
+{
+  "base": "d99e5c4ae61070e723ea066d60fcc218a9d3963f",
+  "patchSha256": "58b6ad71ad6829a1b8c4c5b6275a6f3b7aca70c8da9665583a69fb67dfc480fd",
+  "files": {
+    "resources/js/components/patient-board/PatientBoard.vue": "aef88a13d7b5127ee18cecfe8613745e7ce74fcd69c6307c09bbf53edb77ffb2",
+    "resources/js/components/patient-board/PatientBoardTreatmentResults.vue": "e168d8e41a2938778a242235a4792f0225b68c22f1a7d96e1d1de620bc6d9c8c",
+    "resources/js/components/queue/TreatmentProgressBadge.vue": "9edc92d38bc7c8f15380f2658a08d102d8f73db8044ab983a3f20e0cade07a17",
+    "resources/js/pages/Queue/Index.vue": "5728a283e5e6d54bae9be924b40f3771fa64760727fcf5769597042d59bf1284",
+    "tests/Frontend/q-1-waiting-time.test.mjs": "06c67e3c9bac5eeac9f7c1a428f145e22eb7cdef9cccbf7bdc07728656a00dd1",
+    "tests/Frontend/queue-task-columns.test.mjs": "70f63418563763c79bed9b02cbec2d01c4937cae5edbac1bc5c057a33b80f946"
+  }
+}

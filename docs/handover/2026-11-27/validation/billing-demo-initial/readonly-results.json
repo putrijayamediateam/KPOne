@@ -1,0 +1,126 @@
+[
+  {
+    "name": "close",
+    "width": 1440,
+    "theme": "light",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "SR",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 32
+      },
+      {
+        "text": "",
+        "height": 36
+      },
+      {
+        "text": "Load day",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "width": 1440,
+    "theme": "dark",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "SR",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 32
+      },
+      {
+        "text": "",
+        "height": 36
+      },
+      {
+        "text": "Load day",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "width": 390,
+    "theme": "light",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "SR",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Load day",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "width": 390,
+    "theme": "dark",
+    "title": [
+      "Billing"
+    ],
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Puchong",
+        "height": 36
+      },
+      {
+        "text": "SR",
+        "height": 44
+      },
+      {
+        "text": "Month view",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Load day",
+        "height": 44
+      }
+    ]
+  }
+]

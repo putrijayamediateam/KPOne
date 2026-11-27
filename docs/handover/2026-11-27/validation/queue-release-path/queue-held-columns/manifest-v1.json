@@ -1,0 +1,11 @@
+{
+  "base": "18c9edc46166b7a15f4bcd0fd0b75dcf9e19e550",
+  "patchSha256": "c885b9a90dc5b0b316e8c9de9185f68401d93b2cb8e5e2c24996ca8601ba48de",
+  "files": {
+    "resources/js/components/patient-board/PatientBoard.vue": "379330b15cf0fcc9eaf74194845822ee470ff4ee02af5f8780519893ec62cb81",
+    "resources/js/components/patient-board/PatientBoardStatus.vue": "e66004133bf3bb03c8004adbde18d2f4a4a07367595bc80ea76507c5151e0381",
+    "resources/js/pages/Queue/Index.vue": "afc07d21c32ae26a7792a0aff36062868b5ee9150329e13849d9f21dbcde3db0",
+    "tests/Frontend/q-1-waiting-time.test.mjs": "03c13dc2205f3550e9b07fc29c8631c3b14e77ee958db402042dea09bcf6b0e0",
+    "tests/Frontend/queue-task-columns.test.mjs": "fe99450944af62c60a81d671d4cc6d11523967168aec152f27221b50d7c89779"
+  }
+}

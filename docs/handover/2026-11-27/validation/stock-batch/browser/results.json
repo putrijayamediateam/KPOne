@@ -1,0 +1,418 @@
+{
+  "keyboardExpanded": "true",
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "locationHeight": 36,
+      "locationState": {
+        "disabled": false,
+        "ariaDisabled": null,
+        "opacity": "1",
+        "background": "rgb(255, 255, 255)"
+      },
+      "rows": 13,
+      "expiredAndHeld": true,
+      "received": true,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 40
+        },
+        {
+          "label": "inventory-status",
+          "height": 36
+        },
+        {
+          "label": "batch-search",
+          "height": 36
+        },
+        {
+          "label": "Paracetamol 500 mg tabletSYN-EXPIRED-REVIEWQu",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B101Quantity300",
+          "height": 78.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B001Quantity200",
+          "height": 78.921875
+        },
+        {
+          "label": "Amoxicillin 250 mg capsuleDEMO-B002Quantity20",
+          "height": 78.921875
+        },
+        {
+          "label": "Cetirizine 10 mg tabletDEMO-B003Quantity200 t",
+          "height": 78.921875
+        },
+        {
+          "label": "Codeine phosphate 15 mg tabletDEMO-C001Quanti",
+          "height": 78.921875
+        },
+        {
+          "label": "Chlorphenamine 4 mg tabletDEMO-B004Quantity20",
+          "height": 78.921875
+        },
+        {
+          "label": "Omeprazole 20 mg capsuleDEMO-B005Quantity200 ",
+          "height": 78.921875
+        },
+        {
+          "label": "Oral rehydration salts sachetDEMO-B006Quantit",
+          "height": 78.921875
+        },
+        {
+          "label": "About this view",
+          "height": 36
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 36
+        },
+        {
+          "label": "Related pages",
+          "height": 36
+        },
+        {
+          "label": "Good to know",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "locationHeight": 36,
+      "locationState": {
+        "disabled": false,
+        "ariaDisabled": null,
+        "opacity": "1",
+        "background": "oklab(0.241311 0.00155759 -0.00541608 / 0.304923)"
+      },
+      "rows": 13,
+      "expiredAndHeld": true,
+      "received": true,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 40
+        },
+        {
+          "label": "inventory-status",
+          "height": 36
+        },
+        {
+          "label": "batch-search",
+          "height": 36
+        },
+        {
+          "label": "Paracetamol 500 mg tabletSYN-EXPIRED-REVIEWQu",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 78.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B101Quantity300",
+          "height": 78.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B001Quantity200",
+          "height": 78.921875
+        },
+        {
+          "label": "Amoxicillin 250 mg capsuleDEMO-B002Quantity20",
+          "height": 78.921875
+        },
+        {
+          "label": "Cetirizine 10 mg tabletDEMO-B003Quantity200 t",
+          "height": 78.921875
+        },
+        {
+          "label": "Codeine phosphate 15 mg tabletDEMO-C001Quanti",
+          "height": 78.921875
+        },
+        {
+          "label": "Chlorphenamine 4 mg tabletDEMO-B004Quantity20",
+          "height": 78.921875
+        },
+        {
+          "label": "Omeprazole 20 mg capsuleDEMO-B005Quantity200 ",
+          "height": 78.921875
+        },
+        {
+          "label": "Oral rehydration salts sachetDEMO-B006Quantit",
+          "height": 78.921875
+        },
+        {
+          "label": "About this view",
+          "height": 36
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 36
+        },
+        {
+          "label": "Related pages",
+          "height": 36
+        },
+        {
+          "label": "Good to know",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "locationHeight": 44,
+      "locationState": {
+        "disabled": false,
+        "ariaDisabled": null,
+        "opacity": "1",
+        "background": "rgb(255, 255, 255)"
+      },
+      "rows": 13,
+      "expiredAndHeld": true,
+      "received": true,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 44
+        },
+        {
+          "label": "inventory-status",
+          "height": 44
+        },
+        {
+          "label": "batch-search",
+          "height": 44
+        },
+        {
+          "label": "Paracetamol 500 mg tabletSYN-EXPIRED-REVIEWQu",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B101Quantity300",
+          "height": 190.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B001Quantity200",
+          "height": 210.921875
+        },
+        {
+          "label": "Amoxicillin 250 mg capsuleDEMO-B002Quantity20",
+          "height": 210.921875
+        },
+        {
+          "label": "Cetirizine 10 mg tabletDEMO-B003Quantity200 t",
+          "height": 210.921875
+        },
+        {
+          "label": "Codeine phosphate 15 mg tabletDEMO-C001Quanti",
+          "height": 210.921875
+        },
+        {
+          "label": "Chlorphenamine 4 mg tabletDEMO-B004Quantity20",
+          "height": 210.921875
+        },
+        {
+          "label": "Omeprazole 20 mg capsuleDEMO-B005Quantity200 ",
+          "height": 210.921875
+        },
+        {
+          "label": "Oral rehydration salts sachetDEMO-B006Quantit",
+          "height": 210.921875
+        },
+        {
+          "label": "About this view",
+          "height": 44
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 44
+        },
+        {
+          "label": "Related pages",
+          "height": 44
+        },
+        {
+          "label": "Good to know",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "locationHeight": 44,
+      "locationState": {
+        "disabled": false,
+        "ariaDisabled": null,
+        "opacity": "1",
+        "background": "oklab(0.241218 0.00155778 -0.00541674 / 0.304897)"
+      },
+      "rows": 13,
+      "expiredAndHeld": true,
+      "received": true,
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "Location · All branch locations",
+          "height": 44
+        },
+        {
+          "label": "inventory-status",
+          "height": 44
+        },
+        {
+          "label": "batch-search",
+          "height": 44
+        },
+        {
+          "label": "Paracetamol 500 mg tabletSYN-EXPIRED-REVIEWQu",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-EBPYGLBEVNQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Synthetic governed itemSYN-NMYSEP17XSQuantity",
+          "height": 210.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B101Quantity300",
+          "height": 190.921875
+        },
+        {
+          "label": "Paracetamol 500 mg tabletDEMO-B001Quantity200",
+          "height": 210.921875
+        },
+        {
+          "label": "Amoxicillin 250 mg capsuleDEMO-B002Quantity20",
+          "height": 210.921875
+        },
+        {
+          "label": "Cetirizine 10 mg tabletDEMO-B003Quantity200 t",
+          "height": 210.921875
+        },
+        {
+          "label": "Codeine phosphate 15 mg tabletDEMO-C001Quanti",
+          "height": 210.921875
+        },
+        {
+          "label": "Chlorphenamine 4 mg tabletDEMO-B004Quantity20",
+          "height": 210.921875
+        },
+        {
+          "label": "Omeprazole 20 mg capsuleDEMO-B005Quantity200 ",
+          "height": 210.921875
+        },
+        {
+          "label": "Oral rehydration salts sachetDEMO-B006Quantit",
+          "height": 210.921875
+        },
+        {
+          "label": "About this view",
+          "height": 44
+        },
+        {
+          "label": "Branch at a glance",
+          "height": 44
+        },
+        {
+          "label": "Related pages",
+          "height": 44
+        },
+        {
+          "label": "Good to know",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "filtered": {
+    "url": "http://127.0.0.1:3124/inventory?batch=SYN-EXPIRED-REVIEW&page=1&tab=batches",
+    "rows": 1,
+    "text": "Paracetamol 500 mg tablet\nSYN-EXPIRED-REVIEW\nQuantity\n12 tablet\nLocation\nCheras Dispensary (Demo)\nExpiry\n1 Jan 2026\nExpired\nBatch status\nHeld: Suspected quality issue",
+    "expansionReset": true
+  },
+  "onHandPreserved": true,
+  "readonlyActions": 0,
+  "errors": []
+}

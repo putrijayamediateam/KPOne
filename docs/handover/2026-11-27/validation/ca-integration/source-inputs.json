@@ -1,0 +1,356 @@
+[
+  {
+    "slice": "Stage0",
+    "patch": "/workspace/kpone-review-bundles/STAGE0-current-main.patch",
+    "sha256": "f0f92ee3e9d9a33afa98c4ba44b13ce10769b8167c3b28a07966a09a7c412e98",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "Queue",
+    "patch": "/workspace/kpone-review-bundles/queue/QUEUE-combined-on-Stage0.patch",
+    "sha256": "303214e9788110f930aa34e7abeb73ddb94181baa2b056695a98f81ea6e9df56",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "Registration and emergency",
+    "patch": "/workspace/kpone-validation/registration-integration/registration-emergency-overlay.patch",
+    "sha256": "5da039c4c42dab620cb078ddb8eb7d041ae31357053f8b836bb09b858af2926f",
+    "check": 0,
+    "applied": true,
+    "previous_input_sha256": "f7454e0962bfa3fde27faa9cb27f6fe9a42fec65eef8fc55890ca3102a8641d5",
+    "followup": "Updated frozen input: approved I2 assertion / View bill sizing / Add Payment sizing as applicable; applied to integration."
+  },
+  {
+    "slice": "Inventory restyle",
+    "patch": "/workspace/inventory-review/clean-inv-1.patch",
+    "sha256": "9d1602edb33eaf69c3c2acb12a77afb09e529332d7db04592fd6ceca7e22a5e3",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "Inventory approvers",
+    "patch": "/workspace/inventory-review/stk50-51.patch",
+    "sha256": "ba18bdfb417d53d2ee42efed2d6950716b46485cca7cbc0cde68223c6c642c2c",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "DSP28",
+    "patch": "/tmp/kpone-dsp28-review.patch",
+    "sha256": "fb1620751502168d6bcf9b2ffe87371365020fb96b7d54265fa53b6355d416c9",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "Dispensary restyle",
+    "patch": "/workspace/kpone-review-bundles/DSP-CL-1.patch",
+    "sha256": "5c674594472d87d2dce89068193a0052bc72ebce57f9290fd5ee44a36f57bfc8",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "Triage restyle",
+    "patch": "/workspace/kpone-review-bundles/TRI-CL-1.patch",
+    "sha256": "1b1e8d588427cd20868924d5d9f6f26f5177ba3b461bd8ed788cfccde10e28ef",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "Consultation restyle",
+    "patch": "/workspace/kpone-review-bundles/CLN-CL-1.patch",
+    "sha256": "b2648804eca0e289e0f12405148fbdb3fc1d230e27749530157cfe76364b2e44",
+    "check": 1,
+    "applied": true,
+    "reconciliation": "Three-way main-base Clinical/Show merge preserves Q16b banner plus restyle; other source/test hunks clean."
+  },
+  {
+    "slice": "Homes",
+    "patch": "/workspace/kpone-validation/homes/HOME-CL1.patch",
+    "sha256": "b0fd34b7b3c8c134f315eceb0758318a569e0e3d12f9df56cd86b92962ade539",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "BIL36",
+    "patch": "/workspace/kpone-review-bundles/BIL-36-current-main.patch",
+    "sha256": "2956f357a92017ce7a437ac4ecfe382f06ba8c84e320035ce54147c49fb3c798",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "BIL37",
+    "patch": "/workspace/kpone-review-bundles/BIL-37-current-main.patch",
+    "sha256": "4d9e5c4be16537f097f80865d943008b62f9e17d35bb32dd98ca07d07e71c8b2",
+    "check": 1,
+    "applied": true,
+    "reconciliation": "Preserve both queue.details_viewed and billing.reviewed allowlist events plus invoice ID key.",
+    "previous_input_sha256": "4294009ba3b816bb88546b499a3d98217dbe71f50b2de2bd3ce72e2df26c167d",
+    "followup": "Updated frozen input: approved I2 assertion / View bill sizing / Add Payment sizing as applicable; applied to integration."
+  },
+  {
+    "slice": "PNL30",
+    "patch": "/workspace/kpone-review-bundles/PNL-30-current-main.patch",
+    "sha256": "a83dd9ef417e0af201b017bd4737a2fa22d55783a06751cc3054c4fb94bc30cf",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "AUTO1c",
+    "patch": "/workspace/kpone-review-bundles/AUTO-1c-on-combinedQueue.patch",
+    "sha256": "7f303097ac16aa6bb352dd0461b0de4384c71b2928d499cf9e294521aad702ca",
+    "check": 0,
+    "applied": true
+  },
+  {
+    "slice": "BIL38",
+    "patch": "/workspace/kpone-review-bundles/BIL-38-current-main.patch",
+    "sha256": "55504d4d42051a0bb4c5f39d13aa4e7d222d112a07f8049300fc02fa51eedf7f",
+    "check": 1,
+    "applied": true,
+    "reconciliation": "Add approved Director publish grant while preserving recovered BIL36 print and BIL37 own-review grants."
+  },
+  {
+    "slice": "Billing restyle",
+    "patch": "/workspace/kpone-review-bundles/BILLING-CL1-current-main.patch",
+    "sha256": "3aa2106d79ce6ef85992e1923331ea68a34ab3fc5136ae21ba28e21b886876c7",
+    "check": 0,
+    "applied": true,
+    "previous_input_sha256": "bdd37584d0649f0ae8ba5fd5d0ff70b15c4905fd07176b5fb658c21fba8d6ed4",
+    "followup": "Updated frozen input: approved I2 assertion / View bill sizing / Add Payment sizing as applicable; applied to integration."
+  },
+  {
+    "slice": "Dialog touch",
+    "patch": "/workspace/kpone-validation/dialog-touch/dialog-touch.patch",
+    "sha256": "4231ef46c0bd2689a3ba2c4b71cb584938d4ddcb42db6abea5456e64bd2ff453",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "Treatment call",
+    "patch": "/workspace/kpone-review-bundles/treatment-call/TREATMENT-call-current-main.patch",
+    "sha256": "7ae6ec1e9284a6afe078057b0519534574fd505995db0e002b97d47cf9d0cd2e",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "Treatment call UI",
+    "patch": "/workspace/kpone-review-bundles/treatment-call/TREATMENT-call-ui-overlay.patch",
+    "sha256": "a87cb121eb4e02294b63b795e3458580c81e7a98edaba88b8b41ea63f8881909",
+    "applied": true,
+    "reconciliation": "Preserved QueueWaitingOrder and DoctorWarningProjection imports/behavior; added separate treatment capability only."
+  },
+  {
+    "slice": "STK46 service",
+    "patch": "/workspace/inventory-review/stk46-service.patch",
+    "sha256": "fe79e7816b881dcdc2a7cefcbe6329b4e6cb90e97472a0b8a47723a60fcc520b",
+    "applied": true,
+    "reconciliation": "Add approved cost grants without undoing STK50/51 approver narrowing; union new contention registration with Emergency/Treatment races."
+  },
+  {
+    "slice": "STK46 replay",
+    "patch": "/workspace/inventory-review/stk46-replay.patch",
+    "sha256": "87038eaafe17cdc40e69ae860e88f55dfa30512e8179be446e46e6d29d7043e9",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "Family links",
+    "patch": "/workspace/kpone-validation/family-links/family-feature.patch",
+    "sha256": "fae0131c8adb368809661ed70795c14bb9941c1bb34e9a95ca3a733127bd9418",
+    "check": 1,
+    "applied": true,
+    "reconciliation": "Surgical union of Family imports/routes/Patient card and contention suite entries; preserves Emergency, Treatment call and HandCost registrations. All remaining17files applied cleanly."
+  },
+  {
+    "slice": "Treatment dialog touch correction",
+    "patch": "/workspace/kpone-review-bundles/treatment-call/TREATMENT-dialog-hitboxes-overlay.patch",
+    "sha256": "4632adbf4de9acc6091198df588ccc831016cfc5ccefa8a86d6fefddc6a1d2b9",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "AUTO1c complete availability shape",
+    "patch": "/workspace/kpone-review-bundles/AUTO-1c-shape-followup.patch",
+    "sha256": "f775844ef1df8be3ee719389f30741a5dd6ff9052b0cde7c413daae5b708e362",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "Q16b formatting",
+    "patch": "/workspace/kpone-review-bundles/queue/Q16b-formatting-followup.patch",
+    "sha256": "2f0cf86594a2fc046cd0f0c3dfe7c7b2661bb05e4729eb9d67bc55f67d83a9f0",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "PNL30 scoped request timer",
+    "patch": "/workspace/kpone-review-bundles/PNL30-timeout-followup.patch",
+    "sha256": "4fb97c175bdb9e6673d06b9868c7f09f491a543dcd5f8abcd5edecb7d4e5706b",
+    "applied": true,
+    "check": 0
+  },
+  {
+    "slice": "STK46 entry/check UI",
+    "patch": "/workspace/inventory-review/stk46-ui.patch",
+    "sha256": "2a376bf9f6524dbee736f5a2fea46b452b2de9344ff6b41bc8e31a1300843558",
+    "applied": true,
+    "excluded": "docs/**; programme docs remain separate"
+  },
+  {
+    "slice": "Dispensary case restyle",
+    "patch": "/workspace/kpone-validation/dispensary-case/DISPENSARY-CASE-CL1.patch",
+    "sha256": "f74d3291a35a866fb73bed8d63d41578aa3df79fd8a3087bd617a0069e101ee7",
+    "applied": true,
+    "integration_patch": "/workspace/kpone-validation/ca-integration/DISPENSARY-CASE-overlay.patch",
+    "reconciliation": "Only DARK1 S1-007 context adjusted; same3approved assertions, preserved Registration S1-001/S1-008 changes."
+  },
+  {
+    "slice": "Dispensary partials",
+    "patch": "/workspace/kpone-validation/dispensary-partials/DISPENSARY-PARTIALS-CL1.patch",
+    "sha256": "2bb55b66bdf0cc8a1c37f40c2d453187d40fd159406bee0cffab9c6cca666a1a",
+    "applied": true,
+    "followup": "Reconciled approved DD57 panel assertion; preserved Show expectations."
+  },
+  {
+    "slice": "Treatment records backend",
+    "patch": "/workspace/kpone-review-bundles/treatment-record/TREATMENT-record-backend-current-main.patch",
+    "sha256": "d55fa39936dc34b72e02479cf71e69199dee8b39a257f443b02c1aa59aa89c80",
+    "applied": true,
+    "followup": "Preserved phpunit suite union."
+  },
+  {
+    "slice": "Treatment records UI",
+    "patch": "/workspace/kpone-review-bundles/TREATMENT-RECORD-UI.patch",
+    "sha256": "8d0096924aad1e09ac1f580faade4c4506e93ff87efe8d5ceb00cf53d8e1104c",
+    "applied": true,
+    "followup": "Applied; later owner-approved Invoice prop assertion companion."
+  },
+  {
+    "slice": "TRI2 lifecycle backend",
+    "patch": "/workspace/kpone-validation/tri2/tri2-backend-overlay.patch",
+    "sha256": "d8725e7ed0b3aec9399202e665b361cd61dfae29374549d5c3602f576899581e",
+    "applied": true,
+    "followup": "Reconciled routes imports/endpoints with Treatment routes; exact approved migration hash."
+  },
+  {
+    "slice": "TRI2 append-only assertion",
+    "patch": "/workspace/kpone-review-bundles/tri2/TRIAGE-TRUNCATE-ASSERTION.patch.txt",
+    "sha256": "a25eb80e5fa229ec688aa780fb2e873e46e0fd03fa474a710b0169bb21212312",
+    "applied": true,
+    "followup": "Exact owner-approved companion."
+  },
+  {
+    "slice": "TRI2 recent doctor presence",
+    "patch": "/workspace/kpone-validation/tri2-presence/tri2-presence-overlay.patch",
+    "sha256": "dcc91701131f58f0718ec60279ca00f7cd35ad3b683ffeca1b7a895e16f11a80",
+    "applied": true,
+    "followup": "Applied with independent review."
+  },
+  {
+    "slice": "TRI2 shared alert UI",
+    "patch": "/workspace/kpone-validation/tri2-ui/TRI2-shared-alert-UI.patch",
+    "sha256": "6da6e113e6703bad7607409b8f53709c0417c9d39d6339cb1e607311491d654b",
+    "applied": true,
+    "followup": "Three-way merged Clinical; Queue kept authorized Treatment room link/usePage and removed page-local banner."
+  },
+  {
+    "slice": "TRI2 shared layout assertion",
+    "patch": "/workspace/kpone-review-bundles/tri2/TRI2-shared-layout-assertions-PROPOSED.patch",
+    "sha256": "5ae77f6fccf4ee2c9ea320b6af2a68faebb1e64e9ef2b579bd6007ece533ed8b",
+    "applied": true,
+    "followup": "Exact owner-approved two expected markup additions."
+  },
+  {
+    "slice": "TRI2 bounded lane backend",
+    "patch": "/workspace/kpone-validation/tri2-lane/tri2b-lane-overlay.patch",
+    "sha256": "97af5b9c9221ef6c84ca4604b3db91d1ad89d10b2dd76290be284b208b1ba1a1",
+    "applied": true,
+    "followup": "Bounded25/page revision97af5; full scoped exclusion and existing action projections."
+  },
+  {
+    "slice": "TRI2 lane approved assertions",
+    "patch": "/workspace/kpone-review-bundles/tri2/TRI2b-PROPOSED-EXISTING-ASSERTIONS.patch",
+    "sha256": "fc881b2b4e59df9825c00a8ecbe3052192a65d2c2be825f7d3ba901aed794443",
+    "applied": true,
+    "followup": "Exact owner-approved red lane and constant query budget expectations."
+  },
+  {
+    "slice": "Treatment Invoice prop assertion",
+    "patch": "/workspace/kpone-review-bundles/TREATMENT-invoice-prop-assertion-PROPOSED.patch",
+    "sha256": "384b72e32b2ce4e12b98c23dcfdf0bd56235b961a286f3179c07a499f9c6b3c9",
+    "applied": true,
+    "followup": "Exact owner-approved typed optional nullable prop expectation."
+  },
+  {
+    "slice": "TRI2 bounded lane branch timezone tests",
+    "patch": "/workspace/kpone-validation/tri2-lane/branch-clock-followup.patch",
+    "sha256": "dcdf21e78ad10ddf7d38f34c725dd070b54a52126f2a3f791153e4fbdddbc47e",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "TRI2 bounded lane UI final overlay",
+    "patch": "/workspace/kpone-validation/tri2-lane-ui/TRI2b-UI.patch",
+    "sha256": "e2d68d2b37405c69527cced5eed4deafc5ee3ff0ad71cc070d7b7d23c2054d18",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "TRI2 lane UI followup",
+    "patch": "/workspace/kpone-validation/tri2-lane-ui/TRI2b-UI-FOLLOWUP.patch",
+    "sha256": "d4d050dd05a5197b0ab8b7d63f86ef33a31eb6121a393305fa6f228a20a0084b",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "TRI2 Hold continuation reactive identity fix",
+    "patch": "/workspace/kpone-validation/tri2-integrated-ui/HOLD-CALLBACK-FOLLOWUP.patch",
+    "sha256": "57b65f5383045c393cf872a921dcb13ebb0fa370c57f595c73e5d97ac5944a6b",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "TRI2 persistent title and truthful announcement",
+    "patch": "/workspace/kpone-validation/tri2-integrated-ui/TITLE-ANNOUNCEMENT-FOLLOWUP.patch",
+    "sha256": "d7eb6ae0e47f320c10bc10194cb42dfe59f25d2b182a830574ce6f976cfa4bad",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "TRI2 bounded effective-untaken alarm ranking",
+    "patch": "/workspace/kpone-validation/tri2-bounded-alarm/TRI2-bounded-alarm-followup.patch",
+    "sha256": "90eae5fd9cd59d8ab0d70f462b62659c69d612acf8fcc536e936884177ac26ec",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "Synthetic invalid verification ID fixture",
+    "patch": "/workspace/kpone-validation/auth-fixture-publication/auth-fixture.patch",
+    "sha256": "2e298cf67014418462dd24045ab9bffacb5f8a68a6ad1559156b6bc40c2ca34a",
+    "applied": true,
+    "followup": "Reviewed integration; see slice evidence. Final lane UI overlay represents accumulated initial and followup patches, not a second application."
+  },
+  {
+    "slice": "TRI2 aggregate approved assertions",
+    "patch": "/workspace/kpone-review-bundles/tri2/TRI2b-PROPOSED-AGGREGATE-ASSERTIONS.patch",
+    "sha256": "938070930a1e08fe17cef3d05b80cf678455254046638297138c8af3a61a1e7b",
+    "applied": true,
+    "followup": "Owner explicitly approved26Nov; no skipped assertions."
+  },
+  {
+    "slice": "TRI2 Cancel approved assertion",
+    "patch": "/workspace/kpone-review-bundles/tri2/TRI2-CANCEL-approved-assertion.patch",
+    "sha256": "d0553389913e6251bfe4146f03dc65b2df4a8807e8906e873f44a96ff5eff209",
+    "applied": true,
+    "followup": "Owner explicitly approved26Nov; no skipped assertions."
+  },
+  {
+    "slice": "TRI2 baseline Registration visibility regression",
+    "patch": "/workspace/kpone-validation/tri2-lane/registration-scope-regression.patch",
+    "sha256": "3d0d8e53a2ec7965a4863f9c01752ceaac0afb5fb7b2ccfa162147851b3c2673",
+    "applied": true,
+    "followup": "New test only; focused integrated1test26assertions passed. Existing branch identity access preserved; own queue/triage scope enforced."
+  }
+]

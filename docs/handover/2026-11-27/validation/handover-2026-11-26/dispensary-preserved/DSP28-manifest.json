@@ -1,0 +1,15 @@
+{
+  "note": "Preservation only; based on old recovery tree, not an integration-ready main patch. No secrets/build/database/session files included.",
+  "base": "23639679ec38b27eaf29a9f0315ba2b82838a9e6",
+  "patchSHA256": "9926c55a8656c8d724a507b5876ae038f43b8959eb5ff6cd58e076f13dce1960",
+  "files": [
+    "app/Domain/Clinical/Dispensary/Services/DispensaryReturnService.php",
+    "app/Domain/DepartmentSpace/PharmacySpace.php",
+    "app/Http/Controllers/DispensaryController.php",
+    "resources/js/pages/Dispensary/ReturnsToCheck.vue",
+    "docs/teams/dispensary-otc/TEAM.md",
+    "tests/Feature/Clinical/DispensaryReturnsHistoryTest.php",
+    "docs/reviews/DSP-28-RECOVERY-2026-11-26.md",
+    "docs/teams/dispensary-otc/CLEAN-LOOK-GAPS-2026-11-26.md"
+  ]
+}

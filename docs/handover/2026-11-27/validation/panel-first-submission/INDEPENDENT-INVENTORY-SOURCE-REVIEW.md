@@ -1,0 +1,9 @@
+# Independent Inventory first-submission source review
+
+Read actual new PanelFirstSubmissionDueProjection and directory integration in KPOne-panel-first-submission, plus four new test method contracts. Bounded source CLEAR: exact Prepared/no submitted event predicate applies within original scoped query before filters/count/page; no existing tab predicate changed. New helper bounds IDs to20, batches claim→invoice→visit with org/branch correlations and currentPanel sameorg, skips unavailable visit date rather than inventing context. Date-only/timed rendering delegates unchanged DueRule and current branch timezone; no new submission eligibility or financial rule.
+
+Existing helper legacy incomplete-timed fallback remains authoritative (including its isOverdue semantics); this slice does not repair or reinterpret that shared policy. DTO adds only due/rule/overdue fields for new view. Existing locked directory authority, event history, prior submissions and write services untouched. Read tests for prior-submit→query/edit exclusion, boundary/fallback/archived rules,21-row count/paging/querybound and branch/role denial. Final test/static/browser gates remain builder-owned and pending at review; no independent heavy rerun. Frozen finalhash can pin this review once source settles.
+
+## Frozen final verification
+
+Patch `6f51c873d4efd2b8cd414345d241f6378c224a01b4f223ca5e4f2909dbcea312` and all seven manifest file hashes independently recomputed against candidate: all match. Read final directory consistency adjustment: only not_submitted uses the same submissionDue[id] projection for its displayed due label and overdue boolean; all other tabs retain prior overdueIds behavior. This removes within-row disagreement without changing eligibility/count/authority. Bounded backend CLEAR at this artifact. Builder reports broad51/2502 and finalnew4/156 plusstatic0; no independent heavy rerun. Frontend/browser gates remain separately attributed.

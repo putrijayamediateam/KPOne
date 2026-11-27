@@ -1,0 +1,112 @@
+[
+  {
+    "path": "routes/web.php",
+    "baselineSha256": "f8f4be3b0dfa799b8cfa98a27fa15df26b45532d68d6134fbe35620204883fe8",
+    "finalSha256": "1bbc8d8319502862fa025eb8d0a9d63fe9721018008b5c9ecfce0e6f7e50eb16"
+  },
+  {
+    "path": "app/Http/Controllers/ClinicalEncounterController.php",
+    "baselineSha256": "dab2e020f037bcf106fd7c956856a3331b5b7241f1bb927fc2f7bfd851e75466",
+    "finalSha256": "27d5461d3a97fd1713f4ce9272b844d5ca0192cdc76d255325cec38d131c2f8d"
+  },
+  {
+    "path": "app/Http/Controllers/VisitHistoryController.php",
+    "baselineSha256": "293de56ece41c800662cadf72efe1fca737f7fdcb72bda0fabf30c5931c02aeb",
+    "finalSha256": "356044b1547821c196b30a565b1b8efaec341757b3fde8eb8f4ace88e0a2b90c"
+  },
+  {
+    "path": "resources/js/pages/Clinical/Show.vue",
+    "baselineSha256": "62945f5b98f4869fb837a91b648acd6a0a2ec1a118e22f330bdfc5f40405522f",
+    "finalSha256": "e296614ae2a9a0ff5446c6318c18b1c7a84b1489561bfde4a1fe635805984864"
+  },
+  {
+    "path": "resources/js/pages/Clinical/HistoryShow.vue",
+    "baselineSha256": "457466034a7c6c02e9b47fa708274b3c9ed77007b339c19b2ec470779839c240",
+    "finalSha256": "711629f9475d11a7f4818b5d8fb99c9a62eac6820c8dfd848735a26216bd4ab8"
+  },
+  {
+    "path": "resources/js/pages/Clinical/Partials/ClinicalHistoryPanel.vue",
+    "baselineSha256": "17c2a574f93e829cfb51643279ed5f537fbd650d256cf00c7d51387e5ff108eb",
+    "finalSha256": "5fb96589d944f76a3fb7eb34b24da1ca9528a34941dc6198eb7e1d75bbf1df5a"
+  },
+  {
+    "path": "resources/js/pages/Visits/History.vue",
+    "baselineSha256": "c7798f9edb74098a66732ac4ca668fc2d1afb6ebf73feab33cfe6acf8a67437b",
+    "finalSha256": "6c775be50ccac875da0147912c862ba94acedf3e842dbf1fc8e5da68e13a72f7"
+  },
+  {
+    "path": "resources/js/pages/Billing/Invoice.vue",
+    "baselineSha256": "8e8ef9b7c5b33e7e4129914eb5aecf961caa86dfceff8ee77f4b1daf02622b8d",
+    "finalSha256": "8080ba4169fb94329d98d5e69e6edd4fa56a5825f0d8e03adfe3adeb7831a23b"
+  },
+  {
+    "path": "resources/js/pages/Queue/Index.vue",
+    "baselineSha256": "5d59319cf85e913c7741930ea42618a3d3a38b124c3a8532e107986478b61ec8",
+    "finalSha256": "1b622135bf61d088d74cc2d579d0e87fa2326ad020742abe350a89b8474b0368"
+  },
+  {
+    "path": "resources/js/components/queue/TreatmentProgressBadge.vue",
+    "baselineSha256": "ebfc69b971759d2b51f0823596410f4b4bc59b19ba96265547f47233847bf1c2",
+    "finalSha256": "c51bd6e922b918d44d092a3cff9633382e438996a3d8c95c82daab100be49bad"
+  },
+  {
+    "path": "resources/js/types/patientBoard.ts",
+    "baselineSha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575",
+    "finalSha256": "f7cf27dd7e5274f29c9abfb1c1778d58f87e66d8c6fd8e6897bf2585559dcbb9"
+  },
+  {
+    "path": "resources/js/composables/useTreatmentDoneAlerts.ts",
+    "baselineSha256": "cb04b10de86723f457f87a7bca16deaccdfa8a7c92a28422a15d09d3513e9be3",
+    "finalSha256": "dc7828ccc0c5b2c27a8fab06cf98b776e868212b154a69fce2fe1cc63b0d5502"
+  },
+  {
+    "path": "app/Http/Controllers/TreatmentRoomController.php",
+    "baselineSha256": null,
+    "finalSha256": "2f6af25e2b5242b38cc41425dca0bacb6934eb0382051a0aef5439d707f8bf68"
+  },
+  {
+    "path": "resources/js/types/treatment-room.ts",
+    "baselineSha256": null,
+    "finalSha256": "05cdcc8084c6932bd8603a3a71b1d42d4f8cf90fe80f34f4b682e79bab58bf83"
+  },
+  {
+    "path": "resources/js/components/treatment-room/TreatmentRoomRecordList.vue",
+    "baselineSha256": null,
+    "finalSha256": "87351587d466b3799e96b70e9570c2e67a4ed590d72e024bbe7ce689f6fef02d"
+  },
+  {
+    "path": "resources/js/components/treatment-room/TreatmentRoomReadPanel.vue",
+    "baselineSha256": null,
+    "finalSha256": "ee4b6cf255d376be3eda8823041ea16f3ac5e01be833ebfc255ef99473eac9ea"
+  },
+  {
+    "path": "resources/js/components/treatment-room/TreatmentOutcomeFields.vue",
+    "baselineSha256": null,
+    "finalSha256": "6dda7425e150ea6f6867ee103096914af8b40baf9a2bedae520d16d5ebd0f239"
+  },
+  {
+    "path": "resources/js/pages/TreatmentRoom/Index.vue",
+    "baselineSha256": null,
+    "finalSha256": "745b9592e7583cc9f9519f6acde62c8314cf78eadbd802137fabe1933133f50f"
+  },
+  {
+    "path": "resources/js/pages/TreatmentRoom/Show.vue",
+    "baselineSha256": null,
+    "finalSha256": "508d4f3516e79c034438148d8a1f9a56fc339b57a55501dbc5d59c9c0a941492"
+  },
+  {
+    "path": "tests/Feature/Clinical/TreatmentRoomHttpTest.php",
+    "baselineSha256": null,
+    "finalSha256": "6ff4b44b30e42bdf083936824774238110d5dd37edcca45e37d2b96fde25aefa"
+  },
+  {
+    "path": "tests/Frontend/treatment-room-record-ui.test.mjs",
+    "baselineSha256": null,
+    "finalSha256": "a8ce6acf52cc9145898b50bb71b1b2c34874bb81e39e611155980c6d458ac75b"
+  },
+  {
+    "path": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+    "baselineSha256": null,
+    "finalSha256": "816fb21f2c53b4ab47b0f82032904c57851109dbc02b0a0fcaa2405a42b82746"
+  }
+]

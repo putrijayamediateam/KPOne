@@ -1,0 +1,7 @@
+Own Medicine checks now shows the number of current review lines and the actual sender of that check. The count explicitly includes intentionally not-dispensed lines and is not a supplied medicine quantity. Missing metadata stays unavailable; the original Open Consultation action is unchanged.
+
+Stacked on #1238 (`recovery/queue-done-checkout-time`, including its lint-only follow-up). Eight files: a checks-only bounded metadata projection, wiring/types, own task presentation and new tests. A single grouped query repeats current assignment/encounter/branch/status/open-handoff authority and returns at most25 structural rows. No medicine details/IDs, permission, migration or clinical mutation added; Registration/emergency/default layouts remain unchanged.
+
+Validation: backend16/100 including actual26-case constant-query and25+1paging proof, real sendback/resend removed-line semantics and privacy/revocation tests; full frontend2317, types/build, static/Pint/lint/format and final15 actual component tests pass. Populated390dark/1440light browser proves correct count/sender,44px original action target and unchanged eight-table synthetic state. Independent backend and UI review recorded in the packet. Defensive ambiguity/null behavior is source/SSR qualified, not tested via constraint bypass.
+
+Review draft only, no merge/full-demo parity or production activation claim. Archive #1142 must never be merged.

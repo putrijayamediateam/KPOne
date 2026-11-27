@@ -1,0 +1,13 @@
+# DSP-F11: real checked-return outcome filter
+
+Locked Pharmacy.dc.html C0 tab retdone explicitly defines Outcome: All / Quarantined / Disposed / Refused. Current published DSP28 (#1155 head97c01615) already provides the authoritative checked-this-branch-month query, bounded25-row paging, checked outcome DTO and controlled filter, but no outcome filter. This is a meaningful missing real interaction, not a new return decision or permission.
+
+Proposed isolated stack on1155 (no modification to parent):
+- app/Domain/Clinical/Dispensary/Services/DispensaryReturnService.php: append optional outcome argument after existing withCounts argument to preserve callers; normalize against existing DispensaryReturnCheck::OUTCOMES, to all on waiting tab. Add outcome predicate only to checked query, respecting branch/org/month/controlled and existing pagination/counters. No new joins or queries; no mutation path changes.
+- app/Http/Controllers/DispensaryController.php: string-normalize outcome query (arrays/unknown ->all); forward named optional argument, no route/permission changes.
+- resources/js/pages/Dispensary/ReturnsToCheck.vue: checked-only accessible outcome select with truthful fixed labels; same GET navigation, page reset1 on change, preserve controlled filter/paging, clear outcome when leaving checked. Select target44below1024/36desktop. Existing row/case-only checks remain.
+- new tests/Feature/Clinical/DispensaryReturnsOutcomeFilterTest.php, new actual-SFC frontend filter test, TEAM.md.
+
+Counter semantics: checked total/count reflects active outcome+controlled filters; waiting count never receives an outcome predicate. Switching to Waiting clears outcome to avoid hidden selection. Existing counts already respond to controlled filter; no new count invented. Invalid/array query is normalized safely. Empty-state copy may distinguish no matching checked returns if current generic message is misleading, without hiding filter/reset control.
+
+Tests: each existing outcome, combined controlled, waiting ignores outcome, branch/month boundaries, paging/clamp and fixed query count, no notes in projection, CA denied, HTTP array/invalid query. Preserve all existing assertions; inventory exact impacts before any faithful adaptation. Independent Inventory backend and Staff interaction review before publication. Real synthetic existing domain checks used for browser390/1440 light/dark; no grants/migration/production/new outcome/default reason. Verify completes and case-only return checks unchanged. Full demo still has unresolved Waiting-age filter, organization scope and Ready conflict.

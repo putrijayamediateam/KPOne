@@ -1,0 +1,10 @@
+{
+  "base": "0ff4e0012083fabb1a066d4ac0f91dd605916ba8",
+  "patchSha256": "1ff0dfbcd5a875f983209849391f211a3f8024dccad4948b4fc72e3ab8d72540",
+  "files": {
+    "resources/js/components/inventory/StockSupplierReturnList.vue": "172152d23b35aee908ee0c558ea31c7a26e4823d3994701f67a8b81daaa6a422",
+    "resources/js/pages/Inventory/SupplierReturns.vue": "ed5f136c449baea83398d2fe0c36c0f21ed0fb714f6f7e1c54023f304a68875a",
+    "tests/Frontend/stock-supplier-return-worklist-runtime.test.mjs": "fba9990035e71469f3de3ecda2b29ef5f44d8cf4bda69f59fb7b982cf330fd7b",
+    "docs/teams/inventory/TEAM.md": "6857f7ab4110113159487168278a8d566236cebd79226400646d49251bddde3d"
+  }
+}

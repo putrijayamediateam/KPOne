@@ -1,0 +1,452 @@
+{
+  "result": [
+    {
+      "name": "workspace",
+      "width": 390,
+      "mode": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 44
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 44
+        },
+        {
+          "text": "Done today 0",
+          "height": 44
+        },
+        {
+          "text": "1To prepare",
+          "height": 114
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 114
+        },
+        {
+          "text": "0Done today",
+          "height": 96
+        },
+        {
+          "text": "input",
+          "height": 44
+        },
+        {
+          "text": "Search",
+          "height": 44
+        },
+        {
+          "text": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "text": "Open case",
+          "height": 44
+        },
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        },
+        {
+          "text": "About this tab",
+          "height": 44
+        },
+        {
+          "text": "Today at a glance",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ],
+      "help": true
+    },
+    {
+      "name": "workspace",
+      "width": 390,
+      "mode": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 44
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 44
+        },
+        {
+          "text": "Done today 0",
+          "height": 44
+        },
+        {
+          "text": "1To prepare",
+          "height": 114
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 114
+        },
+        {
+          "text": "0Done today",
+          "height": 96
+        },
+        {
+          "text": "input",
+          "height": 44
+        },
+        {
+          "text": "Search",
+          "height": 44
+        },
+        {
+          "text": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "text": "Open case",
+          "height": 44
+        },
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        },
+        {
+          "text": "About this tab",
+          "height": 44
+        },
+        {
+          "text": "Today at a glance",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ],
+      "help": true
+    },
+    {
+      "name": "workspace",
+      "width": 1440,
+      "mode": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 36
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 36
+        },
+        {
+          "text": "Done today 0",
+          "height": 36
+        },
+        {
+          "text": "1To prepare",
+          "height": 94
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 94
+        },
+        {
+          "text": "0Done today",
+          "height": 94
+        },
+        {
+          "text": "input",
+          "height": 36
+        },
+        {
+          "text": "Search",
+          "height": 36
+        },
+        {
+          "text": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        },
+        {
+          "text": "About this tab",
+          "height": 44
+        },
+        {
+          "text": "Today at a glance",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ],
+      "help": true
+    },
+    {
+      "name": "workspace",
+      "width": 1440,
+      "mode": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 36
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 36
+        },
+        {
+          "text": "Done today 0",
+          "height": 36
+        },
+        {
+          "text": "1To prepare",
+          "height": 94
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 94
+        },
+        {
+          "text": "0Done today",
+          "height": 94
+        },
+        {
+          "text": "input",
+          "height": 36
+        },
+        {
+          "text": "Search",
+          "height": 36
+        },
+        {
+          "text": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        },
+        {
+          "text": "About this tab",
+          "height": 44
+        },
+        {
+          "text": "Today at a glance",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ],
+      "help": true
+    },
+    {
+      "name": "help-hidden",
+      "width": 1440,
+      "mode": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 36
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 36
+        },
+        {
+          "text": "Done today 0",
+          "height": 36
+        },
+        {
+          "text": "1To prepare",
+          "height": 94
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 94
+        },
+        {
+          "text": "0Done today",
+          "height": 94
+        },
+        {
+          "text": "input",
+          "height": 36
+        },
+        {
+          "text": "Search",
+          "height": 36
+        },
+        {
+          "text": "Show helpful info",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ],
+      "help": false
+    },
+    {
+      "name": "check",
+      "width": 390,
+      "mode": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 44
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 44
+        },
+        {
+          "text": "Done today 0",
+          "height": 44
+        },
+        {
+          "text": "1To prepare",
+          "height": 114
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 114
+        },
+        {
+          "text": "0Done today",
+          "height": 96
+        },
+        {
+          "text": "input",
+          "height": 44
+        },
+        {
+          "text": "Search",
+          "height": 44
+        },
+        {
+          "text": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "text": "About this tab",
+          "height": 44
+        },
+        {
+          "text": "Today at a glance",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ],
+      "help": true
+    },
+    {
+      "name": "empty",
+      "width": 1440,
+      "mode": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "To prepare 1",
+          "height": 36
+        },
+        {
+          "text": "Waiting for doctor's check 0",
+          "height": 36
+        },
+        {
+          "text": "Done today 0",
+          "height": 36
+        },
+        {
+          "text": "1To prepare",
+          "height": 94
+        },
+        {
+          "text": "0Waiting for doctor's check",
+          "height": 94
+        },
+        {
+          "text": "0Done today",
+          "height": 94
+        },
+        {
+          "text": "input",
+          "height": 36
+        },
+        {
+          "text": "Search",
+          "height": 36
+        },
+        {
+          "text": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "text": "About this tab",
+          "height": 44
+        },
+        {
+          "text": "Today at a glance",
+          "height": 44
+        },
+        {
+          "text": "Good to know",
+          "height": 44
+        }
+      ],
+      "help": true
+    }
+  ],
+  "errors": []
+}

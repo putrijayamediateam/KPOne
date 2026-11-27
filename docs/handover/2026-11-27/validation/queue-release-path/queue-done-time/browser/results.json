@@ -1,0 +1,38 @@
+[
+  {
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "total": 27,
+    "browserTimezone": "America/New_York",
+    "displayTimezone": "Asia/Kuala_Lumpur",
+    "expected": "27 Nov 2026, 7:56 AM",
+    "foreign": "26 Nov 2026, 6:56 PM",
+    "hit": {
+      "height": 36,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "paging": true,
+    "noMutation": true
+  },
+  {
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "total": 27,
+    "browserTimezone": "America/New_York",
+    "displayTimezone": "Asia/Kuala_Lumpur",
+    "expected": "27 Nov 2026, 7:56 AM",
+    "foreign": "26 Nov 2026, 6:56 PM",
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    },
+    "paging": true,
+    "noMutation": true
+  }
+]

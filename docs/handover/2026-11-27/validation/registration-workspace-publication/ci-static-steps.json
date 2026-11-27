@@ -1,0 +1,22 @@
+{"conclusion":"success","name":"Set up job"}
+{"conclusion":"success","name":"Checkout exact candidate"}
+{"conclusion":"success","name":"Verify HEAD is the attested candidate"}
+{"conclusion":"success","name":"Setup PHP"}
+{"conclusion":"success","name":"Prepare ephemeral CI environment"}
+{"conclusion":"success","name":"Locate Composer cache"}
+{"conclusion":"success","name":"Cache Composer downloads"}
+{"conclusion":"success","name":"Install PHP dependencies"}
+{"conclusion":"success","name":"Generate Wayfinder routes"}
+{"conclusion":"success","name":"Setup Node"}
+{"conclusion":"success","name":"Install frontend dependencies"}
+{"conclusion":"failure","name":"Frontend lint, format and types"}
+{"conclusion":"skipped","name":"PHP format (Pint)"}
+{"conclusion":"skipped","name":"PHP static analysis (PHPStan)"}
+{"conclusion":"skipped","name":"Run frontend behavior tests"}
+{"conclusion":"skipped","name":"Build frontend assets"}
+{"conclusion":"skipped","name":"Laravel optimize and optimize:clear"}
+{"conclusion":"skipped","name":"Prove the shards hold every test exactly once"}
+{"conclusion":"skipped","name":"Post Setup Node"}
+{"conclusion":"skipped","name":"Post Cache Composer downloads"}
+{"conclusion":"success","name":"Post Checkout exact candidate"}
+{"conclusion":"success","name":"Complete job"}

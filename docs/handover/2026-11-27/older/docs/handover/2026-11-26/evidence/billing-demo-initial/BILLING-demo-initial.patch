@@ -1,0 +1,638 @@
+diff --git a/resources/js/pages/Billing/CashClosings.vue b/resources/js/pages/Billing/CashClosings.vue
+index 99707805f..cf08bdfb0 100644
+--- a/resources/js/pages/Billing/CashClosings.vue
++++ b/resources/js/pages/Billing/CashClosings.vue
+@@ -1,6 +1,7 @@
+ <script setup lang="ts">
+ import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+ import { computed, reactive } from 'vue';
++import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
+ import InputError from '@/components/InputError.vue';
+ import { ActionLink } from '@/components/ui/action-link';
+ import { Button } from '@/components/ui/button';
+@@ -151,23 +152,37 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
+ 
+ <template>
+     <Head title="Daily cash closing" />
+-    <main class="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 md:px-6">
+-        <PageHeader
+-            title="Daily cash closing"
+-            :description="`${day.branch} · Count the day's cash takings, then someone else approves the closing`"
+-        >
+-            <template #actions>
+-                <ActionLink href="/payment-reconciliations" variant="secondary">
+-                    Terminal Reconciliation
+-                </ActionLink>
+-                <ActionLink
+-                    :href="`/cash-closings/month?month=${day.businessDate.slice(0, 7)}`"
+-                    variant="secondary"
+-                >
+-                    Month view
+-                </ActionLink>
+-            </template>
+-        </PageHeader>
++    <BillingBoardFrame
++        active="close"
++        about="Count the day's cash takings, then another authorised person reviews the count. The expected amount comes from the recorded cash receipts."
++        guidance="Counting does not change any receipt. Check the selected business date and explain any difference. Someone else must approve the count. Check the day’s status before collecting: payments can be paused while a count is waiting."
++    >
++        <template #header>
++            <PageHeader
++                title="Billing"
++                description="Count the day's cash takings, then someone else approves the closing"
++            >
++                <template #actions>
++                    <ActionLink
++                        v-if="
++                            page.props.auth.permissions.includes(
++                                'payments.reconcile.branch',
++                            )
++                        "
++                        href="/payment-reconciliations"
++                        variant="secondary"
++                    >
++                        Terminal Reconciliation
++                    </ActionLink>
++                    <ActionLink
++                        :href="`/cash-closings/month?month=${day.businessDate.slice(0, 7)}`"
++                        variant="secondary"
++                    >
++                        Month view
++                    </ActionLink>
++                </template>
++            </PageHeader>
++        </template>
+ 
+         <section
+             class="flex flex-wrap items-end justify-between gap-4 rounded-xl border bg-card p-4"
+@@ -465,5 +480,29 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
+                 </p>
+             </article>
+         </section>
+-    </main>
++        <template #context>
++            <dl class="space-y-3 text-sm">
++                <div>
++                    <dt class="text-muted-foreground">Branch</dt>
++                    <dd class="font-medium">{{ day.branch }}</dd>
++                </div>
++                <div>
++                    <dt class="text-muted-foreground">Business date</dt>
++                    <dd>{{ formatDate(day.businessDate) }}</dd>
++                </div>
++                <div>
++                    <dt class="text-muted-foreground">Cash receipts</dt>
++                    <dd class="tabular-nums">
++                        {{ day.expected.receiptCount }}
++                    </dd>
++                </div>
++                <div>
++                    <dt class="text-muted-foreground">Expected cash</dt>
++                    <dd class="font-semibold tabular-nums">
++                        {{ myr(day.expected.cashSen) }}
++                    </dd>
++                </div>
++            </dl>
++        </template>
++    </BillingBoardFrame>
+ </template>
+diff --git a/resources/js/pages/Billing/PayLaterCollections.vue b/resources/js/pages/Billing/PayLaterCollections.vue
+index 35f24d536..290e7a11d 100644
+--- a/resources/js/pages/Billing/PayLaterCollections.vue
++++ b/resources/js/pages/Billing/PayLaterCollections.vue
+@@ -1,5 +1,6 @@
+ <script setup lang="ts">
+ import { Head, router } from '@inertiajs/vue3';
++import BillingBoardFrame from '@/components/billing/BillingBoardFrame.vue';
+ import MergedFromNote from '@/components/patient/MergedFromNote.vue';
+ import { ActionLink } from '@/components/ui/action-link';
+ import { PageHeader } from '@/components/ui/page-header';
+@@ -69,17 +70,23 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
+ 
+ <template>
+     <Head title="Bills to collect" />
+-    <main class="mx-auto w-full max-w-7xl space-y-4 px-4 py-6 md:px-6">
+-        <PageHeader
+-            title="Bills to collect"
+-            :description="`${collections.branch} · Money patients still owe: approved pay later and money due on completed visits, oldest first`"
+-        >
+-            <template #actions>
+-                <ActionLink href="/workspace" variant="secondary">
+-                    Return to Workspace
+-                </ActionLink>
+-            </template>
+-        </PageHeader>
++    <BillingBoardFrame
++        active="collect"
++        about="Money patients still owe at this branch: approved pay later and money due on completed visits, oldest first."
++        guidance="This list records no payments. Open the patient's billing page to collect. Payments clear money due now before pay later. Review any invoice marked Review required before asking the patient to pay."
++    >
++        <template #header>
++            <PageHeader
++                title="Billing"
++                description="Money patients still owe, oldest first"
++            >
++                <template #actions>
++                    <ActionLink href="/workspace" variant="secondary">
++                        Return to Workspace
++                    </ActionLink>
++                </template>
++            </PageHeader>
++        </template>
+ 
+         <section
+             class="grid gap-3 sm:grid-cols-2"
+@@ -282,21 +289,16 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
+         <div v-if="collections.data.length > 0" class="hidden min-w-0 lg:block">
+             <OperationalTable
+                 label="Bills to collect"
+-                :columns="9"
+-                min-width="1120px"
++                :columns="6"
++                min-width="680px"
+             >
+                 <template #head>
+                     <tr>
++                        <th scope="col">KP no.</th>
+                         <th scope="col">Patient</th>
+-                        <th scope="col">Visit / Invoice</th>
+-                        <th scope="col">Visit date</th>
+-                        <th scope="col">Due date</th>
+-                        <th scope="col" class="text-right">
+-                            Approved pay later
+-                        </th>
+-                        <th scope="col" class="text-right">Pay later</th>
+-                        <th scope="col" class="text-right">Due now</th>
++                        <th scope="col">Invoice</th>
+                         <th scope="col" class="text-right">Still owed</th>
++                        <th scope="col">Due</th>
+                         <th scope="col" class="text-right">Action</th>
+                     </tr>
+                 </template>
+@@ -306,80 +308,94 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
+                         :key="row.invoiceNumber"
+                         data-testid="pay-later-row"
+                     >
++                        <td class="font-mono text-xs">
++                            {{ row.patientNumber }}
++                        </td>
+                         <td>
+-                            <span class="block font-medium text-foreground">
+-                                {{ row.patientName }}
+-                            </span>
+-                            <span
+-                                class="block font-mono text-xs text-muted-foreground"
+-                            >
+-                                {{ row.patientNumber }}
+-                            </span>
++                            <span class="block font-medium text-foreground">{{
++                                row.patientName
++                            }}</span>
+                             <MergedFromNote
+                                 v-if="row.mergedFrom"
+                                 :numbers="[row.mergedFrom]"
+                             />
+                         </td>
+                         <td>
+-                            <span class="block">{{ row.visitNumber }}</span>
+-                            <span
+-                                class="block font-mono text-xs text-muted-foreground"
+-                                >{{ row.invoiceNumber }}</span
+-                            >
+-                        </td>
+-                        <td class="whitespace-nowrap">{{ row.visitDate }}</td>
+-                        <td class="whitespace-nowrap">
+-                            {{ dueNowOf(row) > 0 ? 'Now' : row.dueDate }}
+-                            <span
+-                                v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
+-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+-                                >{{ daysSinceVisit(row.daysOverdue) }}</span
+-                            >
+-                            <span
+-                                v-else-if="row.daysOverdue > 0"
+-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+-                                >{{ row.daysOverdue }}
+-                                {{ row.daysOverdue === 1 ? 'day' : 'days' }}
+-                                past due</span
+-                            >
+-                        </td>
+-                        <td class="text-right whitespace-nowrap tabular-nums">
+-                            {{
+-                                row.approvedSen > 0 ? myr(row.approvedSen) : '–'
+-                            }}
+-                        </td>
+-                        <td class="text-right whitespace-nowrap tabular-nums">
+-                            {{
+-                                row.remainingSen > 0
+-                                    ? myr(row.remainingSen)
+-                                    : '–'
+-                            }}
+-                            <span
+-                                v-if="
+-                                    collections.payLaterDue?.[row.visitNumber]
+-                                "
+-                                class="block text-xs text-muted-foreground"
+-                                data-testid="bill-pay-later-due"
+-                                >due
+-                                {{
+-                                    collections.payLaterDue[row.visitNumber]
+-                                }}</span
+-                            >
+-                        </td>
+-                        <td class="text-right whitespace-nowrap tabular-nums">
+-                            <span
+-                                v-if="dueNowOf(row) > 0"
+-                                data-testid="pay-later-due-now"
+-                                >{{ myr(dueNowOf(row)) }}</span
+-                            >
+-                            <span v-else>–</span>
++                            <span class="block font-mono text-xs">{{
++                                row.invoiceNumber
++                            }}</span>
++                            <details class="mt-1 text-xs">
++                                <summary
++                                    class="min-h-9 cursor-pointer py-2 text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
++                                >
++                                    Bill details
++                                </summary>
++                                <dl class="space-y-2 py-2">
++                                    <div>
++                                        <dt class="text-muted-foreground">
++                                            Visit
++                                        </dt>
++                                        <dd>
++                                            {{ row.visitNumber }} ·
++                                            {{ row.visitDate }}
++                                        </dd>
++                                    </div>
++                                    <div>
++                                        <dt class="text-muted-foreground">
++                                            Approved pay later
++                                        </dt>
++                                        <dd>
++                                            {{
++                                                row.approvedSen > 0
++                                                    ? myr(row.approvedSen)
++                                                    : '–'
++                                            }}
++                                        </dd>
++                                    </div>
++                                    <div>
++                                        <dt class="text-muted-foreground">
++                                            Pay later
++                                        </dt>
++                                        <dd>
++                                            {{ myr(row.remainingSen) }}
++                                            <span
++                                                v-if="
++                                                    collections.payLaterDue?.[
++                                                        row.visitNumber
++                                                    ]
++                                                "
++                                                data-testid="bill-pay-later-due"
++                                                >due
++                                                {{
++                                                    collections.payLaterDue[
++                                                        row.visitNumber
++                                                    ]
++                                                }}</span
++                                            >
++                                        </dd>
++                                    </div>
++                                    <div>
++                                        <dt class="text-muted-foreground">
++                                            Due now
++                                        </dt>
++                                        <dd data-testid="pay-later-due-now">
++                                            {{ myr(dueNowOf(row)) }}
++                                        </dd>
++                                    </div>
++                                </dl>
++                                <p v-if="needsReview(row)" class="pb-2">
++                                    The amount may change; open billing before
++                                    collecting.
++                                </p>
++                            </details>
+                         </td>
+                         <td
+                             class="text-right font-semibold whitespace-nowrap tabular-nums"
+                         >
+-                            {{ myr(owedOf(row)) }}
+-                            <span v-if="needsReview(row)" class="mt-1 block">
+-                                <StatusBadge
++                            {{ myr(owedOf(row))
++                            }}<span v-if="needsReview(row)" class="mt-1 block"
++                                ><StatusBadge
++                                    v-if="needsReview(row)"
+                                     status="review_required"
+                                     label="Review required"
+                                     tone="neutral"
+@@ -387,18 +403,35 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
+                                 /><span class="sr-only"
+                                     >, the amount may change; open billing
+                                     before collecting.</span
+-                                >
+-                            </span>
++                                ></span
++                            >
++                        </td>
++                        <td>
++                            <span class="block whitespace-nowrap">{{
++                                dueNowOf(row) > 0 ? 'Now' : row.dueDate
++                            }}</span>
++                            <span
++                                v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
++                                class="text-xs text-muted-foreground"
++                                >{{ daysSinceVisit(row.daysOverdue) }}</span
++                            ><span
++                                v-else-if="row.daysOverdue > 0"
++                                class="text-xs text-muted-foreground"
++                                >{{ row.daysOverdue }}
++                                {{
++                                    row.daysOverdue === 1 ? 'day' : 'days'
++                                }}
++                                past due</span
++                            >
+                         </td>
+                         <td class="text-right">
+                             <ActionLink
+                                 :href="row.url"
+                                 variant="secondary"
+-                                size="sm"
++                                class="min-h-9"
+                                 :aria-label="`Open billing for ${row.visitNumber}`"
++                                >Open billing</ActionLink
+                             >
+-                                Open billing
+-                            </ActionLink>
+                         </td>
+                     </tr>
+                 </template>
+@@ -412,5 +445,31 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
+             :total="collections.shown.count"
+             @change="(page: number) => visit(page)"
+         />
+-    </main>
++        <template #context>
++            <dl class="space-y-3 text-sm">
++                <div>
++                    <dt class="text-muted-foreground">Branch</dt>
++                    <dd class="font-medium">{{ collections.branch }}</dd>
++                </div>
++                <div>
++                    <dt class="text-muted-foreground">As of</dt>
++                    <dd>{{ collections.today }}</dd>
++                </div>
++                <div>
++                    <dt class="text-muted-foreground">
++                        Bills in this filtered list
++                    </dt>
++                    <dd class="tabular-nums">{{ collections.shown.count }}</dd>
++                </div>
++                <div>
++                    <dt class="text-muted-foreground">
++                        Still owed in this filtered list
++                    </dt>
++                    <dd class="font-semibold tabular-nums">
++                        {{ myr(collections.shown.totalSen) }}
++                    </dd>
++                </div>
++            </dl>
++        </template>
++    </BillingBoardFrame>
+ </template>
+diff --git a/resources/js/components/billing/BillingBoardFrame.vue b/resources/js/components/billing/BillingBoardFrame.vue
+new file mode 100644
+index 000000000..6e24b6a3a
+--- /dev/null
++++ b/resources/js/components/billing/BillingBoardFrame.vue
+@@ -0,0 +1,120 @@
++<script setup lang="ts">
++import { Link, usePage } from '@inertiajs/vue3';
++import { computed } from 'vue';
++import { PageFrame } from '@/components/ui/page-frame';
++
++const props = defineProps<{
++    active: 'collect' | 'close';
++    about: string;
++    guidance: string;
++}>();
++const page = usePage();
++const links = computed(() => {
++    const can = (permission: string) =>
++        page.props.auth.permissions.includes(permission);
++    const closing =
++        can('payments.reconcile.branch') ||
++        can('payments.cash_closing.view.branch');
++
++    return [
++        {
++            key: 'collect',
++            label: 'Bills to collect',
++            href: '/pay-later-collections',
++            visible: can('outstanding.view.branch'),
++        },
++        {
++            key: 'close',
++            label: 'Cash closing',
++            href: '/cash-closings',
++            visible: closing,
++        },
++        {
++            key: 'month',
++            label: 'Cash closing month',
++            href: '/cash-closings/month',
++            visible: closing,
++        },
++        {
++            key: 'terminal',
++            label: 'Terminal check',
++            href: '/payment-reconciliations',
++            visible: can('payments.reconcile.branch'),
++        },
++    ].filter((link) => link.visible);
++});
++</script>
++
++<template>
++    <PageFrame width="wide">
++        <main class="min-w-0 space-y-6" aria-label="Billing">
++            <slot name="header" />
++            <p
++                class="w-fit rounded-full bg-muted px-4 py-2 text-sm font-semibold"
++            >
++                Collect and close
++            </p>
++            <nav
++                aria-label="Billing pages"
++                class="flex flex-wrap gap-x-2 border-b"
++            >
++                <Link
++                    v-for="link in links"
++                    :key="link.key"
++                    :href="link.href"
++                    :aria-current="
++                        link.key === props.active ? 'page' : undefined
++                    "
++                    class="inline-flex min-h-11 items-center border-b-2 px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
++                    :class="
++                        link.key === props.active
++                            ? 'border-primary text-foreground'
++                            : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
++                    "
++                    >{{ link.label }}</Link
++                >
++            </nav>
++            <div
++                class="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_260px]"
++            >
++                <section class="min-w-0 space-y-4" aria-label="Billing work">
++                    <slot />
++                </section>
++                <aside class="min-w-0 space-y-3" aria-label="Billing guidance">
++                    <details open class="rounded-xl border bg-card px-4">
++                        <summary
++                            class="min-h-11 cursor-pointer py-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
++                        >
++                            About this tab
++                        </summary>
++                        <p
++                            class="pb-4 text-sm leading-relaxed text-muted-foreground"
++                        >
++                            {{ about }}
++                        </p>
++                    </details>
++                    <section
++                        v-if="$slots.context"
++                        class="rounded-xl border bg-card p-4"
++                        aria-label="Current view"
++                    >
++                        <h2 class="mb-3 text-sm font-semibold">At a glance</h2>
++                        <slot name="context" />
++                    </section>
++                    <details class="rounded-xl border bg-card px-4">
++                        <summary
++                            class="min-h-11 cursor-pointer py-3 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
++                        >
++                            Good to know
++                        </summary>
++                        <p
++                            class="pb-4 text-sm leading-relaxed text-muted-foreground"
++                        >
++                            {{ guidance }}
++                        </p>
++                    </details>
++                </aside>
++            </div>
++        </main>
++    </PageFrame>
++</template>
+diff --git a/tests/Frontend/billing-board-frame.test.mjs b/tests/Frontend/billing-board-frame.test.mjs
+new file mode 100644
+index 000000000..ba5e3d6d0
+--- /dev/null
++++ b/tests/Frontend/billing-board-frame.test.mjs
+@@ -0,0 +1,103 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { createRequire } from 'node:module';
++import test from 'node:test';
++import { runInNewContext } from 'node:vm';
++import { compileScript, parse } from '@vue/compiler-sfc';
++import { renderToString } from '@vue/server-renderer';
++import ts from 'typescript';
++import { createSSRApp, h } from 'vue';
++
++const require = createRequire(import.meta.url);
++const source = readFileSync(
++    'resources/js/components/billing/BillingBoardFrame.vue',
++    'utf8',
++);
++const code = ts.transpileModule(
++    compileScript(parse(source).descriptor, {
++        id: 'billing-board',
++        inlineTemplate: true,
++    }).content,
++    {
++        compilerOptions: {
++            module: ts.ModuleKind.CommonJS,
++            target: ts.ScriptTarget.ES2022,
++        },
++    },
++).outputText;
++async function render(permissions, active = 'collect') {
++    const module = { exports: {} };
++    runInNewContext(code, {
++        exports: module.exports,
++        require: (name) =>
++            name === '@inertiajs/vue3'
++                ? {
++                      usePage: () => ({ props: { auth: { permissions } } }),
++                      Link: {
++                          props: ['href'],
++                          setup:
++                              (props, { slots }) =>
++                              () =>
++                                  h(
++                                      'a',
++                                      { href: props.href },
++                                      slots.default?.(),
++                                  ),
++                      },
++                  }
++                : name === '@/components/ui/page-frame'
++                  ? {
++                        PageFrame: {
++                            setup:
++                                (_, { slots }) =>
++                                () =>
++                                    h('div', slots.default?.()),
++                        },
++                    }
++                  : require(name),
++    });
++    return renderToString(
++        createSSRApp({
++            render: () =>
++                h(
++                    module.exports.default,
++                    {
++                        active,
++                        about: 'Existing branch bills only',
++                        guidance: 'Payment is recorded on billing',
++                    },
++                    {
++                        default: () => h('p', 'Real server rows'),
++                        context: () => h('p', 'RM 12.34'),
++                    },
++                ),
++        }),
++    );
++}
++test('collection-only access does not advertise cash or terminal routes', async () => {
++    const html = await render(['outstanding.view.branch']);
++    assert.match(html, /href="\/pay-later-collections" aria-current="page"/);
++    assert.doesNotMatch(
++        html,
++        /href="\/cash-closings|href="\/payment-reconciliations/,
++    );
++    assert.match(html, /Real server rows/);
++    assert.match(html, /RM 12.34/);
++});
++test('cash view access advertises daily and monthly viewing but not terminal reconciliation', async () => {
++    const html = await render(['payments.cash_closing.view.branch'], 'close');
++    assert.match(html, /href="\/cash-closings" aria-current="page"/);
++    assert.match(html, /href="\/cash-closings\/month"/);
++    assert.doesNotMatch(
++        html,
++        /href="\/pay-later-collections|href="\/payment-reconciliations/,
++    );
++});
++test('reconciliation access includes terminal and native keyboard-operable disclosure content', async () => {
++    const html = await render(['payments.reconcile.branch'], 'close');
++    assert.match(html, /href="\/payment-reconciliations"/);
++    assert.match(html, /<details open/);
++    assert.match(html, /<summary[^>]*>\s*About this tab\s*<\/summary>/);
++    assert.match(html, /Payment is recorded on billing/);
++    assert.doesNotMatch(html, /<form|<button|role="tab"/);
++});

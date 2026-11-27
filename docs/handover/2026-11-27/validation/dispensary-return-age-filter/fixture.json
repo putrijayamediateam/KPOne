@@ -1,0 +1,13 @@
+{
+    "database": "kpone_return_age_preview_test",
+    "actor": "age.supervisor@kpone.test",
+    "counts": {
+        "all": 31,
+        "today": 26,
+        "yesterday": 2,
+        "2days": 1,
+        "3days": 1
+    },
+    "case": "78bded00-59a2-43a1-b48d-baedd9581e28",
+    "setup": "Own clone, synthetic completed case and returns via existing domain services; fixture-local clock only"
+}

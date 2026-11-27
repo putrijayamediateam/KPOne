@@ -1,0 +1,73 @@
+{
+  "kind": "Exact source-extracted Link and scoped ancestor styles; real Inertia Link, production global CSS, synthetic URL; not full Show/auth/backend proof",
+  "results": [
+    {
+      "viewportWidth": 390,
+      "theme": "light",
+      "height": 44,
+      "width": 74.125,
+      "fontSize": "12.5px",
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "href": "/synthetic-triage-target",
+      "absentUrlHidesLink": true
+    },
+    {
+      "viewportWidth": 390,
+      "theme": "dark",
+      "height": 44,
+      "width": 74.125,
+      "fontSize": "12.5px",
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "href": "/synthetic-triage-target",
+      "absentUrlHidesLink": true
+    },
+    {
+      "viewportWidth": 768,
+      "theme": "light",
+      "height": 44,
+      "width": 74.125,
+      "fontSize": "12.5px",
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "href": "/synthetic-triage-target",
+      "absentUrlHidesLink": true
+    },
+    {
+      "viewportWidth": 768,
+      "theme": "dark",
+      "height": 44,
+      "width": 74.125,
+      "fontSize": "12.5px",
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "href": "/synthetic-triage-target",
+      "absentUrlHidesLink": true
+    },
+    {
+      "viewportWidth": 1440,
+      "theme": "light",
+      "height": 36,
+      "width": 74.125,
+      "fontSize": "12.5px",
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "href": "/synthetic-triage-target",
+      "absentUrlHidesLink": true
+    },
+    {
+      "viewportWidth": 1440,
+      "theme": "dark",
+      "height": 36,
+      "width": 74.125,
+      "fontSize": "12.5px",
+      "focused": true,
+      "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "href": "/synthetic-triage-target",
+      "absentUrlHidesLink": true
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

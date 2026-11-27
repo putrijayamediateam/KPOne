@@ -1,0 +1,233 @@
+{
+  "checks": 22,
+  "results": [
+    {
+      "source": "treatment-ui-browser-results.json",
+      "check": "actual 27 steps /26 current /52 history independently counted"
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "width": 1440,
+      "dark": false,
+      "shot": "treatment-record-ui-1440-light.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "width": 1440,
+      "dark": true,
+      "shot": "treatment-record-ui-1440-dark.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "width": 768,
+      "dark": false,
+      "shot": "treatment-record-ui-768-light.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "width": 768,
+      "dark": true,
+      "shot": "treatment-record-ui-768-dark.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "width": 390,
+      "dark": false,
+      "shot": "treatment-record-ui-390-light.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "width": 390,
+      "dark": true,
+      "shot": "treatment-record-ui-390-dark.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "check": "Keep editing retains unsuccessful reason and sends no mutation"
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "check": "second step page reachable, offpage active step still disables Start",
+      "shot": "treatment-record-step-page2-390-dark.png"
+    },
+    {
+      "source": "treatment-ui-browser-results.json",
+      "check": "current record page2 exposes final record independently"
+    },
+    {
+      "source": "treatment-ui-retry-browser-results.json",
+      "check": "first outcome reached server before deliberately dropped response",
+      "status": 302
+    },
+    {
+      "source": "treatment-ui-retry-browser-results.json",
+      "check": "actual UI reconciles unchanged retry and unlocks after response",
+      "requests": [
+        {
+          "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+          "body": {
+            "expected_branch_id": 3,
+            "visit_lock_version": 1,
+            "queue_lock_version": 9,
+            "treatment_step_id": 28,
+            "step_lock_version": 1,
+            "procedure_code": "swab_sample",
+            "outcome_code": "not_successful",
+            "reason_code": "patient_declined",
+            "idempotency_key": "69e6c0b0-3b96-4d06-abd3-72c0164ae972"
+          }
+        },
+        {
+          "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+          "body": {
+            "expected_branch_id": 3,
+            "visit_lock_version": 1,
+            "queue_lock_version": 9,
+            "treatment_step_id": 28,
+            "step_lock_version": 1,
+            "procedure_code": "swab_sample",
+            "outcome_code": "not_successful",
+            "reason_code": "patient_declined",
+            "idempotency_key": "69e6c0b0-3b96-4d06-abd3-72c0164ae972"
+          }
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-retry-browser-results.json",
+      "check": "actual wrong-outcome correction saved without moving clinical state"
+    },
+    {
+      "source": "treatment-ui-retry-browser-results.json",
+      "check": "wrong-patient Cancel sends no mutation"
+    },
+    {
+      "source": "treatment-ui-reader-browser-results.json",
+      "check": "doctor read-only paging retains focus on labelled panel"
+    },
+    {
+      "source": "treatment-ui-reader-browser-results.json",
+      "check": "failed page request keeps focus on persistent panel and shows retry"
+    },
+    {
+      "source": "treatment-ui-reader-browser-results.json",
+      "width": 1440,
+      "dark": false,
+      "shot": "treatment-reader-1440-light.png"
+    },
+    {
+      "source": "treatment-ui-reader-browser-results.json",
+      "width": 1440,
+      "dark": true,
+      "shot": "treatment-reader-1440-dark.png"
+    },
+    {
+      "source": "treatment-ui-reader-browser-results.json",
+      "width": 390,
+      "dark": false,
+      "shot": "treatment-reader-390-light.png"
+    },
+    {
+      "source": "treatment-ui-reader-browser-results.json",
+      "width": 390,
+      "dark": true,
+      "shot": "treatment-reader-390-dark.png"
+    },
+    {
+      "source": "treatment-ui-void-browser-results.json",
+      "check": "actual wrong-patient void preserves history after correction",
+      "posts": [
+        {
+          "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/voids?steps_page=1&current_page=1&history_page=1",
+          "body": {
+            "expected_branch_id": 3,
+            "visit_lock_version": 1,
+            "queue_lock_version": 9,
+            "target_record_id": 55,
+            "reason_code": "wrong_patient",
+            "idempotency_key": "f1df5928-6cf6-4629-b250-6bae8c8e8fd4"
+          }
+        }
+      ]
+    },
+    {
+      "source": "treatment-ui-void-browser-results.json",
+      "check": "void history exposes no patient transfer or crosspatient navigation"
+    }
+  ],
+  "stateProof": {
+    "sameRetryPayload": true,
+    "oneOutcomeEvidence": true,
+    "originalFailurePreserved": true,
+    "correctionPreservesPerformance": true,
+    "voidTargetsOnlySuccessor": true,
+    "sameVisitVersion": true,
+    "sameQueueVersion": true,
+    "sameActiveHold": true,
+    "stillRegisteredServing": true
+  },
+  "harnessNotes": [
+    "Initial main script used a fixed600ms postretry assertion; server proof passed but final UI reconciliation was verified in a fresh UI-started follow-up with explicit wait.",
+    "Retry/correction script reached void confirmation but used shortened button label; exact rendered label follow-up completed void. No failed harness check was counted as a passing check."
+  ]
+}

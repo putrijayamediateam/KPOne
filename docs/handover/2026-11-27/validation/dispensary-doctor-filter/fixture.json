@@ -1,0 +1,8 @@
+{
+    "database": "kpone_doctor_filter_preview_test",
+    "actor": "doctor.filter.ca@kpone.test",
+    "doctorName": "Synthetic Doctor 00 with an intentionally long display name for narrow screen proof",
+    "case": "2e6d3d65-f8da-43dd-a3ed-cd905ffc0659",
+    "visit": "KPV-00000035",
+    "doctors": 26
+}

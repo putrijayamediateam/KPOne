@@ -1,0 +1,98 @@
+[
+  {
+    "role": "paging_doctor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Treatment step",
+      "Held",
+      "Actions"
+    ],
+    "oneActualBadge": true,
+    "unsuccessfulVisible": true,
+    "hit": {
+      "height": 44,
+      "top": 778.5,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "paging_doctor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Zone",
+      "Treatment step",
+      "Held",
+      "Actions"
+    ],
+    "oneActualBadge": true,
+    "unsuccessfulVisible": true,
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Waiting / since",
+      "Status",
+      "Actions"
+    ],
+    "oneActualBadge": true,
+    "unsuccessfulVisible": true,
+    "hit": {
+      "height": 44,
+      "top": 824.25,
+      "hostBottom": 400,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "headers": [
+      "No.",
+      "Patient",
+      "Doctor",
+      "Waiting / since",
+      "Status",
+      "Actions"
+    ],
+    "oneActualBadge": true,
+    "unsuccessfulVisible": true,
+    "hit": {
+      "height": 44,
+      "top": 267.5,
+      "hostBottom": 256,
+      "hit": true,
+      "focused": true
+    },
+    "noMutationInvoked": true
+  }
+]

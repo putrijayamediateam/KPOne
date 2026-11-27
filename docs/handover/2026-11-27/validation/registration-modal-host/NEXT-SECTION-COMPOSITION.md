@@ -1,0 +1,9 @@
+# Next bounded demo reconciliation — proposal only
+
+Actual `RegisterVisit.dc.html` has one scrollable form with four numbered section headings: 1 Patient (line38), 2 Visit (115), 3 Who pays (147), 4 Check and register (158). It does **not** implement a four-step wizard, Next/Previous navigation or step-gated validation. Earlier references to four stages must not be interpreted as authorization to invent those behaviors.
+
+After the native dialog is published, propose a presentation-only form section reconciliation on that exact stack: preserve Patient, group current Visit type/Doctor/Visit Reason/Urgency under 2 Visit, group current coverage/panel/member/note controls under 3 Who pays, and present existing read-only summary as 4 Check and register. Keep one form owner, all current fields/handlers/errors, source order meaningful, dialog/fullpage submit semantics, pending/uncertain locks, and original fullpage fallback. No wizard, hidden steps, new validation, authority or backend changes.
+
+Own only RegistrationCreateForm and the summary's optional heading presentation if needed, plus meaningful layout/runtime tests. Collect exact source-assertion changes before applying under delegated peer review. Verify saved and quick patient, Consultation/OTC, Self-pay/Panel, validation focus and uncertain retry at390/1440 both themes. Script parity except optional presentation prop; preserve ID-based labels and primary reason order.
+
+Demo Family and adult-required emergency sections are explicitly proposal-labelled and superseded by settled owner contracts (direct manual links; optional patient emergency contact). Those already approved features remain separate PR dependencies. Do not introduce demo shared-phone inference, clinical disclosure, pay-later state or fabricated branch metrics in this slice.

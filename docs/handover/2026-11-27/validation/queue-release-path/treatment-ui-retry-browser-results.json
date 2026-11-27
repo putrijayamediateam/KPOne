@@ -1,0 +1,116 @@
+{
+  "results": [
+    {
+      "check": "first outcome reached server before deliberately dropped response",
+      "status": 302
+    },
+    {
+      "check": "actual UI reconciles unchanged retry and unlocks after response",
+      "requests": [
+        {
+          "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+          "body": {
+            "expected_branch_id": 3,
+            "visit_lock_version": 1,
+            "queue_lock_version": 9,
+            "treatment_step_id": 28,
+            "step_lock_version": 1,
+            "procedure_code": "swab_sample",
+            "outcome_code": "not_successful",
+            "reason_code": "patient_declined",
+            "idempotency_key": "69e6c0b0-3b96-4d06-abd3-72c0164ae972"
+          }
+        },
+        {
+          "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+          "body": {
+            "expected_branch_id": 3,
+            "visit_lock_version": 1,
+            "queue_lock_version": 9,
+            "treatment_step_id": 28,
+            "step_lock_version": 1,
+            "procedure_code": "swab_sample",
+            "outcome_code": "not_successful",
+            "reason_code": "patient_declined",
+            "idempotency_key": "69e6c0b0-3b96-4d06-abd3-72c0164ae972"
+          }
+        }
+      ]
+    },
+    {
+      "check": "actual wrong-outcome correction saved without moving clinical state"
+    },
+    {
+      "check": "wrong-patient Cancel sends no mutation"
+    }
+  ],
+  "posts": [
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/start?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "procedure_code": "swab_sample",
+        "idempotency_key": "b3d21dca-ad95-40fb-bbde-d8f943a5cb00"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "treatment_step_id": 28,
+        "step_lock_version": 1,
+        "procedure_code": "swab_sample",
+        "outcome_code": "not_successful",
+        "reason_code": "patient_declined",
+        "idempotency_key": "69e6c0b0-3b96-4d06-abd3-72c0164ae972"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "treatment_step_id": 28,
+        "step_lock_version": 1,
+        "procedure_code": "swab_sample",
+        "outcome_code": "not_successful",
+        "reason_code": "patient_declined",
+        "idempotency_key": "69e6c0b0-3b96-4d06-abd3-72c0164ae972"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/corrections?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "target_record_id": 54,
+        "correction_code": "wrong_outcome",
+        "procedure_code": "swab_sample",
+        "outcome_code": "done",
+        "reason_code": null,
+        "idempotency_key": "fa869d91-3bfe-477a-93ca-8154fb93e9bc"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/start?steps_page=1&current_page=1&history_page=1",
+      "status": 302
+    },
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+      "status": 302
+    },
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/corrections?steps_page=1&current_page=1&history_page=1",
+      "status": 302
+    }
+  ],
+  "errors": []
+}

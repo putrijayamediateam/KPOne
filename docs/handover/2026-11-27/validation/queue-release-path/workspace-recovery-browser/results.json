@@ -1,0 +1,188 @@
+[
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "height": 44,
+    "theme": "light",
+    "control": "Apply",
+    "top": 297.5,
+    "bottom": 341.5,
+    "hostBottom": 256,
+    "hit": true,
+    "viewportHeight": 640
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "height": 44,
+    "theme": "dark",
+    "control": "Apply",
+    "top": 297.5,
+    "bottom": 341.5,
+    "hostBottom": 256,
+    "hit": true,
+    "viewportHeight": 640
+  },
+  {
+    "role": "resident_doctor",
+    "width": 768,
+    "height": 44,
+    "theme": "light",
+    "control": "Apply",
+    "top": 478,
+    "bottom": 522,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "resident_doctor",
+    "width": 768,
+    "height": 44,
+    "theme": "dark",
+    "control": "Apply",
+    "top": 478,
+    "bottom": 522,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "height": 36,
+    "theme": "light",
+    "control": "Apply",
+    "top": 482,
+    "bottom": 518,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "height": 36,
+    "theme": "dark",
+    "control": "Apply",
+    "top": 482,
+    "bottom": 518,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 44,
+    "theme": "light",
+    "control": "Apply",
+    "top": 297.5,
+    "bottom": 341.5,
+    "hostBottom": 256,
+    "hit": true,
+    "viewportHeight": 640
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 44,
+    "theme": "dark",
+    "control": "Apply",
+    "top": 297.5,
+    "bottom": 341.5,
+    "hostBottom": 256,
+    "hit": true,
+    "viewportHeight": 640
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 768,
+    "height": 44,
+    "theme": "light",
+    "control": "Apply",
+    "top": 478,
+    "bottom": 522,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 768,
+    "height": 44,
+    "theme": "dark",
+    "control": "Apply",
+    "top": 478,
+    "bottom": 522,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "height": 36,
+    "theme": "light",
+    "control": "Apply",
+    "top": 482,
+    "bottom": 518,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "height": 36,
+    "theme": "dark",
+    "control": "Apply",
+    "top": 482,
+    "bottom": 518,
+    "hostBottom": 400,
+    "hit": true,
+    "viewportHeight": 1000
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 640,
+    "paging": "25+1 keyboard",
+    "nextHit": {
+      "top": 297.5,
+      "bottom": 341.5,
+      "height": 44,
+      "hostBottom": 256,
+      "hit": true,
+      "viewportHeight": 640
+    },
+    "previousHit": {
+      "top": 297.5,
+      "bottom": 341.5,
+      "height": 44,
+      "hostBottom": 256,
+      "hit": true,
+      "viewportHeight": 640
+    }
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "height": 640,
+    "control": "Patient actions",
+    "actionHit": {
+      "top": 297.75,
+      "bottom": 341.75,
+      "height": 44,
+      "hostBottom": 256,
+      "hit": true,
+      "viewportHeight": 640
+    },
+    "openedAndDismissed": true
+  },
+  {
+    "role": "ca_supervisor",
+    "doctorsSection": true,
+    "boundedExistingRooms": true
+  }
+]

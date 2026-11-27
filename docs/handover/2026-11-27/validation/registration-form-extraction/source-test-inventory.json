@@ -1,0 +1,147 @@
+[
+  {
+    "file": "tests/Frontend/auto-1-doctor-assignment.test.mjs",
+    "directReferences": 3,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 29,
+    "assertionCallsAfter": 29
+  },
+  {
+    "file": "tests/Frontend/classic-only-co4-kept.test.mjs",
+    "directReferences": 2,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 62,
+    "assertionCallsAfter": 62
+  },
+  {
+    "file": "tests/Frontend/guardian-contact.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 13,
+    "assertionCallsAfter": 13
+  },
+  {
+    "file": "tests/Frontend/i2-ui-ux-remediation.test.mjs",
+    "directReferences": 3,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 29,
+    "assertionCallsAfter": 29
+  },
+  {
+    "file": "tests/Frontend/panel-note.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 37,
+    "assertionCallsAfter": 37
+  },
+  {
+    "file": "tests/Frontend/patient-registration.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 38,
+    "assertionCallsAfter": 38
+  },
+  {
+    "file": "tests/Frontend/q1b2-public-patient-intake.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 96,
+    "assertionCallsAfter": 96
+  },
+  {
+    "file": "tests/Frontend/quick-create-sticky-overlap.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 7,
+    "assertionCallsAfter": 7
+  },
+  {
+    "file": "tests/Frontend/r1c2-registration-consultation.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 54,
+    "assertionCallsAfter": 54
+  },
+  {
+    "file": "tests/Frontend/reg-10-toggle-touch-targets.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 2,
+    "assertionCallsAfter": 2
+  },
+  {
+    "file": "tests/Frontend/reg-5-merge-follow-ups.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 21,
+    "assertionCallsAfter": 21
+  },
+  {
+    "file": "tests/Frontend/reg-6-phone-input-fit.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 11,
+    "assertionCallsAfter": 11
+  },
+  {
+    "file": "tests/Frontend/reg-9-patient-pale-colours.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 6,
+    "assertionCallsAfter": 6
+  },
+  {
+    "file": "tests/Frontend/registration-contact-settings.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 31,
+    "assertionCallsAfter": 31
+  },
+  {
+    "file": "tests/Frontend/ui-dropdown-darkmode-polish.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 31,
+    "assertionCallsAfter": 31
+  },
+  {
+    "file": "tests/Frontend/ui-polish-1.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 33,
+    "assertionCallsAfter": 33
+  },
+  {
+    "file": "tests/Frontend/unknown-dob-confirmation.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 12,
+    "assertionCallsAfter": 12
+  },
+  {
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 22,
+    "assertionCallsAfter": 22
+  },
+  {
+    "file": "tests/Frontend/visit-reason-picker.test.mjs",
+    "directReferences": 1,
+    "change": "Read extracted form for unchanged behavior assertions; keep wrapper in structural-wide guards where applicable.",
+    "assertionCallsBefore": 17,
+    "assertionCallsAfter": 17
+  },
+  {
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "change": "Only dynamically assembled registration source location changes; existing assertions preserved.",
+    "assertionCallsBefore": 4,
+    "assertionCallsAfter": 4
+  },
+  {
+    "file": "tests/Frontend/registration-settings.test.mjs",
+    "change": "Only dynamically assembled registration source location changes; existing assertions preserved.",
+    "assertionCallsBefore": 26,
+    "assertionCallsAfter": 26
+  }
+]

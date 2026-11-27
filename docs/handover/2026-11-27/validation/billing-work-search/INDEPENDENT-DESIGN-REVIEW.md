@@ -1,0 +1,13 @@
+# Independent source review — final browser closure pending
+
+Verified seven-file patch `66d86bb22a257797047f71e9b5e2159819177865f5ae27217f27e45e67424885` and all source hashes on exact reviewed mobile-card base `039d28effb40ac96221c24f3649407a8711586b6`.
+
+Read grouped literal ILIKE query after existing tenant/branch/current-finalized and Panel responsibility predicates, before count/pagination. Money derivation and Review authority unchanged. Scalar-source watch preserves draft on same-value whole-work replacement; actual branchId/mode/applied changes reset to loaded query. Pagination uses applied query, submit uses draft, empty-page guidance distinguishes out-of-range pages from no matches without changing backend pagination. Faithful three no-form adapters require exactly one named search form and preserve financial mutation denials/card/amount checks.
+
+Independently ran four new actual template/handler tests successfully. Inspected Finance and Panel single-result390dark images: six finance amounts remain distinct and Panel responsibility remains explicitly separate from claims submission. Final source has no blocker identified. Full browser results and both mode branch-switch/delayed-response proof are still pending final disposition; this note does not grant final publication clearance yet.
+
+## Final browser clearance
+
+Final candidate remains `66d86bb22a257797047f71e9b5e2159819177865f5ae27217f27e45e67424885`. Completed browser-results.json independently read: 50 records including 40 visual states, six mode/width target sets and both mode failed-read/branch replacement proofs. Search/input/Clear measure44px at390/768 and36px at1440; applied paging and keyboard Clear pass, no recorded page overflow. Loaded filter survives intentional failed GET. Actual branch switch preserves new context when the held old GET is released; evidence says delivered-or-discarded, so this certifies normal Inertia cancellation behavior, not a demonstrated abort-ignoring callback. Same-value full-prop replacement is independently covered by the actual runtime test.
+
+Builder reports financial table hashes/counts unchanged; initial unavailable secondary assignment403 and rail-selector attempts remain diagnostics rather than product failures. Full2211/types after scalar watcher fix preceded final out-of-range empty copy; final7 focused/lint/build cover the narrow final copy/test addition. Four new tests independently passed as recorded above. Final bounded source/design clearance granted. Existing review URL/action and separate six-amount Finance versus Panel responsibility contracts retained; no full financial screen parity or merge claim.

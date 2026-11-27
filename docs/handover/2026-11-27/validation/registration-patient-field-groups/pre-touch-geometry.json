@@ -1,0 +1,92 @@
+[
+  {
+    "mode": "fullpage",
+    "width": 390,
+    "selector": "#quick-phone",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 390,
+    "selector": "#quick-phone-country",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 390,
+    "selector": "#quick-contact-email",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 390,
+    "selector": "#quick-contact-address_line_1",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 390,
+    "selector": "#quick-contact-country_code",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 768,
+    "selector": "#quick-phone",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 768,
+    "selector": "#quick-phone-country",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 768,
+    "selector": "#quick-contact-email",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 768,
+    "selector": "#quick-contact-address_line_1",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 768,
+    "selector": "#quick-contact-country_code",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 1440,
+    "selector": "#quick-phone",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 1440,
+    "selector": "#quick-phone-country",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 1440,
+    "selector": "#quick-contact-email",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 1440,
+    "selector": "#quick-contact-address_line_1",
+    "height": 40
+  },
+  {
+    "mode": "fullpage",
+    "width": 1440,
+    "selector": "#quick-contact-country_code",
+    "height": 40
+  }
+]

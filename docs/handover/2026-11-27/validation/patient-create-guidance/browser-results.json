@@ -1,0 +1,70 @@
+{
+  "captures": [
+    {
+      "state": "initial",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "initial",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "initial",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "initial",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "minor",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "minor",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "minor",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "minor",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "invalid",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "invalid",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "invalid",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "invalid",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "creates": 0,
+  "mobileFormBeforeGuidance": true,
+  "minorGuidanceMatchesDate": true,
+  "invalidSubmitFocus": true,
+  "settingsUnchanged": true
+}

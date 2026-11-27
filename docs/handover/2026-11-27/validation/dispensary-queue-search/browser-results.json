@@ -1,0 +1,101 @@
+{
+  "captures": [
+    {
+      "name": "consultation-number",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "consultation-number",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "consultation-number",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "consultation-number",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "otc-number",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "otc-number",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "otc-number",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "otc-number",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "type-intersection-empty",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "type-intersection-empty",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "type-intersection-empty",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "type-intersection-empty",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "checks": [
+    {
+      "search": "A-001",
+      "expectedCase": "12394bee-8be4-47bc-805e-ce5ff7c9b693"
+    },
+    {
+      "search": "B-001",
+      "expectedCase": "56d94b9e-38d7-4458-97ce-ae5d661c2228"
+    },
+    {
+      "search": "b-001",
+      "expectedCase": "56d94b9e-38d7-4458-97ce-ae5d661c2228"
+    },
+    {
+      "search": "KP-00000041",
+      "expectedCase": "56d94b9e-38d7-4458-97ce-ae5d661c2228"
+    },
+    {
+      "search": "KPV-00000031",
+      "expectedCase": "56d94b9e-38d7-4458-97ce-ae5d661c2228"
+    },
+    {
+      "search": "Synthetic Visit Patient JODZLRZJ",
+      "expectedCase": "56d94b9e-38d7-4458-97ce-ae5d661c2228"
+    },
+    {
+      "search": "B-001",
+      "expectedCase": "56d94b9e-38d7-4458-97ce-ae5d661c2228"
+    },
+    {
+      "search": "B-9223372036854775808",
+      "expectedCase": null
+    },
+    "Overflow refused safely without server failure"
+  ],
+  "errors": [],
+  "writes": []
+}

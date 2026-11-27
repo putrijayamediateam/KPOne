@@ -1,0 +1,5 @@
+# Waiting-case navigation plan review
+
+Read actual DispensaryDirectoryService::canView, DispensaryListService::page/TAB_CHECK and dispensary.index route middleware. Plan clear: use the fresh settings-authorized actor, existing canView policy and real named route/tab constant. Policy requires existing view permission plus an eligible clinical role, or existing readonly permission; settings.manage alone is insufficient. Standard Director negative should be policy-derived, not a new hardcoded role denial. Destination repeats its own activebranch/list authorization.
+
+Do not gate this navigation on the current doctor-check switch value: existing waiting cases can retain their captured check requirement even if current settings are off. No counts or extra clinical query needed. No new permissions, staff visibility, mutation or write authority. Same-row settings metadata and existing toggle flow remain untouched. Final implementation/tests/browser proof still required; no heavy rerun/source edit by reviewer.

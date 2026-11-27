@@ -1,0 +1,63 @@
+{
+  "base": "8e640c0b43188e550d1faa20d67d98eea6884070",
+  "patch": "TRI2-LANE-ON-LIFECYCLE-v1.patch",
+  "sha256": "f2dcfe03c9bf680a6b34fc74a7d064cd823e4a43170380d61e84c9d487a5cc5a",
+  "files": [
+    {
+      "path": "app/Domain/Queue/Emergency/EmergencyLaneProjection.php",
+      "sha256": "dbec5bcf40fa8be5d5ad534de189c195bee4929f60a4b9bdad801cea0c1e816e"
+    },
+    {
+      "path": "app/Domain/Queue/Services/QueueDirectoryService.php",
+      "sha256": "0557dc198ec0dc98c10fe9e8e8da55eb475063bb92cad2ac460355b368811169"
+    },
+    {
+      "path": "app/Domain/Visit/Services/VisitDirectoryService.php",
+      "sha256": "1ebfaa3afab5f2d4e2e1855cd4d2b8aa876a2bb00ac472cd1259d4bb50d3ce3b"
+    },
+    {
+      "path": "app/Http/Requests/SearchQueueEntriesRequest.php",
+      "sha256": "de9c0c77fb4ee50c48b030804e1c1fe8dc2cbcadc74da1bfe258458fd471964c"
+    },
+    {
+      "path": "app/Http/Requests/SearchVisitsRequest.php",
+      "sha256": "6b7b915744b2d1bc4a532c2559962ff7287013ef522e1436fb505ab3d998a0ba"
+    },
+    {
+      "path": "docs/reviews/TRI2-LANE-RECOVERY-2026-11-26.md",
+      "sha256": "3adeeb6b14509fd20b9fa85b9bd8392bf694fbba351a2b84243addf9765e8c51"
+    },
+    {
+      "path": "tests/Feature/Clinical/PilotCompletedQueueScaleTest.php",
+      "sha256": "57d553b067a0a4f46a22d62d640a22d5b72a2d1a1d5049f7b35d359cb5fff59e"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyAlertBoundedAlarmTest.php",
+      "sha256": "c8ab08a967ddf005e79cbb29c5d222c17a4650850e5441156d52a3d4c8b84207"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "sha256": "33b5a1edd3c962a026eae2d3cc97501676efb07810dfe3c505eff3cc0c6cd655"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyLaneRegistrationScopeTest.php",
+      "sha256": "66c54b805ad41c9bd44e5ef5fa68ba88d4b41c38c41589933f03c9cb6896962b"
+    },
+    {
+      "path": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "sha256": "fe5c3faec464d673909de680dcdb72901628ca5451b9a33a4131cfe11af81bd1"
+    },
+    {
+      "path": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "sha256": "8a44ae91c7522c676f31923523d67cccf0b342645d1d9d14dff98f5c962b4371"
+    },
+    {
+      "path": "tests/Feature/Queue/QueueWaitingOrderTest.php",
+      "sha256": "05859cf2b38c3e987bd3bbba34faa7f3f5dca5d10c77d10433c35ecb3408962d"
+    },
+    {
+      "path": "tests/Feature/Queue/TabCountsTest.php",
+      "sha256": "1839964f2b1d8c40a5300de9dedb064cad9b8b0a4bf0e4a33977075ee369c0aa"
+    }
+  ]
+}

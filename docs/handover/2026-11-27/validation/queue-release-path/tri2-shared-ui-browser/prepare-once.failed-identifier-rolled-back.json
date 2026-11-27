@@ -1,0 +1,1 @@
+{"status":"failed","phase":"transaction","errorClass":"Illuminate\\Validation\\ValidationException","instruction":"Do not rerun automatically; inspect domain state and evidence first."}

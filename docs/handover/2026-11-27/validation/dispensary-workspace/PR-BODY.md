@@ -1,0 +1,11 @@
+The Dispensary list now presents its three existing server-count states as selectable cards beside contextual help, following the uploaded Pharmacy workspace layout. Card selection retains the existing tab query, search, pagination and visible-only polling. Case and label actions remain on their existing paths.
+
+Returns navigation follows a server-derived capability using the return service's existing CA Supervisor/check permission policy plus branch-view permission. The initial client permission-only guard incorrectly offered CAs a link to a forbidden page; the bounded follow-up corrects that mismatch without granting access. New HTTP and actual-browser checks prove CA sees no link and receives403 at the endpoint, while CA Supervisor sees the link and opens it with200.
+
+The established three states remain: Verify completes the case and return checks stay on the case page. No Ready state, all-branch access, new filters, follow-up links, permission grants, migrations or clinical defaults. Existing assertions are unchanged.
+
+Validation:2,206 full frontend checks for the original composition/lint follow-up; latest capability correction passes18 focused PostgreSQL tests/334 assertions, eight focused frontend checks, full types/build, controller PHPStan and scoped lint/Pint/format. Seven actual synthetic390/1440 light/dark states plus a two-actor authority matrix pass with no page overflow,44px mobile and36px desktop targets. Independent reviews are recorded separately; latest exact-head CI is authoritative.
+
+Initial static CI failure was new test-harness brace/spacing lint; fixed without changing assertions. The formatting-only head passed all six CI checks before the capability correction. Filter-only local PHPUnit invocations encountered baseline duplicate Contention-suite registration warnings; final Feature-selected focused runs exit0 without config/assertion changes.
+
+Known inherited issue: shared sidebar highlights Today on /dispensary because its menu links to the Registration dispensary tab. This PR does not change shared navigation. Broader full-demo parity remains unfinished. Draft for review; no merge requested.

@@ -1,0 +1,9 @@
+{
+  "base": "fe8ec2a9991c7a4f7fee8d398fe7ccdebaf78bd7",
+  "patch_sha256": "2028adf7c24511f1a08b2bb389ac2404a992388e619e1f41c2f842ab67cc8e67",
+  "files": {
+    "resources/js/pages/Patient/Create.vue": "cc0bf1864b59417a150ccbc9e49a66fae0d3a6eb096cf89e9d713e2d83f96713",
+    "resources/js/components/patient/PatientCreateGuidance.vue": "56c11cebcb9c1ce935c95649ca8941063e731216355b8f57616b0270747e66c5",
+    "tests/Frontend/patient-create-guidance.test.mjs": "a5cf11a449062f2616d9c4ccbe41794d7f55a2259e1242fd99064b77f62321a4"
+  }
+}

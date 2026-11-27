@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IlZtSG1WbVkvYVlZSFpZeEc2ZUlORXc9PSIsInZhbHVlIjoiZWFmMjc0WStNSXRueFBJVGpzcjdxcEIxeU9Lb0ZqQm1MTWZtelI4WTFzNGx4V2NTNmpxVnpCOGhYYUxUK2tTRjE2WVlxa2FEV0xBWlI0TDN3TnJ0RXJVd0NxVUxmb2JZMlVRZHJNRk4wbmViRVVjODZzam84Nkc1aHZkTzdndzEiLCJtYWMiOiJkMDM3NDY5NWExYTYwYzg2NjFlOGFjOGUyMzY0ZjYyYjQ5MmFmZjY0NTA4ZDBlODMwNDg3N2Y2MzRlNjZmNzNhIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795670115.416598,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6IlAvMHh5U2FlOEVZN1QxNDlKbEtzL0E9PSIsInZhbHVlIjoieHMyamUvdFNTYU51K2xqelRjRUwxU2wvOTJ4VUkzdi94b3JHaVVxTDdrU2dsVkg2bTlic1VUSzNqZkJsV3l2dlcwMWprWlRwelplUk55cjcwNXR0UlhtVWV2ekpSUDFLUGR2N3JqYXdyQXhwWTVPZ1J0WWlnT3VnaE5WM1dhL2ciLCJtYWMiOiJhNzZlZmY3YWQyMGUzY2ZlNGVhMTQ2ZDgzMGRkMjIwZGIyYmIwMzhmNTkzMmJmMDMxOGMzMjk2OGJlZmMxMTM3IiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795670115.416725,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3036",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c9-4b92-71e2-b8fc-da72608c1487",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c9-4b92-71e2-b8fc-da72608c1487\",\"serverEpoch\":\"01a215c9-4b92-71e2-b8fc-da72608c1487\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c9-4048-7177-9ead-9dcb7d11c710",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c9-4048-7177-9ead-9dcb7d11c710\",\"serverEpoch\":\"01a215c9-4048-7177-9ead-9dcb7d11c710\"}"
+        },
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c9-4b92-71e2-b8fc-da72608c1487\",\"serverEpoch\":\"01a215c9-4b92-71e2-b8fc-da72608c1487\"}"
+        }
+      ]
+    }
+  ]
+}

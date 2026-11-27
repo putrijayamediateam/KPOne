@@ -1,0 +1,8 @@
+{
+  "resources/js/pages/Registration/Index.vue": {
+    "scriptParityExceptPresentationAdditions": true
+  },
+  "resources/js/components/registration/QrIntakeTable.vue": {
+    "scriptParityExceptPresentationAdditions": true
+  }
+}

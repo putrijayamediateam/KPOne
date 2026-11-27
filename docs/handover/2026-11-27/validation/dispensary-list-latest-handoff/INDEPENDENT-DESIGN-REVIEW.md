@@ -1,0 +1,5 @@
+# Independent latest-handoff UI implication review
+
+CLEAR exact three-file patch `27973048a93a6f3c278cb304c0d63a5d5fd497a374d8f768d47fbf4635bd2f49`. Independently verified all hashes and inspected the one-line application change: list-only eager relation reorder replaces accumulated ascending/descending ordering with descending attempt order. Global chronological history, label authority predicates and frontend remain unchanged. This correction is explicit, separately authorized prerequisite work, not silently bundled medicine search.
+
+Inspected actual done-CA390 dark: zero current medicines is retained and permitted reprint action restored. Doctor JSON records zero/current view-only action in all four states, no errors/writes. Builder12 states include Prepare/no label and completed CA/Doctor distinction;33 backend tests/502 assertions and before-fix failures plus Inventory SQL review are separate reported evidence. No independent mutation/browser replay or frontend rebuild claimed; parent assets unchanged. No blocking UI implication, no new clinical action/permission and no full-demo claim.

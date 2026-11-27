@@ -1,0 +1,11 @@
+# Next independent preparation: Batch & expiry layout
+
+Read-only preparation while exact On-hand assertion approval / review closes. Existing main InventoryDirectoryService::batches (lines160–190) already returns SKU, item, mapped medicine, batch, location, exact quantity/unit, received date, formatted expiry, expiryStatus(Expired/Valid), batchStatus and holdReason. Read-only route remains /inventory?tab=batches, same filters/pagination. No business feature or backend dependency is needed to replace its1120px table with a responsive list + details in a separate overlay after current source freeze.
+
+Proposed owned files: new components/inventory/StockBatchList.vue, Index batch-view import/mount, new runtime tests. Reuse current shell/toolbar/info rail. Primary row: item+batch, quantity/unit, expiry and separate actual expiry/batch statuses; disclosure: SKU, mapped medicine, location and received date. No report action added: batch projection has no DifferenceState. Preserve two status dimensions (expired and held can coexist), null receivedDate uses dash, hold-without-reason fallback remains Held. Rows remain per-batch/location, not aggregate SKU.
+
+Do not relabel this whole dataset “Expiring and held”: existing route also returns valid/unheld batches. No fabricated “soon” threshold, nearest expiry, expiry counts or by-form metrics. If adopting those demo tabs, propose exact read-model extensions separately.
+
+Likely existing assertions requiring a NEW exact owner batch: same Index-only hold-call count/hold reason pins, Batch & Expiry label and semantic table field/quantity pins. Current pending six-group approval applies to On-hand only; do not silently extend it to a second extraction. Carry old tests unchanged until exact next delta is reviewed. Source/list runtime and actual synthetic expired+held/valid/received-null views can be prepared independently; do not bundle into On-hand packet.
+
+Next broader demo vertical slice remains Transfers + receipt/difference as audit sequence: inspect unchanged InventoryOperationsPanel request lifecycle and template, then draft a real mapped worklist/selected-detail layout. STK61 short dispatch new domain feature stays separate.

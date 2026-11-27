@@ -1,0 +1,8 @@
+{
+    "branchId": 3,
+    "emails": {
+        "ca": "synthetic.casmoke.ca@kpone.test",
+        "resident_doctor": "synthetic.casmoke.resident_doctor@kpone.test",
+        "ca_supervisor": "synthetic.casmoke.ca_supervisor@kpone.test"
+    }
+}

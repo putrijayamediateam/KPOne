@@ -1,0 +1,11 @@
+{
+  "files": {
+    "resources/js/components/registration/RegistrationWorkspaceNav.vue": "6c329dc85ea0bb94ad88b9b9ac537df7a05ac657f61572c1bc7193ab36ba40b0",
+    "resources/js/pages/Registration/Index.vue": "c01d815e9d0a8d0d15a2ad4a18b4f7020effad9eeb76e22b9cc012fec82f5d9d",
+    "resources/js/pages/Patient/Index.vue": "0ec91be30e2c8334c843ecdb30500eeda7ecbf1720c25d587e581f49372d211d",
+    "tests/Frontend/registration-workspace-navigation.test.mjs": "279bec444f242c7564b88ab224578a3d6f1e5abf9408ed0ae0f8b0f5daf7a47e",
+    "tests/Frontend/rb-01-registration-board-search.test.mjs": "39de2c71dfee665ca280a217125fac20deb116a12669dc1dc80176c631de8a9d",
+    "tests/Frontend/rb-02-registration-board-dates.test.mjs": "e2455d0dbc4c06ecdf86d47569b149aaa4aae29ba0a1cc64ffcfb2974ce0f5e2"
+  },
+  "patchSha256": "be3a400c8f8cc3b5ac8e8a242b428711d760df1273f115f90379fdc2c47e1ab8"
+}

@@ -1,0 +1,110 @@
+{
+  "captures": [
+    {
+      "state": "visible",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "visible",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "visible",
+      "width": 1440,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "visible",
+      "width": 1440,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "default",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "default",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "default",
+      "width": 1440,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "default",
+      "width": 1440,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "hidden",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "hidden",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "hidden",
+      "width": 1440,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "hidden",
+      "width": 1440,
+      "theme": "dark",
+      "height": 44
+    }
+  ],
+  "payloads": [
+    {
+      "state": "visible",
+      "settings": {
+        "doctorCheckRequired": true,
+        "lockVersion": 5
+      },
+      "change": {
+        "changedAt": "27 Nov 2026, 2:34 AM",
+        "changedBy": "Synthetic Long Settings Supervisor With Multiple Names For Responsive Attribution Review"
+      }
+    },
+    {
+      "state": "default",
+      "settings": {
+        "doctorCheckRequired": false,
+        "lockVersion": 1
+      },
+      "change": null
+    },
+    {
+      "state": "hidden",
+      "settings": {
+        "doctorCheckRequired": true,
+        "lockVersion": 2
+      },
+      "change": {
+        "changedAt": "27 Nov 2026, 2:45 AM",
+        "changedBy": "Staff member"
+      }
+    }
+  ],
+  "errors": [],
+  "readOnlyBrowser": true
+}

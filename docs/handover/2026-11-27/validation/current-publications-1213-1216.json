@@ -1,0 +1,30 @@
+[
+  {
+    "baseRefName": "main",
+    "headRefOid": "bf6d6e760578fe4acea6f3edd6f46e29f7709928",
+    "isDraft": true,
+    "number": 1213,
+    "title": "Integration validation only: reviewed Queue dependency foundation"
+  },
+  {
+    "baseRefName": "integration/queue-reviewed-foundation",
+    "headRefOid": "721f682772279902ef2d4a3a1b40fddb8e93aa46",
+    "isDraft": true,
+    "number": 1214,
+    "title": "Queue: recover reviewed workspace presentation on validation foundation"
+  },
+  {
+    "baseRefName": "recovery/queue-workspace-v4",
+    "headRefOid": "630ea3d2627f5610392c79c2eab835411b71a1c4",
+    "isDraft": true,
+    "number": 1215,
+    "title": "Queue: add bounded workload reads and preserve outcome policy at scale"
+  },
+  {
+    "baseRefName": "feature/stock-verified-receiving-demo",
+    "headRefOid": "c4d7df759180927508a27b0d4c2cae9254bee1fc",
+    "isDraft": true,
+    "number": 1216,
+    "title": "Add optional purchase order delivery date and supplier reference"
+  }
+]

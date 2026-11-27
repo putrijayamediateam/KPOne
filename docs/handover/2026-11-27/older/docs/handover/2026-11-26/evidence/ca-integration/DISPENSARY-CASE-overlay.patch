@@ -1,0 +1,497 @@
+diff --git a/resources/js/pages/Dispensary/Show.vue b/resources/js/pages/Dispensary/Show.vue
+index e4afecdaa..aa90e44ed 100644
+--- a/resources/js/pages/Dispensary/Show.vue
++++ b/resources/js/pages/Dispensary/Show.vue
+@@ -1278,10 +1278,11 @@ const changeLabel = (item: Item) =>
+         removed: 'Removed',
+         unchanged: '',
+     })[item.changeState];
+-const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
+-// DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
++const inputClass =
++    'mt-1 h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
++// DSP-17: blue scan hint only (not the error look); replaces the focus ring while shown.
+ const batchHintClass =
+-    'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
++    'border-primary ring-2 ring-ring ring-offset-2 ring-offset-background focus-visible:ring-ring';
+ 
+ // Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
+ const exceptionStatusLabels: Record<string, string> = {
+@@ -1294,7 +1295,7 @@ const exceptionStatusLabels: Record<string, string> = {
+ <template>
+     <Head title="Dispensary" />
+     <main
+-        class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
++        class="mx-auto w-full max-w-[1500px] px-4 py-5 text-sm lg:px-6 lg:py-6 max-lg:[&_[data-slot=button]]:min-h-11 lg:[&_[data-slot=button]]:min-h-9 max-lg:[&_[data-slot=select-trigger]]:min-h-11 lg:[&_[data-slot=select-trigger]]:min-h-9 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
+     >
+         <!-- DD-25: the page title names the task; the patient card below is the one place that names the patient. -->
+         <!-- DSP-26: the Resident Doctor's view-only header; the CA's header below is unchanged. -->
+@@ -1373,7 +1374,7 @@ const exceptionStatusLabels: Record<string, string> = {
+         <!-- DSP-23, Daniel's note 5: the waiting banner, with the hand-over instruction in a warning box. -->
+         <section
+             v-if="waitingForCheck"
+-            class="mb-4 rounded-xl border bg-muted/40 p-4 text-sm"
++            class="mb-4 rounded-xl border bg-card-quiet p-4 text-sm"
+             role="status"
+             data-testid="doctor-check-waiting"
+         >
+@@ -1397,7 +1398,7 @@ const exceptionStatusLabels: Record<string, string> = {
+             </p>
+             <p
+                 v-if="!dispensary.viewOnly"
+-                class="mt-2 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-warning-strong"
++                class="mt-2 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning-wash px-3 py-2 text-warning-strong"
+             >
+                 <TriangleAlert
+                     class="mt-0.5 size-4 shrink-0"
+@@ -1409,7 +1410,7 @@ const exceptionStatusLabels: Record<string, string> = {
+         <!-- DSP-23, Daniel's note 4: the doctor's reason, in a warning box, not red. -->
+         <section
+             v-if="dispensary.doctorCheck?.sentBack"
+-            class="mb-4 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-strong"
++            class="mb-4 flex items-start gap-2 rounded-xl border border-warning/25 bg-warning-wash p-4 text-sm text-warning-strong"
+             role="status"
+             data-testid="doctor-check-sent-back"
+         >
+@@ -1449,16 +1450,14 @@ const exceptionStatusLabels: Record<string, string> = {
+         </section>
+ 
+         <div
+-            class="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
++            class="grid gap-4 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
+         >
+             <aside class="flex flex-col gap-4" data-testid="dispensary-left">
+                 <section
+                     class="rounded-xl border bg-card p-4 text-sm"
+                     data-testid="dispensary-patient"
+                 >
+-                    <p
+-                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+-                    >
++                    <p class="text-[13px] font-medium text-muted-foreground">
+                         Patient
+                     </p>
+                     <h2 class="text-base font-semibold break-words">
+@@ -1486,8 +1485,8 @@ const exceptionStatusLabels: Record<string, string> = {
+                     class="rounded-xl border p-4 text-sm"
+                     :class="
+                         otcAllergyConfirmed
+-                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
+-                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
++                            ? 'border-success/25 bg-success-wash'
++                            : 'border-warning/25 bg-warning-wash'
+                     "
+                     data-testid="otc-allergy"
+                 >
+@@ -1598,7 +1597,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                             </Button>
+                             <span
+                                 v-if="otcAllergyConfirmed"
+-                                class="text-xs text-emerald-800 dark:text-emerald-300"
++                                class="text-xs text-success"
+                                 >Recorded</span
+                             >
+                             <span
+@@ -1623,8 +1622,8 @@ const exceptionStatusLabels: Record<string, string> = {
+                     class="rounded-xl border p-4 text-sm"
+                     :class="
+                         dispensary.allergySafety.isCurrent
+-                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
+-                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
++                            ? 'border-success/25 bg-success-wash'
++                            : 'border-warning/25 bg-warning-wash'
+                     "
+                     data-testid="dispensary-allergies"
+                 >
+@@ -1669,7 +1668,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                 <p
+                     v-if="actionError"
+                     role="alert"
+-                    class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
++                    class="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                 >
+                     {{ actionError }}
+                 </p>
+@@ -1678,7 +1677,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         dispensary.can.update &&
+                         (unsaved.length || unsavedServices.length)
+                     "
+-                    class="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950/30"
++                    class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/25 bg-warning-wash px-3 py-2 text-sm"
+                     data-testid="dispensary-unsaved"
+                 >
+                     <span
+@@ -1712,11 +1711,11 @@ const exceptionStatusLabels: Record<string, string> = {
+                 >
+                     {{ scanBatchAnnouncement }}
+                 </p>
+-                <section class="divide-y rounded-lg border bg-background">
++                <section class="divide-y rounded-xl border bg-card shadow-card">
+                     <article
+                         v-for="item in visibleItems"
+                         :key="item.publicId"
+-                        class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
++                        class="grid gap-4 p-4 xl:grid-cols-[minmax(180px,1fr)_minmax(0,3fr)]"
+                         :data-testid="`line-${item.publicId}`"
+                     >
+                         <div>
+@@ -1793,7 +1792,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                             </p>
+                             <p
+                                 v-if="item.exception"
+-                                class="mt-1 text-xs text-amber-700 dark:text-amber-300"
++                                class="mt-1 text-xs text-warning-strong"
+                             >
+                                 Earlier partial dispense:
+                                 {{
+@@ -1830,7 +1829,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         </div>
+                         <div
+                             v-if="dispensary.can.update && forms[item.publicId]"
+-                            class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
++                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                         >
+                             <p class="text-muted-foreground sm:col-span-full">
+                                 Label limits (characters; saved clinical text is
+@@ -1959,7 +1958,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                             >
+                                 <span
+                                     role="status"
+-                                    class="block font-medium text-brand-strong empty:hidden"
++                                    class="block font-medium text-primary empty:hidden"
+                                     ><span
+                                         v-if="batchHint === item.publicId"
+                                         class="inline-flex items-start gap-1"
+@@ -2020,13 +2019,13 @@ const exceptionStatusLabels: Record<string, string> = {
+                             </p>
+                             <p
+                                 v-if="!item.sku"
+-                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
++                                class="text-xs text-warning-strong sm:col-span-2"
+                             >
+                                 No approved inventory SKU mapping.
+                             </p>
+                             <p
+                                 v-else-if="!item.availability.length"
+-                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
++                                class="text-xs text-warning-strong sm:col-span-2"
+                             >
+                                 No eligible stock in this branch's Dispensary.
+                                 Stock at other locations requires transfer
+@@ -2078,7 +2077,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         </div>
+                         <dl
+                             v-else
+-                            class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
++                            class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                         >
+                             <p>
+                                 <span class="text-muted-foreground"
+@@ -2124,12 +2123,10 @@ const exceptionStatusLabels: Record<string, string> = {
+ 
+                 <section
+                     v-if="removedItems.length"
+-                    class="mt-3 rounded-lg border border-dashed p-3 text-sm"
++                    class="rounded-xl border border-dashed bg-card-quiet p-4 text-sm"
+                     data-testid="removed-lines"
+                 >
+-                    <h2
+-                        class="mb-1 text-xs font-semibold text-muted-foreground uppercase"
+-                    >
++                    <h2 class="mb-2 text-[15px] font-medium">
+                         Removed from the list
+                     </h2>
+                     <ul class="grid gap-1">
+@@ -2174,18 +2171,14 @@ const exceptionStatusLabels: Record<string, string> = {
+ 
+                 <section
+                     v-if="dispensary.can.update"
+-                    class="mt-3 rounded-lg border p-3 text-sm"
++                    class="rounded-xl border bg-card p-4 text-sm shadow-card"
+                     data-testid="add-medicine"
+                 >
+-                    <h2
+-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
+-                    >
+-                        Add a medicine
+-                    </h2>
++                    <h2 class="mb-3 text-[15px] font-medium">Add a medicine</h2>
+                     <div class="flex flex-wrap gap-2">
+                         <input
+                             v-model="searchTerm"
+-                            class="h-9 w-full rounded-md border px-2 sm:max-w-sm"
++                            class="h-9 w-full rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-sm"
+                             placeholder="Search medicine name or code"
+                             aria-label="Search medicine"
+                             data-field="medicine-search"
+@@ -2273,7 +2266,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                                 }}</span>
+                                 <span
+                                     v-if="matchesFor(medicine).length"
+-                                    class="ml-1 inline-block rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-800 dark:bg-red-950/70 dark:text-red-100"
++                                    class="ml-1 inline-block rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
+                                     data-testid="allergy-match-badge"
+                                     >Possible allergy match</span
+                                 ></span
+@@ -2306,7 +2299,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                     </p>
+                     <div
+                         v-if="chosen"
+-                        class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
++                        class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                     >
+                         <p class="text-sm font-medium sm:col-span-full">
+                             {{ chosen.name }}
+@@ -2411,7 +2404,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         >
+                             <span
+                                 role="status"
+-                                class="block font-medium text-brand-strong empty:hidden"
++                                class="block font-medium text-primary empty:hidden"
+                                 ><span
+                                     v-if="batchHint === 'add'"
+                                     class="inline-flex items-start gap-1"
+@@ -2515,12 +2508,10 @@ const exceptionStatusLabels: Record<string, string> = {
+                 </section>
+                 <section
+                     v-if="!isOtc"
+-                    class="mt-6 rounded-lg border bg-background"
++                    class="rounded-xl border bg-card shadow-card"
+                     data-testid="dispensary-services"
+                 >
+-                    <h2
+-                        class="border-b px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+-                    >
++                    <h2 class="border-b px-4 py-3 text-[15px] font-medium">
+                         Services
+                     </h2>
+                     <p
+@@ -2533,7 +2524,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         <article
+                             v-for="line in visibleServices"
+                             :key="line.publicId"
+-                            class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
++                            class="grid gap-4 p-4 xl:grid-cols-[minmax(180px,1fr)_minmax(0,3fr)]"
+                             :data-testid="`service-${line.publicId}`"
+                         >
+                             <div>
+@@ -2568,7 +2559,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                                     class="mt-1 text-xs"
+                                     :class="
+                                         line.disposition === 'performed'
+-                                            ? 'text-emerald-700 dark:text-emerald-300'
++                                            ? 'text-success'
+                                             : 'text-muted-foreground'
+                                     "
+                                 >
+@@ -2584,7 +2575,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                                     dispensary.can.update &&
+                                     serviceForms[line.publicId]
+                                 "
+-                                class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
++                                class="grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                             >
+                                 <label
+                                     >Performed ({{ line.unit }})<input
+@@ -2646,9 +2637,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         class="border-t border-dashed p-3 text-sm"
+                         data-testid="removed-services"
+                     >
+-                        <h3
+-                            class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+-                        >
++                        <h3 class="mb-2 text-[15px] font-medium">
+                             Removed from the list
+                         </h3>
+                         <ul class="grid gap-1">
+@@ -2679,15 +2668,13 @@ const exceptionStatusLabels: Record<string, string> = {
+                         class="border-t p-3 text-sm"
+                         data-testid="add-service"
+                     >
+-                        <h3
+-                            class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+-                        >
++                        <h3 class="mb-3 text-[15px] font-medium">
+                             Add a service
+                         </h3>
+                         <div class="flex gap-2">
+                             <input
+                                 v-model="serviceTerm"
+-                                class="h-9 w-full max-w-sm rounded-md border px-2"
++                                class="h-9 w-full max-w-sm rounded-md border border-input bg-field-fill px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                 placeholder="Search service name or code"
+                                 aria-label="Search service"
+                                 data-field="service-search"
+@@ -2728,7 +2715,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         </ul>
+                         <div
+                             v-if="chosenService"
+-                            class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
++                            class="mt-3 grid gap-3 text-[13px] sm:grid-cols-2 lg:grid-cols-4"
+                         >
+                             <p class="text-sm font-medium sm:col-span-full">
+                                 {{ chosenService.name }}
+@@ -2771,9 +2758,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                     class="rounded-xl border bg-card p-4 text-sm"
+                     data-testid="dispensary-summary"
+                 >
+-                    <h2
+-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
+-                    >
++                    <h2 class="mb-3 text-[15px] font-medium">
+                         This dispensary
+                     </h2>
+                     <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
+@@ -2804,11 +2789,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
+                     data-testid="dispensary-actions"
+                 >
+-                    <h2
+-                        class="text-xs font-semibold text-muted-foreground uppercase"
+-                    >
+-                        Actions
+-                    </h2>
++                    <h2 class="text-[15px] font-medium">Actions</h2>
+                     <OperationalSelect
+                         v-if="
+                             dispensary.tvCall?.canCall &&
+@@ -2817,7 +2798,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                         v-model="callRoomId"
+                         label="Dispensary room"
+                         placeholder="Choose room"
+-                        trigger-class="h-8 w-40"
++                        trigger-class="min-h-9 w-full max-lg:min-h-11"
+                         :options="
+                             dispensary.tvCall.rooms.map((room) => ({
+                                 value: room.id,
+@@ -2883,7 +2864,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                 </section>
+                 <section
+                     v-if="confirming && dispensary.can.complete"
+-                    class="rounded-xl border border-pink-300 bg-pink-50/60 p-3 text-sm dark:border-pink-900 dark:bg-pink-950/30"
++                    class="rounded-xl border border-info/25 bg-info-wash p-4 text-sm"
+                     data-testid="dispensary-verify"
+                 >
+                     <p class="font-medium">
+@@ -2902,7 +2883,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                                   : 'The doctor has verified the order. Completing now records your verification of the final list below and takes the stock out.'
+                         }}
+                     </p>
+-                    <div class="mt-2 flex gap-2">
++                    <div class="mt-3 flex flex-wrap gap-2">
+                         <Button
+                             size="sm"
+                             :disabled="busy"
+@@ -2931,9 +2912,7 @@ const exceptionStatusLabels: Record<string, string> = {
+                     class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
+                     data-testid="doctor-check-supervisor"
+                 >
+-                    <h2
+-                        class="text-xs font-semibold text-muted-foreground uppercase"
+-                    >
++                    <h2 class="text-[15px] font-medium">
+                         Check instead of the doctor
+                     </h2>
+                     <p class="text-xs text-muted-foreground">
+diff --git a/tests/Frontend/dd-57-dispensary-dark.test.mjs b/tests/Frontend/dd-57-dispensary-dark.test.mjs
+index 643b9d7bc..1c172d4e7 100644
+--- a/tests/Frontend/dd-57-dispensary-dark.test.mjs
++++ b/tests/Frontend/dd-57-dispensary-dark.test.mjs
+@@ -21,17 +21,17 @@ for (const path of [
+     });
+ }
+ 
+-test('the warnings keep their light-mode colours', () => {
++test('case warnings use semantic surfaces while the attention panel retains its current colours', () => {
+     const panel = read(
+         'resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue',
+     );
+     const show = read('resources/js/pages/Dispensary/Show.vue');
+     assert.ok(panel.includes('border-amber-200 bg-amber-50/40 dark:'));
+-    assert.ok(show.includes("'border-amber-300 bg-amber-50/70 dark:"));
++    assert.ok(show.includes("'border-warning/25 bg-warning-wash'"));
+     assert.ok(
+         show.includes(
+-            'border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:',
++            'border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive',
+         ),
+     );
+-    assert.ok(show.includes('border-pink-300 bg-pink-50/60 p-3 text-sm dark:'));
++    assert.ok(show.includes('border-info/25 bg-info-wash p-4 text-sm'));
+ });
+diff --git a/tests/Frontend/ds-01b-3-otc-dispense.test.mjs b/tests/Frontend/ds-01b-3-otc-dispense.test.mjs
+index 61956e083..f8b1140dd 100644
+--- a/tests/Frontend/ds-01b-3-otc-dispense.test.mjs
++++ b/tests/Frontend/ds-01b-3-otc-dispense.test.mjs
+@@ -30,7 +30,7 @@ test('the OTC Dispensary page records the patient allergy statement before Compl
+ });
+ 
+ test('the OTC page hides the doctor-only services panel', () => {
+-    assert.match(show, /v-if="!isOtc"\s+class="mt-6 rounded-lg border bg-background"\s+data-testid="dispensary-services"/);
++    assert.match(show, /v-if="!isOtc"\s+class="rounded-xl border bg-card shadow-card"\s+data-testid="dispensary-services"/);
+ });
+ 
+ test('the OTC routes are permission-gated', () => {
+diff --git a/tests/Frontend/ds-01d-dispensary-layout.test.mjs b/tests/Frontend/ds-01d-dispensary-layout.test.mjs
+index 495a08d21..a4552b5a0 100644
+--- a/tests/Frontend/ds-01d-dispensary-layout.test.mjs
++++ b/tests/Frontend/ds-01d-dispensary-layout.test.mjs
+@@ -10,9 +10,9 @@ const invoices = read('resources/js/pages/Visits/History.vue');
+ const THREE_COLUMNS =
+     'lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]';
+ 
+-test('the Dispensary page uses the same three-column layout as the Invoices page', () => {
++test('Dispensary retains three regions and uses three columns from xl while Invoices keeps lg', () => {
+     assert.ok(invoices.includes(THREE_COLUMNS));
+-    assert.ok(page.includes(THREE_COLUMNS));
++    assert.ok(page.includes('xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]'));
+ 
+     for (const id of [
+         'dispensary-left',
+diff --git a/tests/Frontend/dsp-17-scan-pick-batch.test.mjs b/tests/Frontend/dsp-17-scan-pick-batch.test.mjs
+index e40192419..d7b2e46b5 100644
+--- a/tests/Frontend/dsp-17-scan-pick-batch.test.mjs
++++ b/tests/Frontend/dsp-17-scan-pick-batch.test.mjs
+@@ -29,10 +29,10 @@ test('a matching scan points at the line batch dropdown and never selects a batc
+     assert.equal(/showPicker|\.click\(\)/.test(point), false);
+ });
+ 
+-test('the hint is a brand ring and a polite status line, not the error look', () => {
++test('the hint is a blue ring and a polite status line, not the error look', () => {
+     assert.ok(
+         show.includes(
+-            "'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand'",
++            "'border-primary ring-2 ring-ring ring-offset-2 ring-offset-background focus-visible:ring-ring'",
+         ),
+     );
+     const hintClass = show.slice(show.indexOf('const batchHintClass'));
+diff --git a/tests/Frontend/dsp-23-doctor-check.test.mjs b/tests/Frontend/dsp-23-doctor-check.test.mjs
+index 5379bc8be..61cfbf413 100644
+--- a/tests/Frontend/dsp-23-doctor-check.test.mjs
++++ b/tests/Frontend/dsp-23-doctor-check.test.mjs
+@@ -106,7 +106,7 @@ test('DSP-23: the CA page sends to the doctor, shows the waiting banner and the
+     assert.match(show, /data-testid="doctor-check-call-help"/);
+     assert.match(
+         show,
+-        /border-warning\/40 bg-warning\/10 p-4 text-sm text-warning-strong"\s+role="status"\s+data-testid="doctor-check-sent-back"/,
++        /border-warning\/25 bg-warning-wash p-4 text-sm text-warning-strong"\s+role="status"\s+data-testid="doctor-check-sent-back"/,
+     );
+     assert.doesNotMatch(
+         show,
+diff --git a/tests/Frontend/dark-1.test.mjs b/tests/Frontend/dark-1.test.mjs
+--- a/tests/Frontend/dark-1.test.mjs
++++ b/tests/Frontend/dark-1.test.mjs
+@@ -34,10 +34,10 @@
+ test('DARK-1 S1-007: confirmed and unconfirmed OTC allergy states have dark surfaces and readable Recorded text', () => {
+     const nodes = elements(template('Dispensary/Show.vue'));
+     const panel = nodes.find((node) => attribute(node, 'data-testid') === 'otc-allergy');
+-    includes(classes(panel, { otcAllergyConfirmed: true }), `border-emerald-200 bg-emerald-50/50 ${green}`);
+-    includes(classes(panel, { otcAllergyConfirmed: false }), 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30');
++    includes(classes(panel, { otcAllergyConfirmed: true }), 'border-success/25 bg-success-wash');
++    includes(classes(panel, { otcAllergyConfirmed: false }), 'border-warning/25 bg-warning-wash');
+     const recorded = elements(panel).find((node) => node.tag === 'span' && directive(node, 'if') === 'otcAllergyConfirmed');
+-    includes(classes(recorded), 'text-emerald-800 dark:text-emerald-300');
++    includes(classes(recorded), 'text-success');
+ });
+ 
+ test('DARK-1 S1-008: visit queue card and icon use shared semantic tokens in both themes', () => {

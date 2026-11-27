@@ -1,0 +1,11 @@
+# REG-WORKSPACE-2 — existing-data composition
+
+Authorized by coordinator after navigation validation, 26 November2026. Separate branch feature/registration-workspace-composition based on refreshed navigation7ceee8e48/main3b6ade1f. Frozen navigation/contact/family PRs remain separate.
+
+Own Registration/Index.vue, new RegistrationHelpfulInfo.vue and new tests. Shared PageHeader and native details reused; no shared primitive edits. Visible Registration heading/current branch, single Register action, existing route nav/status controls, existing filters/QR/board in main area,280px aside on wide screens and stacked on smaller screens. A show/hide control preserves main DOM, draft filters and trigger focus. Aside contains actual branch/view context and permission-gated Patient directory/QR/Merge links, no inferred metrics, patient summaries, follow-up or all-branch workflow.
+
+Preserve all request/polling/registration/readiness/cancellation handlers and backend projections. Do not widen role/patient/branch access. Filter control touch sizes follow already-approved44mobile/36desktop minima; document overlap with pending1138 and existing1132 header/restyle, not copying other pages. Existing assertion impacts are collected and reviewed under recorded technical delegation before test edits.
+
+Staff pre-build review clear for this bounded plan. Acceptance: Today and QR390/1440light/dark, visible singleh1/action, aside responsive/collapsible, drafts and keyboard focus retained, Enter search and back navigation, QR-specific context/statuses preserved, permission omission and no fictitious statistics. This does not complete directory embedding, doctor-pill behavior, modal registration or missing aggregate/follow-up data.
+
+Independent visual review added one targeted single-consumer file: Registration/QrIntakeTable.vue internal desktop scroller gets keyboard focus, named region, visible focus ring and hint association. The page-local hint remains visible at desktop even when help is hidden; shared PatientBoard unchanged, receiving only accessibility attributes through existing root fallthrough. This addresses action discoverability after the new aside narrows the main column. No QR handler or permission changes.

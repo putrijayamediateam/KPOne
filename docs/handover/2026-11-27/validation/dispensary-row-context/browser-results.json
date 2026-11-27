@@ -1,0 +1,106 @@
+{
+  "captures": [
+    {
+      "name": "collapsed",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "expanded",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "collapsed",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "expanded",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "collapsed",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "expanded",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "collapsed",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "expanded",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "waiting-context",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "done-no-context",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "readonly-context",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "readonly-context",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "readonly-context",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "readonly-context",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "checks": [
+    "Actual15s list refresh preserves same-case native open state and focus",
+    "Domain fixture transition removes focused row on actual polling; focus moves only to stable cases region",
+    "Done omits row context",
+    "Existing readonly doctor list shows supporting facts without mutation controls",
+    "Actual ordinary polling preserves focus outside case rows (search input); no autofocus"
+  ],
+  "targets": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    }
+  ],
+  "errors": [],
+  "writes": [],
+  "fixtureTransition": "Existing service sendForDoctorCheck in own synthetic clone; no Verify or stock decrement"
+}

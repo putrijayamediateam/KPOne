@@ -1,0 +1,6 @@
+{
+  "docs/reviews/STOCK-TRANSFERS-COMPOSITION.md": "b0b519210abf559b8e7bfc4646e9275110efaa28d5bbdf43b04c439947908a5a",
+  "resources/js/components/inventory/InventoryOperationsPanel.vue": "58b115cfe5b273454cc3d36b5e30bb612667901c5bd4b3dcaa81911b4acaa80b",
+  "resources/js/components/inventory/StockTransferList.vue": "fd3c0f985cd505f75baa4f6c59b0d3fcf5358f497b1afc8eaf0dd892e76b6346",
+  "tests/Frontend/stock-transfer-runtime.test.mjs": "b4f411f85edc265e898c438133981b37db18041c376b3a86ceb7b544c315e91a"
+}

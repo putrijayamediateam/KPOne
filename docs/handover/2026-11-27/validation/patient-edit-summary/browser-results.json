@@ -1,0 +1,113 @@
+{
+  "captures": [
+    {
+      "state": "initial",
+      "width": 390,
+      "theme": "light",
+      "undoHeight": 44
+    },
+    {
+      "state": "initial",
+      "width": 390,
+      "theme": "dark",
+      "undoHeight": 44
+    },
+    {
+      "state": "initial",
+      "width": 1440,
+      "theme": "light",
+      "undoHeight": 36
+    },
+    {
+      "state": "initial",
+      "width": 1440,
+      "theme": "dark",
+      "undoHeight": 36
+    },
+    {
+      "state": "changed",
+      "width": 390,
+      "theme": "light",
+      "undoHeight": 44
+    },
+    {
+      "state": "changed",
+      "width": 390,
+      "theme": "dark",
+      "undoHeight": 44
+    },
+    {
+      "state": "changed",
+      "width": 1440,
+      "theme": "light",
+      "undoHeight": 36
+    },
+    {
+      "state": "changed",
+      "width": 1440,
+      "theme": "dark",
+      "undoHeight": 36
+    },
+    {
+      "state": "validation",
+      "width": 390,
+      "theme": "light",
+      "undoHeight": 44
+    },
+    {
+      "state": "validation",
+      "width": 390,
+      "theme": "dark",
+      "undoHeight": 44
+    },
+    {
+      "state": "validation",
+      "width": 1440,
+      "theme": "light",
+      "undoHeight": 36
+    },
+    {
+      "state": "validation",
+      "width": 1440,
+      "theme": "dark",
+      "undoHeight": 36
+    },
+    {
+      "state": "undone-error-retained",
+      "width": 390,
+      "theme": "light",
+      "undoHeight": 44
+    },
+    {
+      "state": "undone-error-retained",
+      "width": 390,
+      "theme": "dark",
+      "undoHeight": 44
+    },
+    {
+      "state": "undone-error-retained",
+      "width": 1440,
+      "theme": "light",
+      "undoHeight": 36
+    },
+    {
+      "state": "undone-error-retained",
+      "width": 1440,
+      "theme": "dark",
+      "undoHeight": 36
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:3098/patients/KP-00000012",
+      "method": "PATCH"
+    }
+  ],
+  "undoNoRequest": true,
+  "loadedValuesRestored": true,
+  "focusRestored": true,
+  "validationErrorRetained": true,
+  "summaryErrorVisible": true,
+  "phoneCountryCounted": true
+}

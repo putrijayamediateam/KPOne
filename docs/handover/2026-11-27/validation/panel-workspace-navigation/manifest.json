@@ -1,0 +1,16 @@
+{
+  "base": "6f941096c861e724d73fbd26561c0a2ffd3193e8",
+  "base_pr": 1198,
+  "patch_sha256": "d1cd064015ad657e84a6f2a89c718c4708e8b8c51a2250d30559340764ab4225",
+  "files": {
+    "resources/js/components/panel/PanelWorkspaceNav.vue": "ea65f1cca7cb417054e3666f0c6ec0d5c27c2f04c73cdda404a371d5992973e6",
+    "resources/js/pages/PanelClaims/FollowUp.vue": "f1e2d8b5b5c25e7b74bfbc955f54afd6e691d6c7040e754b5526e175bcd0b6ed",
+    "resources/js/pages/PanelClaims/Index.vue": "f93a9a22b19d2318fc1df1df15c0feac4345bc02fc63ffb17387fbf1ca5c05d6",
+    "resources/js/pages/PanelRemittances/Index.vue": "935954c884b5d5afdcbcb392c45d30bd9820bd04cf57a0d1efe7d6907ca68d70",
+    "tests/Frontend/classic-only-co5-kept-v2-panel-claims-list.test.mjs": "b2e00b7bccc4278b53d8c4316ab50a29429aa7a8ba9fd367e1e3d46667f10b57",
+    "tests/Frontend/panel-follow-up-context.test.mjs": "13f5224b5ebe51daf63e45bfaf270e6fc366959bb024236fb54670953069325b",
+    "tests/Frontend/panel-workspace-navigation.test.mjs": "5fd73195b355b2c525a45317f3889a0e8bc32f3c5f646802c71ee6a2e08c8321",
+    "tests/Frontend/pnl-3-remittance-matching.test.mjs": "d51a99873d3b4f67496f334f388f87fa311c3ce7432e75ee7175037f60eefabc",
+    "tests/Frontend/pnl-4-follow-up-list.test.mjs": "144f7d8a1142ad4c0aef58a0a1dca10f8742b76fa42229fd8f8ebbc2dc51911e"
+  }
+}

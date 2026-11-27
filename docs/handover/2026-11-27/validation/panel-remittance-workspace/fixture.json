@@ -1,0 +1,25 @@
+{
+    "panel": "SYN-FIRST-DUE",
+    "firstClaim": {
+        "publicId": "80695882-3df7-4449-9ae3-d5d0fb76a5bf",
+        "claimNo": "25",
+        "invoiceNumber": "KPI-00000026",
+        "patientName": "Synthetic First Submission Patient 2",
+        "visitDate": "27 Nov 2026",
+        "acceptedSen": 1000,
+        "receivedSen": 0,
+        "outstandingSen": 1000
+    },
+    "secondClaim": {
+        "publicId": "d6c3d536-ec77-4428-a5b8-272445782a38",
+        "claimNo": "26",
+        "invoiceNumber": "KPI-00000027",
+        "patientName": "Synthetic First Submission Patient 3",
+        "visitDate": "27 Nov 2026",
+        "acceptedSen": 1000,
+        "receivedSen": 0,
+        "outstandingSen": 1000
+    },
+    "openCount": 2,
+    "canReverse": true
+}

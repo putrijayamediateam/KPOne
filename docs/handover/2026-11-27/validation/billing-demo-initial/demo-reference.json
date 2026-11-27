@@ -1,0 +1,58 @@
+[
+  {
+    "name": "collect",
+    "width": 1440,
+    "theme": "light",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nApproved pay-later bills still owed. Oldest first.\nHide helpful info\nDue date: All ▾\nOverdue by age\nPaid this week\nAbout this list\nKp no.\nPatient\nInvoice\nOwed\nDue\nKP-000214\nLim Wei Seng\nIC ••••6212\nINV-CHR-2026-00912\nRM 186.50\nOver 60 days late\ndue 14 Sep\nCollect\nKP-000388\nNur Aqilah binti Rahman\nIC ••••0418\nINV-CHR-2026-00977\nRM 64.00\nOver 60 days late\ndue 22 Sep\nCollect\nKP-000727\nGopal a/l Murugan\nIC ••••7751 · Merged from KP-000901\nINV-CHR-2026-01044\nRM 120.00\n31 to 60 days late\ndue 3 Oct\nCollect\nKP-000533\nTan Mei Hua\nIC ••••3390\nINV-CHR-2026-01102\nRM 45.00\n31 to 60 days late\ndue 10 Oct\nCollect\nKP-000610\nAhmad Faizal bin Yusof\nIC ••••5527\nINV-CHR-2026-01166\nRM 92.40\n31 to 60 days late\ndue 17 Oct\nCollect\nKP-000702\nSiti Nurul binti Kamal\nIC ••••9104\nINV-CHR-2026-01230\nRM 38.00\nUp to 30 days late\nd"
+  },
+  {
+    "name": "collect",
+    "width": 1440,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nApproved pay-later bills still owed. Oldest first.\nHide helpful info\nDue date: All ▾\nOverdue by age\nPaid this week\nAbout this list\nKp no.\nPatient\nInvoice\nOwed\nDue\nKP-000214\nLim Wei Seng\nIC ••••6212\nINV-CHR-2026-00912\nRM 186.50\nOver 60 days late\ndue 14 Sep\nCollect\nKP-000388\nNur Aqilah binti Rahman\nIC ••••0418\nINV-CHR-2026-00977\nRM 64.00\nOver 60 days late\ndue 22 Sep\nCollect\nKP-000727\nGopal a/l Murugan\nIC ••••7751 · Merged from KP-000901\nINV-CHR-2026-01044\nRM 120.00\n31 to 60 days late\ndue 3 Oct\nCollect\nKP-000533\nTan Mei Hua\nIC ••••3390\nINV-CHR-2026-01102\nRM 45.00\n31 to 60 days late\ndue 10 Oct\nCollect\nKP-000610\nAhmad Faizal bin Yusof\nIC ••••5527\nINV-CHR-2026-01166\nRM 92.40\n31 to 60 days late\ndue 17 Oct\nCollect\nKP-000702\nSiti Nurul binti Kamal\nIC ••••9104\nINV-CHR-2026-01230\nRM 38.00\nUp to 30 days late\nd"
+  },
+  {
+    "name": "close",
+    "width": 1440,
+    "theme": "light",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nCount after the last patient. Someone else approves after midnight. Expected cash is cash receipts less cash receipts reversed and cash refunds paid out. A reason is needed for any difference. Someone other than the counter (a Finance Officer, the Director or another CA Supervisor) approves or returns the count, after the day ends at midnight.\nHide helpful info\nPaused and locked days\nWho approves\nWaiting for approval\nToday at a glance\nCount for Fri 20 Nov · Cheras\nDay\nCounted by\nExpected\nCounted\nStatus\nFri 20 Nov\ntoday · Cheras\nAina R. (CA Supervisor)\ncounted by you\nRM 1,284.50\nRM 1,279.50\nRM 5.00 short\nnot submitted yet\nCount cash\nThu 19 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nMatches\nCount cash\nWed 18 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nRM 2.00 over\nC"
+  },
+  {
+    "name": "close",
+    "width": 1440,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nCount after the last patient. Someone else approves after midnight. Expected cash is cash receipts less cash receipts reversed and cash refunds paid out. A reason is needed for any difference. Someone other than the counter (a Finance Officer, the Director or another CA Supervisor) approves or returns the count, after the day ends at midnight.\nHide helpful info\nPaused and locked days\nWho approves\nWaiting for approval\nToday at a glance\nCount for Fri 20 Nov · Cheras\nDay\nCounted by\nExpected\nCounted\nStatus\nFri 20 Nov\ntoday · Cheras\nAina R. (CA Supervisor)\ncounted by you\nRM 1,284.50\nRM 1,279.50\nRM 5.00 short\nnot submitted yet\nCount cash\nThu 19 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nMatches\nCount cash\nWed 18 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nRM 2.00 over\nC"
+  },
+  {
+    "name": "collect",
+    "width": 390,
+    "theme": "light",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nApproved pay-later bills still owed. Oldest first.\nHide helpful info\nDue date: All ▾\nOverdue by age\nPaid this week\nAbout this list\nKp no.\nPatient\nInvoice\nOwed\nDue\nKP-000214\nLim Wei Seng\nIC ••••6212\nINV-CHR-2026-00912\nRM 186.50\nOver 60 days late\ndue 14 Sep\nCollect\nKP-000388\nNur Aqilah binti Rahman\nIC ••••0418\nINV-CHR-2026-00977\nRM 64.00\nOver 60 days late\ndue 22 Sep\nCollect\nKP-000727\nGopal a/l Murugan\nIC ••••7751 · Merged from KP-000901\nINV-CHR-2026-01044\nRM 120.00\n31 to 60 days late\ndue 3 Oct\nCollect\nKP-000533\nTan Mei Hua\nIC ••••3390\nINV-CHR-2026-01102\nRM 45.00\n31 to 60 days late\ndue 10 Oct\nCollect\nKP-000610\nAhmad Faizal bin Yusof\nIC ••••5527\nINV-CHR-2026-01166\nRM 92.40\n31 to 60 days late\ndue 17 Oct\nCollect\nKP-000702\nSiti Nurul binti Kamal\nIC ••••9104\nINV-CHR-2026-01230\nRM 38.00\nUp to 30 days late\nd"
+  },
+  {
+    "name": "collect",
+    "width": 390,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nApproved pay-later bills still owed. Oldest first.\nHide helpful info\nDue date: All ▾\nOverdue by age\nPaid this week\nAbout this list\nKp no.\nPatient\nInvoice\nOwed\nDue\nKP-000214\nLim Wei Seng\nIC ••••6212\nINV-CHR-2026-00912\nRM 186.50\nOver 60 days late\ndue 14 Sep\nCollect\nKP-000388\nNur Aqilah binti Rahman\nIC ••••0418\nINV-CHR-2026-00977\nRM 64.00\nOver 60 days late\ndue 22 Sep\nCollect\nKP-000727\nGopal a/l Murugan\nIC ••••7751 · Merged from KP-000901\nINV-CHR-2026-01044\nRM 120.00\n31 to 60 days late\ndue 3 Oct\nCollect\nKP-000533\nTan Mei Hua\nIC ••••3390\nINV-CHR-2026-01102\nRM 45.00\n31 to 60 days late\ndue 10 Oct\nCollect\nKP-000610\nAhmad Faizal bin Yusof\nIC ••••5527\nINV-CHR-2026-01166\nRM 92.40\n31 to 60 days late\ndue 17 Oct\nCollect\nKP-000702\nSiti Nurul binti Kamal\nIC ••••9104\nINV-CHR-2026-01230\nRM 38.00\nUp to 30 days late\nd"
+  },
+  {
+    "name": "close",
+    "width": 390,
+    "theme": "light",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nCount after the last patient. Someone else approves after midnight. Expected cash is cash receipts less cash receipts reversed and cash refunds paid out. A reason is needed for any difference. Someone other than the counter (a Finance Officer, the Director or another CA Supervisor) approves or returns the count, after the day ends at midnight.\nHide helpful info\nPaused and locked days\nWho approves\nWaiting for approval\nToday at a glance\nCount for Fri 20 Nov · Cheras\nDay\nCounted by\nExpected\nCounted\nStatus\nFri 20 Nov\ntoday · Cheras\nAina R. (CA Supervisor)\ncounted by you\nRM 1,284.50\nRM 1,279.50\nRM 5.00 short\nnot submitted yet\nCount cash\nThu 19 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nMatches\nCount cash\nWed 18 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nRM 2.00 over\nC"
+  },
+  {
+    "name": "close",
+    "width": 390,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#Billing",
+    "body": "KP\nSI\n4\nBilling\nCheras · CA\nMy branch\nAll branches\nToday\nCollect and close\nPayments and invoices\nBills to collect\n13\nCash closing\nCash closing month\nTerminal check\n13\nBills to collect\nSearch\nCount after the last patient. Someone else approves after midnight. Expected cash is cash receipts less cash receipts reversed and cash refunds paid out. A reason is needed for any difference. Someone other than the counter (a Finance Officer, the Director or another CA Supervisor) approves or returns the count, after the day ends at midnight.\nHide helpful info\nPaused and locked days\nWho approves\nWaiting for approval\nToday at a glance\nCount for Fri 20 Nov · Cheras\nDay\nCounted by\nExpected\nCounted\nStatus\nFri 20 Nov\ntoday · Cheras\nAina R. (CA Supervisor)\ncounted by you\nRM 1,284.50\nRM 1,279.50\nRM 5.00 short\nnot submitted yet\nCount cash\nThu 19 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nMatches\nCount cash\nWed 18 Nov\nCheras\nAina R. (CA)\nwaiting for someone else\n—\n—\nWaiting\nRM 2.00 over\nC"
+  }
+]

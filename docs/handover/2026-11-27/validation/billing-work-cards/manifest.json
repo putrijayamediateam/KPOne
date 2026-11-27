@@ -1,0 +1,8 @@
+{
+  "base": "eec5d5444bd14b0358e0383c1ea5d427e4d33f11",
+  "patch_sha256": "51aad9576f8ca87607303dfe8ab5adfcb591d8951c1b738ddf1071badf9dd4bd",
+  "files": {
+    "resources/js/pages/FinancialWork/Index.vue": "3327551359af09f70923a8bf91216095b7450f36b1fe0e56e19d96e1e3b664dd",
+    "tests/Frontend/financial-work-cards.test.mjs": "a1595575f43e7161525b3d15de7a5bbe86a82d2c37a04dc8d7a54c055608b240"
+  }
+}

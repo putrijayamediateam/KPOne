@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IkFyOW91Sm5McGJkcnFiSkR2NnV1R3c9PSIsInZhbHVlIjoiaXVwZFFaNXNDU3ljcC9SU3pnNVdTMzRLYkNndkVRUXpHWE45MEFWK1l6NjJnVENzbGdGb3dXY21PNkdFaTBZUUgxT3VIaFJXb2RrL0duMllOUFdUUktwaG1qQWNHMGFYR1E0RC8zYkd3b1NhSVNqb2hUT0pMWGtuSnpXV2crYUkiLCJtYWMiOiJlM2RiOWY2MzNhYTBkNzU1M2M1ZjdiNDk5MzBlZjJlMjJkMWQ0MWFhNTI1MTVlN2U5MzM0MzgwYjY2ZWNiY2M3IiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795676192.306168,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6ImZFVm5Yb0gvV0RxTFR1RlFWVk1nZ1E9PSIsInZhbHVlIjoicEZabDF2YytoUHh6Ujh2eWJVdnBzMmJqOWZmTDM4ajllUlBPbFJqbnZDUXkvZXorZjFCdkNDNldsb1VxNi9mZTJ4ZWxEUVdXYUxDbWlrQXk0WVB5L2NzUnl6TVlmVDNzYXV5MEZ4eXRSWHNSZjV4ajJZNy9yTW1pTDRHclJsazAiLCJtYWMiOiJmOTZkMTU0NTAyMzI5YjIyZjE0ZGFhMGE1ODE3ODU5NDUxMDMxY2EwOGNkZDM0OGYyNDhiNDdiMzM4MWU3ODNlIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795676192.306311,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3054",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a21636-440e-70a7-8c6c-de2d53f904a9",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a21636-440e-70a7-8c6c-de2d53f904a9\",\"serverEpoch\":\"01a21636-440e-70a7-8c6c-de2d53f904a9\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a21636-4e3e-7072-a4ff-9d17e77add00",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a21636-4e3e-7072-a4ff-9d17e77add00\",\"serverEpoch\":\"01a21636-4e3e-7072-a4ff-9d17e77add00\"}"
+        },
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a21636-4e3e-7072-a4ff-9d17e77add00\",\"serverEpoch\":\"01a21636-4e3e-7072-a4ff-9d17e77add00\"}"
+        }
+      ]
+    }
+  ]
+}

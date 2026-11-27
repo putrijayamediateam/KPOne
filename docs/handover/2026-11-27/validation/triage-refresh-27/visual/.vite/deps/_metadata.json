@@ -1,0 +1,56 @@
+{
+  "hash": "671b88cd",
+  "configHash": "1818dac7",
+  "lockfileHash": "e3b0c442",
+  "browserHash": "181c51a6",
+  "optimized": {
+    "@inertiajs/vue3": {
+      "src": "../../../../../KPOne/node_modules/@inertiajs/vue3/dist/index.js",
+      "file": "@inertiajs_vue3.js",
+      "fileHash": "21202032",
+      "needsInterop": false
+    },
+    "@lucide/vue": {
+      "src": "../../../../../KPOne/node_modules/@lucide/vue/dist/esm/lucide-vue.mjs",
+      "file": "@lucide_vue.js",
+      "fileHash": "298c2ff3",
+      "needsInterop": false
+    },
+    "class-variance-authority": {
+      "src": "../../../../../KPOne/node_modules/class-variance-authority/dist/index.mjs",
+      "file": "class-variance-authority.js",
+      "fileHash": "c22aaffc",
+      "needsInterop": false
+    },
+    "clsx": {
+      "src": "../../../../../KPOne/node_modules/clsx/dist/clsx.mjs",
+      "file": "clsx.js",
+      "fileHash": "01cb1021",
+      "needsInterop": false
+    },
+    "reka-ui": {
+      "src": "../../../../../KPOne/node_modules/reka-ui/dist/index.js",
+      "file": "reka-ui.js",
+      "fileHash": "5a6acefc",
+      "needsInterop": false
+    },
+    "tailwind-merge": {
+      "src": "../../../../../KPOne/node_modules/tailwind-merge/dist/bundle-mjs.mjs",
+      "file": "tailwind-merge.js",
+      "fileHash": "c598f7c0",
+      "needsInterop": false
+    },
+    "vue": {
+      "src": "../../../../../KPOne/node_modules/vue/dist/vue.esm-bundler.js",
+      "file": "vue.js",
+      "fileHash": "38af1024",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "vue.esm-bundler-BAjXg5xS": {
+      "file": "vue.esm-bundler-BAjXg5xS.js",
+      "isDynamicEntry": false
+    }
+  }
+}

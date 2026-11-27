@@ -1,0 +1,241 @@
+[
+  {
+    "name": "month",
+    "width": 1440,
+    "targets": [
+      {
+        "text": "Daily view",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Cash closing month",
+        "id": "",
+        "height": 38
+      },
+      {
+        "text": "Terminal check",
+        "id": "",
+        "height": 38
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Open day",
+        "id": "",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "terminal",
+    "width": 1440,
+    "targets": [
+      {
+        "text": "Daily cash closing",
+        "id": "",
+        "height": 36
+      },
+      {
+        "text": "Cash closing month",
+        "id": "",
+        "height": 38
+      },
+      {
+        "text": "Terminal check",
+        "id": "",
+        "height": 38
+      },
+      {
+        "text": "Select a payment method Synthetic cash",
+        "id": "payment-method",
+        "height": 40
+      },
+      {
+        "text": "Record close",
+        "id": "",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "name": "month",
+    "width": 390,
+    "targets": [
+      {
+        "text": "Daily view",
+        "id": "",
+        "height": 44
+      },
+      {
+        "text": "Cash closing month",
+        "id": "",
+        "height": 44
+      },
+      {
+        "text": "Terminal check",
+        "id": "",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "name": "terminal",
+    "width": 390,
+    "targets": [
+      {
+        "text": "Daily cash closing",
+        "id": "",
+        "height": 44
+      },
+      {
+        "text": "Cash closing month",
+        "id": "",
+        "height": 44
+      },
+      {
+        "text": "Terminal check",
+        "id": "",
+        "height": 44
+      },
+      {
+        "text": "Select a payment method Synthetic cash",
+        "id": "payment-method",
+        "height": 44
+      },
+      {
+        "text": "Record close",
+        "id": "",
+        "height": 44
+      }
+    ]
+  }
+]

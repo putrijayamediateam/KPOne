@@ -1,0 +1,12 @@
+{
+  "base": "c3a3dc005761521d49b0f8f8ff50a8099a208eff",
+  "patchSha256": "9d7a48c03f03e85979b35a1ca6663a2004e0af28678c9989fab0b60abdfb9569",
+  "files": {
+    "resources/js/pages/Inventory/ReorderSuggestions.vue": "d692f18517b854318733d7cc1acdbf8bf936e1549bb644b2756ecd7d7f102cc0",
+    "tests/Frontend/stock-reorder-workspace-runtime.test.mjs": "399682790b949074ddfb3f4492152e7ea79625f334495dadfaa0497fafb1f7ed",
+    "tests/Frontend/stk16-reorder-suggestions.test.mjs": "921615f49961c97c3f80d9b7e12d4237bc25c7a71ee78051f4501f5e95d98516",
+    "tests/Frontend/stk30-min-max.test.mjs": "10fab08f721465b637a77bf5d0161cd1c0ca6284c7fd7176dee286552a6cbbd4",
+    "tests/Frontend/stk43-reorder-sold.test.mjs": "102728569524e8af741a3aeadb76f2e71156593314e65af009a26a4ac523e12f",
+    "docs/teams/inventory/TEAM.md": "7377a278a5ef5f956bf18cecefce7ffcbec045634e65567e50a12b94d5efaaf7"
+  }
+}

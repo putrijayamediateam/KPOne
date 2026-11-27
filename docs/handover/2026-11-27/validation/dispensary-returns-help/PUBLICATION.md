@@ -1,0 +1,6 @@
+
+## Returns help F04 — draft1241
+
+Published https://github.com/putrijayamediateam/KPOne/pull/1241 at95adf4b326fb1ad134c4149bc42f36b67f998f1f, stacked on1239; exact4file patch3e191644a4c3cf3e4225d179cab9a1ae57138c0fbaa934d167f6e20e4599b9e7, cleanlocal. Design and Inventory finalclear.19focused/types/build/static+20actualbrowserstates+fivewidth44/36target measurements PASS. Required instructions remain outside optionalpanel, exactfilteredcountersemantics, existing960table preserved with content-queryrail. Two old assertions normalize whitespace only, exactregex unchanged andpeerreviewed. CIattest started, notyetgreen. No merge. Attachadapter10s timeout. Evidence /workspace/kpone-validation/dispensary-returns-help. Initial previewcwd and formatterpin failures retained with finalpassinglogs.
+
+Shared inode exhaustion was recovered by removing only reproducible vendor directories in inactive old DSP queue-search/type-filter trees; their source/evidence remain, dependency restoration required before futurePHPchecks there. F08 ownership plan now needs coordinator audience/default disposition beforeimplementation; /workspace/kpone-validation/dispensary-waiting-ownership/PLAN.md. No Mine/Ready/Markchecked inference.

@@ -1,0 +1,5 @@
+Dispensary text search now also finds medicines using saved names on the latest handoff's counted lines. It excludes not-dispensed lines, older attempts and live catalogue renames; visible help explains this scope. Patient-name matching remains available, while exact KP/KPV/A/B identifiers retain precedence. All existing branch/status/Type filters, counts and paging remain unchanged.
+
+Stacked on #1217, which separately fixes list handoff ordering. No permission, migration, clinical mutation, payload expansion or existing assertion change.
+
+Validation:19 focused PostgreSQL tests/349 assertions,10 existing frontend tests, changed-path static/format checks, full types and production build passed. Sixteen actual synthetic390/1440 light/dark states cover consultation/OTC matches and catalogue/removed/history negatives with GET-only interactions. Actual SQL and independent backend/Design reviews verify latest selection occurs before medicine matching. Query-count checks show no additional queries; no production-volume benchmark claimed.

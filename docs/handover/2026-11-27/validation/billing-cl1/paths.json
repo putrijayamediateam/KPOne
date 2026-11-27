@@ -1,0 +1,9 @@
+{
+    "billing": "\/visits\/KPV-00000001\/billing",
+    "print": "\/visits\/KPV-00000001\/billing\/issued\/prints\/56b51cf8-043d-4dc2-9414-47f305235fd7",
+    "receipt": "\/visits\/KPV-00000001\/billing\/issued\/prints\/29572a83-53ac-446f-89dd-1ae541b23e83",
+    "dailyclose": "\/cash-closings",
+    "visit_id": 1,
+    "branch_id": 3,
+    "invoice_id": 1
+}

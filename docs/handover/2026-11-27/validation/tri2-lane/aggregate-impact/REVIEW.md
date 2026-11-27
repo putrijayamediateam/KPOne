@@ -1,0 +1,16 @@
+# Aggregate gate lane impact — proposal only
+
+Source: root full gate `/tmp/kpone-ca-tri2-full-backend.log` (4077 tests, five failures, two skipped). Four failures concern lane changes; Auth is separately owned. No application files or existing assertions were edited during this investigation.
+
+Exact proposal: `/workspace/kpone-review-bundles/tri2/TRI2b-PROPOSED-AGGREGATE-ASSERTIONS.patch`, SHA `938070930a1e08fe17cef3d05b80cf678455254046638297138c8af3a61a1e7b`. Three files, four failing tests, plus one masked query ceiling in the same TabCounts failure. Clean apply-check, NOT applied.
+
+1. PilotCompletedQueueScaleTest: ceiling30→32. Actual32. Query log includes one independent bounded emergency count and effective-branch authority check. Probe confirmed25 removed rows, all reopen hints true, and entire source evidence unchanged. Existing rows/hints/read-only assertions remain unchanged.
+2. CombinedQueueSummaryTest: ordinary Waiting contains green; red belongs to emergency lane. Add explicit lane assertion and prove other doctor has empty emergency data as well as empty ordinary Waiting. Details endpoint name/privacy, room scope, average-wait scope and number-only alert checks remain unchanged.
+3. TabCountsTest top-level contract: add `emergency` to exact keys and assert exact empty bounded metadata for this non-red fixture. Existing tab count integers and denied billing/dispensary assertions remain unchanged.
+4. TabCountsTest400-row query ceilings: registration18→20; Queue16→18. The latter is a masked follow-on failure: current measuredQueue17 would fail its old16 ceiling after registration is fixed. Preserve original one-query Queue headroom rather than removing the limit. Small→large measurements: registration21→20, Queue17→17. Existing no-growth assertion stays unchanged. Both totals remain400 and source table JSON is unchanged.
+
+Runtime probes were temporary copies under `/tmp`, adding logging only and renaming classes. Every original assertion remained intact; they still fail the old first ceiling and are NOT reported as passing tests. Their JSON evidence is saved beside this note. No real data or shared preview was used; probes ran on isolated `kpone_tri2_lane_test` with explicit testing environment.
+
+Exhaustive scoped text inventory: searched all Feature tests for direct QueueDirectoryService/VisitDirectoryService usage or queue.search/registration.search routes, finding45 files and103 relevant query-ceiling, exact-key, waiting/carry-over and red-fixture hits. `affected-surface-test-inventory.json` records each. Also searched all Feature query-log/query-count tests (global inventory in parent directory). Existing reviewed/approved ceilings in QueuePerformanceTest and QueueDirectoryTest are already applied by root; no repeat approval requested. Other exact keys concern nested tabCounts, public feed, invoice or unrelated projections, whose contracts remain unchanged. The full gate's other tests passed; no additional lane-specific assertion change was identified beyond this batch.
+
+After owner approval: apply the exact patch, run the three affected classes (all methods) and focused lane/privacy tests, then repeat the root aggregate gate as coordinated. Do not weaken source-immutability, no-growth or privacy assertions.

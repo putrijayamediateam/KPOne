@@ -1,0 +1,79 @@
+{
+  "result": [
+    {
+      "width": 390,
+      "mode": "light",
+      "cards": 1,
+      "rows": 0,
+      "overflow": false,
+      "framePadding": "16px",
+      "minTargetHeight": 44
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "cards": 1,
+      "rows": 0,
+      "overflow": false,
+      "framePadding": "16px",
+      "minTargetHeight": 44
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "cards": 1,
+      "rows": 0,
+      "overflow": false,
+      "framePadding": "24px",
+      "minTargetHeight": 44
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "cards": 1,
+      "rows": 0,
+      "overflow": false,
+      "framePadding": "24px",
+      "minTargetHeight": 44
+    },
+    {
+      "width": 1024,
+      "mode": "light",
+      "cards": 0,
+      "rows": 1,
+      "overflow": false,
+      "framePadding": "32px",
+      "minTargetHeight": 32
+    },
+    {
+      "width": 1024,
+      "mode": "dark",
+      "cards": 0,
+      "rows": 1,
+      "overflow": false,
+      "framePadding": "32px",
+      "minTargetHeight": 32
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "cards": 0,
+      "rows": 1,
+      "overflow": false,
+      "framePadding": "32px",
+      "minTargetHeight": 32
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "cards": 0,
+      "rows": 1,
+      "overflow": false,
+      "framePadding": "32px",
+      "minTargetHeight": 32
+    }
+  ],
+  "errors": [],
+  "tabs": true,
+  "search": true
+}

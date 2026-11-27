@@ -1,0 +1,44 @@
+[
+    {
+        "query": "select count(*) as \"aggregate\" from \"dispensary_cases\" where \"organisation_id\" = ? and \"branch_id\" = ? and \"status\" in (?, ?) and (exists (select * from \"visits\" where \"dispensary_cases\".\"visit_id\" = \"visits\".\"id\" and exists (select * from \"patients\" where \"visits\".\"patient_id\" = \"patients\".\"id\" and search_name LIKE ? ESCAPE '\\')) or exists (select * from \"dispensary_handoffs\" inner join (select max(\"dispensary_handoffs\".\"id\") as \"id_aggregate\", min(\"dispensary_handoffs\".\"attempt_number\") as \"attempt_number_aggregate\", \"dispensary_handoffs\".\"dispensary_case_id\" from \"dispensary_handoffs\" inner join (select max(\"dispensary_handoffs\".\"attempt_number\") as \"attempt_number_aggregate\", \"dispensary_handoffs\".\"dispensary_case_id\" from \"dispensary_handoffs\" group by \"dispensary_handoffs\".\"dispensary_case_id\") as \"latestHandoff\" on \"latestHandoff\".\"attempt_number_aggregate\" = \"dispensary_handoffs\".\"attempt_number\" and \"latestHandoff\".\"dispensary_case_id\" = \"dispensary_handoffs\".\"dispensary_case_id\" group by \"dispensary_handoffs\".\"dispensary_case_id\") as \"latestHandoff\" on \"latestHandoff\".\"id_aggregate\" = \"dispensary_handoffs\".\"id\" and \"latestHandoff\".\"attempt_number_aggregate\" = \"dispensary_handoffs\".\"attempt_number\" and \"latestHandoff\".\"dispensary_case_id\" = \"dispensary_handoffs\".\"dispensary_case_id\" where \"dispensary_cases\".\"id\" = \"dispensary_handoffs\".\"dispensary_case_id\" and exists (select * from \"dispensary_items\" where \"dispensary_handoffs\".\"id\" = \"dispensary_items\".\"dispensary_handoff_id\" and \"status\" != ? and LOWER(medicine_name_snapshot) LIKE ? ESCAPE '\\')))",
+        "bindings": [
+            1,
+            1,
+            "pending",
+            "dispensing",
+            "%synthetic browser otc remedy%",
+            "not_dispensed",
+            "%synthetic browser otc remedy%"
+        ],
+        "time": 4.88,
+        "readWriteType": "write"
+    },
+    {
+        "query": "select count(*) as \"aggregate\" from \"dispensary_cases\" where \"organisation_id\" = ? and \"branch_id\" = ? and \"status\" in (?, ?) and (exists (select * from \"visits\" where \"dispensary_cases\".\"visit_id\" = \"visits\".\"id\" and exists (select * from \"patients\" where \"visits\".\"patient_id\" = \"patients\".\"id\" and search_name LIKE ? ESCAPE '\\')) or exists (select * from \"dispensary_handoffs\" inner join (select max(\"dispensary_handoffs\".\"id\") as \"id_aggregate\", min(\"dispensary_handoffs\".\"attempt_number\") as \"attempt_number_aggregate\", \"dispensary_handoffs\".\"dispensary_case_id\" from \"dispensary_handoffs\" inner join (select max(\"dispensary_handoffs\".\"attempt_number\") as \"attempt_number_aggregate\", \"dispensary_handoffs\".\"dispensary_case_id\" from \"dispensary_handoffs\" group by \"dispensary_handoffs\".\"dispensary_case_id\") as \"latestHandoff\" on \"latestHandoff\".\"attempt_number_aggregate\" = \"dispensary_handoffs\".\"attempt_number\" and \"latestHandoff\".\"dispensary_case_id\" = \"dispensary_handoffs\".\"dispensary_case_id\" group by \"dispensary_handoffs\".\"dispensary_case_id\") as \"latestHandoff\" on \"latestHandoff\".\"id_aggregate\" = \"dispensary_handoffs\".\"id\" and \"latestHandoff\".\"attempt_number_aggregate\" = \"dispensary_handoffs\".\"attempt_number\" and \"latestHandoff\".\"dispensary_case_id\" = \"dispensary_handoffs\".\"dispensary_case_id\" where \"dispensary_cases\".\"id\" = \"dispensary_handoffs\".\"dispensary_case_id\" and exists (select * from \"dispensary_items\" where \"dispensary_handoffs\".\"id\" = \"dispensary_items\".\"dispensary_handoff_id\" and \"status\" != ? and LOWER(medicine_name_snapshot) LIKE ? ESCAPE '\\')))",
+        "bindings": [
+            1,
+            1,
+            "pending",
+            "dispensing",
+            "%synthetic browser otc remedy%",
+            "not_dispensed",
+            "%synthetic browser otc remedy%"
+        ],
+        "time": 2.82,
+        "readWriteType": "write"
+    },
+    {
+        "query": "select * from \"dispensary_cases\" where \"organisation_id\" = ? and \"branch_id\" = ? and \"status\" in (?, ?) and (exists (select * from \"visits\" where \"dispensary_cases\".\"visit_id\" = \"visits\".\"id\" and exists (select * from \"patients\" where \"visits\".\"patient_id\" = \"patients\".\"id\" and search_name LIKE ? ESCAPE '\\')) or exists (select * from \"dispensary_handoffs\" inner join (select max(\"dispensary_handoffs\".\"id\") as \"id_aggregate\", min(\"dispensary_handoffs\".\"attempt_number\") as \"attempt_number_aggregate\", \"dispensary_handoffs\".\"dispensary_case_id\" from \"dispensary_handoffs\" inner join (select max(\"dispensary_handoffs\".\"attempt_number\") as \"attempt_number_aggregate\", \"dispensary_handoffs\".\"dispensary_case_id\" from \"dispensary_handoffs\" group by \"dispensary_handoffs\".\"dispensary_case_id\") as \"latestHandoff\" on \"latestHandoff\".\"attempt_number_aggregate\" = \"dispensary_handoffs\".\"attempt_number\" and \"latestHandoff\".\"dispensary_case_id\" = \"dispensary_handoffs\".\"dispensary_case_id\" group by \"dispensary_handoffs\".\"dispensary_case_id\") as \"latestHandoff\" on \"latestHandoff\".\"id_aggregate\" = \"dispensary_handoffs\".\"id\" and \"latestHandoff\".\"attempt_number_aggregate\" = \"dispensary_handoffs\".\"attempt_number\" and \"latestHandoff\".\"dispensary_case_id\" = \"dispensary_handoffs\".\"dispensary_case_id\" where \"dispensary_cases\".\"id\" = \"dispensary_handoffs\".\"dispensary_case_id\" and exists (select * from \"dispensary_items\" where \"dispensary_handoffs\".\"id\" = \"dispensary_items\".\"dispensary_handoff_id\" and \"status\" != ? and LOWER(medicine_name_snapshot) LIKE ? ESCAPE '\\'))) order by \"received_at\" asc, \"id\" asc limit 25 offset 0",
+        "bindings": [
+            1,
+            1,
+            "pending",
+            "dispensing",
+            "%synthetic browser otc remedy%",
+            "not_dispensed",
+            "%synthetic browser otc remedy%"
+        ],
+        "time": 2.4,
+        "readWriteType": "write"
+    }
+]

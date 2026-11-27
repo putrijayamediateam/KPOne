@@ -1,0 +1,11 @@
+{
+  "component": "Inventory/GovernedStock",
+  "mode": "count",
+  "total": 12,
+  "loaded": 12,
+  "before": 10,
+  "after": 12,
+  "blindCases": 2,
+  "noQuantities": true,
+  "errors": []
+}

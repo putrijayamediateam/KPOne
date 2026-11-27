@@ -1,0 +1,8 @@
+{
+  "base": "f8e45b027a9842728440eff19d818e866927e6d2",
+  "patchSha256": "909c6bdb0ae777b7affff444acf9181820d99114d3cc7e1e0fa78e95b4b0d29e",
+  "files": {
+    "resources/js/components/registration/RegistrationCreateForm.vue": "50ee8c081ae190a7fa0dc56c5ad7210136856d449405a2036490992732c93dc3",
+    "tests/Frontend/registration-patient-search-state.test.mjs": "3bd6072ec7c9e82b05889ff42c3a3549c4567ab017441195d0ebef1f71c70ab7"
+  }
+}

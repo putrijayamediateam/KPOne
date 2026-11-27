@@ -1,0 +1,26 @@
+{
+  "hash": "572c7595",
+  "configHash": "92f6c148",
+  "lockfileHash": "e3b0c442",
+  "browserHash": "5cf5a324",
+  "optimized": {
+    "@inertiajs/vue3": {
+      "src": "../../../../../KPOne/node_modules/@inertiajs/vue3/dist/index.js",
+      "file": "@inertiajs_vue3.js",
+      "fileHash": "fb69377f",
+      "needsInterop": false
+    },
+    "vue": {
+      "src": "../../../../../KPOne/node_modules/vue/dist/vue.esm-bundler.js",
+      "file": "vue.js",
+      "fileHash": "ea64c32c",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "vue.esm-bundler-C-KlxOb3": {
+      "file": "vue.esm-bundler-C-KlxOb3.js",
+      "isDynamicEntry": false
+    }
+  }
+}

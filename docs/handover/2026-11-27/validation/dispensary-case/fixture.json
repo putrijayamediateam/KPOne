@@ -1,0 +1,12 @@
+{
+    "database": "kpone_dsp_case_preview_test",
+    "case": "79affe97-6cdf-463e-9484-c4c20be994c6",
+    "visit": "KPV-00000004",
+    "patient": "KP-00000014",
+    "branch": 1,
+    "ca": "case.ca@kpone.test",
+    "doctor": "case.doctor@kpone.test",
+    "supervisor": "case.supervisor@kpone.test",
+    "otcCase": "3deb3655-f2a2-4acb-a820-47a35aafd0fe",
+    "otcCa": "case.otc@kpone.test"
+}

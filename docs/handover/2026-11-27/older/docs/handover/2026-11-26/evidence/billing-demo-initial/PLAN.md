@@ -1,0 +1,15 @@
+# Billing demo initial composition
+
+Base: main c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5. Isolated tree /workspace/KPOne-billing-demo, branch feature/billing-demo-collections. No commit/push authorized for this slice.
+
+Spec: effective full wrapper Billing collect/close tabs. Initial deliverable is a shared Billing-local board composition on the existing Bills to collect and Cash closing routes: permission-filtered route tabs; primary content plus contextual right column on wide screens, stacked at smaller widths; native expandable About this tab and Good to know; actual aggregate/context slots. Existing real list, overdue filter, pagination, count/approve/recount forms and service responses remain the source of truth. No fake all-nine-tabs completion or invented KPI. Subsequent slices must reconcile compact columns, age filters and the remaining tabs with server capabilities.
+
+Files: new resources/js/components/billing/BillingBoardFrame.vue; resources/js/pages/Billing/PayLaterCollections.vue; resources/js/pages/Billing/CashClosings.vue; new focused component test only. No shared primitives, PHP, permissions, migration, financial or retry/lock logic edits. Page script imports only; existing action/state code untouched.
+
+Navigation: collect requires outstanding.view.branch; cash and month require payments.reconcile.branch OR payments.cash_closing.view.branch; terminal requires payments.reconcile.branch, matching current route middleware. This is UI visibility only; backend enforcement stays intact. Links use existing routes and no client-side role assumptions.
+
+Risk: layout may crowd wide collection tables; ensure scroll stays inside table and viewport does not overflow. New sidebar must not imply count approval or receivable settlement; explanatory text describes existing behavior. Native summary controls must be keyboard operable and >=44px. Existing assertion changes are not authorized: run old focused tests unchanged and report exact proposal if necessary.
+
+Validation: new rendered component permission/navigation/slot test; existing focused Billing frontend tests; scoped ESLint/Prettier, types/build once slot granted; synthetic browser comparisons at390/1440 light/dark for collect and close including details/filter navigation. Capture effective demo same states for side-by-side review. Backend unchanged: rely on existing service gate evidence and scoped HTTP smoke on own synthetic DB; no full-suite duplication. Independent StaffDesign review before publication question.
+
+Review-driven scope refinement: populated desktop capture showed original nine-column table hiding the primary action behind horizontal scroll. Compact to six demo-aligned columns (KP no, patient, invoice, owed, due, action), with the existing visit/approved/pay-later/due-now breakdown in a native Bill details disclosure. Mobile card details remain intact. Existing header Terminal Reconciliation link now uses the same permission as its route/new navigation, fixing inherited advertising of an inaccessible action to view-only users. User-facing help replaces implementation language. No existing assertions changed.

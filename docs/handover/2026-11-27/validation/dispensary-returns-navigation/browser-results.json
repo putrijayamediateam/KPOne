@@ -1,0 +1,60 @@
+{
+  "captures": [
+    {
+      "name": "waiting",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "waiting",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "waiting",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "waiting",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "checked",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "checked",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "checked",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "checked",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    }
+  ],
+  "checks": [
+    "waiting: keyboard real default Dispensing route has no return filters; Back restores original URL/filter",
+    "checked: keyboard real default Dispensing route has no return filters; Back restores original URL/filter",
+    "Existing CA without checker authority receives403 before Returns page/navigation renders"
+  ],
+  "errors": [],
+  "writes": [],
+  "note": "Destination is actual older1225-base Dispensing screen; unrelated1140 workspace not imported"
+}

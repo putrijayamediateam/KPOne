@@ -1,0 +1,17 @@
+{
+    "branchId": 1,
+    "visits": {
+        "green": {
+            "visitNumber": "KPV-00000001",
+            "queueNumber": 1
+        },
+        "yellow": {
+            "visitNumber": "KPV-00000002",
+            "queueNumber": 2
+        },
+        "red": {
+            "visitNumber": "KPV-00000003",
+            "queueNumber": 3
+        }
+    }
+}

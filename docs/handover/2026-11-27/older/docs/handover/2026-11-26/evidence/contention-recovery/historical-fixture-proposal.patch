@@ -1,0 +1,15 @@
+diff --git a/tests/Feature/PostgresDispensaryInventoryRegressionTest.php b/tests/Feature/PostgresDispensaryInventoryRegressionTest.php
+--- a/tests/Feature/PostgresDispensaryInventoryRegressionTest.php
++++ b/tests/Feature/PostgresDispensaryInventoryRegressionTest.php
+@@ -785,6 +785,11 @@
+ 
+     public function test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence(): void
+     {
++        // This rollback proof deliberately runs the pre-STK-3 schema, before TRI2 existed.
++        // Suppress only the later emergency-close hook during historical fixture construction.
++        $emergency = \Mockery::mock(new \App\Domain\Queue\Emergency\EmergencyAlertService);
++        $emergency->shouldReceive('closeLocked')->once()->with(\Mockery::type(\App\Domain\Queue\Models\QueueEntry::class), 'left_waiting');
++        $this->instance(\App\Domain\Queue\Emergency\EmergencyAlertService::class, $emergency);
+         $fixture = $this->completableFixture('10.000', '4.000');
+         $organisationId = $fixture['organisation']->id;
+         $order = $this->purchaseOrderFixture($fixture, PurchaseOrder::STATUS_APPROVED);

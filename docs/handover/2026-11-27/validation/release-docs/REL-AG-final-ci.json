@@ -1,0 +1,68 @@
+{
+  "main": "eec5d5444bd14b0358e0383c1ea5d427e4d33f11",
+  "headRefOid": "6482bd9f19eb58e76a9d75b1252950eb2e199f28",
+  "isDraft": false,
+  "state": "OPEN",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T17:35:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45868934037/job/140078967500",
+      "name": "attest",
+      "startedAt": "2026-11-26T17:35:01Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T17:41:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45868934037/job/140079248437",
+      "name": "static",
+      "startedAt": "2026-11-26T17:37:50Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T17:54:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45868934037/job/140079248547",
+      "name": "backend (shard 1)",
+      "startedAt": "2026-11-26T17:37:11Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T17:47:24Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45868934037/job/140079248471",
+      "name": "backend (shard 2)",
+      "startedAt": "2026-11-26T17:35:38Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T17:46:10Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45868934037/job/140079248572",
+      "name": "backend (shard 3)",
+      "startedAt": "2026-11-26T17:35:39Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T18:01:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45868934037/job/140088391545",
+      "name": "ci",
+      "startedAt": "2026-11-26T18:00:57Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "files": {
+    "resources/js/components/registration/RegistrationWorkspaceNav.vue": "6c329dc85ea0bb94ad88b9b9ac537df7a05ac657f61572c1bc7193ab36ba40b0",
+    "resources/js/pages/Patient/Index.vue": "0ec91be30e2c8334c843ecdb30500eeda7ecbf1720c25d587e581f49372d211d",
+    "resources/js/pages/Registration/Index.vue": "2c4109bf7561dd3e95192579c24c9b86e92b164e750d2004816542616481fe1a",
+    "tests/Frontend/flow-fixes-1.test.mjs": "282e391db6779c6e6ed300d51c533579aa1d67ba16f2ccc08fd9c393d1d86452",
+    "tests/Frontend/rb-01-registration-board-search.test.mjs": "385eac9c8b766265fa1737e574b733fc5432b36fd6768477667afcaf8e4538af",
+    "tests/Frontend/rb-02-registration-board-dates.test.mjs": "4254ebc0bb365a49f72971a3b6ad0100f20d05e45972cc414cb4945c2033413f",
+    "tests/Frontend/reg-live-1.test.mjs": "6b4daac867d98e094fe3aa4fde6f321d189bac0a0ac7cb2bf9e53a71c6082e68",
+    "tests/Frontend/registration-workspace-navigation.test.mjs": "846ecd3de11614939c4958533c19f26e06211e69fb892062f5358df9f732a170"
+  },
+  "note": "Application files unchanged after fresh types/build/browser review; test-only follow-up independently reviewed. Remote main subsequently advanced with unrelated Inventory toast PR1111."
+}

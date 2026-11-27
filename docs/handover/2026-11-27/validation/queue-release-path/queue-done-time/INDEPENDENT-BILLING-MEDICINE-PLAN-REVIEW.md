@@ -1,0 +1,7 @@
+# Independent Billing medicine-check metadata contract review
+
+Bounded plan CLEAR after reading existing DoctorDispensaryAttentionService::checksForVisits and the resolved Dispensary count definition. Enrich only authorized checks page entries; retain active resident role, both own permissions, current staff/branch assignment, organisation/branch, current assigned and encounter-attending doctor, registered visit, removed/sent-to-dispensary queue and awaiting-doctor-check case with its exact current open handoff. Recheck current assigned doctor in the database rather than relying only on an earlier loaded visit if a separate query is used.
+
+Count every current open-handoff review line, including removed/not-dispensed, labelled Item lines with explanation; do not sum old attempts or imply medicines supplied. Sender is case.sent_for_check_by_user_id for the current send, display name only under the existing sender visibility contract. Missing/ambiguous identity is unavailable, never guessed from newest unrelated case or handoff. Batched25-row enrichment must not add fields to unrelated responses or widen CA/director access.
+
+Implementation must mirror case/encounter/visit linkage and current handoff guards; tests need resend/current-sender, historical handoff exclusion, revoked authority, reassigned doctor, missing sender, no medicine contents, and1-versus26 query equality. No source implementation or runtime gates independently reviewed yet. No schema/grant/clinical transition implied.

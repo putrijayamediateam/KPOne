@@ -1,0 +1,9 @@
+# Case context composition review
+
+Two-file candidate on frozen PR1158 headbc31adaf: Show.vue and TEAM.md. Scope is existing-data F13/F19 composition from the locked PharmacyCase artifact: neutral decorative patient icon/name/KP header, wrapping Visit/Doctor rows, and Summary rows with40px minimum height. All actual count expressions and readonly/OTC conditions remain unchanged. No inferred demographic/payer/queue/call/provenance data and no new action, permission or clinical workflow.
+
+Validation:156 existing focused frontend checks pass unchanged; scoped lint/format, full frontend types/build and diff check pass. Script parity proves byte equality after removing only UserRound import. Initial row-wrapper implementation triggered the existing readonly test's pinned template guard; restored the exact original template guard and used scoped grid styling, with no test edit. This first failed run remains in focused.log; successful final run is focused-final.log.
+
+Own synthetic database kpone_case_context_preview_test is cloned from the prior task-owned fixture; provenance verifies55439. Fixture changes only long synthetic display names and reuses the existing empty OTC case. Preview3081; attempted3075 was already occupied and never received requests from this task. Actual browser proof passes 16 captures at 390/1440 in light/dark: long names wrap without clipping or page overflow, medicines/services/dirty counters retain real 1/0/1 values, readonly omits CA rows, and empty OTC retains zero medicines/no service row/no-doctor fallback. All summary rows measure at least 40px. No page errors. Independent Design source/visual review is clear for exact patch04f77728; see INDEPENDENT-REVIEW.md.
+
+Publication would be a separate stacked PR above1158; parent PRs remain frozen and unmerged. Existing inner editor density and shared route highlight are unrelated debts. This closes only available-data composition portions ofF13/F19, not full demo parity.

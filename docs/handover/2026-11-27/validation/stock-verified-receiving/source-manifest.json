@@ -1,0 +1,13 @@
+{
+  "patch_sha256": "30e9741ddc258f19f1ce942a8f6af5cda9c043846b1d7876a9c4ff89d76cb417",
+  "files": {
+    "docs/teams/inventory/TEAM.md": "a5b6533ed09279bf7b72131e4e8ac345c58ea8e7e365803c25b4351b14ff516d",
+    "resources/js/components/inventory/VerifiedReceivingForm.vue": "1b1c61188f8657d6ac948c9ac85f88d8a56a3b18f32961c651b7dd952e290510",
+    "tests/Frontend/verified-receiving-composition-runtime.test.mjs": "1952bed12373e547838b11e0809b0f310def4495e56ff484f47abf21671140dc",
+    "tests/Frontend/stk10b-receipt-cost-evidence.test.mjs": "52a54a13b9b00191a9ec4ddb584c49311fcfbac95e76c68a9180108e33e0243a",
+    "tests/Frontend/stk26-receiving-gs1.test.mjs": "0bdfca9e8f3b56a76c086f68cc6a5e897ade9bb48d6a3888693e6b44f5067a77",
+    "tests/Frontend/stk9-barcode-scanning.test.mjs": "7dc50a1d99c7baba4be15aba04c6cc4f95062e3a1117c5e72ebeb55a79795b2e",
+    "tests/Frontend/ui-polish-1.test.mjs": "701e08aac3f021b82df4a638b1d09c4b23ab45e6a81c96b6e4f40496151b653b",
+    "tests/Frontend/verified-receiving.test.mjs": "c800cabe9f3fbe065c8260533e72375ca4bd8642978002584af069c4ac510b24"
+  }
+}

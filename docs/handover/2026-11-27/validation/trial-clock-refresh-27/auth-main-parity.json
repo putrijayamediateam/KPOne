@@ -1,0 +1,12 @@
+{
+  "old": "e1675d70c840294685b15c1f092e38f2c490e41a",
+  "head": "fac47698542cf553c069059b553baea7e5c2a1ad",
+  "main": "18ab8e772bde6bd31d50410007d832c7863cf150",
+  "scope": {
+    "tests/Feature/TrialDataCommandTest.php": "a85cdab40dd1c83a31954f754b5306976b5a628f"
+  },
+  "originalTestBlobUnchanged": true,
+  "upstream": [
+    "tests/Feature/Auth/EmailVerificationTest.php"
+  ]
+}

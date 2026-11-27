@@ -1,0 +1,30 @@
+[
+  {
+    "slice": "stk46-service",
+    "head": "041c69b44eacf5453ed8435992e33edfc5007fe0",
+    "files": 17,
+    "mismatches": [],
+    "clean": true
+  },
+  {
+    "slice": "stk46-replay",
+    "head": "ccf0fa91d2143970c2f0b658964d746a7758c886",
+    "files": 7,
+    "mismatches": [],
+    "clean": true
+  },
+  {
+    "slice": "stk46-ui",
+    "head": "1545f85197e3325f2f2c943e121f28ec82c49793",
+    "files": 14,
+    "mismatches": [],
+    "clean": true
+  },
+  {
+    "slice": "stk50-51",
+    "head": "b224def5d70554a1e83a6c00f9e0256186a4749b",
+    "files": 17,
+    "mismatches": [],
+    "clean": true
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "tests/Feature/Queue/PostgresEmergencyAlertContentionTest.php": [
+    "Contention",
+    "Contention3"
+  ],
+  "tests/Feature/Clinical/PostgresTreatmentRoomRecordTest.php": [
+    "Contention",
+    "Contention3"
+  ],
+  "tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php": [
+    "Contention",
+    "Contention3"
+  ],
+  "tests/Feature/Patient/PostgresFamilyLinkContentionTest.php": [
+    "Contention",
+    "Contention3"
+  ]
+}

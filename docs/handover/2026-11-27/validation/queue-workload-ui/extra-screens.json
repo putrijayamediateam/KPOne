@@ -1,0 +1,30 @@
+[
+  {
+    "section": "treatment",
+    "width": 1440,
+    "dark": false,
+    "shot": "treatment-1440-light.png",
+    "overflow": false
+  },
+  {
+    "section": "treatment",
+    "width": 390,
+    "dark": true,
+    "shot": "treatment-390-dark.png",
+    "overflow": false
+  },
+  {
+    "section": "checks",
+    "width": 1440,
+    "dark": false,
+    "shot": "checks-1440-light.png",
+    "overflow": false
+  },
+  {
+    "section": "checks",
+    "width": 390,
+    "dark": true,
+    "shot": "checks-390-dark.png",
+    "overflow": false
+  }
+]

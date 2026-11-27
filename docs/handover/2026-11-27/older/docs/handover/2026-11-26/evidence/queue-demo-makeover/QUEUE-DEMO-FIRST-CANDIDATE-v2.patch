@@ -1,0 +1,1039 @@
+diff --git a/resources/js/pages/Queue/Index.vue b/resources/js/pages/Queue/Index.vue
+--- a/resources/js/pages/Queue/Index.vue
++++ b/resources/js/pages/Queue/Index.vue
+@@ -21,6 +21,7 @@
+ import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
+ import QueueRoomsToday from '@/components/queue/QueueRoomsToday.vue';
+ import QueueRowDetailsDialog from '@/components/queue/QueueRowDetailsDialog.vue';
++import QueueWorkspaceFrame from '@/components/queue/QueueWorkspaceFrame.vue';
+ import { Button } from '@/components/ui/button';
+ import { OperationalSelect } from '@/components/ui/select';
+ import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+@@ -144,7 +145,11 @@
+ const averageWait = useQueueAverageWait();
+ // Q-2: the attending doctor (own queue) is told when a treatment step is done.
+ const treatmentAlerts = useTreatmentDoneAlerts(true);
+-const activeTab = ref<QueueTab>('all');
++const activeTab = ref<QueueTab>('waiting');
++const workspaceSection = ref<'queue' | 'doctors'>('queue');
++watch([() => live.value.branch.id, () => live.value.scope], () => {
++    workspaceSection.value = 'queue';
++});
+ // Q-5: the Completed tab lists the latest 25 entries; its count is every completed entry at the branch.
+ const completedLine = computed(() =>
+     completedShownLine(
+@@ -770,9 +775,36 @@
+ <template>
+     <Head title="Consultation" />
+     <main
+-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
++        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 py-6 md:px-8"
+     >
+-        <h1 class="sr-only">Consultation queue</h1>
++        <header class="flex flex-wrap items-center gap-3">
++            <h1 class="text-[26px] font-semibold tracking-tight">
++                {{ live.scope === 'own' ? 'My patients' : 'Queue' }}
++            </h1>
++            <p class="text-sm text-muted-foreground">
++                {{ live.branch.name }} ·
++                {{
++                    live.scope === 'own' ? 'Your consultations' : 'All doctors'
++                }}
++            </p>
++            <Button
++                v-if="
++                    page.props.auth.permissions.includes('visits.view.branch')
++                "
++                variant="secondary"
++                class="ml-auto h-9 rounded-full max-lg:h-11"
++                as-child
++                ><Link href="/registration">Visits today</Link></Button
++            >
++            <CallNextControl
++                v-if="live.callNext"
++                :block="live.callNext"
++                :branch-id="live.branch.id"
++                :busy="busyKey !== null"
++                :refresh="refreshBoard"
++                @processing="busyKey = $event ? 'call-next' : null"
++            />
++        </header>
+         <div
+             v-if="
+                 page.props.auth.permissions.includes(
+@@ -824,8 +856,30 @@
+         </div>
+         <!-- BIL-30 (Daniel): below the room picker, one calm line. -->
+         <MySalesTarget v-if="mySalesTarget" :target="mySalesTarget" />
++        <nav
++            v-if="live.scope === 'branch'"
++            class="flex self-start rounded-full bg-muted p-1"
++            aria-label="Queue sections"
++        >
++            <button
++                v-for="section in ['queue', 'doctors'] as const"
++                :key="section"
++                type="button"
++                class="min-h-11 rounded-full px-5 text-sm lg:min-h-9"
++                :class="
++                    workspaceSection === section
++                        ? 'bg-card font-semibold shadow-sm'
++                        : 'text-muted-foreground'
++                "
++                :aria-pressed="workspaceSection === section"
++                @click="workspaceSection = section"
++            >
++                {{ section === 'queue' ? 'Queue' : 'Doctors' }}
++            </button>
++        </nav>
+         <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
+         <div
++            v-show="workspaceSection === 'queue'"
+             ref="tabStrip"
+             class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
+         >
+@@ -849,116 +903,146 @@
+             >
+         </div>
+ 
+-        <QueueRoomsToday
+-            v-if="live.scope === 'branch'"
+-            :key="live.branch.id"
+-            :stats="roomsToday.stats.value"
+-            :unavailable="roomsToday.unavailable.value"
+-        />
+-
+-        <QueueAverageWaitSummary
+-            :stats="averageWait.stats.value"
+-            :unavailable="averageWait.unavailable.value"
++        <QueueWorkspaceFrame
++            v-show="workspaceSection === 'queue'"
++            :tabs="tabs"
++            :active-tab="activeTab"
+             :scope="live.scope"
+-        />
+-
+-        <form
+-            class="grid gap-2 border-b pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
+-            @submit.prevent="applyFilters"
++            :branch-name="live.branch.name"
++            :can-registration="
++                page.props.auth.permissions.includes('visits.view.branch')
++            "
++            @select="selectOperationalTab"
+         >
+-            <label class="relative md:col-span-2 xl:col-span-1"
+-                ><span class="sr-only">Search patients or queue numbers</span
+-                ><Search
+-                    class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
+-                    v-model="draftFilters.query"
+-                    autocomplete="off"
+-                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25 max-lg:min-h-11"
+-                    placeholder="Patient or exact Queue number"
+-            /></label>
+-            <OperationalSelect
+-                v-if="live.scope === 'branch'"
+-                v-model="draftFilters.doctor_id"
+-                label="Doctor"
+-                trigger-class="h-9 max-lg:min-h-11"
+-                :options="doctorOptions"
+-            /><span v-else class="hidden xl:block" />
+-            <OperationalSelect
+-                v-model="draftFilters.priority"
+-                label="Urgency"
+-                trigger-class="h-9 max-lg:min-h-11"
+-                :options="urgencyOptions"
+-            />
+-            <Button
+-                type="submit"
+-                size="sm"
+-                class="h-9 max-lg:min-h-11"
+-                :variant="live.callNext ? 'outline' : 'default'"
+-                :disabled="isApplyingFilters"
+-                ><LoaderCircle
+-                    v-if="isApplyingFilters"
+-                    class="size-4 animate-spin"
+-                />{{ isApplyingFilters ? 'Applying…' : 'Apply' }}</Button
++            <template #summary>
++                <QueueAverageWaitSummary
++                    :stats="averageWait.stats.value"
++                    :unavailable="averageWait.unavailable.value"
++                    :scope="live.scope"
++                />
++            </template>
++            <template #related>
++                <Link
++                    v-if="
++                        page.props.auth.permissions.includes(
++                            'treatment_room.view.branch',
++                        )
++                    "
++                    href="/treatment-room"
++                    class="flex min-h-11 items-center border-t text-sm text-primary lg:min-h-9"
++                    >Treatment room</Link
++                >
++            </template>
++            <form
++                class="grid gap-2 border-b pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
++                @submit.prevent="applyFilters"
+             >
+-            <Button
+-                type="button"
+-                size="sm"
+-                class="h-9 max-lg:min-h-11"
+-                variant="ghost"
+-                @click="clearFilters"
+-                >Reset</Button
++                <label class="relative md:col-span-2 xl:col-span-1"
++                    ><span class="sr-only"
++                        >Search patients or queue numbers</span
++                    ><Search
++                        class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
++                        v-model="draftFilters.query"
++                        autocomplete="off"
++                        class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25 max-lg:min-h-11"
++                        placeholder="Patient or exact Queue number"
++                /></label>
++                <OperationalSelect
++                    v-if="live.scope === 'branch'"
++                    v-model="draftFilters.doctor_id"
++                    label="Doctor"
++                    trigger-class="h-9 max-lg:min-h-11"
++                    :options="doctorOptions"
++                /><span v-else class="hidden xl:block" />
++                <OperationalSelect
++                    v-model="draftFilters.priority"
++                    label="Urgency"
++                    trigger-class="h-9 max-lg:min-h-11"
++                    :options="urgencyOptions"
++                />
++                <Button
++                    type="submit"
++                    size="sm"
++                    class="h-9 max-lg:min-h-11"
++                    :variant="live.callNext ? 'outline' : 'default'"
++                    :disabled="isApplyingFilters"
++                    ><LoaderCircle
++                        v-if="isApplyingFilters"
++                        class="size-4 animate-spin"
++                    />{{ isApplyingFilters ? 'Applying…' : 'Apply' }}</Button
++                >
++                <Button
++                    type="button"
++                    size="sm"
++                    class="h-9 max-lg:min-h-11"
++                    variant="ghost"
++                    @click="clearFilters"
++                    >Reset</Button
++                >
++                <InputError
++                    class="md:col-span-2 xl:col-span-5"
++                    :message="error"
++                />
++            </form>
++
++            <section
++                class="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm"
+             >
+-            <InputError class="md:col-span-2 xl:col-span-5" :message="error" />
+-        </form>
+-
+-        <section class="overflow-hidden border-y bg-background">
+-            <div
+-                class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+-            >
+-                <span class="flex gap-3"
+-                    ><span>{{ boardRows.length }} visible entries</span
+-                    ><span>{{
+-                        live.scope === 'own'
+-                            ? 'Clinician scope'
+-                            : 'Branch scope'
+-                    }}</span></span
++                <div
++                    class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+                 >
+-                <CallNextControl
+-                    v-if="live.callNext"
+-                    :block="live.callNext"
+-                    :branch-id="live.branch.id"
+-                    :busy="busyKey !== null"
+-                    :refresh="refreshBoard"
+-                    @processing="busyKey = $event ? 'call-next' : null"
+-                />
+-            </div>
+-            <Button
+-                type="button"
+-                variant="outline"
+-                class="mb-3 min-h-11"
+-                :aria-pressed="readyAlerts.chimeEnabled.value"
+-                @click="readyAlerts.toggleChime"
+-                >Notification sound:
+-                {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
+-            >
+-            <EmergencyLane
+-                v-if="emergencyRows.length"
+-                :total="live.emergency?.total ?? emergencyRows.length"
+-                :current-page="live.emergency?.currentPage ?? 1"
+-                :last-page="live.emergency?.lastPage ?? 1"
+-                :busy="isRefreshing || busyKey !== null"
+-                @page="
+-                    refresh(
+-                        live.waiting.currentPage,
+-                        live.carryOver.currentPage,
+-                        true,
+-                        $event,
+-                    )
+-                "
+-            >
++                    <span class="flex gap-3"
++                        ><span>{{ boardRows.length }} visible entries</span
++                        ><span>{{
++                            live.scope === 'own'
++                                ? 'Clinician scope'
++                                : 'Branch scope'
++                        }}</span></span
++                    >
++                </div>
++                <Button
++                    type="button"
++                    variant="outline"
++                    class="mb-3 min-h-11"
++                    :aria-pressed="readyAlerts.chimeEnabled.value"
++                    @click="readyAlerts.toggleChime"
++                    >Notification sound:
++                    {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
++                >
++                <EmergencyLane
++                    v-if="emergencyRows.length"
++                    :total="live.emergency?.total ?? emergencyRows.length"
++                    :current-page="live.emergency?.currentPage ?? 1"
++                    :last-page="live.emergency?.lastPage ?? 1"
++                    :busy="isRefreshing || busyKey !== null"
++                    @page="
++                        refresh(
++                            live.waiting.currentPage,
++                            live.carryOver.currentPage,
++                            true,
++                            $event,
++                        )
++                    "
++                >
++                    <PatientBoard
++                        :branch-id="live.branch.id"
++                        from="queue"
++                        :queue-layout="live.scope"
++                        :rows="emergencyRows"
++                        :busy-key="busyKey"
++                        @call="requestCall"
++                        @recall="recall"
++                        @show-details="detailsVisit = $event.visitNumber"
++                        @call-treatment="openTreatmentCall"
++                        @open-consultation="openConsultation"
++                        @cancel="requestCancellation"
++                    />
++                </EmergencyLane>
+                 <PatientBoard
+                     :branch-id="live.branch.id"
+                     from="queue"
+-                    :rows="emergencyRows"
++                    :queue-layout="live.scope"
++                    :rows="boardRows"
+                     :busy-key="busyKey"
+                     @call="requestCall"
+                     @recall="recall"
+@@ -967,95 +1051,100 @@
+                     @open-consultation="openConsultation"
+                     @cancel="requestCancellation"
+                 />
+-            </EmergencyLane>
+-            <PatientBoard
+-                :branch-id="live.branch.id"
+-                from="queue"
+-                :rows="boardRows"
+-                :busy-key="busyKey"
+-                @call="requestCall"
+-                @recall="recall"
+-                @show-details="detailsVisit = $event.visitNumber"
+-                @call-treatment="openTreatmentCall"
+-                @open-consultation="openConsultation"
+-                @cancel="requestCancellation"
++                <p
++                    v-if="completedLine"
++                    class="border-t px-3 py-2 text-xs text-muted-foreground"
++                    data-testid="completed-shown-count"
++                >
++                    {{ completedLine }}
++                </p>
++                <p
++                    v-if="servingLine"
++                    class="border-t px-3 py-2 text-xs text-muted-foreground"
++                    data-testid="serving-shown-count"
++                >
++                    {{ servingLine }}
++                </p>
++                <div
++                    v-if="
++                        (activeTab === 'all' || activeTab === 'waiting') &&
++                        (live.waiting.lastPage > 1 ||
++                            live.carryOver.lastPage > 1)
++                    "
++                    class="flex flex-wrap justify-end gap-2 border-t p-3"
++                >
++                    <Button
++                        size="sm"
++                        variant="outline"
++                        :disabled="
++                            live.waiting.currentPage === 1 || isRefreshing
++                        "
++                        @click="
++                            refresh(
++                                live.waiting.currentPage - 1,
++                                live.carryOver.currentPage,
++                            )
++                        "
++                        >Previous today</Button
++                    >
++                    <Button
++                        size="sm"
++                        variant="outline"
++                        :disabled="
++                            live.waiting.currentPage ===
++                                live.waiting.lastPage || isRefreshing
++                        "
++                        @click="
++                            refresh(
++                                live.waiting.currentPage + 1,
++                                live.carryOver.currentPage,
++                            )
++                        "
++                        >Next today</Button
++                    >
++                    <Button
++                        size="sm"
++                        variant="outline"
++                        :disabled="
++                            live.carryOver.currentPage === 1 || isRefreshing
++                        "
++                        @click="
++                            refresh(
++                                live.waiting.currentPage,
++                                live.carryOver.currentPage - 1,
++                            )
++                        "
++                        >Previous carry-over</Button
++                    >
++                    <Button
++                        size="sm"
++                        variant="outline"
++                        :disabled="
++                            live.carryOver.currentPage ===
++                                live.carryOver.lastPage || isRefreshing
++                        "
++                        @click="
++                            refresh(
++                                live.waiting.currentPage,
++                                live.carryOver.currentPage + 1,
++                            )
++                        "
++                        >Next carry-over</Button
++                    >
++                </div>
++            </section>
++        </QueueWorkspaceFrame>
++        <section
++            v-show="workspaceSection === 'doctors'"
++            aria-label="Doctors and rooms today"
++        >
++            <QueueRoomsToday
++                v-if="live.scope === 'branch'"
++                :open="true"
++                :key="live.branch.id"
++                :stats="roomsToday.stats.value"
++                :unavailable="roomsToday.unavailable.value"
+             />
+-            <p
+-                v-if="completedLine"
+-                class="border-t px-3 py-2 text-xs text-muted-foreground"
+-                data-testid="completed-shown-count"
+-            >
+-                {{ completedLine }}
+-            </p>
+-            <p
+-                v-if="servingLine"
+-                class="border-t px-3 py-2 text-xs text-muted-foreground"
+-                data-testid="serving-shown-count"
+-            >
+-                {{ servingLine }}
+-            </p>
+-            <div
+-                v-if="
+-                    (activeTab === 'all' || activeTab === 'waiting') &&
+-                    (live.waiting.lastPage > 1 || live.carryOver.lastPage > 1)
+-                "
+-                class="flex flex-wrap justify-end gap-2 border-t p-3"
+-            >
+-                <Button
+-                    size="sm"
+-                    variant="outline"
+-                    :disabled="live.waiting.currentPage === 1 || isRefreshing"
+-                    @click="
+-                        refresh(
+-                            live.waiting.currentPage - 1,
+-                            live.carryOver.currentPage,
+-                        )
+-                    "
+-                    >Previous today</Button
+-                >
+-                <Button
+-                    size="sm"
+-                    variant="outline"
+-                    :disabled="
+-                        live.waiting.currentPage === live.waiting.lastPage ||
+-                        isRefreshing
+-                    "
+-                    @click="
+-                        refresh(
+-                            live.waiting.currentPage + 1,
+-                            live.carryOver.currentPage,
+-                        )
+-                    "
+-                    >Next today</Button
+-                >
+-                <Button
+-                    size="sm"
+-                    variant="outline"
+-                    :disabled="live.carryOver.currentPage === 1 || isRefreshing"
+-                    @click="
+-                        refresh(
+-                            live.waiting.currentPage,
+-                            live.carryOver.currentPage - 1,
+-                        )
+-                    "
+-                    >Previous carry-over</Button
+-                >
+-                <Button
+-                    size="sm"
+-                    variant="outline"
+-                    :disabled="
+-                        live.carryOver.currentPage ===
+-                            live.carryOver.lastPage || isRefreshing
+-                    "
+-                    @click="
+-                        refresh(
+-                            live.waiting.currentPage,
+-                            live.carryOver.currentPage + 1,
+-                        )
+-                    "
+-                    >Next carry-over</Button
+-                >
+-            </div>
+         </section>
+ 
+         <QueueCallDialog
+diff --git a/resources/js/components/patient-board/PatientBoard.vue b/resources/js/components/patient-board/PatientBoard.vue
+--- a/resources/js/components/patient-board/PatientBoard.vue
++++ b/resources/js/components/patient-board/PatientBoard.vue
+@@ -36,6 +36,7 @@
+     rows: PatientBoardRow[];
+     branchId?: number;
+     from?: 'registration' | 'queue';
++    queueLayout?: 'own' | 'branch';
+     busyKey?: string | null;
+     emptyMessage?: string;
+ }>();
+@@ -128,21 +129,39 @@
+ <template>
+     <div class="patient-board overflow-x-auto">
+         <table
+-            class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
++            class="w-full text-left text-[13px] leading-5"
++            :class="
++                queueLayout
++                    ? 'table-auto md:min-w-[720px]'
++                    : 'table-fixed md:min-w-[1040px]'
++            "
+         >
+             <thead
+                 class="border-y bg-card-quiet text-[13px] font-semibold text-muted-foreground"
+             >
+                 <tr>
+-                    <th class="w-[15%] px-3 py-2">Patient</th>
+-                    <th class="w-[7%] px-3 py-2">Queue</th>
+-                    <th class="w-[9%] px-3 py-2">Arrived</th>
+-                    <th class="w-[12%] px-3 py-2">Visit notes</th>
+-                    <th class="w-[10%] px-3 py-2">Doctor</th>
+-                    <th class="w-[18%] px-3 py-2">Payment</th>
+-                    <th class="w-[8%] px-3 py-2">Duration</th>
+-                    <th class="w-[15%] px-3 py-2">Status</th>
+-                    <th class="w-[112px] px-3 py-2 text-right">Actions</th>
++                    <template v-if="queueLayout">
++                        <th class="w-20 px-3 py-2">No.</th>
++                        <th class="w-56 px-3 py-2">Patient</th>
++                        <th class="px-3 py-2">Reason</th>
++                        <th v-if="queueLayout === 'branch'" class="px-3 py-2">
++                            Doctor
++                        </th>
++                        <th class="px-3 py-2">Waiting / since</th>
++                        <th class="px-3 py-2">Status</th>
++                        <th class="w-28 px-3 py-2 text-right">Actions</th>
++                    </template>
++                    <template v-else>
++                        <th class="w-[15%] px-3 py-2">Patient</th>
++                        <th class="w-[7%] px-3 py-2">Queue</th>
++                        <th class="w-[9%] px-3 py-2">Arrived</th>
++                        <th class="w-[12%] px-3 py-2">Visit notes</th>
++                        <th class="w-[10%] px-3 py-2">Doctor</th>
++                        <th class="w-[18%] px-3 py-2">Payment</th>
++                        <th class="w-[8%] px-3 py-2">Duration</th>
++                        <th class="w-[15%] px-3 py-2">Status</th>
++                        <th class="w-[112px] px-3 py-2 text-right">Actions</th>
++                    </template>
+                 </tr>
+             </thead>
+             <tbody>
+@@ -154,9 +173,17 @@
+                     :data-history-url="row.historyUrl ?? undefined"
+                     @click="openHistory($event, row)"
+                 >
++                    <td
++                        v-if="queueLayout"
++                        class="px-3 py-2.5 align-middle font-semibold tabular-nums"
++                        data-label="No."
++                    >
++                        {{ row.queueNumber ?? '—' }}
++                    </td>
+                     <td class="px-3 py-2.5 align-middle" data-label="Patient">
+                         <div class="flex min-w-0 items-center gap-2.5">
+                             <span
++                                v-if="!queueLayout"
+                                 class="grid size-8 shrink-0 place-items-center rounded-full bg-muted/75 text-muted-foreground"
+                                 aria-hidden="true"
+                             >
+@@ -164,19 +191,31 @@
+                             </span>
+                             <div class="min-w-0">
+                                 <div
+-                                    class="truncate font-medium text-foreground"
++                                    :class="
++                                        queueLayout
++                                            ? 'font-medium break-words text-foreground'
++                                            : 'truncate font-medium text-foreground'
++                                    "
+                                 >
+                                     {{ row.patientName }}
+                                 </div>
+                                 <div
+                                     class="truncate text-[11px] font-normal text-muted-foreground"
+                                 >
+-                                    {{ row.patientNumber }}
++                                    {{
++                                        queueLayout
++                                            ? row.coverageLabel
++                                            : row.patientNumber
++                                    }}
+                                 </div>
+                             </div>
+                         </div>
+                     </td>
+-                    <td class="px-3 py-2.5 align-middle" data-label="Queue">
++                    <td
++                        v-if="!queueLayout"
++                        class="px-3 py-2.5 align-middle"
++                        data-label="Queue"
++                    >
+                         <span
+                             class="inline-flex min-w-9 justify-center rounded-md bg-muted/65 px-2 py-0.5 font-normal text-foreground tabular-nums"
+                             >{{ row.queueNumber ?? '—' }}</span
+@@ -184,6 +223,7 @@
+                     </td>
+                     <td
+                         class="px-3 py-2.5 align-middle font-normal tabular-nums"
++                        v-if="!queueLayout"
+                         data-label="Arrived"
+                     >
+                         <span class="block truncate" :title="row.arrivedDate">{{
+@@ -206,7 +246,11 @@
+                             />
+                         </div>
+                     </td>
+-                    <td class="px-3 py-2.5 align-middle" data-label="Doctor">
++                    <td
++                        v-if="queueLayout !== 'own'"
++                        class="px-3 py-2.5 align-middle"
++                        data-label="Doctor"
++                    >
+                         <TooltipProvider :delay-duration="350">
+                             <Tooltip>
+                                 <TooltipTrigger as-child>
+@@ -269,7 +313,11 @@
+                             >
+                         </div>
+                     </td>
+-                    <td class="px-3 py-2.5 align-middle" data-label="Payment">
++                    <td
++                        v-if="!queueLayout"
++                        class="px-3 py-2.5 align-middle"
++                        data-label="Payment"
++                    >
+                         <TooltipProvider :delay-duration="350">
+                             <Tooltip>
+                                 <TooltipTrigger as-child>
+@@ -662,7 +710,13 @@
+                 </tr>
+                 <tr v-if="!rows.length">
+                     <td
+-                        colspan="9"
++                        :colspan="
++                            queueLayout === 'own'
++                                ? 6
++                                : queueLayout === 'branch'
++                                  ? 7
++                                  : 9
++                        "
+                         class="px-4 py-12 text-center text-sm text-muted-foreground"
+                     >
+                         {{
+diff --git a/resources/js/components/queue/QueueWorkspaceFrame.vue b/resources/js/components/queue/QueueWorkspaceFrame.vue
+new file mode 100644
+--- /dev/null
++++ b/resources/js/components/queue/QueueWorkspaceFrame.vue
+@@ -0,0 +1,148 @@
++<script setup lang="ts">
++import { computed, ref } from 'vue';
++
++type Tab = {
++    value: 'all' | 'waiting' | 'serving' | 'removed';
++    label: string;
++    count?: number;
++};
++const props = defineProps<{
++    tabs: Tab[];
++    activeTab: Tab['value'];
++    scope: 'own' | 'branch';
++    branchName: string;
++    canRegistration: boolean;
++}>();
++defineEmits<{ select: [value: Tab['value']] }>();
++const showInfo = ref(true);
++const about = computed(
++    () =>
++        ({
++            all: 'Your active queue includes waiting and serving patients. Red-zone emergencies remain in their own lane.',
++            waiting:
++                'Red-zone emergencies remain in their own lane. Other patients are ordered by urgency, then arrival; today comes before carry-over.',
++            serving:
++                'Patients currently in consultation, including held consultations. Open the consultation to continue care or resume a held patient.',
++            removed:
++                'Completed consultations. The list shows the latest records; the count includes all matching completed entries.',
++        })[props.activeTab],
++);
++</script>
++
++<template>
++    <div
++        class="grid min-w-0 items-start gap-5"
++        :class="showInfo ? 'xl:grid-cols-[minmax(0,1fr)_280px]' : ''"
++        data-testid="queue-workspace-frame"
++    >
++        <div class="flex min-w-0 flex-col gap-4">
++            <div
++                class="grid grid-cols-2 gap-3 lg:grid-cols-4"
++                aria-label="Queue summary"
++            >
++                <button
++                    v-for="tab in tabs"
++                    :key="tab.value"
++                    type="button"
++                    :aria-pressed="activeTab === tab.value"
++                    class="min-h-24 rounded-2xl border bg-card p-4 text-left shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
++                    :class="
++                        activeTab === tab.value
++                            ? 'border-primary ring-1 ring-primary'
++                            : 'border-transparent hover:border-border'
++                    "
++                    @click="$emit('select', tab.value)"
++                >
++                    <span class="block text-2xl font-semibold tabular-nums">{{
++                        tab.count ?? '—'
++                    }}</span>
++                    <span class="mt-1 block text-xs text-muted-foreground">{{
++                        tab.label
++                    }}</span>
++                </button>
++            </div>
++            <div class="flex flex-wrap items-center justify-between gap-2">
++                <p class="text-xs text-muted-foreground">
++                    {{ scope === 'own' ? 'Your patients' : 'All doctors' }} ·
++                    {{ branchName }} · Live, every 3 seconds
++                </p>
++                <button
++                    type="button"
++                    class="min-h-11 rounded-full bg-muted px-4 text-xs lg:min-h-9"
++                    :aria-expanded="showInfo"
++                    aria-controls="queue-helpful-info"
++                    @click="showInfo = !showInfo"
++                >
++                    {{ showInfo ? 'Hide helpful info' : 'Show helpful info' }}
++                </button>
++            </div>
++            <slot />
++        </div>
++        <aside
++            v-if="showInfo"
++            id="queue-helpful-info"
++            class="grid min-w-0 gap-3"
++            aria-label="Helpful queue information"
++        >
++            <details open class="rounded-2xl bg-card p-4 shadow-sm">
++                <summary
++                    class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
++                >
++                    About this tab
++                </summary>
++                <p class="text-xs leading-relaxed text-muted-foreground">
++                    {{ about }}
++                </p>
++                <p class="mt-2 text-xs leading-relaxed text-muted-foreground">
++                    Waiting turns amber from 30 minutes and red from 60 minutes.
++                </p>
++            </details>
++            <details open class="rounded-2xl bg-card p-4 shadow-sm">
++                <summary
++                    class="min-h-11 cursor-pointer text-sm font-semibold lg:min-h-9"
++                >
++                    Queue at a glance
++                </summary>
++                <dl class="text-xs">
++                    <div
++                        v-for="tab in tabs"
++                        :key="tab.value"
++                        class="flex justify-between gap-4 border-t py-3"
++                    >
++                        <dt>{{ tab.label }}</dt>
++                        <dd class="text-muted-foreground tabular-nums">
++                            {{ tab.count ?? '—' }}
++                        </dd>
++                    </div>
++                </dl>
++                <slot name="summary" />
++            </details>
++            <details class="rounded-2xl bg-card px-4 py-2 shadow-sm">
++                <summary
++                    class="min-h-11 cursor-pointer py-2 text-sm font-semibold lg:min-h-9"
++                >
++                    Related pages
++                </summary>
++                <a
++                    v-if="canRegistration"
++                    href="/registration"
++                    class="flex min-h-11 items-center border-t text-sm text-primary lg:min-h-9"
++                    >Visits today</a
++                >
++                <slot name="related" />
++            </details>
++            <details class="rounded-2xl bg-card px-4 py-2 shadow-sm">
++                <summary
++                    class="min-h-11 cursor-pointer py-2 text-sm font-semibold lg:min-h-9"
++                >
++                    Good to know
++                </summary>
++                <p class="pb-2 text-xs leading-relaxed text-muted-foreground">
++                    Calling a patient announces their queue number and room on
++                    the TV. Held consultations stay held when another patient is
++                    called. Check the patient's readiness before calling.
++                </p>
++            </details>
++        </aside>
++    </div>
++</template>
+diff --git a/tests/Frontend/queue-demo-workspace.test.mjs b/tests/Frontend/queue-demo-workspace.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/tests/Frontend/queue-demo-workspace.test.mjs
+@@ -0,0 +1,186 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { createRequire } from 'node:module';
++import test from 'node:test';
++import { runInNewContext } from 'node:vm';
++import { compileScript, parse } from '@vue/compiler-sfc';
++import { renderToString } from '@vue/server-renderer';
++import ts from 'typescript';
++import { createSSRApp } from 'vue';
++
++const require = createRequire(import.meta.url);
++const source = readFileSync(
++    'resources/js/components/queue/QueueWorkspaceFrame.vue',
++    'utf8',
++);
++const script = compileScript(parse(source).descriptor, {
++    id: 'calls-today',
++    inlineTemplate: true,
++}).content;
++const js = ts.transpileModule(script, {
++    compilerOptions: {
++        module: ts.ModuleKind.CommonJS,
++        target: ts.ScriptTarget.ES2022,
++    },
++}).outputText;
++const module = { exports: {} };
++runInNewContext(js, { exports: module.exports, require });
++const render = (props = {}) =>
++    renderToString(
++        createSSRApp(module.exports.default, {
++            tabs: [
++                { value: 'waiting', label: 'Waiting', count: 27 },
++                { value: 'serving', label: 'Serving', count: 0 },
++            ],
++            activeTab: 'waiting',
++            scope: 'branch',
++            branchName: 'Synthetic branch',
++            canRegistration: false,
++            ...props,
++        }),
++    );
++
++test('workspace renders server totals rather than a loaded-row estimate and retains zero', async () => {
++    const html = await render();
++    assert.match(html, />27<\/span>/);
++    assert.match(html, />0<\/span>/);
++    assert.match(html, /aria-pressed="true"/);
++    assert.match(html, /Synthetic branch/);
++    assert.match(html, /About this tab/);
++    assert.match(html, /Red-zone emergencies remain in their own lane/);
++    assert.doesNotMatch(html, /href="\/registration"/);
++});
++test('own serving view changes context and help without exposing a branch directory link', async () => {
++    const html = await render({ scope: 'own', activeTab: 'serving' });
++    assert.match(html, /Your patients/);
++    assert.match(html, /Patients currently in consultation/);
++    assert.doesNotMatch(html, /Other patients are ordered/);
++    assert.doesNotMatch(html, /href="\/registration"/);
++});
++test('authorized registration link and absent counts remain explicit', async () => {
++    const html = await render({
++        canRegistration: true,
++        tabs: [{ value: 'waiting', label: 'Waiting' }],
++    });
++    assert.match(html, /href="\/registration"/);
++    assert.match(html, />—<\/span>/);
++    assert.match(html, /aria-controls="queue-helpful-info"/);
++});
++
++const Vue = require('vue');
++const passthrough = Vue.defineComponent({
++    setup:
++        (_, { slots }) =>
++        () =>
++            Vue.h('span', slots.default?.()),
++});
++const boardScript = compileScript(
++    parse(
++        readFileSync(
++            'resources/js/components/patient-board/PatientBoard.vue',
++            'utf8',
++        ),
++    ).descriptor,
++    { id: 'queue-board-mode', inlineTemplate: true },
++).content;
++const boardModule = { exports: {} };
++const waitingModule = { exports: {} };
++runInNewContext(
++    ts.transpileModule(
++        readFileSync('resources/js/lib/waiting-time.ts', 'utf8'),
++        { compilerOptions: { module: ts.ModuleKind.CommonJS } },
++    ).outputText,
++    { exports: waitingModule.exports, require },
++);
++runInNewContext(
++    ts.transpileModule(boardScript, {
++        compilerOptions: {
++            module: ts.ModuleKind.CommonJS,
++            target: ts.ScriptTarget.ES2022,
++        },
++    }).outputText,
++    {
++        exports: boardModule.exports,
++        require: (name) =>
++            name === 'vue'
++                ? Vue
++                : name === '@/lib/waiting-time'
++                  ? waitingModule.exports
++                  : new Proxy(
++                        {},
++                        {
++                            get: (_, key) =>
++                                key === 'router' ? {} : passthrough,
++                        },
++                    ),
++    },
++);
++const board = (queueLayout) =>
++    renderToString(
++        createSSRApp(boardModule.exports.default, {
++            queueLayout,
++            rows: [
++                {
++                    key: 'synthetic',
++                    patientName: 'Synthetic Patient',
++                    patientNumber: 'KP-00000001',
++                    queueNumber: 'A-001',
++                    coverageLabel: 'Synthetic coverage',
++                    doctorName: 'Synthetic Doctor',
++                    durationLabel: '5 min',
++                    statusLabel: 'Waiting',
++                    visitNotes: 'Synthetic reason',
++                    can: {},
++                    actions: {},
++                    triage: null,
++                },
++            ],
++        }),
++    );
++test('queue presentation uses focused columns while default Registration retains its original columns', async () => {
++    const own = await board('own');
++    const branch = await board('branch');
++    const registration = await board(undefined);
++    assert.doesNotMatch(own, /data-label="(?:Arrived|Payment|Doctor)"/);
++    assert.match(branch, /data-label="Doctor"/);
++    assert.doesNotMatch(branch, /data-label="(?:Arrived|Payment)"/);
++
++    for (const field of ['Arrived', 'Payment', 'Doctor']) {
++        assert.match(registration, new RegExp(`data-label="${field}"`));
++    }
++
++    for (const html of [own, branch, registration]) {
++        assert.match(html, /Synthetic Patient/);
++        assert.match(html, /A-001/);
++    }
++
++    assert.match(own, /No\.<\/th>/);
++    assert.match(own, /Reason<\/th>/);
++});
++
++test('changing branch or losing branch-wide view leaves the Doctors section', async () => {
++    const pageSource = readFileSync(
++        'resources/js/pages/Queue/Index.vue',
++        'utf8',
++    );
++    const callback = pageSource.match(
++        /watch\(\s*\[\(\) => live\.value\.branch\.id, \(\) => live\.value\.scope\],[\s\S]*?\n\}\);/,
++    )[0];
++    const live = Vue.ref({ branch: { id: 1 }, scope: 'branch' });
++    const workspaceSection = Vue.ref('doctors');
++    const stop = runInNewContext(callback.replace(/;$/, ''), {
++        watch: Vue.watch,
++        live,
++        workspaceSection,
++    });
++    live.value.scope = 'own';
++    await Vue.nextTick();
++    assert.equal(workspaceSection.value, 'queue');
++    live.value.scope = 'branch';
++    await Vue.nextTick();
++    workspaceSection.value = 'doctors';
++    live.value.branch.id = 2;
++    await Vue.nextTick();
++    assert.equal(workspaceSection.value, 'queue');
++    stop();
++});

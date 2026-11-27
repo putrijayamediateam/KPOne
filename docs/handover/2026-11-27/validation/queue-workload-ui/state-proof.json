@@ -1,0 +1,18 @@
+{
+    "Completed": {
+        "versionsUnchanged": true,
+        "queueStatus": "removed",
+        "held": false
+    },
+    "Treatment": {
+        "versionsUnchanged": true,
+        "queueStatus": "serving",
+        "held": true
+    },
+    "Seeing": {
+        "versionsUnchanged": true,
+        "queueStatus": "serving",
+        "held": false
+    },
+    "treatmentStepStillAwaitingReview": true
+}

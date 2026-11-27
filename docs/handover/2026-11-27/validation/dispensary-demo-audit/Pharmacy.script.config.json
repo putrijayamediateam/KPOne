@@ -1,0 +1,1517 @@
+{
+  "title": "Dispensary",
+  "sub": "Cheras \u00b7 CA",
+  "search": "Search name, queue number or medicine",
+  "primary": null,
+  "foot": "Allergy matches show on the case before anything is saved. Labels print from the saved lines only.",
+  "tabs": [
+    {
+      "key": "prep",
+      "label": "To prepare",
+      "grid": "64px minmax(200px,2fr) minmax(160px,1.2fr) minmax(120px,1fr)",
+      "cols": [
+        "NO.",
+        "PATIENT",
+        "ITEMS",
+        "FROM"
+      ],
+      "action": {
+        "label": "Open case",
+        "dark": true,
+        "to": "docchk",
+        "done": "case opened (demo). Prepare the lines, print labels, then send for the doctor's check.",
+        "next": [
+          "PharmacyCase.dc.html",
+          "Dispensary case"
+        ]
+      },
+      "filters": [
+        {
+          "label": "Type",
+          "options": [
+            "All",
+            "Consultation (A)",
+            "Medicine only (B)"
+          ]
+        },
+        {
+          "label": "Doctor",
+          "options": [
+            "All",
+            "Dr. Farah N.",
+            "Dr. Amir",
+            "OTC counter"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "docchk",
+      "label": "Waiting for doctor's check",
+      "grid": "64px minmax(200px,2fr) minmax(160px,1.2fr) minmax(120px,1fr)",
+      "cols": [
+        "NO.",
+        "PATIENT",
+        "ITEMS",
+        "DOCTOR"
+      ],
+      "note": "Shown when \"Doctor checks prepared medicine\" is on in Settings.",
+      "action": null,
+      "filters": [
+        {
+          "label": "Whose cases",
+          "options": [
+            "Mine",
+            "All doctors"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ready",
+      "label": "Ready to hand over",
+      "grid": "64px minmax(200px,2fr) minmax(160px,1.2fr) minmax(120px,1fr)",
+      "cols": [
+        "NO.",
+        "PATIENT",
+        "ITEMS",
+        "CHECKED BY"
+      ],
+      "action": {
+        "label": "Call and complete",
+        "dark": true,
+        "to": "handed",
+        "done": "called to the counter and completed (demo). Sent to Billing.",
+        "next": [
+          "Billing.dc.html",
+          "Billing"
+        ]
+      }
+    },
+    {
+      "key": "handed",
+      "label": "Done today",
+      "grid": "64px minmax(200px,2fr) minmax(160px,1.2fr) minmax(120px,1fr)",
+      "cols": [
+        "NO.",
+        "PATIENT",
+        "ITEMS",
+        "COMPLETED"
+      ],
+      "action": {
+        "label": "Reprint labels",
+        "dark": false,
+        "done": "labels reprinted, marked REPRINT (demo)."
+      }
+    },
+    {
+      "key": "returns",
+      "label": "Returns to check",
+      "grid": "64px minmax(200px,2fr) minmax(160px,1.2fr) minmax(120px,1fr)",
+      "cols": [
+        "NO.",
+        "PATIENT",
+        "MEDICINE RETURNED",
+        "RECORDED BY"
+      ],
+      "note": "A CA Supervisor who did not record the return checks it.",
+      "action": {
+        "label": "Check return",
+        "dark": false,
+        "to": "retdone",
+        "done": "return checked (demo). It moves to Returns checked this month."
+      },
+      "tools": [
+        {
+          "label": "No refund in KPOne",
+          "done": "KPOne records returns only. Any refund is handled outside KPOne (demo)."
+        },
+        {
+          "label": "Oldest first \u00b7 25 a page",
+          "done": "returns are listed oldest first, 25 a page (demo)."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Waiting",
+          "options": [
+            "All",
+            "3 days",
+            "2 days",
+            "Yesterday",
+            "Today"
+          ]
+        },
+        {
+          "label": "Controlled",
+          "options": [
+            "All",
+            "Controlled only",
+            "Not controlled"
+          ]
+        }
+      ],
+      "form": {
+        "title": "Check a return",
+        "fields": [
+          {
+            "label": "Return",
+            "type": "select",
+            "options": [
+              "A-008 \u00b7 Amoxicillin 500 mg capsule \u00b7 14",
+              "A-019 \u00b7 Tramadol 50 mg capsule \u00b7 6 (controlled)",
+              "A-022 \u00b7 Salbutamol inhaler \u00b7 1",
+              "B-011 \u00b7 Cetirizine 10 mg tablet \u00b7 10",
+              "A-005 \u00b7 Omeprazole 20 mg capsule \u00b7 7",
+              "A-021 \u00b7 Diclofenac gel 1% \u00b7 1",
+              "B-009 \u00b7 Paracetamol 500 mg tablet \u00b7 20",
+              "A-002 \u00b7 Amoxicillin 250 mg \u00b7 10"
+            ]
+          },
+          {
+            "label": "Outcome",
+            "type": "select",
+            "options": [
+              "Dispose \u2014 No stock change",
+              "Quarantine \u2014 To Patient Returns (not for controlled medicines)",
+              "Refuse \u2014 Recorded by mistake"
+            ]
+          },
+          {
+            "label": "Batch to credit (Quarantine only)",
+            "type": "select",
+            "options": [
+              "AM-2207 \u00b7 exp 03/2027 \u00b7 dispensed from it",
+              "AM-2301 \u00b7 exp 01/2028 \u00b7 7 dispensed from it"
+            ]
+          },
+          {
+            "label": "Refuse reason (Refuse only)",
+            "type": "select",
+            "options": [
+              "Wrong quantity",
+              "Wrong case or patient",
+              "Wrong medicine line",
+              "Recorded twice",
+              "Other (short note)"
+            ]
+          },
+          {
+            "label": "Short note (Other only)",
+            "type": "textarea",
+            "placeholder": "Short note"
+          }
+        ],
+        "submit": {
+          "label": "Save check",
+          "done": "return checked (demo): disposed (no stock change), quarantined into Patient Returns (never usable stock again; leaves only by a stock count or write-off), or refused (the quantity can be recorded again). You cannot check a return you recorded; controlled medicines are never quarantined."
+        }
+      }
+    },
+    {
+      "key": "retdone",
+      "label": "Returns checked this month",
+      "count": false,
+      "grid": "minmax(200px,1.6fr) 70px minmax(120px,1fr) 90px minmax(110px,1fr)",
+      "cols": [
+        "MEDICINE",
+        "QTY",
+        "CHECKED BY",
+        "DATE",
+        "OUTCOME"
+      ],
+      "note": "November \u00b7 12 returns. Quarantined stock goes to Patient Returns and is never dispensed again. No refund in KPOne.",
+      "filters": [
+        {
+          "label": "Outcome",
+          "options": [
+            "All",
+            "Quarantined",
+            "Disposed",
+            "Refused"
+          ]
+        }
+      ],
+      "action": null
+    }
+  ],
+  "rows": [
+    {
+      "tab": "prep",
+      "cells": [
+        "A-016",
+        {
+          "v": "Tan Siew Ping",
+          "sub": "no known allergy"
+        },
+        "3 medicines",
+        "Dr. Farah N."
+      ],
+      "more": [
+        [
+          "Age, sex",
+          "45 \u00b7 female"
+        ],
+        [
+          "Allergies",
+          "None known"
+        ],
+        [
+          "Reason",
+          "BP follow-up"
+        ],
+        [
+          "Last BP",
+          "142/90 on 2 Nov"
+        ],
+        [
+          "Whole bottles",
+          "Paracetamol syrup: Quantity unit Bottles \u00b7 2 bottles (120 ml). Doctor ordered 60 ml. Stock and the bill stay in ml; the label prints QTY: 2 BTL. Whole bottles only, 1 to 99 (DSP-24, needs a checked pack conversion)."
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ],
+        [
+          "Call to dispensary",
+          "called to the dispensary on the TV (demo). The TV shows the queue number and room."
+        ],
+        [
+          "Panggil semula",
+          "called to the dispensary again (demo). The TV shows Panggil semula."
+        ]
+      ]
+    },
+    {
+      "tab": "prep",
+      "cells": [
+        "B-004",
+        {
+          "v": "Muthu a/l Raman",
+          "sub": "medicine only"
+        },
+        "1 medicine",
+        "OTC counter"
+      ],
+      "more": [
+        [
+          "Visit",
+          "Medicine only (OTC)"
+        ],
+        [
+          "Allergies",
+          "None known"
+        ],
+        [
+          "Items",
+          "Antacid suspension \u00d7 1"
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ],
+        [
+          "Call to dispensary",
+          "called to the dispensary on the TV (demo). The TV shows the queue number and room."
+        ],
+        [
+          "Panggil semula",
+          "called to the dispensary again (demo). The TV shows Panggil semula."
+        ]
+      ]
+    },
+    {
+      "tab": "prep",
+      "cells": [
+        "A-013",
+        {
+          "v": "Nur Aisyah binti Razak",
+          "sub": "Allergy: penicillin",
+          "urgent": true
+        },
+        "2 medicines",
+        "Dr. Amir"
+      ],
+      "more": [
+        [
+          "Age, sex",
+          "6 \u00b7 female"
+        ],
+        [
+          "Allergies",
+          "Penicillin",
+          1
+        ],
+        [
+          "Ordered",
+          "Paracetamol syrup \u00b7 Erythromycin syrup"
+        ],
+        [
+          "Doctor",
+          "Dr. Amir"
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ],
+        [
+          "Call to dispensary",
+          "called to the dispensary on the TV (demo). The TV shows the queue number and room."
+        ],
+        [
+          "Panggil semula",
+          "called to the dispensary again (demo). The TV shows Panggil semula."
+        ]
+      ]
+    },
+    {
+      "tab": "docchk",
+      "cells": [
+        "A-011",
+        {
+          "v": "Tan Mei Ling",
+          "sub": "waiting 9 min"
+        },
+        "2 medicines",
+        "Dr. Farah N."
+      ],
+      "more": [
+        [
+          "Age, sex",
+          "29 \u00b7 female"
+        ],
+        [
+          "Items",
+          "Cetirizine 10 mg \u00d7 10 \u00b7 Paracetamol 500 mg \u00d7 20"
+        ],
+        [
+          "Prepared by",
+          "Hafiz (CA)"
+        ],
+        [
+          "Waiting",
+          "9 min"
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ],
+        [
+          "Open case",
+          "case opened (demo): check each line, then mark it checked. The CA can then complete it.",
+          [
+            "PharmacyCase.dc.html",
+            "Dispensary case"
+          ]
+        ],
+        [
+          "Mark checked",
+          "all lines marked checked by the doctor (demo). The case moves to Ready to hand over."
+        ]
+      ]
+    },
+    {
+      "tab": "ready",
+      "cells": [
+        "A-010",
+        {
+          "v": "Priya a/p Ramasamy",
+          "sub": ""
+        },
+        "4 medicines",
+        "Dr. Amir"
+      ],
+      "more": [
+        [
+          "Items",
+          "4 medicines \u00b7 labels printed"
+        ],
+        [
+          "Checked by",
+          "Dr. Amir 10:20"
+        ],
+        [
+          "Who pays",
+          "Self-pay"
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ],
+        [
+          "Panggil semula",
+          "called to the dispensary again (demo). The TV shows Panggil semula."
+        ]
+      ]
+    },
+    {
+      "tab": "handed",
+      "cells": [
+        "A-005",
+        {
+          "v": "Chong Li Ying",
+          "sub": ""
+        },
+        "2 medicines",
+        "09:58"
+      ],
+      "more": [
+        [
+          "Paid",
+          "RM 42.00 cash"
+        ],
+        [
+          "Receipt",
+          "RCP-004221"
+        ],
+        [
+          "Visit",
+          "Completed 09:58"
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "A-002",
+        {
+          "v": "Rizal bin Hashim",
+          "sub": "patient reaction"
+        },
+        "Amoxicillin 250 mg \u00b7 10",
+        "Hafiz (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Amoxicillin 250 mg \u00b7 10 capsules"
+        ],
+        [
+          "Reason",
+          "Patient reaction"
+        ],
+        [
+          "Condition",
+          "Unopened strip"
+        ]
+      ],
+      "extra": [
+        [
+          "Print labels",
+          "labels printed (demo).",
+          [
+            "DrugLabel.dc.html",
+            "Drug labels"
+          ]
+        ],
+        [
+          "Return to doctor",
+          "returned to the doctor with a reason (demo)."
+        ],
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "A-008",
+        {
+          "v": "Mohd Faizal bin Hassan",
+          "sub": "patient did not use it"
+        },
+        "Amoxicillin 500 mg capsule \u00b7 14",
+        "Hafiz (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Amoxicillin 500 mg capsule"
+        ],
+        [
+          "Quantity returned",
+          "14 of 21 dispensed"
+        ],
+        [
+          "Reason",
+          "Patient did not use it"
+        ],
+        [
+          "Condition seen",
+          "Sealed strip, clean"
+        ],
+        [
+          "Recorded by",
+          "Hafiz (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004011"
+        ],
+        [
+          "Waiting",
+          "3 days (oldest)"
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "A-019",
+        {
+          "v": "Rajesh a/l Kumar",
+          "sub": "Controlled \u00b7 dispensing error",
+          "urgent": true
+        },
+        "Tramadol 50 mg capsule \u00b7 6",
+        "Hafiz (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Tramadol 50 mg capsule"
+        ],
+        [
+          "Quantity returned",
+          "6 of 13 dispensed"
+        ],
+        [
+          "Reason",
+          "Dispensing error"
+        ],
+        [
+          "Condition seen",
+          "Opened box"
+        ],
+        [
+          "Recorded by",
+          "Hafiz (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004039"
+        ],
+        [
+          "Waiting",
+          "2 days"
+        ],
+        [
+          "Controlled medicine",
+          "Never quarantined: dispose, or refuse if recorded by mistake",
+          1
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "A-022",
+        {
+          "v": "Lim Wei Jie",
+          "sub": "wrong medicine or strength"
+        },
+        "Salbutamol inhaler \u00b7 1",
+        "Liyana (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Salbutamol inhaler"
+        ],
+        [
+          "Quantity returned",
+          "1 of 8 dispensed"
+        ],
+        [
+          "Reason",
+          "Wrong medicine or strength"
+        ],
+        [
+          "Condition seen",
+          "Unopened"
+        ],
+        [
+          "Recorded by",
+          "Liyana (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004044"
+        ],
+        [
+          "Waiting",
+          "2 days"
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "B-011",
+        {
+          "v": "Wong Kah Yan",
+          "sub": "patient reaction"
+        },
+        "Cetirizine 10 mg tablet \u00b7 10",
+        "Hafiz (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Cetirizine 10 mg tablet"
+        ],
+        [
+          "Quantity returned",
+          "10 of 17 dispensed"
+        ],
+        [
+          "Reason",
+          "Patient reaction"
+        ],
+        [
+          "Condition seen",
+          "Strip cut"
+        ],
+        [
+          "Recorded by",
+          "Hafiz (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004070"
+        ],
+        [
+          "Waiting",
+          "Yesterday"
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "A-005",
+        {
+          "v": "Kavitha d/o Raman",
+          "sub": "patient did not use it"
+        },
+        "Omeprazole 20 mg capsule \u00b7 7",
+        "Liyana (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Omeprazole 20 mg capsule"
+        ],
+        [
+          "Quantity returned",
+          "7 of 14 dispensed"
+        ],
+        [
+          "Reason",
+          "Patient did not use it"
+        ],
+        [
+          "Condition seen",
+          "Sealed strip"
+        ],
+        [
+          "Recorded by",
+          "Liyana (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004081"
+        ],
+        [
+          "Waiting",
+          "Yesterday"
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "A-021",
+        {
+          "v": "Tan Mei Ling",
+          "sub": "other"
+        },
+        "Diclofenac gel 1% \u00b7 1",
+        "Hafiz (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Diclofenac gel 1%"
+        ],
+        [
+          "Quantity returned",
+          "1 of 8 dispensed"
+        ],
+        [
+          "Reason",
+          "Other"
+        ],
+        [
+          "Condition seen",
+          "Tube opened"
+        ],
+        [
+          "Recorded by",
+          "Hafiz (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004102"
+        ],
+        [
+          "Waiting",
+          "Today"
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "returns",
+      "cells": [
+        "B-009",
+        {
+          "v": "Siti Hajar binti Osman",
+          "sub": "patient did not use it"
+        },
+        "Paracetamol 500 mg tablet \u00b7 20",
+        "Liyana (CA)"
+      ],
+      "more": [
+        [
+          "Medicine",
+          "Paracetamol 500 mg tablet"
+        ],
+        [
+          "Quantity returned",
+          "20 of 27 dispensed"
+        ],
+        [
+          "Reason",
+          "Patient did not use it"
+        ],
+        [
+          "Condition seen",
+          "Sealed"
+        ],
+        [
+          "Recorded by",
+          "Liyana (CA)"
+        ],
+        [
+          "Visit",
+          "KPV-00004110"
+        ],
+        [
+          "Waiting",
+          "Today"
+        ]
+      ],
+      "extra": [
+        [
+          "Dispose",
+          "return disposed (demo). Dispose records the decision only. No stock moves."
+        ],
+        [
+          "Quarantine",
+          "return quarantined into Patient Returns (not for dispensing) (demo). Never usable stock again; it leaves only by a stock count or write-off. Not allowed for controlled medicines."
+        ],
+        [
+          "Refuse",
+          "return refused (demo): Wrong quantity, Wrong case or patient, Wrong medicine line, Recorded twice or Other. Refusing frees the quantity to be recorded again."
+        ],
+        [
+          "Open case",
+          "opens the completed Dispensary case (demo). In KPOne the check is saved on the case page.",
+          [
+            "PharmacyCompleted.dc.html",
+            "Dispensary completed"
+          ]
+        ],
+        [
+          "Who checks",
+          "Recorded by Hafiz (CA): Done. Checker: you, Siti (CA Supervisor). You cannot check a return you recorded (demo)."
+        ]
+      ]
+    },
+    {
+      "tab": "docchk",
+      "cells": [
+        "A-014",
+        {
+          "v": "Siti Hajar binti Osman",
+          "sub": "waiting 4 min"
+        },
+        "3 medicines",
+        "Dr. Farah N."
+      ],
+      "more": [
+        [
+          "Visit",
+          "KPV-0004412"
+        ],
+        [
+          "Sent by",
+          "Aina R. (CA)"
+        ],
+        [
+          "Waiting",
+          "4 min"
+        ]
+      ],
+      "extra": [
+        [
+          "Open case",
+          "case opened (demo): check each line, then mark it checked. The CA can then complete it.",
+          [
+            "PharmacyCase.dc.html",
+            "Dispensary case"
+          ]
+        ],
+        [
+          "Mark checked",
+          "all lines marked checked by the doctor (demo). The case moves to Ready to hand over."
+        ]
+      ]
+    },
+    {
+      "tab": "docchk",
+      "cells": [
+        "A-009",
+        {
+          "v": "Muthu a/l Raman",
+          "sub": "waiting 12 min (longest)",
+          "urgent": true
+        },
+        "4 medicines \u00b7 1 controlled",
+        "Dr. Amir"
+      ],
+      "more": [
+        [
+          "Visit",
+          "KPV-0004401"
+        ],
+        [
+          "Sent by",
+          "Aina R. (CA)"
+        ],
+        [
+          "Waiting",
+          "12 min"
+        ],
+        [
+          "Controlled",
+          "1 controlled medicine on this case",
+          1
+        ]
+      ],
+      "extra": [
+        [
+          "Open case",
+          "case opened (demo): check each line, then mark it checked. The CA can then complete it.",
+          [
+            "PharmacyCase.dc.html",
+            "Dispensary case"
+          ]
+        ],
+        [
+          "Mark checked",
+          "all lines marked checked by the doctor (demo). The case moves to Ready to hand over."
+        ]
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Ibuprofen 400 mg tablet",
+        "10",
+        "Aina R.",
+        "2 Nov",
+        "Quarantined"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Loratadine 10 mg tablet",
+        "10",
+        "Aina R.",
+        "3 Nov",
+        "Disposed"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Amoxicillin 250 mg syrup",
+        "1",
+        "Mohan K.",
+        "4 Nov",
+        "Disposed"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Paracetamol 500 mg tablet",
+        "16",
+        "Aina R.",
+        "5 Nov",
+        "Quarantined"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Metformin 500 mg tablet",
+        "30",
+        "Mohan K.",
+        "6 Nov",
+        "Refused"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Cetirizine 10 mg tablet",
+        "10",
+        "Aina R.",
+        "7 Nov",
+        "Quarantined"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Prednisolone 5 mg tablet",
+        "8",
+        "Mohan K.",
+        "9 Nov",
+        "Disposed"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Salbutamol inhaler",
+        "1",
+        "Aina R.",
+        "10 Nov",
+        "Quarantined"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Omeprazole 20 mg capsule",
+        "14",
+        "Aina R.",
+        "11 Nov",
+        "Quarantined"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Tramadol 50 mg capsule",
+        "4",
+        "Mohan K.",
+        "12 Nov",
+        "Disposed"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Mefenamic acid 250 mg",
+        "12",
+        "Aina R.",
+        "13 Nov",
+        "Refused"
+      ]
+    },
+    {
+      "tab": "retdone",
+      "cells": [
+        "Chlorpheniramine 4 mg",
+        "10",
+        "Mohan K.",
+        "14 Nov",
+        "Quarantined"
+      ]
+    }
+  ],
+  "related": [
+    [
+      "Dispensary case",
+      "",
+      "PharmacyCase.dc.html"
+    ],
+    [
+      "Drug labels",
+      "",
+      "DrugLabel.dc.html"
+    ],
+    [
+      "Dispensary settings",
+      "",
+      "DispensarySettings.dc.html"
+    ],
+    [
+      "Inventory",
+      "",
+      "Stock.dc.html"
+    ],
+    [
+      "Dispensary completed",
+      "returns are checked on the case",
+      "PharmacyCompleted.dc.html"
+    ],
+    [
+      "My queue",
+      "doctor's count of cases to check",
+      "MyQueue.dc.html"
+    ],
+    [
+      "Approvals inbox",
+      "doctor's check item",
+      "Admin.dc.html"
+    ],
+    [
+      "Waiting-room TV",
+      "dispensary calls",
+      "WaitingRoomTv.dc.html"
+    ]
+  ],
+  "viewsLabel": "Dispensary view",
+  "views": [
+    {
+      "key": "branch",
+      "label": "My branch"
+    },
+    {
+      "key": "all",
+      "label": "All branches",
+      "title": "Dispensary",
+      "sub": "Cheras, Sungai Besi and Puchong \u00b7 today \u00b7 CA Supervisor, Director",
+      "search": "Search branch",
+      "primary": null,
+      "headerTools": [],
+      "foot": "Counts only, no patient names. Dispensing, labels and return checks still happen at each branch.",
+      "groups": [
+        [
+          "Dispensing",
+          [
+            "adisp"
+          ]
+        ],
+        [
+          "Checks",
+          [
+            "achecks"
+          ]
+        ]
+      ],
+      "tabs": [
+        {
+          "key": "adisp",
+          "label": "Cases by branch",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(4, minmax(100px,1fr))",
+          "cols": [
+            "BRANCH",
+            "TO PREPARE",
+            "WAITING FOR DOCTOR",
+            "READY TO HAND OVER",
+            "DONE TODAY"
+          ],
+          "action": null,
+          "note": "Medicine-only (B) cases are included in To prepare."
+        },
+        {
+          "key": "achecks",
+          "label": "Returns and doctor checks",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(3, minmax(120px,1fr))",
+          "cols": [
+            "BRANCH",
+            "RETURNS TO CHECK",
+            "OLDEST RETURN",
+            "DOCTOR CHECK SWITCH"
+          ],
+          "action": null,
+          "note": "A return is checked by a CA Supervisor who did not record it. The doctor check is set per branch in Dispensary settings."
+        }
+      ],
+      "rows": [
+        {
+          "tab": "adisp",
+          "cells": [
+            {
+              "v": "Cheras"
+            },
+            "3",
+            "2",
+            "1",
+            "22"
+          ]
+        },
+        {
+          "tab": "adisp",
+          "cells": [
+            {
+              "v": "Sungai Besi"
+            },
+            "1",
+            "0",
+            "2",
+            "17"
+          ]
+        },
+        {
+          "tab": "adisp",
+          "cells": [
+            {
+              "v": "Puchong"
+            },
+            {
+              "v": "5",
+              "sub": "longest 14 min",
+              "urgent": true
+            },
+            "1",
+            "0",
+            "19"
+          ]
+        },
+        {
+          "tab": "adisp",
+          "cells": [
+            {
+              "v": "Total",
+              "sub": "all branches"
+            },
+            "9",
+            "3",
+            "3",
+            "58"
+          ]
+        },
+        {
+          "tab": "achecks",
+          "cells": [
+            {
+              "v": "Cheras"
+            },
+            "8",
+            "3 days",
+            "On"
+          ]
+        },
+        {
+          "tab": "achecks",
+          "cells": [
+            {
+              "v": "Sungai Besi"
+            },
+            "1",
+            "today",
+            "Off"
+          ]
+        },
+        {
+          "tab": "achecks",
+          "cells": [
+            {
+              "v": "Puchong"
+            },
+            "2",
+            "1 day",
+            "On"
+          ]
+        }
+      ],
+      "related": [
+        [
+          "Dispensary settings",
+          "per branch",
+          "DispensarySettings.dc.html"
+        ],
+        [
+          "Inventory \u00b7 HQ",
+          "",
+          "Stock.dc.html"
+        ],
+        [
+          "Controlled drugs register",
+          "",
+          "Stock.dc.html"
+        ]
+      ]
+    }
+  ],
+  "groups": [
+    [
+      "Dispensing",
+      [
+        "prep",
+        "docchk",
+        "ready",
+        "handed"
+      ]
+    ],
+    [
+      "Returns",
+      [
+        "returns",
+        "retdone"
+      ]
+    ]
+  ]
+}

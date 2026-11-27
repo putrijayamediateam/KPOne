@@ -1,0 +1,13 @@
+# Billing closing tabs independent review
+
+Bounded four-file composition clear at patch SHA256 3f939a35470bb2c68f55dd20cf8db1ff2da2ebe0f71f1af46e3e6f13d67e73b6. No composition/financial-authority blocker found. This is not full-page target or demo-parity certification.
+
+Source preserves both page scripts apart from importing BillingBoardFrame. The frame adds only month/terminal active states; route tabs retain permission filtering. Common Billing heading and explicit subtitles establish continuity. Context uses loaded month/business date and actual counts shown/reconciliation length, not draft criteria or inferred totals. Terminal readers already have payments.reconcile.branch, which also permits the retained Daily cash closing destination. Existing form validation and money commands are unchanged.
+
+Independently viewed populated month1440light, readonly month390dark, terminal390dark and final terminal-error1440. Fifteen-ringgit count remains Waiting for approval, current open day stays distinct, readonly does not acquire approval actions, and negative transaction-count refusal is visible next to the retained draft. Semantic dark surfaces and responsive context are readable. Builder browser JSON reports one main/no viewport overflow, month navigation and real refusal;14 captures are builder evidence, not all independently inspected. Builder reports2208 full frontend,100 focused and final build pass.
+
+Explicit inherited debt measured in target-measurements.json: Daily links32px desktop/44mobile; month Open day text links18px desktop; native terminal method select40px; Record close36/44; new frame navigation38/44. Pink Open day links also remain inherited styling. These are not introduced by this four-file composition, but must not be described as meeting the complete36/44 or pink-logo-only page bar. Coordinator should retain them in the next bounded target/token correction; no global/shared widening is implied.
+
+## Final owned-page target repair closure
+
+Superseding artifact0c6c329ea1ee706da1db0265d56cfb6cc9e14315d796193b3619b4bf305c1cc6 reviewed. Only local target classes changed since prior composition review; scripts/financial behavior remain intact. Independently inspected refreshed populated month1440light and measured target JSON: Daily/Open day36desktop, terminal Daily36/method40/Record36desktop; mobileDaily/navigation/method/Record44. The concrete owned-page sizing findings are closed. Builder reports unchanged100 tests, final build and full recapture success; visual composition remains clear. Prior pink Open day styling remains explicitly inherited, not a full palette-parity claim. Final bounded disposition: clear at0c6c329e; CI/release remain coordinator gates.

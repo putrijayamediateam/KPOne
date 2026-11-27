@@ -1,0 +1,11 @@
+{
+    "currentStillServing": true,
+    "currentHeld": true,
+    "savedDraftRetained": true,
+    "bothRedStillWaiting": true,
+    "neitherRedCalled": true,
+    "exactRetryOneClaim": true,
+    "firstTakenSecondUntaken": true,
+    "seenOnlySecond": true,
+    "episodesRemainOpen": true
+}

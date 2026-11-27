@@ -1,0 +1,5 @@
+Own Done previously had no consultation checkout time. This change adds the existing queue checkout timestamp only to authorized completed-workload rows and displays it in the branch timezone under **Completed (consultation)**. Missing timestamps remain unavailable; the label does not imply dispensing or payment is finished.
+
+Stacked on #1234 (`recovery/queue-treatment-result-columns`). Seven files only; no new permission, migration, clinical transition or query. Existing Registration/branch/emergency layouts and non-completed payloads remain unchanged. This review draft retains the explicit integration-foundation dependency chain; do not merge archive #1142.
+
+Validation: backend11/177 (new3/21 including MYT boundary/privacy/1-vs26 query equality), full frontend2316, types/build, static/Pint/lint/format pass. Actual New York browser verifies MYT display,27-row paging25+2, mobile44px/desktop36px pager targets below persistent host, and unchanged eight-table synthetic state. Independent source and visual review recorded in the review packet. No full-demo parity or production activation claim.

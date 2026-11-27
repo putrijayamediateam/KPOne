@@ -1,0 +1,42 @@
+{
+  "active": {
+    "tag": "BUTTON",
+    "id": "assigned-doctor",
+    "text": "No doctor",
+    "rect": {
+      "x": 33,
+      "y": 616,
+      "width": 324,
+      "height": 44
+    },
+    "unobstructed": true,
+    "withinViewport": true
+  },
+  "field": {
+    "tag": "BUTTON",
+    "id": "assigned-doctor",
+    "text": "No doctor",
+    "rect": {
+      "x": 33,
+      "y": 616,
+      "width": 324,
+      "height": 44
+    },
+    "unobstructed": true,
+    "withinViewport": true
+  },
+  "error": {
+    "tag": "P",
+    "id": "",
+    "text": "Please select a doctor for this consultation.",
+    "rect": {
+      "x": 33,
+      "y": 664,
+      "width": 324,
+      "height": 20
+    },
+    "unobstructed": true,
+    "withinViewport": true
+  },
+  "scrollY": 0
+}

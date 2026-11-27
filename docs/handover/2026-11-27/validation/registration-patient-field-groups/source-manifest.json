@@ -1,0 +1,11 @@
+{
+  "base": "9ef687db400883a0e013d68bd5cd022599588d9d",
+  "patchSha256": "b5dc58e1cfae55c7fde77f79245f4f6e73693d6e37d88abac5219bd3880c2671",
+  "files": {
+    "resources/js/components/registration/RegistrationCreateForm.vue": "219828aa9ecb0bd0b099ab6ddc86adaf9c59aa77a0853109c59e2e8997404f16",
+    "tests/Frontend/guardian-contact.test.mjs": "d989e4ae0bc752854ed9233c56253eddd66e246c36571d4f3d529e5d452db975",
+    "tests/Frontend/reg-6-phone-input-fit.test.mjs": "59365698aa6f171ef5d9378d0830741849676bfe946dbe898d815ebedc2b9766",
+    "tests/Frontend/registration-patient-field-groups.test.mjs": "b76aca9900718e170e248e2334303365196d2d1c979725afe97c9af2529f2283",
+    "tests/Frontend/unknown-dob-confirmation.test.mjs": "72d3ccc5f2b3f58b64b6c7b22535eff7b9294f4dec8ad6bc744e411f7458eb69"
+  }
+}

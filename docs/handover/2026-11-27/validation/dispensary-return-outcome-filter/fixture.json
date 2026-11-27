@@ -1,0 +1,16 @@
+{
+    "database": "kpone_return_outcome_preview_test",
+    "actor": "dsp28.supervisor@kpone.test",
+    "branch": "Cheras",
+    "counts": {
+        "waiting": 1,
+        "checked": 29
+    },
+    "outcomes": {
+        "dispose": 26,
+        "quarantine": 1,
+        "refuse": 2
+    },
+    "caseState": "completed",
+    "setup": "Existing domain record\/check with existing synthetic actors; original DB untouched"
+}

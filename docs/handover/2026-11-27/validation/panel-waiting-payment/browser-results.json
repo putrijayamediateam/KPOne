@@ -1,0 +1,162 @@
+[
+  {
+    "actor": "claims-only",
+    "width": 1440,
+    "theme": "light",
+    "empty": false,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 1440,
+    "theme": "dark",
+    "empty": false,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 1440,
+    "theme": "light",
+    "empty": true,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 1440,
+    "theme": "dark",
+    "empty": true,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 390,
+    "theme": "light",
+    "empty": false,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 390,
+    "theme": "dark",
+    "empty": false,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 390,
+    "theme": "light",
+    "empty": true,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "claims-only",
+    "width": 390,
+    "theme": "dark",
+    "empty": true,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 1440,
+    "theme": "light",
+    "empty": false,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 1440,
+    "theme": "dark",
+    "empty": false,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 1440,
+    "theme": "light",
+    "empty": true,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 1440,
+    "theme": "dark",
+    "empty": true,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 390,
+    "theme": "light",
+    "empty": false,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 390,
+    "theme": "dark",
+    "empty": false,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 390,
+    "theme": "light",
+    "empty": true,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  },
+  {
+    "actor": "both",
+    "width": 390,
+    "theme": "dark",
+    "empty": true,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true,
+    "page2PreservesFullTotals": true
+  }
+]

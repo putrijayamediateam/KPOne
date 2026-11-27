@@ -1,0 +1,325 @@
+{
+  "results": [
+    {
+      "view": "waiting",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 44
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 44
+        },
+        {
+          "text": "All medicines",
+          "height": 44
+        },
+        {
+          "text": "Controlled only",
+          "height": 44
+        },
+        {
+          "text": "Not controlled",
+          "height": 44
+        },
+        {
+          "text": "Open case",
+          "height": 44
+        },
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "view": "waiting",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 44
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 44
+        },
+        {
+          "text": "All medicines",
+          "height": 44
+        },
+        {
+          "text": "Controlled only",
+          "height": 44
+        },
+        {
+          "text": "Not controlled",
+          "height": 44
+        },
+        {
+          "text": "Open case",
+          "height": 44
+        },
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "view": "waiting",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 36
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 36
+        },
+        {
+          "text": "All medicines",
+          "height": 36
+        },
+        {
+          "text": "Controlled only",
+          "height": 36
+        },
+        {
+          "text": "Not controlled",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "view": "waiting",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 36
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 36
+        },
+        {
+          "text": "All medicines",
+          "height": 36
+        },
+        {
+          "text": "Controlled only",
+          "height": 36
+        },
+        {
+          "text": "Not controlled",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "view": "checked",
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 44
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 44
+        },
+        {
+          "text": "All medicines",
+          "height": 44
+        },
+        {
+          "text": "Controlled only",
+          "height": 44
+        },
+        {
+          "text": "Not controlled",
+          "height": 44
+        },
+        {
+          "text": "Open case",
+          "height": 44
+        },
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "view": "checked",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 44
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 44
+        },
+        {
+          "text": "All medicines",
+          "height": 44
+        },
+        {
+          "text": "Controlled only",
+          "height": 44
+        },
+        {
+          "text": "Not controlled",
+          "height": 44
+        },
+        {
+          "text": "Open case",
+          "height": 44
+        },
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "view": "checked",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 36
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 36
+        },
+        {
+          "text": "All medicines",
+          "height": 36
+        },
+        {
+          "text": "Controlled only",
+          "height": 36
+        },
+        {
+          "text": "Not controlled",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "view": "checked",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "text": "Waiting for a check 1",
+          "height": 36
+        },
+        {
+          "text": "Checked this month 1",
+          "height": 36
+        },
+        {
+          "text": "All medicines",
+          "height": 36
+        },
+        {
+          "text": "Controlled only",
+          "height": 36
+        },
+        {
+          "text": "Not controlled",
+          "height": 36
+        },
+        {
+          "text": "Open case",
+          "height": 36
+        },
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

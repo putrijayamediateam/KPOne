@@ -1,0 +1,21 @@
+{
+    "unchangedState": true,
+    "treatmentCallCount": 1,
+    "calledByMedicalAssistant": true,
+    "auditCount": 1,
+    "after": {
+        "visit": {
+            "status": "registered",
+            "lock_version": 1
+        },
+        "queue": {
+            "status": "serving",
+            "lock_version": 3
+        },
+        "encounter": {
+            "status": "in_progress",
+            "lock_version": 2
+        },
+        "holdId": 1
+    }
+}

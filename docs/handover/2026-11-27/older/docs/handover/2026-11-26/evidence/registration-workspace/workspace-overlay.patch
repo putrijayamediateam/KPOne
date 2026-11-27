@@ -1,0 +1,219 @@
+--- /dev/null
++++ b/resources/js/components/registration/RegistrationWorkspaceNav.vue
+@@ -0,0 +1,72 @@
++<script setup lang="ts">
++import { Link, usePage } from '@inertiajs/vue3';
++import { computed } from 'vue';
++
++const props = withDefaults(
++    defineProps<{
++        active: 'today' | 'patients' | 'qr';
++        qrAvailable?: boolean;
++        qrPendingCount?: number;
++    }>(),
++    { qrAvailable: undefined },
++);
++const page = usePage();
++const links = computed(() => {
++    const permissions = page.props.auth?.permissions ?? [];
++    const branch = page.props.branchContext?.active;
++    const canViewVisits =
++        !!branch && permissions.includes('visits.view.branch');
++
++    return [
++        {
++            key: 'today',
++            label: 'Today',
++            href: '/registration',
++            visible: canViewVisits,
++        },
++        {
++            key: 'qr',
++            label: 'QR check-ins',
++            href: '/registration?tab=qr-intake',
++            visible:
++                canViewVisits &&
++                permissions.includes('public_intakes.review.branch') &&
++                props.qrAvailable !== false,
++        },
++        {
++            key: 'patients',
++            label: 'Patients',
++            href: '/patients',
++            visible: permissions.includes('patients.search.organisation'),
++        },
++    ].filter((link) => link.visible);
++});
++</script>
++
++<template>
++    <nav
++        v-if="links.length"
++        aria-label="Registration workspace"
++        class="flex flex-wrap gap-1 rounded-xl bg-muted p-1"
++    >
++        <Link
++            v-for="link in links"
++            :key="link.key"
++            :href="link.href"
++            :aria-current="active === link.key ? 'page' : undefined"
++            class="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:min-h-9"
++            :class="
++                active === link.key
++                    ? 'bg-card text-foreground shadow-sm'
++                    : 'text-muted-foreground hover:bg-card/60 hover:text-foreground'
++            "
++            >{{ link.label
++            }}<span
++                v-if="link.key === 'qr' && qrPendingCount !== undefined"
++                class="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums"
++                :aria-label="`${qrPendingCount} pending check-ins`"
++                >{{ qrPendingCount }}</span
++            ></Link
++        >
++    </nav>
++</template>
+--- a/resources/js/pages/Registration/Index.vue
++++ b/resources/js/pages/Registration/Index.vue
+@@ -21,6 +21,7 @@
+ import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
+ import EmergencyLane from '@/components/queue/EmergencyLane.vue';
+ import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
++import RegistrationWorkspaceNav from '@/components/registration/RegistrationWorkspaceNav.vue';
+ import { Button } from '@/components/ui/button';
+ import { DateField } from '@/components/ui/date-field';
+ import { OperationalSelect } from '@/components/ui/select';
+@@ -749,11 +750,17 @@
+                 ></Button
+             >
+         </header>
++        <RegistrationWorkspaceNav
++            :active="isQrIntake ? 'qr' : 'today'"
++            :qr-available="!!qrIntakes"
++            :qr-pending-count="qrIntakes?.pendingCount"
++        />
+         <OperationalTabs
++            v-if="!isQrIntake"
+             class="min-w-0"
+             :model-value="activeTab"
+             label="Patient board status"
+-            :tabs="tabs"
++            :tabs="tabs.filter((tab) => tab.value !== 'qr-intake')"
+             @update:model-value="selectOperationalTab"
+         />
+ 
+--- a/resources/js/pages/Patient/Index.vue
++++ b/resources/js/pages/Patient/Index.vue
+@@ -5,6 +5,7 @@
+ import InputError from '@/components/InputError.vue';
+ import MergedFromNote from '@/components/patient/MergedFromNote.vue';
+ import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
++import RegistrationWorkspaceNav from '@/components/registration/RegistrationWorkspaceNav.vue';
+ import { Button } from '@/components/ui/button';
+ import { OperationalSelect } from '@/components/ui/select';
+ 
+@@ -126,6 +127,8 @@
+                 >
+             </div>
+         </div>
++
++        <RegistrationWorkspaceNav active="patients" />
+ 
+         <section class="rounded-lg border bg-card">
+             <div class="border-b px-5 py-4">
+--- /dev/null
++++ b/tests/Frontend/registration-workspace-navigation.test.mjs
+@@ -0,0 +1,73 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { createRequire } from 'node:module';
++import test from 'node:test';
++import { runInNewContext } from 'node:vm';
++import { compileScript, parse } from '@vue/compiler-sfc';
++import { renderToString } from '@vue/server-renderer';
++import ts from 'typescript';
++import { createSSRApp, h } from 'vue';
++
++const require = createRequire(import.meta.url);
++const source = readFileSync(
++    'resources/js/components/registration/RegistrationWorkspaceNav.vue',
++    'utf8',
++);
++const script = compileScript(parse(source).descriptor, {
++    id: 'branch-description',
++    inlineTemplate: true,
++}).content;
++const js = ts.transpileModule(script, {
++    compilerOptions: {
++        module: ts.ModuleKind.CommonJS,
++        target: ts.ScriptTarget.ES2022,
++    },
++}).outputText;
++const render = async (permissions, active, branch = true, qrAvailable, qrPendingCount) => {
++    const module = { exports: {} };
++    runInNewContext(js, {
++        exports: module.exports,
++        require: (name) => name === '@inertiajs/vue3'
++            ? {
++                usePage: () => ({ props: { auth: { permissions }, branchContext: { active: branch ? { id: 1 } : null } } }),
++                Link: { props: ['href'], setup: (props, { slots, attrs }) => () => h('a', { ...attrs, href: props.href }, slots.default?.()) },
++            }
++            : require(name),
++    });
++    return renderToString(createSSRApp({ render: () => h(module.exports.default, { active, ...(qrAvailable === undefined ? {} : { qrAvailable }), ...(qrPendingCount === undefined ? {} : { qrPendingCount }) }) }));
++};
++const all = ['visits.view.branch', 'patients.search.organisation', 'public_intakes.review.branch'];
++test('authorized workspace links retain real routes and only active page is current', async () => {
++    for (const [active, href] of [['today','/registration'], ['patients','/patients'], ['qr','/registration?tab=qr-intake']]) {
++        const html = await render(all, active);
++        assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
++        assert.match(html, new RegExp('href="' + href.replace('?', '\\?') + '"[^>]*aria-current="page"|aria-current="page"[^>]*href="' + href.replace('?', '\\?') + '"'));
++        assert.match(html, /QR check-ins/);
++        assert.match(html, /Patients/);
++        assert.doesNotMatch(html, /Follow-up|All branches/);
++    }
++});
++test('patient-only authority cannot expose visits or QR navigation', async () => {
++    const html = await render(['patients.search.organisation'], 'patients');
++    assert.match(html, /href="\/patients"/);
++    assert.doesNotMatch(html, /href="\/registration/);
++});
++test('QR requires both visit and review authority and available server projection', async () => {
++    for (const permissions of [['visits.view.branch'], ['public_intakes.review.branch']]) {
++        assert.doesNotMatch(await render(permissions, 'today'), /QR check-ins/);
++    }
++    assert.doesNotMatch(await render(all, 'today', true, false), /QR check-ins/);
++});
++test('no active branch removes branch links while organisation search stays accessible', async () => {
++    const html = await render(all, 'patients', false);
++    assert.match(html, /Patients/);
++    assert.doesNotMatch(html, /QR check-ins|>Today</);
++    assert.doesNotMatch(await render([], 'today'), /<nav/);
++});
++
++test('QR badge uses only supplied actual pending counts including zero', async () => {
++    for (const count of [0, 7]) {
++        assert.match(await render(all, 'today', true, true, count), new RegExp(`aria-label="${count} pending check-ins"`));
++    }
++    assert.doesNotMatch(await render(all, 'patients'), /pending check-ins/);
++});
+--- a/tests/Frontend/rb-01-registration-board-search.test.mjs
++++ b/tests/Frontend/rb-01-registration-board-search.test.mjs
+@@ -233,6 +233,7 @@
+         default: NullStub,
+     },
+     '@/components/registration/QrIntakeTable.vue': { default: NullStub },
++    '@/components/registration/RegistrationWorkspaceNav.vue': { default: NullStub },
+     '@/components/ui/button': { Button: ButtonStub },
+     '@/components/ui/date-field': { DateField: NullStub },
+     '@/components/ui/select': { OperationalSelect: NullStub },
+--- a/tests/Frontend/rb-02-registration-board-dates.test.mjs
++++ b/tests/Frontend/rb-02-registration-board-dates.test.mjs
+@@ -247,6 +247,7 @@
+         default: NullStub,
+     },
+     '@/components/registration/QrIntakeTable.vue': { default: NullStub },
++    '@/components/registration/RegistrationWorkspaceNav.vue': { default: NullStub },
+     '@/components/ui/button': { Button: ButtonStub },
+     '@/components/ui/date-field': { DateField: NullStub },
+     '@/components/ui/select': { OperationalSelect: NullStub },

@@ -1,0 +1,18 @@
+{
+  "base": "adef80a5cabf188c6a4b9af1afdfec4278e155cd",
+  "patchSha256": "cb15c5850d9c575b3e3753134aa151d9c8882b8d97b382ae0804f127bfe6f0da",
+  "files": {
+    "app/Http/Controllers/RegistrationController.php": "2f096a15b7ad2c46f3079755f69dbc482a3d4a885e0e2c53b89a002ef0f83f84",
+    "resources/js/components/registration/RegistrationCreateDialog.vue": "4b121c7b3d739116c55059a7c93396764b5e67ddd4f57a28dfaf20aebc8d2040",
+    "resources/js/components/registration/RegistrationCreateForm.vue": "383592fe8e06b4a2753e489ee0339f768c22a1ad0937514422f606713703c9f4",
+    "resources/js/pages/Registration/Index.vue": "981e132b2a0206e168e47ed08e5b4150452da275159cfb7c2b9a45c5fe75e8b5",
+    "tests/Feature/Visit/RegistrationDialogProjectionTest.php": "b2cb6d126aa7b45623432e120ed1d583bfe01186d6b60073d27827b490d096e6",
+    "tests/Frontend/flow-fixes-1.test.mjs": "3fd9e9fd5799bc3cc397b74847b31fd42173789f8f46397d52a311950660b0b4",
+    "tests/Frontend/quick-create-sticky-overlap.test.mjs": "950e40210df2d727e2111a2762bc3c9d2eeb181fa2faa736047e726d142c9eca",
+    "tests/Frontend/rb-01-registration-board-search.test.mjs": "72e45602e2d1f959a069131e8bc37d8f756e9349edd63fcec9d3b92fd99b38a5",
+    "tests/Frontend/rb-02-registration-board-dates.test.mjs": "b069d6f55b82d2ca72d9872b19638eaac60af49251e4744bbfa5f355cf4d7d74",
+    "tests/Frontend/reg-live-1.test.mjs": "b1d214d5673833c25da7e43d0983beaef34895a500ddfc779ff9bb6da3439e8e",
+    "tests/Frontend/registration-dialog-form-runtime.test.mjs": "4db36f0a6ef2bb6f67c1a91717ad7bfd5db2b7f5984d94c0d0e4bca3661dfe9f",
+    "tests/Frontend/registration-dialog-host-runtime.test.mjs": "0313670db9c2e111102587fa6994b5c2551ce8a5560c36a2a8cd733a25d47bf1"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "base": "c6fe05d46640d8c9514653727aaa225ad622cf3c",
+  "patch_sha256": "6f51c873d4efd2b8cd414345d241f6378c224a01b4f223ca5e4f2909dbcea312",
+  "files": {
+    "app/Domain/Visit/Billing/Services/PanelClaimDirectoryService.php": "5947724b01502d7d6614f0603240732ff3cc5b6b4ea9671f8495f6763541aaf8",
+    "app/Domain/Visit/Billing/Services/PanelFirstSubmissionDueProjection.php": "886d5f8df395d5ede85cb6e37fafe2b0378dd822973141214f9dcbc76ef54b2b",
+    "app/Http/Controllers/PanelClaimsController.php": "43b208212bdc67fd5d0853daee9723cc42886da879a42058b15b3fe03f361e25",
+    "docs/teams/panel/TEAM.md": "14449ec1e592df55de36ae53d98ed00737c62a2b2d4cd932d9142f22ffcaf119",
+    "resources/js/pages/PanelClaims/Index.vue": "b606133b68838c1748b52ece81a3139910a9a7645dd3a462c64d51301f2c1fe5",
+    "tests/Feature/Billing/PanelFirstSubmissionTest.php": "4bacf2162ae0fcd6cceec54cd2fcf5dc3046365cd11d9fb3e991fa4e24cdc9b7",
+    "tests/Frontend/panel-first-submission.test.mjs": "3200e43d4ef16dfb5017e874c3110752442b393cfb3d1cf852e451e7bb6d54e9"
+  }
+}

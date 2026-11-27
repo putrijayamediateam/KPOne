@@ -1,0 +1,181 @@
+{
+    "syntheticOnly": true,
+    "branchId": 3,
+    "visitId": 7,
+    "entryId": 2,
+    "callIds": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49
+    ],
+    "roomIds": [
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23
+    ],
+    "stats": {
+        "operationalDate": "2026-11-27",
+        "total": 26,
+        "recalls": 25,
+        "byService": {
+            "dispensary": {
+                "calls": 1,
+                "recalls": 25
+            }
+        },
+        "byRoom": [
+            {
+                "room": "Synthetic Calls Room 01",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 02",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 03",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 04",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 05",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 06",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 07",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 08",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 09",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 10",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 11",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 12",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 13",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 14",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 15",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 16",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 17",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 18",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 19",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 20",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 21",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 22",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 23",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 24",
+                "calls": 1
+            },
+            {
+                "room": "Synthetic Calls Room 25",
+                "calls": 1
+            }
+        ],
+        "roomPagination": {
+            "currentPage": 1,
+            "lastPage": 2,
+            "perPage": 25,
+            "total": 26
+        }
+    }
+}

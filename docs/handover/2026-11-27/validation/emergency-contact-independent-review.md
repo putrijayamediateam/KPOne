@@ -1,0 +1,19 @@
+# Emergency contact independent review — 26 November 2026
+
+Reviewer: Codex billing_panel, under B.E.R.N.I.S.S. Reviewed approved exact migration and first implementation at `/workspace/KPOne-emergency-contact`; no implementation files edited by reviewer.
+
+Schema review: no blocking finding. Patient composite unique index exists; contact and command composite FKs enforce patient/organisation alignment. Unique patient contact and positive version, cleared tombstone, keyed command fingerprint, append-only command trigger and non-destructive rollback match approved contract. Permissions remain existing patient view/update/create.
+
+Implementation strengths: standalone mutation uses fresh transactional actor authority then patient lock then contact lock; contact values are encrypted and audit includes structural fields only. First insert serializes on patient lock. Clear retains version; read returns null values plus tombstone version. Exact retries return current authorized values without reverting later updates. All three registration replay exits invoke the new check and contact/command/audit writes remain in the registration transaction. Contact is fetched through a private endpoint rather than search rows. Input command keys are allowlisted and set requires complete fields.
+
+## Open finding from first implementation
+
+P2 — `PatientEmergencyContactService::assertRegistrationReplay` hashes the saved visit patient and chooses update/create authority solely from whether submitted `patient_number` is filled. It does not compare submitted patient target with the original registration target. Reusing a saved key and contact command after selecting a different patient can return the previous visit; switching existing-patient/quick-create mode can change the permission checked on replay. Bind fingerprint to canonical original target/mode, including existing patient number or quick-patient payload, across save and all replay paths. Keep standalone update command context distinct. Add switched-target/mode regression tests; no schema change is needed.
+
+Implementer confirmed finding and is applying this correction. Closure review and final results pending. Initial reported33-test/184-assertion run predates this correction; it does not cover the discovered case. Actual concurrent first-create/replay race evidence is not present in the supplied tests; patient/actor locking is verified by source inspection, not a concurrency execution claim.
+
+## Closure review
+
+Re-reviewed corrected service and registration integration. `registrationContext` binds existing-patient number or canonical nested quick-patient payload with distinct keys; save and all replay checks use the same context in the keyed fingerprint. Standalone updates use empty context, preventing cross-endpoint key reuse. Changed patient or creation mode is refused before a replay returns; new regression checks both targets and confirms original/current versions unchanged. The P2 finding is closed by source review. Implementer's focused corrected contact suite passes12/12 tests,43assertions; no independent duplicate suite run was needed. No further actionable backend finding in the scoped authorization/atomicity/replay review. Concurrency execution, full gates and visual checks remain separately tracked.
+
+Concurrency evidence added after closure: reviewed `tests/Feature/Patient/PostgresEmergencyContactContentionTest.php` and worker protocol, which uses real processes plus observed PostgreSQL blocker chains before releasing the patient lock. Two races cover different-actor first creates (one success/one stale) and same-actor same-key retries (two successful replies, one contact/command/audit). `/tmp/kpone-emergency-race.log` reports4 tests/29assertions passed including contention suite metadata checks. This closes the earlier first-create/replay concurrency evidence gap; no duplicate runtime run by reviewer.

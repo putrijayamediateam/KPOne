@@ -1,0 +1,35 @@
+{
+  "checks": [
+    "keyboard opens editor",
+    "relationship focus",
+    "cancel restores trigger focus",
+    "manual empty search error focused",
+    "all visible family controls at least44 mobile"
+  ],
+  "controls": [
+    {
+      "name": "Edit relationship",
+      "height": 44
+    },
+    {
+      "name": "Remove",
+      "height": 44
+    },
+    {
+      "name": "family-search",
+      "height": 44
+    },
+    {
+      "name": "Search",
+      "height": 44
+    },
+    {
+      "name": "Save relationship",
+      "height": 44
+    },
+    {
+      "name": "Cancel",
+      "height": 44
+    }
+  ]
+}

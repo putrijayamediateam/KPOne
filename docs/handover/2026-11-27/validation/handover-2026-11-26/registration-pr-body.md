@@ -1,0 +1,5 @@
+Registration, Patient directory and QR intake currently require separate navigation. This adds a shared permission-filtered Today / QR check-ins / Patients navigation using their existing routes, preserves QR's actual pending count, and keeps status controls within Today. No backend authority or patient data behavior changes.
+
+Draft preservation PR requested by the owner before handover. Six scoped files; two existing test harnesses gain only an import stub, with all assertions retained. Current-main extraction passes 13 focused frontend tests and diff checks. The integrated candidate previously passed 84 focused tests, types/build/lint and 18 browser captures plus independent bounded design review. Current-main header placement was reconciled without copying the unmerged Registration restyle (#1132); current-main-specific full build/browser verification remains pending.
+
+This is navigation only, not full demo parity. Inline workspace composition, four-stage modal, follow-up and all-branch views remain held. No merge requested.

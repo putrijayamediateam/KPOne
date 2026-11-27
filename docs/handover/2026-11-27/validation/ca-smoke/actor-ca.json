@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IkJLdnhZejRIVjlhaXArVlFKTzEwRmc9PSIsInZhbHVlIjoib3BqZUxoaXdadXoyMkRKRUNKYmJza0NxbXcvRVhtMlFXa1VpR0piNVVtVXhoakpnOU9IdHZ1eEVqUW02SWxrQWo3VVpuVjErUFBDaFV0UXZjZ0JibWhrWTFldEptc1I0NEEwazYrT1BQZXkxVFlCMytLb2ZQYTFFQys1WnZPVTEiLCJtYWMiOiJjMDU2NjVmNWJmZWU5Y2UwYjZjOTI3NjZhNTEzNzYzY2JiYTBjMjdmN2RjMTAwZGJkMzg1MGI5Y2M3Y2FjZjNjIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795670097.695638,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6Im1zZlBJZjJpdVZNb3V5TVZ4RTJ1c0E9PSIsInZhbHVlIjoiMEJGUDlTK2tGTzNyUGVWRmRMcEZxbzVBdmVjeFpDZ0hCVmNpSWM3UElyYTJCZ1FNRmdmdjBGYkFJNlVaVWxsTEhROFI3cGRlK25hTzRNZGE0clovand6YVRoMHMrdnp2K1BmeXZoRTJON3pPWGd2eE9kTGhsMVBqcG84OWxYcWsiLCJtYWMiOiI2NDdmYjY5YmQ2OWMwYTIzMTg4OWFhNWM0Y2U4MzcxNjNmMTY4MDQyYmFlMDhjZmNiNzk3ZjA2OTNkMDI0ODZmIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795670097.695787,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3036",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c8-c4d1-712f-ab63-af5cb1e8cfb6\",\"serverEpoch\":\"01a215c8-c4d1-712f-ab63-af5cb1e8cfb6\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c8-ba9a-700c-ba5a-b7bced330f31",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c8-ba9a-700c-ba5a-b7bced330f31\",\"serverEpoch\":\"01a215c8-ba9a-700c-ba5a-b7bced330f31\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c8-c4d1-712f-ab63-af5cb1e8cfb6",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c8-c4d1-712f-ab63-af5cb1e8cfb6\",\"serverEpoch\":\"01a215c8-c4d1-712f-ab63-af5cb1e8cfb6\"}"
+        }
+      ]
+    }
+  ]
+}

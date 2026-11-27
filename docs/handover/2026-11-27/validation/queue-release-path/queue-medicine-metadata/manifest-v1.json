@@ -1,0 +1,14 @@
+{
+  "base": "a4335a6d9706a77d223f8a62027195fc58abff89",
+  "patchSha256": "e81ccbc703bc1fa3d41ba4a4075bc9796d708fdb64e26483e416b3188c263eaf",
+  "files": {
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "e6dea695b98e87093b6ad76bb7b868f4051909c57f17595aa8bb9de1a7492fe6",
+    "app/Domain/Queue/Services/QueueMedicineCheckMetadata.php": "aafcc0f64dbecee512a34226d5caffb6563c77d46d893a33fbd0ee8b89a631ad",
+    "resources/js/components/patient-board/PatientBoard.vue": "55819d812f27cde8c5de00c9a57ec146fcadc882ec70e043d2172dfa5b907c25",
+    "resources/js/pages/Queue/Index.vue": "672f9bc5dc642b64583e0bbfa72a22df23aae98a21e344205f9d0d913e38bca6",
+    "resources/js/types/patientBoard.ts": "e52b2761b4e7217419e399ff581a71fa4872687f919ae36462011f85dc1dcdd4",
+    "resources/js/types/queue.ts": "595ac14925f48c3e92590d8d59a9e97f0f5b9878d8a15a50a8fce6b34d02e9bc",
+    "tests/Feature/Queue/QueueMedicineCheckMetadataTest.php": "b2aec979305bd3d581575588b7454ede72cb69aaff932741aa8545efc5de31bf",
+    "tests/Frontend/queue-task-columns.test.mjs": "b9487f3a87fe66238a1f7523c8ebfd259408553947e3e965bc1bfa98f7e015c5"
+  }
+}

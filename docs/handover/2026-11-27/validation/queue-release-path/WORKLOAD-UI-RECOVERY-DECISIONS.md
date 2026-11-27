@@ -1,0 +1,13 @@
+# Workload tab recovery decisions
+
+27 November 2026. Isolated UI recovery based on reviewed endpoint/client1215@630ea3d2627f5610392c79c2eab835411b71a1c4. No backend, migration or permission changes.
+
+The real endpoint replaces loaded-page inference: Seeing excludes held, Held has its own list, Treatment updates means unacknowledged completed steps including unsuccessful outcomes (not physical return), Done today means branch-local consultation routing to Billing/Dispensary (not paid), and Needs me contains the existing authorized Medicine checks list. Own cards are Waiting/Seeing/Treatment/On hold; all tabs including Done today remain in the sidebar. Branch retains its applicable four cards. Unknown counts render an em dash, not zero.
+
+Every tab uses ordinary Waiting transport for the existing main Queue request. Independent workload requests use the selected actual workload section. Reset's exact preserved regression is restored byte-for-byte. Branch/scope/hidden/unmount reset aborts optional requests; clamped response and context-change races execute actual source with the real composable. Workload paging gets its own persistent named region focused synchronously only on explicit page action; emergency focus is retained independently.
+
+Four old presentation-wiring assertions were replaced by the exact reviewed WORKLOAD-UI-ASSERTION-ADAPTERS.patch under delegated faithful adaptation. Q15 moves the former Completed badge to Needs me, Q5/Q5b retain utility boundaries but pin real paged totals, TAB-COUNTS evaluates actual independent aggregates/own+branch/unknown. Registration, shared badges, zero and existing poll shape checks remain. The old workspace watcher test only gains the newly required harness variables; its original assertions remain. A new rendered card/sidebar test prevents the inherited omission of Treatment counts.
+
+Independent Staff plan and exact adapter review clear. Focused28 tests and full2298 frontend tests pass; types/lint/format/build pass. Provisional frozen10file candidate8ed6fbc5a2da4052489f1ee4d766dc45972451b1289bec66fbc7b34099b78bf5. Actual browser/state validation and final peer acceptance are separate gates.
+
+Preview uses a separately cloned synthetic database, kpone_queue_workload_ui_recovery_preview_test,3157. Fixtures use real provisioning/Patient/Visit/Queue/Clinical/Hold/Complete/Treatment services: dedicated doctor26 completed today, one held unsuccessful treatment, one seeing. No held-cap bypass. Initial provisioning attempt rolled back for primary-date validation; zero reserved actor rows verified before yesterday-effective assignment was used. This date is fixture setup, not a policy change.

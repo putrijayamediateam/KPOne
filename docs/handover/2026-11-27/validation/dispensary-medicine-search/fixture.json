@@ -1,0 +1,11 @@
+{
+    "database": "kpone_medicine_search_preview_test",
+    "actor": "medicine.ca@kpone.test",
+    "consultationCase": "5d9bde19-bdc9-4bed-830a-32cb07b309f6",
+    "otcCase": "27ec2527-5b1e-49bc-a2ce-837e23cc788c",
+    "removedCase": "6af4c752-4d1c-4ff7-9680-98c2fd432dca",
+    "removedVisit": "KPV-00000032",
+    "snapshotSearch": "Synthetic medicine",
+    "otcSearch": "Synthetic Browser OTC Remedy",
+    "catalogueOnly": "Renamed Catalogue Browser Only"
+}

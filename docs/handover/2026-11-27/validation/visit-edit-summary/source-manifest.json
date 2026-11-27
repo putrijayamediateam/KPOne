@@ -1,0 +1,9 @@
+{
+  "base": "7457a39d90ad0c780bbae2ada79fb044f73bcbc4",
+  "patchSha256": "741a565e0315833f087d2ebbdeb7f33076e207ad41e874cb97a0022a51c1e370",
+  "files": {
+    "resources/js/pages/Registration/Edit.vue": "3b38433948f66b1be6cc5e6788bddbd0101702917be77df31ef24730d61b7241",
+    "resources/js/components/registration/VisitEditChanges.vue": "97139b5e3f1ac2bbb45482e29868b3dd0dbaaeeec5ff1c9aa934d7c406e76d7c",
+    "tests/Frontend/visit-edit-changes.test.mjs": "4a6c8b0151a2eba801516d498874313fe4dcda8788e52cf96cf63bcffd383dae"
+  }
+}

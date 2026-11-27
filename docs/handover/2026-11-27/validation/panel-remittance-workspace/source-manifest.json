@@ -1,0 +1,9 @@
+{
+  "base": "ff3d942d540bf8df2f6b6603abf7191e0a74ee00",
+  "patchSha256": "f41aba958851eeaa0b1ef274e702d85d7e8bd4e8976276df525dea5cc33ef5b1",
+  "files": {
+    "docs/teams/panel/TEAM.md": "0360f1590c73d16459586fee55cb0d76f1951eb7bcf9ffb836deb66d23ffed71",
+    "resources/js/pages/PanelRemittances/Index.vue": "0d65910b5b5d415b320b4842ddf4e9343a147afbec8d4261afb3c30b2ee7fbda",
+    "tests/Frontend/panel-remittance-workspace.test.mjs": "6221b82cfe600361094e0af931b91bc8464da04bf2ca47c8e32f0fa78618dbea"
+  }
+}

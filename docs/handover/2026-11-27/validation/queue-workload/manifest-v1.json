@@ -1,0 +1,33 @@
+{
+  "patch_sha256": "bb75afe6342cb92d897d4d336fcc51e146a2707750c9985bd548bd30302c0759",
+  "files": {
+    "app/Domain/Queue/Services/QueueWorkloadQuery.php": {
+      "base_sha256": null,
+      "source_sha256": "e2a24f135afeb2ae5042aee272d93f55c2afb288c3c744a46925ad61dd426121"
+    },
+    "app/Domain/Queue/Services/QueueDirectoryService.php": {
+      "base_sha256": "5438a7d73d6f67f5a7b115b2d20b3fe051adc74e1619e428627df04a65c4d7cd",
+      "source_sha256": "28f5fded21e8d8e83c56150fc5db205c2331f518009be6e2ce10316b2155b94a"
+    },
+    "app/Http/Controllers/QueueController.php": {
+      "base_sha256": "0455d0590297e2ce727bd3864c322688a888ca7d397a666101cee39a7efaeddc",
+      "source_sha256": "17b239dacf548b8cb9f70c2cfb52916a9cc1b13ffa73e466ef53cdf9dc4b3d00"
+    },
+    "routes/web.php": {
+      "base_sha256": "85528fb3a68eebf31ceeacafd3e24e71ae2ab6341c9a979d8f03d1bc2db5d343",
+      "source_sha256": "b665e87055d4360589ca00366363d5aaf1b515716d22097b46639e2d66e461f0"
+    },
+    "tests/Feature/Queue/QueueWorkloadTest.php": {
+      "base_sha256": null,
+      "source_sha256": "b0d19acdada2b1d71807e52f038bd8e4b0afb14be79ade46a4de98e2ced4c1cd"
+    }
+  },
+  "validation": {
+    "new_tests": 5,
+    "new_assertions": 40,
+    "existing_and_first_four_tests": 24,
+    "combined_assertions": 268,
+    "phpstan_errors": 0
+  },
+  "baseline": "CA integration source plus immutable Queue presentation v4; unrelated source excluded"
+}

@@ -1,0 +1,35 @@
+{
+  "base": "039d28effb40ac96221c24f3649407a8711586b6",
+  "branch": "feature/billing-work-search",
+  "patchSha256": "66d86bb22a257797047f71e9b5e2159819177865f5ae27217f27e45e67424885",
+  "files": [
+    {
+      "path": "app/Domain/Visit/Billing/Services/BillingWorkDirectoryService.php",
+      "sha256": "100ca481a30f88dae9c4f43b228545de06e5f2602c1ed3ce4113d64bc41e821f"
+    },
+    {
+      "path": "app/Http/Controllers/BillingWorkController.php",
+      "sha256": "ed7d78d98980a78d3c508a184d91d741372cb92b489fe345ee44cdbfd5ce2f5f"
+    },
+    {
+      "path": "docs/teams/billing/TEAM.md",
+      "sha256": "e9913ad5e59875a909173f2733559636a44130a514d2326408f15d440c11f77c"
+    },
+    {
+      "path": "resources/js/pages/FinancialWork/Index.vue",
+      "sha256": "7d2b9d7d5064e9a5df3ad8dc888b63aeea40563c8a887f7035708811453c89d4"
+    },
+    {
+      "path": "tests/Frontend/financial-work-cards.test.mjs",
+      "sha256": "e894e8df9b4edd0f29e239fc8e8edc78fe1e392807ee99d50fcdaa6b11aec867"
+    },
+    {
+      "path": "tests/Feature/Billing/BillingWorkSearchTest.php",
+      "sha256": "2d8dfc82386ce9cebea5a722bff7b05ac92f4515e856434b85eb1aff525fb000"
+    },
+    {
+      "path": "tests/Frontend/billing-work-search.test.mjs",
+      "sha256": "fb499e959695a08446ff60397c806c0c3557d5c97c2c99a70aabb11ae65347a7"
+    }
+  ]
+}

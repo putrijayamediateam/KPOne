@@ -1,0 +1,4 @@
+[{"action":"place","reason":"recall","actor_user_id":5,"lock_version":1}, 
+ {"action":"release","reason":"inspection_passed","actor_user_id":7,"lock_version":2}, 
+ {"action":"place","reason":"recall","actor_user_id":7,"lock_version":3}, 
+ {"action":"release","reason":"inspection_passed","actor_user_id":2,"lock_version":4}]

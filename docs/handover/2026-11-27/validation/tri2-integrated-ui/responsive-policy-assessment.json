@@ -1,0 +1,87 @@
+{
+  "result": "passed_existing_authorization_policy",
+  "states": [
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 390,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 1440,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 390,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 1440,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 390,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "ca",
+      "path": "/queue",
+      "width": 1440,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 390,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    },
+    {
+      "actor": "ca",
+      "path": "/registration",
+      "width": 1440,
+      "ownOrBranchLaneCountCorrect": true,
+      "hostOnce": true,
+      "hostContainsNoPatientIdentity": true,
+      "otherDoctorRegistrationQueueDetailsHidden": true,
+      "otherDoctorRegistrationActionsLimited": true
+    }
+  ],
+  "originalBlanketIdentityExpectationRetainedIn": "responsive-results.json",
+  "stateChangingRequestsAttempted": []
+}

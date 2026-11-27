@@ -1,0 +1,56 @@
+[
+  {
+    "width": 390,
+    "dark": false,
+    "height": 44,
+    "timezone": "UTC browser displays 09:00 MYT",
+    "unchangedRetry": true,
+    "retainedDraft": true,
+    "noOverflow": true
+  },
+  {
+    "width": 390,
+    "dark": true,
+    "height": 44,
+    "timezone": "UTC browser displays 09:00 MYT",
+    "unchangedRetry": true,
+    "retainedDraft": true,
+    "noOverflow": true
+  },
+  {
+    "width": 768,
+    "dark": false,
+    "height": 44,
+    "timezone": "UTC browser displays 09:00 MYT",
+    "unchangedRetry": true,
+    "retainedDraft": true,
+    "noOverflow": true
+  },
+  {
+    "width": 768,
+    "dark": true,
+    "height": 44,
+    "timezone": "UTC browser displays 09:00 MYT",
+    "unchangedRetry": true,
+    "retainedDraft": true,
+    "noOverflow": true
+  },
+  {
+    "width": 1440,
+    "dark": false,
+    "height": 38,
+    "timezone": "UTC browser displays 09:00 MYT",
+    "unchangedRetry": true,
+    "retainedDraft": true,
+    "noOverflow": true
+  },
+  {
+    "width": 1440,
+    "dark": true,
+    "height": 38,
+    "timezone": "UTC browser displays 09:00 MYT",
+    "unchangedRetry": true,
+    "retainedDraft": true,
+    "noOverflow": true
+  }
+]

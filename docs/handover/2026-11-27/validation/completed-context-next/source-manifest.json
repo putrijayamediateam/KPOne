@@ -1,0 +1,11 @@
+{
+  "base": "eec5d5444bd14b0358e0383c1ea5d427e4d33f11",
+  "patchSha256": "264bf20c7bd6cd3e04e40fb75c13c2b549c347700abcdde3fa6c721b226f3243",
+  "files": {
+    "resources/js/pages/Dispensary/Completed.vue": "5b65a4912486d7f42c320315f584b2969acae98a729eb582ba58fb7e2d30424a",
+    "tests/Frontend/dsp-completed-context-runtime.test.mjs": "04b9fec863d8665423f32ba43b4fc03c26960dd147416ca2f903ef2771964ea1",
+    "docs/teams/dispensary-otc/TEAM.md": "a6d270d6b3cda2be6df76d1948c8ba619aec81fadf37aabf10b3cb6a74f5b7f6"
+  },
+  "refreshedBase": "141418b067766512bfa57d1ff36391bb60aeff04",
+  "refreshChanges": "Six unrelated agent-platform documentation files only; exact3-file patch and source hashes unchanged."
+}

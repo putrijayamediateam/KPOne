@@ -1,0 +1,101 @@
+{
+  "proof": {
+    "shortQueryAvailabilityPreserved": true,
+    "errorAvailabilityPreserved": true,
+    "acceptedEmptyCopy": true,
+    "debouncePendingCopy": true,
+    "inflightNoFalseAbsence": true,
+    "clearRestoresRecent": true,
+    "controlledOutOfOrderCurrentResult": true,
+    "controlledEmptyRecentAvailability": true
+  },
+  "captures": [
+    {
+      "state": "search-error",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "search-error",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "search-error",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "search-error",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "search-empty",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "search-empty",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "search-empty",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "search-empty",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "search-current",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "search-current",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "search-current",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "search-current",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "empty-recent",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "empty-recent",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "empty-recent",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "empty-recent",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "writes": [],
+  "aborts": [
+    "net::ERR_ABORTED",
+    "net::ERR_ABORTED"
+  ],
+  "qualification": "Controlled HTTP500/empty/recent projection fixtures and delayed responses; browser abortion may prevent stale delivery. Abort-ignoring late completion is covered separately by actual-SFC controlled-promise tests, not claimed as a browser incident."
+}

@@ -1,0 +1,9 @@
+# Independent bounded review
+
+Cleared final six-file patch `9d7a48c03f03e85979b35a1ca6663a2004e0af28678c9989fab0b60abdfb9569`, base `c3a3dc005761521d49b0f8f8ff50a8099a208eff`. All source hashes and patch independently verified; earlier fc1223c6 is superseded by explicit supplier minimum detail and its tests.
+
+Independently ran eight final actual-page/runtime tests successfully. Real four-field summary preserves SKU/location grain, quantities and server calculation. Hidden raw cost is never formatted, authorized zero and unavailable differ, covered-by-orders and zero-without-orders remain distinct. Minimum order uses actual packs/plural or Not specified for null. Optional method/sold help does not hide essential scope/privacy/request guidance. Original request handler preserves exact one-location prefill and mixed-location refusal; Clear ticks is local only. Four approved whitespace assertion changes preserve original classes/conditions/words.
+
+Inspected final quantity-390-dark and finance-1440-light images: readable summary/details, explicit minimum, hidden costs for quantity actor and zero/missing Finance costs. Parsed all twelve final matrices: disclosures/buttons and native checkbox labels meet 44px at390/768 and36px at1440, visible native focus, exact Show label, no overflow/errors. Finance correctly has no request checkbox. Help retains selection, mixed selection refuses, Clear works. Actual downstream request-prefill proof is GET-only, not an order/submission. Builder reports unchanged 29 movements/16 balances/68 actions; no independently executed mutation.
+
+Builder full2293/types/backend13/104 precede final narrow label/minimum/empty additions; final15 focused/static/build and recaptured browser evidence cover final source. Independent eight tests cover final runtime cases. No full inventory navigation, Location/Kind filter or Add-to-PO parity claimed. No blocking finding; no merge authorization.

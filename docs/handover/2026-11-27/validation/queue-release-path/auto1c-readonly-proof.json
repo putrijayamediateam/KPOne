@@ -1,0 +1,8 @@
+{
+  "sameSyntheticDumpPatientState": true,
+  "comparison": "All visit assignment/status/version and queue status/version records agree with untouched separate restored preview",
+  "hashes": {
+    "kpone_q16e_release_preview_test": "6ca27038272ea5cc864b1837528f820539577f74b5cb5b4ba576bab8a6f1924a",
+    "kpone_auto1c_release_preview_test": "6ca27038272ea5cc864b1837528f820539577f74b5cb5b4ba576bab8a6f1924a"
+  }
+}

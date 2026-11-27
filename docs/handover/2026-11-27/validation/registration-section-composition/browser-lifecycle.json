@@ -1,0 +1,463 @@
+{
+  "proof": {
+    "keyboardActivation": true,
+    "boardRemainsMounted": true,
+    "fourSimultaneousDialogSections": true,
+    "keepEditingSameForm": true,
+    "actualValidationSameForm": true,
+    "refusedField": {
+      "focused": true,
+      "top": 214,
+      "bottom": 250,
+      "height": 36,
+      "unobstructed": true
+    },
+    "nestedPickerEscapeKeepsDialog": true,
+    "actualBranchRefusalSameForm": true,
+    "pendingControlsLocked": true,
+    "processingCloseGuard": true,
+    "unknownSameForm": true,
+    "unknownControlsLocked": true,
+    "successRefresh": {
+      "patient_query": "Demo Patient 04",
+      "doctor_id": "",
+      "visit_type": "",
+      "priority": "",
+      "coverage_type": "",
+      "board_status": "all",
+      "date_from": "2026-11-27",
+      "date_to": "2026-11-27",
+      "page": 1
+    },
+    "sameKeyRetry": true,
+    "focusReturned": true,
+    "explicitDiscardFreshDraft": true,
+    "directFullpageFallback": true,
+    "fourSimultaneousFullpageSections": true,
+    "fullpageRefusalSameForm": true,
+    "fullpageErrorFocus": {
+      "focused": true,
+      "top": 616,
+      "bottom": 660,
+      "unobstructed": true
+    },
+    "fullpagePanelErrorFocus": {
+      "focused": true,
+      "top": 478,
+      "bottom": 522,
+      "unobstructed": true
+    },
+    "quickDraftRetained": "Synthetic Section Draft"
+  },
+  "captures": [
+    {
+      "state": "dialog-empty",
+      "width": 390,
+      "theme": "light",
+      "dialog": {
+        "x": 16,
+        "y": 16,
+        "width": 358,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-empty",
+      "width": 390,
+      "theme": "dark",
+      "dialog": {
+        "x": 16,
+        "y": 16,
+        "width": 358,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-empty",
+      "width": 768,
+      "theme": "light",
+      "dialog": {
+        "x": 4,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-empty",
+      "width": 768,
+      "theme": "dark",
+      "dialog": {
+        "x": 4,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-empty",
+      "width": 1440,
+      "theme": "light",
+      "dialog": {
+        "x": 340,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-empty",
+      "width": 1440,
+      "theme": "dark",
+      "dialog": {
+        "x": 340,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-refused",
+      "width": 390,
+      "theme": "light",
+      "dialog": {
+        "x": 16,
+        "y": 16,
+        "width": 358,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-refused",
+      "width": 390,
+      "theme": "dark",
+      "dialog": {
+        "x": 16,
+        "y": 16,
+        "width": 358,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-refused",
+      "width": 768,
+      "theme": "light",
+      "dialog": {
+        "x": 4,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-refused",
+      "width": 768,
+      "theme": "dark",
+      "dialog": {
+        "x": 4,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-refused",
+      "width": 1440,
+      "theme": "light",
+      "dialog": {
+        "x": 340,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-refused",
+      "width": 1440,
+      "theme": "dark",
+      "dialog": {
+        "x": 340,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 390,
+      "theme": "light",
+      "dialog": {
+        "x": 16,
+        "y": 16,
+        "width": 358,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 390,
+      "theme": "dark",
+      "dialog": {
+        "x": 16,
+        "y": 16,
+        "width": 358,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 768,
+      "theme": "light",
+      "dialog": {
+        "x": 4,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 768,
+      "theme": "dark",
+      "dialog": {
+        "x": 4,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 1440,
+      "theme": "light",
+      "dialog": {
+        "x": 340,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "dialog-unconfirmed",
+      "width": 1440,
+      "theme": "dark",
+      "dialog": {
+        "x": 340,
+        "y": 16,
+        "width": 760,
+        "height": 968
+      }
+    },
+    {
+      "state": "fullpage-refused",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-refused",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-refused",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-refused",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-panel-error",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-panel-error",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-panel-error",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-panel-error",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-quick",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-quick",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "fullpage-quick",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "fullpage-quick",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "writes": [
+    {
+      "idempotency_key": "781eae86-fe76-4efd-91ee-bd21cc289035",
+      "expected_branch_id": 1,
+      "patient_number": "KP-00000004",
+      "quick_patient": null,
+      "visit_type": "consultation",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    },
+    {
+      "idempotency_key": "781eae86-fe76-4efd-91ee-bd21cc289035",
+      "expected_branch_id": 1,
+      "patient_number": "KP-00000004",
+      "quick_patient": null,
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    },
+    {
+      "idempotency_key": "781eae86-fe76-4efd-91ee-bd21cc289035",
+      "expected_branch_id": 1,
+      "patient_number": "KP-00000004",
+      "quick_patient": null,
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    },
+    {
+      "idempotency_key": "781eae86-fe76-4efd-91ee-bd21cc289035",
+      "expected_branch_id": 1,
+      "patient_number": "KP-00000004",
+      "quick_patient": null,
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    },
+    {
+      "idempotency_key": "c7ed337d-3c1c-4825-9ba4-03ce9e5a5c90",
+      "expected_branch_id": 1,
+      "patient_number": "KP-00000005",
+      "quick_patient": null,
+      "visit_type": "consultation",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    },
+    {
+      "idempotency_key": "c7ed337d-3c1c-4825-9ba4-03ce9e5a5c90",
+      "expected_branch_id": 1,
+      "patient_number": "KP-00000005",
+      "quick_patient": null,
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "doctor_override_reason": "",
+      "visit_reason_public_ids": [],
+      "coverage_type": "panel",
+      "panel_id": "",
+      "coverage_member_reference": "",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "priority": "normal",
+      "confirm_repeat": false
+    }
+  ],
+  "searches": [
+    {
+      "patient_query": "Demo Patient 04",
+      "doctor_id": "",
+      "visit_type": "",
+      "priority": "",
+      "coverage_type": "",
+      "board_status": "all",
+      "date_from": "2026-11-27",
+      "date_to": "2026-11-27",
+      "page": 1
+    },
+    {
+      "patient_query": "Demo Patient 04",
+      "doctor_id": "",
+      "visit_type": "",
+      "priority": "",
+      "coverage_type": "",
+      "board_status": "all",
+      "date_from": "2026-11-27",
+      "date_to": "2026-11-27",
+      "page": 1
+    },
+    {
+      "patient_query": "Demo Patient 04",
+      "doctor_id": "",
+      "visit_type": "",
+      "priority": "",
+      "coverage_type": "",
+      "board_status": "all",
+      "date_from": "2026-11-27",
+      "date_to": "2026-11-27",
+      "page": 1
+    },
+    {
+      "patient_query": "Demo Patient 04",
+      "doctor_id": "",
+      "visit_type": "",
+      "priority": "",
+      "coverage_type": "",
+      "board_status": "all",
+      "date_from": "2026-11-27",
+      "date_to": "2026-11-27",
+      "page": 1
+    }
+  ]
+}

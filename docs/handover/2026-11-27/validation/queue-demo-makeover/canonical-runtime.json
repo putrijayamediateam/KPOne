@@ -1,0 +1,52 @@
+[
+  {
+    "role": "Resident Doctor",
+    "width": 1440,
+    "body": "KP\nFN\n1\nMy patients\nDr. Farah N. · Consultation room 2 · Cheras\nMy patients\nAll doctors\nRed zone waiting: A-017 · show alert\nOn hold 1 · average wait 25 min\nCall next\nMy patients\nNeeds me\nWaiting\n3\nSeeing now\n1\nBack from treatment\n1\nOn hold\n1\nDone today\n2\n3\nWaiting\n1\nSeeing now\n1\nBack from treatment\n1\nOn hold\nSearch\nUrgent first, then by arrival. Today before carry-over. Live, refreshes every 3 seconds.\nHide helpful info\nMy room today: Room 2 ▾\nNext patient: A-014\nCall next · A-014 Siti Hajar\nRoom: from the roster\nNo.\nPatient\nZone\nReason\nWaiting\nA-017\nLim Wei Jie\n63 M · Panel · Medkad\nRed zone\nChest pain\n6 min\nCall in\nA-014\nSiti Hajar binti Osman\n34 F · Self-pay\nYellow zone\nFever and cough\n28 min\nCall in\nA-019\nNur Aisyah binti Razak\n6 F · Panel · AIA\nNo triage yet\nFever, 3 days\n4 min\nCall in\nAbout this tab\nWaiting\n\nUrgent first, then by arrival. Today before carry-over. Live, refreshes every 3 seconds.\n\nToday at a glance\nWaiting\n3\nSeeing now\n1\nBack from treatment\n1\nOn hold\n1\nDone today\n2\nRelated pages\nGood to know\nDr. Farah N. · Resident Doctor · not saving\nReset demo\nSign out",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#MyQueue",
+    "tabs": [
+      "Waiting3",
+      "Seeing now1",
+      "Back from treatment1",
+      "On hold1",
+      "Done today2"
+    ]
+  },
+  {
+    "role": "Resident Doctor",
+    "width": 390,
+    "body": "KP\nFN\n1\nMy patients\nDr. Farah N. · Consultation room 2 · Cheras\nMy patients\nAll doctors\nRed zone waiting: A-017 · show alert\nOn hold 1 · average wait 25 min\nCall next\nMy patients\nNeeds me\nWaiting\n3\nSeeing now\n1\nBack from treatment\n1\nOn hold\n1\nDone today\n2\n3\nWaiting\n1\nSeeing now\n1\nBack from treatment\n1\nOn hold\nSearch\nUrgent first, then by arrival. Today before carry-over. Live, refreshes every 3 seconds.\nHide helpful info\nMy room today: Room 2 ▾\nNext patient: A-014\nCall next · A-014 Siti Hajar\nRoom: from the roster\nNo.\nPatient\nZone\nReason\nWaiting\nA-017\nLim Wei Jie\n63 M · Panel · Medkad\nRed zone\nChest pain\n6 min\nCall in\nA-014\nSiti Hajar binti Osman\n34 F · Self-pay\nYellow zone\nFever and cough\n28 min\nCall in\nA-019\nNur Aisyah binti Razak\n6 F · Panel · AIA\nNo triage yet\nFever, 3 days\n4 min\nCall in\nAbout this tab\nWaiting\n\nUrgent first, then by arrival. Today before carry-over. Live, refreshes every 3 seconds.\n\nToday at a glance\nWaiting\n3\nSeeing now\n1\nBack from treatment\n1\nOn hold\n1\nDone today\n2\nRelated pages\nGood to know\nDr. Farah N. · Resident Doctor · not saving\nReset demo\nSign out",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#MyQueue",
+    "tabs": [
+      "Waiting3",
+      "Seeing now1",
+      "Back from treatment1",
+      "On hold1",
+      "Done today2"
+    ]
+  },
+  {
+    "role": "CA Supervisor",
+    "width": 1440,
+    "body": "KP\nSI\n4\nQueue\nCheras · all doctors · CA Supervisor\nMy patients\nAll doctors\nVisits today\nWaiting-room TV\nCall next\nQueue\nDoctors\nWaiting\n5\nServing now\n1\nOn hold\n1\nCompleted\n2\n5\nWaiting\n1\nServing now\n1\nOn hold\n2\nCompleted\nSearch\nUrgent first, then by arrival. Today before carry-over. Waiting turns amber from 30 minutes and red from 60. Live, every 3 seconds.\nHide helpful info\nDoctor: All doctors ▾\nApply\nNext for Dr. Farah N.: A-013\nCall next\nNo.\nPatient\nDoctor\nStatus\nWaiting\nA-013\nNur Aisyah binti Razak\nPanel · AIA\nDr. Farah N.\nUrgent\n26 min\nCall in\nA-016\nSiti Hajar binti Osman\nSelf-pay\nDr. Farah N.\nWaiting\n31 min\nCall in\nA-014\nTan Mei Ling\nPanel · PMCare\nDr. Farah N.\nWaiting\n18 min\nCall in\nA-018\nLee Chun Hao\nPanel · MiCare\nDr. Amir\nNot ready to call\nAwaiting Panel confirmation\n12 min\nCall in\nA-009\nHairul bin Zainal\ncarry-over from 22 Nov\nDr. Amir\nCarry-over\n68 min\nCall in\nAbout this tab\nWaiting\n\nUrgent first, then by arrival. Today before carry-over. Waiting turns amber from 30 minutes and red from 60. Live, every 3 seconds.\n\nToday at a glance\nWaiting\n5\nServing now\n1\nOn hold\n1\nCompleted\n2\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#MyQueue",
+    "tabs": [
+      "Waiting5",
+      "Serving now1",
+      "On hold1",
+      "Completed2"
+    ]
+  },
+  {
+    "role": "CA Supervisor",
+    "width": 390,
+    "body": "KP\nSI\n4\nQueue\nCheras · all doctors · CA Supervisor\nMy patients\nAll doctors\nVisits today\nWaiting-room TV\nCall next\nQueue\nDoctors\nWaiting\n5\nServing now\n1\nOn hold\n1\nCompleted\n2\n5\nWaiting\n1\nServing now\n1\nOn hold\n2\nCompleted\nSearch\nUrgent first, then by arrival. Today before carry-over. Waiting turns amber from 30 minutes and red from 60. Live, every 3 seconds.\nHide helpful info\nDoctor: All doctors ▾\nApply\nNext for Dr. Farah N.: A-013\nCall next\nNo.\nPatient\nDoctor\nStatus\nWaiting\nA-013\nNur Aisyah binti Razak\nPanel · AIA\nDr. Farah N.\nUrgent\n26 min\nCall in\nA-016\nSiti Hajar binti Osman\nSelf-pay\nDr. Farah N.\nWaiting\n31 min\nCall in\nA-014\nTan Mei Ling\nPanel · PMCare\nDr. Farah N.\nWaiting\n18 min\nCall in\nA-018\nLee Chun Hao\nPanel · MiCare\nDr. Amir\nNot ready to call\nAwaiting Panel confirmation\n12 min\nCall in\nA-009\nHairul bin Zainal\ncarry-over from 22 Nov\nDr. Amir\nCarry-over\n68 min\nCall in\nAbout this tab\nWaiting\n\nUrgent first, then by arrival. Today before carry-over. Waiting turns amber from 30 minutes and red from 60. Live, every 3 seconds.\n\nToday at a glance\nWaiting\n5\nServing now\n1\nOn hold\n1\nCompleted\n2\nRelated pages\nGood to know\nSiti · CA Supervisor · not saving\nReset demo\nSign out",
+    "url": "http://127.0.0.1:3066/KPOne-Clean-Look-Demo.html#MyQueue",
+    "tabs": [
+      "Waiting5",
+      "Serving now1",
+      "On hold1",
+      "Completed2"
+    ]
+  }
+]

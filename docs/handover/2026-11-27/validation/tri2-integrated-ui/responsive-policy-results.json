@@ -1,0 +1,1254 @@
+{
+  "results": [
+    {
+      "otherRowText": null,
+      "otherMenuText": null,
+      "hostText": "Emergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you",
+      "pageControls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 36,
+          "width": 192
+        },
+        {
+          "name": "All active 1",
+          "height": 44,
+          "width": 107.796875
+        },
+        {
+          "name": "Waiting 0",
+          "height": 44,
+          "width": 93.328125
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 44,
+          "width": 127.078125
+        },
+        {
+          "name": "Consultation Completed 1",
+          "height": 44,
+          "width": 199.703125
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36,
+          "width": 366
+        },
+        {
+          "name": "Urgency",
+          "height": 36,
+          "width": 366
+        },
+        {
+          "name": "Apply",
+          "height": 44,
+          "width": 366
+        },
+        {
+          "name": "Reset",
+          "height": 44,
+          "width": 366
+        },
+        {
+          "name": "Call next",
+          "height": 44,
+          "width": 342
+        },
+        {
+          "name": "Notification sound: Off",
+          "height": 44,
+          "width": 181.625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 390,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/queue",
+      "title": "(!) Emergency \u00b7 KPOne",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 1,
+      "expectedLaneRows": 1,
+      "identityVisible": true,
+      "privacy": true,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 390,
+        "scrollWidth": 390,
+        "internalBoards": [
+          {
+            "clientWidth": 362,
+            "scrollWidth": 362
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Sound is off on this device. Tap to turn on",
+          "height": 44,
+          "width": 303.40625,
+          "disabled": false
+        },
+        {
+          "name": "I'll see A-004",
+          "height": 44,
+          "width": 152.703125,
+          "disabled": false
+        },
+        {
+          "name": "Seen \u2014 alert continues",
+          "height": 44,
+          "width": 184.90625,
+          "disabled": true
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-doctor-queue-390-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPuchong\nSD\nEmergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you\nConsultation queue\nMy room today\nSynthetic CA Smoke Room\nThe TV shows this room when you call a patient in.\nAll active\n1\nWaiting\n0\nServing Now\n1\nConsultation Completed\n1\nLive \u00b7 every 3 seconds\nAverage wait today \u00b7 Your patients\nLoading\u2026\nSearch patients or queue numbers\nAll urgency\nApply\nReset\n1 visible entries\nClinician scope\nCall next\nNotification sound: Off\nEmergency\n1\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nSynthetic TRI2 Red Patient One\nKP-00000014\nA-003\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\nWaiting\nUrgent\nRed zone\nSynthetic TRI2 Current Patient\nKP-00000013\nA-002\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nHeld 30 min\nOn Hold"
+    },
+    {
+      "otherRowText": null,
+      "otherMenuText": null,
+      "hostText": "Emergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you",
+      "pageControls": [
+        {
+          "name": "Synthetic CA Smoke Room",
+          "height": 36,
+          "width": 192
+        },
+        {
+          "name": "All active 1",
+          "height": 36,
+          "width": 119.796875
+        },
+        {
+          "name": "Waiting 0",
+          "height": 36,
+          "width": 105.328125
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 36,
+          "width": 139.078125
+        },
+        {
+          "name": "Consultation Completed 1",
+          "height": 36,
+          "width": 211.703125
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36,
+          "width": 686.96875
+        },
+        {
+          "name": "Urgency",
+          "height": 36,
+          "width": 140
+        },
+        {
+          "name": "Apply",
+          "height": 32,
+          "width": 63.5
+        },
+        {
+          "name": "Reset",
+          "height": 32,
+          "width": 62.03125
+        },
+        {
+          "name": "Call next",
+          "height": 36,
+          "width": 107.765625
+        },
+        {
+          "name": "Notification sound: Off",
+          "height": 44,
+          "width": 181.625
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 130.71875
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 131.234375
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "doctor",
+      "path": "/queue",
+      "width": 1440,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/queue",
+      "title": "(!) Emergency \u00b7 KPOne",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 1,
+      "expectedLaneRows": 1,
+      "identityVisible": true,
+      "privacy": true,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "internalBoards": [
+          {
+            "clientWidth": 1324,
+            "scrollWidth": 1324
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Sound is off on this device. Tap to turn on",
+          "height": 38,
+          "width": 303.40625,
+          "disabled": false
+        },
+        {
+          "name": "I'll see A-004",
+          "height": 38,
+          "width": 152.703125,
+          "disabled": false
+        },
+        {
+          "name": "Seen \u2014 alert continues",
+          "height": 38,
+          "width": 184.90625,
+          "disabled": true
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 130.71875,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-doctor-queue-1440-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPUC\nSD\nEmergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you\nConsultation queue\nMy room today\nSynthetic CA Smoke Room\nThe TV shows this room when you call a patient in.\nAll active\n1\nWaiting\n0\nServing Now\n1\nConsultation Completed\n1\nLive \u00b7 every 3 seconds\nAverage wait today \u00b7 Your patients\nLoading\u2026\nSearch patients or queue numbers\nAll urgency\nApply\nReset\n1 visible entries\nClinician scope\nCall next\nNotification sound: Off\nEmergency\n1\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Red Patient One\nKP-00000014\n\tA-003\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\n\t\nWaiting\nUrgent\nRed zone\n\t\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Current Patient\nKP-00000013\n\tA-002\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nHeld 30 min\t\nOn Hold\n\t"
+    },
+    {
+      "otherRowText": "Synthetic TRI2 Red Patient Two\nKP-00000015\n\u2014\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic TRI2 Other Doctor\nSelf-pay\n\u2014\nRegistered\nUrgent",
+      "otherMenuText": "View Visit\nView Patient",
+      "hostText": "Emergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you",
+      "pageControls": [
+        {
+          "name": "All 3",
+          "height": 44,
+          "width": 67.28125
+        },
+        {
+          "name": "Waiting 1",
+          "height": 44,
+          "width": 97.328125
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 44,
+          "width": 131.078125
+        },
+        {
+          "name": "Dispensary 0",
+          "height": 44,
+          "width": 120.84375
+        },
+        {
+          "name": "Awaiting Billing",
+          "height": 44,
+          "width": 122.375
+        },
+        {
+          "name": "Completed 1",
+          "height": 44,
+          "width": 119.484375
+        },
+        {
+          "name": "Cancelled 0",
+          "height": 44,
+          "width": 113.203125
+        },
+        {
+          "name": "Patient name or exact Patient No.",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Doctor",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Coverage",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Urgency",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Apply",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "More",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic CA Endtoend Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 390,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/registration",
+      "title": "(!) Emergency \u00b7 KPOne",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 1,
+      "expectedLaneRows": 1,
+      "identityVisible": true,
+      "privacy": false,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 390,
+        "scrollWidth": 390,
+        "internalBoards": [
+          {
+            "clientWidth": 354,
+            "scrollWidth": 354
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Sound is off on this device. Tap to turn on",
+          "height": 44,
+          "width": 303.40625,
+          "disabled": false
+        },
+        {
+          "name": "I'll see A-004",
+          "height": 44,
+          "width": 152.703125,
+          "disabled": false
+        },
+        {
+          "name": "Seen \u2014 alert continues",
+          "height": 44,
+          "width": 184.90625,
+          "disabled": true
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-doctor-registration-390-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPuchong\nSD\nEmergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you\nRegistration\n\nPuchong \u00b7 26 Nov 2026\n\nAll\n3\nWaiting\n1\nServing Now\n1\nDispensary\n0\nAwaiting Billing\nCompleted\n1\nCancelled\n0\nSearch patients\nAll doctors\nAll coverage\nAll urgency\nApply\nMore\nEmergency\n1\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nSynthetic TRI2 Red Patient One\nKP-00000014\nA-003\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\nWaiting\nUrgent\nRed zone\n3 Visits\n25 per page\nSynthetic TRI2 Red Patient Two\nKP-00000015\n\u2014\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic TRI2 Other Doctor\nSelf-pay\n\u2014\nRegistered\nUrgent\nSynthetic TRI2 Current Patient\nKP-00000013\nA-002\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nOn Hold\nOn Hold\nSynthetic CA Endtoend Patient\nKP-00000012\nA-001\n26 Nov 2026\n10:56 AM\nSynthetic CA workflow review\nSynthetic CA Smoke resident doctor\nSelf-pay\n\u2014\nCompleted\n26 Nov 2026, 11:12 AM"
+    },
+    {
+      "otherRowText": "Synthetic TRI2 Red Patient Two\nKP-00000015\n\t\u2014\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic TRI2 Other Doctor\n\t\nSelf-pay\n\t\n\u2014\t\nRegistered\nUrgent\n\t",
+      "otherMenuText": "View Visit\nView Patient",
+      "hostText": "Emergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you",
+      "pageControls": [
+        {
+          "name": "All 3",
+          "height": 36,
+          "width": 75.28125
+        },
+        {
+          "name": "Waiting 1",
+          "height": 36,
+          "width": 105.328125
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 36,
+          "width": 139.078125
+        },
+        {
+          "name": "Dispensary 0",
+          "height": 36,
+          "width": 128.84375
+        },
+        {
+          "name": "Awaiting Billing",
+          "height": 36,
+          "width": 130.375
+        },
+        {
+          "name": "Completed 1",
+          "height": 36,
+          "width": 127.484375
+        },
+        {
+          "name": "Cancelled 0",
+          "height": 36,
+          "width": 121.203125
+        },
+        {
+          "name": "Patient name or exact Patient No.",
+          "height": 36,
+          "width": 526.03125
+        },
+        {
+          "name": "Doctor",
+          "height": 36,
+          "width": 263.03125
+        },
+        {
+          "name": "Coverage",
+          "height": 36,
+          "width": 140
+        },
+        {
+          "name": "Urgency",
+          "height": 36,
+          "width": 140
+        },
+        {
+          "name": "Apply",
+          "height": 32,
+          "width": 63.5
+        },
+        {
+          "name": "More",
+          "height": 32,
+          "width": 97.4375
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.65625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.90625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.90625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic CA workflow review",
+          "height": 40,
+          "width": 127.90625
+        },
+        {
+          "name": "Actions for Synthetic CA Endtoend Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "doctor",
+      "path": "/registration",
+      "width": 1440,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/registration",
+      "title": "(!) Emergency \u00b7 KPOne",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 1,
+      "expectedLaneRows": 1,
+      "identityVisible": true,
+      "privacy": false,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "internalBoards": [
+          {
+            "clientWidth": 1300,
+            "scrollWidth": 1300
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Sound is off on this device. Tap to turn on",
+          "height": 38,
+          "width": 303.40625,
+          "disabled": false
+        },
+        {
+          "name": "I'll see A-004",
+          "height": 38,
+          "width": 152.703125,
+          "disabled": false
+        },
+        {
+          "name": "Seen \u2014 alert continues",
+          "height": 38,
+          "width": 184.90625,
+          "disabled": true
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.65625,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-doctor-registration-1440-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPUC\nSD\nEmergency\nA-004 waiting for a doctor.\nSound is off on this device. Tap to turn on\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nI'll see this patient\nSeen \u2014 alert continues\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by you\nRegistration\n\nPuchong \u00b7 26 Nov 2026\n\nAll\n3\nWaiting\n1\nServing Now\n1\nDispensary\n0\nAwaiting Billing\nCompleted\n1\nCancelled\n0\nSearch patients\nAll doctors\nAll coverage\nAll urgency\nApply\nMore\nEmergency\n1\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Red Patient One\nKP-00000014\n\tA-003\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\n\t\nWaiting\nUrgent\nRed zone\n\t\n3 Visits\n25 per page\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Red Patient Two\nKP-00000015\n\t\u2014\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic TRI2 Other Doctor\n\t\nSelf-pay\n\t\n\u2014\t\nRegistered\nUrgent\n\t\n\n\nSynthetic TRI2 Current Patient\nKP-00000013\n\tA-002\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nOn Hold\t\nOn Hold\n\t\n\n\nSynthetic CA Endtoend Patient\nKP-00000012\n\tA-001\t\n26 Nov 2026\n10:56 AM\n\t\nSynthetic CA workflow review\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\n\u2014\t\nCompleted\n26 Nov 2026, 11:12 AM\n\t"
+    },
+    {
+      "otherRowText": null,
+      "otherMenuText": null,
+      "hostText": "Emergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor",
+      "pageControls": [
+        {
+          "name": "All active 1",
+          "height": 44,
+          "width": 107.796875
+        },
+        {
+          "name": "Waiting 0",
+          "height": 44,
+          "width": 93.328125
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 44,
+          "width": 127.078125
+        },
+        {
+          "name": "Consultation Completed 1",
+          "height": 44,
+          "width": 199.703125
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36,
+          "width": 366
+        },
+        {
+          "name": "Doctor",
+          "height": 36,
+          "width": 366
+        },
+        {
+          "name": "Urgency",
+          "height": 36,
+          "width": 366
+        },
+        {
+          "name": "Apply",
+          "height": 44,
+          "width": 366
+        },
+        {
+          "name": "Reset",
+          "height": 44,
+          "width": 366
+        },
+        {
+          "name": "Notification sound: Off",
+          "height": 44,
+          "width": 181.625
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 160
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 160
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "ca",
+      "path": "/queue",
+      "width": 390,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/queue",
+      "title": "Consultation - Laravel",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 2,
+      "expectedLaneRows": 2,
+      "identityVisible": true,
+      "privacy": true,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 390,
+        "scrollWidth": 390,
+        "internalBoards": [
+          {
+            "clientWidth": 362,
+            "scrollWidth": 362
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 160,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 160,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-ca-queue-390-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPuchong\nSC\nEmergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor\nConsultation queue\nTreatment room\nAll active\n1\nWaiting\n0\nServing Now\n1\nConsultation Completed\n1\nLive \u00b7 every 3 seconds\nRooms today\nAverage wait today \u00b7 Whole branch\nLoading\u2026\nSearch patients or queue numbers\nAll doctors\nAll urgency\nApply\nReset\n1 visible entries\nBranch scope\nNotification sound: Off\nEmergency\n2\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nSynthetic TRI2 Red Patient One\nKP-00000014\nA-003\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\nWaiting\nUrgent\nRed zone\nMark not ready\nSynthetic TRI2 Red Patient Two\nKP-00000015\nA-004\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic TRI2 Other Doctor\nSelf-pay\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nNot taken\n\nWaiting\nUrgent\nRed zone\nMark not ready\nSynthetic TRI2 Current Patient\nKP-00000013\nA-002\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nHeld 31 min\nOn Hold"
+    },
+    {
+      "otherRowText": null,
+      "otherMenuText": null,
+      "hostText": "Emergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor",
+      "pageControls": [
+        {
+          "name": "All active 1",
+          "height": 36,
+          "width": 119.796875
+        },
+        {
+          "name": "Waiting 0",
+          "height": 36,
+          "width": 105.328125
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 36,
+          "width": 139.078125
+        },
+        {
+          "name": "Consultation Completed 1",
+          "height": 36,
+          "width": 211.703125
+        },
+        {
+          "name": "Patient or exact Queue number",
+          "height": 36,
+          "width": 686.96875
+        },
+        {
+          "name": "Doctor",
+          "height": 36,
+          "width": 343.5
+        },
+        {
+          "name": "Urgency",
+          "height": 36,
+          "width": 140
+        },
+        {
+          "name": "Apply",
+          "height": 32,
+          "width": 63.5
+        },
+        {
+          "name": "Reset",
+          "height": 32,
+          "width": 62.03125
+        },
+        {
+          "name": "Notification sound: Off",
+          "height": 44,
+          "width": 181.625
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 130.71875
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 169.453125
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 130.71875
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 169.453125
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 131.234375
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "ca",
+      "path": "/queue",
+      "width": 1440,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/queue",
+      "title": "Consultation - Laravel",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 2,
+      "expectedLaneRows": 2,
+      "identityVisible": true,
+      "privacy": true,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "internalBoards": [
+          {
+            "clientWidth": 1324,
+            "scrollWidth": 1324
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 130.71875,
+          "disabled": false
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 169.453125,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 130.71875,
+          "disabled": false
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 169.453125,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-ca-queue-1440-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPUC\nSC\nEmergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor\nConsultation queue\nTreatment room\nAll active\n1\nWaiting\n0\nServing Now\n1\nConsultation Completed\n1\nLive \u00b7 every 3 seconds\nRooms today\nAverage wait today \u00b7 Whole branch\nLoading\u2026\nSearch patients or queue numbers\nAll doctors\nAll urgency\nApply\nReset\n1 visible entries\nBranch scope\nNotification sound: Off\nEmergency\n2\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Red Patient One\nKP-00000014\n\tA-003\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\n\t\nWaiting\nUrgent\nRed zone\nMark not ready\n\t\n\n\nSynthetic TRI2 Red Patient Two\nKP-00000015\n\tA-004\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic TRI2 Other Doctor\n\t\nSelf-pay\n\t\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nNot taken\n\n\t\nWaiting\nUrgent\nRed zone\nMark not ready\n\t\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Current Patient\nKP-00000013\n\tA-002\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nHeld 31 min\t\nOn Hold\n\t"
+    },
+    {
+      "otherRowText": null,
+      "otherMenuText": null,
+      "hostText": "Emergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor",
+      "pageControls": [
+        {
+          "name": "All 2",
+          "height": 44,
+          "width": 67.28125
+        },
+        {
+          "name": "Waiting 0",
+          "height": 44,
+          "width": 97.328125
+        },
+        {
+          "name": "Triage 0",
+          "height": 44,
+          "width": 88.0625
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 44,
+          "width": 131.078125
+        },
+        {
+          "name": "Dispensary 0",
+          "height": 44,
+          "width": 120.84375
+        },
+        {
+          "name": "Awaiting Billing 0",
+          "height": 44,
+          "width": 147.578125
+        },
+        {
+          "name": "Completed 1",
+          "height": 44,
+          "width": 119.484375
+        },
+        {
+          "name": "Cancelled 0",
+          "height": 44,
+          "width": 113.203125
+        },
+        {
+          "name": "QR Intake 0",
+          "height": 44,
+          "width": 112.34375
+        },
+        {
+          "name": "Patient name or exact Patient No.",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Doctor",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Coverage",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Urgency",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Apply",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "More",
+          "height": 44,
+          "width": 324
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 156
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 156
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Actions for Synthetic CA Endtoend Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "ca",
+      "path": "/registration",
+      "width": 390,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/registration",
+      "title": "Registration - Laravel",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 2,
+      "expectedLaneRows": 2,
+      "identityVisible": true,
+      "privacy": true,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 390,
+        "scrollWidth": 390,
+        "internalBoards": [
+          {
+            "clientWidth": 354,
+            "scrollWidth": 354
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 156,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 156,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-ca-registration-390-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPuchong\nSC\nEmergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor\nRegistration\n\nPuchong \u00b7 26 Nov 2026\n\nRegister Visit\nAll\n2\nWaiting\n0\nTriage\n0\nServing Now\n1\nDispensary\n0\nAwaiting Billing\n0\nCompleted\n1\nCancelled\n0\nQR Intake\n0\nSearch patients\nAll doctors\nAll coverage\nAll urgency\nApply\nMore\nEmergency\n2\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nSynthetic TRI2 Red Patient One\nKP-00000014\nA-003\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\nWaiting\nUrgent\nRed zone\nMark not ready\nSynthetic TRI2 Red Patient Two\nKP-00000015\nA-004\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic TRI2 Other Doctor\nSelf-pay\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nNot taken\n\nWaiting\nUrgent\nRed zone\nMark not ready\n2 Visits\n25 per page\nSynthetic TRI2 Current Patient\nKP-00000013\nA-002\n26 Nov 2026\n12:52 PM\nSynthetic TRI2 integrated proof\nSynthetic CA Smoke resident doctor\nSelf-pay\nOn Hold\nOn Hold\nSynthetic CA Endtoend Patient\nKP-00000012\nA-001\n26 Nov 2026\n10:56 AM\nSynthetic CA workflow review\nSynthetic CA Smoke resident doctor\nSelf-pay\n\u2014\nCompleted\n26 Nov 2026, 11:12 AM"
+    },
+    {
+      "otherRowText": null,
+      "otherMenuText": null,
+      "hostText": "Emergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor",
+      "pageControls": [
+        {
+          "name": "All 2",
+          "height": 36,
+          "width": 75.28125
+        },
+        {
+          "name": "Waiting 0",
+          "height": 36,
+          "width": 105.328125
+        },
+        {
+          "name": "Triage 0",
+          "height": 36,
+          "width": 96.0625
+        },
+        {
+          "name": "Serving Now 1",
+          "height": 36,
+          "width": 139.078125
+        },
+        {
+          "name": "Dispensary 0",
+          "height": 36,
+          "width": 128.84375
+        },
+        {
+          "name": "Awaiting Billing 0",
+          "height": 36,
+          "width": 155.578125
+        },
+        {
+          "name": "Completed 1",
+          "height": 36,
+          "width": 127.484375
+        },
+        {
+          "name": "Cancelled 0",
+          "height": 36,
+          "width": 121.203125
+        },
+        {
+          "name": "QR Intake 0",
+          "height": 36,
+          "width": 120.34375
+        },
+        {
+          "name": "Patient name or exact Patient No.",
+          "height": 36,
+          "width": 526.03125
+        },
+        {
+          "name": "Doctor",
+          "height": 36,
+          "width": 263.03125
+        },
+        {
+          "name": "Coverage",
+          "height": 36,
+          "width": 140
+        },
+        {
+          "name": "Urgency",
+          "height": 36,
+          "width": 140
+        },
+        {
+          "name": "Apply",
+          "height": 32,
+          "width": 63.5
+        },
+        {
+          "name": "More",
+          "height": 32,
+          "width": 97.4375
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.65625
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 165.640625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.65625
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 165.640625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.90625
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Current Patient",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "name": "Synthetic CA workflow review",
+          "height": 40,
+          "width": 127.90625
+        },
+        {
+          "name": "Actions for Synthetic CA Endtoend Patient",
+          "height": 44,
+          "width": 44
+        }
+      ],
+      "actor": "ca",
+      "path": "/registration",
+      "width": 1440,
+      "dark": false,
+      "status": 200,
+      "url": "http://127.0.0.1:3054/registration",
+      "title": "Registration - Laravel",
+      "hosts": 1,
+      "laneCount": 1,
+      "laneRows": 2,
+      "expectedLaneRows": 2,
+      "identityVisible": true,
+      "privacy": true,
+      "noPageOverflow": true,
+      "overflow": {
+        "page": false,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "internalBoards": [
+          {
+            "clientWidth": 1300,
+            "scrollWidth": 1300
+          }
+        ]
+      },
+      "controls": [
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.65625,
+          "disabled": false
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 165.640625,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient One",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        },
+        {
+          "name": "Synthetic TRI2 integrated proof",
+          "height": 40,
+          "width": 127.65625,
+          "disabled": false
+        },
+        {
+          "name": "Mark not ready",
+          "height": 44,
+          "width": 165.640625,
+          "disabled": false
+        },
+        {
+          "name": "Actions for Synthetic TRI2 Red Patient Two",
+          "height": 44,
+          "width": 44,
+          "disabled": false
+        }
+      ],
+      "screenshot": "responsive-ca-registration-1440-light.png",
+      "errors": [],
+      "body": "Skip to main content\nPUC\nSC\nEmergency\nA-004 waiting for a doctor.\n\nAlso tell a doctor in person. This alert can be missed.\n\nA-004\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nA-003\nWaiting 36 min\nAlert recorded at 26 Nov 2026, 12:52 PM\nTaken by Synthetic CA Smoke resident doctor\nRegistration\n\nPuchong \u00b7 26 Nov 2026\n\nRegister Visit\nAll\n2\nWaiting\n0\nTriage\n0\nServing Now\n1\nDispensary\n0\nAwaiting Billing\n0\nCompleted\n1\nCancelled\n0\nQR Intake\n0\nSearch patients\nAll doctors\nAll coverage\nAll urgency\nApply\nMore\nEmergency\n2\n\nWaiting emergencies, including previous days. Separate from the ordinary board filters. Use the usual Call In action to call the patient.\n\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Red Patient One\nKP-00000014\n\tA-003\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nTaken by Synthetic CA Smoke resident doctor \u00b7 26 Nov 2026, 1:06 PM\n\n\t\nWaiting\nUrgent\nRed zone\nMark not ready\n\t\n\n\nSynthetic TRI2 Red Patient Two\nKP-00000015\n\tA-004\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic TRI2 Other Doctor\n\t\nSelf-pay\n\t\nWaiting 36 min\n(long wait, 30 minutes or more)\n\nAlert recorded at 26 Nov 2026, 12:52 PM\n\nNot taken\n\n\t\nWaiting\nUrgent\nRed zone\nMark not ready\n\t\n2 Visits\n25 per page\nPatient\tQueue\tArrived\tVisit notes\tDoctor\tPayment\tDuration\tStatus\tActions\n\nSynthetic TRI2 Current Patient\nKP-00000013\n\tA-002\t\n26 Nov 2026\n12:52 PM\n\t\nSynthetic TRI2 integrated proof\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\nOn Hold\t\nOn Hold\n\t\n\n\nSynthetic CA Endtoend Patient\nKP-00000012\n\tA-001\t\n26 Nov 2026\n10:56 AM\n\t\nSynthetic CA workflow review\n\t\nSynthetic CA Smoke resident doctor\n\t\nSelf-pay\n\t\n\u2014\t\nCompleted\n26 Nov 2026, 11:12 AM\n\t"
+    }
+  ],
+  "blockedStateChanges": []
+}

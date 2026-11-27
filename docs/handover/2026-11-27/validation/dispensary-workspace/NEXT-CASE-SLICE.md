@@ -1,0 +1,11 @@
+# Next independent preparation: compact saved-line case cards
+
+Prepared from CA Show.vue only; no case code changed. This is a proposed next slice, separate from the current list workspace packet.
+
+The demo PharmacyCase keeps medicine identity/order/directions/batch/quantity visible and exposes small edit/add controls. Actual Show.vue permanently displays every clinical field, label-budget explanation, batch/FEFO rule and add-search form. Reconcile with progressive disclosure, never delete a clinical field or replace persisted handlers.
+
+Candidate bounds: existing visible medicine card gets summary header and explicit Edit/Close details; Add medicine and Add service search blocks get explicit disclosures. Existing quantity/dosage/frequency/duration/route/instruction/precaution/batch/FEFO/allergy fields stay mounted (v-show or details rather than destructive v-if); form objects, errors and dirty state survive closing. Newly added, unsaved, allergy-unconfirmed and scan-warning items should remain visibly attention-marked; error/scan focus must open the target details first. Readonly doctor receives summary and existing labels only, no editor control.
+
+Dependencies requiring design before implementation: scanItem currently focuses batch/quantity; hidden target cannot receive focus, so link its existing focus path to opening the corresponding disclosure. saveItem(item,done) and saveService(line,done) callbacks are sequential-save infrastructure and must not be replaced by collapse callbacks. saveAll still handles each dirty item/service and existing allergy/pack validation. completeBlockedReason and unsaved counters remain independent of visibility. Existing onError routes a global actionError; opening a failed line must be explicit if summaries hide its local fields. No clinical payload or mutation route changes.
+
+Required proof: edit→collapse→reopen retains dirty fields; server stale refresh never overwrites dirty form; failed save keeps draft/error visible; scan target becomes visible before focus; Save all order and completion blocking unchanged; readonly has no edit/add; search/add errors survive disclosure; keyboard focus and390/1440 light/dark. Inventory of existing tests mentioning exact markup must be prepared before any assertion change. Final base must include reviewed PR1139 source without importing unrelated CA features.

@@ -1,0 +1,32 @@
+{
+  "head": "c97e9716ddd1b5d9aeacacab67e4078df7eda383",
+  "main": "e5e72f69b79e68cbb57f72d2a7ad974f19aaa048",
+  "original_head": "041c69b44eacf5453ed8435992e33edfc5007fe0",
+  "files": {
+    "app/Domain/Access/PermissionCatalogue.php": true,
+    "app/Domain/Organisation/Inventory/Models/HandCost.php": true,
+    "app/Domain/Organisation/Inventory/Models/StockMovement.php": true,
+    "app/Domain/Organisation/Inventory/Services/HandCostService.php": true,
+    "database/migrations/2026_11_26_110000_create_inventory_hand_costs.php": true,
+    "database/migrations/2026_11_26_110100_grant_inventory_hand_cost_permissions.php": true,
+    "docs/teams/inventory/STK-46-DESIGN.md": true,
+    "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md": true,
+    "docs/teams/inventory/STK-46-SERVICE.md": true,
+    "docs/teams/inventory/TEAM.md": true,
+    "docs/teams/inventory/stk46-drafts/2026_11_26_110000_create_inventory_hand_costs.php": true,
+    "docs/teams/inventory/stk46-drafts/2026_11_26_110100_grant_inventory_hand_cost_permissions.php": true,
+    "phpunit.xml": false,
+    "tests/Feature/Inventory/HandCostTest.php": true,
+    "tests/Feature/Inventory/PostgresHandCostRaceTest.php": true,
+    "tests/Support/HandCostFixture.php": true,
+    "tests/Support/HandCostRaceWorker.php": true
+  },
+  "local": {
+    "focused": "52 tests / 1206 assertions PASS",
+    "races": "3 tests / 58 assertions PASS",
+    "full_pint": "PASS",
+    "full_phpstan": "PASS zero errors"
+  },
+  "independent_review": "../handover-2026-11-26/stk46-service-refresh-review.md",
+  "remote": "attest PASS; static and 3 backend shards running; no merge"
+}

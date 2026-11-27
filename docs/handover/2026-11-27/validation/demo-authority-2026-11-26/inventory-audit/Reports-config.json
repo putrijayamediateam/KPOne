@@ -1,0 +1,2636 @@
+{
+  "title": "Reports",
+  "sub": "Cheras \u00b7 1 to 23 Nov 2026",
+  "search": "Search within this report",
+  "primary": {
+    "label": "Run report",
+    "done": "report run for the chosen branch and dates (demo). Up to 31 days, one branch."
+  },
+  "foot": "Each report runs for one branch and up to 31 days. Patient-level reports (Transactions, Billing detail) are for Finance and the Director only, never show IC numbers, and are audited before any row is shown.",
+  "tabs": [
+    {
+      "key": "daily",
+      "label": "Daily summary",
+      "count": false,
+      "grid": "minmax(130px,1fr) repeat(4, minmax(100px,1fr))",
+      "cols": [
+        "DATE",
+        "CASH",
+        "NON-CASH",
+        "PANEL",
+        "TOTAL RECEIVED"
+      ],
+      "note": "Total received is Cash + Non-cash only. Panel and pay-later are what is owed, not received.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Run report",
+          "done": "Daily summary re-run with the chosen filters (demo). The run is audited (filters and row count only).",
+          "dark": true
+        },
+        {
+          "label": "Download CSV",
+          "done": "daily-summary-cheras-2026-11-01-to-18.csv downloaded (18 rows, audited) (demo). Files are not kept in KPOne."
+        },
+        {
+          "label": "Panel by Panel",
+          "done": "Panel by Panel (demo): approved Panel responsibility by invoice date, 1\u201318 Nov. AIA (TPA) 61 invoices RM 3,412.00, 48 claimed \u00b7 PMCare 52 RM 2,860.50, 39 claimed \u00b7 Etiqa 35 RM 1,946.00, 35 claimed \u00b7 MiCare 26 RM 1,402.50, 12 claimed \u00b7 Great Eastern 22 RM 1,283.00, 20 claimed. Panel is never added to Total received. Claim figures are current when the report runs."
+        },
+        {
+          "label": "Due by week",
+          "done": "Due by week (demo): approved pay later by invoice date. 1\u20137 Nov 6 bills RM 412.00 (2 still owed) \u00b7 8\u201314 Nov 6 bills RM 438.00 (5 still owed) \u00b7 15\u201318 Nov 3 bills RM 200.00 (not due yet). Due is never added to Total received. The bills are on Pay later to collect."
+        },
+        {
+          "label": "How this report counts",
+          "done": "How this report counts: Cash and Non-cash by receipt date, after reversals. Panel and Due by the date the invoice was finalised. Total received is Cash plus Non-cash only; Panel and Due are never added. Payment method filter changes the receipt columns only."
+        },
+        {
+          "label": "Your downloads",
+          "done": "Your downloads (demo): Daily summary \u00b7 Oct (1 Nov, 9:05 AM, 31 rows) \u00b7 Transaction detail \u00b7 1\u201315 Nov (16 Nov, 4:22 PM, 612 rows) \u00b7 Panel summary \u00b7 Q3 (2 Oct, 11:40 AM, 9 rows). Every run and download is recorded. Files are not kept in KPOne."
+        },
+        {
+          "label": "Branch Manager: own branch",
+          "done": "A Branch Manager views and downloads the Daily summary, Sales summary, Payments (receipts by method) and Panel summary for their own branch only; the download refuses any other branch (demo)."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Sungai Besi",
+            "Puchong"
+          ]
+        },
+        {
+          "label": "Dates (up to 31 days)",
+          "options": [
+            "1 \u2013 18 Nov 2026",
+            "1 \u2013 31 Oct 2026",
+            "18 Oct \u2013 17 Nov 2026"
+          ]
+        },
+        {
+          "label": "Payment method",
+          "options": [
+            "All methods",
+            "Cash",
+            "Card",
+            "DuitNow QR"
+          ]
+        },
+        {
+          "label": "Visit type",
+          "options": [
+            "All visits",
+            "Consultation",
+            "OTC"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "tx",
+      "label": "Transactions",
+      "count": false,
+      "grid": "minmax(150px,1.2fr) minmax(150px,1.2fr) minmax(110px,1fr) minmax(110px,1fr)",
+      "cols": [
+        "RECEIPT",
+        "PATIENT",
+        "METHOD",
+        "NET"
+      ],
+      "note": "One row per receipt. Finance and Director only.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Run report",
+          "done": "report run for Cheras, 1 to 18 Nov: 612 rows (demo). This run was recorded before any row shows.",
+          "dark": true
+        },
+        {
+          "label": "Download CSV",
+          "done": "CSV downloaded (612 rows) (demo); the download was recorded, the file is not kept in KPOne. A download over 5,000 rows is refused, never cut."
+        },
+        {
+          "label": "Totals",
+          "done": "Totals, all 612 rows (demo): original RM 50,196.40 \u00b7 reversed RM 1,284.00 \u00b7 net RM 48,912.40 (cash RM 21,066.10, non-cash RM 27,846.30). 20 rows a page."
+        },
+        {
+          "label": "Non-cash by method",
+          "done": "Non-cash by method (demo), net of reversals 1\u201318 Nov: Card 206 receipts RM 15,402.80 \u00b7 DuitNow QR 121 RM 8,911.50 \u00b7 Touch n Go 48 RM 3,532.00. Class is the current setting on Payment methods."
+        },
+        {
+          "label": "Reversed receipts",
+          "done": "Reversed receipts (demo): 8 receipts by original receipt date, RM 1,284.00. Refund recorded: RC-CHR-048206, RC-CHR-048184, RC-CHR-048151; no refund: 5 others. A recorded reversal is not proof of a cash refund."
+        },
+        {
+          "label": "How this report counts",
+          "done": "How this report counts: One row per receipt, by the original receipt date in branch time. Method is the one used at the time of the receipt. Cash / Non-cash is the current setting of that method in Payment methods. A reversal is a recording correction. It is not proof that cash was refunded."
+        },
+        {
+          "label": "Privacy and limits",
+          "done": "Privacy and limits: No IC or passport number, contact, clinical or note data. Each page and each download is recorded before rows show; if the record cannot be written, nothing shows. One branch and up to 31 dates per run. A download over 5,000 rows is refused, never cut. Patient-level reports: Finance Officer and Director only."
+        },
+        {
+          "label": "Your recent runs",
+          "done": "Your recent runs (demo): Transaction detail \u00b7 1\u201315 Nov (16 Nov, 4:22 PM, 612 rows) \u00b7 Transaction detail \u00b7 Oct (1 Nov, 9:10 AM, 1,844 rows) \u00b7 Billing detail \u00b7 Oct (1 Nov, 9:02 AM, 1,203 rows). Files are not kept in KPOne."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Sungai Besi",
+            "Puchong"
+          ]
+        },
+        {
+          "label": "Receipt dates (up to 31 days)",
+          "options": [
+            "1 \u2013 18 Nov 2026",
+            "1 \u2013 31 Oct 2026",
+            "18 Nov 2026"
+          ]
+        },
+        {
+          "label": "Payment method",
+          "options": [
+            "All methods",
+            "Cash",
+            "Card",
+            "DuitNow QR",
+            "Touch n Go"
+          ]
+        },
+        {
+          "label": "Cash / Non-cash",
+          "options": [
+            "Cash and Non-cash",
+            "Cash",
+            "Non-cash"
+          ]
+        },
+        {
+          "label": "Status",
+          "options": [
+            "All statuses",
+            "Posted",
+            "Reversed"
+          ]
+        },
+        {
+          "label": "Visit type",
+          "options": [
+            "All visits",
+            "Consultation",
+            "OTC"
+          ]
+        },
+        {
+          "label": "Page",
+          "options": [
+            "Page 1 of 31",
+            "Page 2 of 31",
+            "Page 3 of 31"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "bd",
+      "label": "Billing detail",
+      "count": false,
+      "grid": "minmax(150px,1.2fr) minmax(150px,1.2fr) minmax(110px,1fr) minmax(110px,1fr)",
+      "cols": [
+        "INVOICE",
+        "PATIENT",
+        "NET INVOICE",
+        "DUE NOW"
+      ],
+      "note": "One row per finalised invoice. Finance and Director only.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Run report",
+          "done": "Report run: Cheras, 1 to 20 Nov. 518 rows; this run is recorded (demo).",
+          "dark": true
+        },
+        {
+          "label": "Download CSV",
+          "done": "Billing detail CSV downloaded, 518 rows (demo). The download is recorded with your name. A later download uses the records as they are then; the generation time is printed on it."
+        },
+        {
+          "label": "+ Add filter",
+          "done": "Every filter is already shown. Remove one to change it."
+        },
+        {
+          "label": "Totals",
+          "done": "Totals, all 518 rows (demo): net invoices RM 52,380.00 \u00b7 patient receipts RM 38,906.50 \u00b7 Panel RM 12,618.00 \u00b7 due now RM 855.50. 20 rows a page."
+        },
+        {
+          "label": "Panel by Panel",
+          "done": "Panel by Panel (demo), approved responsibility 1\u201318 Nov: AIA (TPA) 74 invoices RM 4,210.00, 61 claimed \u00b7 PMCare 63 RM 3,486.00, 50 claimed \u00b7 Etiqa 41 RM 2,302.00, 41 claimed \u00b7 MiCare 28 RM 1,520.00, 14 claimed \u00b7 Great Eastern 20 RM 1,100.00, 18 claimed. Approved Panel amounts only; claim status is current when the report runs."
+        },
+        {
+          "label": "Invoices with money due now",
+          "done": "Invoices with money due now (demo): 6 invoices, RM 855.50. Part paid: INV-CHR-031198 RM 20.00, INV-CHR-031131 RM 120.00, INV-CHR-031088 RM 80.00 \u00b7 Not paid: INV-CHR-031176 RM 245.50, INV-CHR-031150 RM 180.00, INV-CHR-031107 RM 210.00. Fictional names. No IC numbers in this report."
+        },
+        {
+          "label": "How this report counts",
+          "done": "How this report counts: One row per finalised invoice, by the date it was finalised, in branch time; void invoices are left out. Net invoice is after any discount or surcharge. Panel and Pay later count approved amounts only. Method columns show net patient receipts, one column for each method used in this result."
+        },
+        {
+          "label": "Privacy and limits",
+          "done": "Privacy and limits: No IC or passport number, contact, clinical, note, Bill to or adjustment reason. Each page and each download is recorded before rows show. A later download uses the records as they are then; the generation time is printed on it. A download over 5,000 rows is refused, never cut. Patient-level reports: Finance Officer and Director only."
+        },
+        {
+          "label": "Your recent runs",
+          "done": "Your recent runs (demo): Billing detail \u00b7 Oct (1 Nov, 9:02 AM, 1,203 rows) \u00b7 Billing detail \u00b7 1\u20137 Nov (8 Nov, 10:15 AM, 214 rows) \u00b7 Transaction detail \u00b7 1\u201315 Nov (16 Nov, 4:22 PM, 612 rows). Files are not kept in KPOne."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Sungai Besi",
+            "Puchong"
+          ]
+        },
+        {
+          "label": "Finalised dates (up to 31 days)",
+          "options": [
+            "1 \u2013 20 Nov 2026",
+            "1 \u2013 31 Oct 2026",
+            "1 \u2013 7 Nov 2026"
+          ]
+        },
+        {
+          "label": "Doctor",
+          "options": [
+            "All doctors",
+            "Dr. Farah N.",
+            "Dr. Amir"
+          ]
+        },
+        {
+          "label": "Visit type",
+          "options": [
+            "Visit type: all",
+            "Consultation",
+            "OTC"
+          ]
+        },
+        {
+          "label": "Time of day",
+          "options": [
+            "Time of day: all",
+            "Morning",
+            "Afternoon",
+            "Evening"
+          ]
+        },
+        {
+          "label": "Payment method",
+          "options": [
+            "Payment method: all",
+            "Cash",
+            "Card",
+            "DuitNow QR"
+          ]
+        },
+        {
+          "label": "Page",
+          "options": [
+            "Page 1 of 31",
+            "Page 2 of 31",
+            "Page 3 of 31"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ps",
+      "label": "Panel summary",
+      "count": false,
+      "grid": "minmax(160px,1.3fr) repeat(4, minmax(90px,1fr))",
+      "cols": [
+        "PANEL",
+        "APPROVED",
+        "CLAIMED",
+        "PAID",
+        "OUTSTANDING"
+      ],
+      "note": "Ageing from the first submitted date: 0\u201330, 31\u201360, 61\u201390 and over 90 days. Open a row to see it.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Run report",
+          "done": "made the Panel summary for Cheras, 1 Jan \u2013 20 Nov 2026, All Panels (9 Panels) (demo). The run is recorded before any figure shows.",
+          "dark": true
+        },
+        {
+          "label": "Download CSV",
+          "done": "downloaded the Panel summary as CSV (9 rows) (demo). Totals per Panel only; the download is recorded."
+        },
+        {
+          "label": "Totals",
+          "done": "Total, 9 Panels (demo): 623 invoices \u00b7 approved RM 46,810.00 \u00b7 claimed RM 43,890.00 \u00b7 unclaimed RM 2,920.00 \u00b7 accepted RM 40,290.00 \u00b7 outstanding RM 3,070.00."
+        },
+        {
+          "label": "Claim outstanding by age",
+          "done": "Claim outstanding by age (demo): 0 to 30 days RM 1,560.00 \u00b7 31 to 60 days RM 900.00 \u00b7 61 to 90 days RM 390.00 \u00b7 Over 90 days RM 220.00. Darker means older. Each group also says its days in words."
+        },
+        {
+          "label": "How this report counts",
+          "done": "How this report counts: Outstanding is accepted less remitted, never below zero; a claim not yet accepted is not owed. Claim ages count from the first submitted date; a resubmission does not reset them. Unclaimed ages count from the day the invoice was finalised. Claim figures are current at the time the report is made. Totals per Panel only. No patient details."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Sungai Besi",
+            "Puchong"
+          ]
+        },
+        {
+          "label": "Invoice finalised",
+          "options": [
+            "1 Jan \u2013 20 Nov 2026",
+            "This month",
+            "Last quarter"
+          ]
+        },
+        {
+          "label": "Panel",
+          "options": [
+            "All Panels",
+            "AIA",
+            "PMCare",
+            "Medkad"
+          ]
+        },
+        {
+          "label": "Ages for",
+          "options": [
+            "Claim outstanding",
+            "Unclaimed",
+            "Awaiting decision"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pi",
+      "label": "Panel invoices",
+      "count": false,
+      "grid": "minmax(150px,1.2fr) minmax(150px,1.2fr) minmax(110px,1fr) minmax(110px,1fr)",
+      "cols": [
+        "INVOICE",
+        "PATIENT",
+        "PANEL",
+        "CLAIM"
+      ],
+      "note": "Choose a Panel first. No diagnosis or medicine text.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Show invoices",
+          "done": "showing 14 AIA invoices for 1 Jan \u2013 20 Nov 2026 (demo). Panel is required; nothing shows until you choose one.",
+          "dark": true
+        },
+        {
+          "label": "Download CSV",
+          "done": "downloaded AIA Panel invoices as CSV (14 rows) (demo). The download is recorded with its filters and row count only. Up to 10 a minute; the CSV holds the same rows, up to 5,000, and opens in Excel."
+        },
+        {
+          "label": "Record Panel payment",
+          "done": "opening Panel payments to record a Panel payment (demo).",
+          "next": [
+            "Panel.dc.html",
+            "Panel"
+          ]
+        },
+        {
+          "label": "Correct a Panel payment",
+          "done": "opening Correct a Panel payment (demo).",
+          "next": [
+            "CorrectPanelPayment.dc.html",
+            "Correct a Panel payment"
+          ]
+        },
+        {
+          "label": "AIA share this year",
+          "done": "AIA share this year \u00b7 RM 18,240.00 (demo): 248 invoices by month of visit, Cheras. Jan 21 / RM 1,520 \u00b7 Feb 19 / RM 1,390 \u00b7 Mar 24 / RM 1,780 \u00b7 Apr 22 / RM 1,610 \u00b7 May 23 / RM 1,700 \u00b7 Jun 20 / RM 1,470 \u00b7 Jul 25 / RM 1,850 \u00b7 Aug 24 / RM 1,760 \u00b7 Sep 26 / RM 1,930 \u00b7 Oct 27 / RM 2,010 \u00b7 Nov (to 18 Nov) 17 / RM 1,220. Same filters as the list."
+        },
+        {
+          "label": "Invoices by claim",
+          "done": "Invoices \u00b7 248 by claim (demo): Paid 201 RM 15,903.00 \u00b7 Submitted 38 RM 1,830.00 \u00b7 Queried 6 RM 285.00 \u00b7 Not claimed 3 RM 222.00. Paid means the Panel payment for the claim has been recorded in KPOne."
+        },
+        {
+          "label": "Not claimed yet",
+          "done": "Not claimed yet \u00b7 3 (demo): INV-C-02431 Nur Aisyah binti Razak RM 45.00 \u00b7 INV-C-02424 Kavitha d/o Raman RM 74.00 \u00b7 INV-C-02417 Arif Hakimi RM 103.00. Claims are created in Panel claims by a Panel Officer."
+        },
+        {
+          "label": "Claimed, not paid",
+          "done": "Claimed, not paid \u00b7 RM 2,115.00 (demo): AIA, 44 claims. Submitted 38 RM 1,830.00 (oldest 3 Oct) \u00b7 Queried 6 RM 285.00 (oldest 12 Sep). An accepted claim stays here until the Panel payment is recorded."
+        },
+        {
+          "label": "About this list",
+          "done": "About this list: Panel is required; nothing shows until you choose one. Rows are finalised invoices at this branch with an approved Panel share. No clinical text: Treatment only narrows the list; no diagnosis or medicine names are shown. CSV holds the same rows, up to 5,000. Opens in Excel."
+        },
+        {
+          "label": "Your downloads",
+          "done": "Your downloads (demo): AIA \u00b7 Oct 2026 (1 Nov, 9:12 AM, 27 rows) \u00b7 PMCare \u00b7 Q3 (3 Oct, 2:40 PM, 64 rows). Each download is recorded with its filters and row count only. Up to 10 a minute."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Visit dates",
+          "options": [
+            "1 Jan \u2013 20 Nov 2026",
+            "This month",
+            "Last 7 days"
+          ]
+        },
+        {
+          "label": "Time of day",
+          "options": [
+            "Any time",
+            "Morning",
+            "Afternoon",
+            "Evening"
+          ]
+        },
+        {
+          "label": "Panel *",
+          "options": [
+            "AIA",
+            "PMCare",
+            "Medkad"
+          ]
+        },
+        {
+          "label": "Doctor",
+          "options": [
+            "All doctors",
+            "Dr. Farah",
+            "Dr. Amir"
+          ]
+        },
+        {
+          "label": "Visit type",
+          "options": [
+            "All types",
+            "Consultation",
+            "OTC"
+          ]
+        },
+        {
+          "label": "Treatment",
+          "options": [
+            "Any treatment",
+            "Nebuliser",
+            "Dressing"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "sm",
+      "label": "Stock movement",
+      "count": false,
+      "grid": "minmax(180px,1.5fr) repeat(4, minmax(80px,1fr))",
+      "cols": [
+        "SKU",
+        "OPENING",
+        "IN",
+        "OUT",
+        "CLOSING"
+      ],
+      "note": "Quantities only, no cost.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Run report",
+          "done": "Stock movement re-run with the chosen filters (quantities only, no cost) (demo).",
+          "dark": true
+        },
+        {
+          "label": "Download CSV",
+          "done": "stock-movement-cheras-2026-11-01-to-18.csv downloaded (14 SKUs, exact to three decimals) (demo)."
+        },
+        {
+          "label": "Movements by type",
+          "done": "Movements by type (demo), Cheras 1\u201318 Nov, quantities only: Dispensing 318 (Dispensed, out) \u00b7 Verified receiving 21 (Received, in) \u00b7 Transfer in 9 / Transfer out 11 (Transferred net) \u00b7 Treatment room usage and waste 24 (Adjusted, out) \u00b7 Stock count and write-off 17 (Adjusted, in or out) \u00b7 Patient return 4 (Adjusted, in) \u00b7 Supplier return 8 (Adjusted, out). 412 movements in all. 14 SKUs in this period, 0 not reconciling."
+        },
+        {
+          "label": "How this report counts",
+          "done": "How this report counts: Closing is the ledger quantity at the end of the last day, not today's live balance. Adjusted includes opening balances, write-offs, supplier returns, treatment room use and waste, and patient returns. Transferred is net: into the branch minus out of it. Quantities are exact to three decimals in the CSV; shown rounded here. Check: Opening plus movements equals Closing for every row. No total row: units differ between SKUs, so they are never added together."
+        },
+        {
+          "label": "Who sees this",
+          "done": "Who sees this: Director, Finance Officer and Administrator. No cost, value, batch, supplier or patient is shown. Every run and download is recorded."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Sungai Besi",
+            "Puchong"
+          ]
+        },
+        {
+          "label": "Dates (up to 31 days)",
+          "options": [
+            "1 \u2013 18 Nov 2026",
+            "1 \u2013 31 Oct 2026",
+            "18 Oct \u2013 17 Nov 2026"
+          ]
+        },
+        {
+          "label": "SKU",
+          "options": [
+            "All SKUs",
+            "Paracetamol 500 mg",
+            "Amoxicillin 250 mg",
+            "Salbutamol inhaler"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "sv",
+      "label": "Stock value",
+      "count": false,
+      "grid": "minmax(180px,1.5fr) minmax(90px,1fr) minmax(110px,1fr) minmax(110px,1fr)",
+      "cols": [
+        "ITEM",
+        "ON HAND",
+        "AVERAGE COST",
+        "VALUE"
+      ],
+      "note": "Director only. Management report \u2014 cost policy to be confirmed by the clinic's accountant.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "tools": [
+        {
+          "label": "Download journal summary (CSV)",
+          "done": "journal summary CSV downloaded: November 2026 \u00b7 Cheras \u00b7 month to date (demo). A management summary only; no accounting system receives it. The journal summary is for one calendar month.",
+          "dark": true
+        },
+        {
+          "label": "Totals and summary",
+          "done": "Stock value on 20 Nov 2026 (demo): total RM 1,097.48 for 9 medicines \u00b7 Cost of goods sold RM 5,124.40 \u00b7 Medicine sales RM 7,980.00 \u00b7 Gross margin RM 2,855.60 \u00b7 Losses RM 92.82. Unit costs show up to 4 decimals; values are rounded to sen."
+        },
+        {
+          "label": "How this is counted",
+          "done": "How this is counted: Weighted average cost per medicine per branch; a purchase receipt moves the average (value before plus the receipt's cost, divided by the quantity before plus what was received). Opening stock enters at the unit cost entered for it. Stock leaving (dispensing, treatment-room use and waste, write-offs, supplier returns, count losses) leaves at the average at that moment. Transfers leave one branch at its average and arrive at the same cost. Purchase order estimates are used when nothing was paid yet, and marked 'Includes an estimate' until that stock is gone. Stock with no cost enters at the current average; with no average yet it is counted apart and named, never valued at zero. Supplier credit notes do not move the average; the difference is shown under Losses."
+        },
+        {
+          "label": "Notes",
+          "done": "1 medicine has stock with no cost recorded. It is marked and left out of the value. Stock in transit between branches: RM 84.00 (not in any branch's value). Held stock is valued; rejected lots never enter stock."
+        }
+      ],
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Puchong",
+            "Sungai Besi",
+            "All branches"
+          ]
+        },
+        {
+          "label": "Period",
+          "options": [
+            "1\u201320 Nov 2026",
+            "1\u201331 Oct 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "svmargin",
+      "label": "Cost and margin",
+      "count": false,
+      "grid": "minmax(180px,1.5fr) repeat(4, minmax(90px,1fr))",
+      "cols": [
+        "MEDICINE",
+        "SALES",
+        "COST",
+        "MARGIN",
+        "MARGIN %"
+      ],
+      "note": "Director only. Medicine sales are the medicine lines of invoices finalised in the period and not voided, before invoice discounts or surcharges. Treatment-room use is a cost with no sale: RM 212.40 in this period, not in the margins. Management report \u2014 cost policy to be confirmed by the clinic's accountant.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Puchong",
+            "Sungai Besi",
+            "All branches"
+          ]
+        },
+        {
+          "label": "Period",
+          "options": [
+            "1\u201320 Nov 2026",
+            "1\u201331 Oct 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "svloss",
+      "label": "Losses",
+      "count": false,
+      "grid": "minmax(200px,2fr) minmax(90px,1fr) minmax(120px,1fr) minmax(90px,1fr)",
+      "cols": [
+        "LOSS",
+        "RECORDS",
+        "AMOUNT",
+        ""
+      ],
+      "note": "Director only. 1 credit note was recorded with no amount, so not counted. Part of the expired stock had no cost recorded and is counted apart.",
+      "action": {
+        "label": "Download CSV",
+        "dark": false,
+        "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+      },
+      "filters": [
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Puchong",
+            "Sungai Besi",
+            "All branches"
+          ]
+        },
+        {
+          "label": "Period",
+          "options": [
+            "1\u201320 Nov 2026",
+            "1\u201331 Oct 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "medsales",
+      "label": "Medicine sales",
+      "count": false,
+      "grid": "minmax(40px,0.3fr) minmax(170px,1.6fr) repeat(5, minmax(80px,1fr)) repeat(2, minmax(70px,0.8fr))",
+      "cols": [
+        "RANK",
+        "MEDICINE",
+        "UNITS",
+        "SALES",
+        "COST",
+        "GROSS PROFIT",
+        "MARGIN",
+        "LINES BELOW COST",
+        "FREE LINES"
+      ],
+      "note": "Your best-selling medicines for one month, with the cost of what was dispensed and the profit. Top 25, ranked by sales or gross profit. Director and Finance Officer. Figures can change if an invoice is voided later. Each view is recorded.",
+      "action": null,
+      "filters": [
+        {
+          "label": "Month",
+          "options": [
+            "November 2026 (to date)",
+            "October 2026",
+            "September 2026"
+          ]
+        },
+        {
+          "label": "Branch",
+          "options": [
+            "Cheras",
+            "Sungai Besi",
+            "Puchong",
+            "All branches"
+          ]
+        },
+        {
+          "label": "Rank by",
+          "options": [
+            "Sales",
+            "Gross profit"
+          ]
+        }
+      ],
+      "tools": [
+        {
+          "label": "Money totals",
+          "done": "November 2026 (to date) \u00b7 Cheras: Sales RM 7,980.00 \u00b7 Cost of medicines sold RM 4,912.00 (estimate) \u00b7 Gross profit RM 3,068.00 \u00b7 Margin 38.4% (demo)."
+        },
+        {
+          "label": "Medicines sold below cost \u00b7 1",
+          "done": "Salbutamol inhaler 100 mcg: 2 lines below cost, shortfall \u2212RM 6.40 (demo)."
+        },
+        {
+          "label": "Cost not complete",
+          "done": "Cost not complete: some stock sold has no cost recorded. 1 medicine with cost not complete is left out of cost, profit and margin (demo)."
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "tab": "daily",
+      "cells": [
+        {
+          "v": "Mon 23 Nov",
+          "sub": "so far"
+        },
+        "RM 412.00",
+        "RM 238.00",
+        "RM 185.00",
+        "RM 650.00"
+      ],
+      "more": [
+        [
+          "Reversed",
+          "RM 0.00"
+        ],
+        [
+          "Pay later due",
+          "RM 20.00"
+        ]
+      ],
+      "extra": [
+        [
+          "Due (pay later) for this day",
+          "Due column (demo): approved pay later for invoices finalised this day. Never added to Total received."
+        ]
+      ]
+    },
+    {
+      "tab": "daily",
+      "cells": [
+        {
+          "v": "Sat 21 Nov",
+          "sub": ""
+        },
+        "RM 1,284.00",
+        "RM 640.00",
+        "RM 455.00",
+        "RM 1,924.00"
+      ],
+      "more": [
+        [
+          "Reversed",
+          "RM 30.00 (1 receipt)",
+          1
+        ],
+        [
+          "Cash closing",
+          "Approved by Finance"
+        ]
+      ],
+      "extra": [
+        [
+          "Due (pay later) for this day",
+          "Due column (demo): approved pay later for invoices finalised this day. Never added to Total received."
+        ]
+      ]
+    },
+    {
+      "tab": "daily",
+      "cells": [
+        {
+          "v": "Fri 20 Nov",
+          "sub": ""
+        },
+        "RM 1,102.00",
+        "RM 712.00",
+        "RM 390.00",
+        "RM 1,814.00"
+      ],
+      "more": [
+        [
+          "Cash closing",
+          "Approved"
+        ]
+      ],
+      "extra": [
+        [
+          "Due (pay later) for this day",
+          "Due column (demo): approved pay later for invoices finalised this day. Never added to Total received."
+        ]
+      ]
+    },
+    {
+      "tab": "tx",
+      "cells": [
+        {
+          "v": "RC-00009120",
+          "sub": "23 Nov \u00b7 9:42 AM"
+        },
+        {
+          "v": "KP-000412",
+          "sub": "Ahmad I."
+        },
+        "Cash",
+        "RM 35.00"
+      ],
+      "more": [
+        [
+          "Invoice",
+          "INV-00004450"
+        ],
+        [
+          "Classification",
+          "Cash"
+        ],
+        [
+          "Receipt date",
+          "23 Nov \u00b7 9:42 AM"
+        ],
+        [
+          "Visit",
+          "KPV-00088120"
+        ],
+        [
+          "Original",
+          "RM 35.00"
+        ],
+        [
+          "Reversed",
+          "\u2014"
+        ],
+        [
+          "Status",
+          "Posted"
+        ]
+      ],
+      "extra": [
+        [
+          "Open invoice",
+          "opening the invoice for this receipt (demo).",
+          [
+            "InvoiceView.dc.html",
+            "Invoice"
+          ]
+        ]
+      ]
+    },
+    {
+      "tab": "tx",
+      "cells": [
+        {
+          "v": "RC-00009118",
+          "sub": "23 Nov \u00b7 9:10 AM"
+        },
+        {
+          "v": "KP-000388",
+          "sub": "Mei Ling T."
+        },
+        "Card",
+        "RM 58.00"
+      ],
+      "more": [
+        [
+          "Invoice",
+          "INV-00004447"
+        ],
+        [
+          "Visit",
+          "KPV-00088118"
+        ],
+        [
+          "Cash / Non-cash",
+          "Non-cash"
+        ],
+        [
+          "Original",
+          "RM 58.00"
+        ],
+        [
+          "Reversed",
+          "\u2014"
+        ],
+        [
+          "Status",
+          "Posted"
+        ]
+      ],
+      "extra": [
+        [
+          "Open invoice",
+          "opening the invoice for this receipt (demo).",
+          [
+            "InvoiceView.dc.html",
+            "Invoice"
+          ]
+        ]
+      ]
+    },
+    {
+      "tab": "bd",
+      "cells": [
+        {
+          "v": "INV-00004450",
+          "sub": "23 Nov"
+        },
+        {
+          "v": "KP-000412",
+          "sub": "Ahmad I."
+        },
+        "RM 35.00",
+        "RM 0.00"
+      ],
+      "more": [
+        [
+          "Received",
+          "RM 35.00 cash"
+        ],
+        [
+          "Panel",
+          "none"
+        ],
+        [
+          "Visit",
+          "KPV-00088120"
+        ],
+        [
+          "Doctor",
+          "Dr. Farah N."
+        ],
+        [
+          "Patient receipts",
+          "RM 35.00"
+        ],
+        [
+          "Panel",
+          "\u2014"
+        ],
+        [
+          "Pay later",
+          "\u2014"
+        ],
+        [
+          "Cash / Card / DuitNow QR",
+          "RM 35.00 / \u2014 / \u2014"
+        ],
+        [
+          "Status",
+          "Settled"
+        ]
+      ]
+    },
+    {
+      "tab": "bd",
+      "cells": [
+        {
+          "v": "INV-00004436",
+          "sub": "22 Nov"
+        },
+        {
+          "v": "KP-000301",
+          "sub": "Ravi K."
+        },
+        "RM 128.00",
+        "RM 0.00"
+      ],
+      "more": [
+        [
+          "Panel responsibility",
+          "RM 120.00 \u00b7 Syarikat Maju"
+        ],
+        [
+          "Received",
+          "RM 8.00 cash"
+        ],
+        [
+          "Visit",
+          "KPV-00088101"
+        ],
+        [
+          "Doctor",
+          "Dr. Amir"
+        ],
+        [
+          "Patient receipts",
+          "RM 8.00"
+        ],
+        [
+          "Pay later",
+          "\u2014"
+        ],
+        [
+          "Cash / Card / DuitNow QR",
+          "RM 8.00 / \u2014 / \u2014"
+        ],
+        [
+          "Status",
+          "Panel"
+        ]
+      ]
+    },
+    {
+      "tab": "ps",
+      "cells": [
+        {
+          "v": "AIA (TPA)",
+          "sub": "42 invoices"
+        },
+        "RM 3,640",
+        "RM 3,120",
+        "RM 2,480",
+        "RM 640"
+      ],
+      "more": [
+        [
+          "Ageing",
+          "0\u201330: RM 420 \u00b7 31\u201360: RM 220 \u00b7 61\u201390: RM 0 \u00b7 over 90: RM 0"
+        ],
+        [
+          "Not claimed yet",
+          "RM 520"
+        ],
+        [
+          "Invoices",
+          "248"
+        ],
+        [
+          "Unclaimed",
+          "RM 1,230.00"
+        ],
+        [
+          "Accepted",
+          "RM 15,880.00"
+        ],
+        [
+          "Unclaimed ages",
+          "0\u201330: RM 980 \u00b7 31\u201360: RM 170 \u00b7 61\u201390: RM 60 \u00b7 over 90: RM 20"
+        ],
+        [
+          "Awaiting decision ages",
+          "0\u201330: RM 520 \u00b7 31\u201360: RM 90"
+        ]
+      ]
+    },
+    {
+      "tab": "ps",
+      "cells": [
+        {
+          "v": "PMCare",
+          "sub": "28 invoices"
+        },
+        "RM 1,860",
+        "RM 1,700",
+        "RM 1,320",
+        {
+          "v": "RM 380",
+          "sub": "RM 95 over 60 days",
+          "urgent": true
+        }
+      ],
+      "more": [
+        [
+          "Ageing",
+          "0\u201330: RM 205 \u00b7 31\u201360: RM 80 \u00b7 61\u201390: RM 95",
+          1
+        ],
+        [
+          "Invoices",
+          "131"
+        ],
+        [
+          "Unclaimed",
+          "RM 400.00"
+        ],
+        [
+          "Accepted",
+          "RM 7,310.00"
+        ],
+        [
+          "Awaiting decision ages",
+          "0\u201330: RM 380 \u00b7 31\u201360: RM 40"
+        ]
+      ]
+    },
+    {
+      "tab": "pi",
+      "cells": [
+        {
+          "v": "INV-00004412",
+          "sub": "6 Nov \u00b7 10:20 AM"
+        },
+        {
+          "v": "Ahmad I.",
+          "sub": "member ref on file"
+        },
+        "AIA (TPA)",
+        {
+          "v": "none yet",
+          "urgent": true
+        }
+      ],
+      "more": [
+        [
+          "Panel amount",
+          "RM 85.00"
+        ],
+        [
+          "Doctor",
+          "Dr. Farah N."
+        ],
+        [
+          "Visit",
+          "KPV-00412"
+        ],
+        [
+          "Member ref",
+          "AIA-55120-01"
+        ],
+        [
+          "Type",
+          "Consultation"
+        ],
+        [
+          "Invoice total",
+          "RM 85.00"
+        ]
+      ],
+      "extra": [
+        [
+          "Open invoice",
+          "opening the invoice (demo).",
+          [
+            "InvoiceView.dc.html",
+            "Invoice"
+          ]
+        ]
+      ]
+    },
+    {
+      "tab": "pi",
+      "cells": [
+        {
+          "v": "INV-00004390",
+          "sub": "4 Nov \u00b7 3:05 PM"
+        },
+        {
+          "v": "Siti A.",
+          "sub": ""
+        },
+        "AIA (TPA)",
+        "PC-000301 \u00b7 Submitted"
+      ],
+      "more": [
+        [
+          "Panel amount",
+          "RM 65.00"
+        ],
+        [
+          "Visit",
+          "KPV-00409"
+        ],
+        [
+          "Member ref",
+          "AIA-55137-02"
+        ],
+        [
+          "Doctor",
+          "Dr. Amir"
+        ],
+        [
+          "Type",
+          "Consultation"
+        ],
+        [
+          "Invoice total",
+          "RM 97.00"
+        ]
+      ],
+      "extra": [
+        [
+          "Open invoice",
+          "opening the invoice (demo).",
+          [
+            "InvoiceView.dc.html",
+            "Invoice"
+          ]
+        ]
+      ]
+    },
+    {
+      "tab": "sm",
+      "cells": [
+        {
+          "v": "Paracetamol 500 mg",
+          "sub": "tablet"
+        },
+        "1,420",
+        "600",
+        "1,432",
+        "588"
+      ],
+      "more": [
+        [
+          "Dispensed",
+          "1,180"
+        ],
+        [
+          "Adjusted",
+          "-12 (write-off)"
+        ],
+        [
+          "Transferred",
+          "-240"
+        ],
+        [
+          "Received",
+          "+600"
+        ],
+        [
+          "Check",
+          "Reconciles"
+        ]
+      ]
+    },
+    {
+      "tab": "sm",
+      "cells": [
+        {
+          "v": "Amoxicillin 250 mg",
+          "sub": "capsule"
+        },
+        "421",
+        "300",
+        "672",
+        {
+          "v": "49",
+          "urgent": true
+        }
+      ],
+      "more": [
+        [
+          "Dispensed",
+          "672"
+        ],
+        [
+          "Received",
+          "+300"
+        ],
+        [
+          "Adjusted (net)",
+          "0"
+        ],
+        [
+          "Transferred (net)",
+          "0"
+        ],
+        [
+          "Check",
+          "Reconciles"
+        ]
+      ]
+    },
+    {
+      "tab": "sv",
+      "cells": [
+        {
+          "v": "Paracetamol 500 mg",
+          "sub": "tablet"
+        },
+        "588",
+        "RM 0.03",
+        "RM 17.64"
+      ],
+      "more": [
+        [
+          "Cost source",
+          "actual (supplier invoice)"
+        ]
+      ]
+    },
+    {
+      "tab": "sv",
+      "cells": [
+        {
+          "v": "Salbutamol inhaler",
+          "sub": "inhaler"
+        },
+        "3",
+        "RM 9.80",
+        "RM 29.40"
+      ],
+      "more": [
+        [
+          "Cost source",
+          "estimate (PO)",
+          1
+        ]
+      ]
+    },
+    {
+      "tab": "daily",
+      "cells": [
+        {
+          "v": "Total",
+          "sub": "1\u201318 Nov \u00b7 made 18 Nov, 2:14 PM"
+        },
+        "RM 21,066.10",
+        "RM 27,846.30",
+        "RM 9,126.00",
+        "RM 48,912.40"
+      ],
+      "more": [
+        [
+          "Due (pay later)",
+          "RM 1,050.00"
+        ],
+        [
+          "Note",
+          "Panel and Due are never added to Total received"
+        ]
+      ],
+      "extra": [
+        [
+          "Due (pay later) for this day",
+          "Due column (demo): approved pay later for invoices finalised this day. Never added to Total received."
+        ]
+      ]
+    },
+    {
+      "tab": "tx",
+      "cells": [
+        {
+          "v": "RC-00009102",
+          "sub": "22 Nov \u00b7 4:15 PM"
+        },
+        {
+          "v": "\u2014",
+          "sub": "Not linked to an invoice"
+        },
+        "Cash",
+        "RM 0.00"
+      ],
+      "more": [
+        [
+          "Original",
+          "RM 40.00"
+        ],
+        [
+          "Reversed",
+          "RM 40.00",
+          1
+        ],
+        [
+          "Status",
+          "Reversed"
+        ],
+        [
+          "Visit / invoice",
+          "\u2014 (patient hidden: no invoice allocation)"
+        ],
+        [
+          "Classification",
+          "Cash"
+        ]
+      ],
+      "extra": [
+        [
+          "Open invoice",
+          "opening the invoice for this receipt (demo).",
+          [
+            "InvoiceView.dc.html",
+            "Invoice"
+          ]
+        ]
+      ]
+    },
+    {
+      "tab": "bd",
+      "cells": [
+        {
+          "v": "INV-CHR-031176",
+          "sub": "17 Nov"
+        },
+        {
+          "v": "KP-020422",
+          "sub": "Melati Aziz"
+        },
+        "RM 245.50",
+        {
+          "v": "RM 245.50",
+          "urgent": true
+        }
+      ],
+      "more": [
+        [
+          "Doctor",
+          "Dr. Amir"
+        ],
+        [
+          "Patient receipts",
+          "RM 0.00"
+        ],
+        [
+          "Status",
+          "Due 245.50 \u00b7 Not paid",
+          1
+        ]
+      ]
+    },
+    {
+      "tab": "sv",
+      "cells": [
+        {
+          "v": "Normal saline 500 ml",
+          "sub": "bottle"
+        },
+        "26",
+        "\u2014",
+        {
+          "v": "No cost recorded",
+          "urgent": true
+        }
+      ],
+      "more": [
+        [
+          "Value",
+          "left out of the total, counted apart and named",
+          1
+        ]
+      ]
+    },
+    {
+      "tab": "sv",
+      "cells": [
+        {
+          "v": "Omeprazole 20 mg capsule",
+          "sub": "Includes an estimate"
+        },
+        "286",
+        "RM 0.9816",
+        "RM 280.74"
+      ],
+      "more": [
+        [
+          "Cost source",
+          "estimate (PO) until that stock is gone",
+          1
+        ]
+      ]
+    },
+    {
+      "tab": "sv",
+      "cells": [
+        {
+          "v": "Total \u00b7 9 medicines",
+          "sub": "stock value on 20 Nov 2026"
+        },
+        "",
+        "",
+        "RM 1,097.48"
+      ],
+      "more": [
+        [
+          "Stock in transit",
+          "RM 84.00, not in any branch's value"
+        ]
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        "Paracetamol 500 mg tablet",
+        "RM 1,420.00",
+        "RM 312.00",
+        "RM 1,108.00",
+        "78.0%"
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        "Amoxicillin 250 mg capsule",
+        "RM 2,380.00",
+        "RM 1,650.00",
+        "RM 730.00",
+        "30.7%"
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        "Metformin 500 mg tablet",
+        "RM 1,210.00",
+        "RM 1,094.00",
+        "RM 116.00",
+        "9.6%"
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        "Omeprazole 20 mg capsule",
+        "RM 980.00",
+        "RM 412.00",
+        "RM 568.00",
+        "58.0%"
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        "Cetirizine 10 mg tablet",
+        "RM 640.00",
+        "RM 148.00",
+        "RM 492.00",
+        "76.9%"
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        "Salbutamol inhaler 100 mcg",
+        "RM 1,350.00",
+        "RM 1,296.00",
+        "RM 54.00",
+        "4.0%"
+      ]
+    },
+    {
+      "tab": "svmargin",
+      "cells": [
+        {
+          "v": "Total",
+          "sub": "1\u201320 Nov 2026 \u00b7 Cheras"
+        },
+        "RM 7,980.00",
+        "RM 4,912.00",
+        "RM 3,068.00",
+        "38.4%"
+      ],
+      "more": [
+        [
+          "Treatment-room use (cost, no sale)",
+          "RM 212.40"
+        ]
+      ]
+    },
+    {
+      "tab": "svloss",
+      "cells": [
+        "Expired write-off",
+        "3",
+        "RM 61.40",
+        {
+          "v": "Loss",
+          "urgent": true
+        }
+      ]
+    },
+    {
+      "tab": "svloss",
+      "cells": [
+        "Damage write-off",
+        "1",
+        "RM 12.00",
+        {
+          "v": "Loss",
+          "urgent": true
+        }
+      ]
+    },
+    {
+      "tab": "svloss",
+      "cells": [
+        "Count losses",
+        "2",
+        "RM 8.82",
+        {
+          "v": "Loss",
+          "urgent": true
+        }
+      ]
+    },
+    {
+      "tab": "svloss",
+      "cells": [
+        "Count gains",
+        "1",
+        "RM 3.60",
+        "Gain"
+      ]
+    },
+    {
+      "tab": "svloss",
+      "cells": [
+        "Supplier credit vs cost of returned stock",
+        "1",
+        "RM 14.20",
+        {
+          "v": "Loss",
+          "urgent": true
+        }
+      ]
+    },
+    {
+      "tab": "svloss",
+      "cells": [
+        {
+          "v": "Net loss",
+          "sub": "1\u201320 Nov 2026"
+        },
+        "",
+        "RM 92.82",
+        ""
+      ]
+    },
+    {
+      "cells": [
+        "1",
+        "Amoxicillin 250 mg capsule",
+        "1,320 capsule",
+        "RM 2,380.00",
+        "RM 1,650.00",
+        "RM 730.00",
+        "30.7%",
+        "0",
+        "0"
+      ],
+      "tab": "medsales"
+    },
+    {
+      "cells": [
+        "2",
+        "Paracetamol 500 mg tablet",
+        "2,840 tablet",
+        "RM 1,420.00",
+        "RM 312.00",
+        "RM 1,108.00",
+        "78.0%",
+        "0",
+        "3"
+      ],
+      "tab": "medsales"
+    },
+    {
+      "cells": [
+        "3",
+        "Salbutamol inhaler 100 mcg",
+        "96 inhaler",
+        "RM 1,350.00",
+        "RM 1,296.00",
+        "RM 54.00",
+        "4.0%",
+        {
+          "v": "2",
+          "urgent": true
+        },
+        "0"
+      ],
+      "tab": "medsales"
+    },
+    {
+      "cells": [
+        "4",
+        "Metformin 500 mg tablet",
+        "1,980 tablet",
+        "RM 1,210.00",
+        "RM 1,094.00 (estimate)",
+        "RM 116.00",
+        "9.6%",
+        "0",
+        "0"
+      ],
+      "tab": "medsales"
+    },
+    {
+      "cells": [
+        "5",
+        "Paracetamol syrup 120 mg/5 ml",
+        "9,600 ml",
+        "RM 980.00",
+        {
+          "v": "\u2014",
+          "sub": "Cost not complete"
+        },
+        "\u2014",
+        "\u2014",
+        "0",
+        "0"
+      ],
+      "tab": "medsales"
+    }
+  ],
+  "related": [
+    [
+      "Director overview",
+      "Director",
+      "Modern.dc.html"
+    ],
+    [
+      "Stock health",
+      "",
+      "Stock.dc.html"
+    ],
+    [
+      "Labour cost",
+      "HR",
+      "LabourCost.dc.html"
+    ],
+    [
+      "Cash closing",
+      "",
+      "Billing.dc.html"
+    ],
+    [
+      "Quick answers",
+      "Director",
+      "QuickAnswers.dc.html"
+    ],
+    [
+      "Daily summary from the agents",
+      "",
+      "AgentDailySummary.dc.html"
+    ],
+    [
+      "Inventory",
+      "",
+      "Stock.dc.html"
+    ],
+    [
+      "Panel claims and payments",
+      "Panel",
+      "Panel.dc.html"
+    ],
+    [
+      "Correct a Panel payment",
+      "Finance, Director",
+      "CorrectPanelPayment.dc.html"
+    ],
+    [
+      "Invoice",
+      "",
+      "InvoiceView.dc.html"
+    ]
+  ],
+  "headerTools": [
+    {
+      "label": "Your downloads",
+      "done": "Your downloads (demo): Daily summary \u00b7 Oct (31 rows) \u00b7 Transaction detail \u00b7 1\u201315 Nov (612 rows) \u00b7 Panel summary \u00b7 Q3 (9 rows). Every run and download is recorded. Files are not kept in KPOne."
+    }
+  ],
+  "viewsLabel": "Report view",
+  "views": [
+    {
+      "key": "branch",
+      "label": "My branch"
+    },
+    {
+      "key": "all",
+      "label": "All branches",
+      "title": "Reports",
+      "sub": "Cheras, Sungai Besi and Puchong \u00b7 live now and 1 to 23 Nov 2026 \u00b7 Director and Finance",
+      "search": "Search branch",
+      "primary": {
+        "label": "Run report",
+        "done": "report run across all three branches (demo). Up to 31 days."
+      },
+      "headerTools": [],
+      "foot": "Aggregates only: no patient names or numbers in this view. Each branch figure is the same as that branch's own report. Open a branch's row to go to its own report.",
+      "groups": [
+        [
+          "Live now",
+          [
+            "alive",
+            "afeed"
+          ]
+        ],
+        [
+          "Money",
+          [
+            "adaily"
+          ]
+        ],
+        [
+          "Panel",
+          [
+            "aps"
+          ]
+        ],
+        [
+          "Inventory",
+          [
+            "asm",
+            "asv"
+          ]
+        ]
+      ],
+      "tabs": [
+        {
+          "key": "alive",
+          "label": "Branches now",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(6, minmax(78px,0.7fr)) minmax(100px,0.9fr)",
+          "cols": [
+            "BRANCH",
+            "WAITING",
+            "WITH DOCTOR",
+            "ON HOLD",
+            "EMERGENCY",
+            "BILLING",
+            "DISPENSARY",
+            "LATE"
+          ],
+          "note": "Live \u00b7 management only (Director) \u00b7 counts and queue numbers, no patient names. Open a branch for its doctors and rooms and its late warnings (1.5 \u00d7 target).",
+          "action": null,
+          "tools": [
+            {
+              "label": "Status targets",
+              "done": "opens the status targets (demo).",
+              "next": [
+                "StatusGuide.dc.html",
+                "Status targets"
+              ]
+            },
+            {
+              "label": "Insights (built)",
+              "done": "opens Insights (demo).",
+              "next": [
+                "Modern.dc.html",
+                "Insights"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "afeed",
+          "label": "Activity across branches",
+          "grid": "minmax(80px,0.5fr) minmax(120px,0.8fr) minmax(260px,2fr) minmax(110px,0.8fr)",
+          "cols": [
+            "TIME",
+            "BRANCH",
+            "WHAT HAPPENED",
+            "TAG"
+          ],
+          "note": "Queue numbers only, no patient names. Late means over 1.5 \u00d7 the status target.",
+          "action": null,
+          "filters": [
+            {
+              "label": "Show",
+              "options": [
+                "All",
+                "Late only"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "adaily",
+          "label": "Daily summary by branch",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(4, minmax(100px,1fr))",
+          "cols": [
+            "BRANCH",
+            "CASH",
+            "NON-CASH",
+            "PANEL",
+            "TOTAL RECEIVED"
+          ],
+          "note": "Total received is Cash + Non-cash only, as in each branch report.",
+          "action": {
+            "label": "Download CSV",
+            "dark": false,
+            "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+          },
+          "filters": [
+            {
+              "label": "Dates",
+              "options": [
+                "1\u201323 Nov 2026",
+                "Today",
+                "This week",
+                "Last month"
+              ]
+            },
+            {
+              "label": "Visit type",
+              "options": [
+                "All",
+                "Consultation",
+                "Medicine only"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "aps",
+          "label": "Panel summary by branch",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(4, minmax(100px,1fr))",
+          "cols": [
+            "BRANCH",
+            "APPROVED",
+            "CLAIMED",
+            "PAID",
+            "OUTSTANDING"
+          ],
+          "note": "Ageing from the first submitted date. Open a row for the 0\u201330, 31\u201360, 61\u201390 and over 90 days split.",
+          "action": {
+            "label": "Download CSV",
+            "dark": false,
+            "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+          },
+          "filters": [
+            {
+              "label": "Panel",
+              "options": [
+                "All Panels",
+                "AIA (TPA)",
+                "PMCare",
+                "MiCare",
+                "Syarikat Maju (direct)"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "asm",
+          "label": "Stock movement by branch",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(4, minmax(100px,1fr))",
+          "cols": [
+            "BRANCH",
+            "OPENING",
+            "IN",
+            "OUT",
+            "CLOSING"
+          ],
+          "note": "Quantities only, no cost. Pick a SKU to compare one item.",
+          "action": {
+            "label": "Download CSV",
+            "dark": false,
+            "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+          },
+          "filters": [
+            {
+              "label": "SKU",
+              "options": [
+                "Paracetamol 500 mg",
+                "Amoxicillin 250 mg",
+                "Salbutamol inhaler"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "asv",
+          "label": "Stock value by branch",
+          "count": false,
+          "grid": "minmax(150px,1.2fr) repeat(4, minmax(100px,1fr))",
+          "cols": [
+            "LOCATION",
+            "ITEMS",
+            "ON HAND",
+            "VALUE",
+            "INCLUDES ESTIMATE"
+          ],
+          "note": "Director only. Management report \u2014 cost policy to be confirmed by the clinic's accountant.",
+          "action": {
+            "label": "Download CSV",
+            "dark": false,
+            "done": "CSV downloaded (demo). The download is audited by filters and row count only."
+          }
+        }
+      ],
+      "rows": [
+        {
+          "tab": "adaily",
+          "cells": [
+            {
+              "v": "Cheras",
+              "sub": ""
+            },
+            "RM 18,420.00",
+            "RM 9,880.00",
+            "RM 6,140.00",
+            "RM 28,300.00"
+          ],
+          "more": [
+            [
+              "Reversed",
+              "RM 120.00"
+            ],
+            [
+              "Cash closings",
+              "22 of 23 days approved",
+              1
+            ]
+          ],
+          "extra": [
+            [
+              "Open Cheras daily summary",
+              "opens the branch report (demo)."
+            ]
+          ]
+        },
+        {
+          "tab": "adaily",
+          "cells": [
+            {
+              "v": "Sungai Besi",
+              "sub": ""
+            },
+            "RM 12,730.00",
+            "RM 7,215.00",
+            "RM 4,410.00",
+            "RM 19,945.00"
+          ],
+          "more": [
+            [
+              "Reversed",
+              "RM 0.00"
+            ],
+            [
+              "Cash closings",
+              "all approved"
+            ]
+          ],
+          "extra": [
+            [
+              "Open Sungai Besi daily summary",
+              "opens the branch report (demo)."
+            ]
+          ]
+        },
+        {
+          "tab": "adaily",
+          "cells": [
+            {
+              "v": "Puchong",
+              "sub": ""
+            },
+            "RM 14,105.00",
+            "RM 8,060.00",
+            "RM 5,320.00",
+            "RM 22,165.00"
+          ],
+          "more": [
+            [
+              "Reversed",
+              "RM 45.00"
+            ],
+            [
+              "Cash closings",
+              "all approved"
+            ]
+          ],
+          "extra": [
+            [
+              "Open Puchong daily summary",
+              "opens the branch report (demo)."
+            ]
+          ]
+        },
+        {
+          "tab": "adaily",
+          "cells": [
+            {
+              "v": "Total",
+              "sub": "all branches"
+            },
+            "RM 45,255.00",
+            "RM 25,155.00",
+            "RM 15,870.00",
+            "RM 70,410.00"
+          ]
+        },
+        {
+          "tab": "aps",
+          "cells": [
+            {
+              "v": "Cheras",
+              "sub": "70 invoices"
+            },
+            "RM 5,500",
+            "RM 4,820",
+            "RM 3,800",
+            "RM 1,020"
+          ],
+          "more": [
+            [
+              "Ageing",
+              "0\u201330: RM 625 \u00b7 31\u201360: RM 300 \u00b7 61\u201390: RM 95 \u00b7 over 90: RM 0"
+            ]
+          ]
+        },
+        {
+          "tab": "aps",
+          "cells": [
+            {
+              "v": "Sungai Besi",
+              "sub": "48 invoices"
+            },
+            "RM 3,960",
+            "RM 3,410",
+            "RM 2,990",
+            "RM 420"
+          ],
+          "more": [
+            [
+              "Ageing",
+              "0\u201330: RM 380 \u00b7 31\u201360: RM 40"
+            ]
+          ]
+        },
+        {
+          "tab": "aps",
+          "cells": [
+            {
+              "v": "Puchong",
+              "sub": "55 invoices"
+            },
+            "RM 4,480",
+            "RM 4,050",
+            "RM 3,210",
+            {
+              "v": "RM 840",
+              "sub": "RM 210 over 60 days",
+              "urgent": true
+            }
+          ],
+          "more": [
+            [
+              "Ageing",
+              "0\u201330: RM 460 \u00b7 31\u201360: RM 170 \u00b7 61\u201390: RM 210",
+              1
+            ]
+          ]
+        },
+        {
+          "tab": "aps",
+          "cells": [
+            {
+              "v": "Total",
+              "sub": "all branches"
+            },
+            "RM 13,940",
+            "RM 12,280",
+            "RM 10,000",
+            "RM 2,280"
+          ]
+        },
+        {
+          "tab": "asm",
+          "cells": [
+            {
+              "v": "Cheras",
+              "sub": "Paracetamol 500 mg \u00b7 tablet"
+            },
+            "1,420",
+            "600",
+            "1,432",
+            "588"
+          ]
+        },
+        {
+          "tab": "asm",
+          "cells": [
+            {
+              "v": "Sungai Besi",
+              "sub": "Paracetamol 500 mg \u00b7 tablet"
+            },
+            "980",
+            "500",
+            "840",
+            "640"
+          ]
+        },
+        {
+          "tab": "asm",
+          "cells": [
+            {
+              "v": "Puchong",
+              "sub": "Paracetamol 500 mg \u00b7 tablet"
+            },
+            "1,210",
+            "1,000",
+            "1,060",
+            "1,150"
+          ]
+        },
+        {
+          "tab": "asm",
+          "cells": [
+            {
+              "v": "HQ central store",
+              "sub": "Paracetamol 500 mg \u00b7 tablet"
+            },
+            "13,400",
+            "3,000",
+            "4,000",
+            "12,400"
+          ],
+          "more": [
+            [
+              "Out",
+              "sent to branches on Thursday runs"
+            ]
+          ]
+        },
+        {
+          "tab": "asv",
+          "cells": [
+            {
+              "v": "Cheras",
+              "sub": ""
+            },
+            "186",
+            "12,480 units",
+            "RM 6,920.40",
+            "2 items"
+          ]
+        },
+        {
+          "tab": "asv",
+          "cells": [
+            {
+              "v": "Sungai Besi",
+              "sub": ""
+            },
+            "171",
+            "10,215 units",
+            "RM 5,410.75",
+            "none"
+          ]
+        },
+        {
+          "tab": "asv",
+          "cells": [
+            {
+              "v": "Puchong",
+              "sub": ""
+            },
+            "179",
+            "11,060 units",
+            "RM 6,035.10",
+            "1 item"
+          ]
+        },
+        {
+          "tab": "asv",
+          "cells": [
+            {
+              "v": "HQ central store",
+              "sub": ""
+            },
+            "204",
+            "48,900 units",
+            "RM 24,880.00",
+            "3 items"
+          ]
+        },
+        {
+          "tab": "asv",
+          "cells": [
+            {
+              "v": "Total",
+              "sub": "all locations"
+            },
+            "\u2014",
+            "82,655 units",
+            "RM 43,246.25",
+            "6 items"
+          ]
+        },
+        {
+          "cells": [
+            {
+              "v": "Cheras"
+            },
+            "3",
+            "1",
+            "1",
+            {
+              "v": "1",
+              "urgent": true
+            },
+            "1",
+            "2",
+            {
+              "v": "1 late",
+              "urgent": true
+            }
+          ],
+          "more": [
+            [
+              "Dr. Farah N. \u00b7 Room 2",
+              "Serving A-012"
+            ],
+            [
+              "Dr. Amir \u00b7 Room 1",
+              "Emergency A-017"
+            ],
+            [
+              "Late warning (1.5 \u00d7 target)",
+              "A-016 waiting 31 min (target 20)",
+              1
+            ]
+          ],
+          "extra": [
+            [
+              "Open Cheras registration",
+              "opens Cheras registration (demo).",
+              [
+                "Registration.dc.html",
+                "Registration"
+              ]
+            ],
+            [
+              "Status targets",
+              "opens the status targets (demo).",
+              [
+                "StatusGuide.dc.html",
+                "Status targets"
+              ]
+            ]
+          ],
+          "tab": "alive"
+        },
+        {
+          "cells": [
+            {
+              "v": "Sungai Besi"
+            },
+            "5",
+            "2",
+            "0",
+            "0",
+            "2",
+            "1",
+            {
+              "v": "2 late",
+              "urgent": true
+            }
+          ],
+          "more": [
+            [
+              "Resident doctor \u00b7 Room 1",
+              "Serving A-021"
+            ],
+            [
+              "Resident doctor \u00b7 Room 2",
+              "Serving A-019"
+            ],
+            [
+              "Late warning (1.5 \u00d7 target)",
+              "A-018 waiting 34 min (target 20)",
+              1
+            ],
+            [
+              "Late warning (1.5 \u00d7 target)",
+              "A-020 at billing 9 min (target 5)",
+              1
+            ]
+          ],
+          "extra": [
+            [
+              "Open Sungai Besi registration",
+              "opens Sungai Besi registration (demo).",
+              [
+                "Registration.dc.html",
+                "Registration"
+              ]
+            ],
+            [
+              "Status targets",
+              "opens the status targets (demo).",
+              [
+                "StatusGuide.dc.html",
+                "Status targets"
+              ]
+            ]
+          ],
+          "tab": "alive"
+        },
+        {
+          "cells": [
+            {
+              "v": "Puchong"
+            },
+            "2",
+            "1",
+            "1",
+            "0",
+            "0",
+            "1",
+            {
+              "v": "On time",
+              "zone": "green"
+            }
+          ],
+          "more": [
+            [
+              "Resident doctor \u00b7 Room 1",
+              "Serving A-009"
+            ],
+            [
+              "Late warnings (1.5 \u00d7 target)",
+              "No late warnings."
+            ]
+          ],
+          "extra": [
+            [
+              "Open Puchong registration",
+              "opens Puchong registration (demo).",
+              [
+                "Registration.dc.html",
+                "Registration"
+              ]
+            ],
+            [
+              "Status targets",
+              "opens the status targets (demo).",
+              [
+                "StatusGuide.dc.html",
+                "Status targets"
+              ]
+            ]
+          ],
+          "tab": "alive"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:44"
+            },
+            "Cheras",
+            "A-014 follow-up ticket opened (outside lab)",
+            "Follow-up"
+          ],
+          "tab": "afeed"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:41"
+            },
+            "Sungai Besi",
+            "A-020 at billing over target",
+            {
+              "v": "Late",
+              "zone": "red"
+            }
+          ],
+          "tab": "afeed"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:36"
+            },
+            "Puchong",
+            "A-009 called in to Room 1",
+            "Called"
+          ],
+          "tab": "afeed"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:33"
+            },
+            "Cheras",
+            "A-017 taken by Dr. Amir",
+            {
+              "v": "Emergency",
+              "zone": "red"
+            }
+          ],
+          "tab": "afeed"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:31"
+            },
+            "Sungai Besi",
+            "A-018 waiting over 1.5 \u00d7 target",
+            {
+              "v": "Late",
+              "zone": "red"
+            }
+          ],
+          "tab": "afeed"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:29"
+            },
+            "Cheras",
+            "A-017 triaged Red \u00b7 all doctors alerted",
+            {
+              "v": "Emergency",
+              "zone": "red"
+            }
+          ],
+          "tab": "afeed"
+        },
+        {
+          "cells": [
+            {
+              "v": "10:22"
+            },
+            "Cheras",
+            "A-016 waiting over 1.5 \u00d7 target",
+            {
+              "v": "Late",
+              "zone": "red"
+            }
+          ],
+          "tab": "afeed"
+        }
+      ],
+      "related": [
+        [
+          "Director overview",
+          "Director",
+          "Modern.dc.html"
+        ],
+        [
+          "Status targets",
+          "",
+          "StatusGuide.dc.html"
+        ]
+      ]
+    }
+  ],
+  "groups": [
+    [
+      "Money",
+      [
+        "daily",
+        "tx",
+        "bd"
+      ]
+    ],
+    [
+      "Panel",
+      [
+        "ps",
+        "pi"
+      ]
+    ],
+    [
+      "Inventory",
+      [
+        "sm",
+        "sv",
+        "svmargin",
+        "svloss",
+        "medsales"
+      ]
+    ]
+  ]
+}

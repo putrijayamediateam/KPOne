@@ -1,0 +1,11 @@
+# Q16d bounded extraction independent review
+
+Reviewed frozen14-file Q16D-CURRENT-MAIN-v1.patch SHA256 be50360d9716d049f43ffd27b3ed41eca3f04768f1139465fea7a85417ae3973 on main83c5999. Existing single-doctor APIs remain unchanged; new paginated eligibility/batched room APIs support the branch-only read projection. No archive aggregate is cleared by this review.
+
+Source scope/privacy clear. Eligibility uses the existing query with deterministic name/id order, total and25-row clamp. Waiting/held/serving data are grouped for only the selected doctor page; other-branch serving contributes only busy state, never its patient or queue identity. Projection exposes doctor/room/queue-number/count information, no patient name/reason/clinical field. Roster batching preserves approved versions, day-overlap including overnight shifts, on-call exclusion, leave overlap rejection, covering/nearest/tie precedence and valid consultation-room scoping. Manual choice versus roster timestamp precedence matches the existing single-doctor resolver. New tests compare populated1-versus26 query counts and single/batch results at time/leave boundaries; builder PostgreSQL18/246 evidence is separately attributed.
+
+Both preliminary findings are closed in source: native pagination tags match, and selectPage focuses the persistent summary before emitting the page change that clears/unmounts old controls. Requests remain nonblocking, abort stale scope/branch/page work, accept server-clamped page and reset on branch/visibility/unmount. Independently ran seven composable/SSR tests:7/7 pass.
+
+Independently inspected supervisor390dark and1440light screenshots and read q16d-browser-results.json: real27 eligible doctors paginate25+2 with nonoverlap/Previous/keyboard summary focus; own-only viewer has no Rooms panel; eight responsive/theme captures report no overflow/errors. Expanded25-card mobile panel is long but remains a deliberate collapsible bounded list, not full demo Doctors-tab parity. No new visual blocker identified in this scope. Browser actions are builder evidence inspected, not independently replayed.
+
+Clear for bounded extraction handoff subject to final builder full gates/exact-head CI. No merge, permission change or full Queue/TV parity claim.

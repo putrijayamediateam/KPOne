@@ -1,0 +1,8 @@
+{
+  "base": "a3ff5bc45dcfbf1a53f3de19eb938e7066ccbdc9",
+  "patchSha256": "4e3a4e6638e830a806eb31e2d02773108badb68eb9047bef5f9d58b1b4749dbb",
+  "files": {
+    "resources/js/components/patient-board/PatientBoard.vue": "9347456dd4d351a52de2fb790fb0ee375cd5a5566c406151152743957474b7db",
+    "tests/Frontend/queue-task-columns.test.mjs": "eb57afa0e184eddc2d04351c3b01aef4cf88389fc09da1604ecf2dfa89c669ea"
+  }
+}

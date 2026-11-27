@@ -1,0 +1,19 @@
+{
+  "base": "eec5d5444bd14b0358e0383c1ea5d427e4d33f11",
+  "patch_sha256": "4411a15df92145e7f5f03690391747798c9731fc3a5ef4143f313677f210f9e2",
+  "files": {
+    "app/Domain/Queue/Display/RoomCallService.php": "b42f7631072b68dd6485cdba939da3a8981790f8741a7ea2851ede4b1eb154ee",
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "24832a8e305e1ac1c3fd773bc0ade0e0b4534f17a88b4a02ff84e54cefd4b7e1",
+    "app/Http/Controllers/QueueController.php": "17bdd6df14455d4b2191e8af9175a8b7d7df9f9ab40e73ab38d028e2b8c63f46",
+    "docs/teams/queue-tv/TEAM.md": "507a1e4961cae55b836b8cdef2a9e347ec04ae5a25c10235ded2817a61f64b35",
+    "phpunit.xml": "54c1c0d641ab376f55c42c12048a254f8085c19ae33879871dce2d54082fe362",
+    "resources/js/pages/Queue/Index.vue": "b360a42871bb635f7594e97aaa9ba8df67de80ffa3cf922722b04531e5da6d78",
+    "resources/js/types/queue.ts": "c14d9be507d95e9144e7abaf2882ead31e57202ed7053d9b26d5d3ef477efaaa",
+    "routes/web.php": "a08fe002d66ba82e44510e90bbf1e421c1cf21114cfd5e676eae76d6eb1c6dcf",
+    "tests/Feature/Clinical/PostgresTreatmentCallResumeTest.php": "f546f5ea69970c2574be708543922562d72c0de98207425b6688312b5bc1d5d2",
+    "tests/Feature/Clinical/TreatmentCallAuthorityTest.php": "166c0c8e7eaf9f8381b2ebf65c68cf1ece23dc50f42e76de0fad13af300ecb15",
+    "tests/Feature/Clinical/TreatmentCallProjectionTest.php": "2aa021def14356413acecf955af24e1c2fe2cf152870e6f0ea36fa92a601bf9a",
+    "tests/Frontend/treatment-call-authority.test.mjs": "9a705b04787d0a657e38803ab6c377ad2b0ddf38af7b49ff9655fbf4ff08b977",
+    "tests/Support/PostgresTreatmentCallWorker.php": "061d35cdbd35e1475f1b260e2154b12f66f7584ff52f1db154e8e6f3905dc795"
+  }
+}

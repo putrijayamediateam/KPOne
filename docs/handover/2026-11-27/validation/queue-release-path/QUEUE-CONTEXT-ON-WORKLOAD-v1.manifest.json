@@ -1,0 +1,9 @@
+{
+  "base": "efe71415580ac71b15507522dd62308981c4c884",
+  "patchSha256": "f10fe3582dc1068bd3cf3447c5b80873b5f538ebceff247db35c894e7f0ebf60",
+  "files": {
+    "resources/js/components/queue/QueueCallContext.vue": "2613db6136431c5cec7f4c276995316d3dc964370f4604ed399405ba9c7fc714",
+    "resources/js/pages/Queue/Index.vue": "653fc6db88144653d7e50ba5d516c35d5a4d87189f6d6fd19a6bcd1296848aa3",
+    "tests/Frontend/queue-call-context.test.mjs": "0b94829942b31ed04597ed5d57099a23d4ef3ddc84a8f0179f306bfbc6e14edc"
+  }
+}

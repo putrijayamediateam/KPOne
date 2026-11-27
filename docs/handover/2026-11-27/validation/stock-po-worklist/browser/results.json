@@ -1,0 +1,661 @@
+{
+  "number": "PO-202611-Z09WEHQM",
+  "publicId": "9a08039b-e770-46e9-9ca8-85a35a067f8c",
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Search loaded orders",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Search Draft supplier",
+          "height": 36,
+          "width": 465.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Draft supplier",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Search Draft destination",
+          "height": 36,
+          "width": 465.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Draft destination",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Expected delivery date for PO-202611-Z09WEHQM (optional)",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-Z09WEHQM (optional)",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "DEMO-AMOX250 ordered quantity",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Update draft",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Submit",
+          "height": 36,
+          "width": 72.6875
+        },
+        {
+          "label": "Cancel",
+          "height": 36,
+          "width": 71.5625
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 36,
+          "width": 80
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Search loaded orders",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Search Draft supplier",
+          "height": 36,
+          "width": 465.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Draft supplier",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Search Draft destination",
+          "height": 36,
+          "width": 465.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Draft destination",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Expected delivery date for PO-202611-Z09WEHQM (optional)",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-Z09WEHQM (optional)",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "DEMO-AMOX250 ordered quantity",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Update draft",
+          "height": 36,
+          "width": 542
+        },
+        {
+          "label": "Submit",
+          "height": 36,
+          "width": 72.6875
+        },
+        {
+          "label": "Cancel",
+          "height": 36,
+          "width": 71.5625
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 36,
+          "width": 80
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Search Draft supplier",
+          "height": 44,
+          "width": 245.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft supplier",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Search Draft destination",
+          "height": 44,
+          "width": 245.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft destination",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Expected delivery date for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "DEMO-AMOX250 ordered quantity",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Update draft",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Submit",
+          "height": 44,
+          "width": 72.6875
+        },
+        {
+          "label": "Cancel",
+          "height": 44,
+          "width": 71.5625
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 668
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Search Draft supplier",
+          "height": 44,
+          "width": 245.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft supplier",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Search Draft destination",
+          "height": 44,
+          "width": 245.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft destination",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Expected delivery date for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "DEMO-AMOX250 ordered quantity",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Update draft",
+          "height": 44,
+          "width": 322
+        },
+        {
+          "label": "Submit",
+          "height": 44,
+          "width": 72.6875
+        },
+        {
+          "label": "Cancel",
+          "height": 44,
+          "width": 71.5625
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 668
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Search Draft supplier",
+          "height": 44,
+          "width": 197.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft supplier",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Search Draft destination",
+          "height": 44,
+          "width": 197.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft destination",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Expected delivery date for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "DEMO-AMOX250 ordered quantity",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Update draft",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Submit",
+          "height": 44,
+          "width": 72.6875
+        },
+        {
+          "label": "Cancel",
+          "height": 44,
+          "width": 71.5625
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 290
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Search Draft supplier",
+          "height": 44,
+          "width": 197.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft supplier",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Search Draft destination",
+          "height": 44,
+          "width": 197.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Draft destination",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Expected delivery date for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference for PO-202611-Z09WEHQM (optional)",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "DEMO-AMOX250 ordered quantity",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Update draft",
+          "height": 44,
+          "width": 274
+        },
+        {
+          "label": "Submit",
+          "height": 44,
+          "width": 72.6875
+        },
+        {
+          "label": "Cancel",
+          "height": 44,
+          "width": 71.5625
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 290
+        }
+      ]
+    }
+  ],
+  "draftRetained": "KEEP-WORKLIST-DRAFT",
+  "blocked": {
+    "close": true,
+    "search": true,
+    "status": true
+  },
+  "stillOpen": "true",
+  "refusal": [
+    "An independently approved delivery exception is required before this receipt can post."
+  ],
+  "refusedDraft": "SYN-WORKLIST-REFUSED",
+  "readonlyForbiddenActions": 0,
+  "errors": []
+}

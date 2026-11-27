@@ -1,0 +1,13 @@
+{
+  "url": "https://github.com/putrijayamediateam/KPOne/pull/1224",
+  "head": "e8d3769e855467baa70e9e50259b43926c8f13f4",
+  "branch": "feature/registration-patient-field-groups",
+  "base": "9ef687db400883a0e013d68bd5cd022599588d9d",
+  "tree": "dee4049dd4cb0af70a1972374308203dc7dccae9",
+  "localOriginalCommit": "866de9ddf192ed17f1578eb5100df0e4adbb8651",
+  "originalPreservedRef": "archive/registration-field-groups-local-866de9dd",
+  "localAligned": true,
+  "draft": true,
+  "merged": false,
+  "publicationMethod": "GitHub connector after shell credentials expired; exact tree equality verified before branch creation"
+}

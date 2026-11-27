@@ -1,0 +1,163 @@
+{
+    "syntheticOnly": true,
+    "notForClinicalUse": true,
+    "database": "kpone_tri2_lane_ui_preview_test",
+    "branchId": 3,
+    "created": [
+        {
+            "visitNumber": "KPV-00000009",
+            "visitId": 9,
+            "queueId": 9,
+            "patientNumber": "KP-00000019",
+            "triageId": 6
+        },
+        {
+            "visitNumber": "KPV-00000010",
+            "visitId": 10,
+            "queueId": 10,
+            "patientNumber": "KP-00000020",
+            "triageId": 7
+        },
+        {
+            "visitNumber": "KPV-00000011",
+            "visitId": 11,
+            "queueId": 11,
+            "patientNumber": "KP-00000021",
+            "triageId": 8
+        },
+        {
+            "visitNumber": "KPV-00000012",
+            "visitId": 12,
+            "queueId": 12,
+            "patientNumber": "KP-00000022",
+            "triageId": 9
+        },
+        {
+            "visitNumber": "KPV-00000013",
+            "visitId": 13,
+            "queueId": 13,
+            "patientNumber": "KP-00000023",
+            "triageId": 10
+        },
+        {
+            "visitNumber": "KPV-00000014",
+            "visitId": 14,
+            "queueId": 14,
+            "patientNumber": "KP-00000024",
+            "triageId": 11
+        },
+        {
+            "visitNumber": "KPV-00000015",
+            "visitId": 15,
+            "queueId": 15,
+            "patientNumber": "KP-00000025",
+            "triageId": 12
+        },
+        {
+            "visitNumber": "KPV-00000016",
+            "visitId": 16,
+            "queueId": 16,
+            "patientNumber": "KP-00000026",
+            "triageId": 13
+        },
+        {
+            "visitNumber": "KPV-00000017",
+            "visitId": 17,
+            "queueId": 17,
+            "patientNumber": "KP-00000027",
+            "triageId": 14
+        },
+        {
+            "visitNumber": "KPV-00000018",
+            "visitId": 18,
+            "queueId": 18,
+            "patientNumber": "KP-00000028",
+            "triageId": 15
+        },
+        {
+            "visitNumber": "KPV-00000019",
+            "visitId": 19,
+            "queueId": 19,
+            "patientNumber": "KP-00000029",
+            "triageId": 16
+        },
+        {
+            "visitNumber": "KPV-00000020",
+            "visitId": 20,
+            "queueId": 20,
+            "patientNumber": "KP-00000030",
+            "triageId": 17
+        },
+        {
+            "visitNumber": "KPV-00000021",
+            "visitId": 21,
+            "queueId": 21,
+            "patientNumber": "KP-00000031",
+            "triageId": 18
+        },
+        {
+            "visitNumber": "KPV-00000022",
+            "visitId": 22,
+            "queueId": 22,
+            "patientNumber": "KP-00000032",
+            "triageId": 19
+        },
+        {
+            "visitNumber": "KPV-00000023",
+            "visitId": 23,
+            "queueId": 23,
+            "patientNumber": "KP-00000033",
+            "triageId": 20
+        },
+        {
+            "visitNumber": "KPV-00000024",
+            "visitId": 24,
+            "queueId": 24,
+            "patientNumber": "KP-00000034",
+            "triageId": 21
+        },
+        {
+            "visitNumber": "KPV-00000025",
+            "visitId": 25,
+            "queueId": 25,
+            "patientNumber": "KP-00000035",
+            "triageId": 22
+        },
+        {
+            "visitNumber": "KPV-00000026",
+            "visitId": 26,
+            "queueId": 26,
+            "patientNumber": "KP-00000036",
+            "triageId": 23
+        },
+        {
+            "visitNumber": "KPV-00000027",
+            "visitId": 27,
+            "queueId": 27,
+            "patientNumber": "KP-00000037",
+            "triageId": 24
+        },
+        {
+            "visitNumber": "KPV-00000028",
+            "visitId": 28,
+            "queueId": 28,
+            "patientNumber": "KP-00000038",
+            "triageId": 25
+        },
+        {
+            "visitNumber": "KPV-00000029",
+            "visitId": 29,
+            "queueId": 29,
+            "patientNumber": "KP-00000039",
+            "triageId": 26
+        },
+        {
+            "visitNumber": "KPV-00000030",
+            "visitId": 30,
+            "queueId": 30,
+            "patientNumber": "KP-00000040",
+            "triageId": 27
+        }
+    ],
+    "activationCommandRun": false
+}

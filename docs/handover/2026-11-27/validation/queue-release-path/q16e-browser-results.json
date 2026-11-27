@@ -1,0 +1,106 @@
+[
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": false,
+    "shot": "q16e-resident_doctor-1440-light.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "dark": true,
+    "shot": "q16e-resident_doctor-1440-dark.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": false,
+    "shot": "q16e-resident_doctor-390-light.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "dark": true,
+    "shot": "q16e-resident_doctor-390-dark.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "dark": false,
+    "shot": "q16e-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "dark": true,
+    "shot": "q16e-ca_supervisor-1440-dark.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "dark": false,
+    "shot": "q16e-ca_supervisor-390-light.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "dark": true,
+    "shot": "q16e-ca_supervisor-390-dark.png",
+    "overflow": false,
+    "data": {
+      "averageWaitMinutes": null,
+      "samples": 2,
+      "operationalDate": "2026-11-26"
+    },
+    "errors": []
+  }
+]

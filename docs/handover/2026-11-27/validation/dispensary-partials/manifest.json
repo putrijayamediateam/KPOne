@@ -1,0 +1,9 @@
+{
+  "base": "88210df4347404506ac55f49d0afb14f974e9385",
+  "patchSha256": "2bb55b66bdf0cc8a1c37f40c2d453187d40fd159406bee0cffab9c6cca666a1a",
+  "files": {
+    "resources/js/components/dispensary/DoctorCheckActions.vue": "8643d1a793ff14614602309f8d0f2d67260e7611e83b264b653efcc5055c5a04",
+    "resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue": "bd3bfca03ab1ae11abac5a69a6c703c302491e68c730314715efcf100b596ffd",
+    "tests/Frontend/dd-57-dispensary-dark.test.mjs": "187fc1a0863fa83f89d1efd2206bc90b78cd484b0a93285361847cda4536ce20"
+  }
+}

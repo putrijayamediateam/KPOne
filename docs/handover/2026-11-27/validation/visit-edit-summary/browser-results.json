@@ -1,0 +1,108 @@
+{
+  "proof": {
+    "sensitiveContentsNotRepeated": true,
+    "selfPayIgnoredFields": true,
+    "realRefusalRetainsSummary": true,
+    "restoredDraftRetainsRefusal": true
+  },
+  "captures": [
+    {
+      "state": "unchanged",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "unchanged",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "unchanged",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "unchanged",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "priority",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "priority",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "priority",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "priority",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "panel-draft",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "panel-draft",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "panel-draft",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "panel-draft",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "refusal",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "refusal",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "refusal",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "refusal",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "writes": [
+    {
+      "expected_branch_id": 1,
+      "lock_version": 1,
+      "queue_lock_version": null,
+      "visit_type": "otc",
+      "assigned_doctor_user_id": "",
+      "coverage_type": "self_pay",
+      "panel_id": "",
+      "coverage_member_reference": "SYNTHETIC-PRIVATE-REFERENCE",
+      "coverage_panel_note": "",
+      "panel_note_panel_id": "",
+      "panel_note_idempotency_key": "357ffd1d-dd83-4781-8af4-52e972f32624",
+      "priority": "urgent"
+    }
+  ],
+  "qualification": "Own synthetic DB. One real server stale refusal using controlled outgoing version999999; no successful update. Summary contains field names only. Runtime tests cover ordered/current-mode legacy behavior beyond browser selections."
+}

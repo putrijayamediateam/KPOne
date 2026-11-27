@@ -1,0 +1,11 @@
+{
+  "base": "3fb034ad449f59645e9762db7fc505b98679dcf5",
+  "patch_sha256": "c3dd69b00bb7c70ace009bec273cdf6bfbb40e38467e00ee0812b83f1f1405ec",
+  "files": {
+    "app/Domain/Organisation/Inventory/Services/SupplierReturnService.php": "4db4ee01fed1a3708a1f571f39f37826e43973591d1f69be1b198bd7e768b41f",
+    "resources/js/pages/Inventory/SupplierReturns.vue": "e090f00f617e5314958767241b240838d9b965a740aef33cd11d6ce8fd218738",
+    "tests/Feature/Inventory/SupplierReturnStatusFilterTest.php": "91901d2289221d407e8712cbf1a6c5621ef709dc23399704645d5526bbaa9140",
+    "tests/Frontend/supplier-return-status-runtime.test.mjs": "5dacc1b9534946a00ed1e3533c4fb7c3e11b2587dc3ccd819670955071d8a7c7",
+    "docs/teams/inventory/TEAM.md": "f67199e305274bec7df05bb4f8246edb01ad2c15a2289c7d816bb66054cddb39"
+  }
+}

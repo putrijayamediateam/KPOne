@@ -1,0 +1,11 @@
+# Next quick-patient grouping assessment — source only
+
+Actual demo `RegisterVisit.dc.html` has Identity, Guardian contact, Contact, Address and Identifiers subsections (lines60–98). Current form keeps all corresponding supported values, but presents name/identifier/phone/DOB/adult confirmation/nationality/gender together, then existing GuardianFields and RegistrationContactFields. Demo scan-IC, inferred family suggestions and adult-required emergency remain excluded/superseded by explicit approvals.
+
+Smallest useful next slice: page-owned Identity and Contact/Address labelled wrappers, with the existing identifier controls kept in an explicit Identifiers group and the existing GuardianFields unchanged. This is a layout proposal, not new fields or rules. Preserve exact full script, every field ID/error binding and existing conditional guard. Move phone only as a complete existing component binding. Keep native disabled ancestor and error focus. Duplicate override remains visible and unchanged after fields.
+
+Important constraint: shared RegistrationContactFields currently renders email and address in a single grid and is also used elsewhere/publicly. A local Contact and address heading can truthfully group it without modifying shared consumers, but does not claim the demo's separate Contact/Address headings. Separate shared grouping would require its own explicit reusable-component contract and tests across all consumers; do not silently fork fields or introduce duplicated values.
+
+GuardianFields supplies an h2 and its own conditional section; do not duplicate a surrounding guardian heading. No emergency field is invented: approved optional contact integration belongs to its separate functional dependency branch. Current contact controls have inherited40px sizing; any actual touch repair must be page-local or separately reviewed shared change with consumer evidence.
+
+Before implementation, peer-review a concrete wrapper/movement plan and enumerate exact source-order assertion adaptations. Verify all original model/error/required expressions and script parity, first-error focus in fullpage/dialog, uncertain retry disabled display, mobile/desktop controls and guardian conditional boundary. No new API/backend/permission/schema. This assessment does not authorize changing clinical or duplicate behavior.

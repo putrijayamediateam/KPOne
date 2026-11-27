@@ -1,0 +1,132 @@
+{
+  "captures": [
+    {
+      "name": "medicine-only",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "medicine-only",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "medicine-only",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "medicine-only",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "consultation",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "consultation",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "consultation",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "consultation",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "filtered-empty",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "filtered-empty",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "filtered-empty",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "filtered-empty",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "waiting",
+      "width": 390,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "name": "waiting",
+      "width": 390,
+      "theme": "dark",
+      "height": null
+    },
+    {
+      "name": "waiting",
+      "width": 1440,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "name": "waiting",
+      "width": 1440,
+      "theme": "dark",
+      "height": null
+    },
+    {
+      "name": "done",
+      "width": 390,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "name": "done",
+      "width": 390,
+      "theme": "dark",
+      "height": null
+    },
+    {
+      "name": "done",
+      "width": 1440,
+      "theme": "light",
+      "height": null
+    },
+    {
+      "name": "done",
+      "width": 1440,
+      "theme": "dark",
+      "height": null
+    }
+  ],
+  "checks": [
+    "OTC page2 retains selected Type",
+    "Search preserves Type, counts exclude search and filtered empty offers reset",
+    "Leaving Prepare clears Type; Waiting/Done omit control; returning Prepare All",
+    "Array query normalizes All"
+  ],
+  "errors": [],
+  "writes": []
+}

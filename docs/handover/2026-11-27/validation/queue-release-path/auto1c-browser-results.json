@@ -1,0 +1,168 @@
+[
+  {
+    "role": "resident_doctor",
+    "route": "queue",
+    "check": "no unauthorized warning or Reassign action"
+  },
+  {
+    "role": "resident_doctor",
+    "route": "queue",
+    "width": 1440,
+    "dark": false,
+    "shot": "auto1c-queue-resident_doctor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "queue",
+    "width": 1440,
+    "dark": true,
+    "shot": "auto1c-queue-resident_doctor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "queue",
+    "width": 390,
+    "dark": false,
+    "shot": "auto1c-queue-resident_doctor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "queue",
+    "width": 390,
+    "dark": true,
+    "shot": "auto1c-queue-resident_doctor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "registration",
+    "check": "no unauthorized warning or Reassign action"
+  },
+  {
+    "role": "resident_doctor",
+    "route": "registration",
+    "width": 1440,
+    "dark": false,
+    "shot": "auto1c-registration-resident_doctor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "registration",
+    "width": 1440,
+    "dark": true,
+    "shot": "auto1c-registration-resident_doctor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "registration",
+    "width": 390,
+    "dark": false,
+    "shot": "auto1c-registration-resident_doctor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "resident_doctor",
+    "route": "registration",
+    "width": 390,
+    "dark": true,
+    "shot": "auto1c-registration-resident_doctor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "warningCount": 2,
+    "check": "neutral warning and existing authorized Edit visit link"
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 1440,
+    "dark": false,
+    "shot": "auto1c-queue-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 1440,
+    "dark": true,
+    "shot": "auto1c-queue-ca_supervisor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 390,
+    "dark": false,
+    "shot": "auto1c-queue-ca_supervisor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "queue",
+    "width": 390,
+    "dark": true,
+    "shot": "auto1c-queue-ca_supervisor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "warningCount": 2,
+    "check": "neutral warning and existing authorized Edit visit link"
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 1440,
+    "dark": false,
+    "shot": "auto1c-registration-ca_supervisor-1440-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 1440,
+    "dark": true,
+    "shot": "auto1c-registration-ca_supervisor-1440-dark.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 390,
+    "dark": false,
+    "shot": "auto1c-registration-ca_supervisor-390-light.png",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "role": "ca_supervisor",
+    "route": "registration",
+    "width": 390,
+    "dark": true,
+    "shot": "auto1c-registration-ca_supervisor-390-dark.png",
+    "overflow": false,
+    "errors": []
+  }
+]

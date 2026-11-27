@@ -1,0 +1,24 @@
+{
+  "base": "c1e5fc05c0d231a28eeb3f2367ccc8adee0565c5",
+  "head": "bfed81acecbad1e8a45ef31da208cbcc25bd4cc7",
+  "pr": "https://github.com/putrijayamediateam/KPOne/pull/1144",
+  "patchSha256": "e9e926a9955482a6e42eaf686a4a9e40d080e632d3b15557cf27fba09c29898c",
+  "files": {
+    "docs/teams/inventory/handover-stock-workspace/ASSERTION-BATCH.md": "c88fa85a5b69732852fdb9f2a237215c4890ddcbc927c4c5f3c615ab4f4420a3",
+    "docs/teams/inventory/handover-stock-workspace/ASSERTION-PROPOSAL.patch": "3fa55dad4fc9eef8f8aadf3eee142ca1ff035a54ef888c1beb06d92e695d98fd",
+    "docs/teams/inventory/handover-stock-workspace/HOLD.md": "d9a5ee873f289b060dad992ce601e93d5e219c770727fbfc00e8bd74528ba841",
+    "docs/teams/inventory/handover-stock-workspace/PLAN.md": "a448a8080e7d212f342a086443907c84aa408ad65cadcc0ee7a976488752f48d",
+    "docs/teams/inventory/handover-stock-workspace/RESUMED-DECISION.md": "64ba9f0576cfee180096587116c5c7b7d0b1b62fb35f3f078b0a256681fb5159",
+    "docs/teams/inventory/handover-stock-workspace/REVIEW.md": "26e790b7c2ac994b3f27ca3b0d6af3c687325ac592569c3b49b9781340537468",
+    "resources/js/components/inventory/StockOnHandList.vue": "aca5c6fb80b15a04de7c879c48adc4177aa2a5d287147eae217a86ce262ce1cb",
+    "resources/js/pages/Inventory/Index.vue": "01d0dc5a3387078868755c93a9427e6ac31c3f4fc89738c49a6dfb74507f34a9",
+    "tests/Frontend/classic-only-co6-kept-direct.test.mjs": "6d70f71b6cad70bcb3aea0027f35d8d49bd0b4052e066ef4786560407b2ae45d",
+    "tests/Frontend/i1b-inventory-demo-workspace.test.mjs": "e1771302732e2ba446115af821507c67dad82d53a7c9991c06d7b0027960d26f",
+    "tests/Frontend/i2-session2-directory-remediation.test.mjs": "4f3694f10dba628f3450054bdde3a872b7d9e54ab5b87e9e49eef7e0da1448cf",
+    "tests/Frontend/i2-ui-ux-remediation.test.mjs": "78943eaa7eb2b54a0e6e858d94cf74f569676eb8f94a8382cd3fd99372cf19fd",
+    "tests/Frontend/stk45-report-difference.test.mjs": "49be8a2c76621e186426f211fa820456d2db10ea0c3d7f346679f0374a2e70cd",
+    "tests/Frontend/stock-on-hand-runtime.test.mjs": "cd4a7ea8aac6e467d6d6ebcf87cbfb413ffb15ae6443a551f453844dbaedb366",
+    "tests/Frontend/ui-leftovers-1.test.mjs": "6219138d4293222dba665dc3e765b84f0a810a059196f018717a8b722af28bce"
+  },
+  "decision": "six assertion groups applied under delegated technical authority; independently reviewed; no new owner tickboxes"
+}

@@ -1,0 +1,7 @@
+# Independent Billing review — Done checkout timestamp
+
+Read actual QueueDirectoryService workload diff and QueueCompletedTimestampTest in KPOne-queue-done-checkout-time,27 November2026. Bounded backend CLEAR. The new map consumes only the existing authorized, paginated entries with visit already eager-loaded and appends removedAt only after existing row projection, only for completed. Queue visit_id uniqueness supports the visit-number identity pairing. No extra query, actor/branch widening, lifecycle mutation or other-payload timestamp addition observed. The value means checkout/handoff, not downstream financial/dispensing completion.
+
+Read all three new tests: actual completion service establishes source state, separate synthetic timestamp placement checks four branch-local day edges, privacy and wrong-branch refusal remain,1-versus26 query equality and exact two-page identity/value pairing are asserted. Builder reports3 tests/21 assertions pass; reviewer did not independently rerun. Final frozen artifact and UI/browser evidence remain separate gates.
+
+Final artifact pin:23ed6cfa2ca26a7ed4d5a1c919c7c9496d4e504a44bf48585f7f23e2020466a1; patch and all seven source hashes independently verified. Bounded backend verdict unchanged. Builder reports11/177 backend,static0,2316frontend/types/build and actual timezone/pagination browser; these gates attributed, not independently rerun. Staff owns UI review.

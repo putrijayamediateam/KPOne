@@ -1,0 +1,52 @@
+{
+  "emergency": {
+    "source_patch": "/workspace/kpone-validation/emergency-contact/standalone-feature.patch",
+    "files": [
+      "app/Domain/Visit/Services/VisitRegistrationService.php",
+      "app/Http/Controllers/PatientController.php",
+      "app/Http/Controllers/RegistrationController.php",
+      "app/Http/Requests/StoreVisitRequest.php",
+      "docs/teams/patients-registration/TEAM.md",
+      "phpunit.xml",
+      "resources/js/pages/Patient/Show.vue",
+      "resources/js/pages/Registration/Create.vue",
+      "routes/web.php",
+      "app/Domain/Patient/Services/PatientEmergencyContactService.php",
+      "app/Http/Controllers/PatientEmergencyContactController.php",
+      "database/migrations/2026_11_26_010000_create_patient_emergency_contacts.php",
+      "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+      "resources/js/components/patient/EmergencyContactCard.vue",
+      "tests/Feature/Patient/PostgresEmergencyContactContentionTest.php",
+      "tests/Feature/Visit/PatientEmergencyContactTest.php",
+      "tests/Frontend/patient-emergency-contact.test.mjs",
+      "tests/Support/PostgresEmergencyContactWorker.php"
+    ],
+    "file_count": 18
+  },
+  "family": {
+    "source_patch": "/workspace/kpone-validation/family-links/family-feature.patch",
+    "files": [
+      "app/Domain/Clinical/Services/ClinicalEncounterDirectoryService.php",
+      "docs/teams/patients-registration/TEAM.md",
+      "phpunit.xml",
+      "resources/js/pages/Clinical/Show.vue",
+      "resources/js/pages/Patient/Show.vue",
+      "resources/js/types/clinical.ts",
+      "routes/web.php",
+      "app/Domain/Patient/Models/PatientFamilyLink.php",
+      "app/Domain/Patient/Services/FamilyWaitingProjection.php",
+      "app/Domain/Patient/Services/PatientFamilyLinkService.php",
+      "app/Http/Controllers/PatientFamilyLinkController.php",
+      "database/migrations/2026_11_26_020000_create_patient_family_links.php",
+      "docs/teams/patients-registration/FAMILY-LINK-DESIGN.md",
+      "resources/js/components/clinical/FamilyWaitingCard.vue",
+      "resources/js/components/patient/FamilyLinksCard.vue",
+      "tests/Feature/Patient/PostgresFamilyLinkContentionTest.php",
+      "tests/Feature/Visit/FamilyWaitingProjectionTest.php",
+      "tests/Feature/Visit/PatientFamilyLinkTest.php",
+      "tests/Frontend/family-links-ui.test.mjs",
+      "tests/Support/PostgresFamilyLinkWorker.php"
+    ],
+    "file_count": 20
+  }
+}

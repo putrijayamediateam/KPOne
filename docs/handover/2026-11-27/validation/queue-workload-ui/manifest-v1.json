@@ -1,0 +1,33 @@
+{
+  "base_commit": "5330f42d08c76d54c1bafa14206f97cc51375d9e",
+  "patch_sha256": "a986f8e8288e4f9c0e29d1c5e93afcdac84503abf07db30f368bc047d287a344",
+  "files": {
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "4be4d32c5dca34808fbf93dcbcd3d4709ea3cace6d151daea66b8c22addb7811",
+    "app/Domain/Queue/Services/QueueWorkloadQuery.php": "8f94ccd906fc30c066973f9d3a158293ef7087d2e72cfb7546965728d02a39a7",
+    "app/Http/Controllers/QueueController.php": "14ba3afed2c357aa8bc3290212e96e563ee332f1693942c6219ebe80c55ac850",
+    "resources/js/components/queue/QueueWorkspaceFrame.vue": "4c327b4b9d9b743069a45b03d04fcf268267073131d8edf780eb36dcee4fae69",
+    "resources/js/composables/useQueueWorkload.ts": "72fa8d508b2266745ebf40db456bfc4fad050efe7caf88d8d4bc831b7442048a",
+    "resources/js/pages/Queue/Index.vue": "aff8a5ed98d191b109801542c5db258979cd3538d4a8226481b0737e31b07e61",
+    "tests/Feature/Queue/QueueWorkloadTest.php": "5dfd909e8b31943818a34aa209e08fef4ded66cdabe04aa14a35a811ad728e2e",
+    "tests/Frontend/panel-note.test.mjs": "b06b9611575b234d91eb864214b72865c2b6eec9df69b71a6459cc86cff00116",
+    "tests/Frontend/q-15-checks-waiting-pill.test.mjs": "d06cead5942dd946971d13b240b089da7b06e180f370323b174442c5f9ae505c",
+    "tests/Frontend/q-5-completed-tab-count.test.mjs": "0ec3399fa739b13fcdd35fee6f454990a208354404293b66796748571482e96e",
+    "tests/Frontend/q-5b-serving-tab-count.test.mjs": "c78afc890e029566db7fe2da8a90288bd76ad540dedcf95f99524f1c5c94a37b",
+    "tests/Frontend/queue-demo-workspace.test.mjs": "6dae30d9338f49d36d194208054c1eea2903f569982a2a3c58f0652f18b52c55",
+    "tests/Frontend/queue-workload.test.mjs": "db406030d6404aa97d0911838a43499993a29e92cb76dceca9f9bfa278a97340",
+    "tests/Frontend/tab-counts-1.test.mjs": "7845e971a3c3b403046dac542c0a6b3c1f74a62f27fedfffeba545e7381957d7",
+    "tests/Frontend/ux-3-accessible-names-headings.test.mjs": "b9c697dd5f4249bf8045f1e8c27ea6a9cf5196710c41fc3d9ffbcf94be15819f"
+  },
+  "validation": {
+    "backend_tests": 27,
+    "backend_assertions": 285,
+    "frontend_tests": 2283,
+    "phpstan_errors": 0,
+    "types": "pass",
+    "build": "pass",
+    "lint": "pass",
+    "format": "pass",
+    "browser_checks": 24,
+    "paging_cases": 2
+  }
+}

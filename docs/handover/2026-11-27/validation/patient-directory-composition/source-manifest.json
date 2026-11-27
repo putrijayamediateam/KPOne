@@ -1,0 +1,11 @@
+{
+  "base": "5fb59c4ba733518f9f7a9ca01d6e878855a02736",
+  "patch_sha256": "96b501d4f7525b31e6eecab557dd3d17d42940e743121ad1fe26171cdc567cfc",
+  "files": {
+    "resources/js/pages/Patient/Index.vue": "339f130df0b08d9968b1a4e6a8290b0795c72044d28b212d02fb6af144260330",
+    "tests/Frontend/classic-only-co4-kept.test.mjs": "33b2bc9344145957aaba006c1883587766716f2f7fe23ea7691c62afef44a577",
+    "tests/Frontend/ui-dropdown-darkmode-polish.test.mjs": "e52a2ee2f99cf381931f3782182194d5be1c2e165bec98c129e88b60d3bb975e",
+    "tests/Frontend/whatsapp-link.test.mjs": "43e6e80ce21fbee8fdb368402bbd32096826366f5f619d4badd6f990f0b2bd8c",
+    "tests/Frontend/patient-directory-workspace-runtime.test.mjs": "e76f36e9155dc1b6898e27dee4a583755f744dfd308d0dab24ee7168553107c1"
+  }
+}

@@ -1,0 +1,759 @@
+{
+  "captures": [
+    {
+      "name": "help-shown",
+      "width": 390,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "Print all labels (opens print preview in a new tab)",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-shown",
+      "width": 390,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "Print all labels (opens print preview in a new tab)",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-shown",
+      "width": 1440,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "Print all labels (opens print preview in a new tab)",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-shown",
+      "width": 1440,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "Print all labels (opens print preview in a new tab)",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-hidden-warnings",
+      "width": 390,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Show helpful info",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "help-hidden-warnings",
+      "width": 390,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Show helpful info",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "help-hidden-warnings",
+      "width": 1440,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Show helpful info",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "help-hidden-warnings",
+      "width": 1440,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Show helpful info",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        }
+      ]
+    },
+    {
+      "name": "help-readonly",
+      "width": 390,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly",
+      "width": 390,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly",
+      "width": 1440,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly",
+      "width": 1440,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly-preview",
+      "width": 390,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "View labels (opens in a new tab)",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly-preview",
+      "width": 390,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "label": "View labels (opens in a new tab)",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly-preview",
+      "width": 1440,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "View labels (opens in a new tab)",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-readonly-preview",
+      "width": 1440,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "label": "View labels (opens in a new tab)",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-otc",
+      "width": 390,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-otc",
+      "width": 390,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 44
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 44,
+          "expanded": "true"
+        },
+        {
+          "height": 44,
+          "expanded": "false"
+        },
+        {
+          "height": 44,
+          "expanded": null
+        },
+        {
+          "height": 44,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-otc",
+      "width": 1440,
+      "theme": "light",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    },
+    {
+      "name": "help-otc",
+      "width": 1440,
+      "theme": "dark",
+      "headerControls": [
+        {
+          "label": "Hide helpful info",
+          "height": 36
+        }
+      ],
+      "summaryRowHeights": [
+        40,
+        40
+      ],
+      "patientOverflow": false,
+      "overflow": false,
+      "disclosures": [
+        {
+          "height": 36,
+          "expanded": "true"
+        },
+        {
+          "height": 36,
+          "expanded": "false"
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        },
+        {
+          "height": 42.5625,
+          "expanded": null
+        }
+      ]
+    }
+  ],
+  "checks": [
+    "keyboard toggle retains native details/draft; wrong-medicine scan, unsaved and allergy warnings remain outside; original dirty print guard holds",
+    "readonly help has no mutation instruction or actions",
+    "authorized readonly label-preview control remains visible and meets44/36 targets",
+    "OTC help uses the existing allergy-confirmation wording, no doctor order"
+  ],
+  "errors": []
+}

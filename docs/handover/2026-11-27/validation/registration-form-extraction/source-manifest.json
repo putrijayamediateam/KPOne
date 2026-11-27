@@ -1,0 +1,31 @@
+{
+  "base": "46ca8f1977259c10e6c32440fd86b4effa39a9c6",
+  "patchSha256": "9858bcab6585c15612d10778ec0f4c71121657beb1dd8123c39357174a3e564f",
+  "existingAssertionCallSitesPreserved": 581,
+  "files": {
+    "resources/js/components/registration/RegistrationCreateForm.vue": "fc7e09077dfc7786948c75708008891238d4e55f14f51c023cdc85f0e0a88ed6",
+    "resources/js/pages/Registration/Create.vue": "647faec93f03b838154c618811d85d3e07423d80b1d115b0d59fe99f75ec661d",
+    "tests/Frontend/auto-1-doctor-assignment.test.mjs": "911a162d9fd2055e2e749404689639e951a4120c4bb4d8938002ad198a6d7612",
+    "tests/Frontend/classic-only-co4-kept.test.mjs": "fa7f20b6a4ec97dd505a529f3bcd200a1a2262738306fc8bdc568dfa4e62fb30",
+    "tests/Frontend/dark-1.test.mjs": "14ecefdb6be5cc15b56370ca68a2bd44ecd8f453c6697828ccfb6c32972c75b3",
+    "tests/Frontend/guardian-contact.test.mjs": "ec81a495db290f1cd9ee36b9cd0b1559649081fcfb2fb00200f549e63064e758",
+    "tests/Frontend/i2-ui-ux-remediation.test.mjs": "038aa42f2083d66841ea7ae4156efe68833799c46803161e423eff030ecaad28",
+    "tests/Frontend/panel-note.test.mjs": "e8bf9021f6a81f468edb3fbfa6105e3a71a87ee9bb82e2ee7e3f2a314ddca22b",
+    "tests/Frontend/patient-registration.test.mjs": "29012b88922ada9743b654b3478cf74f6225e644d26b3ab9e93243b017a05c98",
+    "tests/Frontend/q1b2-public-patient-intake.test.mjs": "2cc5bb7706fd086489113dd7e5379de9ec786b79cad1bd4048f009a45027a3f3",
+    "tests/Frontend/quick-create-sticky-overlap.test.mjs": "505ce8b0106dd4535086180bda1dc8b47e799cf5426a987728be7bbcd2bcf971",
+    "tests/Frontend/r1c2-registration-consultation.test.mjs": "61aacc4bf1642002bf492722a4fb3d1d0da67ed8fea786167250d984f5440fd9",
+    "tests/Frontend/reg-10-toggle-touch-targets.test.mjs": "6c905a82a29751d823f3125fdc7c1cf1af84b288bbc26de0d8f3684cdc46fb11",
+    "tests/Frontend/reg-5-merge-follow-ups.test.mjs": "8a43fe9b179d64616017a1393968bde52f3f68f31e8dadcb6a8f35762ec42e0e",
+    "tests/Frontend/reg-6-phone-input-fit.test.mjs": "adb844bbd6b0bd6a56886e3fb5fc55cd5adfb70d95dc2888793a525737cdf46a",
+    "tests/Frontend/reg-9-patient-pale-colours.test.mjs": "c7c4b92be40bde837c19839d3a0c8d82cac788745744399d731b34b77d19c215",
+    "tests/Frontend/registration-contact-settings.test.mjs": "07d371d66d52afc72d1e4264f15653048642a35b0315a9ca54b9492005848fde",
+    "tests/Frontend/registration-create-extraction.test.mjs": "c8d0e62f646dc38e80229e243a8ef58b661b1dcf64ae36d126b985c1b752d569",
+    "tests/Frontend/registration-settings.test.mjs": "7e809023be7de39d354a2254ffe17a91b3543b8beedc477de64840f87d43413c",
+    "tests/Frontend/ui-dropdown-darkmode-polish.test.mjs": "032c141dfd5980215fde4e0fcbc4003e85bc0009789d589957a4915130308fdd",
+    "tests/Frontend/ui-polish-1.test.mjs": "b34c4db9dc76fce33e44d1248f151b037e933b3637582d328096590074623bcc",
+    "tests/Frontend/unknown-dob-confirmation.test.mjs": "47f9873c0fe3195158859c20ff3b903fbd87d21fd9761c0e245b30f023503d95",
+    "tests/Frontend/ux-3-accessible-names-headings.test.mjs": "fe9bbcf129a1299e935c46346789ef93403e24f096a23b4736d54a53dd8ccffe",
+    "tests/Frontend/visit-reason-picker.test.mjs": "76f1ef50fcd74b0bb19c38d002685577cb7cb4afd7d443296a0dad701fb3c855"
+  }
+}

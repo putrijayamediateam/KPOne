@@ -1,0 +1,7 @@
+{
+  "docs/reviews/STOCK-COUNT-CASES-COMPOSITION.md": "56ad041b1cf2d40b6d307cc5952c3daa998fa59371d4fe9754741ef6a2cd84c9",
+  "resources/js/components/inventory/StockCountCaseList.vue": "d0271648645c0883aa2931f7d1f5e592c9f255adb54dffb0824f2f5025facf41",
+  "resources/js/pages/Inventory/GovernedStock.vue": "8e143fe7467c11b29e478083a5e2977e5a604ad00a8218e7754608483f5c108e",
+  "tests/Frontend/stock-count-case-dialog-runtime.test.mjs": "8d1a304a8e889fc77cecbb8487ad396cd98ed251656bcf9b1bf6ad79c73b2b7d",
+  "tests/Frontend/stock-count-case-runtime.test.mjs": "1ad0ebfcae19a24661ec45e39da7ca44a3e1c1ea8aca4195217fd8887fba067e"
+}

@@ -1,0 +1,78 @@
+{
+    "hold": {
+        "id": 1,
+        "held_at": "2026-11-26T03:48:25",
+        "visit_id": 5,
+        "branch_id": 1,
+        "created_at": "2026-11-26T03:48:25",
+        "resumed_at": null,
+        "updated_at": "2026-11-26T03:48:25",
+        "queue_entry_id": 5,
+        "held_by_user_id": 29,
+        "organisation_id": 1,
+        "hold_fingerprint": "fa3c39d3a4c6fd68500d82904269d1d70f115cad59d5effb162516449d873a41",
+        "resume_fingerprint": null,
+        "resumed_by_user_id": null,
+        "hold_idempotency_key": "36243dfe-70ca-419b-85e3-718537cc6bf7",
+        "clinical_encounter_id": 5,
+        "resume_idempotency_key": null
+    },
+    "audit": [
+        {
+            "count": 1,
+            "event": "treatment_room.recorded"
+        },
+        {
+            "count": 2,
+            "event": "treatment_room.superseded"
+        },
+        {
+            "count": 9,
+            "event": "treatment_room.viewed"
+        },
+        {
+            "count": 1,
+            "event": "treatment_room.voided"
+        }
+    ],
+    "queue": {
+        "status": "serving",
+        "lockVersion": 3
+    },
+    "visit": {
+        "status": "registered",
+        "lockVersion": 1
+    },
+    "voids": [
+        {
+            "reason_code": "wrong_patient",
+            "target_record_id": 6
+        }
+    ],
+    "records": [
+        {
+            "id": 4,
+            "reason_code": "patient_declined",
+            "outcome_code": "not_successful",
+            "procedure_code": "urine_sample",
+            "correction_code": null,
+            "supersedes_record_id": null
+        },
+        {
+            "id": 5,
+            "reason_code": null,
+            "outcome_code": "done",
+            "procedure_code": "urine_sample",
+            "correction_code": "wrong_outcome",
+            "supersedes_record_id": 4
+        },
+        {
+            "id": 6,
+            "reason_code": null,
+            "outcome_code": "done",
+            "procedure_code": "swab_sample",
+            "correction_code": "wrong_procedure",
+            "supersedes_record_id": 5
+        }
+    ]
+}

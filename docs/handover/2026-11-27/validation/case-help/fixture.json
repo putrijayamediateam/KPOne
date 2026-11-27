@@ -1,0 +1,17 @@
+{
+    "database": "kpone_case_help_preview_test",
+    "case": "d2077949-8f67-4720-8d10-bdae2bf92bae",
+    "visit": "KPV-00000006",
+    "patient": "KP-00000016",
+    "branch": 1,
+    "ca": "disclosure.ca@kpone.test",
+    "doctor": "disclosure.doctor@kpone.test",
+    "supervisor": "disclosure.supervisor@kpone.test",
+    "skuCode": "SYN-SKU-SYTTYJ",
+    "line": "9427b9d8-f6f8-4f60-828a-f08db5a5f7c8",
+    "otcCase": "3deb3655-f2a2-4acb-a820-47a35aafd0fe",
+    "otcCa": "case.otc@kpone.test",
+    "previewCase": "79affe97-6cdf-463e-9484-c4c20be994c6",
+    "previewDoctor": "case.doctor@kpone.test",
+    "wrongSku": "SYN-SKU-O2RXLR"
+}

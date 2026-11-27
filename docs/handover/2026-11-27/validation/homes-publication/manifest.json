@@ -1,0 +1,13 @@
+{
+  "base": "67fcc9105ad6da7adec8383265129fd0ba2a2aba",
+  "files": {
+    "resources/css/space-shell-layout.css": "a02c529207ae1060b08895eaea78d9e66d5575accfa653763568c52b1031c844",
+    "resources/js/pages/MyDay/Index.vue": "a4c43eee42c473222511e6215a1b46e3b2b9c5cb603ddc31b82e08e3eda2cb49",
+    "resources/js/pages/Spaces/Show.vue": "967f7a74be617b93e34501e14ea95084465580ce62358e97348be6c144ad16f5"
+  },
+  "scriptParity": {
+    "resources/js/pages/MyDay/Index.vue": true,
+    "resources/js/pages/Spaces/Show.vue": true
+  },
+  "patchSha256": "b0fd34b7b3c8c134f315eceb0758318a569e0e3d12f9df56cd86b92962ade539"
+}

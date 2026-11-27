@@ -1,0 +1,41 @@
+{
+    "actor": "type.ca@kpone.test",
+    "consultation": "A-001",
+    "otc": "B-001",
+    "database": "kpone_queue_search_preview_test",
+    "setup": "Existing synthetic register, enter OTC queue, open dispensary services",
+    "row": {
+        "publicId": "56d94b9e-38d7-4458-97ce-ae5d661c2228",
+        "queueNumber": "B-001",
+        "patientName": "Synthetic Visit Patient JODZLRZJ",
+        "patientNumber": "KP-00000041",
+        "visitNumber": "KPV-00000031",
+        "caseType": "otc",
+        "status": "dispensing",
+        "doctorName": null,
+        "medicineCount": 0,
+        "receivedAt": "7:38 AM",
+        "waitingMinutes": 1,
+        "completedAt": null,
+        "caseUrl": "http:\/\/127.0.0.1:3167\/dispensary\/56d94b9e-38d7-4458-97ce-ae5d661c2228",
+        "labelUrl": null,
+        "labelAction": null
+    },
+    "consultationRow": {
+        "publicId": "12394bee-8be4-47bc-805e-ce5ff7c9b693",
+        "queueNumber": "A-001",
+        "patientName": "Synthetic Visit Patient NTjtRsoJ",
+        "patientNumber": "KP-00000014",
+        "visitNumber": "KPV-00000004",
+        "caseType": "consultation",
+        "status": "dispensing",
+        "doctorName": "Aylin Hessel",
+        "medicineCount": 1,
+        "receivedAt": "7:31 AM",
+        "waitingMinutes": 8,
+        "completedAt": null,
+        "caseUrl": "http:\/\/127.0.0.1:3167\/dispensary\/12394bee-8be4-47bc-805e-ce5ff7c9b693",
+        "labelUrl": null,
+        "labelAction": null
+    }
+}

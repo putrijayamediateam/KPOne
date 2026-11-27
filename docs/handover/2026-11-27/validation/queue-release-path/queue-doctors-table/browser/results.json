@@ -1,0 +1,39 @@
+[
+  {
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "total": 27,
+    "page1": 25,
+    "page2": 2,
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "width": 390,
+    "height": 640,
+    "theme": "dark",
+    "total": 27,
+    "page1": 25,
+    "page2": 2,
+    "hit": {
+      "height": 44,
+      "aboveHost": true,
+      "hit": true,
+      "focused": true
+    }
+  },
+  {
+    "errorVisible": true,
+    "summaryFocusRetained": true,
+    "pollRecovered": true
+  },
+  {
+    "own": true,
+    "doctorsHidden": true
+  }
+]

@@ -1,0 +1,66 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "empty": false,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "empty": false,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "empty": true,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "empty": true,
+    "tabHeight": 36,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "empty": false,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "empty": false,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "empty": true,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "empty": true,
+    "tabHeight": 44,
+    "overflow": false,
+    "keyboardActivation": true
+  }
+]

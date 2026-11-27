@@ -1,0 +1,12 @@
+{
+  "base": "67fcc9105ad6da7adec8383265129fd0ba2a2aba",
+  "files": {
+    "resources/js/pages/Clinical/Show.vue": "9bcb2a68253e9162139f5ff044c4301473a867c068909294fb8891fbf244d4f2",
+    "tests/Frontend/consultation-layout.test.mjs": "930780158c51a5aab8830e2c3d07dff3190bbbe59d2aaeeb10e8b0a483cf8f02",
+    "tests/Frontend/tri-1e-doctor-triage-view.test.mjs": "09682b38f9945ebe6531e40109797cbf4a8e38b90807eb71578a9804f5c7f9db"
+  },
+  "scriptParity": {
+    "resources/js/pages/Clinical/Show.vue": true
+  },
+  "patchSha256": "5f80e8a9031b9db99537ae6dccc3669c51e2f2e2ec8e5f44f9dc7ff737ae1a70"
+}

@@ -1,0 +1,14 @@
+{
+  "base": "e5e72f69b79e68cbb57f72d2a7ad974f19aaa048",
+  "head": "8013a87483f273a1e18155fc7831c39a8029b6aa",
+  "patch_sha256": "48b938e6a4fd4056a304ab84ebd304d95660a0871ca82a338ed9c9c60972144a",
+  "files": {
+    "resources/js/components/billing/BillingBoardFrame.vue": "cdeb4f17015b1eecb6ffd141ff49fff9f4efd3ba4410fbd9a5629dc0f86a466b",
+    "resources/js/pages/Billing/PayLaterCollections.vue": "92a4b6fe2aee34677f15b7d7d0ed074d844100055ca400ce924d37c01d4ae072",
+    "resources/js/pages/Billing/CashClosings.vue": "9a732a586d0f0fa74cf547d78cba912f9a95ddf49f1fb1b1ee1a6405f2e27499",
+    "tests/Frontend/billing-board-frame.test.mjs": "bdb5e1ac39b1ef6ca2c821f5451a92a2d6081435dd95382391bca316360f4dee",
+    "tests/Frontend/bil-23-bills-to-collect.test.mjs": "8bd6d5338ae3a4a1c6aa3056fee3c76a91e12a1555dd34e44a54df2f9e758cf4",
+    "docs/teams/billing/BILLING-DEMO-COLLECTIONS-DECISION-2026-11-26.md": "227900adfaa777412fa9c7e84aa7e32250341876a3769019041bc35796c809f6",
+    "tests/Frontend/dd-44-pay-later-width.test.mjs": "6820cbe479154fe618e23de4c59f7f8966b3838ff1a61c09d11b34d6183ffd86"
+  }
+}

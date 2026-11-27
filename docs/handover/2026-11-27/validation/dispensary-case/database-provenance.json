@@ -1,0 +1,8 @@
+{
+  "source": "kpone_ca_preview_test",
+  "target": "kpone_dsp_case_preview_test",
+  "host": "127.0.0.1",
+  "port": 55439,
+  "method": "read-only pg_dump snapshot into newly created isolated task database",
+  "preflight": "kpone_dsp_case_preview_test"
+}

@@ -1,0 +1,16 @@
+{
+  "base": "7ceee8e48ea060ce280ae274760ee4af33060d07",
+  "patch_sha256": "d573abbcf42bab68c7ac515853223ca6bd7fc926d43dd6702e4c41a4aceb3595",
+  "files": {
+    "resources/js/components/registration/QrIntakeTable.vue": "eee0e6b7ddae633b81b4896909bad28e967ab1e047580dfb2b94038221b661f9",
+    "resources/js/pages/Registration/Index.vue": "eb37cd30ddda18ef5e5e2231bae96ce60ad058fed4f0c4fe7ff67b0bf04a395a",
+    "tests/Frontend/flow-fixes-1.test.mjs": "462a461ab637d4d50683d847e7f00e354edd77e0f0cd90ac47549192f6f01a77",
+    "tests/Frontend/q1b2-public-patient-intake.test.mjs": "07586ab2e01beb4dd23482b7ad6a7fd4544b1345adbfd5ae06e830bf06dd8586",
+    "tests/Frontend/rb-01-registration-board-search.test.mjs": "37bc1b1bab894a0d5ae04f5fb753387b8d85da5244308064f7de9942c786b749",
+    "tests/Frontend/rb-02-registration-board-dates.test.mjs": "5cfee6d1a9db7dafc6f4a434dfbd99a27ab1e54c226d61855171037089df3720",
+    "tests/Frontend/reg-live-1.test.mjs": "171c1b5a24f438c89ee12b6381c487b51a7c538802c3013ad2d9214b2717a2b5",
+    "tests/Frontend/ux-3-accessible-names-headings.test.mjs": "92353ea179c1020d7899f63cf4798a0997cce9729573ab87c672d69942b52759",
+    "resources/js/components/registration/RegistrationHelpfulInfo.vue": "7f46ad0a88deaff0738a381014ab7b1cd3e5c844b107482e975d52926a88f0f7",
+    "tests/Frontend/registration-helpful-info.test.mjs": "b37459a6fe1a8b576659b9282ddb7c5117ea05f410c43365bd35300745693e4a"
+  }
+}

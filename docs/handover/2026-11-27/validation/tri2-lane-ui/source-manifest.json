@@ -1,0 +1,72 @@
+[
+  {
+    "path": "resources/js/pages/Queue/Index.vue",
+    "baselineSha256": "917e0bad4834e64594fa56009986bb3c09a9fb9b00e2d8833d324e91177cd0c0",
+    "finalSha256": "7fb27e9e74fe49e4048b0f65169f2877e2074550ffaee29a3e8c9daef07ff3bf"
+  },
+  {
+    "path": "resources/js/pages/Registration/Index.vue",
+    "baselineSha256": "482d5f934f15f402f4fcc0a7db7ea8960fe2aedf604a607b0cc99d4bb730bf82",
+    "finalSha256": "d86eb2b9e0b2e2816712e791f30362efdfd174920e48272082a1cf799f634161"
+  },
+  {
+    "path": "resources/js/types/queue.ts",
+    "baselineSha256": "45a6dd8f505883d2ce4ca01d7e49e9629e80e5e950036ee5e18fefa2dcfb0148",
+    "finalSha256": "dcd5b6d40156aca8ac688f1d192394f095cbd3efdcf867c223b15366dc5a40dc"
+  },
+  {
+    "path": "resources/js/types/patientBoard.ts",
+    "baselineSha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575",
+    "finalSha256": "d42b9aeddd0fe36df703891e31140c1e18ef9817c8fae3d9a2ce3602582295b8"
+  },
+  {
+    "path": "resources/js/components/patient-board/PatientBoard.vue",
+    "baselineSha256": "73886690003c0e9c52aae193dbcba7fbe9886f63cbe9f9fa75f651169dcae51c",
+    "finalSha256": "b8d548d06e55496e65f18099ee76a8b00898fd83b1b833822f0541b142ef3d7b"
+  },
+  {
+    "path": "tests/Frontend/flow-fixes-1.test.mjs",
+    "baselineSha256": "01098e87248e3a5b4de063b8cc4a69d80d838cbf9d07bbe75f02ffded721938b",
+    "finalSha256": "3e1ce7c2c6334a77db32faa85471c50b1089190c49cfbad38ccddefc6a3fb20b"
+  },
+  {
+    "path": "tests/Frontend/rb-01-registration-board-search.test.mjs",
+    "baselineSha256": "16b93160f285f5781560dc23c47d03c31ed94f7693410427cee5043ae21957e7",
+    "finalSha256": "0288d672395dfcf238b33747db2e33b27219c0e7678383128e6810009e81776c"
+  },
+  {
+    "path": "tests/Frontend/rb-02-registration-board-dates.test.mjs",
+    "baselineSha256": "220ec09e6e3d529c43e06a80c5e6858837789c8357ce018d65a67aa69149bcc4",
+    "finalSha256": "494bd57f0e1fd3beffa6d3e5256ba6bf02f7222e09b851dafd2c7a542da92e40"
+  },
+  {
+    "path": "tests/Frontend/reg-live-1.test.mjs",
+    "baselineSha256": "53d3b2e36338def2b38a2cd9fa2047b60c95aa512694a4d3a2ae5b19807e765c",
+    "finalSha256": "ec42dbb1be89b3e777bd8323d9f7460e816f56034f8a5cf16a9da1887a1b3937"
+  },
+  {
+    "path": "tests/Frontend/treatment-call-authority.test.mjs",
+    "baselineSha256": "9d8a7c23b1a6977104d24af7436f2b84b2cf0a7693c0600483d3b080f2f9450a",
+    "finalSha256": "eac67702d179a366c9e3d5e7a0a2cef106d409238905728c1ea55ba7ace8164a"
+  },
+  {
+    "path": "tests/Frontend/classic-only-co4-kept.test.mjs",
+    "baselineSha256": "8f75d8f373ac8835d8dbba877d552ae3c3f70d518ea08d6e43b25bb5ae22dc2a",
+    "finalSha256": "7a440b70f66012abb0d3b804b430edef799d80b1c0f3e544b603aefa3e2e07d0"
+  },
+  {
+    "path": "resources/js/components/queue/EmergencyLane.vue",
+    "baselineSha256": null,
+    "finalSha256": "98a24eaf4e5ed820f5e17aa1fca9796b4b4795d399d16e46584411b8a527f774"
+  },
+  {
+    "path": "resources/js/lib/emergency-lane.ts",
+    "baselineSha256": null,
+    "finalSha256": "b9ae39a16cba5ef2c8c0b85f197a6cd80625628f596fd54b810bc6ce1b67b03f"
+  },
+  {
+    "path": "tests/Frontend/tri2-emergency-lane-runtime.test.mjs",
+    "baselineSha256": null,
+    "finalSha256": "0496eee435f5fda6afb08d55ac373ceee65e928d46b9488be8563b7ad298860e"
+  }
+]

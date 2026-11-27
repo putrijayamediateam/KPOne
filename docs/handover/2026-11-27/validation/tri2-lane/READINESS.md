@@ -1,0 +1,19 @@
+# TRI-2b emergency lane backend — bounded pagination
+
+Six-file runtime/new-test overlay `tri2b-lane-overlay.patch`, SHA `97af5b9c9221ef6c84ca4604b3db91d1ad89d10b2dd76290be284b208b1ba1a1`, adds an independent red Waiting query across today/carry-over to Queue snapshot/poll and Registration search. Requires TRI2a lifecycle/schema. No migration/grant/commit/push in this slice.
+
+Lane payload is bounded to25 rows. Both search requests accept `emergency_page` independently of ordinary filters/pages. Response metadata: `total,currentPage,lastPage,perPage:25,hasMore`. Server clamps the selected page to the last valid page when entries disappear. The UI must show total/shown counts and Previous/Next controls; it must not silently conceal overflow. Ordinary filters do not suppress emergencies.
+
+The FULL policy-scoped red query—not the displayed page—is used as a SQL exclusion subquery for ordinary rows and totals. Thus emergencies on later pages never leak back into ordinary lists. Count and row queries are separate reads like existing board pagination; a simultaneous change may be reflected fully on the next poll. No unbounded record materialization or payload remains.
+
+Identity scope: ordinary queue.view.branch or assigned-own queue.view.own, current effective branch, active actor and matching organisation. Emergency-response permission alone does not reveal other doctors' patient identity. Registration is explicitly included in recovered design; viewers without ordinary queue authority have an empty lane. Public QR/TV remain untouched.
+
+Each item: `visitNumber,queueNumber,patientName,assignedDoctorName,waitingMinutes,operationalDate,episodeId,alertStartedAt,alertOrigin,takenBy,takenAt,boardRow`. Nullable episode fields preserve unknown legacy onset; activation times are observed times. `boardRow` is the exact existing QueueRow on Queue or VisitRow on Registration, using existing hydration/mappers, permissions, exact versions, doctor eligibility and retained not-ready flags. Existing manual Call In and other authorized row actions remain available. Waiting time is separate from alert observation time. No acknowledgement/mutation occurs during reads.
+
+Validation:20 focused tests/232 assertions PASS, including NEW3 lane tests;26red entries become25+1, bothHTTP endpoints forward emergency page2, full ordinary exclusion, last-page shrink clamp, action/permission/version/readiness preservation, own/branch identity scope and constant1vs26 query counts. Existing QueueWaitingOrder, QueryPerformance and TriageChipsAndVitals pass. PHPStan changed paths0. Runtime overlay apply-check against CA baseline passes.
+
+Owner approved and exact companion applied in isolated tree: `/workspace/kpone-review-bundles/tri2/TRI2b-PROPOSED-EXISTING-ASSERTIONS.patch`. It changes ordinary red expectation plus explicit lane assertion, and query ceilings22→24/19→21/19→21 only. This is exported separately so it can apply AFTER the already-approved TRI2a assertion baseline; runtime overlay does not bundle or overwrite those earlier test changes. Approved TriageServiceTest immutable guard untouched. Measured GET24/poll21/filtered21 retained with bounded pagination (empty COUNT replaces empty SELECT).
+
+Root/Dispensary own separate UI; Billing independent rereview covers bounded revision. Final integrated type/build/browser/full gates remain coordinator work. Earlier unbounded overlays55f01… and314271… are superseded and must not be used.
+
+Additional regression gate: QueueDirectoryTest/VisitDirectoryTest/DispensaryListTest29 tests:28 passed,297 assertions; sole failure is old total assignment-query ceiling2, now3 from one independent lane effective-branch check. Not a per-row increase; NEW1vs26 test remains constant. Supplementary exact2→3 assertion patch prepared but NOT applied pending owner approval. Existing canSelect authority is retained rather than weakening validation to hide this cost.

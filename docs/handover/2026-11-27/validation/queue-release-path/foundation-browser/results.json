@@ -1,0 +1,76 @@
+[
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "theme": "light",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "resident_doctor",
+    "width": 390,
+    "theme": "dark",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "theme": "light",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "resident_doctor",
+    "width": 1440,
+    "theme": "dark",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "resident_doctor",
+    "page": "Clinical",
+    "width": 390,
+    "singleHost": true,
+    "bothPanelsOnce": true,
+    "authorizedLinkedWaitingPatient": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "resident_doctor",
+    "page": "Clinical",
+    "width": 1440,
+    "singleHost": true,
+    "bothPanelsOnce": true,
+    "authorizedLinkedWaitingPatient": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "theme": "light",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 390,
+    "theme": "dark",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "theme": "light",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "role": "ca_supervisor",
+    "width": 1440,
+    "theme": "dark",
+    "singleHost": true,
+    "noHorizontalOverflow": true
+  }
+]

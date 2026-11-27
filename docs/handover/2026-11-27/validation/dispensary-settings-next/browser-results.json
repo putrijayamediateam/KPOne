@@ -1,0 +1,69 @@
+{
+  "captures": [
+    {
+      "state": "on",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "on",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "on",
+      "width": 1440,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "on",
+      "width": 1440,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "off",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "off",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "state": "off",
+      "width": 1440,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "state": "off",
+      "width": 1440,
+      "theme": "dark",
+      "height": 44
+    }
+  ],
+  "requests": [
+    {
+      "doctorCheckRequired": false,
+      "hasBranch": true,
+      "hasLockVersion": true,
+      "hasRetryKey": true
+    },
+    {
+      "doctorCheckRequired": true,
+      "hasBranch": true,
+      "hasLockVersion": true,
+      "hasRetryKey": true
+    }
+  ],
+  "errors": [],
+  "restoredInitialState": true,
+  "actualStalePageErrorPreserved": true
+}

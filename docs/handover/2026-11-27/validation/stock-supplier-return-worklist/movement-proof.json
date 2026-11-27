@@ -1,0 +1,38 @@
+{
+  "movementsBefore": 28,
+  "movementsAfter": 29,
+  "newMovement": {
+    "id": 29,
+    "public_id": "890ddd3a-2fd3-4259-aaaa-6419175f6819",
+    "organisation_id": 1,
+    "inventory_sku_id": 2,
+    "inventory_batch_id": 13,
+    "source_location_id": 2,
+    "destination_location_id": null,
+    "quantity": "0.001",
+    "movement_type": "supplier_return",
+    "dispensary_item_batch_allocation_id": null,
+    "reference_type": "inventory_supplier_return",
+    "reference_public_id": "831b589a-6ce9-46b8-b719-39eb4b725b3e",
+    "actor_user_id": 5,
+    "occurred_at": "2026-11-27 02:53:24",
+    "created_at": "2026-11-27 02:53:24",
+    "updated_at": "2026-11-27 02:53:24",
+    "unit_cost_sen": null,
+    "supplier_id": null,
+    "unit_snapshot": "{\"factor\": \"1.000\", \"base_unit\": \"capsule\", \"direction\": \"input_to_base\", \"precision\": 3, \"input_unit\": \"capsule\"}",
+    "cost_total_sen": null,
+    "cost_source": null
+  },
+  "changedBalances": [
+    {
+      "id": 24,
+      "before": "0.996",
+      "after": "0.995",
+      "delta": "-0.001"
+    }
+  ],
+  "actionsBefore": 63,
+  "actionsAfter": 68,
+  "note": "One new individual request completed four existing actions; an extra independent approval establishes a second stale-refusal capture. Both refused stale attempts append no action. Credit is reference-only."
+}

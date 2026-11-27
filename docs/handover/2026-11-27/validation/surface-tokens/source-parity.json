@@ -1,0 +1,17 @@
+{
+  "patchOperationParity": true,
+  "files": {
+    "resources/css/app.css": {
+      "sha256": "38b247d717a27f51bffd1ccb0b0c2975c914dabc88aef7f381bc6fcaa3d8db22",
+      "identicalToPriorVisualSource": true
+    },
+    "resources/js/components/ui/sheet/SheetContent.vue": {
+      "sha256": "334023964731d2684ba733b5d04c933347aa6f7ad12b6a2ae3761400dbe19b8c",
+      "identicalToPriorVisualSource": true
+    },
+    "resources/js/components/ui/sheet/SheetOverlay.vue": {
+      "sha256": "186c40e5fe70d8bf74955d4149a75541b845b7d1db2e56a8dd34580e8606985f",
+      "identicalToPriorVisualSource": true
+    }
+  }
+}

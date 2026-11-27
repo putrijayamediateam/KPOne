@@ -1,0 +1,28 @@
+{
+  "cancelPreservedDraft": true,
+  "explicitSaveAndHold": true,
+  "committedTakeLostResponse": true,
+  "unchangedRetry": true,
+  "returnedOriginal": true,
+  "seenDoesNotTake": true,
+  "singleHost": true,
+  "posts": [
+    {
+      "expected_branch_id": 3,
+      "episode_id": 3,
+      "lock_version": 1,
+      "idempotency_key": "1db298d0-a422-420a-b0ca-82b4265236f1",
+      "from": "consultation",
+      "from_visit": "KPV-00000006"
+    },
+    {
+      "expected_branch_id": 3,
+      "episode_id": 3,
+      "lock_version": 1,
+      "idempotency_key": "1db298d0-a422-420a-b0ca-82b4265236f1",
+      "from": "consultation",
+      "from_visit": "KPV-00000006"
+    }
+  ],
+  "errors": []
+}

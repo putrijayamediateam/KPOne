@@ -1,0 +1,8 @@
+{
+    "database": "kpone_settings_waiting_link_preview_test",
+    "supervisor": "settings.supervisor@kpone.test",
+    "director": "settings.hidden-editor@kpone.test",
+    "waitingUrl": "\/dispensary?tab=check",
+    "switchOff": true,
+    "caseStatesUnchanged": true
+}

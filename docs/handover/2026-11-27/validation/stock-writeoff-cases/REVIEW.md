@@ -1,0 +1,23 @@
+# Write-off case worklist
+
+Own tree KPOne-stock-writeoff-cases, branch feature/stock-writeoff-cases-demo on1196. Local count disclosure primitive gains optional accessible label and summary slot; count defaults and disabled pass-through remain. Writeoff mode uses stable one-balance case disclosures and exact requested quantity/unit/reason. Null is Unavailable, zero stays0. Existing detail/history/action slots and the entire parent script are unchanged. No authority/backend/schema change.
+
+Existing tests retain every assertion. Three new actual-page SSR cases cover writeoff summary/authority, zero/null and blind count regression. New actual-parent test verifies approval/reversal endpoints, original target/balance versions/retry keys when the list is replaced. Independent Staff reran combined13tests successfully. Backend GovernedStock/DifferenceReport30tests548assertions pass. Full static/frontend/build and actual browser final evidence pending.
+
+Explicit remaining full-demo contracts: multi-line writeoff sessions, Returned command, proposer display metadata and broader unified workspace are not in this bounded projection. No fabricated records or commands introduced. The existing disposal reference remains referenced-not-proven. Reversal remains separate immutable proposal requiring current existing approval policy.
+
+Setup note: initial type run used Wayfinder generation without --with-form, causing seven pre-existing auth/settings helper type errors. Corrected generated ignored helper setup and reran; no app workaround. New reversal test initially assumed the wrong route/fixture; corrected to actual existing reversal route and original balance/version payload without changing production code.
+
+Full lint initially flagged braces/blank lines in the added tests only; corrected formatting without changing any test expectation. Full types passed with corrected Wayfinder setup. Final lint/format/full frontend/build pipeline is running serially in the assigned frontend slot.
+
+Final static/full suite:2249frontend/type/full lint/full resources format/build9.27s pass. Existing backend30/548 pass, scoped13/13, Staff independently13/13. No prior assertion altered. Parent script and original detail article/authority slots have explicit source parity proof. Actual workflow and final frozen review pending capture completion.
+
+Actual browser workflow passed: CA Supervisor proposes1tablet damaged write-off, Director independently posts it, Finance's already-open competing approval receives the exact stale-case refusal and keeps its dialog open; CA proposes a linked reversal, Finance independently posts it. Read-only CA sees zero propose/approve/reverse actions. Keyboard Enter expands the case disclosure; four390/1440 light/dark views have no overflow/errors and owned targets44/36. SQL proof has exactly one stock_writeoff and one linked adjustment_in; all balances return exactly to baseline, movement count20→22, stale request appends nothing.
+
+Actual reversal screenshot exposed a legacy shared reason label: generic correction maps to Receipt correction, which is misleading here. Applied local contextual wording Correction only for governed reversal/correction in summary and detail, leaving shared formatter/other reasons/policy untouched. Added real-page regression. Final exact-source frontend/build/recapture pending; old frozen7cda artifact is superseded once regenerated.
+
+Empty-state source review found duplicate parent text after enabling the existing list; removed only the now-redundant writeoff-empty paragraph. New real-page test proves exactly one truthful empty message inside the persistent named list. Final targeted15/15 passed, including contextual Correction and empty-state cases; existing assertions remain intact. Final full run/build queued under shared-slot coordination.
+
+Final exact source ecd6cf1d017d779b58013065e82e0546e231eb72a44268e273c5d7efbb4a2cd7: full2,251/2,251 and build8.06s passed. Final posted390/1440 light/dark captures show contextual Correction, with no overflow/errors and44/36 controls. Earlier pending writeoff screenshots remain semantically unchanged (damaged reason). Final empty0rows capture verifies no fabricated case. Shared receipt formatter remains unchanged and its original D010 expected Receipt correction still passes in the full suite.
+
+Settled native history focus returns to the original Evidence history button after actual dialog disappearance. An initial150ms-only sample caught the closing animation; corrected capture waits for dialoghidden before checking. No application fix required. Final browser results record zero errors and empty0cases.

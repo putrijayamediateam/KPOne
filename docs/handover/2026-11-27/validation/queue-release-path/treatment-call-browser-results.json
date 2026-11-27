@@ -1,0 +1,143 @@
+[
+  {
+    "role": "doctor",
+    "check": "held treatment call stays absent without narrow permission"
+  },
+  {
+    "role": "ma",
+    "width": 1440,
+    "dark": false,
+    "shot": "treatment-call-1440-light.png",
+    "hitboxes": [
+      {
+        "text": "Synthetic Call Proof Room",
+        "height": 36
+      },
+      {
+        "text": "Cancel",
+        "height": 36
+      },
+      {
+        "text": "Call to room",
+        "height": 36
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "role": "ma",
+    "width": 1440,
+    "dark": true,
+    "shot": "treatment-call-1440-dark.png",
+    "hitboxes": [
+      {
+        "text": "Synthetic Call Proof Room",
+        "height": 36
+      },
+      {
+        "text": "Cancel",
+        "height": 36
+      },
+      {
+        "text": "Call to room",
+        "height": 36
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "role": "ma",
+    "width": 768,
+    "dark": false,
+    "shot": "treatment-call-768-light.png",
+    "hitboxes": [
+      {
+        "text": "Synthetic Call Proof Room",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Call to room",
+        "height": 44
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "role": "ma",
+    "width": 768,
+    "dark": true,
+    "shot": "treatment-call-768-dark.png",
+    "hitboxes": [
+      {
+        "text": "Synthetic Call Proof Room",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Call to room",
+        "height": 44
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "role": "ma",
+    "width": 390,
+    "dark": false,
+    "shot": "treatment-call-390-light.png",
+    "hitboxes": [
+      {
+        "text": "Synthetic Call Proof Room",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Call to room",
+        "height": 44
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "role": "ma",
+    "width": 390,
+    "dark": true,
+    "shot": "treatment-call-390-dark.png",
+    "hitboxes": [
+      {
+        "text": "Synthetic Call Proof Room",
+        "height": 44
+      },
+      {
+        "text": "Cancel",
+        "height": 44
+      },
+      {
+        "text": "Call to room",
+        "height": 44
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "role": "ma",
+    "check": "Cancel has no treatment request"
+  },
+  {
+    "role": "ma",
+    "check": "authorized actual held treatment announcement submitted once",
+    "requests": [
+      "PATCH"
+    ]
+  }
+]

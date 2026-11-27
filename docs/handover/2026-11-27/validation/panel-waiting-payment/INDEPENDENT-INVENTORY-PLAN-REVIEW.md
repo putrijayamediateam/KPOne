@@ -1,0 +1,7 @@
+# Independent Inventory backend plan review
+
+Read CONTRACT-PROPOSAL and actual PanelRemittanceService::openClaims and PanelClaimPaymentReversal constants. Bounded contract CLEAR: exact payable statuses and accepted-minus-coalesced nonreversed payments >0 reproduce existing payable definition, with claim/org/branch correlation retained. No remittance200-row cap should enter the independent directory projection. Existing locked directory authority and scoped filtered query remain prerequisites; monetary read permission does not imply record-payment permission.
+
+Implementation checks: coalesce no-payment sums to integer zero; compute received once consistently in materialized scoped rows; totals and page must derive from the same eligible relation and statement snapshot. Empty relation still yields zero metadata, clamp page deterministically, stable unique ordering. Keep SQL bindings from trusted query-builder compilation in exact order; never interpolate filter values. Duplicate payments must not multiply claims through a join; correlated sum/grouped one-row relation prevents that. Reversal predicate should remain the existing constant/semantics. New badge count adds bounded work and must not independently recompute active-view totals with another snapshot.
+
+Claim-created date and claimed-amount filters must remain clearly labelled; received is cumulative nonreversed remittance, not period cash. No policy blocker or new authority needed. Final source/tests and actual runtime remain unreviewed; no test rerun for this plan.

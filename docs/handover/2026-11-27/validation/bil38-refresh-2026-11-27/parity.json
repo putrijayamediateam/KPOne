@@ -1,0 +1,68 @@
+[
+  {
+    "path": "app/Domain/Access/BillingPermissions.php",
+    "original": "df9b9ff11c4705e7cc933f22a8dae9aa4f0cba31",
+    "current": "67c8edc226c0d9d244d6492156435b5c0b2da840",
+    "identical": false
+  },
+  {
+    "path": "database/migrations/2026_11_26_250100_grant_director_price_publication_additively.php",
+    "original": "24f6bb46279953d132c2d351c95af28f27049544",
+    "current": "24f6bb46279953d132c2d351c95af28f27049544",
+    "identical": true
+  },
+  {
+    "path": "docs/teams/billing/BIL-38-DESIGN.md",
+    "original": "59721f0f2db54d9587d6c28ad6b90632e4094f15",
+    "current": "59721f0f2db54d9587d6c28ad6b90632e4094f15",
+    "identical": true
+  },
+  {
+    "path": "docs/teams/billing/BIL-38-REVIEW-2026-11-26.md",
+    "original": "bd28e04975733a550b548c8ce51ec5b437893168",
+    "current": "bd28e04975733a550b548c8ce51ec5b437893168",
+    "identical": true
+  },
+  {
+    "path": "docs/teams/billing/TEAM.md",
+    "original": "a5734b94a3645389d0b3a6cebb7b11865dee6194",
+    "current": "a4623bf7e18ce14a6bd0fd129a4295a9175ecb84",
+    "identical": false
+  },
+  {
+    "path": "tests/Feature/Billing/DirectorPricePublicationTest.php",
+    "original": "bd03ec83b6a48b2373d16eee8e96a00abed437c5",
+    "current": "bd03ec83b6a48b2373d16eee8e96a00abed437c5",
+    "identical": true
+  },
+  {
+    "path": "tests/Feature/Billing/PricingControllerTest.php",
+    "original": "016daa114e00a937607e9573d8b850995366612d",
+    "current": "016daa114e00a937607e9573d8b850995366612d",
+    "identical": true
+  },
+  {
+    "path": "tests/Feature/Billing/SupervisorPricingTest.php",
+    "original": "881acdb6896fabc3fe5c6f691a7141cfc064e019",
+    "current": "881acdb6896fabc3fe5c6f691a7141cfc064e019",
+    "identical": true
+  },
+  {
+    "path": "tests/Feature/Clinical/ClinicalServiceCatalogueControllerTest.php",
+    "original": "13c07a8e4b8f4be026301804684ea32d0ff6d653",
+    "current": "13c07a8e4b8f4be026301804684ea32d0ff6d653",
+    "identical": true
+  },
+  {
+    "path": "tests/Feature/Clinical/UnifiedCatalogueSetupTest.php",
+    "original": "17d55fb083536cfb522f1494fd9f77eb031bef40",
+    "current": "17d55fb083536cfb522f1494fd9f77eb031bef40",
+    "identical": true
+  },
+  {
+    "path": "tests/Feature/Inventory/CatalogueImportTest.php",
+    "original": "afd8a33f375dd805ecfcd3c41b510d47a3bfd0d1",
+    "current": "afd8a33f375dd805ecfcd3c41b510d47a3bfd0d1",
+    "identical": true
+  }
+]

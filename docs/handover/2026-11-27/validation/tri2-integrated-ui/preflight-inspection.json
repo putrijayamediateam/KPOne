@@ -1,0 +1,24 @@
+{
+    "database": {
+        "db": "kpone_ca_preview_test",
+        "host": "127.0.0.1",
+        "port": 55439
+    },
+    "guidelines": [],
+    "reservedPatientCount": 0,
+    "reservedOtherDoctorCount": 0,
+    "actors": [
+        {
+            "id": 2,
+            "email": "demo.director@kpone.test",
+            "organisation_id": 1,
+            "is_active": true
+        },
+        {
+            "id": 10,
+            "email": "demo.hr_manager@kpone.test",
+            "organisation_id": 1,
+            "is_active": true
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+  "resources/js/components/queue/RedZoneAlertBanner.vue": "7cd1af6c8549d97884deec8828674eeab66817458883a193a6c107b4afb41f83",
+  "resources/js/pages/Queue/Index.vue": "5d59319cf85e913c7741930ea42618a3d3a38b124c3a8532e107986478b61ec8",
+  "resources/js/pages/Clinical/Show.vue": "62945f5b98f4869fb837a91b648acd6a0a2ec1a118e22f330bdfc5f40405522f",
+  "resources/js/layouts/ClinicLayout.vue": "c33f4d849a8765aa60d534fc84606635ed3f9308dee8e8e8a0e4dd6b9f9a4cf9",
+  "resources/js/layouts/AdminLayout.vue": "05953a6f5710f2d69f85556c5558cc279c05a66d4db7f3fec11bbd2dd7137656",
+  "resources/js/layouts/app/AppSidebarLayout.vue": "66d30a2e00f80621fe0a900e66215603a7d59c38d0ea20d43b9ca433a94b91fc",
+  "resources/js/layouts/app/AppHeaderLayout.vue": "a7694692468f9df198839e42b4a0981f40b24a425a3cfbd38441b020301b0f49",
+  "tests/Frontend/q-16b-red-zone-alert.test.mjs": "2c2fd019e1bf84c5f320f6038c605b46d72b6c7ed2c2a5019869298802b1c4b3"
+}

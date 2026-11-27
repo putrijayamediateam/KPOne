@@ -1,0 +1,9 @@
+# Stock Transfers independent bounded review
+
+CLEAR for final four-file patch `e66a77de215be72f5a5224228a46c6b6f26b91cf151dcf4a8e918f2a50c5bc31`. Independently recomputed patch and all manifest file hashes; all match. Parent OperationsPanel script is byte-identical after removing the new component import. Authority, payload, version, retry and mutation handlers remain unchanged.
+
+Reviewed keyed v-show request details and scoped action slots: drafts remain mounted, busy selection is guarded, branch/removal clears selection, focus fallback does not steal newly moved focus. Per-line stock units and null/zero remain distinct; received status does not imply differences resolved. The explicit up-to-50 visible recent-request caption avoids a global completeness claim. Independently reran all six actual-component runtime tests successfully.
+
+Inspected receipt390dark and final settled390dark/1440light images. Final open create controls, request details and separate resolved-shortage status fit/read clearly. The initial sticky fullpage stitching artifact is absent from final captures. Parsed final-results: no overflow/errors in all four viewport/theme states, measured owned controls at least36desktop/44mobile. These measurements and actual workflow are builder evidence, not my browser rerun.
+
+Builder actual synthetic flow created, approved and dispatched two requests, preserved receipt drafts, received one and two tablets, refused receiver resolution, and separately resolved shortage as Finance. Movement proof contains dispatch2+2 and receipt1+2 only: loss adds no stock credit. Finance create-form omission is retained. No new backend, permissions or existing assertion edits. This clears the bounded Transfers composition, not the unchanged PO/Reorder/shared-shell controls or full Inventory demo parity. No merge/production claim.

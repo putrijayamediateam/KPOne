@@ -1,0 +1,24 @@
+{
+  "status": "published_draft",
+  "localCommit": "d2d13fdc248643892cd3015f30b944afb630c836",
+  "tree": "b554694e901a49f90caaef0feb99609ac99ec6e1",
+  "branch": "feature/registration-settings-composition",
+  "base": "d0f37b5c1864b796fc7b4224996bd917551af3e7",
+  "destination": "https://github.com/putrijayamediateam/KPOne",
+  "destinationVerified": {
+    "originMatches": true,
+    "visibility": "public",
+    "connectedPushPermission": true
+  },
+  "remoteCreated": true,
+  "reason": "Automatic review requires explicit trusted user authorization for publishing these three changed files to the public repository. Initial unverified/private-destination concern disproved by origin and connector metadata; retry rejected on authorization. No alternate push attempted.",
+  "requiredNextStep": "Review draft/CI; no merge authorized by this publication.",
+  "url": "https://github.com/putrijayamediateam/KPOne/pull/1240",
+  "originalLocalCommit": "3bf91447aa8dbb27fd8dae1bf37ea6f4765157a2",
+  "remoteHead": "d2d13fdc248643892cd3015f30b944afb630c836",
+  "originalArchiveBranch": "archive/registration-settings-local-3bf91447",
+  "treeParityVerified": true,
+  "localClean": true,
+  "approvalResolution": "Owner explicitly approved exact three-file Settings commit publication to public putrijayamediateam/KPOne; root relayed fresh approval before supported API retry. Prior rejection retained as history, no bypass.",
+  "attachment": "Child attach tool hung for several minutes and was terminated; coordinator notified to attach root-side."
+}

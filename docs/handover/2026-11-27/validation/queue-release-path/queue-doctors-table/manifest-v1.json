@@ -1,0 +1,9 @@
+{
+  "base": "32bd1444afd151dcb3cc2a4cae4ddc9bcbf6341e",
+  "patchSha256": "f6e95cab7e5cc24c55e21f0b1f082d28ceaf3ab996ef36c1331f9ee0c1dd947c",
+  "files": {
+    "resources/js/components/queue/QueueRoomsToday.vue": "65dce4afe26b021499eacffb455b489fc0af08e5f615194480f16aa4e77d9116",
+    "resources/js/pages/Queue/Index.vue": "8a9577a6b7592cfa5596620b8cb6a1f6e30218f5dc049df4c1a0e0e1e5378f56",
+    "tests/Frontend/queue-doctors-table.test.mjs": "c5e3fda5b8af05a809c0ea4cbb4d33f4539d386895801e41698641fae3956727"
+  }
+}

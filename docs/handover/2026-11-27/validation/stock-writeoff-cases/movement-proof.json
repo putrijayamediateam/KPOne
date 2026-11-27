@@ -1,0 +1,4 @@
+[{"id":7,"case_id":3,"kind":"writeoff","reverses_case_id":null,"action":"created","actor_user_id":5,"lock_version":1,"state":"awaiting_approval","quantity":null,"movement_id":null,"movement_type":null,"movement_quantity":null}, 
+ {"id":8,"case_id":3,"kind":"writeoff","reverses_case_id":null,"action":"approved","actor_user_id":2,"lock_version":2,"state":"posted","quantity":1.000,"movement_id":21,"movement_type":"stock_writeoff","movement_quantity":1.000}, 
+ {"id":9,"case_id":4,"kind":"reversal","reverses_case_id":3,"action":"created","actor_user_id":5,"lock_version":1,"state":"awaiting_approval","quantity":null,"movement_id":null,"movement_type":null,"movement_quantity":null}, 
+ {"id":10,"case_id":4,"kind":"reversal","reverses_case_id":3,"action":"approved","actor_user_id":7,"lock_version":2,"state":"posted","quantity":1.000,"movement_id":22,"movement_type":"adjustment_in","movement_quantity":1.000}]

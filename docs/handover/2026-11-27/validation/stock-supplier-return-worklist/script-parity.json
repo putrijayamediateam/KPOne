@@ -1,0 +1,7 @@
+{
+  "parentScriptUnchangedExcept": [
+    "local component import",
+    "early busy refusal in existing read search function"
+  ],
+  "exactNormalizedParity": true
+}

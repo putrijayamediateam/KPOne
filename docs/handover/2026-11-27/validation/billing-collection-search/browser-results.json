@@ -1,0 +1,78 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "controls": [
+      {
+        "id": "collection-query",
+        "height": 36
+      },
+      {
+        "id": "collection-age",
+        "height": 36
+      }
+    ],
+    "applyHeight": 36
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "controls": [
+      {
+        "id": "collection-query",
+        "height": 36
+      },
+      {
+        "id": "collection-age",
+        "height": 36
+      }
+    ],
+    "applyHeight": 36
+  },
+  {
+    "width": 1440,
+    "enterSearch": true,
+    "emptyAccurate": true,
+    "conflictingAgeReset": true
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "controls": [
+      {
+        "id": "collection-query",
+        "height": 44
+      },
+      {
+        "id": "collection-age",
+        "height": 44
+      }
+    ],
+    "applyHeight": 44
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "controls": [
+      {
+        "id": "collection-query",
+        "height": 44
+      },
+      {
+        "id": "collection-age",
+        "height": 44
+      }
+    ],
+    "applyHeight": 44
+  },
+  {
+    "width": 390,
+    "enterSearch": true,
+    "emptyAccurate": true,
+    "conflictingAgeReset": true
+  }
+]

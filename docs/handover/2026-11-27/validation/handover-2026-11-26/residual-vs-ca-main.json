@@ -1,0 +1,1418 @@
+[
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/PROGRESS-2026-11-26.md",
+    "sha256": "93dc7c5f414b3fbd8edb917db132c1695e0ff1b01a55e73fa898b1541651e74b",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/design/CLEAN-LOOK-SPEC.md",
+    "sha256": "6447409b85ad983c5f5c548c714705afdc77a992b64e2106506b0f942901a760",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/teams/billing/BIL-38-DESIGN.md",
+    "sha256": "d225da8b1c8c37f66c5234e46ffbb44435fb3b76c52214a0742855f02b0e8a64",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne",
+    "file": "docs/teams/dispensary-otc/CLEAN-LOOK-GAPS-2026-11-26.md",
+    "sha256": "e2848494095a6638804444dbb843002e713235fb3bcd3299077ca88366d72bd6",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "app/Domain/Queue/Services/QueueDirectoryService.php",
+    "sha256": "2c55ffae536f0e567f357906488e306b30b8d6531525b20d1eb170b236c8e0ed",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "app/Domain/Visit/Services/VisitDirectoryService.php",
+    "sha256": "0fcac1f516ee4814bb0d7d3162c71413756e65f18aa3629b91ee123db52cde06",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "261221a0b7e8ee63eec8d8f87dfcb8cf83cd4854ee86dcd5d2db525a0b011bd2",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "15f1b5df0b49743991e0460c6d3f21a23be5dffd1b59ee238e1ef005dfdec28b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "63333edb5a8424ffdb0374d3bd299b7ad8c53fcd24eb09858a5123782357610d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "resources/js/types/patientBoard.ts",
+    "sha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "resources/js/types/queue.ts",
+    "sha256": "d7afa0f0633545029c8736974deb54cf90bc30a5ea36e078cd05f0213dec7c98",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+    "sha256": "2be086edac5de8260a91a627a401051d60baa09de088052671b04d229e4d30ce",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "docs/teams/patients-registration/AUTO-1c-DESIGN.md",
+    "sha256": "d08d0f95faf295e512d33996a925c7f5c81fd2d07d2b9d1983eec414f7787c80",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-auto1c",
+    "file": "docs/teams/patients-registration/AUTO-1c-RECOVERY-2026-11-26.md",
+    "sha256": "359a549172eb5fd8ad9e2159d496f454ca7d78b2b246190d79624b04573c8254",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil36",
+    "file": "docs/teams/billing/TEAM.md",
+    "sha256": "ea6e1c4094b2db6fb9028ea37cde172c7129bbb5881efaf28405863d00276032",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil36",
+    "file": "docs/teams/billing/BIL-36-DESIGN.md",
+    "sha256": "6c2b95c1e2b645609382d2b1dea0c949966bd094c90a2d85ec04854311d7a2d1",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil36",
+    "file": "docs/teams/billing/BIL-36-REVIEW-2026-11-26.md",
+    "sha256": "5fa354028fd46db993f6ca4baac39726bb42b9495064a76a186aecbc8b5055ee",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "app/Domain/Shared/ReadOnlyReviewAudit.php",
+    "sha256": "73fdc4b5d689f738885543b4966e43a78529aae87adfbaadb98907c95d39bd37",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "app/Http/Controllers/ClinicalEncounterController.php",
+    "sha256": "dab2e020f037bcf106fd7c956856a3331b5b7241f1bb927fc2f7bfd851e75466",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "docs/teams/billing/TEAM.md",
+    "sha256": "11e896a1341a6b27bdb310d73e585e4a2aa3c1980744562bf4785f4a6dd8daf8",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "resources/js/pages/Billing/Invoice.vue",
+    "sha256": "8e8ef9b7c5b33e7e4129914eb5aecf961caa86dfceff8ee77f4b1daf02622b8d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "f42bd54c3de6c845a0663cee60eb09f2274e824b82c414e4fde7fd7edd554d63",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "resources/js/pages/Visits/History.vue",
+    "sha256": "c7798f9edb74098a66732ac4ca668fc2d1afb6ebf73feab33cfe6acf8a67437b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "routes/web.php",
+    "sha256": "1f15560af323d9d427876acfa0a0154317608906d53271b07ea5588ac50ab9d2",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "docs/teams/billing/BIL-37-DESIGN.md",
+    "sha256": "10c4c0be995a8facac37d9333e1435341e3af743c654a032a0d2ba7b417bb5f0",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37",
+    "file": "docs/teams/billing/BIL-37-REVIEW-2026-11-26.md",
+    "sha256": "19c8335716e129ff57ef892ac55bdcf5f46b2f3ccec8aa3ce727a5f8bcf446f7",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37-publication",
+    "file": "app/Domain/Shared/ReadOnlyReviewAudit.php",
+    "sha256": "20911005b13d814bbdab606e27d98139207ea7aa039defa4425cce887dfc08e9",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37-publication",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "0b56e501b66a85fb04aa57f35240d534d825f6450e4facc83617ea5018f56596",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil37-publication",
+    "file": "routes/web.php",
+    "sha256": "3a3b383bb124c8619cb353f047dcd834e849121120ef0b7df50128c34c4dc9a3",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-bil38",
+    "file": "docs/teams/billing/TEAM.md",
+    "sha256": "b810a6635227c7e0ad02c2cd26852e932b5d6580270fafb7ce15d878b7a7e758",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil38",
+    "file": "docs/teams/billing/BIL-38-DESIGN.md",
+    "sha256": "d225da8b1c8c37f66c5234e46ffbb44435fb3b76c52214a0742855f02b0e8a64",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-bil38",
+    "file": "docs/teams/billing/BIL-38-REVIEW-2026-11-26.md",
+    "sha256": "ae021ab6adf73dcc9c34a442953f33a0286d9cb102044f66c3bff80878e78d8c",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-billing-cl1",
+    "file": "docs/teams/billing/CLEAN-LOOK-STAGE1-PLAN.md",
+    "sha256": "2dba05111786e8cc0a5c1639cd3acdfe43cdc3ea6abbbc62532c6f3744411745",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-billing-demo",
+    "file": "resources/js/pages/Billing/PayLaterCollections.vue",
+    "sha256": "3751627e9bc01ed8384d93c95563b254eaac0dff79005c3f660065c258ac1df8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-billing-demo",
+    "file": "resources/js/components/billing/BillingBoardFrame.vue",
+    "sha256": "cdeb4f17015b1eecb6ffd141ff49fff9f4efd3ba4410fbd9a5629dc0f86a466b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-billing-demo",
+    "file": "tests/Frontend/billing-board-frame.test.mjs",
+    "sha256": "285691a604f3116d1a59fa3bf6548dd1308aeed079c0cbf6062fd432c84facac",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-billing-preview",
+    "file": "docs/teams/billing/CLEAN-LOOK-STAGE1-PLAN.md",
+    "sha256": "82d70f5d4c43b46211baa7d627b961e78545c73927ea6947ea2fb6fb7636f091",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-cln-cl1",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "9bcb2a68253e9162139f5ff044c4301473a867c068909294fb8891fbf244d4f2",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-dispensary-case-cl1",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "2f1844932c5f60d60e19e7495e489ea896ae323408375d4e9809c59993877246",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-dispensary-case-cl1",
+    "file": "tests/Frontend/dd-57-dispensary-dark.test.mjs",
+    "sha256": "a80c74d396491162148c9107bef9af2030ce1d064d4c7bf6ca1c2b052b76b7e1",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-dispensary-partials",
+    "file": "tests/Frontend/dd-57-dispensary-dark.test.mjs",
+    "sha256": "187fc1a0863fa83f89d1efd2206bc90b78cd484b0a93285361847cda4536ce20",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-dsp28",
+    "file": "app/Domain/DepartmentSpace/PharmacySpace.php",
+    "sha256": "fe0941e6c8cae834839f4bbf3c998c741ac887d76c5fb777b78d4b66c32ac196",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-dsp28",
+    "file": "docs/teams/dispensary-otc/TEAM.md",
+    "sha256": "c72be03fd6ab67943fb46711de24d7c126e0b0f34257a14a084a2d8fc48260b1",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-dsp28",
+    "file": "docs/teams/dispensary-otc/CLEAN-LOOK-GAPS-2026-11-26.md",
+    "sha256": "f81b7fdd8c64c223bc7d44cd8ee3051a07d7bdcd01a719f3e2e5dfd4923d4008",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "docs/teams/patients-registration/TEAM.md",
+    "sha256": "d2910da35552166d60115225557b23af64b81e82fc2a8baed29d68cba258441d",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "phpunit.xml",
+    "sha256": "801cf7a7d1c5e610064714bd3f8451e154a496188bbaa63009967f96ff46145b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "resources/js/pages/Patient/Show.vue",
+    "sha256": "5b7fedab7f9987b94b8882116324e88f830383719680f13b2f2696abc3fae6b5",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "resources/js/pages/Registration/Create.vue",
+    "sha256": "4c31301f0af62153a0edeb0691d311180cf9f93735854495a79413ef9b4057fd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "routes/web.php",
+    "sha256": "8877e30009f142111743d187e1509a4c35df61c0bb6019c90f62eb7da311d1e8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-contact",
+    "file": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "docs/teams/patients-registration/TEAM.md",
+    "sha256": "d2910da35552166d60115225557b23af64b81e82fc2a8baed29d68cba258441d",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "phpunit.xml",
+    "sha256": "a10ecf47bd5f2c880d1db1b765737ffce3cec27c40640dcb6ab4c64fec726393",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "resources/js/pages/Patient/Show.vue",
+    "sha256": "5b7fedab7f9987b94b8882116324e88f830383719680f13b2f2696abc3fae6b5",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "resources/js/pages/Registration/Create.vue",
+    "sha256": "4c31301f0af62153a0edeb0691d311180cf9f93735854495a79413ef9b4057fd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "routes/web.php",
+    "sha256": "39db6c9213e2fa4ff589f3af572ed2915c9dcd7a1e152abc1cbce33117c9d075",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "01b96c4b0a7c77780302716bf113afa6d895ec66e85806d707d2eea8be72b080",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-emergency-publication",
+    "file": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "docs/teams/patients-registration/TEAM.md",
+    "sha256": "7d2ed739045404e188d8b86f86a65fa603e35b4a018676616b1db9196181888e",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "phpunit.xml",
+    "sha256": "39e57ab3e05fc598fcca8691a23bb54ee91558bc983d896d21bdc0b5773a734d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "58cf1ef36503cda9e7bd3377afb63d084fd90eb636f507c9338ef9ce9dc74161",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "resources/js/pages/Patient/Show.vue",
+    "sha256": "fffe0048f92031ba50743f6b69b57caf620bbdd93f88adfc29568969df1bf08f",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "routes/web.php",
+    "sha256": "96a3fb0210551606008891b7ef256f23df3505fcfa4c6c38dcc064b5ce2ed7c7",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family",
+    "file": "tests/Frontend/family-links-ui.test.mjs",
+    "sha256": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family-publication",
+    "file": "docs/teams/patients-registration/TEAM.md",
+    "sha256": "7d2ed739045404e188d8b86f86a65fa603e35b4a018676616b1db9196181888e",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-family-publication",
+    "file": "phpunit.xml",
+    "sha256": "aaa4f11b4d879b8319cb4e0472a557ac67111cf804467ce53732fb6d7330a76e",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family-publication",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "570f3c3133c38c3954432bb5e900db26dd260c6822e3988635e06147ad699e93",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family-publication",
+    "file": "resources/js/pages/Patient/Show.vue",
+    "sha256": "fffe0048f92031ba50743f6b69b57caf620bbdd93f88adfc29568969df1bf08f",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family-publication",
+    "file": "routes/web.php",
+    "sha256": "d689dc5591f6e522765c1fabdada582126a7afe4fca24fc95a8bb26b2dc6e9ba",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-family-publication",
+    "file": "tests/Frontend/family-links-ui.test.mjs",
+    "sha256": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-inventory",
+    "file": "resources/js/components/inventory/InventoryOperationsPanel.vue",
+    "sha256": "59df01d2d55056057fc9e4f9e3fc69ccc596051fd0b07bc75c58a6a72f566b01",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-inventory-preview",
+    "file": "docs/teams/inventory/TEAM.md",
+    "sha256": "9a10bb7e2642a99bd31d3ca2435155c66e002aff8dae13b160668dad5b0617bc",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-inventory-preview",
+    "file": "resources/js/components/inventory/InventoryOperationsPanel.vue",
+    "sha256": "59df01d2d55056057fc9e4f9e3fc69ccc596051fd0b07bc75c58a6a72f566b01",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-panel30",
+    "file": "routes/web.php",
+    "sha256": "5e58b9ef332a3bb2c699211a1a66f031e648323669ed8af5007bfe514bfaf6de",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-q16c",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "37e09af87e0290e270730e1777731263c294e23b4c82f5dddeb4109f98fd8ea6",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-q16d",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "dd1df586adaaafdf3080246da2bf3ea09bd09ff2442475f937851453902d5eab",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-q16d",
+    "file": "routes/web.php",
+    "sha256": "cc5d266805fc1d7de584fdd9bb66c4f69f7279b9700122362cfe3fe3ba79d1b0",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-q16d",
+    "file": "docs/teams/queue-tv/Q16D-REVIEW-2026-11-26.md",
+    "sha256": "5c1380cd42f223d6d0a228faebad2d161d7ae427c75ad161cbe2ea7b8b9b10a3",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-q16e",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "5f321434b65b22d42c8402bc95fab507fd1aa6578b9430d12f2344bdd7564004",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-q16e",
+    "file": "routes/web.php",
+    "sha256": "6b58e201056d432ae3a986dacddbbea74a88279f0f583e49534b4c6594365773",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-q16e",
+    "file": "docs/teams/queue-tv/Q16E-REVIEW-2026-11-26.md",
+    "sha256": "455812116120499aa0267208e6628ee42f1dbbb818635eea30a018ccceaa0cfb",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-q16f",
+    "file": "docs/teams/queue-tv/Q16F-REVIEW-2026-11-26.md",
+    "sha256": "211b2264e2296a4eeb1fdaa6f7e6cdbb1daf449eca27b460dff8367f9be0b7d9",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "app/Domain/HR/Roster/Services/RosterOnDuty.php",
+    "sha256": "aa7fbdd692ca4aabed22e68ee9eb61f17191e8788deded50fc20bfeb1d32e29d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "app/Domain/Queue/Services/QueueDirectoryService.php",
+    "sha256": "5d6f723718bb7d5c0b3b1f69272c874e020f13a90bc19b3520d2e4d916cec380",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "app/Domain/Visit/Services/VisitDirectoryService.php",
+    "sha256": "0fcac1f516ee4814bb0d7d3162c71413756e65f18aa3629b91ee123db52cde06",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "app/Http/Controllers/QueueController.php",
+    "sha256": "31f474dbeb407a257d9228a386a6207f382d4d5d6c6041714b7773c632214c1c",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "docs/evidence/auto-1c/board-1440-light.png",
+    "sha256": "fda8139008f2aba1f420fc288d20028d3deadac4218c5e9185163b4620ca686d",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "docs/teams/patients-registration/AUTO-1c-DESIGN.md",
+    "sha256": "d08d0f95faf295e512d33996a925c7f5c81fd2d07d2b9d1983eec414f7787c80",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "docs/teams/patients-registration/AUTO-1c-RECOVERY-2026-11-26.md",
+    "sha256": "359a549172eb5fd8ad9e2159d496f454ca7d78b2b246190d79624b04573c8254",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "docs/teams/queue-tv/Q16D-REVIEW-2026-11-26.md",
+    "sha256": "5c1380cd42f223d6d0a228faebad2d161d7ae427c75ad161cbe2ea7b8b9b10a3",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "docs/teams/queue-tv/Q16E-REVIEW-2026-11-26.md",
+    "sha256": "455812116120499aa0267208e6628ee42f1dbbb818635eea30a018ccceaa0cfb",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "docs/teams/queue-tv/Q16F-REVIEW-2026-11-26.md",
+    "sha256": "211b2264e2296a4eeb1fdaa6f7e6cdbb1daf449eca27b460dff8367f9be0b7d9",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "73886690003c0e9c52aae193dbcba7fbe9886f63cbe9f9fa75f651169dcae51c",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "resources/js/components/queue/RedZoneAlertBanner.vue",
+    "sha256": "9b4926fd469ab85b228d06c6cd8707ffb877d6a4219b3e4a8a20c024cbbbf0e6",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "d8a3546f1dab1e473cf5359bdb1625a1d5f12febaf0b6d6f0bb600af87f3512a",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "439641bfaf987004d952b42676c8b45bef976401249056be7edcecff84ad01b6",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "resources/js/types/patientBoard.ts",
+    "sha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "resources/js/types/queue.ts",
+    "sha256": "d7afa0f0633545029c8736974deb54cf90bc30a5ea36e078cd05f0213dec7c98",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "routes/web.php",
+    "sha256": "91b87c398d25aa5895a1b5b596d575f0d5aa8d404fe8230ff3afe6071f9832ba",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+    "sha256": "f87890ea81c0fc0d96c20038ccecc13eb558e8d0251f822bf50547f5cceb2ec7",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-auto1c",
+    "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+    "sha256": "2be086edac5de8260a91a627a401051d60baa09de088052671b04d229e4d30ce",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "app/Http/Controllers/QueueController.php",
+    "sha256": "31f474dbeb407a257d9228a386a6207f382d4d5d6c6041714b7773c632214c1c",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "docs/teams/queue-tv/Q16D-REVIEW-2026-11-26.md",
+    "sha256": "5c1380cd42f223d6d0a228faebad2d161d7ae427c75ad161cbe2ea7b8b9b10a3",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "docs/teams/queue-tv/Q16E-REVIEW-2026-11-26.md",
+    "sha256": "455812116120499aa0267208e6628ee42f1dbbb818635eea30a018ccceaa0cfb",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "docs/teams/queue-tv/Q16F-REVIEW-2026-11-26.md",
+    "sha256": "211b2264e2296a4eeb1fdaa6f7e6cdbb1daf449eca27b460dff8367f9be0b7d9",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "resources/js/components/queue/RedZoneAlertBanner.vue",
+    "sha256": "9b4926fd469ab85b228d06c6cd8707ffb877d6a4219b3e4a8a20c024cbbbf0e6",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "9b07c401430b793938d0365e0cf31ae9b752e491288e91630072e082ae5e3757",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "routes/web.php",
+    "sha256": "91b87c398d25aa5895a1b5b596d575f0d5aa8d404fe8230ff3afe6071f9832ba",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-combined",
+    "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+    "sha256": "f87890ea81c0fc0d96c20038ccecc13eb558e8d0251f822bf50547f5cceb2ec7",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "12456118fb5b5cb63ff63ab0ed405853b80c37663bcdcba7abcdc3bb3b42b85e",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "791c5ce89f68fd2fe13c6c1965f46e286e1b52aeb7769a39448c1ca757609466",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "resources/js/components/queue/EmergencyLane.vue",
+    "sha256": "13674a0abcbb4491fe879d16ab1c5f89523b47f8ab2b4048c9b58de5f3719653",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "resources/js/components/queue/QueueWorkspaceFrame.vue",
+    "sha256": "9b2d3b95c70179ddcd81564441d1bba7fd36d453357328a2e7f7b725c8b3f6bb",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-demo",
+    "file": "tests/Frontend/queue-demo-workspace.test.mjs",
+    "sha256": "4bdb5976d426084a7c73a341326a99b159ca485b7ba15bfd99bb1dc5d3ef9265",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "app/Domain/Queue/Services/QueueDirectoryService.php",
+    "sha256": "28f5fded21e8d8e83c56150fc5db205c2331f518009be6e2ce10316b2155b94a",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "app/Http/Controllers/QueueController.php",
+    "sha256": "17b239dacf548b8cb9f70c2cfb52916a9cc1b13ffa73e466ef53cdf9dc4b3d00",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "12456118fb5b5cb63ff63ab0ed405853b80c37663bcdcba7abcdc3bb3b42b85e",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "791c5ce89f68fd2fe13c6c1965f46e286e1b52aeb7769a39448c1ca757609466",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "routes/web.php",
+    "sha256": "b665e87055d4360589ca00366363d5aaf1b515716d22097b46639e2d66e461f0",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "app/Domain/Queue/Services/QueueWorkloadQuery.php",
+    "sha256": "e2a24f135afeb2ae5042aee272d93f55c2afb288c3c744a46925ad61dd426121",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "resources/js/components/queue/EmergencyLane.vue",
+    "sha256": "13674a0abcbb4491fe879d16ab1c5f89523b47f8ab2b4048c9b58de5f3719653",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "resources/js/components/queue/QueueWorkspaceFrame.vue",
+    "sha256": "9b2d3b95c70179ddcd81564441d1bba7fd36d453357328a2e7f7b725c8b3f6bb",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "resources/js/composables/useQueueWorkload.ts",
+    "sha256": "8ec2cb8406b41a70d2bcc81bebaa1786546c3c0a06ab58a4b52c22975962990b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "tests/Feature/Queue/QueueWorkloadTest.php",
+    "sha256": "b0d19acdada2b1d71807e52f038bd8e4b0afb14be79ade46a4de98e2ced4c1cd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "tests/Frontend/queue-demo-workspace.test.mjs",
+    "sha256": "4bdb5976d426084a7c73a341326a99b159ca485b7ba15bfd99bb1dc5d3ef9265",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-queue-workload",
+    "file": "tests/Frontend/queue-workload.test.mjs",
+    "sha256": "31988ed137a9f61f8c01cf74cca6c4cfc87c631b89330e10aabde22ae881b33a",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "resources/js/pages/Registration/Create.vue",
+    "sha256": "1c3dd6c5c6897c275e4317107cad6e17a696e8981535b4dbc283578f34a8b74f",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "170e7f2c32194a71cf6416313bf987d4e9ca87521001841a41e78b482883ba91",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-registration",
+    "file": "docs/teams/patients-registration/STAGE1-HOMES-ASSESSMENT.md",
+    "sha256": "b0b2feb6565ede50a7b3481ae2c0ddb227199e346a0eb016de9acf4ad6743b7d",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "docs/teams/patients-registration/TEAM.md",
+    "sha256": "b76e096275dbb001a0efa25640e81c017ccb22c610ef0e16fb7e2d9302eee229",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "phpunit.xml",
+    "sha256": "801cf7a7d1c5e610064714bd3f8451e154a496188bbaa63009967f96ff46145b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "resources/js/pages/Patient/Show.vue",
+    "sha256": "5b7fedab7f9987b94b8882116324e88f830383719680f13b2f2696abc3fae6b5",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "7f2627ebd930752e26e06062ab3e704821a2397462c101d3083519b4cf1ee3b0",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "routes/web.php",
+    "sha256": "8877e30009f142111743d187e1509a4c35df61c0bb6019c90f62eb7da311d1e8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "docs/teams/patients-registration/EMERGENCY-CONTACT-STAGE1-DRAFT.md",
+    "sha256": "f0f73515237862e45a571752a598ff895fc0c95e091190b8db9fd575b521fdc0",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "docs/teams/patients-registration/STAGE1-HOMES-ASSESSMENT.md",
+    "sha256": "b0b2feb6565ede50a7b3481ae2c0ddb227199e346a0eb016de9acf4ad6743b7d",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-preview",
+    "file": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-publication",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "7f2627ebd930752e26e06062ab3e704821a2397462c101d3083519b4cf1ee3b0",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-publication",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-publication",
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "resources/js/pages/Patient/Index.vue",
+    "sha256": "0ec91be30e2c8334c843ecdb30500eeda7ecbf1720c25d587e581f49372d211d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "c01d815e9d0a8d0d15a2ad4a18b4f7020effad9eeb76e22b9cc012fec82f5d9d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "tests/Frontend/rb-01-registration-board-search.test.mjs",
+    "sha256": "39de2c71dfee665ca280a217125fac20deb116a12669dc1dc80176c631de8a9d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "tests/Frontend/rb-02-registration-board-dates.test.mjs",
+    "sha256": "e2455d0dbc4c06ecdf86d47569b149aaa4aae29ba0a1cc64ffcfb2974ce0f5e2",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "resources/js/components/registration/RegistrationWorkspaceNav.vue",
+    "sha256": "6c329dc85ea0bb94ad88b9b9ac537df7a05ac657f61572c1bc7193ab36ba40b0",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-registration-workspace",
+    "file": "tests/Frontend/registration-workspace-navigation.test.mjs",
+    "sha256": "279bec444f242c7564b88ab224578a3d6f1e5abf9408ed0ae0f8b0f5daf7a47e",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/TEAM.md",
+    "sha256": "30f783861d062b2937788777fd1a74563767399166f1251c4534a5dfc92647e6",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "phpunit.xml",
+    "sha256": "4328d5edaa56e29b24323a4a474de45e41873aba14b6d9f62811b0064774bc79",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/STK-46-DESIGN.md",
+    "sha256": "859e358d3f771c459edc635bf854dc62f7886db27d795b5989251f668ee2f04f",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md",
+    "sha256": "29f195dc0ad5a1714e7bd00fb201eff72dcf8e8de63f799d0de63f0d13d6850c",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46",
+    "file": "docs/teams/inventory/STK-46-SERVICE.md",
+    "sha256": "1465bc6168262fca9e5d75cfef6e98ba7772d4563e0a3b02e8ea85985b174114",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/TEAM.md",
+    "sha256": "30f783861d062b2937788777fd1a74563767399166f1251c4534a5dfc92647e6",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "phpunit.xml",
+    "sha256": "4328d5edaa56e29b24323a4a474de45e41873aba14b6d9f62811b0064774bc79",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/STK-46-DESIGN.md",
+    "sha256": "859e358d3f771c459edc635bf854dc62f7886db27d795b5989251f668ee2f04f",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md",
+    "sha256": "29f195dc0ad5a1714e7bd00fb201eff72dcf8e8de63f799d0de63f0d13d6850c",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-replay",
+    "file": "docs/teams/inventory/STK-46-SERVICE.md",
+    "sha256": "1465bc6168262fca9e5d75cfef6e98ba7772d4563e0a3b02e8ea85985b174114",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/REL-STK.md",
+    "sha256": "560376451caf85819f940fc573b9450efc8ae31bf1d3339d85c982f2e3742786",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/TEAM.md",
+    "sha256": "e521d71174426520d2fd077c2207c76269d41375ad432b25dbb4c85540be77e6",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "phpunit.xml",
+    "sha256": "4328d5edaa56e29b24323a4a474de45e41873aba14b6d9f62811b0064774bc79",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "routes/web.php",
+    "sha256": "b9dfc65473eb840841fbb67036197ca46e3629fa764330580e82642c9b79b6ce",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-DESIGN.md",
+    "sha256": "859e358d3f771c459edc635bf854dc62f7886db27d795b5989251f668ee2f04f",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-IMPLEMENTATION-BATCH.md",
+    "sha256": "29f195dc0ad5a1714e7bd00fb201eff72dcf8e8de63f799d0de63f0d13d6850c",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-SERVICE.md",
+    "sha256": "1465bc6168262fca9e5d75cfef6e98ba7772d4563e0a3b02e8ea85985b174114",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "docs/teams/inventory/STK-46-UI.md",
+    "sha256": "d66b783873583eb243f3cff56006812815ec988f64b4c2cd824923b6b933ae3d",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk46-ui",
+    "file": "tests/Frontend/stk46-hand-cost-money.test.mjs",
+    "sha256": "dcfd5404684fb9ccdca46ad73772364756631892202ac42bad47f4d75a60674e",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stk50-51",
+    "file": "docs/teams/inventory/TEAM.md",
+    "sha256": "40549e8e06e326ebfdfbadab77944b026a9ee496808be859a4034884c30dfe3e",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-stk50-51",
+    "file": "resources/js/components/inventory/InventoryOperationsPanel.vue",
+    "sha256": "8a2fad4a79e992d751fb1ab347a8bc8890ede4d870dc856e9500a0d7c131a43b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stock-workspace",
+    "file": "resources/js/components/inventory/StockOnHandList.vue",
+    "sha256": "aca5c6fb80b15a04de7c879c48adc4177aa2a5d287147eae217a86ce262ce1cb",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-stock-workspace",
+    "file": "tests/Frontend/stock-on-hand-runtime.test.mjs",
+    "sha256": "cd4a7ea8aac6e467d6d6ebcf87cbfb413ffb15ae6443a551f453844dbaedb366",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "app/Domain/Queue/Services/QueueDirectoryService.php",
+    "sha256": "444442a7856406c7ff83cafdc959a1787a3e2e0644dc5c11fa72bd34256ab625",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "app/Http/Controllers/QueueController.php",
+    "sha256": "295df956951642dcc721fd3f65b2199e912371c88c63c0d3a89d2317557430f1",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "docs/teams/queue-tv/TEAM.md",
+    "sha256": "9238c6323c96ddb1075473f91101159e880ebc7f722ac2bca10d50252a9d86e4",
+    "kind": "docs"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "phpunit.xml",
+    "sha256": "4594cfeea527573c52accc2ff0633f08e40b9a1a445e4f6b45e3a9a48399c47c",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "10117f51631db39d84a8ea8291c7ff428da38a7172f066e7fd22a72de37cc48f",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "resources/js/types/queue.ts",
+    "sha256": "c14d9be507d95e9144e7abaf2882ead31e57202ed7053d9b26d5d3ef477efaaa",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "routes/web.php",
+    "sha256": "f156c383445a40127433a1231de302746bdf09f743790bea00e6421887884ef6",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-call",
+    "file": "tests/Frontend/treatment-call-authority.test.mjs",
+    "sha256": "9d8a7c23b1a6977104d24af7436f2b84b2cf0a7693c0600483d3b080f2f9450a",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record",
+    "file": "phpunit.xml",
+    "sha256": "20c662aefd24533e3bd97516e8b5a1ab90275465eb586ab9e0979512ef655994",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "app/Domain/Access/PermissionCatalogue.php",
+    "sha256": "340841c9427a2c288266b484791ff30839134a88bd18ae8020fe5eee13f09947",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "app/Domain/Queue/Services/QueueDirectoryService.php",
+    "sha256": "4fead1decf23ac68c220f6dfb6c65348bd5b555ecabcaa65ae7647d5bf6617be",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "app/Domain/Visit/Services/VisitDirectoryService.php",
+    "sha256": "0fcac1f516ee4814bb0d7d3162c71413756e65f18aa3629b91ee123db52cde06",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "app/Http/Controllers/QueueController.php",
+    "sha256": "9b15f5f34dad49ad3cf863700663e91cd9f27f38c564c4c9f3615cb15d0b62bd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "73886690003c0e9c52aae193dbcba7fbe9886f63cbe9f9fa75f651169dcae51c",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "e296614ae2a9a0ff5446c6318c18b1c7a84b1489561bfde4a1fe635805984864",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "1b622135bf61d088d74cc2d579d0e87fa2326ad020742abe350a89b8474b0368",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "482d5f934f15f402f4fcc0a7db7ea8960fe2aedf604a607b0cc99d4bb730bf82",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "resources/js/types/patientBoard.ts",
+    "sha256": "f7cf27dd7e5274f29c9abfb1c1778d58f87e66d8c6fd8e6897bf2585559dcbb9",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "resources/js/types/queue.ts",
+    "sha256": "45a6dd8f505883d2ce4ca01d7e49e9629e80e5e950036ee5e18fefa2dcfb0148",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "routes/web.php",
+    "sha256": "1bbc8d8319502862fa025eb8d0a9d63fe9721018008b5c9ecfce0e6f7e50eb16",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+    "sha256": "2be086edac5de8260a91a627a401051d60baa09de088052671b04d229e4d30ce",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+    "sha256": "f87890ea81c0fc0d96c20038ccecc13eb558e8d0251f822bf50547f5cceb2ec7",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Frontend/family-links-ui.test.mjs",
+    "sha256": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-treatment-record-ui",
+    "file": "tests/Frontend/treatment-call-authority.test.mjs",
+    "sha256": "9d8a7c23b1a6977104d24af7436f2b84b2cf0a7693c0600483d3b080f2f9450a",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "app/Http/Controllers/ClinicalEncounterController.php",
+    "sha256": "dab2e020f037bcf106fd7c956856a3331b5b7241f1bb927fc2f7bfd851e75466",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "phpunit.xml",
+    "sha256": "c8198c0fe34404729b22058be7dd84f42417bd8d402285bd9b8739e9171c84e8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/components/patient-board/PatientBoard.vue",
+    "sha256": "73886690003c0e9c52aae193dbcba7fbe9886f63cbe9f9fa75f651169dcae51c",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/pages/Billing/Invoice.vue",
+    "sha256": "8e8ef9b7c5b33e7e4129914eb5aecf961caa86dfceff8ee77f4b1daf02622b8d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "62945f5b98f4869fb837a91b648acd6a0a2ec1a118e22f330bdfc5f40405522f",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "5d59319cf85e913c7741930ea42618a3d3a38b124c3a8532e107986478b61ec8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "482d5f934f15f402f4fcc0a7db7ea8960fe2aedf604a607b0cc99d4bb730bf82",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/pages/Visits/History.vue",
+    "sha256": "c7798f9edb74098a66732ac4ca668fc2d1afb6ebf73feab33cfe6acf8a67437b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/types/patientBoard.ts",
+    "sha256": "97907bfa19669f42c556ee54f36ff39a763bd5bb8826eb44411a88f79dea1575",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "resources/js/types/queue.ts",
+    "sha256": "45a6dd8f505883d2ce4ca01d7e49e9629e80e5e950036ee5e18fefa2dcfb0148",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "routes/web.php",
+    "sha256": "2f4e849bb733e780a994f499d5329c24708977f56bc98762916e0d04313fa1ea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "tests/Frontend/family-links-ui.test.mjs",
+    "sha256": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2",
+    "file": "tests/Frontend/treatment-call-authority.test.mjs",
+    "sha256": "9d8a7c23b1a6977104d24af7436f2b84b2cf0a7693c0600483d3b080f2f9450a",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "app/Domain/Queue/Services/QueueDirectoryService.php",
+    "sha256": "4fead1decf23ac68c220f6dfb6c65348bd5b555ecabcaa65ae7647d5bf6617be",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "app/Domain/Visit/Services/VisitDirectoryService.php",
+    "sha256": "0fcac1f516ee4814bb0d7d3162c71413756e65f18aa3629b91ee123db52cde06",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "app/Http/Controllers/ClinicalEncounterController.php",
+    "sha256": "dab2e020f037bcf106fd7c956856a3331b5b7241f1bb927fc2f7bfd851e75466",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "phpunit.xml",
+    "sha256": "c8198c0fe34404729b22058be7dd84f42417bd8d402285bd9b8739e9171c84e8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "resources/js/pages/Billing/Invoice.vue",
+    "sha256": "8e8ef9b7c5b33e7e4129914eb5aecf961caa86dfceff8ee77f4b1daf02622b8d",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "resources/js/pages/Clinical/Show.vue",
+    "sha256": "4a2f6e7b2f5f7cd22aaf1b4818bd1f674f10c54b55f1fe63f26b5b8bef691153",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "resources/js/pages/Queue/Index.vue",
+    "sha256": "7fb27e9e74fe49e4048b0f65169f2877e2074550ffaee29a3e8c9daef07ff3bf",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "resources/js/pages/Registration/Index.vue",
+    "sha256": "d86eb2b9e0b2e2816712e791f30362efdfd174920e48272082a1cf799f634161",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "resources/js/pages/Visits/History.vue",
+    "sha256": "c7798f9edb74098a66732ac4ca668fc2d1afb6ebf73feab33cfe6acf8a67437b",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "resources/js/types/patientBoard.ts",
+    "sha256": "d42b9aeddd0fe36df703891e31140c1e18ef9817c8fae3d9a2ce3602582295b8",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "routes/web.php",
+    "sha256": "2f4e849bb733e780a994f499d5329c24708977f56bc98762916e0d04313fa1ea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+    "sha256": "2be086edac5de8260a91a627a401051d60baa09de088052671b04d229e4d30ce",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Frontend/dark-1.test.mjs",
+    "sha256": "f5c715b02b55a6c4f69dc83adca67468436043cc43b7f15cecc3b6e90cfd3940",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Frontend/ux-3-accessible-names-headings.test.mjs",
+    "sha256": "6b5cbbdc08796ad6f65f684c1dcb4324e210157e409cbec18830e43968b3bdea",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "app/Domain/Queue/Services/RedZoneAlertService.php",
+    "sha256": "e02a6ca3cb9716d97a9a42e872f0067c33500a88ee02721a7466b2fb97cc4883",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+    "sha256": "f87890ea81c0fc0d96c20038ccecc13eb558e8d0251f822bf50547f5cceb2ec7",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Feature/Queue/QueueWaitingOrderTest.php",
+    "sha256": "3446db051202b0fc1376bcc95781a597e2b1dc9537453f9df96bd59ab25e7b60",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Frontend/family-links-ui.test.mjs",
+    "sha256": "fd5541e79a841e70672a45b8475a3144cfa1c88a2d01777f67572c507c9dacdd",
+    "kind": "source_or_test"
+  },
+  {
+    "tree": "/workspace/KPOne-tri2-ui",
+    "file": "tests/Frontend/patient-emergency-contact.test.mjs",
+    "sha256": "305b47da5e98f3a3932562dbb68b86fa5f9d02af6c760b25462d5df1f7b50f94",
+    "kind": "source_or_test"
+  }
+]

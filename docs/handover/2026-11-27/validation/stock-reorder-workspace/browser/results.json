@@ -1,0 +1,425 @@
+{
+  "matrix": [
+    {
+      "role": "quantity",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Clear ticks",
+          "height": 44
+        },
+        {
+          "name": "Request these",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "quantity",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Clear ticks",
+          "height": 44
+        },
+        {
+          "name": "Request these",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "quantity",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Clear ticks",
+          "height": 44
+        },
+        {
+          "name": "Request these",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "quantity",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Clear ticks",
+          "height": 44
+        },
+        {
+          "name": "Request these",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "quantity",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "name": "How it is worked out",
+          "height": 36
+        },
+        {
+          "name": "Clear ticks",
+          "height": 36
+        },
+        {
+          "name": "Request these",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "quantity",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "name": "How it is worked out",
+          "height": 36
+        },
+        {
+          "name": "Clear ticks",
+          "height": 36
+        },
+        {
+          "name": "Request these",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 44
+        },
+        {
+          "name": "How it is worked out",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 44
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "name": "How it is worked out",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "name": "Hide helpful info",
+          "height": 36
+        },
+        {
+          "name": "How it is worked out",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        },
+        {
+          "name": "Usage and supplier details",
+          "height": 36
+        }
+      ],
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "rows": [
+    {
+      "key": "2:2",
+      "location": "Cheras Store (Demo)",
+      "quantity": "11995.000",
+      "unit": "capsule"
+    },
+    {
+      "key": "1:1",
+      "location": "Cheras Dispensary (Demo)",
+      "quantity": "11800.000",
+      "unit": "tablet"
+    },
+    {
+      "key": "2:1",
+      "location": "Cheras Store (Demo)",
+      "quantity": "11705.000",
+      "unit": "tablet"
+    }
+  ],
+  "hiddenCosts": true,
+  "selectionSurvivesHelp": true,
+  "mixedRefused": true,
+  "cleared": true,
+  "prefillUrl": "http://127.0.0.1:3198/inventory/purchase-requests?lines%5B0%5D=3ed0a610-6b5c-4632-9b19-2b83c1f6a76b%3A11995&location=3edd91b4-176f-4d86-9a05-5f2b06bdfb9e",
+  "prefillBody": "Skip to main content\nCHE\nDS\nInventory\nPurchase requests\n\nAsk for stock at Cheras. Another person turns a request into a draft purchase order, which then goes through the usual approval.\n\nCheras\n\nWaiting for review\n0\nConverted\n0\nRejected\n0\nWithdrawn\n0\nNew request\n\nNo request is waiting for review.",
+  "quantityHiddenHelp": {
+    "hidden": true,
+    "mandatory": true
+  },
+  "financeHiddenHelp": {
+    "hidden": true,
+    "mandatory": true
+  },
+  "financeCost": "Skip to main content\nCHE\nDO\nInventory\nReorder suggestions\n\nCheras · Stock at or below its reorder level, with a suggested order. Nothing is ordered from this page.\n\nCheras\n\nEach row is one SKU at one location. A suggestion never places an order.\n\nShow helpful info\nSearch SKU, item or location\nShow\nOnly rows that need ordering\nAll low-stock rows\nSearch\nITEM / LOCATION\nON HAND\nREORDER AT\nSUGGESTED\n\nDEMO-AMOX250 · Amoxicillin\n\nCheras Store (Demo)\n\nOn hand (usable)\n1 capsule\nReorder level\n10000 capsule\n\nSuggested order\n\n2399 packs (= 11995 capsule)\n\nUsage and supplier details\nMaximum\n12000 capsule\nOn order\n6 capsule\nIncoming transfers\n0 capsule\nAverage use a day (30 days)\n0 capsule\nSold (dispensed)\nNone in the last 30 days\nPreferred supplier\nDemo Pharma Supplies (fictional)\nLead time and pack\n3 days · Synthetic box (5 capsules)\nEstimated cost (supplier price list)\nNo price recorded\n\nDEMO-PARA500 · Paracetamol\n\nCheras Dispensary (Demo)\n\nOn hand (usable)\n203 tablet\nReorder level\n10000 tablet\n\nSuggested order\n\n2360 packs (= 11800 tablet)\n\nUsage and supplier details\nMaximum\n12000 tablet\nOn order\n0 tablet\nIncoming transfers\n0 tablet\nAverage use a day (30 days)\n0 tablet\nSold (dispensed)\nNone in the last 30 days\nPreferred supplier\nDemo Pharma Supplies (fictional)\nLead time and pack\n3 days · Synthetic box (5 tablets)\nEstimated cost (supplier price list)\nRM 0.00\n\nDEMO-PARA500 · Paracetamol\n\nCheras Store (Demo)\n\nOn hand (usable)\n295 tablet\nReorder level\n10000 tablet\n\nSuggested order\n\n2341 packs (= 11705 tablet)\n\nUsage and supplier details\nMaximum\n12000 tablet\nOn order\n0 tablet\nIncoming transfers\n0 tablet\nAverage use a day (30 days)\n0 tablet\nSold (dispensed)\nNone in the last 30 days\nPreferred supplier\nDemo Pharma Supplies (fictional)\nLead time and pack\n3 days · Synthetic box (5 tablets)\nEstimated cost (supplier price list)\nRM 0.00\nPrevious\n3 records · Page 1 of 1\nNext",
+  "emptyBody": "rdering\nAll low-stock rows\nSearch\n\nTick suggestions to ask for them in a purchase request.\n\nClear ticks\nRequest these\nITEM / LOCATION\nON HAND\nREORDER AT\nSUGGESTED\n\nDEMO-AMOX250 · Amoxicillin\n\nCheras Store (Demo)\n\nOn hand (usable)\n1 capsule\nReorder level\n10000 capsule\n\nSuggested order\n\n2399 packs (= 11995 capsule)\n\nUsage and supplier details\nMaximum\n12000 capsule\nOn order\n6 capsule\nIncoming transfers\n0 capsule\nAverage use a day (30 days)\n0 capsule\nSold (dispensed)\nNone in the last 30 days\nPreferred supplier\nDemo Pharma Supplies (fictional)\nLead time and pack\n3 days · Synthetic box (5 capsules)\n\nDEMO-PARA500 · Paracetamol\n\nCheras Dispensary (Demo)\n\nOn hand (usable)\n203 tablet\nReorder level\n10000 tablet\n\nSuggested order\n\n2360 packs (= 11800 tablet)\n\nUsage and supplier details\n\nDEMO-PARA500 · Paracetamol\n\nCheras Store (Demo)\n\nOn hand (usable)\n295 tablet\nReorder level\n10000 tablet\n\nSuggested order\n\n2341 packs (= 11705 tablet)\n\nUsage and supplier details\nPrevious\n3 records · Page 1 of 1\nNext"
+}

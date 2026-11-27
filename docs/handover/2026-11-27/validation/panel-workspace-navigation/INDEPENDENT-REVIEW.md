@@ -1,0 +1,7 @@
+# Independent Panel navigation review
+
+CLEAR exact nine-file patch `d1cd064015ad657e84a6f2a89c718c4708e8b8c51a2250d30559340764ab4225`. Independently verified patch/all file hashes; reviewed component visibility, page mounts and faithful route/copy test relocations. Four new actual navigation tests independently passed, covering separate grants, branchless omission, server capability narrowing and non-navigating active state.
+
+Inspected final payments390dark/1440light, claims-only Follow-up390dark and payment-draft390. Navigation wraps without clipping, active destination is explicit, claims-only view omits payment destination, payment Panel selector is enlarged and duplicate branch description removed. No new navigation-related blocker found. Existing body compact controls are outside this bounded route continuity slice; this note does not certify all-page target compliance.
+
+Builder reports 33 actual states across roles/routes/390/768/1440/themes, zero payment POSTs, active-item draft preservation, keyboard cross-route navigation and existing cross-route draft reset. These behaviors are stated accurately: no new persistent draft guarantee. Reported full 2,216 frontend/types/build and final 25 focused/lint/format/build are builder evidence. Original monetary handlers and scripts excluding imports remain unchanged. Full six-tab demo parity, global Paid/all-branch scope and production acceptance are not claimed.

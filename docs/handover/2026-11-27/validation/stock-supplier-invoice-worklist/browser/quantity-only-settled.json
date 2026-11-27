@@ -1,0 +1,54 @@
+{
+  "facts": [
+    {
+      "label": "Waiting for approval (0)",
+      "disabled": false,
+      "opacity": "1",
+      "color": "rgb(245, 245, 247)",
+      "background": "rgba(0, 0, 0, 0)",
+      "ariaCurrent": null
+    },
+    {
+      "label": "Matched (0)",
+      "disabled": false,
+      "opacity": "1",
+      "color": "rgb(245, 245, 247)",
+      "background": "rgba(0, 0, 0, 0)",
+      "ariaCurrent": null
+    },
+    {
+      "label": "Accepted (1)",
+      "disabled": false,
+      "opacity": "1",
+      "color": "rgb(11, 11, 13)",
+      "background": "rgb(77, 148, 255)",
+      "ariaCurrent": "page"
+    },
+    {
+      "label": "Rejected (0)",
+      "disabled": false,
+      "opacity": "1",
+      "color": "rgb(245, 245, 247)",
+      "background": "rgba(0, 0, 0, 0)",
+      "ariaCurrent": null
+    },
+    {
+      "label": "Previous",
+      "disabled": true,
+      "opacity": "0.5",
+      "color": "rgb(245, 245, 247)",
+      "background": "rgb(35, 35, 39)",
+      "ariaCurrent": null
+    },
+    {
+      "label": "Next",
+      "disabled": true,
+      "opacity": "0.5",
+      "color": "rgb(245, 245, 247)",
+      "background": "rgb(35, 35, 39)",
+      "ariaCurrent": null
+    }
+  ],
+  "errors": [],
+  "ariaBusy": "false"
+}

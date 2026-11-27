@@ -1,0 +1,1517 @@
+{
+  "matrix": [
+    {
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Create purchase order",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search Supplier",
+          "height": 44,
+          "width": 221.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Supplier",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search Destination",
+          "height": 44,
+          "width": 221.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Destination",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search SKU 1",
+          "height": 44,
+          "width": 203.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "SKU 1",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Ordered quantity 1",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Estimated cost per stock unit RM 1",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Remove",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Add PO line",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Create PO draft",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "PO-202611-Z09WEHQM delivery reference",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "DEMO-AMOX250 received batch number",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "DEMO-AMOX250 expiry date",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "DEMO-AMOX250 quantity this receipt",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "DEMO-AMOX250 total paid for this batch RM",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 113.21875
+        },
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 72,
+          "width": 288
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 230
+        },
+        {
+          "label": "Look up",
+          "height": 44,
+          "width": 111
+        },
+        {
+          "label": "Use camera",
+          "height": 44,
+          "width": 111
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 256
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 222
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "Remove lot",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44,
+          "width": 187.5625
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 120.03125
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44,
+          "width": 236.921875
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Load receiving reviews",
+          "height": 44,
+          "width": 192.28125
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Create purchase order",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search Supplier",
+          "height": 44,
+          "width": 221.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Supplier",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search Destination",
+          "height": 44,
+          "width": 221.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Destination",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search SKU 1",
+          "height": 44,
+          "width": 203.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "SKU 1",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Ordered quantity 1",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Estimated cost per stock unit RM 1",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Remove",
+          "height": 44,
+          "width": 280
+        },
+        {
+          "label": "Add PO line",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Create PO draft",
+          "height": 44,
+          "width": 298
+        },
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "PO-202611-Z09WEHQM delivery reference",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "DEMO-AMOX250 received batch number",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "DEMO-AMOX250 expiry date",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "DEMO-AMOX250 quantity this receipt",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "DEMO-AMOX250 total paid for this batch RM",
+          "height": 44,
+          "width": 272
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 113.21875
+        },
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 72,
+          "width": 288
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 230
+        },
+        {
+          "label": "Look up",
+          "height": 44,
+          "width": 111
+        },
+        {
+          "label": "Use camera",
+          "height": 44,
+          "width": 111
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 256
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 222
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "Remove lot",
+          "height": 44,
+          "width": 188
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44,
+          "width": 187.5625
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 120.03125
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44,
+          "width": 236.921875
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 290
+        },
+        {
+          "label": "Load receiving reviews",
+          "height": 44,
+          "width": 192.28125
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Create purchase order",
+          "height": 44,
+          "width": 676
+        },
+        {
+          "label": "Search Supplier",
+          "height": 44,
+          "width": 257.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Supplier",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Search Destination",
+          "height": 44,
+          "width": 257.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Destination",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Search SKU 1",
+          "height": 44,
+          "width": 109.453125
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "SKU 1",
+          "height": 44,
+          "width": 185.703125
+        },
+        {
+          "label": "Ordered quantity 1",
+          "height": 44,
+          "width": 185.71875
+        },
+        {
+          "label": "Estimated cost per stock unit RM 1",
+          "height": 44,
+          "width": 185.71875
+        },
+        {
+          "label": "Remove",
+          "height": 44,
+          "width": 76.859375
+        },
+        {
+          "label": "Add PO line",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Create PO draft",
+          "height": 44,
+          "width": 676
+        },
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "PO-202611-Z09WEHQM delivery reference",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "DEMO-AMOX250 received batch number",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "DEMO-AMOX250 expiry date",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "DEMO-AMOX250 quantity this receipt",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "DEMO-AMOX250 total paid for this batch RM",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 113.21875
+        },
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48,
+          "width": 666
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 394.21875
+        },
+        {
+          "label": "Look up",
+          "height": 44,
+          "width": 86.5
+        },
+        {
+          "label": "Use camera",
+          "height": 44,
+          "width": 111.28125
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 634
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 600
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "Remove lot",
+          "height": 68,
+          "width": 277
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44,
+          "width": 187.5625
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 120.03125
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44,
+          "width": 236.921875
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Load receiving reviews",
+          "height": 44,
+          "width": 192.28125
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Create purchase order",
+          "height": 44,
+          "width": 676
+        },
+        {
+          "label": "Search Supplier",
+          "height": 44,
+          "width": 257.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Supplier",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Search Destination",
+          "height": 44,
+          "width": 257.75
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "Destination",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Search SKU 1",
+          "height": 44,
+          "width": 109.453125
+        },
+        {
+          "label": "Search",
+          "height": 44,
+          "width": 72.25
+        },
+        {
+          "label": "SKU 1",
+          "height": 44,
+          "width": 185.703125
+        },
+        {
+          "label": "Ordered quantity 1",
+          "height": 44,
+          "width": 185.71875
+        },
+        {
+          "label": "Estimated cost per stock unit RM 1",
+          "height": 44,
+          "width": 185.71875
+        },
+        {
+          "label": "Remove",
+          "height": 44,
+          "width": 76.859375
+        },
+        {
+          "label": "Add PO line",
+          "height": 44,
+          "width": 334
+        },
+        {
+          "label": "Create PO draft",
+          "height": 44,
+          "width": 676
+        },
+        {
+          "label": "Search loaded orders",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 44,
+          "width": 328
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "PO-202611-Z09WEHQM delivery reference",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "DEMO-AMOX250 received batch number",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "DEMO-AMOX250 expiry date",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "DEMO-AMOX250 quantity this receipt",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "DEMO-AMOX250 total paid for this batch RM",
+          "height": 44,
+          "width": 321
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 113.21875
+        },
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48,
+          "width": 666
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 394.21875
+        },
+        {
+          "label": "Look up",
+          "height": 44,
+          "width": 86.5
+        },
+        {
+          "label": "Use camera",
+          "height": 44,
+          "width": 111.28125
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 634
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 600
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44,
+          "width": 277
+        },
+        {
+          "label": "Remove lot",
+          "height": 68,
+          "width": 277
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 44,
+          "width": 187.5625
+        },
+        {
+          "label": "Post receipt",
+          "height": 44,
+          "width": 120.03125
+        },
+        {
+          "label": "Request exception approval",
+          "height": 44,
+          "width": 236.921875
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 44,
+          "width": 668
+        },
+        {
+          "label": "Load receiving reviews",
+          "height": 44,
+          "width": 192.28125
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Create purchase order",
+          "height": 36,
+          "width": 1116
+        },
+        {
+          "label": "Search Supplier",
+          "height": 36,
+          "width": 477.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Supplier",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Search Destination",
+          "height": 36,
+          "width": 477.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Destination",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Search SKU 1",
+          "height": 36,
+          "width": 256.125
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "SKU 1",
+          "height": 36,
+          "width": 332.375
+        },
+        {
+          "label": "Ordered quantity 1",
+          "height": 36,
+          "width": 332.375
+        },
+        {
+          "label": "Estimated cost per stock unit RM 1",
+          "height": 36,
+          "width": 332.390625
+        },
+        {
+          "label": "Remove",
+          "height": 36,
+          "width": 76.859375
+        },
+        {
+          "label": "Add PO line",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Create PO draft",
+          "height": 36,
+          "width": 1116
+        },
+        {
+          "label": "Search loaded orders",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "PO-202611-Z09WEHQM delivery reference",
+          "height": 36,
+          "width": 1108
+        },
+        {
+          "label": "DEMO-AMOX250 received batch number",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "DEMO-AMOX250 expiry date",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "DEMO-AMOX250 quantity this receipt",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "DEMO-AMOX250 total paid for this batch RM",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "Post receipt",
+          "height": 36,
+          "width": 113.21875
+        },
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48,
+          "width": 1106
+        },
+        {
+          "label": "",
+          "height": 36,
+          "width": 574.21875
+        },
+        {
+          "label": "Look up",
+          "height": 36,
+          "width": 86.5
+        },
+        {
+          "label": "Use camera",
+          "height": 36,
+          "width": 111.28125
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 814
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 780
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "",
+          "height": 36,
+          "width": 367
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "Remove lot",
+          "height": 68,
+          "width": 367
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 36,
+          "width": 187.5625
+        },
+        {
+          "label": "Post receipt",
+          "height": 36,
+          "width": 120.03125
+        },
+        {
+          "label": "Request exception approval",
+          "height": 36,
+          "width": 236.921875
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Load receiving reviews",
+          "height": 36,
+          "width": 192.28125
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Create purchase order",
+          "height": 36,
+          "width": 1116
+        },
+        {
+          "label": "Search Supplier",
+          "height": 36,
+          "width": 477.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Supplier",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Search Destination",
+          "height": 36,
+          "width": 477.75
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "Destination",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Expected delivery date (optional)",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "Supplier reference (optional)",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Search SKU 1",
+          "height": 36,
+          "width": 256.125
+        },
+        {
+          "label": "Search",
+          "height": 36,
+          "width": 72.25
+        },
+        {
+          "label": "SKU 1",
+          "height": 36,
+          "width": 332.375
+        },
+        {
+          "label": "Ordered quantity 1",
+          "height": 36,
+          "width": 332.375
+        },
+        {
+          "label": "Estimated cost per stock unit RM 1",
+          "height": 36,
+          "width": 332.390625
+        },
+        {
+          "label": "Remove",
+          "height": 36,
+          "width": 76.859375
+        },
+        {
+          "label": "Add PO line",
+          "height": 36,
+          "width": 554
+        },
+        {
+          "label": "Create PO draft",
+          "height": 36,
+          "width": 1116
+        },
+        {
+          "label": "Search loaded orders",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Show purchase order status",
+          "height": 36,
+          "width": 548
+        },
+        {
+          "label": "Close purchase order PO-202611-Z09WEHQM",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "PO-202611-Z09WEHQM delivery reference",
+          "height": 36,
+          "width": 1108
+        },
+        {
+          "label": "DEMO-AMOX250 received batch number",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "DEMO-AMOX250 expiry date",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "DEMO-AMOX250 quantity this receipt",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "DEMO-AMOX250 total paid for this batch RM",
+          "height": 36,
+          "width": 541
+        },
+        {
+          "label": "Post receipt",
+          "height": 36,
+          "width": 113.21875
+        },
+        {
+          "label": "Split lots and delivery exceptions",
+          "height": 48,
+          "width": 1106
+        },
+        {
+          "label": "",
+          "height": 36,
+          "width": 574.21875
+        },
+        {
+          "label": "Look up",
+          "height": 36,
+          "width": 86.5
+        },
+        {
+          "label": "Use camera",
+          "height": 36,
+          "width": 111.28125
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 814
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 780
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "",
+          "height": 36,
+          "width": 367
+        },
+        {
+          "label": "Choose date (dd/mm/yyyy)",
+          "height": 36,
+          "width": 44
+        },
+        {
+          "label": "",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "DEMO-AMOX250 lot 1 total paid RM",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "acceptedquarantinedrejected",
+          "height": 44,
+          "width": 367
+        },
+        {
+          "label": "Remove lot",
+          "height": 68,
+          "width": 367
+        },
+        {
+          "label": "Add lot (maximum 20)",
+          "height": 36,
+          "width": 187.5625
+        },
+        {
+          "label": "Post receipt",
+          "height": 36,
+          "width": 120.03125
+        },
+        {
+          "label": "Request exception approval",
+          "height": 36,
+          "width": 236.921875
+        },
+        {
+          "label": "Open purchase order PO-202611-JBRO4C21",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-70KWYGLF",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-FQFVOCBW",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Open purchase order PO-202611-TIJ3TF81",
+          "height": 36,
+          "width": 80
+        },
+        {
+          "label": "Load receiving reviews",
+          "height": 36,
+          "width": 192.28125
+        }
+      ],
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

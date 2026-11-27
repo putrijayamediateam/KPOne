@@ -1,0 +1,12 @@
+[
+  {
+    "role": "ca",
+    "visible": 0,
+    "endpointStatus": 403
+  },
+  {
+    "role": "ca_supervisor",
+    "visible": 1,
+    "endpointStatus": 200
+  }
+]

@@ -1,0 +1,322 @@
+{
+  "matrix": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 36
+        },
+        {
+          "label": "Search Source location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Source location",
+          "height": 36
+        },
+        {
+          "label": "Search Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 36
+        },
+        {
+          "label": "Remove",
+          "height": 36
+        },
+        {
+          "label": "Add request line",
+          "height": 36
+        },
+        {
+          "label": "Submit stock request",
+          "height": 36
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 36
+        },
+        {
+          "label": "Search Source location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Source location",
+          "height": 36
+        },
+        {
+          "label": "Search Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Destination location",
+          "height": 36
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Search",
+          "height": 36
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 36
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 36
+        },
+        {
+          "label": "Remove",
+          "height": 36
+        },
+        {
+          "label": "Add request line",
+          "height": 36
+        },
+        {
+          "label": "Submit stock request",
+          "height": 36
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 44
+        },
+        {
+          "label": "Search Source location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Source location",
+          "height": 44
+        },
+        {
+          "label": "Search Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 44
+        },
+        {
+          "label": "Remove",
+          "height": 44
+        },
+        {
+          "label": "Add request line",
+          "height": 44
+        },
+        {
+          "label": "Submit stock request",
+          "height": 44
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": false,
+      "targets": [
+        {
+          "label": "Request stock",
+          "height": 44
+        },
+        {
+          "label": "Search Source location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Source location",
+          "height": 44
+        },
+        {
+          "label": "Search Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Destination location",
+          "height": 44
+        },
+        {
+          "label": "Search Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Search",
+          "height": 44
+        },
+        {
+          "label": "Requested SKU 1",
+          "height": 44
+        },
+        {
+          "label": "Requested quantity 1",
+          "height": 44
+        },
+        {
+          "label": "Remove",
+          "height": 44
+        },
+        {
+          "label": "Add request line",
+          "height": 44
+        },
+        {
+          "label": "Submit stock request",
+          "height": 44
+        },
+        {
+          "label": "Request SR-202611-VGMYYNVG1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-DIMECZTA1 lineFrom Che",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-HYBPL0WD1 lineFrom Syn",
+          "height": 154.75
+        },
+        {
+          "label": "Request SR-202611-EZ7YUFTO1 lineFrom Syn",
+          "height": 154.75
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "resolved": "Recent requests\n\nUp to 50 recent requests visible at this branch. Open a request to review its lines and available actions.\n\nRequest SR-202611-VGMYYNVG\n1 line\nFrom Cheras Store (Demo)\nTo Cheras Dispensary (Demo)\nReceived\nRequest lines\n\nQuantities use each item's stock unit. A dash means no quantity has been recorded yet.\n\nParacetamol\n\nDEMO-PARA500\n\nRequested\n2 tablet\nDispatched\n2 tablet\nReceived\n1 tablet\nBatch\nDEMO-B101\nTransfer differences\nShort (did not arrive) · 1.000 tablet · DEMO-PARA500 · DEMO-B101\nResolved\n\nLost in transit (stays out of stock) · Reference SYN-TRANSFER-REVIEW-20261126\n\nRequest SR-202611-DIMECZTA\n1 line\nFrom Cheras Store (Demo)\nTo Cheras Dispensary (Demo)\nReceived\nRequest SR-202611-HYBPL0WD\n1 line\nFrom Synthetic governed dispensary\nTo Synthetic receiving dispensary\nReceived\nRequest SR-202611-EZ7YUFTO\n1 line\nFrom Synthetic governed dispensary\nTo Synthetic receiving dispensary\nReceived"
+}

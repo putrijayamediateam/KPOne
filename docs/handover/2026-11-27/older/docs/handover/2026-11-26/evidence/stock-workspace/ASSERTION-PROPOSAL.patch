@@ -1,0 +1,140 @@
+--- a/tests/Frontend/classic-only-co6-kept-direct.test.mjs
++++ b/tests/Frontend/classic-only-co6-kept-direct.test.mjs
+@@ -84,7 +84,14 @@
+     );
+     assert.ok(home.includes('const applyFilters = () => visit({ page: 1 });'));
+     assert.equal(
+-        (home.match(/formatInventoryHoldLabel\(/g) ?? []).length >= 2,
++        (
++            [
++                home,
++                read('resources/js/components/inventory/StockOnHandList.vue'),
++            ]
++                .join('\n')
++                .match(/formatInventoryHoldLabel\(/g) ?? []
++        ).length >= 2,
+         true,
+     );
+ });
+--- a/tests/Frontend/i1b-inventory-demo-workspace.test.mjs
++++ b/tests/Frontend/i1b-inventory-demo-workspace.test.mjs
+@@ -50,7 +50,7 @@
+     const page = read('resources/js/pages/Inventory/Index.vue');
+ 
+     for (const label of [
+-        'Stock Overview',
++        'On hand',
+         'Batch & Expiry',
+         'Movements',
+         'SKU / Item',
+@@ -77,7 +77,22 @@
+     assert.match(page, /All branch locations/);
+     assert.match(page, /No inventory records/);
+     assert.match(page, /<CompactPagination/);
+-    assert.match(page, /min-width="1040px"/);
++    assert.match(page, /<StockOnHandList/);
++    assert.match(page, /:rows="inventory\.data"/);
++    assert.match(page, /:can-report="canReport"/);
++    assert.match(page, /@report="openReport"/);
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    for (const label of [
++        'Item / batch',
++        'On hand',
++        'Batch expiry',
++        'Location',
++        'Status',
++    ]) {
++        assert.ok(rows.includes(label), label);
++    }
++    assert.match(rows, /:aria-expanded=/);
++    assert.match(rows, /:aria-controls=/);
+     assert.match(page, /Movement records\s+are read-only/);
+ });
+ 
+--- a/tests/Frontend/i2-session2-directory-remediation.test.mjs
++++ b/tests/Frontend/i2-session2-directory-remediation.test.mjs
+@@ -28,7 +28,7 @@
+         ['movement-date-from', 'dateFrom'],
+         ['movement-date-to', 'dateTo'],
+     ]) {
+-        assert.match(page, new RegExp(`<label for="${id}"`));
++        assert.match(page, new RegExp(`<label\\s+for="${id}"`));
+         assert.match(page, new RegExp(`id="${id}"[\\s\\S]*v-model="${model}"`));
+     }
+ 
+--- a/tests/Frontend/i2-ui-ux-remediation.test.mjs
++++ b/tests/Frontend/i2-ui-ux-remediation.test.mjs
+@@ -47,20 +47,21 @@
+     const labels = headerLabels(inventory);
+ 
+     assert.ok(labels.includes('Quantity'));
+-    assert.ok(labels.includes('Status'));
+-    assert.equal(labels.includes('QuantityStatus'), false);
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    assert.match(rows, />On hand<\/span\s*>/);
++    assert.match(rows, />Status<\/span\s*>/);
++    assert.doesNotMatch(rows, /QuantityStatus/);
+     assert.match(inventory, /\[&_thead_th\]:px-4/);
+     assert.match(inventory, /\[&_thead_th\]:text-sm/);
+     assert.match(inventory, /\[&_thead_th\]:font-semibold/);
+     assert.match(inventory, /min-w-28 text-right/);
+-    assert.match(
+-        inventory,
+-        /<th[^>]*class="[^"]*min-w-32[^"]*"[^>]*>\s*Status\s*<\/th>/,
+-    );
++    assert.match(rows, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
++    assert.match(rows, /<StatusBadge[\s\S]*:label="statusLabel\(row\)"/);
++    assert.match(rows, /<\/button>\s*<div v-if="canReport"/);
+     assert.match(inventory, /break-words/);
+     assert.match(inventory, /whitespace-normal/);
+     assert.match(inventory, /row\.quantity/);
+-    assert.match(inventory, /row\.availabilityStatus/);
++    assert.match(rows, /row\.availabilityStatus/);
+ });
+ 
+ test('Visit Type remains a compact accessible two-option control with unchanged values', () => {
+--- a/tests/Frontend/stk45-report-difference.test.mjs
++++ b/tests/Frontend/stk45-report-difference.test.mjs
+@@ -90,9 +90,12 @@
+ test('STK-45: Inventory shows the menu, the Count open chip and My reports only for P10 holders', () => {
+     const ui = read('resources/js/pages/Inventory/Index.vue');
+     assert.match(ui, /<MyDifferenceReports\s+v-if="\s*canReport/);
+-    assert.match(ui, /<th v-if="canReport"/);
+-    assert.match(ui, /<DifferenceRowMenu\s+v-if="row\.difference"/);
+-    assert.match(ui, /label="Count open"/);
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    assert.match(ui, /:can-report="canReport"/);
++    assert.match(ui, /@report="openReport"/);
++    assert.match(rows, /<div v-if="canReport"/);
++    assert.match(rows, /<DifferenceRowMenu\s+v-if="row\.difference"/);
++    assert.match(rows, /label="Count open"/);
+     assert.match(ui, /return-to="inventory"/);
+     assert.match(ui, /reportTrigger\?\.focus\(\)/);
+     // The Inventory page still makes no direct writes (i1b): the sheet posts on its own.
+--- a/tests/Frontend/ui-leftovers-1.test.mjs
++++ b/tests/Frontend/ui-leftovers-1.test.mjs
+@@ -108,6 +108,8 @@
+         'resources/js/lib/inventory-picker.ts',
+     );
+     const index = read('resources/js/pages/Inventory/Index.vue');
++    const rows = read('resources/js/components/inventory/StockOnHandList.vue');
++    const both = `${index}\n${rows}`;
+ 
+     assert.equal(formatInventoryHoldLabel(''), 'Held');
+     assert.equal(
+@@ -131,11 +133,12 @@
+     }
+ 
+     assert.equal(
+-        (index.match(/formatInventoryReason\(row\.holdReason\)/g) ?? []).length,
++        (both.match(/formatInventoryReason\(\s*row\.holdReason,?\s*\)/g) ?? [])
++            .length,
+         2,
+     );
+-    assert.doesNotMatch(index, /String\(row\.holdReason\)/);
+-    assert.match(index, /availabilityStatus[\s\S]*?===\s*'held'/i);
++    assert.doesNotMatch(both, /String\(row\.holdReason\)/);
++    assert.match(rows, /availabilityStatus[\s\S]*?===\s*'held'/i);
+     assert.match(index, /batchStatus[\s\S]*?===\s*'held'/i);
+ });
+ 

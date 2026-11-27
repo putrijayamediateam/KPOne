@@ -1,0 +1,295 @@
+{
+  "result": [
+    {
+      "width": 390,
+      "mode": "light",
+      "overflow": false,
+      "padding": "16px",
+      "inputs": [
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "16px",
+      "inputs": [
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "overflow": false,
+      "padding": "24px",
+      "inputs": [
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(138, 138, 147)"
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "24px",
+      "inputs": [
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 44,
+          "border": "rgb(107, 107, 115)"
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "mode": "light",
+      "overflow": false,
+      "padding": "32px",
+      "inputs": [
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "32px",
+      "inputs": [
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "overflow": false,
+      "padding": "32px",
+      "inputs": [
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(138, 138, 147)"
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "overflow": false,
+      "padding": "32px",
+      "inputs": [
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        },
+        {
+          "height": 36,
+          "border": "rgb(107, 107, 115)"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "syntheticSave": true,
+  "readOnly": true
+}

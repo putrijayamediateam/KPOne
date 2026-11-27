@@ -1,0 +1,31 @@
+{
+  "base": "ab044ba15e67b024cab745f6267819785ea757d3",
+  "patch": "TRI2-PRESENCE-ON-LANE-v1.patch",
+  "sha256": "86b6e8d7ceb8a94a14b498016d60e2ade95f080807e438f37579a15549ebdb0a",
+  "files": [
+    {
+      "path": "app/Domain/Access/BranchAccessService.php",
+      "sha256": "550b3d0593cc3e259c1ddfb7f803d944b2fe98e54a253ce5e167c23990f9916d"
+    },
+    {
+      "path": "app/Domain/Queue/Emergency/EmergencyDoctorPresence.php",
+      "sha256": "eaff6be5290f1fd27c53d61ddb131cff91d2b328d707b9392fbc65b565267b71"
+    },
+    {
+      "path": "app/Http/Controllers/QueueController.php",
+      "sha256": "1a3b34ca0667833b757dc1715bb3cab0359a84c32be3c1972c4e21138e6552f0"
+    },
+    {
+      "path": "docs/reviews/TRI2-PRESENCE-RECOVERY-2026-11-26.md",
+      "sha256": "5bd86725501c102cb05ebcf7a1bff02c64392b0ba0ae13db5e61ce15dbd488be"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyDoctorPresenceBatchTest.php",
+      "sha256": "8250af2ae9fb111ac605d3e06d60112560cc03ef02f10ef16b6dc09bb8338ed9"
+    },
+    {
+      "path": "tests/Feature/Queue/EmergencyDoctorPresenceTest.php",
+      "sha256": "5aafef9f9902ae31d5063b62e28e60044dcb795c233d66549dcbd5db2b27f2ee"
+    }
+  ]
+}

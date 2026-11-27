@@ -1,0 +1,9 @@
+{
+  "base": "e5e72f69b",
+  "files": {
+    "tests/Frontend/patient-emergency-contact.test.mjs": "3b95f2220db404b7e340e3711c6b6dbf3218475d8504f4012d4cd56aef88e351",
+    "database/migrations/2026_11_26_010000_create_patient_emergency_contacts.php": "2922c42dc9f7d309288d9144b568fb9c7df17e4d1f26a1450172c218e445a977",
+    "app/Domain/Patient/Services/PatientEmergencyContactService.php": "108daa54f7e74a5790bf616617ef3d174887df864a5ffab8c51135112816f1c8"
+  },
+  "patch": "8fe79405637064b806d97f099873f3f3585f8f55dfb50ec3ff606c5623e0d4f1"
+}

@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IitOSzM4dGVaL1NLQXZPeHA5anlZN2c9PSIsInZhbHVlIjoiRzRFY1VYYmgwZGNzQjhLWnJyMCtNKzNzTTd5dzRVcXJIQ2NUWUsvckRoc1BhSi9Ob25Ja1VJTHdnUFpZQjRjMTYrM2RYZGpUb1VpYlgwVmw5aFFreWl6MVc5anErMnR6Wm5tckRib29zZ1kreU91a0pqQlFmeE1MNDZxcy9iK1QiLCJtYWMiOiIwNjliNDI4MmE1ODkwZDg2NTdjYWY5OWZhZTNmOTVhZjQwMjUyMTdlOWZhYzAwYjMwZGU5Y2UxNWNkODdlMjk1IiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795668966.96037,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6IjAyTW9BbmpwMWd5cGhCZlBCcnhjM0E9PSIsInZhbHVlIjoiOEp1b0MvM1NUYWRZblNTVUlIR3g5TElsZ2UrYWxLcGF3OTdvWXZPQWFuSVZqekZBWWJFd251bnIydnRoTXFEQkZqbkljQzB2TzV1YUkwRGtPWHd3ZHFsMUxKQTR4MVh6Z0FLZkZMK0F4SDY0T2xpT1BLaXdPcjI0a3I1RlhLSisiLCJtYWMiOiJhMjQ3MjBlMjE0YWFkMTU1M2NiNzhmOWE2NjRmMTg4ZGYzMjE4YWRlYWQyYjhmZGI3MDZiOWNlNTZkMDFkMTMzIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795668966.960523,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3036",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c6-0bca-71a5-849e-011e1dc60eca",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c6-0bca-71a5-849e-011e1dc60eca\",\"serverEpoch\":\"01a215c6-0bca-71a5-849e-011e1dc60eca\"}"
+        },
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c6-0f6e-72ef-ad7b-a3ac1f4534cd\",\"serverEpoch\":\"01a215c6-0f6e-72ef-ad7b-a3ac1f4534cd\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215c6-0f6e-72ef-ad7b-a3ac1f4534cd",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215c6-0f6e-72ef-ad7b-a3ac1f4534cd\",\"serverEpoch\":\"01a215c6-0f6e-72ef-ad7b-a3ac1f4534cd\"}"
+        }
+      ]
+    }
+  ]
+}

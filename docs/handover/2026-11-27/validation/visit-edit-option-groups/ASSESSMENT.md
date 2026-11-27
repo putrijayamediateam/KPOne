@@ -1,0 +1,7 @@
+# Candidate next bounded Visit Edit gap — assessment only
+
+Actual VisitEdit demo uses persistent single-choice groups for Visit type, Coverage and Priority. Existing Edit.vue uses three OperationalSelect controls with fixed two-option arrays: Consultation/OTC, Self-pay/Panel, Normal/Urgent. Their current v-models are visit_type, coverage_type and priority; existing coverage watcher clears panel note/context on mode change. Doctor and Panel lists are dynamic and should remain their existing controls in this candidate slice. Ordered reason picker also stays unchanged.
+
+Potential bounded next slice: native labelled radio fieldsets for those three fixed enumerations, preserving the exact useForm values, existing coverage watcher, server rules and source order. Native same-name radios give keyboard arrow semantics; full labels meet44mobile/36desktop. No automatic save, no invented step validation, no doctor/queue eligibility predictions. Do not turn reason selection into single choice. No modal or route work.
+
+Must first inventory existing static tests and current UI labels/IDs, obtain exact source-pin adaptation review, and prove actual coverage clearing/refusal/keyboard behavior with original command unchanged. User-visible visit-type restriction remains the server's existing rule, not a new client prohibition. Separate branch from finalized summary, parent unpublished until explicit public publication approval. This is an assessment, not permission or implementation.

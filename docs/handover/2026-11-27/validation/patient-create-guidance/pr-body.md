@@ -1,0 +1,7 @@
+Create Patient now shows read-only requirements guidance beside the existing form on desktop and after it on mobile. Labels use the four actual organisation flags; address line2 remains optional. Existing date-of-birth/guardian rules drive contact guidance, including the optional unknown-DOB adult confirmation. The sidebar explicitly distinguishes creating a patient from registering a visit.
+
+Stacked on Patient Edit #1174. Exactly three files; original creation submit handler is byte-identical. Identifier validation, duplicate review, guardian/adult confirmation, permissions and shared form fields remain unchanged. No backend, migration, grant, Emergency Contact or Family change, and no existing assertions changed.
+
+Validation: 2,225/2,225 frontend tests passed without skips; types, production build, full lint/format and diff checks passed. Four actual-component tests cover policy flags, optional line2, age boundary using supplied day and unknown/invalid dates. Twelve browser states at390/1440light/dark verify initial/minor/invalid layouts, mobile form order, guidance updates, focus and zero create requests on invalid submission. Settings were not mutated for screenshots; required-policy combinations are SSR evidence.
+
+Reviewed patch SHA256: `2028adf7c24511f1a08b2bb389ac2404a992388e619e1f41c2f842ab67cc8e67`. Read-only guidance only; inherited form styling and modal/full demo parity remain separate. Synthetic verification only. No merge requested.

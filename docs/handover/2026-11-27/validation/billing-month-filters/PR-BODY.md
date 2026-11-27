@@ -1,0 +1,7 @@
+The monthly cash-closing page now offers the demo's Status and Flag filters over the complete loaded month. Criteria intersect authoritative row fields; Today uses the supplied business date. Matching-day coverage and an explicit unchanged-month-totals notice keep the filtered list distinct from the official summary.
+
+Existing signed amounts, approved snapshots, start-date warnings, month navigation and daily links remain intact. Filters survive a failed month request and reset only after loaded branch/month identity changes. Native controls meet 36px desktop/44px mobile, with a truthful no-match state and Clear action.
+
+Two-file presentation slice; no backend, financial rules, permissions, migrations or existing assertions change. Stacked on PR1165. Validation: 21 focused tests, full frontend 2,212/2,212, types/build and scoped lint passed. Final label-only rebuild and21 focused tests passed again. Synthetic browser checks passed for CA and BranchManager at390/1440 light/dark: unchanged summaries, exact36/44px targets, native keyboard operation, no-match/reset and failed-request retention/actual month-change reset. Independent review evidence accompanies publication. No full Billing demo parity or production rollout claim.
+
+Independent Design review passed final source and actual desktop/mobile waiting/empty/read-only evidence; Inventory separately found no blocker in four final visual states. Frozen patch SHA256: c13f7634a43242544a66ed197f2aad67f9b157b4079905889fd9c62bef96e8a5. Existing pink day-link styling is outside this filter slice.

@@ -1,0 +1,138 @@
+{
+  "results": [
+    {
+      "check": "actual 27 steps /26 current /52 history independently counted"
+    },
+    {
+      "width": 1440,
+      "dark": false,
+      "shot": "treatment-record-ui-1440-light.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "dark": true,
+      "shot": "treatment-record-ui-1440-dark.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 36
+        },
+        {
+          "text": "Next",
+          "height": 36
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "dark": false,
+      "shot": "treatment-record-ui-768-light.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "dark": true,
+      "shot": "treatment-record-ui-768-dark.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "dark": false,
+      "shot": "treatment-record-ui-390-light.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "dark": true,
+      "shot": "treatment-record-ui-390-dark.png",
+      "targets": [
+        {
+          "text": "Previous",
+          "height": 44
+        },
+        {
+          "text": "Next",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "check": "Keep editing retains unsuccessful reason and sends no mutation"
+    },
+    {
+      "check": "second step page reachable, offpage active step still disables Start",
+      "shot": "treatment-record-step-page2-390-dark.png"
+    },
+    {
+      "check": "current record page2 exposes final record independently"
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "treatment_step_id": 27,
+        "step_lock_version": 1,
+        "procedure_code": "swab_sample",
+        "outcome_code": "done",
+        "reason_code": null,
+        "idempotency_key": "64c394eb-58b1-4305-a5e6-0b01afaba54c"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3078/treatment-room/KPV-00000003/outcomes?steps_page=1&current_page=1&history_page=1",
+      "body": {
+        "expected_branch_id": 3,
+        "visit_lock_version": 1,
+        "queue_lock_version": 9,
+        "treatment_step_id": 27,
+        "step_lock_version": 1,
+        "procedure_code": "swab_sample",
+        "outcome_code": "done",
+        "reason_code": null,
+        "idempotency_key": "64c394eb-58b1-4305-a5e6-0b01afaba54c"
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "base": "b7fe12d13f8215a3fba68366b8a280bf33481bed",
+  "patchSha256": "3e191644a4c3cf3e4225d179cab9a1ae57138c0fbaa934d167f6e20e4599b9e7",
+  "files": {
+    "resources/js/pages/Dispensary/ReturnsToCheck.vue": "9fef6c37cbb74beeaa9ac3d178ea73adac23564884e791553b801a9762aa5e7d",
+    "tests/Frontend/dsp-returns-help-runtime.test.mjs": "4d6745cf7eb2d7c9a1d08df26a0aa3f5c4e7658809cb2c1a35cb87cfecde06a4",
+    "tests/Frontend/dsp-7b-returns-to-check.test.mjs": "a8da6606dc9622ffe19a3d7b961218d9e148a9cf9196619e1d9ae69e37964801",
+    "docs/teams/dispensary-otc/TEAM.md": "de2937e21bed9d7ff951e39436bbe6f615138dbaeeb0f568704d5a26a9bf4f5e"
+  }
+}

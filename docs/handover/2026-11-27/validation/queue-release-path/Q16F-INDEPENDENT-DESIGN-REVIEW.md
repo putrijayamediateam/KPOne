@@ -1,0 +1,9 @@
+# Independent Q16f interaction review
+
+CLEAR bounded 12-file extraction `bd1c2fe571362f686295554827fb0627cf1767c3fa77dedb5e68533f003642ab`. Independently verified exact patch and all manifest hashes. Reviewed calls component, settings partial-GET lifecycle and faithful CO8 endpoint-occurrence update; independently ran eight frontend runtime tests successfully.
+
+Pager focuses a persistent named results element only on explicit interaction, preserves last loaded evidence and unsaved settings on errors, and uses only callsToday partial GET. Branch/unmount cancel and generation/disposed guards prevent stale callbacks. Displayed busy union now includes poster processing, closing the independent finding that an enabled pager silently refused during upload. The single additional CO8 expected endpoint occurrence corresponds to this same existing GET endpoint; mutation expectations are unchanged.
+
+Inspected 390 dark summary and 1440 light pager captures. Total/recalls and historical room-label coverage are explicit, distinguishable from current physical-room inventory. Pager readable and scoped; no new presentation blocker. Captures are deliberately scrolled, not whole-page demo parity evidence. Existing unrelated settings controls are not certified by this review.
+
+Builder reports ten actual browser checks, 26 real calls/25 recalls/26 historical labels generated through existing service calls and room renames, 25+1 paging, keyboard focus, retained draft through error/retry and no settings writes during paging. Earlier physical-room-cap fixture was rolled back; no cap bypass. Reported full 2,217 frontend/types/build/static and backend nine tests/87 assertions remain builder evidence; Billing independently reviewed snapshot SQL. No TV feed behavior, production acceptance or full TV makeover claim.

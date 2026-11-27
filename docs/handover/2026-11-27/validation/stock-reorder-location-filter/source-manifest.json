@@ -1,0 +1,13 @@
+{
+  "base": "4f6f60cc0b209eee7fb0a5f2b14c8105e96d06e2",
+  "patchSha256": "9e1338a553c9fd3ddb502441aa6fa943c2d83a878ad4ccdec5ed1cab73abb106",
+  "files": {
+    "app/Domain/Organisation/Inventory/Services/InventoryPickerService.php": "f41f111b9e3bbba87c4a7527ea407d0688331aac5ba5f9d67c040765242859f4",
+    "app/Domain/Organisation/Inventory/Services/ReorderSuggestionService.php": "62329a0b1254c2bb0266e6cf4770accd49f4ab4614a4b3fa002de10297aecec4",
+    "docs/teams/inventory/TEAM.md": "1919d14fdfaa63f44ae0f1dfdaf6a8e2658dacb13f9fb1253adb3f3c940b1f9b",
+    "resources/js/components/inventory/InventorySearchSelect.vue": "64eb55d366ebf74fac2894da8a65b590dd03e2256f6e48dcb9adfed3f6fe5974",
+    "resources/js/pages/Inventory/ReorderSuggestions.vue": "b95be75cf2186dd38f54fbccd8a762b6312e592e91975336a190846aed85f417",
+    "tests/Feature/Inventory/ReorderLocationFilterTest.php": "2312230c899096d8f227a5cc43c8b23ea5514f35bd72194bee6949afc51b58f2",
+    "tests/Frontend/stock-reorder-location-runtime.test.mjs": "7804965af6ea670a30ddac6b6f7d61c470c05d662556967e5621f39607cd67dd"
+  }
+}

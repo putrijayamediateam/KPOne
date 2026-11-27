@@ -1,0 +1,9 @@
+# F27 read-only context review
+
+Three-file presentation slice against main f8dd19cb83a6129479246db1c62d0af12cd28fb5. Manifest freezes exact patch and files. Only decorative UserRound import changes the script; existing projection, policy, audit, null and unknown-allergy predicates stay intact. Patient/visit/case branch now have semantic labels and wrapping; Case/Allergies use common card treatment. Back is still the sole control, with44/36 target. Medicines/services/returns are unchanged.
+
+Seven frontend tests pass (five unchanged legacy assertions plus two actual-SFC cases). Existing backend DispensaryReviewTest12/130 passes on own test DB. Scoped lint/format/diff, full types/build pass. No existing assertions edited. Initial PHP command typo selected a nonexistent file; corrected named suite passed. No PHP source changes.
+
+Browser initially returned404 for a case outside the active branch. Actual AppServiceProvider161 binding enforces active branch for dispensaryCase before the organisation-authorized readonly service; this existing boundary is preserved. The corrected proof uses the existing authorized branch switcher for Cheras/Puchong and restores original branch, with no clinical writes. Direct crossbranch404 remains asserted. Actual reachable views have matching active and case branch; only the independent template fixture exercises distinct supplied labels. No expanded crossbranch authority is claimed.
+
+Preview3151 uses own kpone_dispensary_review_preview_test clone of synthetic fixtures. Existing Director permission checked before navigation; no grants or model/policy bypass. Every successful readonly GET keeps existing structural audit. No real data, migration, production or full-page parity claim. Final independent review and browser evidence accompany publication.

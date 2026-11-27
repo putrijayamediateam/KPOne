@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3066",
+      "localStorage": [
+        {
+          "name": "kp-role",
+          "value": "ca_supervisor"
+        },
+        {
+          "name": "kpd-acc",
+          "value": "ca_supervisor"
+        }
+      ]
+    }
+  ]
+}

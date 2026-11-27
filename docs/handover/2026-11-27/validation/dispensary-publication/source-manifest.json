@@ -1,0 +1,57 @@
+[
+  {
+    "path": "resources/js/components/dispensary/DoctorCheckActions.vue",
+    "baselineSha256": "71e561d09b7e5108728893529678ef195fb1cd502013b4898e5f7f53a2f9ed05",
+    "candidateSha256": "8643d1a793ff14614602309f8d0f2d67260e7611e83b264b653efcc5055c5a04",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue",
+    "baselineSha256": "d828e357cacaa1779b835d79aacad5e905fe67c0a7b9e9a2f0a291b397126536",
+    "candidateSha256": "bd3bfca03ab1ae11abac5a69a6c703c302491e68c730314715efcf100b596ffd",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "resources/js/pages/Dispensary/Show.vue",
+    "baselineSha256": "75256e8b09ef1c0770e0e4ebd067061259ef5a48e963410241ec57c3b8041c96",
+    "candidateSha256": "2f17cbe9ee935c63c38fd993855792083b628357041325b7abbfeece66c16b95",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "tests/Frontend/dark-1.test.mjs",
+    "baselineSha256": "a48a0043fd027c105294c9d7a5f53357b3e1eba04820e32afca754bd2da03c9c",
+    "candidateSha256": "2f1844932c5f60d60e19e7495e489ea896ae323408375d4e9809c59993877246",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "tests/Frontend/dd-57-dispensary-dark.test.mjs",
+    "baselineSha256": "59b13e021033a33197d93ed6d760f93f1801f0996b2b4494d02016fd71ea6aa2",
+    "candidateSha256": "58f29ab2177d6c4e73d1e5b3c6d15ce0275ffe326b402c1043b7ebea0f3defa7",
+    "matchesReviewedSource": false,
+    "reviewNote": "Exact union of approved Show warning-surface expectations and approved AttentionPanel semantic-surface assertion; not whole-file replacement from either prior isolated slice."
+  },
+  {
+    "path": "tests/Frontend/ds-01b-3-otc-dispense.test.mjs",
+    "baselineSha256": "1e9021c02836f5f1ab924dc9d8f342edfb1809dc295df5c922cb8e72553d465e",
+    "candidateSha256": "968ffddcda900d143abc1b20f4f04cd6840cf28b5ee173d0b4d0471688563e18",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "tests/Frontend/ds-01d-dispensary-layout.test.mjs",
+    "baselineSha256": "bf2d19d70ecbf166c3ceab497ca7f80e90a3f1a60d932262f4a905b927e44a51",
+    "candidateSha256": "3704f0544ae1ee783c064a5c6d24add8baf90d0d6ac15da3b83c9b8fec2f9afc",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "tests/Frontend/dsp-17-scan-pick-batch.test.mjs",
+    "baselineSha256": "98eb329444178b95295bbca3c95663cb656b3214945090463f151248760af3c2",
+    "candidateSha256": "d641c93553a49467628c3f9679f7aa80a374b30d1597259a7c2536f1943994f0",
+    "matchesReviewedSource": true
+  },
+  {
+    "path": "tests/Frontend/dsp-23-doctor-check.test.mjs",
+    "baselineSha256": "cb49c5a824afef103301d14199b8537884cbb424d9ba96088fdbf512700ef78a",
+    "candidateSha256": "2ec85f1c2080b5ff78d9a7aacb7e25aae1d6166944355c58754a1211914fb85a",
+    "matchesReviewedSource": true
+  }
+]

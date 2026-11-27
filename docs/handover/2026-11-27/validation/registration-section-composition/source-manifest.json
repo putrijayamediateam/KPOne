@@ -1,0 +1,10 @@
+{
+  "base": "03953a1b1c04a335fbb3822f593f3c36a0ca5d5c",
+  "patchSha256": "03c1a09114032855a4be1c6f879f68dc708dd84ca923687a56aa99e1015d70ad",
+  "files": {
+    "resources/js/components/registration/RegistrationCreateForm.vue": "a7835af6cf527845fa82f9ac7fde393de43f33f560dc0b40591054d3c2e95607",
+    "resources/js/components/registration/RegistrationReviewSummary.vue": "fe722a7062a612feaaf7c3eef7b55c85c7386dd550faa985bcfd6f3352532c5d",
+    "tests/Frontend/auto-1-doctor-assignment.test.mjs": "e88e45ec0d6312080a7885af10bd3ae3752e4f2e2c71df1bf3a4b59dfe1c36ac",
+    "tests/Frontend/registration-four-section-runtime.test.mjs": "e481db85f2cc44c51a4727ef97a38472c82d10fb3a40cf1d7211ce0c5a1cedd5"
+  }
+}

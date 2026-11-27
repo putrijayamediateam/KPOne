@@ -1,0 +1,15 @@
+{
+  "base": "456ab8feb459e194255ffe193d0f28fe2d6b749e",
+  "branch": "feature/stock-batch-demo",
+  "patch_sha256": "75c123bab67ea772971ade3fa79620b252f3386302beb3c9b3b0617c8432a14f",
+  "files": {
+    "docs/teams/inventory/STOCK-BATCH-COMPOSITION.md": "f3ec2d75f35c7e44711327d7f90aa095be402fac3041b38aea79b19877d84a4e",
+    "resources/js/components/inventory/StockBatchList.vue": "3b890364657e939b9efbaa4612f88dc78a74ed1c0c8aa1c44a1b0f0f0dcae8b8",
+    "resources/js/pages/Inventory/Index.vue": "bcb0f6dfc6085b71d5ba100c52bab6a9c45d054be5a2f5189f431875dac092d9",
+    "tests/Frontend/classic-only-co6-kept-direct.test.mjs": "da0d9d600fbf0a2491a60a6574dbc23bb4c6a8e314737e0b01fe8d9476fb23cb",
+    "tests/Frontend/classic-only-co6-kept-v2-inventory-home.test.mjs": "ea71a01f001fb302bdf8f0306ece745342770230c92d0dbde3efe79254d9ecac",
+    "tests/Frontend/stock-batch-runtime.test.mjs": "f88704b40a8c06bf4748567b8b4c2b90c614f3e007f6d25e78533cb8644e34d4",
+    "tests/Frontend/ui-leftovers-1.test.mjs": "b6be6de2d86c55438c6cc997754022fe3c483c6e2f27d98006fcb7046938e3e6",
+    "tests/Frontend/ui-polish-1.test.mjs": "17880646200f8ca37741001f46a0902853824377c6de920fbdcf8a997508ec09"
+  }
+}

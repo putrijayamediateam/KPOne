@@ -1,0 +1,5 @@
+# Independent Inventory first-submission plan review
+
+Bounded plan CLEAR after reading proposal and actual PanelClaimDueRule. Prepared plus no submitted event is distinct from invoices without claims and from Prepared after an earlier submission. Existing Pending/Overdue/Submitted and submit source/version/payment rules stay unchanged; avoid Ready-to-submit language. Current Panel rule and visit registered date must be batched for only20 scoped rows, preserving archived/current rule behavior and existing missing/legacy rule fallback rather than inventing dates.
+
+Use unchanged dueAt/isOverdue/describe: days_after_visit is date-only and late only after that date; timed rules are strictly after due instant. Legacy incomplete timed fields require the helper's fallback treatment and truthful date/time label; do not display a fabricated midnight cutoff. Claim-created-date filter remains distinct. Tests should include prior-submission→edit, day/timed equality and after, branch/role and query bounds. No source implementation or heavy tests reviewed yet.

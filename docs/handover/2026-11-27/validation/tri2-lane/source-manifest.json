@@ -1,0 +1,31 @@
+{
+  "patch_sha256": "97af5b9c9221ef6c84ca4604b3db91d1ad89d10b2dd76290be284b208b1ba1a1",
+  "files": {
+    "app/Domain/Queue/Emergency/EmergencyLaneProjection.php": {
+      "before": null,
+      "after": "dbec5bcf40fa8be5d5ad534de189c195bee4929f60a4b9bdad801cea0c1e816e"
+    },
+    "app/Domain/Queue/Services/QueueDirectoryService.php": {
+      "before": "4fead1decf23ac68c220f6dfb6c65348bd5b555ecabcaa65ae7647d5bf6617be",
+      "after": "5438a7d73d6f67f5a7b115b2d20b3fe051adc74e1619e428627df04a65c4d7cd"
+    },
+    "app/Domain/Visit/Services/VisitDirectoryService.php": {
+      "before": "0fcac1f516ee4814bb0d7d3162c71413756e65f18aa3629b91ee123db52cde06",
+      "after": "d3657d8017d9daab33f0efe0d479a15aabdbdfe9af430b1b1bf4d206103d3d96"
+    },
+    "tests/Feature/Queue/EmergencyLaneProjectionTest.php": {
+      "before": null,
+      "after": "0e50f11c13c23bf41e36699cde6bdaa804d64c3fb5c9f6db039c59edc90a82d6"
+    },
+    "app/Http/Requests/SearchQueueEntriesRequest.php": {
+      "before": "8d4d5e86f5817df3de8ef9168f66ec825b4e59f0127d20ac944152369013159e",
+      "after": "de9c0c77fb4ee50c48b030804e1c1fe8dc2cbcadc74da1bfe258458fd471964c"
+    },
+    "app/Http/Requests/SearchVisitsRequest.php": {
+      "before": "b0c404f43d1eb2a6a77b8b0c9a2948279b4a60db0fd5b16880a1f8df2e37833f",
+      "after": "6b7b915744b2d1bc4a532c2559962ff7287013ef522e1436fb505ab3d998a0ba"
+    }
+  },
+  "existing_assertions": "Owner approved exact two-file patch applied in isolated TRI2 tree; separate companion TRI2b-PROPOSED-EXISTING-ASSERTIONS.patch must apply after TRI2a assertions",
+  "base": "Saved CA integration baseline for existing directories; TRI2a lifecycle/schema dependency required"
+}

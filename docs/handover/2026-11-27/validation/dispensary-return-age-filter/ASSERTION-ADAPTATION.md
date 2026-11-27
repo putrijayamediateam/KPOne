@@ -1,0 +1,3 @@
+# Faithful existing assertion adaptation
+
+The existing outcome runtime test forbids every select on Waiting: `/<select|matching checked returns/`. The authorized Waiting age select makes that broad selector obsolete. Proposed exact replacement: `/<select[^>]*id="returns-outcome"|matching checked returns/`. It preserves original Outcome absence and checked-copy absence; new reciprocal tests assert age appears only on Waiting. No permission or backend assertion changes. Staff independently confirmed this exact adaptation clear on27November2026; coordinator informed under standing delegated technical scope, not a new owner answer.

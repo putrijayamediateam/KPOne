@@ -1,0 +1,188 @@
+[
+  {
+    "actor": "doctor",
+    "path": "/queue",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Patient or exact Queue number",
+        "height": 36,
+        "width": 366
+      },
+      {
+        "name": "Urgency",
+        "height": 36,
+        "width": 366
+      },
+      {
+        "name": "Apply",
+        "height": 44,
+        "width": 366
+      },
+      {
+        "name": "Reset",
+        "height": 44,
+        "width": 366
+      }
+    ]
+  },
+  {
+    "actor": "doctor",
+    "path": "/queue",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Patient or exact Queue number",
+        "height": 36,
+        "width": 686.96875
+      },
+      {
+        "name": "Urgency",
+        "height": 36,
+        "width": 140
+      },
+      {
+        "name": "Apply",
+        "height": 32,
+        "width": 63.5
+      },
+      {
+        "name": "Reset",
+        "height": 32,
+        "width": 62.03125
+      }
+    ]
+  },
+  {
+    "actor": "doctor",
+    "path": "/registration",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Apply",
+        "height": 44,
+        "width": 324
+      },
+      {
+        "name": "More",
+        "height": 44,
+        "width": 324
+      }
+    ]
+  },
+  {
+    "actor": "doctor",
+    "path": "/registration",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Apply",
+        "height": 32,
+        "width": 63.5
+      },
+      {
+        "name": "More",
+        "height": 32,
+        "width": 97.4375
+      }
+    ]
+  },
+  {
+    "actor": "ca",
+    "path": "/queue",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Patient or exact Queue number",
+        "height": 36,
+        "width": 366
+      },
+      {
+        "name": "Doctor",
+        "height": 36,
+        "width": 366
+      },
+      {
+        "name": "Urgency",
+        "height": 36,
+        "width": 366
+      },
+      {
+        "name": "Apply",
+        "height": 44,
+        "width": 366
+      },
+      {
+        "name": "Reset",
+        "height": 44,
+        "width": 366
+      }
+    ]
+  },
+  {
+    "actor": "ca",
+    "path": "/queue",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Patient or exact Queue number",
+        "height": 36,
+        "width": 686.96875
+      },
+      {
+        "name": "Doctor",
+        "height": 36,
+        "width": 343.5
+      },
+      {
+        "name": "Urgency",
+        "height": 36,
+        "width": 140
+      },
+      {
+        "name": "Apply",
+        "height": 32,
+        "width": 63.5
+      },
+      {
+        "name": "Reset",
+        "height": 32,
+        "width": 62.03125
+      }
+    ]
+  },
+  {
+    "actor": "ca",
+    "path": "/registration",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Apply",
+        "height": 44,
+        "width": 324
+      },
+      {
+        "name": "More",
+        "height": 44,
+        "width": 324
+      }
+    ]
+  },
+  {
+    "actor": "ca",
+    "path": "/registration",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Apply",
+        "height": 32,
+        "width": 63.5
+      },
+      {
+        "name": "More",
+        "height": 32,
+        "width": 97.4375
+      }
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "candidate": "bf6d6e760578fe4acea6f3edd6f46e29f7709928",
+  "purpose": "Multi-parent validation foundation only, not a visual publication patch",
+  "files": {
+    "app/Domain/Queue/Services/QueueDirectoryService.php": "9273420746df7e30017808646d00fbe91d69570a9ffb7736711a155f45a1f119",
+    "app/Domain/Visit/Services/VisitDirectoryService.php": "e8fc789e91758501b2dff1819c897d073ed362b9a5cc30ef6e99c8b45af5896e",
+    "app/Http/Controllers/QueueController.php": "03aba5a54f097ac74ea76923ff060f99808b981a68d0ded64216ff128b6ecb16",
+    "routes/web.php": "af8b5ebed170b707949c4fdceffc4e9b8bcd4a80091f84105bbb39f874c26103",
+    "phpunit.xml": "3d87284dc9aef5df7a1f2ace5f3fec9792270ddf0dc97d6737a0d276619ce38f",
+    "resources/js/pages/Queue/Index.vue": "85ecf00a6ae49d683478dd105e1dccb9788e95ee29a392960f1e2ddce2aadc40",
+    "resources/js/pages/Registration/Index.vue": "aace0ede705e6bb2dd188cea6fa506e927bae854661cd315b02e33f1c7cce77f",
+    "resources/js/pages/Clinical/Show.vue": "86b98ce020ba405dfa339d6134e217d5f2bbc9b388017d8b9c9682ae18795a64",
+    "resources/js/components/patient-board/PatientBoard.vue": "b6bcf16765c2cc8b0aff80323edcca2abd8fc52e991861cbc6e79a261e7841e2",
+    "resources/js/types/patientBoard.ts": "6f8a4ddff5dcd0a5f236f1a93ac00fc21ad88dc55cbce809ed8f65252d722c5e",
+    "resources/js/types/queue.ts": "dcd5b6d40156aca8ac688f1d192394f095cbd3efdcf867c223b15366dc5a40dc",
+    "resources/js/types/visit.ts": "464734667dc389ecbdb7fbb4bc3986e1cc6560553022ffe623875b62f1867854",
+    "resources/js/types/clinical.ts": "ba282760cf0964dc8b3413e8d2031bd03e10c9fbc54e26a6dcf99d683d298da9",
+    "app/Domain/HR/Roster/Services/RosterOnDuty.php": "d6815a165a9826dd515c96dbee8ff74a75a9d00348e8180d07d5134a2bd3d275",
+    "app/Domain/Access/BranchAccessService.php": "550b3d0593cc3e259c1ddfb7f803d944b2fe98e54a253ce5e167c23990f9916d",
+    "tests/Feature/Queue/QueuePerformanceTest.php": "8a44ae91c7522c676f31923523d67cccf0b342645d1d9d14dff98f5c962b4371",
+    "tests/Feature/Queue/QueueFoundationWarningTest.php": "bee56602d58e399e93273007bba6368d928a5edefbabda013e5d6ab51390cd76",
+    "tests/Frontend/queue-foundation-clinical-panels.test.mjs": "0ca159506b87acbf8b97b6a0bb7c0c48055b10ef9e47a381528563ff8e92d6a6"
+  },
+  "main": "375f56c39a4a492016cf8c9a9b3472904a1b03f5"
+}

@@ -1,0 +1,28 @@
+{
+    "database": "kpone_label_screen_preview_test",
+    "ready": {
+        "case": "11941251-79e5-4386-957e-4482d22e923e",
+        "actor": "labels.ready@kpone.test",
+        "prepared": 1,
+        "blocked": 0,
+        "branch": 1
+    },
+    "blocked": {
+        "case": "85a99dda-8145-4b70-a428-1f5ac2026b68",
+        "actor": "labels.blocked@kpone.test",
+        "prepared": 1,
+        "blocked": 1,
+        "branch": 1
+    },
+    "reprint": {
+        "case": "78ddb9e7-9b58-4af8-868e-da475ff64b4e",
+        "actor": "labels.reprint@kpone.test",
+        "prepared": 1,
+        "blocked": 0,
+        "branch": 1
+    },
+    "readonly": {
+        "case": "79affe97-6cdf-463e-9484-c4c20be994c6",
+        "actor": "case.doctor@kpone.test"
+    }
+}

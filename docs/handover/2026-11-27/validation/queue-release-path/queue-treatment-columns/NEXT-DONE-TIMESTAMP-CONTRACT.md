@@ -1,0 +1,11 @@
+# Next bounded read contract: own Done today completion time
+
+Proposal only; no implementation before current Treatment/Result draft publication and independent contract review.
+
+Actual QueueWorkloadQuery completed membership is QueueEntry removed, removal_reason sent_to_billing or sent_to_dispensary, Visit registered or completed, actor/organisation/active branch/own assignment scope, and removed_at within branch-local day [start,end). This is the approved current checkout list, not full historical completed visits. Reopening/removing it from this state must continue to remove it from this list.
+
+The existing selected entry already contains removed_at, but the QueueRow DTO omits it. Propose additive nullable UTC removedAt only in the independently paginated completed-workload response; keep generic Queue page/poll/other workload rows, Registration and public TV/QR payloads unchanged. Enrich already-authorized rows from the same loaded entries, with no new query, no permission/role inference and no additional identities. Do not substitute called_at/queued_at. Null remains unavailable.
+
+Own Done columns can then use No., Patient, Zone, Seen for (existing authorized visitReasonExcerpt), Completed (actual removedAt formatted in existing branch timezone), Actions. Keep original readonly/current allowed action handler, readiness/returned/reassignment metadata and separate emergency lane. Use an internal completion-label field distinct from Registration's completedAt display so default branch/Registration placement is unchanged. Do not implement branch Now at from removalReason: that field is checkout routing, not current downstream state.
+
+Before code, peer review must confirm removed_at lifecycle semantics and exact DTO insertion point. New backend tests should prove exact timestamp source distinct from called/queued times, absence on other response contracts, existing own/branch/denied scope, MYT boundary/date formatting and no query growth1→26. Existing workload date tests remain unchanged unless an exact faithful shape adaptation is independently reviewed. New actual SSR/time tests and real read-only own Done25+1 paging evidence follow. No migration, write workflow, clinical rule or grant.

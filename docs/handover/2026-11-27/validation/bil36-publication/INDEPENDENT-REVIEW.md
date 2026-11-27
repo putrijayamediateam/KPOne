@@ -1,0 +1,9 @@
+# PR1112 refreshed exact-head independent review
+
+Reviewed head9aafd755354454f1b45fb57814dccccc7964c073 on main3b6ade in /workspace/KPOne-bil36-publication. Exact main-relative scope is10 files and worktree is clean. Independently computed all10 SHA256 values against frozen bil36-publication/manifest.json: every blob matches. No refresh drift or unrelated application change found.
+
+No bounded source blocker. The recorded BIL36 design decisions explicitly approve Finance/Director printing, Finance-only narrow printed-identity grant, receipts and invoices, identity-view audit and the four listed expectation changes. The refreshed implementation retains that contract: additive/idempotent grant migration skips absent roles, clears permission cache and does not revoke on down; Director receives print but not narrow identity because existing patient-view authority suffices. Patient-page access is not added.
+
+Issue/reprint/show retain transactional active-branch/organisation/print authority and identity checks; the new helper accepts existing patient-view OR narrow printed-identity authority. Show verifies encrypted snapshot integrity before identity access and audit. Narrow-only opens record document type/version with IDs through existing audit, without patient identity text. Existing Panel-invoice refusal and immutable print/snapshot paths remain. New coverage includes missing identity grant, branch denial, patient-page denial, audit behavior, receipt and additive migration checks. Existing four assertion changes match the recorded approved scope; no fresh relaxation was introduced by this refresh.
+
+This review is exact-head source/blob parity and contract review. Builder fresh focused tests and CI must complete before release; no independent heavy suite or migration executed here. Clear for coordinator release consideration after those gates, not a merge action.

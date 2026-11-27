@@ -1,0 +1,11 @@
+{
+    "database": "kpone_row_context_preview_test",
+    "ca": "row.context.ca@kpone.test",
+    "doctor": "row.context.doctor@kpone.test",
+    "caseId": 59,
+    "case": "0bd33a75-5721-4422-b553-16f62fd6d1e9",
+    "visit": "KPV-00000061",
+    "branchId": 1,
+    "otcCase": "c2880d19-5725-47dc-b9d4-8272defaa623",
+    "otcVisit": "KPV-00000062"
+}

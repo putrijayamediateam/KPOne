@@ -1,0 +1,5 @@
+# Independent Inventory backend source review
+
+CLEAR bounded ReturnService/controller outcome-filter diff. The argument is appended after withCounts, preserving all prior positional and named callers; controller string-normalizes arrays and service allowlists existing outcomes. The predicate exists only within the checked join/month branch. Fresh actor permissions/active branch assignment, organisation/branch conditions, controlled filter, half-open branch-local month, bounded pagination/clamp, visible staff lookup and minimized projection remain unchanged. Waiting normalizes outcome to all and its counter query never receives the outcome predicate. No mutation/grant/query-count expansion found.
+
+Reviewed new tests for every real outcome, combined controlled filter, waiting reset and counts, private-note omission, invalid/array input, CA denial, pagination clamp, equivalent in-range query count and exact month/branch boundaries. Read builder backend-final23tests455assertions pass; no independent heavy rerun. Earlier plan review conditions are satisfied in source. Frontend/visual review remains Staff/builder scope, not certified here.

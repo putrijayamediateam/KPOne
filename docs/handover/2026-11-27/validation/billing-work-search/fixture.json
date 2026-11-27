@@ -1,0 +1,44 @@
+{
+    "branch_id": 3,
+    "finance": {
+        "otherBranch": {
+            "id": 1,
+            "name": "Cheras"
+        },
+        "total": 45,
+        "matchTotal": 45,
+        "first": {
+            "invoiceNumber": "KPI-00000045",
+            "visitNumber": "KPV-00000045",
+            "patientName": "Synthetic First Submission Patient 21",
+            "branch": "Puchong",
+            "status": "finalized",
+            "reviewUrl": "http:\/\/localhost\/visits\/KPV-00000045\/billing",
+            "state": {
+                "total": 4000,
+                "self_pay": 0,
+                "panel": 1000,
+                "deferred": 0,
+                "due_now": 3000
+            }
+        }
+    },
+    "panel": {
+        "otherBranch": {
+            "id": 1,
+            "name": "Cheras"
+        },
+        "total": 44,
+        "matchTotal": 44,
+        "first": {
+            "invoiceNumber": "KPI-00000045",
+            "visitNumber": "KPV-00000045",
+            "patientName": "Synthetic First Submission Patient 21",
+            "branch": "Puchong",
+            "status": "approved",
+            "reviewUrl": "http:\/\/localhost\/visits\/KPV-00000045\/billing",
+            "amountSen": 1000,
+            "requestedAt": "27 Nov 2026, 8:47 AM"
+        }
+    }
+}

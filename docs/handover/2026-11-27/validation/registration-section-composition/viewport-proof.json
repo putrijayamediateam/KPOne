@@ -1,0 +1,69 @@
+{
+  "proof": [
+    {
+      "theme": "light",
+      "geometry": [
+        {
+          "text": "2. Visit",
+          "x": 285,
+          "y": 488,
+          "width": 942,
+          "height": 24,
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "text": "No doctor",
+          "x": 764,
+          "y": 560,
+          "width": 463,
+          "height": 36,
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "text": "Consultation",
+          "x": 289,
+          "y": 564,
+          "width": 138,
+          "height": 40,
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "geometry": [
+        {
+          "text": "2. Visit",
+          "x": 285,
+          "y": 488,
+          "width": 942,
+          "height": 24,
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "text": "No doctor",
+          "x": 764,
+          "y": 560,
+          "width": 463,
+          "height": 36,
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "text": "Consultation",
+          "x": 289,
+          "y": 564,
+          "width": 138,
+          "height": 40,
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    }
+  ],
+  "writes": []
+}

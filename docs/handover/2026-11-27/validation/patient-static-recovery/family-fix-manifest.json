@@ -1,0 +1,9 @@
+{
+  "base": "e5e72f69b",
+  "files": {
+    "tests/Frontend/family-links-ui.test.mjs": "a587ffc0d20d17a4ca3a0c62801eb266f94aecbb0dd43402cae1047b062f2342",
+    "database/migrations/2026_11_26_020000_create_patient_family_links.php": "d300df410b0499826edfc95d272c00207886608330220accd4910dc70d22f54e",
+    "app/Domain/Patient/Services/PatientFamilyLinkService.php": "e12f9c3dbf164f536a8fca013dc7b8e8052e1cdfc4c4fa5c6587c7d0d493bf9d"
+  },
+  "patch": "bb3c987b7a8027ac36b2ee657763886993313afaf02b8243a758bc268c9cca60"
+}

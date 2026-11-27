@@ -1,0 +1,194 @@
+[
+  {
+    "file": "consultation-1440-dark.png",
+    "baseSize": [
+      1440,
+      1952
+    ],
+    "extractedSize": [
+      1440,
+      1952
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "consultation-1440-light.png",
+    "baseSize": [
+      1440,
+      1952
+    ],
+    "extractedSize": [
+      1440,
+      1952
+    ],
+    "pixelIdentical": false
+  },
+  {
+    "file": "consultation-390-dark.png",
+    "baseSize": [
+      390,
+      2922
+    ],
+    "extractedSize": [
+      390,
+      2922
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "consultation-390-light.png",
+    "baseSize": [
+      390,
+      2922
+    ],
+    "extractedSize": [
+      390,
+      2922
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "invalid-1440-dark.png",
+    "baseSize": [
+      1440,
+      2048
+    ],
+    "extractedSize": [
+      1440,
+      2048
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "invalid-1440-light.png",
+    "baseSize": [
+      1440,
+      2048
+    ],
+    "extractedSize": [
+      1440,
+      2048
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "invalid-390-dark.png",
+    "baseSize": [
+      390,
+      2998
+    ],
+    "extractedSize": [
+      390,
+      2998
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "invalid-390-light.png",
+    "baseSize": [
+      390,
+      2998
+    ],
+    "extractedSize": [
+      390,
+      2998
+    ],
+    "pixelIdentical": false
+  },
+  {
+    "file": "otc-panel-1440-dark.png",
+    "baseSize": [
+      1440,
+      2211
+    ],
+    "extractedSize": [
+      1440,
+      2211
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "otc-panel-1440-light.png",
+    "baseSize": [
+      1440,
+      2211
+    ],
+    "extractedSize": [
+      1440,
+      2211
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "otc-panel-390-dark.png",
+    "baseSize": [
+      390,
+      3277
+    ],
+    "extractedSize": [
+      390,
+      3277
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "otc-panel-390-light.png",
+    "baseSize": [
+      390,
+      3277
+    ],
+    "extractedSize": [
+      390,
+      3277
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "saved-patient-1440-dark.png",
+    "baseSize": [
+      1440,
+      1212
+    ],
+    "extractedSize": [
+      1440,
+      1212
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "saved-patient-1440-light.png",
+    "baseSize": [
+      1440,
+      1212
+    ],
+    "extractedSize": [
+      1440,
+      1212
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "saved-patient-390-dark.png",
+    "baseSize": [
+      390,
+      1662
+    ],
+    "extractedSize": [
+      390,
+      1662
+    ],
+    "pixelIdentical": true
+  },
+  {
+    "file": "saved-patient-390-light.png",
+    "baseSize": [
+      390,
+      1662
+    ],
+    "extractedSize": [
+      390,
+      1662
+    ],
+    "pixelIdentical": true
+  }
+]

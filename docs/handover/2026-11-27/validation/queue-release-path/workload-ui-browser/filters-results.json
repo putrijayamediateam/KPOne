@@ -1,0 +1,18 @@
+[
+  {
+    "role": "paging_doctor",
+    "baselineTotal": 26,
+    "filteredTotal": 26,
+    "page2Rows": 1,
+    "resetPage1": true,
+    "allSearchStatusesWaiting": true
+  },
+  {
+    "role": "ca_supervisor",
+    "baselineTotal": 26,
+    "filteredTotal": 26,
+    "page2Rows": 1,
+    "resetPage1": true,
+    "allSearchStatusesWaiting": true
+  }
+]

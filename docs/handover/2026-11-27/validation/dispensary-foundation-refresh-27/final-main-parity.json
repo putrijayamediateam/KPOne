@@ -1,0 +1,16 @@
+{
+  "head": "f7c729b2f09a7c9e9f387333bf75d894a4698994",
+  "main": "f8dd19cb83a6129479246db1c62d0af12cd28fb5",
+  "beforeMainRefresh": "6e181b7151fcd1d4929309fab9baa4d649f64ed2",
+  "scopedBlobsUnchanged": {
+    "resources/js/components/dispensary/DoctorCheckActions.vue": true,
+    "resources/js/pages/Clinical/Partials/DispensaryAttentionPanel.vue": true,
+    "resources/js/pages/Dispensary/Show.vue": true,
+    "tests/Frontend/dark-1.test.mjs": true,
+    "tests/Frontend/dd-57-dispensary-dark.test.mjs": true,
+    "tests/Frontend/ds-01b-3-otc-dispense.test.mjs": true,
+    "tests/Frontend/ds-01d-dispensary-layout.test.mjs": true,
+    "tests/Frontend/dsp-17-scan-pick-batch.test.mjs": true,
+    "tests/Frontend/dsp-23-doctor-check.test.mjs": true
+  }
+}

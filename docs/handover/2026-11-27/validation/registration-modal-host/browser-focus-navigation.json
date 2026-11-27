@@ -1,0 +1,33 @@
+{
+  "proof": {
+    "modifiedClickFullpage": true,
+    "keepEditingFocus": "patient-search",
+    "removedFieldFallback": true,
+    "closeTargets": [
+      {
+        "viewportWidth": 390,
+        "x": 322.765625,
+        "y": 39.234375,
+        "width": 44,
+        "height": 44
+      },
+      {
+        "viewportWidth": 768,
+        "x": 694.6953125,
+        "y": 40.375,
+        "width": 44,
+        "height": 44
+      },
+      {
+        "viewportWidth": 1440,
+        "x": 1039,
+        "y": 41,
+        "width": 36,
+        "height": 36
+      }
+    ],
+    "discardReturnsOpener": true,
+    "backForwardOrdinaryUnmount": true
+  },
+  "errors": []
+}

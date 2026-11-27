@@ -1,0 +1,5 @@
+Groups the existing Registration form into the demo's four simultaneous sections: Patient, Visit, Who pays, and Check and register. Urgency stays with visit details; coverage and Panel fields stay together. There is no wizard or new step validation.
+
+The entire form script, fullpage wrapper, board and dialog host remain unchanged from #1205. All fields keep the same form owner, IDs, error handling and immutable retry protection. The summary's optional heading preserves its default for other callers.
+
+Stacked on #1205. Validation: 2230/2230 frontend tests, types/build, lint/format and diff check passed. Three new actual-SFC render cases and thirty synthetic browser captures cover both presentations, Doctor/Panel error focus, quick draft, locked uncertain retry, preserved filter and one visit after a lost committed response plus same-key retry. One reviewed source-test marker changes from obsolete numbering to the actual accessible reason label; existing assertions otherwise remain intact. No backend, permissions or migrations change.

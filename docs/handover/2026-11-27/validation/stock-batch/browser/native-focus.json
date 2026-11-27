@@ -1,0 +1,9 @@
+{
+  "fixture": "Actual compiled StockBatchList + real Vue DOM renderer; only icon/status visual children stubbed, synthetic projection changed deliberately",
+  "survivingTrigger": true,
+  "removedFallback": true,
+  "loadingFallback": true,
+  "outsidePreserved": true,
+  "outsideDuringUpdatePreserved": true,
+  "errors": []
+}

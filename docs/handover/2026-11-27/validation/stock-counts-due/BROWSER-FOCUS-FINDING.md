@@ -1,0 +1,5 @@
+# Native disabled-button focus gap and bounded repair
+
+First actual3134 application flow: keyboard Enter on Start count submitted the normal cycle endpoint and returned Counts open below. Original new list's row-replacement watcher observed BODY, not the originating button: busy disabled Start before response. Initial results.json records BODY and deliberately remains as failing evidence. Blind count295/nonzero/independent-recount refusal otherwise passed.
+
+Repair records focusin's SKU/location identity. Ordinary focusout clears it; only a null-relatedTarget blur of a now-disabled button retains the identity. On replacement, that identity is considered only while activeElement is BODY; any outside active focus wins, and pending nextTick restoration again checks for a changed focus. A surviving row receives focus, else persistent named list. Final actual confirmation PASS: final-results.json shows active LI matching the exact started SKU/location identity. Two new regressions explicitly cover disabled blur and ordinary blur; original three focus tests retain no-steal/restoration assertions.

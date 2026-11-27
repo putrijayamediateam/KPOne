@@ -1,0 +1,56 @@
+{
+  "headRefOid": "2ef4b5807fd5228a0f066c57ec5bdbc68621be6f",
+  "state": "OPEN",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T18:38:14Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45876688353/job/140105440778",
+      "name": "attest",
+      "startedAt": "2026-11-26T18:37:45Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T18:49:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45876688353/job/140108222941",
+      "name": "static",
+      "startedAt": "2026-11-26T18:44:02Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T19:09:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45876688353/job/140108222956",
+      "name": "backend (shard 1)",
+      "startedAt": "2026-11-26T18:51:37Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45876688353/job/140108222933",
+      "name": "backend (shard 2)",
+      "startedAt": "2026-11-26T18:53:27Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-26T19:03:30Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/putrijayamediateam/KPOne/actions/runs/45876688353/job/140108222937",
+      "name": "backend (shard 3)",
+      "startedAt": "2026-11-26T18:45:45Z",
+      "status": "COMPLETED",
+      "workflowName": "tests"
+    }
+  ]
+}

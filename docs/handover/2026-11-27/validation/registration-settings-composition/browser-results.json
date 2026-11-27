@@ -1,0 +1,237 @@
+{
+  "proof": {
+    "keyboardToggleWithoutRequest": true,
+    "reducedMotion": true,
+    "realStaleRefusalRetainsDraft": true,
+    "explicitReloadRestoresSavedValues": true,
+    "separateAutoDraftNoRequest": true
+  },
+  "captures": [
+    {
+      "state": "system",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "system",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "system",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "system",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "requirements",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "requirements",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "requirements",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "requirements",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "refusal",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "refusal",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "refusal",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "refusal",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "scope",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "scope",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "scope",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "scope",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "state": "auto-assignment",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "state": "auto-assignment",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "state": "auto-assignment",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "state": "auto-assignment",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "geometry": [
+    {
+      "width": 390,
+      "id": "require-date-of-birth",
+      "height": 127,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 390,
+      "id": "require-nationality",
+      "height": 88,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 390,
+      "id": "require-email",
+      "height": 88,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 390,
+      "id": "require-address",
+      "height": 87,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 768,
+      "id": "require-date-of-birth",
+      "height": 88,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 768,
+      "id": "require-nationality",
+      "height": 68.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 768,
+      "id": "require-email",
+      "height": 68.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 768,
+      "id": "require-address",
+      "height": 67.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 1440,
+      "id": "require-date-of-birth",
+      "height": 68.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 1440,
+      "id": "require-nationality",
+      "height": 68.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 1440,
+      "id": "require-email",
+      "height": 68.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    },
+    {
+      "width": 1440,
+      "id": "require-address",
+      "height": 67.5,
+      "focusWithin": true,
+      "trackWidth": 44,
+      "trackHeight": 26,
+      "knobWidth": 22
+    }
+  ],
+  "errors": [],
+  "writes": [
+    {
+      "url": "/registration-settings",
+      "payload": {
+        "expected_branch_id": 1,
+        "lock_version": 0,
+        "idempotency_key": "5e73f5a2-d335-4d3b-bebf-77cfc7959042",
+        "require_date_of_birth": true,
+        "require_nationality": false,
+        "require_email": false,
+        "require_address": false
+      }
+    }
+  ],
+  "qualification": "Synthetic Director; one actual server stale-version refusal with controlled outgoing version999999; no successful settings save. Native checkbox keyboard/status and explicit reload exercised. Permission omission covered by actual-SFC and backend tests, not this browser."
+}

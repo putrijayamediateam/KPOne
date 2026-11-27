@@ -1,0 +1,7 @@
+{
+  "script": "exact",
+  "interpolations": "same ordered expressions",
+  "ifGuards": "same",
+  "loops": "same",
+  "links": "same"
+}

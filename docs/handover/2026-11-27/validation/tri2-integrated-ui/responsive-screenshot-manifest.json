@@ -1,0 +1,114 @@
+[
+  {
+    "actor": "doctor",
+    "path": "/queue",
+    "width": 390,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-queue-390-light.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/queue",
+    "width": 390,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-queue-390-dark.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/queue",
+    "width": 1440,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-queue-1440-light.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/queue",
+    "width": 1440,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-queue-1440-dark.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/registration",
+    "width": 390,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-registration-390-light.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/registration",
+    "width": 390,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-registration-390-dark.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/registration",
+    "width": 1440,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-registration-1440-light.png"
+  },
+  {
+    "actor": "doctor",
+    "path": "/registration",
+    "width": 1440,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-doctor-registration-1440-dark.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/queue",
+    "width": 390,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-queue-390-light.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/queue",
+    "width": 390,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-queue-390-dark.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/queue",
+    "width": 1440,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-queue-1440-light.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/queue",
+    "width": 1440,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-queue-1440-dark.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/registration",
+    "width": 390,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-registration-390-light.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/registration",
+    "width": 390,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-registration-390-dark.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/registration",
+    "width": 1440,
+    "theme": "light",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-registration-1440-light.png"
+  },
+  {
+    "actor": "ca",
+    "path": "/registration",
+    "width": 1440,
+    "theme": "dark",
+    "file": "/workspace/kpone-validation/tri2-integrated-ui/responsive-ca-registration-1440-dark.png"
+  }
+]

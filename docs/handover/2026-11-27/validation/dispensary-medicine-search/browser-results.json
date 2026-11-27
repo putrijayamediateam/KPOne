@@ -1,0 +1,93 @@
+{
+  "captures": [
+    {
+      "name": "consultation-snapshot",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "consultation-snapshot",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "consultation-snapshot",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "consultation-snapshot",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "otc-snapshot",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "otc-snapshot",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "otc-snapshot",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "otc-snapshot",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "catalogue-rename-empty",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "catalogue-rename-empty",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "catalogue-rename-empty",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "catalogue-rename-empty",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "removed-history-empty",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "removed-history-empty",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "removed-history-empty",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "removed-history-empty",
+      "width": 1440,
+      "theme": "dark"
+    }
+  ],
+  "checks": [
+    "Immutable consultation medicine snapshot matches after live catalogue rename",
+    "Type intersection preserved",
+    "Live catalogue-only name does not match immutable case snapshot",
+    "Completed removed current line and returned historical snapshot do not match",
+    "Same completed case remains reachable through exact existing KPV search"
+  ],
+  "errors": [],
+  "writes": []
+}

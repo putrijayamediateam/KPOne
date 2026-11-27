@@ -1,0 +1,7 @@
+{
+    "claim_id": 1,
+    "branch_id": 3,
+    "acceptedSen": 1000,
+    "receivedSen": 333,
+    "unpaidSen": 667
+}

@@ -1,0 +1,241 @@
+{
+    "created": [
+        {
+            "group": false,
+            "id": 1,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 2,
+            "state": "approved"
+        },
+        {
+            "group": false,
+            "id": 3,
+            "state": "dispatched"
+        },
+        {
+            "group": false,
+            "id": 4,
+            "state": "credited"
+        },
+        {
+            "group": false,
+            "id": 5,
+            "state": "rejected"
+        },
+        {
+            "group": false,
+            "id": 6,
+            "state": "cancelled"
+        },
+        {
+            "group": false,
+            "id": 7,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 8,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 9,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 10,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 11,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 12,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 13,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 14,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 15,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 16,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 17,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 18,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 19,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 20,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 21,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 22,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 23,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 24,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 25,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 26,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 27,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 28,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 29,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 30,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": false,
+            "id": 31,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 1,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 2,
+            "state": "approved"
+        },
+        {
+            "group": true,
+            "id": 3,
+            "state": "dispatched"
+        },
+        {
+            "group": true,
+            "id": 4,
+            "state": "credited"
+        },
+        {
+            "group": true,
+            "id": 5,
+            "state": "rejected"
+        },
+        {
+            "group": true,
+            "id": 6,
+            "state": "cancelled"
+        },
+        {
+            "group": true,
+            "id": 7,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 8,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 9,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 10,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 11,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 12,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 13,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 14,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 15,
+            "state": "awaiting_approval"
+        },
+        {
+            "group": true,
+            "id": 16,
+            "state": "awaiting_approval"
+        }
+    ],
+    "lotId": 2,
+    "receiptId": 1
+}

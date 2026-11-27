@@ -1,0 +1,17 @@
+{
+  "head": "74c28354bf79d042615db62952788eebc9ae906d",
+  "main": "f8dd19cb83a6129479246db1c62d0af12cd28fb5",
+  "scopedBlobsUnchanged": {
+    "app/Domain/Access/BillingPermissions.php": true,
+    "database/migrations/2026_11_26_250100_grant_director_price_publication_additively.php": true,
+    "docs/teams/billing/BIL-38-DESIGN.md": true,
+    "docs/teams/billing/BIL-38-REVIEW-2026-11-26.md": true,
+    "docs/teams/billing/TEAM.md": true,
+    "tests/Feature/Billing/DirectorPricePublicationTest.php": true,
+    "tests/Feature/Billing/PricingControllerTest.php": true,
+    "tests/Feature/Billing/SupervisorPricingTest.php": true,
+    "tests/Feature/Clinical/ClinicalServiceCatalogueControllerTest.php": true,
+    "tests/Feature/Clinical/UnifiedCatalogueSetupTest.php": true,
+    "tests/Feature/Inventory/CatalogueImportTest.php": true
+  }
+}

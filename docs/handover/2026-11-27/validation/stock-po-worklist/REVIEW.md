@@ -1,0 +1,11 @@
+# Purchase-order worklist candidate
+
+Base: PO metadata PR1216, c4d7df759180927508a27b0d4c2cae9254bee1fc. Frozen14-file patch265dbcece06e44a7a0d47161eb875db64d0a66822ce0830fe4667b5142f47459, source-manifest.json. No backend/schema/grant changes.
+
+Real newest50 scoped orders now have responsive summaries, explicit loaded-window search/status counts and persistent details. Existing command slots and parent script retained except import/UI busy aggregation. Child processing uses per-instance tokens to preserve busy ownership across replacement/unmount. No invented supplier-sent, Returned, pack conversion or global totals.
+
+Validation: focused15 new/original runtime cases; affected30 after exact independently reviewed heading/whitespace adaptations; full2269/2269; types, scoped ESLint, resource format, production build8.07s and diff-check pass. Backend12/92 (metadata/approval regression) passes own synthetic database. Initial full2262/2269 failure log preserved; no tests removed or business expectations weakened. Optional emit manual-harness adaptation separately reviewed.
+
+Actual own3178 source/database UI: create/edit/submit, independent Finance approval, real exception refusal, child busy disclosure/filter lock, retained draft/error and readonly0actions. First browser harness mistakenly paused /receive rather than actual /receipts; corrected harness-only and reran with fresh synthetic order. before-stock.json and after-stock.json equal:24 movements and every balance quantity unchanged. Six worklist viewport/theme matrices report36desktop44mobile/tablet, no overflow/pageerrors. Separate browser/opened-targets.json verifies open create and legacy/split receiving controls across all six viewport/theme combinations: none below44mobile/tablet36desktop, no overflow/pageerrors. Runtime custom-renderer focus proof is not claimed as real browser focus restoration; actual browser keyboard Enter disclosure passed.
+
+Scope limitations: existing newest50 window only; no whole-dataset paging or status totals. Broader Stock workspace navigation and unsupported demo backend lifecycle semantics remain separate. Independent final source/design review required before publication. Root alone merges.

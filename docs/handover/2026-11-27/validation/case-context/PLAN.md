@@ -1,0 +1,11 @@
+# Next bounded case context composition (DSP-F13/F19)
+
+Owner delegated automatic continuation; coordinator requested the next minimal case-page follow-up after publication of the reviewed disclosure slice. PR1158 now contains that frozen slice. This plan owns a new isolated branch based on its exact headbc31adaf, not edits to PR1158.
+
+Reference PharmacyCase.dc.html lines54–58 has a compact identity/avatar/name/KP header with separated visit facts; lines100–104 has a Summary card with40px divided rows. Actual Show.vue still has a flat small-text patient definition list and tightly packed summary rows. Existing safe data are patient.name, patient.patientNumber, visit.visitNumber, doctor with the existing OTC/no-doctor fallback, visible medicine/service totals, unsaved totals and checked-by-scan counts.
+
+Proposed exact files: Show.vue presentation markup and one decorative UserRound icon import; TEAM.md delivery entry. Patient header gets a neutral decorative44px icon (not inferred demographics), readable name/KP identity, then separate36px-or-taller Visit/Doctor rows. Summary adopts title Summary and divided40px rows using the exact existing conditionals/expressions. No extra count, chart, date or action. Long values wrap; zero counts remain real zeros; readonly and OTC omissions remain exact.
+
+Explicitly excluded: age/sex/payer/queue/call timestamp absent from this DTO; Changed by you without actor provenance; new links; Help content; Ready state; permissions/schema/backend queries; any change to scan/disclosure/dirty/save/error or Verify-completes. This closes only the available-data composition portions ofF13/F19, not their missing-data gaps or full demo parity.
+
+Validation: independently inspect script equality after removing only the icon import; existing focused156 assertions unchanged; scoped lint/format/types/build; own synthetic preview390/1440 light/dark for editable, dirty, readonly and OTC, long name/doctor wrapping and zero/service/scan states. No mirror tests for class-only changes; existing behavior regressions plus real responsive proof are appropriate. Design mapping review before implementation, final independent source/visual review before publication. No merges.

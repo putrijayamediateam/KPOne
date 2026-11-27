@@ -1,0 +1,566 @@
+{
+  "files": [
+    "tests/Feature/ThrottleIsolationTest.php",
+    "tests/Feature/WhatsAppLinkBoundaryTest.php",
+    "tests/Feature/PostgresVisitRegistrationRegressionTest.php",
+    "tests/Feature/OperationalPatientBoardTest.php",
+    "tests/Feature/FlowFixesTest.php",
+    "tests/Feature/Clinical/VisitConsultationFlagTest.php",
+    "tests/Feature/Clinical/OtcDispensaryRoutesTest.php",
+    "tests/Feature/Clinical/TreatmentCallProjectionTest.php",
+    "tests/Feature/Clinical/ClinicalEncounterStartTest.php",
+    "tests/Feature/Clinical/ConsultationHoldTest.php",
+    "tests/Feature/Clinical/TreatmentPlanTest.php",
+    "tests/Feature/Clinical/PilotCompletedQueueScaleTest.php",
+    "tests/Feature/Clinical/ClinicalSafetyAuthorizationTest.php",
+    "tests/Feature/Queue/QueueChecksWaitingTest.php",
+    "tests/Feature/Queue/QueueAuthorizationTest.php",
+    "tests/Feature/Queue/RedZoneAlertTest.php",
+    "tests/Feature/Queue/RoomsTodayTest.php",
+    "tests/Feature/Queue/PilotBoardScaleTest.php",
+    "tests/Feature/Queue/WaitingTimeBoardTest.php",
+    "tests/Feature/Queue/DoctorWarningTemporalTest.php",
+    "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+    "tests/Feature/Queue/TreatmentProgressTest.php",
+    "tests/Feature/Queue/QueueWaitingOrderTest.php",
+    "tests/Feature/Queue/TabCountsTest.php",
+    "tests/Feature/Queue/OtcQueueTest.php",
+    "tests/Feature/Queue/WhatsAppBoardTest.php",
+    "tests/Feature/Queue/QueueDirectoryTest.php",
+    "tests/Feature/Queue/QueueMidnightClockTest.php",
+    "tests/Feature/Queue/TreatmentProgressNextStepTest.php",
+    "tests/Feature/Queue/QueueAdministrationTest.php",
+    "tests/Feature/Queue/DoctorWarningTest.php",
+    "tests/Feature/Queue/QueueDispensaryCheckRowTest.php",
+    "tests/Feature/Queue/CallNextTest.php",
+    "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+    "tests/Feature/Queue/QueuePerformanceTest.php",
+    "tests/Feature/Billing/CompletedPatientTest.php",
+    "tests/Feature/Patient/GuardianWhatsAppIsolationTest.php",
+    "tests/Feature/Visit/VisitReasonCatalogueTest.php",
+    "tests/Feature/Visit/VisitHistoryTest.php",
+    "tests/Feature/Visit/VisitDirectoryTest.php",
+    "tests/Feature/Visit/VisitPanelNoteTest.php",
+    "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+    "tests/Feature/Clinical/Triage/TriageScreensTest.php",
+    "tests/Feature/Clinical/Triage/TriageChipsAndVitalsTest.php",
+    "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php"
+  ],
+  "assertion_and_red_fixture_hits": [
+    {
+      "file": "tests/Feature/WhatsAppLinkBoundaryTest.php",
+      "line": 22,
+      "source": "$this->assertSame(['canWhatsapp', 'patientNumber', 'identity', 'guardian', 'contact', 'address', 'identifiers', 'administrative', 'can'], array_keys($detail));"
+    },
+    {
+      "file": "tests/Feature/WhatsAppLinkBoundaryTest.php",
+      "line": 26,
+      "source": "$this->assertSame(['patientNumber', 'fullName', 'dateOfBirth', 'sex'], array_keys($visitDetail['patient']));"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 166,
+      "source": "->assertJsonPath('waiting.data.0.visitNumber', $own->visit->visit_number)"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 167,
+      "source": "->assertJsonPath('waiting.data.0.canCall', true)"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 168,
+      "source": "->assertJsonPath('waiting.data.0.can.update', false)"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 169,
+      "source": "->assertJsonPath('waiting.data.0.can.cancel', false);"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 184,
+      "source": "->assertJsonCount(1, 'waiting.data')"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 185,
+      "source": "->assertJsonPath('waiting.data.0.visitNumber', $own->visit->visit_number)"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 186,
+      "source": "->assertJsonMissingPath('waiting.data.0.clinicalNote')"
+    },
+    {
+      "file": "tests/Feature/OperationalPatientBoardTest.php",
+      "line": 187,
+      "source": "->assertJsonMissingPath('waiting.data.0.treatmentPlan');"
+    },
+    {
+      "file": "tests/Feature/Clinical/TreatmentPlanTest.php",
+      "line": 282,
+      "source": "$this->assertSame(['clinic', 'branch', 'patient', 'date', 'items', 'blocked', 'pageSize', 'token', 'branchId', 'excludedCount'], array_keys($labels));"
+    },
+    {
+      "file": "tests/Feature/Clinical/TreatmentPlanTest.php",
+      "line": 283,
+      "source": "$this->assertSame(['name', 'strength', 'quantity', 'unit', 'dosage', 'frequency', 'duration', 'instruction', 'lines', 'emphasis', 'ruleAfter', 'controlled', 'previewUrl'], array_keys($labels['items'][0]));"
+    },
+    {
+      "file": "tests/Feature/Clinical/TreatmentPlanTest.php",
+      "line": 332,
+      "source": "$this->assertSame(['status', 'patient', 'visit', 'completedAt'], array_keys(app(DispensaryDirectoryService::class)->detail($fixture['ca'], $fixture['case']->refresh())));"
+    },
+    {
+      "file": "tests/Feature/Clinical/PilotCompletedQueueScaleTest.php",
+      "line": 42,
+      "source": "$this->assertLessThanOrEqual(30, count($queries));"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueChecksWaitingTest.php",
+      "line": 15,
+      "source": "* dispensary cases waiting for this doctor's check, a top-level payload key (tabCounts keeps its shape). Synthetic data only."
+    },
+    {
+      "file": "tests/Feature/Queue/QueueChecksWaitingTest.php",
+      "line": 48,
+      "source": "$this->assertSame(['all', 'waiting', 'serving', 'removed'], array_keys($response->json('tabCounts')));"
+    },
+    {
+      "file": "tests/Feature/Queue/PilotBoardScaleTest.php",
+      "line": 52,
+      "source": "$this->assertLessThanOrEqual($key === 'registration' ? 35 : 25, count($queries), $key);"
+    },
+    {
+      "file": "tests/Feature/Queue/PilotBoardScaleTest.php",
+      "line": 53,
+      "source": "$this->assertLessThan(100000, strlen(json_encode($output, JSON_THROW_ON_ERROR)), $key);"
+    },
+    {
+      "file": "tests/Feature/Queue/PilotBoardScaleTest.php",
+      "line": 58,
+      "source": "$this->assertLessThanOrEqual(3, count($assignments));"
+    },
+    {
+      "file": "tests/Feature/Queue/WaitingTimeBoardTest.php",
+      "line": 29,
+      "source": "$row = collect($snapshot['waiting']['data'])->firstWhere('visitNumber', $entry->visit->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 33,
+      "source": "$this->triage($ca, $carry->refresh(), ['chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 37,
+      "source": "$this->triage($ca, $today->refresh(), ['chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 49,
+      "source": "$this->assertSame([], $queue['waiting']['data']->all());"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 51,
+      "source": "$this->assertSame([$normal->visit_number], $unfiltered['waiting']['data']->pluck('visitNumber')->all());"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 75,
+      "source": "$this->triage($ca, $visit->refresh(), ['chosen_zone' => 'red', 'pulse_bpm' => 130]);"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 86,
+      "source": "$this->assertSame(['visitNumber', 'queueNumber', 'patientName', 'assignedDoctorName', 'waitingMinutes', 'operationalDate', 'episodeId', 'alertStartedAt', 'alertOrigin', 'takenBy', 'takenAt'], array_keys($row));"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 107,
+      "source": "$this->triage($ca, $visit->refresh(), ['chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Queue/EmergencyLaneProjectionTest.php",
+      "line": 145,
+      "source": "$this->assertSame([$visits[0]->visit_number], $snapshot['waiting']['data']->pluck('visitNumber')->all());"
+    },
+    {
+      "file": "tests/Feature/Queue/TreatmentProgressTest.php",
+      "line": 273,
+      "source": "$waitingRow = collect($snapshot['waiting']['data'])->firstWhere('visitNumber', $waitingVisit->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueWaitingOrderTest.php",
+      "line": 53,
+      "source": "return collect($this->actingAs($actor)->postJson(route('queue.search'), [])->assertOk()->json('waiting.data'))"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueWaitingOrderTest.php",
+      "line": 127,
+      "source": "$this->triage($ca, $red->refresh(), ['chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueWaitingOrderTest.php",
+      "line": 139,
+      "source": "$rows = $this->actingAs($other)->postJson(route('queue.search'), [])->assertOk()->json('waiting.data');"
+    },
+    {
+      "file": "tests/Feature/Queue/TabCountsTest.php",
+      "line": 58,
+      "source": "foreach (array_keys($counts) as $tab) {"
+    },
+    {
+      "file": "tests/Feature/Queue/TabCountsTest.php",
+      "line": 80,
+      "source": "$this->assertSame(['data', 'tabCounts', 'total', 'currentPage', 'lastPage'], array_keys($response->json()));"
+    },
+    {
+      "file": "tests/Feature/Queue/TabCountsTest.php",
+      "line": 200,
+      "source": "$this->assertLessThanOrEqual($queries, $large[$source], $source);"
+    },
+    {
+      "file": "tests/Feature/Queue/TabCountsTest.php",
+      "line": 202,
+      "source": "$this->assertLessThanOrEqual(18, $large['registration']);"
+    },
+    {
+      "file": "tests/Feature/Queue/TabCountsTest.php",
+      "line": 203,
+      "source": "$this->assertLessThanOrEqual(16, $large['queue']);"
+    },
+    {
+      "file": "tests/Feature/Queue/WhatsAppBoardTest.php",
+      "line": 25,
+      "source": "foreach ([app(VisitDirectoryService::class)->search($ca, [])['data'][0], app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'][0], app(QueueDirectoryService::class)->poll($ca)['waiting']['data'][0]] as $row) {"
+    },
+    {
+      "file": "tests/Feature/Queue/WhatsAppBoardTest.php",
+      "line": 36,
+      "source": "$this->assertFalse(app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'][0]['canWhatsapp']);"
+    },
+    {
+      "file": "tests/Feature/Queue/WhatsAppBoardTest.php",
+      "line": 45,
+      "source": "foreach (array_keys(PermissionCatalogue::roles()) as $role) {"
+    },
+    {
+      "file": "tests/Feature/Queue/WhatsAppBoardTest.php",
+      "line": 68,
+      "source": "$this->assertFalse(app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'][0]['canWhatsapp']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 26,
+      "source": "$this->assertSame($urgent->visit->visit_number, $snapshot['waiting']['data'][0]['visitNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 27,
+      "source": "$row = $snapshot['waiting']['data'][0];"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 46,
+      "source": "$this->assertSame($previous->visit->visit_number, $snapshot['carryOver']['data'][0]['visitNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 47,
+      "source": "$this->assertSame($today->visit->visit_number, $snapshot['waiting']['data'][0]['visitNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 48,
+      "source": "$this->assertSame('A-001', $snapshot['carryOver']['data'][0]['queueNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 49,
+      "source": "$this->assertSame('A-001', $snapshot['waiting']['data'][0]['queueNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 67,
+      "source": "$this->assertCount(1, $snapshot['waiting']['data']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 68,
+      "source": "$this->assertSame($own->visit->visit_number, $snapshot['waiting']['data'][0]['visitNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 69,
+      "source": "$this->assertTrue($snapshot['waiting']['data'][0]['canCall']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 107,
+      "source": "$numbers = collect($snapshot['waiting']['data'])->pluck('visitNumber');"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 109,
+      "source": "$this->assertSame($secondVisit->visit_number, $snapshot['waiting']['data'][0]['visitNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 110,
+      "source": "$this->assertSame($firstVisit->visit_number, $snapshot['waiting']['data'][1]['visitNumber']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 123,
+      "source": "$row = collect($snapshot['waiting']['data'])->firstWhere('visitNumber', $entry->visit->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 137,
+      "source": "$row = collect($snapshot['waiting']['data'])->firstWhere('visitNumber', $entry->visit->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 157,
+      "source": "$this->assertCount(25, $first['carryOver']['data']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 159,
+      "source": "$this->assertCount(1, $second['carryOver']['data']);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 187,
+      "source": "->assertJsonCount(1, 'waiting.data')"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 188,
+      "source": "->assertJsonPath('waiting.data.0.visitNumber', $urgentVisit->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 192,
+      "source": "->assertJsonCount(0, 'waiting.data');"
+    },
+    {
+      "file": "tests/Feature/Queue/QueueDirectoryTest.php",
+      "line": 252,
+      "source": "$this->assertLessThanOrEqual(3, $assignmentQueries->count());"
+    },
+    {
+      "file": "tests/Feature/Queue/DoctorWarningTest.php",
+      "line": 104,
+      "source": "$this->assertSame(['code', 'label'], array_keys($warning));"
+    },
+    {
+      "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+      "line": 29,
+      "source": "$this->triage($ca, $red->refresh(), ['chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+      "line": 33,
+      "source": "$this->assertSame([$red->visit_number, $green->visit_number], collect($board['waiting']['data'])->pluck('visitNumber')->all());"
+    },
+    {
+      "file": "tests/Feature/Queue/CombinedQueueSummaryTest.php",
+      "line": 41,
+      "source": "$this->postJson(route('queue.search'), [])->assertOk()->assertJsonPath('waiting.data', []);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 38,
+      "source": "->has('snapshot.waiting.data', 1)"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 39,
+      "source": "->has('snapshot.carryOver.data', 1)"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 49,
+      "source": "->assertJsonPath('waiting.data.0.doctorEligible', true)"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 50,
+      "source": "->assertJsonCount(1, 'waiting.data')"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 51,
+      "source": "->assertJsonCount(1, 'carryOver.data')"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 71,
+      "source": "$this->assertLessThanOrEqual(24, $getCount);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 72,
+      "source": "$this->assertLessThanOrEqual(21, $pollCount);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 73,
+      "source": "$this->assertLessThan(26, $getCount);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 74,
+      "source": "$this->assertLessThan(25, $pollCount);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 75,
+      "source": "$this->assertLessThanOrEqual(21, $filteredPollCount);"
+    },
+    {
+      "file": "tests/Feature/Queue/QueuePerformanceTest.php",
+      "line": 76,
+      "source": "$this->assertLessThan(25, $filteredPollCount);"
+    },
+    {
+      "file": "tests/Feature/Patient/GuardianWhatsAppIsolationTest.php",
+      "line": 39,
+      "source": "$rows = [app(PatientDirectoryService::class)->search($ca, ['query' => $patient->patient_number, 'search_type' => 'patient_number'])['data'][0], app(VisitDirectoryService::class)->search($ca, [])['data'][0], app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'][0], app(QueueDirectoryService::class)->poll($ca)['waiting']['data'][0]];"
+    },
+    {
+      "file": "tests/Feature/Patient/GuardianWhatsAppIsolationTest.php",
+      "line": 58,
+      "source": "foreach (array_keys(PermissionCatalogue::roles()) as $role) {"
+    },
+    {
+      "file": "tests/Feature/Visit/VisitReasonCatalogueTest.php",
+      "line": 177,
+      "source": "$this->assertTrue(collect(array_keys($exception->errors()))->contains("
+    },
+    {
+      "file": "tests/Feature/Visit/VisitPanelNoteTest.php",
+      "line": 177,
+      "source": "->has('snapshot.waiting.data', 2)"
+    },
+    {
+      "file": "tests/Feature/Visit/VisitPanelNoteTest.php",
+      "line": 178,
+      "source": "->where('snapshot.waiting.data', fn ($rows) => collect($rows)->firstWhere('visitNumber', $visit->visit_number)['panelNote'] === $note"
+    },
+    {
+      "file": "tests/Feature/Visit/VisitPanelNoteTest.php",
+      "line": 181,
+      "source": "->assertJsonCount(2, 'waiting.data')->assertDontSee('Other doctor private note');"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 42,
+      "source": "$row = $this->triage($ca, $visit, ['temperature_celsius' => '40.00', 'chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 54,
+      "source": "$this->assertSame('red', $this->triage($ca, $visit, ['temperature_celsius' => '39.50', 'chosen_zone' => 'red'])->suggested_zone);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 102,
+      "source": "$this->assertSame(['yellow', 'yellow', 2], [$yellow->suggested_zone, $yellow->chosen_zone, $yellow->sequence], 'red to yellow once only the yellow limit is crossed');"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 110,
+      "source": "$this->triage($ca, $visit, ['temperature_celsius' => null, 'chosen_zone' => 'red', 'override_reason_code' => 'staff_concern']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 119,
+      "source": "$this->triage($ca, $visit, ['red_flag_codes' => ['rf_01'], 'chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 120,
+      "source": "$this->refused(fn () => $this->triage($ca, $visit, ['red_flag_codes' => ['rf_01'], 'chosen_zone' => 'yellow', 'override_reason_code' => 'doctor_reviewed_at_triage']), 'while a red flag is ticked');"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 122,
+      "source": "$this->assertSame('red', $this->triage($ca, $visit, ['red_flag_codes' => [], 'chosen_zone' => 'red', 'override_reason_code' => 'staff_concern'])->chosen_zone);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 174,
+      "source": "$crossed = array_keys($case['crossed']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 177,
+      "source": "$red = array_keys(array_filter($case['crossed'], fn (string $z): bool => $z === 'red'));"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 211,
+      "source": "$first = $this->triage($ca, $child, ['red_flag_codes' => ['rf_01'], 'chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 255,
+      "source": "$this->assertSame(['unknown', 'red'], [($r = $this->triage($ca, $visit, ['temperature_celsius' => '38.60', 'chosen_zone' => 'red']))->age_band, $r->suggested_zone]);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageLoweringRuleTest.php",
+      "line": 273,
+      "source": "$this->triage($ca, $visit, ['chosen_zone' => 'red', 'override_reason_code' => 'staff_concern']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageScreensTest.php",
+      "line": 87,
+      "source": "$this->post(route('visits.triage.store', $visit), $this->triageInput($visit, ['temperature_celsius' => '40.00', 'chosen_zone' => 'red']))"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageChipsAndVitalsTest.php",
+      "line": 124,
+      "source": "$queueRow = collect(app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'])->firstWhere('visitNumber', $first->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageChipsAndVitalsTest.php",
+      "line": 152,
+      "source": "$this->triage($ca, $serving, ['temperature_celsius' => 40.1, 'chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+      "line": 37,
+      "source": "$this->triage($ca, $visit, ['red_flag_codes' => ['rf_02'], 'chosen_zone' => 'red']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+      "line": 47,
+      "source": "$this->assertSame(['visitNumber', 'patientName', 'patientNumber', 'queueNumber', 'priority'], array_keys($props['visit']));"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+      "line": 50,
+      "source": "array_keys($props['saves'][0]),"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+      "line": 88,
+      "source": "$roles = array_diff(array_keys(PermissionCatalogue::roles()), ['resident_doctor']);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+      "line": 222,
+      "source": "$row = collect(app(QueueDirectoryService::class)->snapshot($doctor)['waiting']['data'])->firstWhere('visitNumber', $visit->visit_number);"
+    },
+    {
+      "file": "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+      "line": 225,
+      "source": "$row = collect(app(QueueDirectoryService::class)->snapshot($ca)['waiting']['data'])->firstWhere('visitNumber', $visit->visit_number);"
+    }
+  ]
+}

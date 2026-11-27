@@ -1,0 +1,200 @@
+[
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "approved-page2",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "approved-page2",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "rejected",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "rejected",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "withdrawn",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "withdrawn",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "all",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "all",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "targets": {
+      "status": 44,
+      "clear": 44
+    },
+    "allPage1Reload": true
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "empty-other-organisation"
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "empty-other-organisation"
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "approved-page2",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "approved-page2",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "rejected",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "rejected",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "withdrawn",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "withdrawn",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "all",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "all",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "targets": {
+      "status": 44,
+      "clear": 44
+    },
+    "allPage1Reload": true
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "state": "empty-other-organisation"
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "state": "empty-other-organisation"
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "approved-page2",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "approved-page2",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "rejected",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "rejected",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "withdrawn",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "withdrawn",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "all",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "all",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "targets": {
+      "status": 36,
+      "clear": 36
+    },
+    "allPage1Reload": true
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "state": "empty-other-organisation"
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "state": "empty-other-organisation"
+  }
+]

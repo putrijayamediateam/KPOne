@@ -1,0 +1,16 @@
+[
+  {
+    "path": "queue",
+    "verifiedActualFilteredResponse": true,
+    "ordinaryRowsZero": true,
+    "emergencyTotal25AfterExplicitCall": true,
+    "redCannotSetReadiness": true
+  },
+  {
+    "path": "registration",
+    "verifiedActualFilteredResponse": true,
+    "ordinaryRowsZero": true,
+    "emergencyTotal25AfterExplicitCall": true,
+    "redCannotSetReadiness": true
+  }
+]

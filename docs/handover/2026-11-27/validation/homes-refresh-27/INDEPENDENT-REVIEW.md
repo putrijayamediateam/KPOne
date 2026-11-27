@@ -1,0 +1,7 @@
+# Independent Homes1135 normal-main refresh review
+
+CLEAR for bounded source/parity scope at heade3b14e164446c5ec71f943cd8abe5ddfae5cc784. Independently verified current main d783621 is an ancestor, tree is clean, and main-relative diff contains exactly3 files: Classic space CSS bridge, MyDay/Index.vue and Spaces/Show.vue. All three blobs match the original reviewed247f97 candidate byte-for-byte; both Vue script blocks match current main byte-for-byte. Exact hashes saved in independent-parity.json.
+
+The CSS bridge changes only Classic-frame semantic surface/accent/tint/border/shadow mappings, using shared primary, card-quiet, wash and foreground tokens; no new raw palette or theme mechanism. Existing focus rules remain. Vue template changes add shadow-card only to the previously selected MyDay and Front desk/Consultation sections; no visibility predicates, role masking, links, event handlers, DTO fields or workflow logic changed. Department role fallbacks and existing five-row masked projections remain preserved by exact script/template scope.
+
+Read original homes/REVIEW.md for historical visual evidence and known empty-synthetic-queue limits. This review did not rerun browser captures or claim fresh populated/role visual proof. Root is running current candidate full gates separately; their final results and exact remote CI remain release prerequisites. No source changes, commit, push or merge by reviewer.

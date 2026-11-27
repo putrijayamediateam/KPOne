@@ -1,0 +1,5 @@
+Adds optional About/Good to know guidance to the completed-case page, with a tertiary header toggle and native disclosures after operational content. Existing completion, readonly and return warnings stay visible independently. Readonly wording describes staff actions; the guidance preserves current refund/checker separation and controlled-medicine rules.
+
+Stacked on #1175. Only a local presentation ref/import is added to the script. Existing links, action guards, return child and commands remain unchanged; no new permissions, workflow, follow-up or related URLs.
+
+Validation:44 focused tests (41 unchanged +3 actual-template cases), full frontend types/build and scoped lint/format/PHPStan. Synthetic browser proof covers hidden/shown guidance, keyboard focus and retained detail expansion at390/1440 light/dark for CA and readonly doctor. No return submission or physical print. Independent bounded source/visual review clear; exact artifacts in `/workspace/kpone-validation/completed-help-next/`. No full-demo parity or merge claim.

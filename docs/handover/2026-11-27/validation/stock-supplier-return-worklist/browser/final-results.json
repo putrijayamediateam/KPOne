@@ -1,0 +1,101 @@
+{
+  "matrix": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      }
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      }
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      }
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "height": 44,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      }
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 36,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(0, 122, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      }
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 36,
+      "overflow": false,
+      "focus": {
+        "active": true,
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(107, 166, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      }
+    }
+  ],
+  "errors": [],
+  "staleDialog": "Reject\n\nSRN-202611-MS4SKDCN · DEMO-AMOX250 · batch SYN-RECV-1 · 0.001 capsule · Demo Pharma Supplies (fictional)\n\nWhy are you rejecting it?\nChoose a reason\nSupplier has not agreed\nStock is still usable\nWrong quantity\nOther\n\nThis return changed. Reload before continuing.\n\nReject\nClose",
+  "openIds": [
+    31,
+    30,
+    29,
+    28,
+    27,
+    26,
+    25,
+    24,
+    23,
+    22,
+    21,
+    20,
+    19,
+    18,
+    17,
+    16,
+    15,
+    14,
+    13,
+    12,
+    11,
+    10,
+    9,
+    8,
+    7
+  ],
+  "creditedRemoved": true,
+  "filterFocusRetained": false
+}

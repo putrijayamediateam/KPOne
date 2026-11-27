@@ -1,0 +1,13 @@
+{
+  "url": "https://github.com/putrijayamediateam/KPOne/pull/1228",
+  "head": "359e9bbd13d9e49f3221eda93ac1d6bbd5bcd2cd",
+  "branch": "feature/registration-contact-address",
+  "base": "e8d3769e855467baa70e9e50259b43926c8f13f4",
+  "tree": "6d85f6b13a1c04300b31fb6e1c86267e7d6c639e",
+  "localOriginalCommit": "f2f4ed37d82d06bd93121d63c5298413a3eb8d74",
+  "originalPreservedRef": "archive/registration-contact-address-local-f2f4ed37",
+  "localAligned": true,
+  "draft": true,
+  "merged": false,
+  "publicationMethod": "Connected GitHub API, exact tree equality verified"
+}

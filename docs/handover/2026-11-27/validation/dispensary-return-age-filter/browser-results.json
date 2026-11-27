@@ -1,0 +1,160 @@
+{
+  "captures": [
+    {
+      "name": "all-older-visible",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "all-older-visible",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "all-older-visible",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "all-older-visible",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "today",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "today",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "today",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "today",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "yesterday",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "yesterday",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "yesterday",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "yesterday",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "2days",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "2days",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "2days",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "2days",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "3days",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "3days",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "3days",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "3days",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    },
+    {
+      "name": "filtered-empty",
+      "width": 390,
+      "theme": "light",
+      "height": 44
+    },
+    {
+      "name": "filtered-empty",
+      "width": 390,
+      "theme": "dark",
+      "height": 44
+    },
+    {
+      "name": "filtered-empty",
+      "width": 1440,
+      "theme": "light",
+      "height": 36
+    },
+    {
+      "name": "filtered-empty",
+      "width": 1440,
+      "theme": "dark",
+      "height": 36
+    }
+  ],
+  "checks": [
+    {
+      "all": 31,
+      "olderThanThreeRetained": 1,
+      "oldestRecordedAt": "23 Nov 2026, 9:00 AM"
+    },
+    "Age reset page1; paging/Controlled preserve age; empty has clear path",
+    "Checked clears age, preserves Outcome control; returning Waiting All",
+    "Array query normalizes All"
+  ],
+  "errors": [],
+  "writes": []
+}

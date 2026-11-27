@@ -1,0 +1,14 @@
+{
+  "base": "0f2c59a8f04072256e16c634447ad73e01af5662",
+  "branch": "feature/dispensary-case-disclosures",
+  "files": {
+    "resources/js/pages/Dispensary/Show.vue": "eb6ea383947e44208a46ebdf5641ca5e74156c2432ea593c8d334c9d32a1c190",
+    "tests/Frontend/dsp-case-disclosures-runtime.test.mjs": "5b90666b74b1eb283e1e23fddac7310850549f4736cbc3c00565ab6ffeba9d14",
+    "docs/teams/dispensary-otc/TEAM.md": "f444715087c3a0b77f173e5f468e1cab211d3d9baf8c670e97a297ed6fd1290d"
+  },
+  "patchSha256": "e2be37532cd2e5c322a9be6cc310e76fea58987eb9cfd7284cb16014328df502",
+  "status": "published stacked draft; all six CI checks SUCCESS at exact head",
+  "publishedHead": "bc31adaf003fbbf6c3e3a466cb6fc4954e5cdd7f",
+  "publishedBase": "73490f3d28acca2d8790f1c7df52b9ff1bd537d6",
+  "url": "https://github.com/putrijayamediateam/KPOne/pull/1158"
+}

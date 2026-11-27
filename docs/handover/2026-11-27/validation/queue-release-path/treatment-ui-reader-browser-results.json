@@ -1,0 +1,28 @@
+[
+  {
+    "check": "doctor read-only paging retains focus on labelled panel"
+  },
+  {
+    "check": "failed page request keeps focus on persistent panel and shows retry"
+  },
+  {
+    "width": 1440,
+    "dark": false,
+    "shot": "treatment-reader-1440-light.png"
+  },
+  {
+    "width": 1440,
+    "dark": true,
+    "shot": "treatment-reader-1440-dark.png"
+  },
+  {
+    "width": 390,
+    "dark": false,
+    "shot": "treatment-reader-390-light.png"
+  },
+  {
+    "width": 390,
+    "dark": true,
+    "shot": "treatment-reader-390-dark.png"
+  }
+]

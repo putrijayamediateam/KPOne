@@ -1,0 +1,23 @@
+{
+  "old": "6fc60aa4dda3c22e6e81c8fa2f22672e62a60e80",
+  "head": "ad8077914bc6a941ad1b2bda2fc3bf761066252e",
+  "main": "375f56c39a4a492016cf8c9a9b3472904a1b03f5",
+  "scope": {
+    "tests/Feature/Auth/EmailVerificationTest.php": "2fa715dc46c10ffec722a7a8da50bfb53f86261c"
+  },
+  "originalTestBlobUnchanged": true,
+  "upstream": [
+    "app/Domain/Access/BillingPermissions.php",
+    "database/migrations/2026_11_26_250100_grant_director_price_publication_additively.php",
+    "docs/teams/billing/BIL-38-DESIGN.md",
+    "docs/teams/billing/BIL-38-REVIEW-2026-11-26.md",
+    "docs/teams/billing/TEAM.md",
+    "tests/Feature/Billing/DirectorPricePublicationTest.php",
+    "tests/Feature/Billing/PricingControllerTest.php",
+    "tests/Feature/Billing/SupervisorPricingTest.php",
+    "tests/Feature/Clinical/ClinicalServiceCatalogueControllerTest.php",
+    "tests/Feature/Clinical/Triage/TriageDoctorViewTest.php",
+    "tests/Feature/Clinical/UnifiedCatalogueSetupTest.php",
+    "tests/Feature/Inventory/CatalogueImportTest.php"
+  ]
+}

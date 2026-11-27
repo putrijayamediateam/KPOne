@@ -1,0 +1,115 @@
+{
+    "syntheticOnly": true,
+    "preparedAt": "2026-11-26T04:52:59+00:00",
+    "database": "kpone_ca_preview_test",
+    "branch": {
+        "id": 3,
+        "code": "PUCHONG",
+        "timezone": "Asia\/Kuala_Lumpur"
+    },
+    "guidelineId": 1,
+    "actors": {
+        "ca": {
+            "id": 17,
+            "email": "synthetic.casmoke.ca@kpone.test"
+        },
+        "doctor": {
+            "id": 18,
+            "email": "synthetic.casmoke.resident_doctor@kpone.test"
+        },
+        "otherDoctor": {
+            "id": 21,
+            "email": "synthetic.tri2.other_doctor@kpone.test"
+        },
+        "supervisor": {
+            "id": 19,
+            "email": "synthetic.casmoke.ca_supervisor@kpone.test"
+        }
+    },
+    "room": {
+        "id": 3,
+        "name": "Synthetic CA Smoke Room"
+    },
+    "current": {
+        "patientId": 13,
+        "patientNumber": "KP-00000013",
+        "visitId": 3,
+        "visitNumber": "KPV-00000003",
+        "queueId": 3,
+        "encounterId": 3,
+        "before": {
+            "visit": {
+                "status": "registered",
+                "assigned_doctor_user_id": 18,
+                "lock_version": 1
+            },
+            "queue": {
+                "status": "serving",
+                "lock_version": 2
+            },
+            "encounter": {
+                "status": "in_progress",
+                "lock_version": 2,
+                "clinical_note": "Synthetic TRI2 baseline saved note."
+            },
+            "activeHoldId": null
+        }
+    },
+    "redWaiting": [
+        {
+            "patientId": 14,
+            "patientNumber": "KP-00000014",
+            "visitId": 4,
+            "visitNumber": "KPV-00000004",
+            "queueId": 4,
+            "triageId": 2,
+            "episodeId": 1,
+            "before": {
+                "visit": {
+                    "status": "registered",
+                    "assigned_doctor_user_id": 21,
+                    "lock_version": 2
+                },
+                "queue": {
+                    "status": "waiting",
+                    "lock_version": 1
+                },
+                "episode": {
+                    "lock_version": 1,
+                    "raised_kind": "clinical",
+                    "raised_at": "2026-11-26T04:52:59.000000Z",
+                    "taken_claim_id": null,
+                    "claim_floor_id": 0
+                }
+            }
+        },
+        {
+            "patientId": 15,
+            "patientNumber": "KP-00000015",
+            "visitId": 5,
+            "visitNumber": "KPV-00000005",
+            "queueId": 5,
+            "triageId": 3,
+            "episodeId": 2,
+            "before": {
+                "visit": {
+                    "status": "registered",
+                    "assigned_doctor_user_id": 21,
+                    "lock_version": 2
+                },
+                "queue": {
+                    "status": "waiting",
+                    "lock_version": 1
+                },
+                "episode": {
+                    "lock_version": 1,
+                    "raised_kind": "clinical",
+                    "raised_at": "2026-11-26T04:52:59.000000Z",
+                    "taken_claim_id": null,
+                    "claim_floor_id": 0
+                }
+            }
+        }
+    ],
+    "activationCommandRun": false
+}

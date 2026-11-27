@@ -1,0 +1,12 @@
+{
+  "pr": "https://github.com/putrijayamediateam/KPOne/pull/1205",
+  "head": "03953a1b1c04a335fbb3822f593f3c36a0ca5d5c",
+  "base": "adef80a5cabf188c6a4b9af1afdfec4278e155cd",
+  "branch": "feature/registration-native-dialog",
+  "patchSha256": "cb15c5850d9c575b3e3753134aa151d9c8882b8d97b382ae0804f127bfe6f0da",
+  "frontend": 2227,
+  "backendTests": 16,
+  "backendAssertions": 96,
+  "draft": true,
+  "merged": false
+}

@@ -1,0 +1,11 @@
+# Opt-in Contact and Address presentation
+
+Base #1224 `e8d3769e855467baa70e9e50259b43926c8f13f4`; exact four-file patch `939037052314629084ed43b488b7b6e450e1a95d02b68f811f38d8718fa779f4`.
+
+Registration now uses separate Contact and Address headings matching the actual demo. Shared RegistrationContactFields adds empty-by-default before-email and before-address slots through a keyed template while preserving field nodes/order. Only Registration opts in; the complete existing PhoneInput is slotted before email, with the new headings. Both component scripts are byte-identical. Field models, required settings, labels/localisation, identifiers/errors, guardian, duplicate override, first-invalid DOM order, native disabled ancestry and immutable retry behavior are unchanged. PublicCheckIn and RegistrationReview source files are untouched.
+
+Default compatibility is demonstrated by actual old/new shared SSR equality for four staff/public × required/optional cases, ignoring only Vue comments and between-tag whitespace. These are component-level proofs, not live public-route tests. Three new tests check default output/linked errors, exact slot placement with seven original fields, and actual compiled native input handlers updating the same parent model with or without slots. The prior grouping test was precisely adapted after peer review for separate headings/IDs/order while retaining its original control/required/error/guardian/locked checks.
+
+Gates: 10 focused; full frontend 2,247/2,247; types; production build; full ESLint/resources Prettier; scoped checks; diff check pass. Final browser 48 captures and 30 target measurements at390/768/1440, light/dark views, both phone→email→address Tab sequences, all six fullpage/dialog first-invalid focus/viewport/hit checks pass. Patient section remains uncollapsed, contact inputs stay44px mobile/40px desktop, Guardian conditional unchanged, uncertainty locks all fields. No overflow or JS errors. One controlled POST aborted before server; synthetic visits remain9. No successful creation or committed replay claim.
+
+Evidence includes default-parity.json/log, actual native-input tests, browser-results.json/captures and independent source/hash/visual note. No new authority, backend rule, migration, field or public feature. No merge/deployment/full-demo parity claim.

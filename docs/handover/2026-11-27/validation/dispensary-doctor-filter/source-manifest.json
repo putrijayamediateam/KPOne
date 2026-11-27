@@ -1,0 +1,14 @@
+{
+  "base": "f2d64c2247737232329ced2e053b65c4c11bea99",
+  "patchSha256": "4cae39820a2c4d6592b948d1decf11ec2431fb645201d8b8bb0c0a37c27affc1",
+  "files": {
+    "app/Domain/Clinical/Dispensary/Services/DispensaryDoctorFilter.php": "f8c63eff1e857e54c401c4905e4b3750faf094c16bcbc6887b564c168613e8e4",
+    "app/Domain/Clinical/Dispensary/Services/DispensaryListService.php": "22a60ccb62849f793fd93c6cbf361c8ad76bb6587fa04353bcf4241a5729a1d1",
+    "app/Http/Controllers/DispensaryController.php": "62b0acc7a2e736b8362eed627a81e8e995044cafde9697ecf6549848cfa945b5",
+    "docs/teams/dispensary-otc/TEAM.md": "d78325ae831c3cb0294620df25bb4a5fba0277a9e6fcc41e3ad2021e1f4c8123",
+    "resources/js/pages/Dispensary/Index.vue": "386c7a5ac7be5065098ed9c34b19544c88c93ab9b445de4409ba383c5f710b53",
+    "routes/web.php": "dee174c6a52eb1b5ffc96fcec2d95ca1ab546a694f73746426750577088211da",
+    "tests/Feature/Clinical/DispensaryDoctorFilterTest.php": "9cc4c56342fd0453ff05f8581c28bf2f0271c8b55d58b2d73ad6b38702ee8411",
+    "tests/Frontend/dsp-doctor-filter-runtime.test.mjs": "5bfec44b84f856edbf647f7928bdccfbfa3bf020c333617e9b834e50aee26862"
+  }
+}

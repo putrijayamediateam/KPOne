@@ -1,0 +1,7 @@
+Adds a Not yet submitted claim view for Prepared claims with no recorded submission. It includes both on-time and overdue claims, with current Panel submission-rule context hydrated only for the 20 displayed rows. Existing Pending, Submitted, Overdue, financial amounts, submission checks and permissions remain unchanged.
+
+The date filter still uses claim creation. Due dates use the original visit and existing branch-local due helper, with date-only/timed presentation and truthful unavailable context. A previously submitted claim edited back to Prepared is excluded. No migration, grant or new submission action.
+
+Stacked on #1218. Validation: 51 backend tests / 2,502 assertions plus final four-test / 156-assertion exact-source rerun; 2,225 frontend tests; lint, format, types, build and scoped PHPStan/Pint. Independent backend source review clear. Initial generated-route setup failure and one existing asynchronous picker scheduling failure were diagnosed and retained; the unchanged picker class and complete serial suite passed. No whole-demo parity claim or production activation.
+
+Final browser: 24 actual synthetic states covering on-time/late page2/filtered-empty, Director versus Finance, 390/1440 light/dark, keyboard activation and 36/44px new-tab target. Independent Inventory backend and Staff design reviews cleared exact frozen seven-file patch6f51c873. Timed/unavailable variants are backend/rendered-template evidence; inherited horizontal tabs and body target debt are not represented as full-page parity.

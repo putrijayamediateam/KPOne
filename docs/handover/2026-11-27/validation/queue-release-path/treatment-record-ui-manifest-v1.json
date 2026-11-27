@@ -1,0 +1,107 @@
+{
+  "base": "7741ab448dff2453241258baa7c3d4e6aadf6b76",
+  "patch": "TREATMENT-RECORD-UI-ON-BACKEND-v1.patch",
+  "sha256": "05eee5f0a464ccc27cae11982c488b255d3f5446c6ed70c715d917b3a7523237",
+  "files": [
+    {
+      "path": "app/Http/Controllers/ClinicalEncounterController.php",
+      "sha256": "27d5461d3a97fd1713f4ce9272b844d5ca0192cdc76d255325cec38d131c2f8d"
+    },
+    {
+      "path": "app/Http/Controllers/TreatmentRoomController.php",
+      "sha256": "2e4d925ac62a9110b0e6c9d333e2c13c904aafb30a045f4d2e7a0f3050feabbf"
+    },
+    {
+      "path": "app/Http/Controllers/VisitHistoryController.php",
+      "sha256": "356044b1547821c196b30a565b1b8efaec341757b3fde8eb8f4ace88e0a2b90c"
+    },
+    {
+      "path": "docs/reviews/TREATMENT-RECORD-UI-DESIGN-2026-11-26.md",
+      "sha256": "683da1a71484f4afc008b5e60267b4f4ea0f7872b0b8762ec2ab68dc332237f3"
+    },
+    {
+      "path": "resources/js/components/queue/TreatmentProgressBadge.vue",
+      "sha256": "c51bd6e922b918d44d092a3cff9633382e438996a3d8c95c82daab100be49bad"
+    },
+    {
+      "path": "resources/js/components/treatment-room/TreatmentOutcomeFields.vue",
+      "sha256": "6dda7425e150ea6f6867ee103096914af8b40baf9a2bedae520d16d5ebd0f239"
+    },
+    {
+      "path": "resources/js/components/treatment-room/TreatmentRoomPagination.vue",
+      "sha256": "3114235c842070c8987baa069d5af3dd8f6f9e73edf7d914cb60f14d767a474d"
+    },
+    {
+      "path": "resources/js/components/treatment-room/TreatmentRoomReadPanel.vue",
+      "sha256": "b8a70606ab9b97fb7f3365b2833a32aacb936539f0e535b82c032b00fb66426a"
+    },
+    {
+      "path": "resources/js/components/treatment-room/TreatmentRoomRecordList.vue",
+      "sha256": "74f3d7e13135ad791e8d3cd64bd93c7b134f728a198d1e7badf568ff7be95c19"
+    },
+    {
+      "path": "resources/js/composables/useTreatmentDoneAlerts.ts",
+      "sha256": "dc7828ccc0c5b2c27a8fab06cf98b776e868212b154a69fce2fe1cc63b0d5502"
+    },
+    {
+      "path": "resources/js/pages/Billing/Invoice.vue",
+      "sha256": "8080ba4169fb94329d98d5e69e6edd4fa56a5825f0d8e03adfe3adeb7831a23b"
+    },
+    {
+      "path": "resources/js/pages/Clinical/HistoryShow.vue",
+      "sha256": "711629f9475d11a7f4818b5d8fb99c9a62eac6820c8dfd848735a26216bd4ab8"
+    },
+    {
+      "path": "resources/js/pages/Clinical/Partials/ClinicalHistoryPanel.vue",
+      "sha256": "5fb96589d944f76a3fb7eb34b24da1ca9528a34941dc6198eb7e1d75bbf1df5a"
+    },
+    {
+      "path": "resources/js/pages/Clinical/Show.vue",
+      "sha256": "0d5e183bc0a3023b7a4422f3b236d4cc6dc0db7fd9dca6e5a38db876625430f5"
+    },
+    {
+      "path": "resources/js/pages/Queue/Index.vue",
+      "sha256": "15cf12481e243ca7b4fe06483f061b46b104cfa1834ea0985e8d585dcc2215f9"
+    },
+    {
+      "path": "resources/js/pages/TreatmentRoom/Index.vue",
+      "sha256": "87078265366cf7d0ee3b30e2ddb80dcc163094770fe7d8ae92c0d1838378720d"
+    },
+    {
+      "path": "resources/js/pages/TreatmentRoom/Show.vue",
+      "sha256": "efb3adec9f36f6f0c7668b888024c7b46a11d6a35d5d26c329f973853005eaa3"
+    },
+    {
+      "path": "resources/js/pages/Visits/History.vue",
+      "sha256": "6c775be50ccac875da0147912c862ba94acedf3e842dbf1fc8e5da68e13a72f7"
+    },
+    {
+      "path": "resources/js/types/patientBoard.ts",
+      "sha256": "a8bc7892b4b1429dc0b322ebda1f64a7f358045dcb873b4f26750b0718f77731"
+    },
+    {
+      "path": "resources/js/types/treatment-room.ts",
+      "sha256": "2a9d6d6164d4373059ebddfeffb0452ee1b06f35c4b7c376e825d93430340bdd"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "b266d975de068c6d6ac2a726ae3c8f15278a17f6e3ea2aa4148a4ea1d770a0b8"
+    },
+    {
+      "path": "tests/Feature/Clinical/TreatmentRoomHttpTest.php",
+      "sha256": "ae0f81b3b1e646f153ec0eda666768408b22a70154861f79fe334e84ae50707d"
+    },
+    {
+      "path": "tests/Frontend/classic-only-co5-kept-bv2-3-invoice-v2.test.mjs",
+      "sha256": "7763a9f5eb469b7780e5b52d946886a0948bafc46331cc9b7d15e24b009de66d"
+    },
+    {
+      "path": "tests/Frontend/treatment-room-pagination.test.mjs",
+      "sha256": "1f8b6ecaddddbeddc219ddfb438ed035be816c2c42a795826278cb9896ac80c5"
+    },
+    {
+      "path": "tests/Frontend/treatment-room-record-ui.test.mjs",
+      "sha256": "2416bb6f5bcfda56b5719dee63768da437ece55e5e8bba28483215af1246b4ce"
+    }
+  ]
+}

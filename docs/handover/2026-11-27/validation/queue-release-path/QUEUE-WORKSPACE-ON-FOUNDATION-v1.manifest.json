@@ -1,0 +1,14 @@
+{
+  "base": "bf6d6e760578fe4acea6f3edd6f46e29f7709928",
+  "baseKind": "Explicit multi-parent validation foundation, not merged main",
+  "patchSha256": "a3a5e1a6a0ee47b98e28406ef2e7b39340cf03975404c327f8bab54cec493d20",
+  "files": {
+    "resources/js/components/patient-board/PatientBoard.vue": "39552a3edb4782af14f027defb37bb2aa0a90cd54cdb8a47ccfbf4f7fc84c2c1",
+    "resources/js/components/queue/EmergencyLane.vue": "13674a0abcbb4491fe879d16ab1c5f89523b47f8ab2b4048c9b58de5f3719653",
+    "resources/js/components/queue/QueueWorkspaceFrame.vue": "9b2d3b95c70179ddcd81564441d1bba7fd36d453357328a2e7f7b725c8b3f6bb",
+    "resources/js/pages/Queue/Index.vue": "2db47a3a9add79998b633c1de1e630f416e28b68886a122ac51e958cee0e4fcd",
+    "tests/Frontend/panel-note.test.mjs": "4ed58dc912df2e39774be12108addfe1f12ce6a1bff307ea3910fb9807444eeb",
+    "tests/Frontend/queue-demo-workspace.test.mjs": "3eccee2dc7758181a6dda57b55355ae8ac12ae12899f7c16aff17b82c98d61d9",
+    "tests/Frontend/ux-3-accessible-names-headings.test.mjs": "72a12394f95e6ae0e96f8c3bb9326af84cb205759ebbe0f31df00f48ba944462"
+  }
+}

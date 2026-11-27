@@ -1,0 +1,6 @@
+{
+  "base": "f8dd19cb83a6129479246db1c62d0af12cd28fb5",
+  "original_base": "d783621e38b3de57c11620526e7a8e5f1a68548d",
+  "patch_and_both_source_hashes_unchanged": true,
+  "upstream_change": "SUG prescribing phrase settings only; no FollowUp overlap"
+}

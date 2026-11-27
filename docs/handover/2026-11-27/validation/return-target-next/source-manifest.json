@@ -1,0 +1,10 @@
+{
+  "base": "141418b067766512bfa57d1ff36391bb60aeff04",
+  "scriptExact": true,
+  "onlyOneClassChanged": true,
+  "patchSha256": "49fba5cb95de8628f78717063f2926a4feacc86a0721cf48231b74231ba94b82",
+  "files": {
+    "resources/js/pages/Dispensary/Partials/MedicineReturnsSection.vue": "cd90ed34dab424b70f8d472620480f9add39bfdd4b32ea901e137cb27c38c951",
+    "docs/teams/dispensary-otc/TEAM.md": "89a7746d88d88528a1b4daa27a1b79220ea885f9493f426ef2d228084fd28d33"
+  }
+}

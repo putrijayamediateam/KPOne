@@ -1,0 +1,7 @@
+# F27 read-only case presentation mapping
+
+Existing Review.vue is an authorized organisation-level read-only case surface, not a separate fictional demo workflow. Apply the common patient/card composition from PharmacyCase.dc.html and CLEAN-LOOK-SPEC to existing available fields only. Preserve all review policy/projection/audit, no mutation controls, only existing Back to visit link.
+
+Smallest next slice: Review.vue header and Case/Allergies context cards only, neutral decorative patient icon if helpful, explicit case branch kept distinct from current shell branch for cross-branch review, long patient/identifiers wrap, existing timestamps and null predicates untouched. Back target stays44/36 and uses pill shape. Preserve every script expression except optional decorative icon import. Do not restyle medicine/return content or invent age/payer/provenance.
+
+Proposed exact files: resources/js/pages/Dispensary/Review.vue, one new actual-template runtime test, docs/teams/dispensary-otc/TEAM.md. Inventory any existing exact markup assertions before edits; no role fixture change. Validate unknown/known allergies, OTC/no doctor, long context and cross-branch case/current-branch labels, zero counts, no inputs/actions. Actual authorized synthetic Director route at390/1440 light/dark; source/visual independent review and scoped static gates. Base fresh actual main independently of Settings stack; inspect current source before implementation. No full-page demo parity claim.

@@ -1,0 +1,127 @@
+[
+  {
+    "width": 390,
+    "targets": [
+      {
+        "label": "Hide helpful info",
+        "height": 44
+      },
+      {
+        "label": "About this tab",
+        "height": 44
+      },
+      {
+        "label": "At a glance",
+        "height": 44
+      },
+      {
+        "label": "Related pages",
+        "height": 44
+      },
+      {
+        "label": "Good to know",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "targets": [
+      {
+        "label": "Hide helpful info",
+        "height": 44
+      },
+      {
+        "label": "About this tab",
+        "height": 44
+      },
+      {
+        "label": "At a glance",
+        "height": 44
+      },
+      {
+        "label": "Related pages",
+        "height": 44
+      },
+      {
+        "label": "Good to know",
+        "height": 44
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "targets": [
+      {
+        "label": "Hide helpful info",
+        "height": 36
+      },
+      {
+        "label": "About this tab",
+        "height": 36
+      },
+      {
+        "label": "At a glance",
+        "height": 36
+      },
+      {
+        "label": "Related pages",
+        "height": 36
+      },
+      {
+        "label": "Good to know",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "width": 1536,
+    "targets": [
+      {
+        "label": "Hide helpful info",
+        "height": 36
+      },
+      {
+        "label": "About this tab",
+        "height": 36
+      },
+      {
+        "label": "At a glance",
+        "height": 36
+      },
+      {
+        "label": "Related pages",
+        "height": 36
+      },
+      {
+        "label": "Good to know",
+        "height": 36
+      }
+    ]
+  },
+  {
+    "width": 1920,
+    "targets": [
+      {
+        "label": "Hide helpful info",
+        "height": 36
+      },
+      {
+        "label": "About this tab",
+        "height": 36
+      },
+      {
+        "label": "At a glance",
+        "height": 36
+      },
+      {
+        "label": "Related pages",
+        "height": 36
+      },
+      {
+        "label": "Good to know",
+        "height": 36
+      }
+    ]
+  }
+]

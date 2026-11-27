@@ -1,0 +1,183 @@
+{
+  "captures": [
+    {
+      "name": "patient-empty",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-empty",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-empty",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-empty",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-editor",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-editor",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-editor",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-editor",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-retry-error",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-linked",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-linked",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-linked",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-linked",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-inverse",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-inverse",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-inverse",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-inverse",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-remove",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-remove",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "patient-remove",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "patient-remove",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "consultation-waiting",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "consultation-waiting",
+      "width": 390,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "name": "consultation-waiting",
+      "width": 1440,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "name": "consultation-waiting",
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "assertions": [
+    "lost response committed then same-key retry",
+    "manual blank selection",
+    "parent direction",
+    "inverse child direction",
+    "edit",
+    "remove",
+    "relink latest version",
+    "own consultation waiting relative"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "original_head": "ccf0fa91d2143970c2f0b658964d746a7758c886",
+  "new_dependency": "c97e9716ddd1b5d9aeacacab67e4078df7eda383",
+  "overlay_byte_equal": {
+    "app/Domain/Organisation/Inventory/Services/HandCostRestatement.php": true,
+    "app/Domain/Organisation/Inventory/Services/StockJournalSummaryService.php": true,
+    "app/Domain/Organisation/Inventory/Services/StockValuationReportService.php": true,
+    "app/Domain/Organisation/Inventory/Services/WeightedAverageCostService.php": true,
+    "resources/js/pages/Inventory/StockValue.vue": true,
+    "tests/Feature/Inventory/HandCostRestatementTest.php": true,
+    "tests/Unit/Inventory/HandCostReplayTest.php": true
+  },
+  "tests": "28/649 PASS exit0",
+  "pint": "PASS",
+  "phpstan": "PASS zero errors",
+  "review": "pending"
+}

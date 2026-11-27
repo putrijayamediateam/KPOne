@@ -1,0 +1,22 @@
+{
+  "patch_sha256": "c7bdae2bfdc2d057594a819a0d909786345b4b61ff3644a0745d932bc520b015",
+  "files": {
+    "resources/js/pages/Queue/Index.vue": {
+      "base_sha256": "983f752473d77557edbb6f8b97bf7a7a66c5347c41db4537a9f6936c35ec8b26",
+      "source_sha256": "b9dc09ee3aa3a3c291ad8c12ddcc0317420c8451e6a85559103bdd6eaaa8ece8"
+    },
+    "resources/js/components/patient-board/PatientBoard.vue": {
+      "base_sha256": "b8d548d06e55496e65f18099ee76a8b00898fd83b1b833822f0541b142ef3d7b",
+      "source_sha256": "89df5ec5b112f8e508c09283e918830115381add1f3d0efb78fd419842506a4b"
+    },
+    "resources/js/components/queue/QueueWorkspaceFrame.vue": {
+      "base_sha256": null,
+      "source_sha256": "9b2d3b95c70179ddcd81564441d1bba7fd36d453357328a2e7f7b725c8b3f6bb"
+    },
+    "tests/Frontend/queue-demo-workspace.test.mjs": {
+      "base_sha256": null,
+      "source_sha256": "90efc83035bb7f5794ab77d75c4ac2aed835ec3439aa31e12138a8e302112c8a"
+    }
+  },
+  "scope": "first presentation/content slice, not complete demo parity"
+}

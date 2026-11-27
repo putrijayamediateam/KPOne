@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IlRWcnZoK3BGMWozdkFwMitKMjhscHc9PSIsInZhbHVlIjoiMVBhalZ3czRxYkh4b0s1QXpWczdZemorRFRRL2xuSEVRWUZFU2o4TjR3dW5CNGI4K2NDRkhUVE1zNThWbWVQN0F1QW9kQXZyYk4xQmpEOE5kOEh6am9Ic3lOUFdVMlVKRHlwT3MvS3hQWnFsVU1TSnY2U2c2K1F2WnZsZ0YyYU8iLCJtYWMiOiIzYjBmOWUxNTEwYTYxOTA3ZjQ3NTZhNTdiNTFlYTFjMjhkNzRjYzhiMTQ0MDdmYjY0MzhiYzc0ZDg4YTM3YmFkIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795669892.663405,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel-session",
+      "value": "eyJpdiI6Ijg4N3I1UlFmUHM5eUZMWUFieFVHN2c9PSIsInZhbHVlIjoidmVpUFl0U1JvVm02K0hxaGlSVFltbjlMcEJjZ1Z6Zlhta2l0Ny93ekVPU2M5RTlWZTJqc29XNW1kbC9PcUQ1b2xKTVdpUjN3N045eUJzRTRjN1U0WjJnbHFFWk9ZRWY1UXkyYUNvN2p1T1NkZzNRNjJKYWt5QS91YzFESHpSdUkiLCJtYWMiOiI5ZDZjYmY1NzE2ZWRmNWNmYjlmYzE1MTgyMTUzNzU5YWJjMGFlNmEwYzYzYjU1OTgyMmM2NDAwM2FlMGRkMmNhIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1795669892.663546,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3036",
+      "localStorage": [
+        {
+          "name": "kpone:authentication-history:shared:v2",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215d6-3bc5-70c1-af40-d61d5258d16a\",\"serverEpoch\":\"01a215d6-3bc5-70c1-af40-d61d5258d16a\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215d6-3bc5-70c1-af40-d61d5258d16a",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215d6-3bc5-70c1-af40-d61d5258d16a\",\"serverEpoch\":\"01a215d6-3bc5-70c1-af40-d61d5258d16a\"}"
+        },
+        {
+          "name": "kpone:authentication-history:server-epoch:v2:01a215d6-369c-72e2-942d-768a8942e167",
+          "value": "{\"version\":2,\"boundaryEpoch\":\"01a215d6-369c-72e2-942d-768a8942e167\",\"serverEpoch\":\"01a215d6-369c-72e2-942d-768a8942e167\"}"
+        }
+      ]
+    }
+  ]
+}

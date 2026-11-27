@@ -1,0 +1,27 @@
+{
+  "money(view.summary.countedSen)": {
+    "before": 1,
+    "after": 1
+  },
+  "money(view.summary.expectedSen)": {
+    "before": 1,
+    "after": 1
+  },
+  "signed(view.summary.differenceSen)": {
+    "before": 1,
+    "after": 1
+  },
+  "money(row.countedCashSen)": {
+    "before": 2,
+    "after": 2
+  },
+  "money(row.expectedCashSen)": {
+    "before": 2,
+    "after": 2
+  },
+  "signed(row.differenceSen)": {
+    "before": 2,
+    "after": 2
+  },
+  "month_navigation_handler_identical": true
+}
