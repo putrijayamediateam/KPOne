@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import StockSupplierReturnList from '@/components/inventory/StockSupplierReturnList.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
@@ -206,6 +207,10 @@ function search(
     delivery = selectedDelivery.value,
     show = props.returns.show,
 ) {
+    if (form.processing || groupForm.processing) {
+        return;
+    }
+
     router.get(
         '/inventory/supplier-returns',
         {
@@ -497,162 +502,180 @@ watch(
             /></label>
             <button
                 type="submit"
+                :disabled="form.processing || groupForm.processing"
                 class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
             >
                 Search
             </button>
         </form>
 
-        <section
-            v-if="returns.groups.total > 0"
-            class="space-y-3"
-            aria-labelledby="groups-heading"
-        >
+        <section class="space-y-3" aria-labelledby="groups-heading">
             <h2 id="groups-heading" class="text-lg font-semibold">
                 Multi-lot returns ({{ returns.groups.total }})
             </h2>
-            <article
-                v-for="group in returns.groups.rows"
-                :key="group.id"
-                class="space-y-2 rounded-lg border p-3"
-                :data-testid="`return-group-${group.id}`"
+            <StockSupplierReturnList
+                :rows="returns.groups.rows"
+                :branch-id="returns.branchId"
+                :context-key="`${returns.show}:${returns.groups.page}`"
+                :busy="form.processing || groupForm.processing"
+                list-label="Multi-lot supplier returns"
+                :empty-text="
+                    returns.show !== 'all'
+                        ? 'No matching supplier returns.'
+                        : 'No supplier returns yet.'
+                "
+                :number="(group) => group.groupNumber"
+                :row-test-id="(group) => `return-group-${group.id}`"
             >
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="font-mono text-sm">{{
-                        group.groupNumber
-                    }}</span>
-                    <span
-                        class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
-                        >{{
-                            supplierReturnStateLabels[group.state] ??
-                            group.state
-                        }}</span
+                <template #summary="{ row: group }">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2"
                     >
-                </div>
-                <p class="text-sm text-muted-foreground">
-                    {{ group.supplier }} · delivery
-                    {{ group.deliveryReference }} ·
-                    {{ group.lines.length }}
-                    {{ group.lines.length === 1 ? 'lot' : 'lots' }}, moved
-                    together
-                </p>
-                <ul
-                    class="space-y-1 text-sm"
-                    :aria-label="`Lots in ${group.groupNumber}`"
-                >
-                    <li
-                        v-for="line in group.lines"
-                        :key="line.id"
-                        class="rounded border px-2 py-1"
-                    >
-                        {{ line.quantity }} {{ line.base_unit }} ·
-                        {{ line.sku_code }} · batch
-                        {{ unbroken(line.batch_number) }}
-                        (expires
-                        <span class="whitespace-nowrap">{{
-                            formatDate(line.expiry_date)
-                        }}</span
-                        >) ·
-                        {{
-                            supplierReturnReasonLabels[line.reason] ??
-                            line.reason
-                        }}
-                    </li>
-                </ul>
-                <p
-                    v-if="
-                        group.state === 'awaiting_approval' &&
-                        group.requestedByYou
-                    "
-                    class="text-xs text-muted-foreground"
-                >
-                    You requested this return, so a Finance Officer or Director
-                    must approve it.
-                </p>
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        v-if="group.canDecide"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
-                        @click="showGroupAction(group, 'approved')"
-                    >
-                        Approve all lots
-                    </button>
-                    <button
-                        v-if="group.canDecide"
-                        class="min-h-11 rounded border px-3"
-                        @click="showGroupAction(group, 'rejected')"
-                    >
-                        Reject all lots
-                    </button>
-                    <button
-                        v-if="group.canDispatch"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
-                        @click="showGroupAction(group, 'dispatched')"
-                    >
-                        Dispatch all lots
-                    </button>
-                    <button
-                        v-if="group.canCredit"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
-                        @click="showGroupAction(group, 'credit_recorded')"
-                    >
-                        Record credit note
-                    </button>
-                    <button
-                        v-if="group.canCancel"
-                        class="min-h-11 rounded border px-3"
-                        @click="showGroupAction(group, 'cancelled')"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        class="min-h-11 rounded border px-3"
-                        @click="
-                            groupHistory =
-                                groupHistory === group.id ? null : group.id
-                        "
-                    >
-                        {{
-                            groupHistory === group.id
-                                ? 'Hide history'
-                                : 'History'
-                        }}
-                    </button>
-                </div>
-                <ol
-                    v-if="groupHistory === group.id"
-                    class="space-y-1 border-l-2 pl-3 text-xs"
-                >
-                    <li v-for="(step, index) in group.history" :key="index">
-                        {{
-                            supplierReturnHistoryLabels[step.action] ??
-                            step.action
-                        }}
-                        · {{ formatDateTime(step.createdAt) }}
-                        <span v-if="step.reasonCode">
-                            ·
-                            {{
-                                supplierReturnRejectLabels[step.reasonCode] ??
-                                step.reasonCode
+                        <span class="font-mono text-sm">{{
+                            group.groupNumber
+                        }}</span>
+                        <span
+                            class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
+                            >{{
+                                supplierReturnStateLabels[group.state] ??
+                                group.state
                             }}</span
                         >
-                        <span v-if="step.reference">
-                            · ref {{ step.reference }}</span
+                    </div>
+                    <p class="text-sm text-muted-foreground">
+                        {{ group.supplier }} · delivery
+                        {{ group.deliveryReference }} ·
+                        {{ group.lines.length }}
+                        {{ group.lines.length === 1 ? 'lot' : 'lots' }}, moved
+                        together
+                    </p>
+                </template>
+                <template #default="{ row: group }">
+                    <ul
+                        class="space-y-1 text-sm"
+                        :aria-label="`Lots in ${group.groupNumber}`"
+                    >
+                        <li
+                            v-for="line in group.lines"
+                            :key="line.id"
+                            class="rounded border px-2 py-1"
                         >
-                        <span v-if="step.creditAmountSen !== null">
-                            · credit RM
-                            {{ (step.creditAmountSen / 100).toFixed(2) }}</span
+                            {{ line.quantity }} {{ line.base_unit }} ·
+                            {{ line.sku_code }} · batch
+                            {{ unbroken(line.batch_number) }}
+                            (expires
+                            <span class="whitespace-nowrap">{{
+                                formatDate(line.expiry_date)
+                            }}</span
+                            >) ·
+                            {{
+                                supplierReturnReasonLabels[line.reason] ??
+                                line.reason
+                            }}
+                        </li>
+                    </ul>
+                    <p
+                        v-if="
+                            group.state === 'awaiting_approval' &&
+                            group.requestedByYou
+                        "
+                        class="text-xs text-muted-foreground"
+                    >
+                        You requested this return, so a Finance Officer or
+                        Director must approve it.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            v-if="group.canDecide"
+                            class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                            @click="showGroupAction(group, 'approved')"
                         >
-                    </li>
-                </ol>
-            </article>
+                            Approve all lots
+                        </button>
+                        <button
+                            v-if="group.canDecide"
+                            class="min-h-11 rounded border px-3"
+                            @click="showGroupAction(group, 'rejected')"
+                        >
+                            Reject all lots
+                        </button>
+                        <button
+                            v-if="group.canDispatch"
+                            class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                            @click="showGroupAction(group, 'dispatched')"
+                        >
+                            Dispatch all lots
+                        </button>
+                        <button
+                            v-if="group.canCredit"
+                            class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                            @click="showGroupAction(group, 'credit_recorded')"
+                        >
+                            Record credit note
+                        </button>
+                        <button
+                            v-if="group.canCancel"
+                            class="min-h-11 rounded border px-3"
+                            @click="showGroupAction(group, 'cancelled')"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            class="min-h-11 rounded border px-3"
+                            @click="
+                                groupHistory =
+                                    groupHistory === group.id ? null : group.id
+                            "
+                        >
+                            {{
+                                groupHistory === group.id
+                                    ? 'Hide history'
+                                    : 'History'
+                            }}
+                        </button>
+                    </div>
+                    <ol
+                        v-if="groupHistory === group.id"
+                        class="space-y-1 border-l-2 pl-3 text-xs"
+                    >
+                        <li v-for="(step, index) in group.history" :key="index">
+                            {{
+                                supplierReturnHistoryLabels[step.action] ??
+                                step.action
+                            }}
+                            · {{ formatDateTime(step.createdAt) }}
+                            <span v-if="step.reasonCode">
+                                ·
+                                {{
+                                    supplierReturnRejectLabels[
+                                        step.reasonCode
+                                    ] ?? step.reasonCode
+                                }}</span
+                            >
+                            <span v-if="step.reference">
+                                · ref {{ step.reference }}</span
+                            >
+                            <span v-if="step.creditAmountSen !== null">
+                                · credit RM
+                                {{
+                                    (step.creditAmountSen / 100).toFixed(2)
+                                }}</span
+                            >
+                        </li>
+                    </ol>
+                </template>
+            </StockSupplierReturnList>
             <div
                 v-if="returns.groups.lastPage > 1"
                 class="flex flex-wrap gap-2"
             >
                 <button
                     class="min-h-11 rounded border px-3"
-                    :disabled="returns.groups.page <= 1"
+                    :disabled="
+                        form.processing ||
+                        groupForm.processing ||
+                        returns.groups.page <= 1
+                    "
                     @click="
                         search(
                             returns.returns.page,
@@ -669,7 +692,11 @@ watch(
                 >
                 <button
                     class="min-h-11 rounded border px-3"
-                    :disabled="returns.groups.page >= returns.groups.lastPage"
+                    :disabled="
+                        form.processing ||
+                        groupForm.processing ||
+                        returns.groups.page >= returns.groups.lastPage
+                    "
                     @click="
                         search(
                             returns.returns.page,
@@ -687,134 +714,157 @@ watch(
             <h2 id="returns-heading" class="text-lg font-semibold">
                 Returns ({{ returns.returns.total }})
             </h2>
-            <p
-                v-if="returns.returns.rows.length === 0"
-                class="text-sm text-muted-foreground"
+            <StockSupplierReturnList
+                :rows="returns.returns.rows"
+                :branch-id="returns.branchId"
+                :context-key="`${returns.show}:${returns.returns.page}:${returns.q}`"
+                :busy="form.processing || groupForm.processing"
+                list-label="Individual supplier returns"
+                :empty-text="
+                    returns.show !== 'all' || returns.q !== ''
+                        ? 'No matching supplier returns.'
+                        : 'No supplier returns yet.'
+                "
+                :number="(row) => row.return_number"
             >
-                No supplier returns yet.
-            </p>
-            <article
-                v-for="row in returns.returns.rows"
-                :key="row.id"
-                class="space-y-2 rounded-lg border p-3"
-            >
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="font-mono text-sm">{{
-                        row.return_number
-                    }}</span>
-                    <span
-                        class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
-                        >{{
-                            supplierReturnStateLabels[row.state] ?? row.state
+                <template #summary="{ row: row }">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2"
+                    >
+                        <span class="font-mono text-sm">{{
+                            row.return_number
+                        }}</span>
+                        <span
+                            class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
+                            >{{
+                                supplierReturnStateLabels[row.state] ??
+                                row.state
+                            }}</span
+                        >
+                    </div>
+                    <p class="text-sm">
+                        {{ row.quantity }} {{ row.base_unit }} ·
+                        {{ row.sku_code }} · batch
+                        {{ row.batch_number }} (expires
+                        <span class="whitespace-nowrap">{{
+                            formatDate(row.expiry_date)
                         }}</span
-                    >
-                </div>
-                <p class="text-sm">
-                    {{ row.quantity }} {{ row.base_unit }} ·
-                    {{ row.sku_code }} · batch {{ row.batch_number }} (expires
-                    <span class="whitespace-nowrap">{{
-                        formatDate(row.expiry_date)
-                    }}</span
-                    >) · {{ row.location }}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                    {{ row.supplier }} · delivery {{ row.delivery_reference }} ·
-                    {{ supplierReturnReasonLabels[row.reason] ?? row.reason }}
-                    <span v-if="row.supplier_reference">
-                        · supplier ref {{ row.supplier_reference }}</span
-                    >
-                </p>
-                <p
-                    v-if="
-                        row.state === 'awaiting_approval' && row.requestedByYou
-                    "
-                    class="text-xs text-muted-foreground"
-                >
-                    You requested this return, so a Finance Officer or Director
-                    must approve it.
-                </p>
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        v-if="row.canDecide"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
-                        @click="showAction(row, 'approved')"
-                    >
-                        Approve
-                    </button>
-                    <button
-                        v-if="row.canDecide"
-                        class="min-h-11 rounded border px-3"
-                        @click="showAction(row, 'rejected')"
-                    >
-                        Reject
-                    </button>
-                    <button
-                        v-if="row.canDispatch"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
-                        @click="showAction(row, 'dispatched')"
-                    >
-                        Dispatch to supplier
-                    </button>
-                    <button
-                        v-if="row.canCredit"
-                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
-                        @click="showAction(row, 'credit_recorded')"
-                    >
-                        Record credit note
-                    </button>
-                    <button
-                        v-if="row.canCancel"
-                        class="min-h-11 rounded border px-3"
-                        @click="showAction(row, 'cancelled')"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        class="min-h-11 rounded border px-3"
-                        @click="history = history?.id === row.id ? null : row"
-                    >
+                        >) · {{ row.location }}
+                    </p>
+                    <p class="text-sm text-muted-foreground">
+                        {{ row.supplier }} · delivery
+                        {{ row.delivery_reference }} ·
                         {{
-                            history?.id === row.id ? 'Hide history' : 'History'
+                            supplierReturnReasonLabels[row.reason] ?? row.reason
                         }}
-                    </button>
-                </div>
-                <ol
-                    v-if="history?.id === row.id"
-                    class="space-y-1 border-l-2 pl-3 text-xs"
-                >
-                    <li v-for="step in row.history" :key="step.id">
-                        {{
-                            supplierReturnHistoryLabels[step.action] ??
-                            step.action
-                        }}
-                        by {{ step.actor_name ?? 'Staff member' }} ·
-                        {{ step.at_local ?? step.created_at }}
-                        <span v-if="step.reason_code">
-                            ·
+                        <span v-if="row.supplier_reference">
+                            · supplier ref {{ row.supplier_reference }}</span
+                        >
+                    </p>
+                </template>
+                <template #default="{ row: row }">
+                    <p
+                        v-if="
+                            row.state === 'awaiting_approval' &&
+                            row.requestedByYou
+                        "
+                        class="text-xs text-muted-foreground"
+                    >
+                        You requested this return, so a Finance Officer or
+                        Director must approve it.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            v-if="row.canDecide"
+                            class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                            @click="showAction(row, 'approved')"
+                        >
+                            Approve
+                        </button>
+                        <button
+                            v-if="row.canDecide"
+                            class="min-h-11 rounded border px-3"
+                            @click="showAction(row, 'rejected')"
+                        >
+                            Reject
+                        </button>
+                        <button
+                            v-if="row.canDispatch"
+                            class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                            @click="showAction(row, 'dispatched')"
+                        >
+                            Dispatch to supplier
+                        </button>
+                        <button
+                            v-if="row.canCredit"
+                            class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                            @click="showAction(row, 'credit_recorded')"
+                        >
+                            Record credit note
+                        </button>
+                        <button
+                            v-if="row.canCancel"
+                            class="min-h-11 rounded border px-3"
+                            @click="showAction(row, 'cancelled')"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            class="min-h-11 rounded border px-3"
+                            @click="
+                                history = history?.id === row.id ? null : row
+                            "
+                        >
                             {{
-                                supplierReturnRejectLabels[step.reason_code] ??
-                                step.reason_code
-                            }}</span
-                        >
-                        <span v-if="step.reference">
-                            · ref {{ step.reference }}</span
-                        >
-                        <span v-if="step.credit_amount_sen !== null">
-                            · credit RM
+                                history?.id === row.id
+                                    ? 'Hide history'
+                                    : 'History'
+                            }}
+                        </button>
+                    </div>
+                    <ol
+                        v-if="history?.id === row.id"
+                        class="space-y-1 border-l-2 pl-3 text-xs"
+                    >
+                        <li v-for="step in row.history" :key="step.id">
                             {{
-                                (step.credit_amount_sen / 100).toFixed(2)
-                            }}</span
-                        >
-                    </li>
-                </ol>
-            </article>
+                                supplierReturnHistoryLabels[step.action] ??
+                                step.action
+                            }}
+                            by {{ step.actor_name ?? 'Staff member' }} ·
+                            {{ step.at_local ?? step.created_at }}
+                            <span v-if="step.reason_code">
+                                ·
+                                {{
+                                    supplierReturnRejectLabels[
+                                        step.reason_code
+                                    ] ?? step.reason_code
+                                }}</span
+                            >
+                            <span v-if="step.reference">
+                                · ref {{ step.reference }}</span
+                            >
+                            <span v-if="step.credit_amount_sen !== null">
+                                · credit RM
+                                {{
+                                    (step.credit_amount_sen / 100).toFixed(2)
+                                }}</span
+                            >
+                        </li>
+                    </ol>
+                </template>
+            </StockSupplierReturnList>
             <div
                 v-if="returns.returns.lastPage > 1"
                 class="flex flex-wrap gap-2"
             >
                 <button
                     class="min-h-11 rounded border px-3"
-                    :disabled="returns.returns.page <= 1"
+                    :disabled="
+                        form.processing ||
+                        groupForm.processing ||
+                        returns.returns.page <= 1
+                    "
                     @click="search(returns.returns.page - 1, returns.lots.page)"
                 >
                     Previous
@@ -825,7 +875,11 @@ watch(
                 >
                 <button
                     class="min-h-11 rounded border px-3"
-                    :disabled="returns.returns.page >= returns.returns.lastPage"
+                    :disabled="
+                        form.processing ||
+                        groupForm.processing ||
+                        returns.returns.page >= returns.returns.lastPage
+                    "
                     @click="search(returns.returns.page + 1, returns.lots.page)"
                 >
                     Next
